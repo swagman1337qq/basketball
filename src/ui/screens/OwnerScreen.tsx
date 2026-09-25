@@ -82,6 +82,18 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           <p style={{ margin: "12px 0 0", fontSize: "12px", color: "var(--color-neutral-700)" }}>
             Nothing is hidden: these are every rule and limit the owner uses to judge you.
           </p>
+          {vm.own.fails > 0 && <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--gm-bad)" }}>Missed payroll mandates this season: {vm.own.fails} (−10 job security each).</p>}
+          <h4 style={{ margin: "22px 0 4px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
+            Franchise history
+          </h4>
+          {(vm.own.hist || []).length === 0 ? <p style={{ fontSize: "12px", color: "var(--color-neutral-700)", fontStyle: "italic" }}>Reviewed at the end of each season.</p> : (
+            <table className="table" style={{ fontSize: "12.5px" }}>
+              <thead><tr><th style={{ padding: "5px 8px" }}>Season</th><th style={{ padding: "5px 8px", textAlign: "right" }}>W–L</th><th style={{ padding: "5px 8px" }}>Finish</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Payroll</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Profit</th></tr></thead>
+              <tbody>{vm.own.hist.map((h: any, i: number) => (
+                <tr key={i}><td style={{ padding: "5px 8px" }}>{h.season - 1}–{String(h.season).slice(2)}</td><td style={{ padding: "5px 8px", textAlign: "right" }}>{h.w}–{h.l}</td><td style={{ padding: "5px 8px" }}>{h.fin}</td><td style={{ padding: "5px 8px", textAlign: "right" }}>${h.payroll.toFixed(1)}M</td><td style={{ padding: "5px 8px", textAlign: "right", color: h.net < 0 ? "var(--gm-bad)" : "var(--gm-good)" }}>{h.net < 0 ? "−" : ""}${Math.abs(h.net).toFixed(1)}M</td></tr>
+              ))}</tbody>
+            </table>
+          )}
         </section>
       </div>
     </>

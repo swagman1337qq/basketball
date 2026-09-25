@@ -23,6 +23,9 @@ import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { FinancesScreen } from './screens/FinancesScreen';
+import { CareerScreen } from './screens/CareerScreen';
+import { PressScreen } from './screens/PressScreen';
+import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
 import { TeamModal } from './modals/TeamModal';
@@ -71,6 +74,7 @@ export function GMView({ vm }: { vm: VM }) {
                 {vm.page.meta}
               </div>
             </div>
+            {!!vm.is.dash && <InboxCard vm={vm} />}
             {!!vm.is.dash && <DashboardScreen vm={vm} />}
             {!!vm.is.roster && <RosterScreen vm={vm} />}
             {!!vm.is.depth && <DepthChartScreen vm={vm} />}
@@ -92,6 +96,8 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.owner && <OwnerScreen vm={vm} />}
             {!!vm.is.settings && <SettingsScreen vm={vm} />}
             {!!vm.is.fin && <FinancesScreen vm={vm} />}
+            {!!vm.is.career && <CareerScreen vm={vm} />}
+            {!!vm.is.press && <PressScreen vm={vm} />}
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}

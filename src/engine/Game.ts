@@ -6,6 +6,7 @@ import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
 import { computeAwards, finalsMvp } from './awards';
 import { computeNorms } from './norms';
+import { baseAfterIncentives, fireSale, inboxTick, ownerFavorite } from './frontOffice';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -144,8 +145,13 @@ export class Game {
     for (let k = 0; k < 30; k++) { const p = mk(28 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = Math.round(cl(p.ovr + 16 + rnd() * 26, 45, 82)); cls[2028].push(p.id); }
     for (let k = 0; k < 25; k++) { const p = mk(24 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = Math.round(cl(p.ovr + 20 + rnd() * 28, 45, 84)); cls[2029].push(p.id); }
     (Object.values(P) as any[]).filter(p => p.cls).forEach(p => { p.exp = p.cls + 3; });
-    const sf = 178.4 / rosters[0].reduce((a, id) => a + P[id].amt, 0);
-    (Object.values(P) as any[]).forEach(p => { p.amt = +cl(p.amt * sf, p.age <= 22 ? 1.35 : 2.44, this.MAXC).toFixed(1); p.ask = +Math.max(2.44, p.amt * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.25 : 1)).toFixed(1); });
+    // Scale contracts so the average payroll sits near $172M, then pull every team
+    // between the salary floor and the 2nd apron (real payrolls cluster there).
+    const tot = Object.values(rosters).reduce((a: number, ids: any) => a + ids.reduce((x, id) => x + P[id].amt, 0), 0) as number;
+    const sf = 172 * teams.length / tot;
+    Object.values(P).forEach((p: any) => { p.amt *= sf; });
+    Object.values(rosters).forEach((ids: any) => { const pay = ids.reduce((x, id) => x + P[id].amt, 0), tgt = pay < CAPS0.MINP + 2 ? CAPS0.MINP + 2 + rnd() * 14 : pay > CAPS0.AP2 ? CAPS0.AP2 - 2 - rnd() * 10 : pay; if (tgt !== pay) ids.forEach(id => (P[id].amt *= tgt / pay)); });
+    (Object.values(P) as any[]).forEach(p => { p.amt = +cl(p.amt, p.age <= 22 ? 1.35 : 2.44, this.MAXC).toFixed(1); p.ask = +Math.max(2.44, p.amt * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.25 : 1)).toFixed(1); });
     const rank = {};
     Object.keys(cls).forEach(y => { cls[y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)); cls[y].forEach((id, i) => rank[id] = i + 1); });
     const order = teams.slice().sort((a, b) => a.w - b.w || b.l - a.l).map(t => t.tid);
@@ -323,7 +329,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid),
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -583,6 +589,7 @@ export class Game {
   }
   runLottery() {
     this.setState(s => {
+      if (s.unemployed) return null;
       if (s.phase !== 'lottery') return null;
       const inPO = new Set(s.po.rounds[0].flatMap(x => [x.a, x.b]));
       const byW = (a, b) => this.pct(s.teams[a]) - this.pct(s.teams[b]);
@@ -660,15 +667,15 @@ export class Game {
       const order = teams.slice().sort((a, b) => a.str - b.str).map(t => t.tid);
       d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       Object.values(progBy).forEach(x => x.sort((a, b) => (b.to - b.from) - (a.to - a.from)));
-      [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; });
+      [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; P[id].padding = false; P[id].moodAdj = Math.round((P[id].moodAdj || 0) / 2); });
       this.refreshNorms({ rosters, season: Y });
       let clubs = { ...(s.clubs || {}) }, top: any = {};
       s.managed.forEach(t => { const c = this.clubOf(s, t), f = { taxHist: [...(c.taxHist || []), this.payrollOf(s.rosters[t]) > this.TAX], prog: progBy[t] || [] };
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
-      return { ...top, clubs, tstats: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      return { ...top, clubs, tstats: {}, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
   }
-  startSeason() { this.setState(s => s.phase === 'preseason' && s.managed.every(t => s.rosters[t].length <= 15) ? { phase: 'regular', prog: null } : null); }
+  startSeason() { this.setState(s => s.phase === 'preseason' && !s.unemployed && s.managed.every(t => s.rosters[t].length <= 15) ? { phase: 'regular', prog: null, jobs: null } : null); }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
   flag(code) { return 'flags/' + this.db.C[code].iso + '.svg'; }
@@ -794,7 +801,8 @@ export class Game {
     const rosters = { ...s.rosters }, fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [];
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
-    if (Math.random() < .35) { const e = this.aiMove(rosters, fa, day, s); if (e) lgLog.unshift(e); }
+    let news = s.news || [];
+    if (Math.random() < .35) { const e = this.aiMove(rosters, fa, day, s); if (e) { lgLog.unshift(e); if (e.type === 'Trade' && Math.random() < .6) { const ab = e.teams.split(' · '), tid = s.teams.find(t => t.abbr === ab[0])?.tid; if (tid != null) news = [this.pressTrade(s, tid, this.db.P[e.pids[1]].name, [e.pids[1]]), ...news].slice(0, 80); } } }
     const tstats = { ...(s.tstats || {}) };
     Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
@@ -816,9 +824,28 @@ export class Game {
       s.managed.forEach(t => { if (reps[t]) addClub(t, c => ({ reports: [reps[t], ...(c.reports || [])].slice(0, 6) })); });
       (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(99, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
+    // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
+    const ib = inboxTick(this, s, day, rosters), favBench = { ...(s.favBench || {}) }, mandateFails = { ...(s.mandateFails || {}) };
+    s.managed.forEach(t => {
+      const Tm = s.teams[t], c0 = this.clubOf({ ...s, ...patch, clubs }, t);
+      if (Tm.arch === 'Meddling Micromanager' && rosters[t].indexOf(ownerFavorite(this, { ...s, rosters }, t)) >= 5) favBench[t] = (favBench[t] || 0) + 1;
+      let inbox = (c0?.inbox || []), changed = false;
+      const open = inbox.find(x => x.kind === 'mandate' && !x.resolved);
+      if (open) {
+        const ceil = this.ownerCeiling(Tm.arch) + (Tm.ceilAdj || 0), pay = this.payrollOf(rosters[t]) + (Tm.capAdj || 0);
+        if (pay <= ceil) { inbox = inbox.map(x => x === open ? { ...x, resolved: 'met', done: true } : x); changed = true; }
+        else if (day >= open.deadline) {
+          const sold = fireSale(this, s, t, rosters, lgLog);
+          mandateFails[t] = (mandateFails[t] || 0) + 1;
+          inbox = [{ id: 'fs' + this.Y + '-' + day + '-' + t, tid: t, day, season: this.Y, kind: 'firesale', done: true, title: Tm.owner + ' ordered a fire sale', text: 'You missed the payroll deadline. Gone: ' + (sold.join(', ') || 'nobody (roster too thin)') + '.', options: [] }, ...inbox.map(x => x === open ? { ...x, resolved: 'failed', done: true } : x)];
+          changed = true;
+        }
+      }
+      if (ib[t] || changed) { const add = ib[t] || []; addClub(t, () => ({ inbox: [...add, ...inbox].slice(0, 40) })); }
+    });
     s.managed.forEach(t => { const mine = inj.filter(x => x.mine && x.tid === t); if (mine.length) addClub(t, c => ({ log: [...mine.reverse().map(x => ({ date: this.fmtS(day), day, text: x.text })), ...(c.log || [])] })); });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
-    return { ...patch, clubs, tstats, teams, games: gameLog, day: day + 1, rosters, fa, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters, fa, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
   tidOf(rosters, id) { for (const k of Object.keys(rosters)) if (rosters[k].includes(id)) return +k; return -1; }
@@ -869,6 +896,9 @@ export class Game {
   // Hidden loyalty vs ambition decides whether a promised player boycotts a rival.
   heistLoyal(p, pr) { const loy = p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45), amb = p.pers.ambition ?? (p.pers.mot === 'Money' || p.pers.mot === 'Fame' ? 75 : 45); return loy + (pr.str - 50) * 0.6 + (p.pers.pro ? 10 : 0) > amb + 5; }
   pressDraft(s, tid, p, n) { const T = s.teams[tid]; return { day: s.day, season: this.Y, kind: 'draft', tid, who: T.gm, role: 'GM & head coach, ' + T.abbr, pids: [p.id], quote: ['We had ' + p.name + ' at the top of our board. That\u2019s a franchise kind of talent.', p.name + ' fits exactly what we want to be. We didn\u2019t hesitate.', 'You don\u2019t pass on a ' + p.pos + ' with his tools at No. ' + n + '.'][n % 3] }; }
+  // Press room quotes from the fictional owners and GMs around the league.
+  pressTrade(s, tid, got, pids) { const T = s.teams[tid], sp = Math.random() < .5; return { day: s.day, season: this.Y, kind: 'trade', tid, who: sp ? T.gm : T.owner, role: (sp ? 'GM & head coach, ' : 'Owner, ') + T.abbr, pids, quote: sp ? ['We love what ' + got + ' brings. Toughness, and he fits how we play.', 'This makes us better today and gives us flexibility tomorrow.', 'We\u2019ve had our eye on ' + got + ' for a while.'][Math.floor(Math.random() * 3)] : ['I signed off on it. ' + T.gm + ' made a strong case.', 'Our fans deserve a winner. This is a step.', 'I\u2019ll judge it in April.'][Math.floor(Math.random() * 3)] }; }
+  pressSign(s, p, amt, inc) { const T = s.teams[s.me], ai = s.teams.filter(t => !this.isUser(s, t.tid)), R = ai[Math.floor(Math.random() * ai.length)] || T; const rival = Math.random() < .35 && amt > 12; return rival ? { day: s.day, season: this.Y, kind: 'sign', tid: R.tid, who: R.gm, role: 'GM & head coach, ' + R.abbr, pids: [p.id], quote: amt.toFixed(0) + ' million for ' + p.name + '? Good for him. We had a number and we stuck to it.' } : { day: s.day, season: this.Y, kind: 'sign', tid: s.me, who: T.owner, role: 'Owner, ' + T.abbr, pids: [p.id], quote: inc.length ? 'Structured the right way: he earns the bonuses by producing.' : p.name + ' wanted to be here. That matters to me.' }; }
   draftPick(id) {
     this.setState(s => {
       const cur = s.phase === 'draft' ? s.picks[s.pi] : null, ow = cur ? this.owner2027(cur.orig, s.assets) : -1; if (!cur || !this.isUser(s, ow)) return null;
@@ -900,6 +930,7 @@ export class Game {
     if (m === 'Fame') f.push(['Market size', (me.mkt - 1) * 40]);
     if (m === 'Loyalty') f.push(['Years with the team', p.yrsWith * 3]);
     if (p.ext) f.push(['Recently extended', 8]);
+    if (p.moodAdj) f.push([p.moodAdj < 0 ? 'Incentive dispute with the front office' : 'Front office backed him', p.moodAdj]);
     const k = p.pers.volatile ? 1.4 : p.pers.pro ? .7 : 1;
     const fs = f.map(([n, v]) => [n, Math.round(v * k)]); if (p.pers.pro) fs.push(['Consummate professional', 5]);
     const out = fs.filter(x => x[1] !== 0), hap = Math.round(this.cl(55 + out.reduce((a, x) => a + x[1], 0), 0, 100));
@@ -916,12 +947,14 @@ export class Game {
     if (payroll + ask <= this.CAP) return 'Cap space';
     if (ask <= this.VMIN) return 'Minimum';
     if (!s.mleUsed && ask <= this.MLE && payroll + ask <= this.AP1) return 'Mid-level';
+    // Taxpayer mid-level: smaller, and gone entirely above the 2nd apron.
+    if (!s.mleUsed && ask <= +(this.MLE * 0.39).toFixed(1) && payroll + ask <= this.AP2) return 'Taxpayer mid-level';
     return null;
   }
   confirmDialog() {
     this.setState(s => {
       const dg = s.dialog; if (!dg) return null; const p = this.db.P[dg.pid];
-      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask = this.askFor(p, s); p.amt = ask; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = 15; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, [s.me]: [...s.rosters[s.me], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + ' (' + how.toLowerCase() + ')') }; }
+      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask0 = this.askFor(p, s), inc = (dg.inc || []).map(x => ({ ...x })), ask = inc.length ? baseAfterIncentives(ask0, inc) : ask0; p.amt = ask; p.inc = inc; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = 15; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level' || how === 'Taxpayer mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, [s.me]: [...s.rosters[s.me], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + (inc.length ? ' + $' + inc.reduce((a, x) => a + x.amt, 0).toFixed(1) + 'M in incentives' : '') + ' (' + how.toLowerCase() + ')'), news: [this.pressSign(s, p, ask, inc), ...(s.news || [])] }; }
       if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
       if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
       return { dialog: null };
@@ -932,12 +965,15 @@ export class Game {
     this.setState(s => {
       const P = this.db.P, T = s.teams, t = T[s.tTid], ev = this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
       const WANT = { rebuild: 'Their priority is draft capital and young talent; they will take on salary to acquire it.', middle: 'They are looking for young, high-upside players and prefer to hold on to their picks.', contend: 'They are looking for proven contributors who can help immediately.' };
+      if (!s.god) { const out = s.tMine.reduce((a, id) => a + this.capHit(P[id]), 0), inn = s.tTheirs.reduce((a, id) => a + this.capHit(P[id]), 0), after = this.payrollOf(s.rosters[s.me]) - out + inn;
+        if (after > this.AP2 && inn > out) return { tMsg: 'League office: teams above the 2nd apron ($' + this.AP2 + 'M) can’t take back more salary than they send out. This deal would put you at $' + after.toFixed(1) + 'M.' };
+        if (after > this.AP1 && s.tMine.length > 1 && inn > out * 1.0) return { tMsg: 'League office: above the 1st apron you can’t aggregate salaries to take back more money. Send out at least $' + inn.toFixed(1) + 'M or trade one-for-one.' }; }
       if (!ev.ok && !s.god && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + WANT[ev.st] + '\u201d' };
       const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
       const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
       const A = id => this.pickLabel(s.assets.find(a => a.id === id), T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
-      return { rosters, assets, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.', log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
+      return { rosters, assets, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.', news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
   balance() {

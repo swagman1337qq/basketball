@@ -69,6 +69,22 @@ export function SettingsScreen({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
+            Owner can fire you
+          </div>
+          <div>
+            <div>
+              {vm.firing.label}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
+              Each owner’s firing conditions are listed on the Owner screen and checked when you end the season.
+            </div>
+          </div>
+          <button className="btn btn-secondary" onClick={vm.firing.toggle} style={{ whiteSpace: "nowrap" }}>
+            {vm.firing.btn}
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             League expansion
           </div>
           <div>
