@@ -48,7 +48,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                     {p.name}
                   </span>
                   <span style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>
-                    {p.native}
+                    {p.native ? "(" + p.native + ")" : ""}
                   </span>
                   <span style={{ fontSize: "10px", letterSpacing: ".08em", color: "var(--color-neutral-600)" }}>
                     {p.role}

@@ -54,3 +54,26 @@ export function Bar({ value, max = 100, color = 'var(--color-accent)', height = 
 
 export const pctS = (m: number, a: number, d = 1) => (a ? ((m / a) * 100).toFixed(d) + '%' : '—');
 export const tone = (v: number) => (v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(--color-neutral-500)' : 'var(--color-text)');
+
+// Turn player names inside a sentence into profile links. `people` limits the search
+// (e.g. an event's player ids); without it every player in the league is matched.
+let idxCache: { n: number; P: any; re: RegExp | null; byName: Record<string, number> } | null = null;
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function nameIndex(P: Record<number, any>) {
+  const list = Object.values(P) as any[];
+  if (idxCache && idxCache.P === P && idxCache.n === list.length) return idxCache;
+  const byName: Record<string, number> = {};
+  list.forEach(p => { if (p.name && p.name.length > 4) byName[p.name] = p.id; });
+  const names = Object.keys(byName).sort((a, b) => b.length - a.length);
+  return (idxCache = { n: list.length, P, byName, re: names.length ? new RegExp('(' + names.map(esc).join('|') + ')', 'g') : null });
+}
+export function linkNames(text: string, open: (id: number) => void, opts: { P?: Record<number, any>; people?: { id: number; name: string }[] }): ReactNode {
+  if (!text) return text;
+  let re: RegExp | null, byName: Record<string, number>;
+  if (opts.people) { byName = {}; opts.people.forEach(p => { if (p && p.name) byName[p.name] = p.id; }); const ns = Object.keys(byName).sort((a, b) => b.length - a.length); re = ns.length ? new RegExp('(' + ns.map(esc).join('|') + ')', 'g') : null; }
+  else { const ix = nameIndex(opts.P || {}); re = ix.re; byName = ix.byName; }
+  if (!re) return text;
+  const parts = text.split(re);
+  if (parts.length === 1) return text;
+  return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
+}

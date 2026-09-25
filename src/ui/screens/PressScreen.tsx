@@ -2,7 +2,7 @@
 // trades, signings, the draft, firings and hirings. Every name links through.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { Kicker, Link, muted, Seg } from '../kit';
+import { Kicker, Link, linkNames, muted, Seg } from '../kit';
 
 const KIND: Record<string, string> = { trade: 'Trade', sign: 'Signing', draft: 'Draft', fired: 'Firing', hired: 'Hiring', review: 'Owner review', offer: 'Job offer', interview: 'Interview', firesale: 'Fire sale', award: 'Awards', title: 'Champions' };
 
@@ -22,7 +22,7 @@ export function PressScreen({ vm }: { vm: VM }) {
               {T[n.tid] ? logo(n.tid, 22) : null}
               <Kicker accent>{KIND[n.kind] || 'News'} · {n.season - 1}–{String(n.season).slice(2)} · {gm.fmtS(n.day)}</Kicker>
             </div>
-            <blockquote style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '16.5px', lineHeight: 1.35 }}>“{n.quote}”</blockquote>
+            <blockquote style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '16.5px', lineHeight: 1.35 }}>“{linkNames(n.quote, open, { P })}”</blockquote>
             <div style={{ fontSize: '12px', ...muted }}>
               — {n.who}, {T[n.tid] ? <Link onClick={() => openTeam(n.tid)}>{n.role}</Link> : n.role}
               {(n.pids || []).filter(id => P[id]).map(id => <span key={id}> · <Link onClick={() => open(id)}>{P[id].name}</Link></span>)}

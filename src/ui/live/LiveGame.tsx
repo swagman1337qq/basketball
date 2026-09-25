@@ -3,6 +3,7 @@
 import { Component, type ReactNode } from 'react';
 import { fmtClock, GameSim, qName, type GameResult, type Norms, type Side, type SimTeam } from '../../engine/sim';
 import { LiveGameView } from './LiveGameView';
+import { linkNames } from '../kit';
 
 export interface LiveGameProps {
   home: SimTeam;
@@ -19,6 +20,7 @@ const DELAY = [1400, 800, 420, 160, 40];
 
 export class LiveGame extends Component<LiveGameProps, { running: boolean; speed: number; tick: number }> {
   sim = new GameSim(this.props.home, this.props.away, { pbp: true, norms: this.props.norms });
+  nameOf = (id: number) => [...this.props.home.players, ...this.props.away.players].find(p => p.id === id)?.name || '';
   tm: ReturnType<typeof setTimeout> | undefined;
   state = { running: true, speed: 3, tick: 0 };
 
@@ -65,7 +67,7 @@ export class LiveGame extends Component<LiveGameProps, { running: boolean; speed
       qLabels: Array.from({ length: nq }, (_, i) => (i < 4 ? String(i + 1) : 'OT')),
       clock: s.done ? 'Final' + (s.q > 4 ? ' / OT' : '') : qName(s.q) + ' · ' + fmtClock(s.t),
       sides: [side('away', A), side('home', H)],
-      pbp: s.pbp.map(e => ({ ...e, abbr: e.side === 'home' ? H.abbr : A.abbr, color: e.side === userSide ? 'var(--color-accent-700)' : 'var(--color-neutral-700)', fw: e.time === 'Final' ? 600 : 400 })),
+      pbp: s.pbp.map(e => ({ ...e, text: e.ids && e.ids.length ? linkNames(e.text, this.props.onPlayer, { people: e.ids.map(id => ({ id, name: this.nameOf(id) })) }) : e.text, abbr: e.side === 'home' ? H.abbr : A.abbr, color: e.side === userSide ? 'var(--color-accent-700)' : 'var(--color-neutral-700)', fw: e.time === 'Final' ? 600 : 400 })),
       notDone: !s.done, done: s.done, runLabel: this.state.running ? 'Pause' : 'Play', speed: this.state.speed,
       finalLine: (win === userSide ? 'Win' : 'Loss') + ', ' + Math.max(s.home.pts, s.away.pts) + '–' + Math.min(s.home.pts, s.away.pts),
       toggle: () => this.setState(x => ({ running: !x.running }), () => this.loop()),

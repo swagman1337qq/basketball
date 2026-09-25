@@ -7,3 +7,8 @@ a:hover { color: var(--color-accent-600); }
 [style*="--gm-elite"] { text-shadow: 0 0 10px color-mix(in srgb, var(--gm-elite) 45%, transparent); }
 /* Wins and growth read as neon on the dark theme. */
 [style*="--gm-good"] { text-shadow: 0 0 8px color-mix(in srgb, var(--gm-good) 30%, transparent); }
+/* Team colours as quiet accents: a stripe above each screen, the sidebar edge,
+   and the top rule on cards. */
+.team-stripe { height: 3px; margin: -22px -28px 19px; background: linear-gradient(90deg, var(--team-1, var(--color-accent)) 0 70%, var(--team-2, var(--color-accent)) 70% 100%); opacity: .85; }
+aside { box-shadow: inset -2px 0 0 color-mix(in srgb, var(--team-1, transparent) 55%, transparent); }
+main .card { border-top-color: color-mix(in srgb, var(--team-1, var(--color-divider)) 45%, var(--color-divider)); }

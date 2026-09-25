@@ -25,6 +25,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { FinancesScreen } from './screens/FinancesScreen';
 import { CareerScreen } from './screens/CareerScreen';
 import { PressScreen } from './screens/PressScreen';
+import { LeagueStatsScreen } from './screens/LeagueStatsScreen';
 import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
@@ -43,6 +44,7 @@ export function GMView({ vm }: { vm: VM }) {
           {!!vm.isB && <BroadsheetMasthead vm={vm} />}
           {!!vm.isC && <DeskTopbar vm={vm} />}
           <main style={{ flex: "1", overflow: "auto", padding: "22px 28px 40px" }}>
+            <div className="team-stripe" />
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
               <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
                 {vm.ph.season}
@@ -98,6 +100,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.fin && <FinancesScreen vm={vm} />}
             {!!vm.is.career && <CareerScreen vm={vm} />}
             {!!vm.is.press && <PressScreen vm={vm} />}
+            {!!vm.is.league && <LeagueStatsScreen vm={vm} />}
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}

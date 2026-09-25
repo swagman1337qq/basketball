@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras, OverviewExtras } from './ProfileExtras';
 
 export function PlayerModal({ vm }: { vm: VM }) {
   return (
@@ -278,6 +279,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </div>
             </section>
           </>)}
+          {!!vm.pl.tabOverview && <OverviewExtras vm={vm} />}
           {!!vm.pl.tabContract && (<>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>
@@ -347,6 +349,9 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </section>
             </div>
           </>)}
+          {!!vm.pl.tabContract && <ContractExtras vm={vm} />}
+          {!!vm.pl.tabDev && <DevelopmentTab vm={vm} />}
+          {!!vm.pl.tabCompare && <CompareTab vm={vm} />}
           {!!vm.pl.tabEdit && (<>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>
@@ -549,6 +554,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </>)}
             </section>
           </>)}
+          {!!vm.pl.tabHistory && <HistoryExtras vm={vm} />}
         </div>
       </div>
     </>

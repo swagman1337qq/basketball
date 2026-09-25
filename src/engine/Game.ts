@@ -151,7 +151,9 @@ export class Game {
     const tot = Object.values(rosters).reduce((a: number, ids: any) => a + ids.reduce((x, id) => x + P[id].amt, 0), 0) as number;
     const sf = 172 * teams.length / tot;
     Object.values(P).forEach((p: any) => { p.amt *= sf; });
-    Object.values(rosters).forEach((ids: any) => { const pay = ids.reduce((x, id) => x + P[id].amt, 0), tgt = pay < CAPS0.MINP + 2 ? CAPS0.MINP + 2 + rnd() * 14 : pay > CAPS0.AP2 ? CAPS0.AP2 - 2 - rnd() * 10 : pay; if (tgt !== pay) ids.forEach(id => (P[id].amt *= tgt / pay)); });
+    // First-round picks still on their rookie deals are paid on the rookie scale, not by rating.
+    Object.values(P).forEach((p: any) => { if (p.rookie && p.dr) p.amt = this.rookieAmt(Math.min(30, p.dr.pick)) * CAPS0.CAP / 165; });
+    Object.values(rosters).forEach((ids: any) => { const vet = ids.filter(id => !P[id].rookie), fixed = ids.filter(id => P[id].rookie).reduce((x, id) => x + P[id].amt, 0), pay = vet.reduce((x, id) => x + P[id].amt, 0) + fixed, tgt = pay < CAPS0.MINP + 2 ? CAPS0.MINP + 2 + rnd() * 14 : pay > CAPS0.AP2 ? CAPS0.AP2 - 2 - rnd() * 10 : pay; if (tgt !== pay && pay > fixed) vet.forEach(id => (P[id].amt *= (tgt - fixed) / (pay - fixed))); });
     (Object.values(P) as any[]).forEach(p => { p.amt = +cl(p.amt, p.age <= 22 ? 1.35 : 2.44, this.MAXC).toFixed(1); p.ask = +Math.max(2.44, p.amt * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.25 : 1)).toFixed(1); });
     const rank = {};
     Object.keys(cls).forEach(y => { cls[y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)); cls[y].forEach((id, i) => rank[id] = i + 1); });
@@ -735,9 +737,30 @@ export class Game {
       out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
   }
+  static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'spd', 'stre'], Rebounding: ['reb', 'stre'], Athleticism: ['spd', 'jmp', 'stre'], Conditioning: ['endu'] };
+  // Expected monthly change per attribute for a player under a training focus (devTick without the dice).
+  growthPreview(s, tid, p, focus) {
+    const a = p.age, club = this.clubOf(s, tid), coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
+    const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
+    const minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1, stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
+    const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
+    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
+    return { monthly, per: out };
+  }
+  // Tactics a roster can run: some options need players with the right roles.
+  tacticUnlocks(ids) {
+    const R = ids.map(id => this.rolesOf(this.db.P[id])), n = (role) => R.filter(r => r.includes(role)).length;
+    return {
+      'Pace and space': [n('Floor spacer') + n('Stretch big') >= 3, '3+ floor spacers or stretch bigs'],
+      'Isolate the star': [n('Primary creator') >= 1, 'a primary creator'],
+      Aggressive: [n('Point-of-attack defender') >= 2, '2+ point-of-attack defenders'],
+      Fast: [n('Slasher') + n('Primary creator') >= 2, '2+ slashers or creators'],
+      Drop: [n('Rim protector') >= 1, 'a rim protector'],
+    } as Record<string, [boolean, string]>;
+  }
   devTick(s, rosters, day) {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
-    const FOC = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'spd', 'stre'], Rebounding: ['reb', 'stre'], Athleticism: ['spd', 'jmp', 'stre'], Conditioning: ['endu'] };
+    const FOC = Game.FOCUS;
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb' };
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
       const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;

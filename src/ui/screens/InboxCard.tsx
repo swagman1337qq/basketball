@@ -1,7 +1,7 @@
 // Front-office inbox on the dashboard: incentive dilemmas and owner mandates.
 import type { VM } from '../vm';
 import { resolveInbox } from '../../engine/frontOffice';
-import { Kicker, Link, muted } from '../kit';
+import { Kicker, Link, linkNames, muted } from '../kit';
 
 export function InboxCard({ vm }: { vm: VM }) {
   const { gm, s, open } = vm.ctx;
@@ -14,7 +14,7 @@ export function InboxCard({ vm }: { vm: VM }) {
       {items.map(x => (
         <div key={x.id} style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: '8px' }}>
           <div style={{ fontWeight: 600 }}>{x.pid != null ? <Link onClick={() => open(x.pid)}>{x.title}</Link> : x.title}</div>
-          <div style={{ fontSize: '12.5px', ...muted, margin: '2px 0 6px' }}>{x.text}</div>
+          <div style={{ fontSize: '12.5px', ...muted, margin: '2px 0 6px' }}>{linkNames(x.text, open, { P: gm.db.P })}</div>
           {!x.done && (
             <div style={{ display: 'flex', gap: '6px' }}>
               {x.options.map(o => <button key={o.k} className={o.k === 'yes' || o.k === 'ok' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => resolveInbox(gm, x.id, o.k)}>{o.label}</button>)}
