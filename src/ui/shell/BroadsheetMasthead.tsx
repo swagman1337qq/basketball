@@ -13,6 +13,11 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
             <div style={{ fontFamily: "var(--font-heading)", fontSize: "42px", fontWeight: "400", lineHeight: "1", marginTop: "4px", letterSpacing: "-.015em" }}>
               The {vm.myName}
             </div>
+            {!!vm.switcher.show && (
+            <select className="input" aria-label="Switch team" value={vm.switcher.value} onChange={vm.switcher.set} style={{ marginTop: "6px", maxWidth: "260px", minHeight: "28px", fontSize: "12px", padding: "2px 6px" }}>
+              {vm.switcher.opts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}
+            </select>
+          )}
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1" }}>

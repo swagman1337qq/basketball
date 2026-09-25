@@ -35,6 +35,9 @@ export function TeamModal({ vm }: { vm: VM }) {
                   Propose a trade
                 </button>
               </>)}
+              {!!vm.tm.canSwitch && <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: "nowrap" }}>Switch to this team</button>}
+              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap" }}>Take over (God Mode)</button>}
+              {!!vm.tm.canResign && <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Resign · hand to AI</button>}
               <button className="btn btn-ghost" onClick={vm.closeTeam} style={{ fontSize: "13px" }}>
                 Close
               </button>

@@ -12,8 +12,8 @@ export function App() {
   const [open, setOpen] = useState<Open | null>(null);
   const [error, setError] = useState('');
 
-  const onCreate = useCallback(async (name: string, seed: number, tid: number) => {
-    const game = Game.create(seed, tid);
+  const onCreate = useCallback(async (name: string, seed: number, tids: number[]) => {
+    const game = Game.create(seed, tids);
     const now = Date.now();
     const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
     row.summary = summarize(row.data);
@@ -82,7 +82,7 @@ function GameScreen({ open, error, onExit }: { open: Open; error: string; onExit
   }, [game]);
 
   const dark = (game.state.theme ?? 'dark') === 'dark';
-  useLayoutEffect(() => { applyTheme(rootRef.current, dark); rememberTheme(dark ? 'dark' : 'light'); });
+  useLayoutEffect(() => { applyTheme(rootRef.current, dark, game.state.teams[game.state.me]?.colors); rememberTheme(dark ? 'dark' : 'light'); });
 
   const exportNow = () => exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
   const vm = buildView(game, rootRef, { saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onExport: exportNow });

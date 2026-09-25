@@ -4,6 +4,7 @@
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
+import { computeAwards, finalsMvp } from './awards';
 import { computeNorms } from './norms';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
@@ -26,12 +27,12 @@ export class Game {
   private listeners = new Set<() => void>();
   private faceCache: Record<number, any> = {};
 
-  // A new league. The chosen franchise is swapped into slot 0, the user's slot.
-  static create(seed = 2027, userTid = 0) {
+  // A new league. `tids` are the franchises the user will run (1 to all of them);
+  // the first is the one on screen.
+  static create(seed = 2027, tids: number | number[] = 0) {
     const g = new Game();
     g.makeDB(seed);
-    if (userTid) g.swapTeams(0, userTid);
-    g.state = g.initState();
+    g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.refreshNorms(g.state);
     return g;
   }
@@ -48,22 +49,13 @@ export class Game {
     return out;
   }
 
-  swapTeams(a, b) {
-    const d = this.db, map = x => (x === a ? b : x === b ? a : x);
-    [d.teams[a], d.teams[b]] = [d.teams[b], d.teams[a]];
-    d.teams.forEach((t, i) => (t.tid = i));
-    [d.rosters[a], d.rosters[b]] = [d.rosters[b], d.rosters[a]];
-    d.assets.forEach(k => { k.orig = map(k.orig); k.owner = map(k.owner); k.id = k.yr + '-' + k.rd + '-' + k.orig; });
-    d.order = d.order.map(map);
-    d.days = d.days.map(day => day.map(([h, x]) => [map(h), map(x)]));
-  }
-
   static load(data: SaveData) {
     const g = new Game();
     g.db = { ...data.db, C: countries() };
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};
+    if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
     return g;
   }
@@ -77,6 +69,14 @@ export class Game {
     const style = t => { if (!t.colors) Object.assign(t, teamStyle(t.abbr)); };
     d.teams.forEach(style); s.teams.forEach(style);
     (Object.values(d.P) as any[]).forEach(p => { p.stats = []; Object.assign(p, { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }); });
+  }
+
+  // Saves from before multi-team control: the user ran tid 0 and results were user-only.
+  private migrateV2() {
+    const s = this.state;
+    s.managed = [0]; s.me = 0; s.clubs = {}; s.situ = s.situ || null; s.inbox = s.inbox || [];
+    s.games = (s.results || []).map(r => ({ day: r.day, h: r.home ? 0 : r.opp, a: r.home ? r.opp : 0, hp: r.home ? r.us : r.them, ap: r.home ? r.them : r.us }));
+    delete s.results;
   }
 
   toSave(): SaveData {
@@ -231,13 +231,15 @@ export class Game {
     if (t.def === 'Aggressive') f += (av('diq') - 55) / 10 * .5; if (t.def === 'Switch') f += (av('spd') - 55) / 10 * .3; if (t.def === 'Drop') f += (av('hgt') - 58) / 10 * .3;
     return this.cl(f, -1.5, 1.5);
   }
-  initState() {
-    const d = this.db, rosters0 = { ...d.rosters }, fa0 = d.fa.slice(), lg0 = [];
-    for (let k = 0; k < 14; k++) { const e = this.aiMove(rosters0, fa0, -14 + k); if (e) lg0.unshift(e); }
-    return { screen: 'dash', pid: d.rosters[0][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: rosters0, fa: fa0, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), buyoutCash: 0, tactics: { pace: 'Balanced', off: 'Balanced', def: 'Switch', clutch: 'Motion' }, scouts: [{ name: 'Dale Whitcombe', spec: 'NA', skill: 4, assign: 'NA' }, { name: 'Inés Morales', spec: 'WEU', skill: 3, assign: 'WEU' }, { name: 'Goran Vuković', spec: 'BAL', skill: 4, assign: 'BAL' }, { name: 'Kwame Asante', spec: 'AFR', skill: 2, assign: 'AFR' }], promises: {}, agentRep: 50, listModal: null, train: {}, reports: [], taxHist: [], god: false, phase: 'regular', season: 2027, po: null, playinRes: [], history: [], expansion: false, expanded: false, prog: null, lotto: null, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, results: d.results.slice(), log: [],
-      sort: { roster: ['rk', 1], fa: ['ovr', -1], draft: ['rank', 1] }, stand: 'conf', tTid: 5, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null,
-      assets: d.assets.map(a => ({ ...a })), picks: d.order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: 2027, adv: {}, mleUsed: false,
-      budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, q: '', dialog: null, showJson: false, tstats: {} };
+  initState(tids: number[] = [0]) {
+    const d = this.db, rosters0 = { ...d.rosters }, fa0 = d.fa.slice(), lg0 = [], me = tids[0];
+    const base: any = { managed: tids.slice(), me, clubs: {} };
+    tids.slice(1).forEach((t, i) => (base.clubs[t] = this.defaultClub(i + 1)));
+    for (let k = 0; k < 14; k++) { const e = this.aiMove(rosters0, fa0, -14 + k, base); if (e) lg0.unshift(e); }
+    return { ...base, ...this.defaultClub(0), screen: 'dash', pid: d.rosters[me][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: rosters0, fa: fa0, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), listModal: null, god: false, phase: 'regular', season: 2027, po: null, playin: null, playinRes: [], history: [], expansion: false, expanded: false, lotto: null, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, games: [],
+      sort: { roster: ['rk', 1], fa: ['ovr', -1], draft: ['rank', 1] }, stand: 'conf', tTid: d.teams.find(t => !tids.includes(t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null,
+      assets: d.assets.map(a => ({ ...a })), picks: d.order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: 2027, adv: {},
+      q: '', dialog: null, showJson: false, tstats: {}, awards: {}, news: [], career: { seasons: [], hires: [] } };
   }
   get Y() { return (this.state && this.state.season) || 2027; }
   seasonLbl() { return (this.Y - 1) + '–' + String(this.Y).slice(2); }
@@ -252,8 +254,65 @@ export class Game {
   // Default minutes per 48 by rotation slot (sums to 240). The user can override per player on Tactics.
   static ROTATION = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0, 0, 0, 0];
 
-  isUser(s, tid) { return tid === 0; }
-  clubOf(s, tid) { return this.isUser(s, tid) ? s : null; }
+  // ── Multi-team control ─────────────────────────────────────────────────────────
+  // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
+  // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox'];
+  isUser(s, tid) { return (s.managed || [0]).includes(tid); }
+  clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
+  defaultClub(i = 0) {
+    const SC = [['Dale Whitcombe', 'NA', 4], ['Inés Morales', 'WEU', 3], ['Goran Vuković', 'BAL', 4], ['Kwame Asante', 'AFR', 2]];
+    const NP = namePools(), R = Object.keys(regions()), pick = a => a[Math.floor(Math.random() * a.length)];
+    const scouts = i === 0 ? SC.map(([name, spec, skill]) => ({ name, spec, skill, assign: spec })) : R.slice(0, 4).map(k => { const k2 = pick(R); return { name: pick(NP.us.f) + ' ' + pick(NP.us.l), spec: k2, skill: 2 + Math.floor(Math.random() * 3), assign: k2 }; });
+    return { tactics: { pace: 'Balanced', off: 'Balanced', def: 'Switch', clutch: 'Motion' }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
+  }
+  // A patch that writes club fields for any managed team (top level if it's on screen).
+  clubPatch(s, tid, fields, clubs?) {
+    if (tid === s.me) return fields;
+    const c = clubs || { ...(s.clubs || {}) };
+    c[tid] = { ...(c[tid] || this.defaultClub(1)), ...fields };
+    return { clubs: c };
+  }
+  logFor(s, tid, text, day = s.day) {
+    const c = this.clubOf(s, tid);
+    return this.clubPatch(s, tid, { log: [{ date: this.fmtS(day), day, text }, ...((c && c.log) || [])] });
+  }
+  switchTeam(tid) {
+    this.setState(s => {
+      if (!this.isUser(s, tid) || tid === s.me) return null;
+      const clubs = { ...(s.clubs || {}) }, cur: any = {};
+      Game.CLUB_KEYS.forEach(k => (cur[k] = s[k]));
+      clubs[s.me] = cur;
+      const nxt = clubs[tid] || this.defaultClub(1);
+      delete clubs[tid];
+      return { ...nxt, clubs, me: tid, pid: s.rosters[tid][0], tTid: s.teams.find(t => t.tid !== tid)?.tid ?? 0, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null, teamModal: null, modal: false, screen: s.screen === 'game' ? 'dash' : s.screen };
+    });
+  }
+  // God Mode or a new job: add a franchise to the ones you run and switch to it.
+  takeOver(tid, why = 'God Mode: took over') {
+    this.setState(s => {
+      if (this.isUser(s, tid)) return null;
+      const T = s.teams[tid];
+      return { managed: [...s.managed, tid], clubs: { ...(s.clubs || {}), [tid]: this.defaultClub(1) }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: why + ' the ' + T.region + ' ' + T.name }, ...s.lgLog] };
+    });
+    this.switchTeam(tid);
+  }
+  // Resign / hand a franchise to the AI, which then runs it by its owner's archetype.
+  handToAI(tid, why = 'Handed to the AI:') {
+    const s0 = this.state;
+    if (!this.isUser(s0, tid) || s0.managed.length < 2) return;
+    if (tid === s0.me) this.switchTeam(s0.managed.find(t => t !== tid));
+    this.setState(s => {
+      const clubs = { ...(s.clubs || {}) }; delete clubs[tid];
+      const T = s.teams[tid], rosters = { ...s.rosters, [tid]: s.rosters[tid].slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr) };
+      return { managed: s.managed.filter(t => t !== tid), clubs, rosters, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: why + ' the ' + T.region + ' ' + T.name }, ...s.lgLog] };
+    });
+  }
+  // This season's results for a team, newest first: { day, win, us, them, opp, home, po }.
+  resultsOf(s, tid) {
+    return (s.games || []).filter(g => g.h === tid || g.a === tid).map(g => { const home = g.h === tid; return { day: g.day, win: home ? g.hp > g.ap : g.ap > g.hp, us: home ? g.hp : g.ap, them: home ? g.ap : g.hp, opp: home ? g.a : g.h, home, po: g.po }; }).reverse();
+  }
+  gamesPlayed(s) { return Math.max(0, ...s.teams.map(t => t.w + t.l)); }
 
   // A team as the engine sees it: healthy (or playing-through) players in rotation order,
   // each with roles, traits and condition; the club's tactics if a human runs it.
@@ -396,59 +455,131 @@ export class Game {
   }
 
   // The user's game on a schedule day: { opp, home }.
-  userGame(day) {
-    const days = this.db.days, g = (days[day] || days[days.length - 1]).find(x => x[0] === 0 || x[1] === 0);
-    return g ? { opp: g[0] === 0 ? g[1] : g[0], home: g[0] === 0 } : { opp: 1, home: true };
+  userGame(day, tid = this.state.me) {
+    const days = this.db.days, g = (days[day] || days[days.length - 1]).find(x => x[0] === tid || x[1] === tid);
+    return g ? { opp: g[0] === tid ? g[1] : g[0], home: g[0] === tid } : { opp: tid === 0 ? 1 : 0, home: true };
   }
   seeds(s, conf) { return s.teams.filter(t => t.conf === conf).sort((a, b) => this.pct(b) - this.pct(a) || b.w - a.w).map(t => t.tid); }
+  // ── Postseason ──────────────────────────────────────────────────────────────────
+  // Play-in per conference: A = 7 v 8 (winner is the 7 seed), B = 9 v 10, C = loser A v
+  // winner B for the 8 seed. Then four best-of-7 rounds, East and West separately, with
+  // the conference champions meeting in the Finals. Home court: 2-2-1-1-1 to the higher seed.
   startPlayin() {
     this.setState(s => {
-      const me = s.teams[0]; if (s.phase !== 'regular' || me.w + me.l < 82) return null;
-      const res = [], rounds = [[]]; let log = s.log; const A = t => s.teams[t].abbr;
+      if (s.phase !== 'regular' || this.gamesPlayed(s) < 82) return null;
+      const seeds: any = {}, playin: any = {};
       ['East', 'West'].forEach(c => {
-        const sd = this.seeds(s, c), [t7, t8, t9, t10] = sd.slice(6, 10);
-        const w78 = this.gameWin(s, t7, t8, true) ? t7 : t8, l78 = w78 === t7 ? t8 : t7, w910 = this.gameWin(s, t9, t10, true) ? t9 : t10, l910 = w910 === t9 ? t10 : t9;
-        const e8 = this.gameWin(s, l78, w910, true) ? l78 : w910;
-        res.push(c + ': ' + A(w78) + ' beat ' + A(l78) + ' for the 7 seed · ' + A(w910) + ' eliminated ' + A(l910) + ' · ' + A(e8) + ' took the 8 seed');
-        const top = [...sd.slice(0, 6), w78, e8];
-        [[0, 7], [3, 4], [2, 5], [1, 6]].forEach(([i, j]) => rounds[0].push({ a: top[i], sa: i + 1, b: top[j], sb: j + 1, wa: 0, wb: 0, conf: c }));
-        if ([t7, t8, t9, t10].includes(0)) log = this.logEntry(s, top.includes(0) ? 'Advanced through the play-in' : 'Eliminated in the play-in');
+        const sd = this.seeds(s, c); seeds[c] = sd;
+        playin[c] = [{ id: 'A', label: '7 vs 8', a: sd[6], sa: 7, b: sd[7], sb: 8 }, { id: 'B', label: '9 vs 10', a: sd[8], sa: 9, b: sd[9], sb: 10 }, { id: 'C', label: 'For the 8 seed', a: null, sa: null, b: null, sb: null }];
       });
-      return { phase: 'playoffs', playinRes: res, po: { rounds, champ: null }, log, screen: 'playoffs' };
+      const aw = computeAwards(this, s), P = this.db.P, T = s.teams, lgLog = s.lgLog.slice(), news = (s.news || []).slice();
+      const LB = { mvp: 'Most Valuable Player', dpoy: 'Defensive Player of the Year', roy: 'Rookie of the Year', smoy: 'Sixth Man of the Year', mip: 'Most Improved Player' };
+      Object.keys(LB).forEach(k => { const w = aw[k][0]; if (!w) return; lgLog.unshift({ day: s.day, type: 'Award', teams: T[w.tid]?.abbr || 'League', pids: [w.pid], text: P[w.pid].name + ' (' + (T[w.tid]?.abbr || 'FA') + ') is the ' + LB[k] + ': ' + w.line });
+        if (k === 'mvp' && T[w.tid]) news.unshift({ day: s.day, season: this.Y, kind: 'award', tid: w.tid, who: T[w.tid].owner, role: 'Owner, ' + T[w.tid].abbr, pids: [w.pid], quote: P[w.pid].name + ' carried this franchise all year. Nobody in this league was more valuable, and nobody worked harder.' }); });
+      if (aw.coy[0]) lgLog.unshift({ day: s.day, type: 'Award', teams: T[aw.coy[0].tid].abbr, text: aw.coy[0].name + ' (' + T[aw.coy[0].tid].abbr + ') is the Coach of the Year: ' + aw.coy[0].line });
+      return { phase: 'playin', seeds, playin, awards: { ...(s.awards || {}), [this.Y]: aw }, screen: 'playoffs', lgLog, news };
     });
   }
-  simPo(mode) {
+  playinPending(pi) {
+    const out = [];
+    ['East', 'West'].forEach(c => { const [A, B] = pi[c]; [A, B].forEach(x => { if (!x.done) out.push({ c, x }); }); });
+    if (out.length) return out;
+    ['East', 'West'].forEach(c => { const C = pi[c][2]; if (!C.done) out.push({ c, x: C }); });
+    return out;
+  }
+  // One postseason game: simulated (or the finished Live Game), logged, stats on the playoff line.
+  private postGame(s, home, away, forced, kind, finals?) {
+    const res = forced && forced.home.tid === home && forced.away.tid === away ? forced : this.playGame(s, home, away);
+    this.addBox(res, true);
+    if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
+    return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind } };
+  }
+  simPlayin(forced?: GameResult) {
+    this.setState(s => {
+      if (s.phase !== 'playin') return null;
+      const pi = JSON.parse(JSON.stringify(s.playin)), todo = this.playinPending(pi);
+      if (!todo.length) return null;
+      const games = (s.games || []).slice(); let st: any = { ...s }, clubs = { ...(s.clubs || {}) };
+      const note = (t, text) => { const pt = this.clubPatch({ ...st, clubs }, t, { log: [{ date: this.fmtS(s.day), day: s.day, text }, ...((this.clubOf({ ...st, clubs }, t) || {}).log || [])] }, clubs); if (pt.clubs) clubs = pt.clubs; else st = { ...st, ...pt }; };
+      todo.forEach(({ c, x }) => {
+        const { res, log } = this.postGame(s, x.a, x.b, forced, 'playin');
+        Object.assign(x, { hp: res.home.pts, ap: res.away.pts, done: true, w: res.home.pts > res.away.pts ? x.a : x.b, l: res.home.pts > res.away.pts ? x.b : x.a });
+        games.push(log);
+        [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (x.w === t ? 'Won' : 'Lost') + ' the play-in (' + x.label + ') vs ' + s.teams[x.w === t ? x.l : x.w].abbr + ', ' + Math.max(x.hp, x.ap) + '–' + Math.min(x.hp, x.ap)); });
+        if (x.id === 'B' || x.id === 'A') { const [A, B, C] = pi[c]; if (A.done && B.done) Object.assign(C, { a: A.l, sa: A.l === A.a ? 7 : 8, b: B.w, sb: B.w === B.a ? 9 : 10 }); }
+      });
+      return { ...st, clubs, playin: pi, games, day: s.day + 1 };
+    });
+  }
+  startPlayoffs() {
+    this.setState(s => {
+      if (s.phase !== 'playin' || this.playinPending(s.playin).length) return null;
+      const rounds = [[]];
+      ['East', 'West'].forEach(c => {
+        const sd = s.seeds[c], [A, , C] = s.playin[c], top = [...sd.slice(0, 6), A.w, C.w];
+        [[0, 7], [3, 4], [2, 5], [1, 6]].forEach(([i, j]) => rounds[0].push({ a: top[i], sa: i + 1, b: top[j], sb: j + 1, wa: 0, wb: 0, conf: c, g: [] }));
+      });
+      return { phase: 'playoffs', po: { rounds, champ: null, finals: {} }, screen: 'playoffs' };
+    });
+  }
+  simPo(mode, forced?: GameResult) {
     this.setState(s => {
       if (s.phase !== 'playoffs' || !s.po || s.po.champ != null) return null;
-      const po = { ...s.po, rounds: s.po.rounds.map(r => r.map(x => ({ ...x }))) }; let log = s.log;
+      const po = { ...s.po, finals: { ...(s.po.finals || {}) }, rounds: s.po.rounds.map(r => r.map(x => ({ ...x, g: (x.g || []).slice() }))) };
       const RN = ['first round', 'conference semifinals', 'conference finals', 'Finals'];
       const W = x => x.wa === 4 ? { t: x.a, sd: x.sa } : { t: x.b, sd: x.sb }, L = x => x.wa === 4 ? x.b : x.a, done = x => x.wa === 4 || x.wb === 4;
+      const games = (s.games || []).slice(); let day = s.day, st: any = { ...s }, clubs = { ...(s.clubs || {}) }, used = false;
+      const note = (t, text) => { const pt = this.clubPatch({ ...st, clubs }, t, { log: [{ date: this.fmtS(day), day, text }, ...((this.clubOf({ ...st, clubs }, t) || {}).log || [])] }, clubs); if (pt.clubs) clubs = pt.clubs; else st = { ...st, ...pt }; };
       const advance = () => {
         const r = po.rounds[po.rounds.length - 1];
         if (r.length === 1) { po.champ = W(r[0]).t; po.runner = L(r[0]); return; }
         let nr = [];
-        if (r.length === 2) { let e = W(r[0]), w = W(r[1]); if (this.pct(s.teams[w.t]) > this.pct(s.teams[e.t])) [e, w] = [w, e]; nr = [{ a: e.t, sa: e.sd, b: w.t, sb: w.sd, wa: 0, wb: 0, conf: 'Finals' }]; }
-        else ['East', 'West'].forEach(c => { const cs = r.filter(x => x.conf === c); for (let i = 0; i < cs.length; i += 2) { const x = W(cs[i]), y = W(cs[i + 1]); const [hi, lo] = x.sd <= y.sd ? [x, y] : [y, x]; nr.push({ a: hi.t, sa: hi.sd, b: lo.t, sb: lo.sd, wa: 0, wb: 0, conf: c }); } });
+        if (r.length === 2) { let e = W(r[0]), w = W(r[1]); if (this.pct(s.teams[w.t]) > this.pct(s.teams[e.t])) [e, w] = [w, e]; nr = [{ a: e.t, sa: e.sd, b: w.t, sb: w.sd, wa: 0, wb: 0, conf: 'Finals', g: [] }]; }
+        else ['East', 'West'].forEach(c => { const cs = r.filter(x => x.conf === c); for (let i = 0; i < cs.length; i += 2) { const x = W(cs[i]), y = W(cs[i + 1]); const [hi, lo] = x.sd <= y.sd ? [x, y] : [y, x]; nr.push({ a: hi.t, sa: hi.sd, b: lo.t, sb: lo.sd, wa: 0, wb: 0, conf: c, g: [] }); } });
         po.rounds.push(nr);
       };
-      const playGame = () => {
+      const playDay = () => {
         const ri = po.rounds.length - 1, r = po.rounds[ri];
-        r.forEach(x => { if (done(x)) return; const g = x.wa + x.wb; if (this.gameWin(s, x.a, x.b, [0, 1, 4, 6].includes(g))) x.wa++; else x.wb++;
-          if (done(x) && (x.a === 0 || x.b === 0)) { const won = W(x).t === 0, o = s.teams[x.a === 0 ? x.b : x.a]; log = [{ date: this.fmtS(s.day), day: s.day, text: (won ? 'Won ' : 'Lost ') + (ri === 3 ? 'the Finals' : 'the ' + RN[ri]) + ' vs ' + o.abbr + ', ' + Math.max(x.wa, x.wb) + '–' + Math.min(x.wa, x.wb) }, ...log]; } });
+        r.forEach(x => {
+          if (done(x)) return;
+          const n = x.wa + x.wb, aHome = [0, 1, 4, 6].includes(n), home = aHome ? x.a : x.b, away = aHome ? x.b : x.a;
+          const f = !used && forced && forced.home.tid === home && forced.away.tid === away ? forced : undefined;
+          if (f) used = true;
+          const { res, log } = this.postGame({ ...s, day }, home, away, f, 'po', ri === 3 ? po.finals : null);
+          games.push(log);
+          const aWon = (res.home.pts > res.away.pts) === aHome;
+          if (aWon) x.wa++; else x.wb++;
+          x.g.push({ h: home, hp: res.home.pts, ap: res.away.pts });
+          if (done(x)) [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (W(x).t === t ? 'Won ' : 'Lost ') + (ri === 3 ? 'the Finals' : 'the ' + RN[ri]) + ' vs ' + s.teams[t === x.a ? x.b : x.a].abbr + ', ' + Math.max(x.wa, x.wb) + '–' + Math.min(x.wa, x.wb)); });
+        });
+        day++;
         if (r.every(done)) advance();
       };
       let g = 0;
-      if (mode === 'game') playGame(); else if (mode === 'round') { const n0 = po.rounds.length; while (po.rounds.length === n0 && po.champ == null && g++ < 10) playGame(); } else while (po.champ == null && g++ < 60) playGame();
-      const out: any = { po, log };
+      if (mode === 'game') playDay(); else if (mode === 'round') { const n0 = po.rounds.length; while (po.rounds.length === n0 && po.champ == null && g++ < 10) playDay(); } else while (po.champ == null && g++ < 40) playDay();
+      const out: any = { ...st, clubs, po, games, day };
       if (po.champ != null) {
-        const me = s.teams[0]; let fin = 'Missed the playoffs';
-        po.rounds.forEach((r, i) => r.forEach(x => { if (x.a === 0 || x.b === 0) fin = W(x).t === 0 ? (i === 3 ? 'Won the title' : fin) : 'Lost in the ' + RN[i]; }));
-        if (fin === 'Missed the playoffs' && this.seeds(s, me.conf).indexOf(0) < 10) fin = 'Lost in the play-in';
-        out.history = [{ season: this.seasonLbl(), champ: po.champ, runner: po.runner, rec: me.w + '–' + me.l, fin }, ...s.history];
-        out.lgLog = [{ day: s.day, type: 'Draft', teams: s.teams[po.champ].abbr, text: s.teams[po.champ].region + ' ' + s.teams[po.champ].name + ' won the ' + this.seasonLbl() + ' championship' }, ...s.lgLog].map(e => e.type === 'Draft' && /championship$/.test(e.text) ? { ...e, type: 'Award' } : e);
+        const T = s.teams, fm = finalsMvp(this, po.finals, po.champ, s), aw = { ...((s.awards || {})[this.Y] || {}), fmvp: fm };
+        const finOf = tid => { let fin = 'Missed the playoffs'; po.rounds.forEach((r, i) => r.forEach(x => { if (x.a === tid || x.b === tid) fin = W(x).t === tid ? (i === 3 ? 'Won the title' : fin) : 'Lost in the ' + RN[i]; })); if (fin === 'Missed the playoffs' && ['East', 'West'].some(c => s.playin?.[c]?.some(x => x.a === tid || x.b === tid))) fin = 'Lost in the play-in'; return fin; };
+        const teams = {}; s.managed.forEach(t => (teams[t] = { rec: T[t].w + '–' + T[t].l, fin: finOf(t) }));
+        out.history = [{ season: this.seasonLbl(), year: this.Y, champ: po.champ, runner: po.runner, rec: T[s.me].w + '–' + T[s.me].l, fin: finOf(s.me), teams, fmvp: fm?.pid }, ...s.history];
+        out.awards = { ...(s.awards || {}), [this.Y]: aw };
+        out.lgLog = [{ day, type: 'Award', teams: T[po.champ].abbr, text: T[po.champ].region + ' ' + T[po.champ].name + ' won the ' + this.seasonLbl() + ' championship' }, ...(fm ? [{ day, type: 'Award', teams: T[po.champ].abbr, pids: [fm.pid], text: this.db.P[fm.pid].name + ' is the Finals MVP: ' + fm.line }] : []), ...s.lgLog];
+        out.news = [{ day, season: this.Y, kind: 'title', tid: po.champ, who: T[po.champ].owner, role: 'Owner, ' + T[po.champ].abbr, quote: 'This city deserved this. I promised a champion and ' + T[po.champ].gm + ' and this group delivered one.' }, ...(s.news || [])];
       }
       return out;
     });
+  }
+  // The next postseason game involving a team, if any: { home, away, label }.
+  nextPostGame(s, tid) {
+    if (s.phase === 'playin' && s.playin) { const g = this.playinPending(s.playin).find(({ x }) => x.a === tid || x.b === tid); return g ? { home: g.x.a, away: g.x.b, label: 'Play-in · ' + g.c + ' ' + g.x.label } : null; }
+    if (s.phase === 'playoffs' && s.po && s.po.champ == null) {
+      const ri = s.po.rounds.length - 1, x = s.po.rounds[ri].find(y => (y.a === tid || y.b === tid) && y.wa < 4 && y.wb < 4);
+      if (!x) return null;
+      const n = x.wa + x.wb, aHome = [0, 1, 4, 6].includes(n);
+      return { home: aHome ? x.a : x.b, away: aHome ? x.b : x.a, label: ['First round', 'Conference semifinals', 'Conference finals', 'Finals'][ri] + ' · Game ' + (n + 1) };
+    }
+    return null;
   }
   runLottery() {
     this.setState(s => {
@@ -468,15 +599,16 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
       const P = this.db.P, Y = this.Y, rosters = { ...s.rosters }, fa = s.fa.slice(), ovs = (s.overseas || []).slice(); let lgLog = s.lgLog;
-      s.picks.forEach(pk => { const ow = this.owner2027(pk.orig, s.assets); if (ow !== 0 && pk.pid && this.db.P[pk.pid].boycott) { const p = this.db.P[pk.pid]; p.abroad = { club: p.from.team, lg: p.from.lg, country: p.from.country || p.raised, pts: 12, reb: 5, ast: 2, clause: 'Buyout', fee: 2.5 }; Object.assign(p, { cls: 0, dr: { rd: 1, pick: pk.n }, draft: Y }); ovs.push(pk.pid); }
-      else if (ow !== 0 && pk.pid) { const p = P[pk.pid]; Object.assign(p, { amt: this.rookieAmt(pk.n), dr: { rd: 1, pick: pk.n }, draft: Y, rookie: true, exp: Y + 4, yrsWith: 0 }); rosters[ow] = [...rosters[ow], pk.pid]; } });
+      s.picks.forEach(pk => { const ow = this.owner2027(pk.orig, s.assets); if (!this.isUser(s, ow) && pk.pid && this.db.P[pk.pid].boycott) { const p = this.db.P[pk.pid]; p.abroad = { club: p.from.team, lg: p.from.lg, country: p.from.country || p.raised, pts: 12, reb: 5, ast: 2, clause: 'Buyout', fee: 2.5 }; Object.assign(p, { cls: 0, dr: { rd: 1, pick: pk.n }, draft: Y }); ovs.push(pk.pid); }
+      else if (!this.isUser(s, ow) && pk.pid) { const p = P[pk.pid]; Object.assign(p, { amt: this.rookieAmt(pk.n), dr: { rd: 1, pick: pk.n }, draft: Y, rookie: true, exp: Y + 4, yrsWith: 0 }); rosters[ow] = [...rosters[ow], pk.pid]; } });
       Object.keys(rosters).forEach(k => { const t = +k; rosters[t] = rosters[t].filter(id => { const p = P[id];
         if (p.ext) { p.exp += p.ext.yrs; p.amt = p.ext.amt; delete p.ext; return true; }
         if (p.exp > Y) return true;
-        if (t !== 0 && Math.random() < .55) { p.exp = Y + 1 + Math.floor(Math.random() * 4); p.amt = +this.fair(p.ovr).toFixed(1); p.rookie = false; return true; }
+        if (!this.isUser(s, t) && Math.random() < .55) { p.exp = Y + 1 + Math.floor(Math.random() * 4); p.amt = +this.fair(p.ovr).toFixed(1); p.rookie = false; return true; }
         p.prevAmt = p.amt; p.ask = +Math.max(p.age <= 22 ? 1.35 : 2.44, this.fair(p.ovr) * (p.mood === 'Eager' ? .9 : p.mood === 'Reluctant' ? 1.2 : 1)).toFixed(1); p.exp = Y + 1 + Math.floor(Math.random() * 4); p.birdTid = t; p.rookie = false; fa.push(id); return false; }); });
-      const mine = s.log;
-      return { overseas: ovs, phase: 'fa', rosters, fa, mleUsed: false, screen: 'fa', lgLog: [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + fa.length + ' players available' }, ...lgLog], log: this.logEntry(s, 'Free agency opened. Your expiring players are listed with Bird rights.') };
+      let clubs = { ...(s.clubs || {}) };
+      s.managed.filter(t => t !== s.me).forEach(t => (clubs = this.clubPatch(s, t, { mleUsed: false }, clubs).clubs));
+      return { clubs, overseas: ovs, phase: 'fa', rosters, fa, mleUsed: false, screen: 'fa', lgLog: [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + fa.length + ' players available' }, ...lgLog], log: this.logEntry(s, 'Free agency opened. Your expiring players are listed with Bird rights.') };
     });
   }
   advanceFA(days) {
@@ -484,7 +616,7 @@ export class Game {
       if (s.phase !== 'fa') return null;
       const P = this.db.P, T = this.db.teams, rosters = { ...s.rosters }, fa = s.fa.slice(); let lgLog = s.lgLog;
       for (let d = 0; d < days * 8; d++) {
-        const need = T.map(t => t.tid).filter(t => t !== 0 && rosters[t].length < 15).sort((a, b) => rosters[a].length - rosters[b].length);
+        const need = T.map(t => t.tid).filter(t => !this.isUser(s, t) && rosters[t].length < 15).sort((a, b) => rosters[a].length - rosters[b].length);
         if (!need.length || !fa.length) break;
         const t = need[Math.floor(Math.random() * Math.min(need.length, 6))], c = fa.slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 6), id = c[Math.floor(Math.random() * c.length)];
         fa.splice(fa.indexOf(id), 1); rosters[t] = [...rosters[t], id]; P[id].amt = P[id].ask; if (P[id].birdTid !== t) P[id].yrsWith = 0; P[id].birdTid = null;
@@ -496,14 +628,14 @@ export class Game {
   startPreseason() {
     this.setState(s => {
       if (s.phase !== 'fa') return null;
-      const P = this.db.P, d = this.db, Y = this.Y + 1, coach = (s.budget.Coaching - 18) / 12;
+      const P = this.db.P, d = this.db, Y = this.Y + 1, coachOf = k => { const c = this.clubOf(s, +k); return c ? (c.budget.Coaching - 18) / 12 : 0; }, progBy: Record<number, any[]> = {};
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; const a = p.age, base = a <= 22 ? 2 + Math.random() * 4 : a <= 25 ? 1 + Math.random() * 3 : a <= 28 ? -1 + Math.random() * 3 : a <= 31 ? -3 + Math.random() * 3 : -5 + Math.random() * 4; const dlt = Math.round(base * .5 + bonus); const from = p.ovr; p.ovr = this.cl(p.ovr + dlt, 25, 85); if (p.pot < p.ovr) p.pot = p.ovr; if (a >= 28) p.pot = Math.max(p.ovr, p.pot - 2); Object.keys(p.r).forEach(k => p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 99))); return from; };
-      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], +k === 0 ? coach : 0); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (+k === 0) prog.push({ id, from, to: P[id].ovr }); }));
+      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
       fa.forEach(id => grow(P[id], 0));
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => !retire(id));
-      Object.keys(rosters).forEach(k => { if (+k === 0) return; const out = rosters[k].filter(retire); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
+      Object.keys(rosters).forEach(k => { if (this.isUser(s, +k)) return; const out = rosters[k].filter(retire); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
       const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 10);
       left.forEach(id => { Object.assign(P[id], { cls: 0, dr: null, draft: this.Y, amt: 1.35, ask: 1.35, exp: Y + 1, yrsWith: 0 }); fa.push(id); });
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: ['Kentucky', 'Duke', 'Kansas', 'UCLA', 'Gonzaga', 'Arizona', 'UConn', 'Houston'][id % 8], lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
@@ -515,35 +647,37 @@ export class Game {
         const NEW = EXPANSION;
         NEW.forEach((n, j) => { const tid = teams.length; const t = { tid, region: n[0], name: n[1], abbr: n[2], conf: n[3], div: n[4], mkt: n[5], str: 46, ...teamStyle(n[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
         const base = teams.length - 2;
-        for (let t = 1; t < base; t++) { const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = base + (t % 2); rosters[nt] = [...rosters[nt], id]; }
+        for (let t = 0; t < base; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = base + (t % 2); rosters[nt] = [...rosters[nt], id]; }
         [base, base + 1].forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
         ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'MLE', 'MAXC'].forEach(k => d.caps[k] = +(d.caps[k] * 1.02).toFixed(1));
         for (let k = 0; k < 2; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
         expanded = true; lgLog = [{ day: s.day, type: 'Signing', teams: 'LOU · MEX', text: 'The league expanded to 32 teams: Louisville Thoroughbreds and Mexico City Águilas. Salary cap rises to $' + this.CAP + 'M.' }, ...lgLog];
       }
-      Object.keys(rosters).forEach(k => { if (+k === 0) return; while (rosters[k].length < 13 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[k] = [...rosters[k], id]; } while (rosters[k].length > 15) { const w = rosters[k].slice().sort((a, b) => P[a].ovr - P[b].ovr)[0]; rosters[k] = rosters[k].filter(x => x !== w); fa.push(w); } });
+      Object.keys(rosters).forEach(k => { if (this.isUser(s, +k)) return; while (rosters[k].length < 13 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[k] = [...rosters[k], id]; } while (rosters[k].length > 15) { const w = rosters[k].slice().sort((a, b) => P[a].ovr - P[b].ovr)[0]; rosters[k] = rosters[k].filter(x => x !== w); fa.push(w); } });
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
-      Object.keys(rosters).forEach(k => { if (+k !== 0) { const o = rosters[k].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); teams[k].str = o.reduce((a, b) => a + b, 0) / o.length - 4.3; } });
+      Object.keys(rosters).forEach(k => { if (!this.isUser(s, +k)) { const o = rosters[k].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); teams[k].str = o.reduce((a, b) => a + b, 0) / o.length - 4.3; } });
       d.days = this.buildSchedule(teams.length);
       const order = teams.slice().sort((a, b) => a.str - b.str).map(t => t.tid);
       d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
-      prog.sort((a, b) => (b.to - b.from) - (a.to - a.from));
+      Object.values(progBy).forEach(x => x.sort((a, b) => (b.to - b.from) - (a.to - a.from)));
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; });
       this.refreshNorms({ rosters, season: Y });
-      const pay0 = s.rosters[0].reduce((a, id) => a + P[id].amt, 0);
-      return { tstats: {}, taxHist: [...(s.taxHist || []), pay0 > this.TAX], season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, results: [], po: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, prog, expanded, lgLog, log, screen: 'dash', tTid: 1, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      let clubs = { ...(s.clubs || {}) }, top: any = {};
+      s.managed.forEach(t => { const c = this.clubOf(s, t), f = { taxHist: [...(c.taxHist || []), this.payrollOf(s.rosters[t]) > this.TAX], prog: progBy[t] || [] };
+        const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
+      return { ...top, clubs, tstats: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
   }
-  startSeason() { this.setState(s => s.phase === 'preseason' && s.rosters[0].length <= 15 ? { phase: 'regular', prog: null } : null); }
+  startSeason() { this.setState(s => s.phase === 'preseason' && s.managed.every(t => s.rosters[t].length <= 15) ? { phase: 'regular', prog: null } : null); }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
   flag(code) { return 'flags/' + this.db.C[code].iso + '.svg'; }
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
   owner2027(orig, assets) { return assets.find(a => a.yr === this.Y && a.rd === 1 && a.orig === orig).owner; }
   fair(ovr) { return Math.min(this.MAXC, (2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52) * this.db.sf); }
-  strategies(T) {
+  strategies(T, s = this.state) {
     const sc = t => this.pct(t) * 0.65 + (t.str - 45) / 12 * 0.35;
-    const srt = T.filter(t => t.tid !== 0).sort((a, b) => sc(b) - sc(a)), out = {};
+    const srt = T.filter(t => !this.isUser(s, t.tid)).sort((a, b) => sc(b) - sc(a)), out = {};
     srt.forEach((t, i) => out[t.tid] = i < 9 ? 'contend' : i >= 20 ? 'rebuild' : 'middle');
     return out;
   }
@@ -572,12 +706,13 @@ export class Game {
     return { st, recv, give, diff: recv - give - thr, ok: recv - give >= thr };
   }
   injTick(rosters, day, s, out, mins: Record<number, number> = {}) {
-    const P = this.db.P, hb = 1 - (s.budget.Health - 10) / 40, pk = a => a[Math.floor(Math.random() * a.length)];
+    const P = this.db.P, pk = a => a[Math.floor(Math.random() * a.length)];
+    const hbOf = k => { const c = this.clubOf(s, +k); return c ? 1 - (c.budget.Health - 10) / 40 : 1; };
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
       if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { let lost = '';
           // A major injury can also cost skill once he's back (rust, lost feel).
           if (p.inj.major && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
-          if (+k === 0) out.push({ mine: true, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); delete p.inj; }
+          if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); delete p.inj; }
         if (!p.inj || !p.inj.dtd || !mins[id]) return; }
       const risk = .0045 * (1 + Math.max(0, p.age - 27) * .05) * (1.45 - p.r.endu / 100) * (1.25 - p.r.stre / 200) * ((mins[id] || 0) / 30) * (p.pers.prone ? 1.8 : 1) * (1 + (p.fat || 0) / 80) * (p.inj ? 1.5 : 1);
       if (Math.random() >= risk) return;
@@ -587,24 +722,23 @@ export class Game {
       else { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Bruised knee', 'Back spasms', 'Sprained finger']), games: 1 + Math.floor(Math.random() * 6) }; p.minorCount = (p.minorCount || 0) + 1;
         // About a third of minor knocks are day-to-day: he plays through them at reduced effectiveness.
         if (Math.random() < .35) inj.dtd = true; }
-      if (+k === 0) inj.games = Math.max(1, Math.round(inj.games * hb));
+      if (this.isUser(s, +k)) inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
       p.inj = inj; (p.injHist = p.injHist || []).push({ name: inj.name, games: inj.games, season: this.seasonLbl() });
-      out.push({ mine: +k === 0, major: !!inj.major, tid: +k, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
+      out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
   }
   devTick(s, rosters, day) {
-    const P = this.db.P, cl = this.cl, coach = 1 + (s.budget.Coaching - 18) / 60;
+    const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'spd', 'stre'], Rebounding: ['reb', 'stre'], Athleticism: ['spd', 'jmp', 'stre'], Conditioning: ['endu'] };
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb' };
-    const rows = [];
-    Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, mine = +k === 0;
+    Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
       const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
       const minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1, injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
-      const focus = mine ? (s.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
+      const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 99); p.rx[r] -= whole; } });
@@ -612,15 +746,26 @@ export class Game {
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
         const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'Dev league reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
-        rows.push({ id, name: p.name, focus, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
+        (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
     }));
-    return { label: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), rows };
+    const label = this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), out: Record<number, any> = {};
+    Object.keys(reps).forEach(k => (out[k] = { label, rows: reps[k] }));
+    return out;
   }
-  aiMove(R, fa, day) {
-    const P = this.db.P, T = this.db.teams, r = Math.random(), tid = () => 1 + Math.floor(Math.random() * (T.length - 1));
-    if (r < .4) { const t = tid(); if (R[t].length >= 15 || !fa.length) return null; const c = fa.slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)]; fa.splice(fa.indexOf(id), 1); R[t] = [...R[t], id]; P[id].amt = P[id].ask; return { day, type: 'Signing', teams: T[t].abbr, text: T[t].region + ' ' + T[t].name + ' signed ' + P[id].name + ' ($' + P[id].ask.toFixed(1) + 'M through ' + P[id].exp + ')' }; }
-    if (r < .75) { const a = tid(), b = tid(); if (a === b) return null; const pa = R[a][3 + Math.floor(Math.random() * 9)]; if (!pa) return null; const c = R[b].filter(id => Math.abs(P[id].ovr - P[pa].ovr) <= 3 && Math.abs(P[id].amt - P[pa].amt) <= P[pa].amt * .3 + 2); if (!c.length) return null; const pb = c[Math.floor(Math.random() * c.length)]; R[a] = R[a].map(x => x === pa ? pb : x); R[b] = R[b].map(x => x === pb ? pa : x); return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, text: T[a].region + ' traded ' + P[pa].name + ' to ' + T[b].region + ' for ' + P[pb].name }; }
-    const t = tid(); if (R[t].length < 14) return null; const id = R[t][R[t].length - 1]; R[t] = R[t].slice(0, -1); fa.push(id); P[id].ask = Math.max(2.44, +(P[id].amt * .8).toFixed(1)); return { day, type: 'Release', teams: T[t].abbr, text: T[t].region + ' ' + T[t].name + ' waived ' + P[id].name };
+  // Payroll ceiling each owner archetype tolerates (shown on the Owner screen, used by the AI).
+  ownerCeiling(arch) { return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': this.AP1, 'Hype Focus': this.AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
+  payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
+  capHit(p) { return p.amt + (p.inc || []).filter(x => x.likely).reduce((a, x) => a + x.amt, 0); }
+
+  // One random move by an AI-run team: a signing within its owner's budget, a like-for-like trade, or a waiver.
+  aiMove(R, fa, day, s) {
+    const P = this.db.P, T = this.db.teams, ai = T.map(t => t.tid).filter(t => !this.isUser(s, t)), r = Math.random(), tid = () => ai[Math.floor(Math.random() * ai.length)];
+    if (!ai.length) return null;
+    if (r < .4) { const t = tid(); if (R[t].length >= 15 || !fa.length) return null; const c = fa.slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)];
+      if (P[id].ask > this.VMIN && this.payrollOf(R[t]) + P[id].ask > this.ownerCeiling(T[t].arch)) return null;
+      fa.splice(fa.indexOf(id), 1); R[t] = [...R[t], id]; P[id].amt = P[id].ask; return { day, type: 'Signing', teams: T[t].abbr, pids: [id], text: T[t].region + ' ' + T[t].name + ' signed ' + P[id].name + ' ($' + P[id].ask.toFixed(1) + 'M through ' + P[id].exp + ')' }; }
+    if (r < .75) { const a = tid(), b = tid(); if (a === b) return null; const pa = R[a][3 + Math.floor(Math.random() * 9)]; if (!pa) return null; const c = R[b].filter(id => Math.abs(P[id].ovr - P[pa].ovr) <= 3 && Math.abs(P[id].amt - P[pa].amt) <= P[pa].amt * .3 + 2); if (!c.length) return null; const pb = c[Math.floor(Math.random() * c.length)]; R[a] = R[a].map(x => x === pa ? pb : x); R[b] = R[b].map(x => x === pb ? pa : x); return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [pa, pb], text: T[a].region + ' traded ' + P[pa].name + ' to ' + T[b].region + ' for ' + P[pb].name }; }
+    const t = tid(); if (R[t].length < 14) return null; const id = R[t][R[t].length - 1]; R[t] = R[t].slice(0, -1); fa.push(id); P[id].ask = Math.max(2.44, +(P[id].amt * .8).toFixed(1)); return { day, type: 'Release', teams: T[t].abbr, pids: [id], text: T[t].region + ' ' + T[t].name + ' waived ' + P[id].name };
   }
   private busy = false;
 
@@ -628,6 +773,7 @@ export class Game {
   // for the user's game on the first day. Yields between days so the page stays responsive.
   async sim(n, forced?: GameResult) {
     if (this.busy || this.state.phase !== 'regular') return;
+    if (this.state.inbox?.some(x => x.block)) return;
     this.busy = true;
     try {
       for (let i = 0; i < n; i++) {
@@ -643,30 +789,36 @@ export class Game {
   }
 
   simDay(s, forced: GameResult | undefined, left: number) {
-    if (s.phase !== 'regular' || s.teams[0].w + s.teams[0].l >= 82) return null;
+    if (s.phase !== 'regular' || this.gamesPlayed(s) >= 82) return null;
     const day = s.day, games = this.db.days[day % this.db.days.length];
-    const rosters = { ...s.rosters }, fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = []; let reports = s.reports;
-    const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), results = s.results.slice();
+    const rosters = { ...s.rosters }, fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [];
+    const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
-    if (Math.random() < .35) { const e = this.aiMove(rosters, fa, day); if (e) lgLog.unshift(e); }
+    if (Math.random() < .35) { const e = this.aiMove(rosters, fa, day, s); if (e) lgLog.unshift(e); }
     const tstats = { ...(s.tstats || {}) };
     Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
     for (const [h, a] of games) {
-      const mine = h === 0 || a === 0;
-      const res = mine && forced ? forced : this.playGame(cur, h, a);
+      const res = forced && forced.home.tid === h && forced.away.tid === a ? forced : this.playGame(cur, h, a);
       this.addBox(res, false, touched, mins, cur);
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true); rec(teams[a], !homeWon, false);
-      if (mine) { const us = h === 0 ? res.home : res.away, them = h === 0 ? res.away : res.home; results.unshift({ day, win: us.pts > them.pts, us: us.pts, them: them.pts, opp: h === 0 ? a : h, home: h === 0 }); }
+      gameLog.push({ day, h, a, hp: res.home.pts, ap: res.away.pts, ot: res.ot });
     }
     this.refreshAverages(touched);
-    touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (this.isUser(s, this.tidOf(rosters, id)) && s.budget.Coaching >= 25 ? 0.25 : 0)); });
+    touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) { const c = this.clubOf(s, this.tidOf(rosters, id)); q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (c && c.budget.Coaching >= 25 ? 0.25 : 0)); } });
     this.fatigueTick(rosters, mins);
     this.injTick(rosters, day, s, inj, mins);
-    if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) { reports = [this.devTick(s, rosters, day), ...reports].slice(0, 6); (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(99, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } }); }
+    let clubs = { ...(s.clubs || {}) }, patch: any = {};
+    const addClub = (tid, f) => { const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs); if (pt.clubs) clubs = pt.clubs; else patch = { ...patch, ...pt }; };
+    if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) {
+      const reps = this.devTick(s, rosters, day);
+      s.managed.forEach(t => { if (reps[t]) addClub(t, c => ({ reports: [reps[t], ...(c.reports || [])].slice(0, 6) })); });
+      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(99, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
+    }
+    s.managed.forEach(t => { const mine = inj.filter(x => x.mine && x.tid === t); if (mine.length) addClub(t, c => ({ log: [...mine.reverse().map(x => ({ date: this.fmtS(day), day, text: x.text })), ...(c.log || [])] })); });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
-    return { tstats, teams, results, day: day + 1, rosters, fa, lgLog, reports, simming: left > 0 ? { left } : null, log: [...inj.filter(x => x.mine).reverse().map(x => ({ date: this.fmtS(day), day, text: x.text })), ...s.log], tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    return { ...patch, clubs, tstats, teams, games: gameLog, day: day + 1, rosters, fa, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
   tidOf(rosters, id) { for (const k of Object.keys(rosters)) if (rosters[k].includes(id)) return +k; return -1; }
@@ -677,46 +829,68 @@ export class Game {
       p.fat = Math.max(0, Math.min(100, (p.fat || 0) - (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
   }
   rookieAmt(n) { return +(2.9 + Math.pow((30 - n) / 29, 1.6) * 10.9).toFixed(1); }
+  // Draft picks by the AI. Stops at a managed team's pick when untilMine; otherwise auto-picks for them too.
   aiDraft(untilMine) {
     this.setState(s => {
       if (s.phase !== 'draft') return null;
       const picks = s.picks.map(p => ({ ...p })); let pi = s.pi; const taken = new Set(picks.filter(p => p.pid).map(p => p.pid));
-      const rosters = { ...s.rosters }; let log = s.log, rep = s.agentRep; const promises = { ...s.promises };
-      while (pi < picks.length && !(untilMine && this.owner2027(picks[pi].orig, s.assets) === 0)) {
-        const avail0 = this.db.cls[this.Y].filter(id => !taken.has(id)), ai = this.owner2027(picks[pi].orig, s.assets) !== 0;
-        const avail = ai ? (avail0.filter(x => !promises[x] || Math.random() < .4 || this.db.rank[x] <= 3).length ? avail0.filter(x => !promises[x] || Math.random() < .4 || this.db.rank[x] <= 3) : avail0) : avail0;
+      const rosters = { ...s.rosters }, lgLog = s.lgLog.slice(), news = (s.news || []).slice();
+      let st = s, clubs = { ...(s.clubs || {}) }, top: any = {};
+      const setClub = (t, f) => { const pt = this.clubPatch({ ...st, clubs }, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; st = { ...s, ...top, clubs }; };
+      const promiseOwner = id => s.managed.find(t => (this.clubOf(st, t)?.promises || {})[id]);
+      while (pi < picks.length && !(untilMine && this.isUser(s, this.owner2027(picks[pi].orig, s.assets)))) {
+        const ow = this.owner2027(picks[pi].orig, s.assets), ai = !this.isUser(s, ow);
+        const avail0 = this.db.cls[this.Y].filter(id => !taken.has(id));
+        const skip = x => promiseOwner(x) != null && Math.random() >= .4 && this.db.rank[x] > 3;
+        const avail = ai && avail0.some(x => !skip(x)) ? avail0.filter(x => !skip(x)) : avail0;
         const id = avail[Math.min(avail.length - 1, Math.floor(Math.random() * Math.random() * 3))];
         picks[pi].pid = id; taken.add(id);
-        if (ai && promises[id]) { const p = this.db.P[id], pr = promises[id], ow = s.teams[this.owner2027(picks[pi].orig, s.assets)]; const loyal = (p.pers.mot === 'Loyalty' || p.pers.pro || pr.str > 65) && p.pers.mot !== 'Money' && p.pers.mot !== 'Fame';
-          if (loyal) { p.boycott = true; rep += 3; log = [{ date: this.fmtS(s.day), day: s.day, text: p.name + ' refused to report to ' + ow.abbr + ' and will return to ' + p.from.team + ', honoring his commitment to ' + s.teams[0].region }, ...log]; }
-          else { rep -= 10; log = [{ date: this.fmtS(s.day), day: s.day, text: p.name + ' signed with ' + ow.abbr + ' despite his promise to ' + s.teams[0].region + '. Agent reputation fell.' }, ...log]; }
-          delete promises[id]; }
-        if (this.owner2027(picks[pi].orig, s.assets) === 0) { const p = this.db.P[id]; p.amt = this.rookieAmt(picks[pi].n); p.dr = { rd: 1, pick: picks[pi].n }; p.draft = this.Y; Object.assign(p, { rookie: true, exp: (this.Y + 4), yrsWith: 0 }); rosters[0] = [...rosters[0], id]; log = [{ date: this.fmtS(s.day), text: 'Auto-drafted ' + p.name + ' at #' + picks[pi].n }, ...log]; }
+        const p = this.db.P[id], T = s.teams[ow];
+        const pt = promiseOwner(id);
+        if (pt != null && ai) {
+          // Draft-night heist: a rival took a player you promised.
+          const c = this.clubOf(st, pt), pr = c.promises[id], loyal = this.heistLoyal(p, pr);
+          const pr2 = { ...c.promises }; delete pr2[id];
+          const text = loyal ? p.name + ' refused to report to ' + T.abbr + ' and will return to ' + p.from.team + ', honoring his commitment to ' + s.teams[pt].region : p.name + ' signed with ' + T.abbr + ' despite his promise to ' + s.teams[pt].region + '. Agent reputation fell.';
+          if (loyal) p.boycott = true;
+          setClub(pt, { promises: pr2, agentRep: this.cl(c.agentRep + (loyal ? 3 : -10), 0, 100), log: [{ date: this.fmtS(s.day), day: s.day, text }, ...(c.log || [])] });
+        }
+        if (!ai) {
+          Object.assign(p, { amt: this.rookieAmt(picks[pi].n), dr: { rd: 1, pick: picks[pi].n }, draft: this.Y, rookie: true, exp: this.Y + 4, yrsWith: 0 });
+          rosters[ow] = [...rosters[ow], id];
+          const c = this.clubOf(st, ow); setClub(ow, { log: [{ date: this.fmtS(s.day), day: s.day, text: 'Auto-drafted ' + p.name + ' at #' + picks[pi].n }, ...(c.log || [])] });
+        } else if (picks[pi].n <= 10) news.unshift(this.pressDraft(s, ow, p, picks[pi].n));
+        lgLog.unshift({ day: s.day, type: 'Draft', teams: T.abbr, pids: [id], text: '#' + picks[pi].n + ' ' + T.region + ' ' + T.name + ' selected ' + p.name + ' (' + p.pos + ', ' + p.from.team + ')' });
         pi++;
       }
-      return { picks, pi, rosters, log, adv: {}, promises, agentRep: this.cl(rep, 0, 100) };
+      return { ...top, clubs, picks, pi, rosters, adv: {}, lgLog, news };
     });
   }
+  // Hidden loyalty vs ambition decides whether a promised player boycotts a rival.
+  heistLoyal(p, pr) { const loy = p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45), amb = p.pers.ambition ?? (p.pers.mot === 'Money' || p.pers.mot === 'Fame' ? 75 : 45); return loy + (pr.str - 50) * 0.6 + (p.pers.pro ? 10 : 0) > amb + 5; }
+  pressDraft(s, tid, p, n) { const T = s.teams[tid]; return { day: s.day, season: this.Y, kind: 'draft', tid, who: T.gm, role: 'GM & head coach, ' + T.abbr, pids: [p.id], quote: ['We had ' + p.name + ' at the top of our board. That\u2019s a franchise kind of talent.', p.name + ' fits exactly what we want to be. We didn\u2019t hesitate.', 'You don\u2019t pass on a ' + p.pos + ' with his tools at No. ' + n + '.'][n % 3] }; }
   draftPick(id) {
     this.setState(s => {
-      const cur = s.phase === 'draft' ? s.picks[s.pi] : null; if (!cur || this.owner2027(cur.orig, s.assets) !== 0) return null;
-      const picks = s.picks.map((p, i) => i === s.pi ? { ...p, pid: id } : p);
-      this.db.P[id].amt = this.rookieAmt(cur.n); this.db.P[id].dr = { rd: 1, pick: cur.n }; this.db.P[id].draft = this.Y; Object.assign(this.db.P[id], { rookie: true, exp: (this.Y + 4), yrsWith: 0 });
-      const promises = { ...s.promises }; let rep = s.agentRep; const mineP = Object.keys(promises).find(k => promises[k].n === cur.n); if (mineP) { rep += +mineP === id ? 5 : -15; delete promises[mineP]; }
-      return { promises, agentRep: this.cl(rep, 0, 100), picks, pi: s.pi + 1, adv: {}, rosters: { ...s.rosters, 0: [...s.rosters[0], id] }, log: this.logEntry(s, 'Drafted ' + this.db.P[id].name + ' at #' + cur.n) };
+      const cur = s.phase === 'draft' ? s.picks[s.pi] : null, ow = cur ? this.owner2027(cur.orig, s.assets) : -1; if (!cur || !this.isUser(s, ow)) return null;
+      const picks = s.picks.map((p, i) => i === s.pi ? { ...p, pid: id } : p), p = this.db.P[id];
+      Object.assign(p, { amt: this.rookieAmt(cur.n), dr: { rd: 1, pick: cur.n }, draft: this.Y, rookie: true, exp: this.Y + 4, yrsWith: 0 });
+      const c = this.clubOf(s, ow), promises = { ...c.promises }; let rep = c.agentRep; const mineP = Object.keys(promises).find(k => promises[k].n === cur.n); if (mineP) { rep += +mineP === id ? 5 : -15; delete promises[mineP]; }
+      if (promises[id]) { rep += 5; delete promises[id]; }
+      const T = s.teams[ow];
+      return { ...this.clubPatch(s, ow, { promises, agentRep: this.cl(rep, 0, 100), log: [{ date: this.fmtS(s.day), day: s.day, text: 'Drafted ' + p.name + ' at #' + cur.n }, ...(c.log || [])] }), picks, pi: s.pi + 1, adv: {}, rosters: { ...s.rosters, [ow]: [...s.rosters[ow], id] }, lgLog: [{ day: s.day, type: 'Draft', teams: T.abbr, pids: [id], text: '#' + cur.n + ' ' + T.region + ' ' + T.name + ' selected ' + p.name + ' (' + p.pos + ', ' + p.from.team + ')' }, ...s.lgLog] };
     });
   }
   askFor(p, s) {
-    const me = s.teams[0], conf = s.teams.filter(t => t.conf === me.conf).sort((a, b) => this.pct(b) - this.pct(a)), top = conf.indexOf(me) < 6, m = p.pers.mot;
+    const me = s.teams[s.me], conf = s.teams.filter(t => t.conf === me.conf).sort((a, b) => this.pct(b) - this.pct(a)), top = conf.indexOf(me) < 6, m = p.pers.mot;
     let x = p.ask;
     if (m === 'Money') x *= p.age >= 30 ? 1.2 : 1.1;
     if (m === 'Winning') x *= top ? (p.age >= 30 ? .8 : .9) : (p.age >= 30 ? 1.15 : 1);
     if (m === 'Fame') x *= 1 - (me.mkt - 1) * .4;
     return +Math.max(p.age <= 22 ? 1.35 : 2.44, x).toFixed(1);
   }
-  moodOf(p, idx, s) {
-    const me = s.teams[0], wp = this.pct(me), m = p.pers.mot, w = k => m === k ? 2 : 1, P = this.db.P;
-    const rank = s.rosters[0].map(id => P[id]).sort((a, b) => b.ovr - a.ovr).findIndex(x => x.id === p.id);
+  moodOf(p, idx, s, tid = s.me) {
+    const me = s.teams[tid], wp = this.pct(me), m = p.pers.mot, w = k => m === k ? 2 : 1, P = this.db.P;
+    const rank = s.rosters[tid].map(id => P[id]).sort((a, b) => b.ovr - a.ovr).findIndex(x => x.id === p.id);
     const f: any[] = [['Team success', (wp - .5) * 50 * (m === 'Winning' ? 2 : .6)]];
     if (idx >= 5 && rank < 5) f.push(['Coming off the bench', -10 * w('Playing time')]); else if (idx < 5) f.push(['Starting role', 5 * w('Playing time')]); else if (idx >= 10 && p.age >= 24) f.push(['Barely playing', -6 * w('Playing time')]);
     if (p.pers.alpha) f.push(rank === 0 ? ['Leading his own team', 8] : ['Wants to be the No. 1 option', -7]);
@@ -733,10 +907,10 @@ export class Game {
   }
   salAt(p, y) { return y <= p.exp ? p.amt : p.ext && y <= p.exp + p.ext.yrs ? p.ext.amt : 0; }
   signHow(p, s) {
-    const mine = s.rosters[0], payroll = mine.reduce((a, id) => a + this.db.P[id].amt, 0);
+    const mine = s.rosters[s.me], payroll = this.payrollOf(mine);
     if (s.god) return 'God Mode';
     if (mine.length >= 15 && s.phase === 'regular') return null;
-    if (p.birdTid === 0) return 'Bird rights';
+    if (p.birdTid === s.me) return 'Bird rights';
     if (mine.length >= 15) return null;
     const ask = this.askFor(p, s);
     if (payroll + ask <= this.CAP) return 'Cap space';
@@ -747,9 +921,9 @@ export class Game {
   confirmDialog() {
     this.setState(s => {
       const dg = s.dialog; if (!dg) return null; const p = this.db.P[dg.pid];
-      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask = this.askFor(p, s); p.amt = ask; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = 15; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, 0: [...s.rosters[0], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + ' (' + how.toLowerCase() + ')') }; }
-      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, 0: s.rosters[0].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
-      if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, 0: s.rosters[0].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
+      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask = this.askFor(p, s); p.amt = ask; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = 15; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, [s.me]: [...s.rosters[s.me], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + ' (' + how.toLowerCase() + ')') }; }
+      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
+      if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
       return { dialog: null };
     });
   }
@@ -758,18 +932,18 @@ export class Game {
     this.setState(s => {
       const P = this.db.P, T = s.teams, t = T[s.tTid], ev = this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
       const WANT = { rebuild: 'Their priority is draft capital and young talent; they will take on salary to acquire it.', middle: 'They are looking for young, high-upside players and prefer to hold on to their picks.', contend: 'They are looking for proven contributors who can help immediately.' };
-      if (!ev.ok && !s.god) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + WANT[ev.st] + '\u201d' };
-      const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: 0 } : a);
-      const rosters = { ...s.rosters, 0: [...s.rosters[0].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
+      if (!ev.ok && !s.god && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + WANT[ev.st] + '\u201d' };
+      const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
+      const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
       const A = id => this.pickLabel(s.assets.find(a => a.id === id), T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
-      return { rosters, assets, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[0].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.', log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
+      return { rosters, assets, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.', log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
   balance() {
     this.setState(s => {
       const P = this.db.P;
-      const cands = [...s.rosters[0].filter(id => !s.tMine.includes(id)).map(id => ({ p: id })), ...s.assets.filter(a => a.owner === 0 && !s.tkMine.includes(a.id) && !(a.yr === this.Y && a.rd === 1 && s.picks.find(x => x.orig === a.orig && x.pid))).map(a => ({ k: a.id }))];
+      const cands = [...s.rosters[s.me].filter(id => !s.tMine.includes(id)).map(id => ({ p: id })), ...s.assets.filter(a => a.owner === s.me && !s.tkMine.includes(a.id) && !(a.yr === this.Y && a.rd === 1 && s.picks.find(x => x.orig === a.orig && x.pid))).map(a => ({ k: a.id }))];
       let best = null;
       cands.forEach(c => { const ev = this.evalTrade(s, c.p ? [...s.tMine, c.p] : s.tMine, s.tTheirs, c.k ? [...s.tkMine, c.k] : s.tkMine, s.tTheirs.length ? s.tkTheirs : s.tkTheirs); if (ev.ok && (!best || ev.diff < best.diff)) best = { ...c, diff: ev.diff }; });
       if (!best) return { tMsg: 'No single addition gets this done. Try asking for less.' };

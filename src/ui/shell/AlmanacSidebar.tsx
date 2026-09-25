@@ -17,6 +17,11 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
           <div style={{ color: "var(--color-neutral-700)", marginTop: "2px" }}>
             {vm.recordLine}
           </div>
+          {!!vm.switcher.show && (
+            <select className="input" aria-label="Switch team" value={vm.switcher.value} onChange={vm.switcher.set} style={{ marginTop: "6px", minHeight: "28px", fontSize: "12px", padding: "2px 6px" }}>
+              {vm.switcher.opts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}
+            </select>
+          )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <button className="btn btn-primary" onClick={vm.play1} style={{ width: "100%" }}>

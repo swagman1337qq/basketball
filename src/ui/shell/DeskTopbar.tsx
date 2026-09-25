@@ -26,6 +26,11 @@ export function DeskTopbar({ vm }: { vm: VM }) {
           </>)}
         </div>
         <div style={{ flex: "1" }}></div>
+        {!!vm.switcher.show && (
+            <select className="input" aria-label="Switch team" value={vm.switcher.value} onChange={vm.switcher.set} style={{ maxWidth: "220px", minHeight: "28px", fontSize: "12px", padding: "2px 6px" }}>
+              {vm.switcher.opts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}
+            </select>
+          )}
         <div style={{ color: "var(--color-neutral-700)" }}>
           {vm.dateLong}
         </div>

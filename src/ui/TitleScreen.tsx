@@ -8,7 +8,7 @@ const kicker = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppe
 
 const market = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid-size' : 'Small');
 
-export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tid: number) => void }) {
+export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tids: number[]) => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saves, setSaves] = useState<SaveRow[] | null>(null);
@@ -16,17 +16,18 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const [seed, setSeed] = useState('2027');
   const [msg, setMsg] = useState('');
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
-  const [tid, setTid] = useState(0);
+  const [sel, setSel] = useState<number[]>([0]);
   const seedNum = Number.isFinite(Number(seed)) && seed !== '' ? Math.floor(Number(seed)) : 2027;
   const teams = useMemo(() => Game.preview(seedNum), [seedNum]);
-  const picked = teams.find(t => t.tid === tid) || teams[0];
+  const picked = teams.find(t => t.tid === sel[0]) || teams[0];
+  const toggle = (t: number) => setSel(x => (x.includes(t) ? (x.length > 1 ? x.filter(y => y !== t) : x) : [...x, t]));
 
   useLayoutEffect(() => applyTheme(rootRef.current, lastTheme() === 'dark'), []);
   const refresh = () => listSaves().then(setSaves).catch(() => { setSaves([]); setMsg('This browser blocked local storage, so saves are unavailable.'); });
   useEffect(() => { refresh(); }, []);
 
   const create = () => {
-    onCreate(name.trim() || 'My league', seedNum, picked.tid);
+    onCreate(name.trim() || 'My league', seedNum, sel);
   };
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -41,7 +42,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
           <div style={kicker}>Basketball general manager · single player</div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>Front Office</h1>
           <p style={{ margin: '10px 0 0', color: 'var(--color-neutral-700)', maxWidth: '640px' }}>
-            Pick any of the league's 30 clubs and run it as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
+            Pick any of the league's 30 clubs (or several at once) and run them as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
             Leagues are saved in this browser automatically.
           </p>
         </header>
@@ -97,33 +98,36 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--color-divider)', paddingTop: '12px' }}>
               <TeamLogo team={picked} size={48} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '11px', color: 'var(--color-neutral-700)' }}>Your team</div>
+                <div style={{ fontSize: '11px', color: 'var(--color-neutral-700)' }}>{sel.length > 1 ? 'Your teams · you start on' : 'Your team'}</div>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 600, lineHeight: 1.1 }}>{picked.region} {picked.name}</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{picked.outlook} · {picked.conf}ern Conference</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{sel.length > 1 ? '+ ' + (sel.length - 1) + ' more: ' + sel.slice(1).map(t => teams[t].abbr).join(', ') : picked.outlook + ' · ' + picked.conf + 'ern Conference'}</div>
               </div>
             </div>
-            <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>Start as GM of the {picked.region} {picked.name}</button>
-            <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>Choose a different club below.</div>
+            <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>{sel.length > 1 ? 'Start running ' + sel.length + ' franchises' : 'Start as GM of the ' + picked.region + ' ' + picked.name}</button>
+            <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>Check one or more clubs below. The first one you pick is on screen first; switch any time.</div>
           </section>
         </div>
 
         <section style={{ marginTop: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--color-text)', paddingBottom: '6px', marginBottom: '4px' }}>
-            <h3 style={{ margin: 0, fontSize: '25px' }}>Choose your team</h3>
-            <span style={{ color: 'var(--color-neutral-700)' }}>Ranked by the average rating of each roster's top eight. The season starts 0–0.</span>
+            <h3 style={{ margin: 0, fontSize: '25px' }}>Select managed teams</h3>
+            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>Run one club or as many as all 30. Ranked by each roster's top-eight rating; the season starts 0–0.</span>
+            <button className="btn btn-ghost" onClick={() => setSel(teams.map(t => t.tid))} style={{ fontSize: '12px' }}>Select all</button>
+            <button className="btn btn-ghost" onClick={() => setSel([sel[0]])} style={{ fontSize: '12px' }}>Just one</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 32px' }}>
             {['East', 'West'].map(conf => (
               <div key={conf}>
                 <h4 style={{ margin: '14px 0 4px', fontSize: '19px' }}>{conf}ern Conference</h4>
                 {teams.filter(t => t.conf === conf).sort((a, b) => a.rank - b.rank).map(t => {
-                  const on = t.tid === picked.tid;
+                  const on = sel.includes(t.tid), first = sel[0] === t.tid;
                   return (
-                    <button key={t.tid} onClick={() => setTid(t.tid)} aria-pressed={on} className={on ? '' : 'hv3'}
-                      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? 'var(--color-accent-100)' : 'transparent' }}>
+                    <button key={t.tid} onClick={() => toggle(t.tid)} role="checkbox" aria-checked={on} className={on ? '' : 'hv3'}
+                      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '14px 40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? 'var(--color-accent-100)' : 'transparent' }}>
+                      <span style={{ display: 'grid', placeItems: 'center', width: '14px', height: '14px', border: '1px solid var(--color-accent)', borderRadius: '2px', background: on ? 'var(--color-accent)' : 'transparent', color: 'var(--color-bg)', fontSize: '10px', lineHeight: 1 }}>{on ? '✓' : ''}</span>
                       <TeamLogo team={t} size={40} />
                       <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: on ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.region} {t.name}</span>
+                        <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: on ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.region} {t.name}{first && sel.length > 1 ? ' · first' : ''}</span>
                         <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-neutral-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Best player: {t.star.name}, {t.star.pos} · {t.star.ovr} ovr · {market(t.mkt)} market · {t.arch}</span>
                       </span>
                       <span style={{ textAlign: 'right' }}>
