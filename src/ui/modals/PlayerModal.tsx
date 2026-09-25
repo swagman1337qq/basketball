@@ -170,8 +170,9 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
                     Scouting report · margin ±{vm.pl.sr.margin}
                   </span>
-                  <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-                    {vm.pl.sr.scout}
+                  <span style={{ fontSize: "12px", color: "var(--color-neutral-700)", display: "inline-flex", gap: "8px", alignItems: "center" }}>
+                    {vm.pl.sr.scout} · intel {vm.pl.sr.intel}/12
+                    <button className="btn btn-ghost" onClick={vm.pl.sr.toggleFocus} style={{ fontSize: "11.5px", padding: "2px 8px" }}>{vm.pl.sr.focused ? "Focused ✓" : "Focus scouting"}</button>
                   </span>
                 </div>
                 <p style={{ margin: "8px 0 10px", textAlign: "justify", hyphens: "auto" }}>

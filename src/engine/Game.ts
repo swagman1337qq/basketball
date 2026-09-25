@@ -7,6 +7,7 @@ import { mulberry32, nextRandom } from './rng';
 import { computeAwards, finalsMvp } from './awards';
 import { computeNorms } from './norms';
 import { baseAfterIncentives, fireSale, inboxTick, ownerFavorite } from './frontOffice';
+import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -263,7 +264,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -329,7 +330,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid),
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -750,6 +751,7 @@ export class Game {
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 99); p.rx[r] -= whole; } });
       p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 85); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
+      p.feed = [{ m: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
         const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'Dev league reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
@@ -821,7 +823,8 @@ export class Game {
     const addClub = (tid, f) => { const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs); if (pt.clubs) clubs = pt.clubs; else patch = { ...patch, ...pt }; };
     if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) {
       const reps = this.devTick(s, rosters, day);
-      s.managed.forEach(t => { if (reps[t]) addClub(t, c => ({ reports: [reps[t], ...(c.reports || [])].slice(0, 6) })); });
+      s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}) })));
+      confidenceTick(this, s, rosters);
       (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(99, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
     // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
@@ -940,6 +943,7 @@ export class Game {
   signHow(p, s) {
     const mine = s.rosters[s.me], payroll = this.payrollOf(mine);
     if (s.god) return 'God Mode';
+    if (p.abroad && p.abroad.clause === 'Buyout') return null;
     if (mine.length >= 15 && s.phase === 'regular') return null;
     if (p.birdTid === s.me) return 'Bird rights';
     if (mine.length >= 15) return null;
@@ -954,8 +958,8 @@ export class Game {
   confirmDialog() {
     this.setState(s => {
       const dg = s.dialog; if (!dg) return null; const p = this.db.P[dg.pid];
-      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask0 = this.askFor(p, s), inc = (dg.inc || []).map(x => ({ ...x })), ask = inc.length ? baseAfterIncentives(ask0, inc) : ask0; p.amt = ask; p.inc = inc; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = 15; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level' || how === 'Taxpayer mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, [s.me]: [...s.rosters[s.me], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + (inc.length ? ' + $' + inc.reduce((a, x) => a + x.amt, 0).toFixed(1) + 'M in incentives' : '') + ' (' + how.toLowerCase() + ')'), news: [this.pressSign(s, p, ask, inc), ...(s.news || [])] }; }
-      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
+      if (dg.type === 'sign') { const how = this.signHow(p, s); if (!how) return { dialog: null }; const ask0 = this.askFor(p, s), inc = (dg.inc || []).map(x => ({ ...x })), ask = inc.length ? baseAfterIncentives(ask0, inc) : ask0; p.amt = ask; p.inc = inc; if (how !== 'Bird rights') p.yrsWith = 0; p.birdTid = null; let cash = 0; if (p.abroad) { cash = p.abroad.fee; p.amt = +(p.amt + Math.max(0, p.abroad.fee - .85)).toFixed(1); p.adjust = adjustGames(p); p.overseasArc = { ...(p.overseasArc || {}), back: this.Y, club: p.abroad.club, lg: p.abroad.lg, line: p.abroad.pts + ' pts · ' + p.abroad.reb + ' reb · ' + p.abroad.ast + ' ast', conf: Math.round(p.conf ?? 50) }; delete p.abroad; } return { dialog: null, buyoutCash: (s.buyoutCash || 0) + cash, overseas: (s.overseas || []).filter(x => x !== p.id), mleUsed: s.mleUsed || how === 'Mid-level' || how === 'Taxpayer mid-level', fa: s.fa.filter(x => x !== p.id), rosters: { ...s.rosters, [s.me]: [...s.rosters[s.me], p.id] }, log: this.logEntry(s, 'Signed ' + p.name + ' · $' + ask.toFixed(1) + 'M through ' + p.exp + (inc.length ? ' + $' + inc.reduce((a, x) => a + x.amt, 0).toFixed(1) + 'M in incentives' : '') + ' (' + how.toLowerCase() + ')'), news: [this.pressSign(s, p, ask, inc), ...(s.news || [])] }; }
+      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.overseasArc = { left: this.Y, from: s.teams[s.me].abbr, ovr: p.ovr, club: k2[0], lg: k2[1] }; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
       if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
       return { dialog: null };
     });

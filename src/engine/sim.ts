@@ -101,6 +101,7 @@ export interface SimPlayer {
   id: number; name: string; pos: string; grp: string; ovr: number; r: any;
   crowd?: boolean; clutch?: boolean; padder?: boolean; alpha?: boolean; touches?: boolean;
   adj?: boolean; dtd?: boolean; fat?: number; protect?: boolean; flag?: string;
+  conf?: number; // hidden confidence 0–100 (50 neutral): a small shooting nudge either way
   roles?: string[];
   target: number; // minutes per 48 the coach wants him to play
 }
@@ -243,7 +244,7 @@ export class GameSim {
     const awayOff = offK === 'away', awayDef = defK === 'away';
     const roadPen = (p: SimPlayer) => (awayOff && C(p).role && !C(p).star ? (p.crowd ? 0.05 : 0.025) : 0);
     const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.004 : 0;
-    const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001);
+    const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
 
     const handleO = avg(onO, p => (p.r.drb + p.r.pss) / 2), pressD = avg(onD, p => perimD(p.r));
     const connectors = onO.filter(p => p.roles?.includes('Connector')).length, poa = onD.filter(p => p.roles?.includes('Point-of-attack defender')).length;

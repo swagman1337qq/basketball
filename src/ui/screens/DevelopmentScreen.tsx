@@ -108,7 +108,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                     </button>
                   </td>
                   <td style={{ padding: "4px 8px", color: "var(--color-neutral-700)" }}>
-                    {x.focus}
+                    {x.focus}{x.dev ? <span style={{ color: "var(--gm-good)" }}> · Dev league</span> : null}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", color: x.color, fontWeight: "600" }}>
                     {x.d} ovr

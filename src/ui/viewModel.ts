@@ -3,6 +3,7 @@
 import { createElement, type RefObject } from 'react';
 import { natDefault, regionOf, regions, roleDefs } from '../data/world';
 import { Game } from '../engine/Game';
+import { intelF } from '../engine/overseas';
 import { baseAfterIncentives, financesOf, incentiveOptions, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
 import { TeamLogo } from './TeamLogo';
 import type { VM } from './vm';
@@ -305,7 +306,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const reportsV = s.reports.map(r => ({ label: r.label, rows: r.rows.map(x => ({ ...x, color: x.up ? 'var(--gm-good)' : 'var(--gm-bad)', open: open(x.id) })) }));
   const REG = regions();
   if (status === 'pro' || status === 'abroad') {
-    const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), margin = Math.round((yo * 5 + 3) * scoutF * fac);
+    const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), iF = intelF(s, pp.id), margin = Math.round((yo * 5 + 3) * scoutF * fac / iF);
     const LBR = { hgt: 'size', stre: 'strength', spd: 'speed', jmp: 'leaping', endu: 'motor', ins: 'post game', dnk: 'finishing', ft: 'free throws', fg: 'mid-range', tp: 'three-point shooting', oiq: 'feel for the game', diq: 'defensive instincts', drb: 'handle', pss: 'passing', reb: 'rebounding' };
     const relK = Object.keys(pp.r).sort((x, y) => pp.r[y] - pp.r[x]);
     let comp = null, best = 1e9; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => { const q = P[id]; let dd = 0; Object.keys(q.r).forEach(k => dd += Math.pow((q.r[k] - q.ovr) - (pp.r[k] - pp.ovr), 2)); if (dd < best) { best = dd; comp = q; } }));
@@ -315,6 +316,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     pl.sr = { margin, scout: sc.length ? 'Scouted by ' + sc.map(x => x.name).join(', ') : 'No scout assigned to ' + REG[gm.regionKey((pp.from && pp.from.country) || pp.raised)].name, str: LBR[relK[0]] + ', ' + LBR[relK[1]], weak: LBR[relK[relK.length - 1]] + ', ' + LBR[relK[relK.length - 2]],
       summary: pp.pos + ' who projects as a ' + (gm.rolesOf(pp, true).slice(0, 2).join(' and ').toLowerCase() || 'developmental rotation player') + '. Our read on his ceiling is potential around ' + (pp.pot + Math.round(pp.nz[1] * margin * 1.6)) + ', give or take ' + margin + '.',
       comp: comp ? comp.name : '—', openComp: comp ? open(comp.id) : () => {}, intang: fac <= .6 ? ([pp.pers.alpha && 'wants to lead', pp.pers.pro && 'consummate professional', pp.pers.volatile && 'volatile', pp.pers.clutch && 'clutch', pp.pers.prone && 'injury history'].filter(Boolean).join(', ') || 'even-keeled') + '; motivated by ' + pp.pers.mot.toLowerCase() : 'Unknown until a specialist scouts his region',
+      intel: ((s.intel || {})[pp.id] || 0).toFixed(1), focused: (s.scoutFocus || []).includes(pp.id), toggleFocus: () => gm.setState(st => { const f0 = st.scoutFocus || []; return { scoutFocus: f0.includes(pp.id) ? f0.filter(x => x !== pp.id) : [...f0, pp.id].slice(-5) }; }),
       canPromise, promised: !!s.promises[pp.id], pickN: s.promises[pp.id] ? s.promises[pp.id].n : myNext ? myNext.n : '',
       promise: () => gm.setState(st => ({ promises: { ...st.promises, [pp.id]: { n: myNext.n, str: 40 + (fac < .6 ? 25 : 10) + (pp.pers.mot === 'Loyalty' ? 15 : 0) + Math.random() * 15 } }, log: gm.logEntry(st, 'Promised ' + pp.name + ' the No. ' + myNext.n + ' pick') })),
       unpromise: () => gm.setState(st => { const pr = { ...st.promises }; delete pr[pp.id]; return { promises: pr, agentRep: gm.cl(st.agentRep - 5, 0, 100), log: gm.logEntry(st, 'Withdrew the draft promise to ' + pp.name) }; }) };
