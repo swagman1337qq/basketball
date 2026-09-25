@@ -200,3 +200,38 @@ export const TEAM_STYLE: Record<string, { colors: [string, string]; icon: string
   MEX: { colors: ['#1f5e3a', '#f0e6d2'], icon: 'Feather' },
 };
 export const teamStyle = (abbr: string) => TEAM_STYLE[abbr] || { colors: ['#605d5d', '#eae7e7'] as [string, string], icon: 'Circle' };
+
+// ── Procedural expansion franchises ─────────────────────────────────────────────
+// Candidate cities (not already in the league) with conference, division, market size
+// and a theme that drives the generated nickname, palette and crest.
+export const EXPANSION_CITIES: [string, 'East' | 'West', string, number, string][] = [
+  ['Louisville', 'East', 'Central', 0.75, 'river'], ['Chicago', 'East', 'Central', 1.5, 'city'], ['Toronto', 'East', 'Atlantic', 1.3, 'cold'], ['Montreal', 'East', 'Atlantic', 1.05, 'cold'],
+  ['Boston', 'East', 'Atlantic', 1.3, 'coast'], ['Miami', 'East', 'Southeast', 1.15, 'coast'], ['Orlando', 'East', 'Southeast', 0.9, 'south'], ['Birmingham', 'East', 'Southeast', 0.7, 'city'],
+  ['Buffalo', 'East', 'Central', 0.7, 'cold'], ['Milwaukee', 'East', 'Central', 0.75, 'cold'], ['New Orleans', 'East', 'Southeast', 0.8, 'river'], ['Norfolk', 'East', 'Southeast', 0.7, 'coast'],
+  ['Mexico City', 'West', 'Southwest', 1.3, 'highland'], ['Houston', 'West', 'Southwest', 1.25, 'city'], ['Dallas', 'West', 'Southwest', 1.25, 'plains'], ['San Antonio', 'West', 'Southwest', 0.9, 'desert'],
+  ['Minneapolis', 'West', 'Northwest', 0.95, 'cold'], ['Omaha', 'West', 'Northwest', 0.65, 'plains'], ['Calgary', 'West', 'Northwest', 0.8, 'mountain'], ['Los Angeles', 'West', 'Pacific', 1.6, 'coast'],
+  ['Tucson', 'West', 'Pacific', 0.65, 'desert'], ['Boise', 'West', 'Northwest', 0.6, 'mountain'], ['Memphis', 'West', 'Southwest', 0.75, 'river'], ['Anchorage', 'West', 'Pacific', 0.55, 'cold'],
+];
+const THEME: Record<string, { names: string[]; hues: number[]; icons: string[] }> = {
+  coast: { names: ['Mariners', 'Breakers', 'Gulls', 'Barracudas', 'Tritons', 'Current', 'Lighthouse', 'Tidewater'], hues: [200, 190, 215, 175], icons: ['Waves', 'Ship', 'Fish', 'Anchor'] },
+  river: { names: ['Steamers', 'Rivercats', 'Paddlers', 'Ferrymen', 'Otters', 'Bargemen', 'Levee'], hues: [25, 205, 150, 40], icons: ['Ship', 'Waves', 'Anchor', 'Fish'] },
+  plains: { names: ['Stampede', 'Bison', 'Twisters', 'Harvest', 'Wranglers', 'Drovers', 'Prairie'], hues: [30, 10, 45, 0], icons: ['Wind', 'TreeDeciduous', 'Sun', 'Star'] },
+  mountain: { names: ['Peaks', 'Yetis', 'Ridgebacks', 'Glaciers', 'Condors', 'Timberline', 'Rockslide'], hues: [210, 160, 230, 190], icons: ['Mountain', 'MountainSnow', 'TreePine', 'Bird'] },
+  cold: { names: ['Loons', 'Freeze', 'Icebreakers', 'Voyageurs', 'Blizzard', 'Huskies', 'Aurora'], hues: [220, 195, 260, 180], icons: ['Wind', 'MountainSnow', 'Moon', 'Sparkles'] },
+  desert: { names: ['Sidewinders', 'Javelinas', 'Mirage', 'Scorpions', 'Vaqueros', 'Dust Devils', 'Solstice'], hues: [20, 35, 350, 15], icons: ['Sun', 'Sunset', 'Flame', 'Star'] },
+  south: { names: ['Gators', 'Flamingos', 'Swamp Kings', 'Sunrays', 'Egrets', 'Cyclones'], hues: [130, 330, 45, 160], icons: ['Sun', 'Bird', 'TreePalm', 'Rainbow'] },
+  highland: { names: ['Águilas', 'Jaguares', 'Volcanes', 'Charros', 'Serpientes', 'Soles'], hues: [140, 350, 30, 280], icons: ['Bird', 'Sun', 'Mountain', 'Crown'] },
+  city: { names: ['Titans', 'Engineers', 'Skyline', 'Express', 'Generals', 'Foundry', 'Aviators', 'Monarchs'], hues: [0, 220, 270, 30], icons: ['Star', 'Crown', 'Cog', 'Gem'] },
+};
+const hsl2hex = (h: number, s: number, l: number) => { s /= 100; l /= 100; const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+// A new franchise for a city: nickname, abbreviation, a two-tone palette and a crest glyph.
+export function genExpansionTeam(city: string, rnd: () => number = Math.random, taken: string[] = []) {
+  const c = EXPANSION_CITIES.find(x => x[0] === city) || [city, 'East', 'Central', 0.8, 'city'] as any;
+  const th = THEME[c[4]] || THEME.city, pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
+  const hue = (pick(th.hues) + Math.round((rnd() - 0.5) * 24) + 360) % 360, dark = rnd() < 0.5;
+  const c1 = hsl2hex(hue, 55 + rnd() * 25, dark ? 22 + rnd() * 10 : 40 + rnd() * 10), c2 = rnd() < 0.5 ? hsl2hex((hue + 180 + Math.round((rnd() - 0.5) * 60)) % 360, 70, 72) : hsl2hex(hue, 20, 92);
+  let abbr = city.replace(/[^A-Za-z ]/g, '').split(' ').length > 1 ? city.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) : city.slice(0, 3).toUpperCase();
+  if (abbr.length < 3) abbr = (abbr + city.replace(/[^A-Za-z]/g, '').slice(1).toUpperCase()).slice(0, 3);
+  for (let i = 0; taken.includes(abbr) && i < 5; i++) abbr = abbr.slice(0, 2) + String.fromCharCode(88 + i);
+  return { region: city, name: pick(th.names), abbr, conf: c[1], div: c[2], mkt: c[3], colors: [c1, c2] as [string, string], icon: pick(th.icons) };
+}

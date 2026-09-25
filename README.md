@@ -1,6 +1,8 @@
 # Front Office
 
-A single-player basketball GM and head-coach sim that runs entirely in your browser. Pick any of the 30 clubs, then set the rotation and tactics, trade, sign free agents and overseas players, scout and draft, develop young players, and keep the owner happy, season after season.
+A single-player basketball GM and head-coach sim that runs entirely in your browser. Run one club or any number of the 30 (15 per conference): set the rotation and tactics, trade, sign free agents and overseas players, scout the world and draft, develop young players, and keep your owner happy, season after season, through a play-in, an East/West playoff bracket, awards, and a job market that can fire or hire you.
+
+`docs/SPEC_STATUS.md` walks through the full feature spec point by point and says where each piece lives.
 
 The UI is built from the Claude Design handoff ("Basketball GM redesign", Classical design system). `docs/HANDOFF.md` is the product spec and lists every rule the engine follows.
 
@@ -34,30 +36,32 @@ npm run preview    # serve the production build
 
 ```
 src/
-  data/world.ts          countries, name pools, clubs, scouting regions, roster roles, teams
-  engine/Game.ts         world generation + season engine + observable store (setState/subscribe)
-  engine/sim.ts          possession-by-possession game engine (used by quick sims and the Live Game)
+  data/world.ts          countries, name pools, clubs, scouting regions (tiers 1–4), roles, teams,
+                         owner archetypes, team colors/crests, procedural expansion teams
+  engine/Game.ts         world generation, season cycle, multi-team control, trades AI, contracts,
+                         injuries, development, draft, free agency, playoffs; observable store
+  engine/sim.ts          possession engine anchored to the 2026 baselines (bell curve, usage
+                         gatekeeper, four shot tiers, Four Factors clutch tiebreaker)
+  engine/norms.ts        league-wide rating norms that keep the averages on the baselines
+  engine/awards.ts       MVP, DPOY, ROY, 6MOY, MIP, Coach of the Year, All-League/Defense/Rookie
+  engine/frontOffice.ts  finances, owner reviews and firing, job market, press, incentives,
+                         stat-padding dilemmas, payroll mandates and fire sales
+  engine/overseas.ts     league-strength translation, buyouts, confidence, scouting intel
   engine/faces.ts        deterministic SVG faces
   engine/rng.ts          seeded mulberry32 RNG (the world seed is saved with the league)
   db/saves.ts            IndexedDB save slots, export/import
   ui/viewModel.ts        turns game state into the values each screen renders
   ui/GMView.tsx          app chrome: the three shells (Almanac / Broadsheet / Desk), phase bar, modals
-  ui/screens/*.tsx       one file per screen (Dashboard, Roster, Trade, Draft, …)
-  ui/modals/*.tsx        player, team, list and confirm dialogs
+  ui/screens/*.tsx       one file per screen (Dashboard, Roster, Tactics, Career, League editor, …)
+  ui/modals/*.tsx        player profile (with Development/Comparison tabs and the God Mode editor),
+                         team, list and confirm dialogs
   ui/live/               Live Game viewer: scoreboard, box score, play-by-play
-  ui/TeamLogo.tsx        team crests (club colors + a Lucide glyph)
-  ui/TitleScreen.tsx     league list, new league, team picker, import
+  ui/TeamLogo.tsx        team crests (club colors + a Lucide glyph, or an uploaded logo)
+  ui/upload.ts           crop/resize for uploaded logos and headshots
+  ui/TitleScreen.tsx     league list, new league, managed-team picker, import
   styles/classical.css   Classical design tokens (unchanged from the design system)
 ```
 
-Game rules live in `engine/Game.ts` (season cycle, trades AI, contracts, injuries, development) and `engine/sim.ts` (the game engine). Every game in the league, whether watched, quick-simmed, AI vs AI, play-in or playoffs, is simulated possession by possession; box scores are summed into per-season stat rows, and the averages shown everywhere are totals ÷ games played. Screens only render values from the view model and call its handlers.
+Every game in the league, whether watched, quick-simmed, AI vs AI, play-in or playoffs, is simulated possession by possession; box scores are summed into per-season stat rows, and the averages shown everywhere are totals ÷ games played. Screens only render values from the view model (or read the engine directly in the hand-written screens) and call its handlers.
 
-The team you pick is stored in slot 0 (`tid 0`), which is how the engine identifies the user's club.
-
-## Next steps from the handoff (§7)
-
-- Awards (MVP, ROY, DPOY, 6MOY, MIP, All-League).
-- Enforce the owner's firing conditions and add a job market.
-- Control more than one team: generalize the `tid 0` assumptions.
-- Watch playoff games live (they are simulated in full, but only regular-season games can be watched).
-- Contract incentives.
+`state.managed` lists the franchises you run and `state.me` is the one on screen; each club's tactics, budget, scouts, training and inbox live in `state.clubs` while it's off screen.

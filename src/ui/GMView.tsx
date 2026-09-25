@@ -26,6 +26,7 @@ import { FinancesScreen } from './screens/FinancesScreen';
 import { CareerScreen } from './screens/CareerScreen';
 import { PressScreen } from './screens/PressScreen';
 import { LeagueStatsScreen } from './screens/LeagueStatsScreen';
+import { LeagueEditorScreen } from './screens/LeagueEditorScreen';
 import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
@@ -101,6 +102,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.career && <CareerScreen vm={vm} />}
             {!!vm.is.press && <PressScreen vm={vm} />}
             {!!vm.is.league && <LeagueStatsScreen vm={vm} />}
+            {!!vm.is.editor && <LeagueEditorScreen vm={vm} />}
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}

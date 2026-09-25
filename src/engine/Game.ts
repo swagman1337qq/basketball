@@ -1,6 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
+import { createElement } from 'react';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
@@ -115,7 +116,7 @@ export class Game {
 
   face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
   // Jersey in the team's colors; free agents and prospects wear grey.
-  faceEl(pid, tid) { const t = tid >= 0 && this.state?.teams[tid]; return faceSvg(this.face(pid), t && t.colors ? t.colors : undefined); }
+  faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid]; return faceSvg(this.face(pid), t && t.colors ? t.colors : undefined); }
   downloadFaces() {
     const out = (Object.values(this.db.P) as any[]).map((p: any) => ({ id: p.id, name: p.name, heritage: this.db.C[p.her].n, face: this.face(p.id) }));
     const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
@@ -654,14 +655,14 @@ export class Game {
       teams.forEach(t => [1, 2].forEach(rd => assets.push({ id: (Y + 2) + '-' + rd + '-' + t.tid, yr: Y + 2, rd, orig: t.tid, owner: t.tid })));
       let expanded = s.expanded;
       if (s.expansion && !s.expanded) {
-        const NEW = EXPANSION;
-        NEW.forEach((n, j) => { const tid = teams.length; const t = { tid, region: n[0], name: n[1], abbr: n[2], conf: n[3], div: n[4], mkt: n[5], str: 46, ...teamStyle(n[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
+        const NEW = s.expTeams && s.expTeams.length === 2 ? s.expTeams : EXPANSION.map(n => ({ region: n[0], name: n[1], abbr: n[2], conf: n[3], div: n[4], mkt: n[5], ...teamStyle(n[2]) }));
+        NEW.forEach((n, j) => { const tid = teams.length; const t = { tid, ...n, str: 46, owner: namePools().us.f[(tid * 7) % 20] + ' ' + OWNER_SURNAMES[(tid * 3) % OWNER_SURNAMES.length], arch: OWNER_ARCHETYPES[tid % OWNER_ARCHETYPES.length], gm: namePools().us.f[(tid * 5) % 20] + ' ' + namePools().us.l[(tid * 11) % 20], seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
         const base = teams.length - 2;
         for (let t = 0; t < base; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = base + (t % 2); rosters[nt] = [...rosters[nt], id]; }
         [base, base + 1].forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
         ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'MLE', 'MAXC'].forEach(k => d.caps[k] = +(d.caps[k] * 1.02).toFixed(1));
         for (let k = 0; k < 2; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
-        expanded = true; lgLog = [{ day: s.day, type: 'Signing', teams: 'LOU · MEX', text: 'The league expanded to 32 teams: Louisville Thoroughbreds and Mexico City Águilas. Salary cap rises to $' + this.CAP + 'M.' }, ...lgLog];
+        expanded = true; lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to 32 teams: ' + NEW.map(n => n.region + ' ' + n.name).join(' and ') + '. Salary cap rises to $' + this.CAP + 'M.' }, ...lgLog];
       }
       Object.keys(rosters).forEach(k => { if (this.isUser(s, +k)) return; while (rosters[k].length < 13 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[k] = [...rosters[k], id]; } while (rosters[k].length > 15) { const w = rosters[k].slice().sort((a, b) => P[a].ovr - P[b].ovr)[0]; rosters[k] = rosters[k].filter(x => x !== w); fa.push(w); } });
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
@@ -678,7 +679,18 @@ export class Game {
       return { ...top, clubs, tstats: {}, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
   }
-  startSeason() { this.setState(s => s.phase === 'preseason' && !s.unemployed && s.managed.every(t => s.rosters[t].length <= 15) ? { phase: 'regular', prog: null, jobs: null } : null); }
+  // Opening night: every club needs 13 players. Short-handed managed clubs sign the best
+  // remaining free agents to minimum deals (logged), as the league would require.
+  startSeason() {
+    this.setState(s => {
+      if (s.phase !== 'preseason' || s.unemployed || !s.managed.every(t => s.rosters[t].length <= 15)) return null;
+      const P = this.db.P, rosters = { ...s.rosters }; let fa = s.fa.slice(), clubs = { ...(s.clubs || {}) }, top: any = {};
+      s.managed.forEach(t => { const signed: string[] = [];
+        while (rosters[t].length < 13 && fa.length) { const id = fa.slice().sort((a, b) => P[b].ovr - P[a].ovr)[0]; fa = fa.filter(x => x !== id); Object.assign(P[id], { amt: this.VMIN, exp: this.Y + 1, yrsWith: 0, inc: [] }); rosters[t] = [...rosters[t], id]; signed.push(P[id].name); }
+        if (signed.length) { const c = this.clubOf({ ...s, ...top, clubs }, t), pt = this.clubPatch({ ...s, ...top, clubs }, t, { log: [{ date: this.fmtS(s.day), day: s.day, text: 'League minimum of 13 players: signed ' + signed.join(', ') + ' to minimum deals' }, ...(c.log || [])] }, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; } });
+      return { ...top, clubs, rosters, fa, phase: 'regular', prog: null, jobs: null };
+    });
+  }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
   flag(code) { return 'flags/' + this.db.C[code].iso + '.svg'; }
@@ -743,7 +755,7 @@ export class Game {
     const a = p.age, club = this.clubOf(s, tid), coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
     const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
     const minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1, stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
-    const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
+    const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt * (0.85 + (p.pers.work ?? 50) / 333) : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
     Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
     return { monthly, per: out };
   }
@@ -768,7 +780,8 @@ export class Game {
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
-      const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
+      const work = annual > 0 ? 0.85 + (p.pers.work ?? 50) / 333 : 1;
+      const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4;

@@ -4,10 +4,11 @@ import { Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Co
 
 const GLYPHS: Record<string, LucideIcon> = { Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
 
-export interface CrestTeam { region?: string; name?: string; abbr?: string; colors?: [string, string]; icon?: string }
+export interface CrestTeam { region?: string; name?: string; abbr?: string; colors?: [string, string]; icon?: string; logoImg?: string }
 
 export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; size?: number }) {
   if (!team) return null;
+  if (team.logoImg) return <img src={team.logoImg} alt={(team.region ? team.region + ' ' + team.name : team.abbr) + ' logo'} width={size} height={size} style={{ display: 'block', flex: 'none', borderRadius: '50%', objectFit: 'cover', background: (team.colors || ['#333'])[0] }} />;
   const Glyph = GLYPHS[team.icon || ''] || Circle;
   const [c1, c2] = team.colors || ['#605d5d', '#eae7e7'];
   const small = size < 28;

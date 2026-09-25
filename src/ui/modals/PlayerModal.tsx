@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { GodPlayerEditor } from './GodPlayerEditor';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras, OverviewExtras } from './ProfileExtras';
 
 export function PlayerModal({ vm }: { vm: VM }) {
@@ -96,6 +97,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </button>
             ))}
             <span style={{ flex: "1" }}></span>
+            {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-primary" onClick={() => vm.ctx.gm.setState({ ptab: 'edit' })} style={{ fontSize: "13px" }}>✎ Edit player</button>}
             <button className="btn btn-ghost" onClick={vm.closeModal} style={{ fontSize: "13px" }}>
               Close
             </button>
@@ -461,6 +463,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </section>
             </div>
           </>)}
+          {!!vm.pl.tabEdit && <GodPlayerEditor vm={vm} />}
           {!!vm.pl.tabHistory && (<>
             <section>
               <h4 style={{ margin: "0 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
