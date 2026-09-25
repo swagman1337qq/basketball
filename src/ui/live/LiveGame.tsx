@@ -1,14 +1,14 @@
 // Live Game viewer (HANDOFF.md, "Live Game"). Steps the shared engine on a timer;
 // the finished game is handed back whole, so its box score counts like any other.
 import { Component, type ReactNode } from 'react';
-import { fmtClock, GameSim, qName, type GameResult, type Side, type SimTeam } from '../../engine/sim';
+import { fmtClock, GameSim, qName, type GameResult, type Norms, type Side, type SimTeam } from '../../engine/sim';
 import { LiveGameView } from './LiveGameView';
 
 export interface LiveGameProps {
   home: SimTeam;
   away: SimTeam;
   userSide: Side;
-  tactics: any;
+  norms?: Norms;
   logos?: { home: ReactNode; away: ReactNode; homeSm: ReactNode; awaySm: ReactNode };
   onFinish: (r: GameResult) => void;
   onPlayer: (id: number) => void;
@@ -18,7 +18,7 @@ export interface LiveGameProps {
 const DELAY = [1400, 800, 420, 160, 40];
 
 export class LiveGame extends Component<LiveGameProps, { running: boolean; speed: number; tick: number }> {
-  sim = new GameSim(this.props.home, this.props.away, { userSide: this.props.userSide, tactics: this.props.tactics, pbp: true });
+  sim = new GameSim(this.props.home, this.props.away, { pbp: true, norms: this.props.norms });
   tm: ReturnType<typeof setTimeout> | undefined;
   state = { running: true, speed: 3, tick: 0 };
 

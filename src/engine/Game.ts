@@ -4,7 +4,8 @@
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
-import { GameSim, type GameResult, type SimTeam } from './sim';
+import { computeNorms } from './norms';
+import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
 export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221.7, VMIN: 3.87, MLE: 15.0, MAXC: 57.7 };
@@ -31,6 +32,7 @@ export class Game {
     g.makeDB(seed);
     if (userTid) g.swapTeams(0, userTid);
     g.state = g.initState();
+    g.refreshNorms(g.state);
     return g;
   }
 
@@ -61,6 +63,8 @@ export class Game {
     g.db = { ...data.db, C: countries() };
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
     if ((g.db.v || 1) < 2) g.migrateV1();
+    if (!g.state.tstats) g.state.tstats = {};
+    if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
     return g;
   }
 
@@ -207,7 +211,8 @@ export class Game {
     const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 84), r, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
       amt: Math.min(this.MAXC, 2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
-    p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08 };
+    p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08 };
+    p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
     P[p.id] = p; return p;
@@ -232,7 +237,7 @@ export class Game {
     return { screen: 'dash', pid: d.rosters[0][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: rosters0, fa: fa0, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), buyoutCash: 0, tactics: { pace: 'Balanced', off: 'Balanced', def: 'Switch', clutch: 'Motion' }, scouts: [{ name: 'Dale Whitcombe', spec: 'NA', skill: 4, assign: 'NA' }, { name: 'Inés Morales', spec: 'WEU', skill: 3, assign: 'WEU' }, { name: 'Goran Vuković', spec: 'BAL', skill: 4, assign: 'BAL' }, { name: 'Kwame Asante', spec: 'AFR', skill: 2, assign: 'AFR' }], promises: {}, agentRep: 50, listModal: null, train: {}, reports: [], taxHist: [], god: false, phase: 'regular', season: 2027, po: null, playinRes: [], history: [], expansion: false, expanded: false, prog: null, lotto: null, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, results: d.results.slice(), log: [],
       sort: { roster: ['rk', 1], fa: ['ovr', -1], draft: ['rank', 1] }, stand: 'conf', tTid: 5, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null,
       assets: d.assets.map(a => ({ ...a })), picks: d.order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: 2027, adv: {}, mleUsed: false,
-      budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, q: '', dialog: null, showJson: false };
+      budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, q: '', dialog: null, showJson: false, tstats: {} };
   }
   get Y() { return (this.state && this.state.season) || 2027; }
   seasonLbl() { return (this.Y - 1) + '–' + String(this.Y).slice(2); }
@@ -247,34 +252,92 @@ export class Game {
   // Default minutes per 48 by rotation slot (sums to 240). The user can override per player on Tactics.
   static ROTATION = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0, 0, 0, 0];
 
+  isUser(s, tid) { return tid === 0; }
+  clubOf(s, tid) { return this.isUser(s, tid) ? s : null; }
+
+  // A team as the engine sees it: healthy (or playing-through) players in rotation order,
+  // each with roles, traits and condition; the club's tactics if a human runs it.
   simTeam(s, tid): SimTeam {
-    const P = this.db.P, T = s.teams[tid];
-    let ids = s.rosters[tid].filter(id => !P[id].inj && !P[id].dev);
-    if (tid !== 0) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
+    const P = this.db.P, T = s.teams[tid], user = this.isUser(s, tid), club = this.clubOf(s, tid);
+    let ids = s.rosters[tid].filter(id => (!P[id].inj || P[id].inj.dtd) && !P[id].dev);
+    if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, crowd: p.pers.crowd, clutch: p.pers.clutch, adj: p.adjust > 0, flag: this.flag(p.rep), target: tid === 0 && p.rot != null ? p.rot : Game.ROTATION[i] ?? 0 }; }) };
+    return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid),
+      tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
-    const side = home === 0 ? 'home' : away === 0 ? 'away' : null;
-    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { userSide: side, tactics: s.tactics }).run();
+    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms }).run();
   }
 
-  // Box score → season totals. One stat row per player, season, team and regular/playoffs.
-  addBox(res: GameResult, po: boolean, touched?: number[], mins?: Record<number, number>) {
-    const P = this.db.P, Y = this.Y;
-    [res.home, res.away].forEach(side => Object.entries(side.box).forEach(([k, b]) => {
-      const id = +k, p = P[id];
-      if (!p || b.min <= 0) return;
-      p.stats = p.stats || [];
-      let row = p.stats.find(x => x.season === Y && x.tid === side.tid && !!x.po === po);
-      if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, gs: 0, min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0 }; p.stats.push(row); }
-      row.gp++;
-      Object.keys(b).forEach(f => { if (f in row && f !== 'gp') row[f] += b[f]; });
-      if (touched) touched.push(id);
-      if (mins) mins[id] = b.min;
-    }));
+  // League normalization from the current rosters (expected minutes by rotation slot).
+  refreshNorms(s) {
+    const P = this.db.P, entries = [];
+    Object.keys(s.rosters).forEach(k => {
+      const ids = s.rosters[k].slice().sort((a, b) => P[b].ovr - P[a].ovr);
+      ids.forEach((id, i) => entries.push({ p: P[id], roles: this.rolesOf(P[id]), min: Game.ROTATION[i] ?? 0, tid: +k }));
+    });
+    this.db.norms = computeNorms(entries, s.season || this.Y);
+  }
+
+  // Team Four Factors for the clutch tiebreaker: season stats, regressed toward a
+  // ratings-based expectation early in the season.
+  teamFF(s, tid): FourFactors {
+    const P = this.db.P, n = this.db.norms, ids = s.rosters[tid].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 8).map(id => P[id]);
+    const av = f => ids.reduce((a, p) => a + f(p), 0) / Math.max(1, ids.length);
+    const prior: FourFactors = n ? {
+      efg: BASE.efg + 0.0015 * (av(p => { const z = zoneSkill(p.r); return (z.rim + z.mid + z.atb * 1.5) / 3.5; }) - (n.skill.rim + n.skill.mid + n.skill.atb * 1.5) / 3.5),
+      tov: BASE.tovPct - 0.0008 * (av(p => (p.r.drb + p.r.pss) / 2) - n.handle),
+      orb: BASE.orbPct + 0.002 * (av(p => p.r.reb * 0.6 + p.r.hgt * 0.25 + p.r.jmp * 0.15) - n.reb),
+      ftr: BASE.ftr + 0.002 * (av(p => (p.r.ins + p.r.dnk) / 2) - 55),
+    } : { efg: BASE.efg, tov: BASE.tovPct, orb: BASE.orbPct, ftr: BASE.ftr };
+    const t = (s.tstats || {})[tid];
+    if (!t || !t.gp) return prior;
+    const act = this.fourFactors(t), w = t.gp / (t.gp + 10);
+    return { efg: w * act.efg + (1 - w) * prior.efg, tov: w * act.tov + (1 - w) * prior.tov, orb: w * act.orb + (1 - w) * prior.orb, ftr: w * act.ftr + (1 - w) * prior.ftr };
+  }
+  fourFactors(t) {
+    return { efg: t.fga ? (t.fgm + 0.5 * t.tpm) / t.fga : BASE.efg, tov: t.tov / Math.max(1, t.fga + 0.44 * t.fta + t.tov), orb: t.orb / Math.max(1, t.orb + t.oDrb), ftr: t.fga ? t.ftm / t.fga : BASE.ftr };
+  }
+  // Basketball-Reference possession estimate, averaged over both sides.
+  possOf(t) {
+    const one = (fga, fta, orb, oDrb, fgm, tov) => fga + 0.4 * fta - 1.07 * (orb / Math.max(1, orb + oDrb)) * (fga - fgm) + tov;
+    return 0.5 * (one(t.fga, t.fta, t.orb, t.oDrb, t.fgm, t.tov) + one(t.oFga, t.oFta, t.oOrb, t.drb, t.oFgm, t.oTov));
+  }
+
+  // Box score → season totals. One stat row per player, season, team and regular/playoffs,
+  // with home/road splits and the four shot tiers; team totals feed the Four Factors.
+  addBox(res: GameResult, po: boolean, touched?: number[], mins?: Record<number, number>, s?: any) {
+    const P = this.db.P, Y = this.Y, SPLIT = ['gp', 'min', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'tov', 'stl', 'blk'];
+    const sum = side => { const t: any = blankLine(); Object.values(side.box).forEach((b: any) => Object.keys(t).forEach(k => (t[k] += b[k] || 0))); return t; };
+    const tot = { home: sum(res.home), away: sum(res.away) };
+    (['home', 'away'] as const).forEach(k => {
+      const side = res[k];
+      Object.entries(side.box).forEach(([key, b]) => {
+        const id = +key, p = P[id];
+        if (!p || b.min <= 0) return;
+        p.stats = p.stats || [];
+        let row = p.stats.find(x => x.season === Y && x.tid === side.tid && !!x.po === po);
+        if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, ...blankLine(), h: {}, a: {} }; row.gs = 0; p.stats.push(row); }
+        row.gp++;
+        Object.keys(b).forEach(f => { if (typeof row[f] === 'number' && f !== 'gp') row[f] += b[f]; });
+        const sp = k === 'home' ? (row.h = row.h || {}) : (row.a = row.a || {});
+        SPLIT.forEach(f => (sp[f] = (sp[f] || 0) + (f === 'gp' ? 1 : b[f] || 0)));
+        if (!po) {
+          const gmsc = b.pts + 0.4 * b.fgm - 0.7 * b.fga - 0.4 * (b.fta - b.ftm) + 0.7 * b.orb + 0.3 * b.drb + b.stl + 0.7 * b.ast + 0.7 * b.blk - 0.4 * b.pf - b.tov;
+          p.last5 = [{ pts: b.pts, reb: b.orb + b.drb, ast: b.ast, min: +b.min.toFixed(1), gmsc: +gmsc.toFixed(1), home: k === 'home' }, ...(p.last5 || [])].slice(0, 5);
+        }
+        if (touched) touched.push(id);
+        if (mins) mins[id] = b.min;
+      });
+      if (!po && s) {
+        const me = tot[k], op = tot[k === 'home' ? 'away' : 'home'], T = (s.tstats[side.tid] = s.tstats[side.tid] || { gp: 0 });
+        T.gp++;
+        [['pts', 'pts'], ['fgm', 'fgm'], ['fga', 'fga'], ['tpm', 'tpm'], ['tpa', 'tpa'], ['ftm', 'ftm'], ['fta', 'fta'], ['orb', 'orb'], ['drb', 'drb'], ['ast', 'ast'], ['stl', 'stl'], ['blk', 'blk'], ['tov', 'tov'], ['pf', 'pf'], ['rm', 'rm'], ['ra', 'ra'], ['mm', 'mm'], ['ma', 'ma'], ['cm', 'cm'], ['ca', 'ca'], ['bm', 'bm'], ['ba', 'ba']].forEach(([f]) => (T[f] = (T[f] || 0) + me[f]));
+        [['oPts', 'pts'], ['oFgm', 'fgm'], ['oFga', 'fga'], ['oTpm', 'tpm'], ['oTpa', 'tpa'], ['oFtm', 'ftm'], ['oFta', 'fta'], ['oOrb', 'orb'], ['oDrb', 'drb'], ['oTov', 'tov']].forEach(([f, g]) => (T[f] = (T[f] || 0) + op[g]));
+      }
+    });
   }
 
   // Totals for a season (all teams), or null if he didn't play.
@@ -285,6 +348,9 @@ export class Game {
     rows.forEach(r => Object.keys(r).forEach(k => { if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k]; }));
     return t;
   }
+  tsOf(t) { return t.fga + t.fta ? t.pts / (2 * (t.fga + 0.44 * t.fta)) : 0; }
+  // USG%: share of team plays used while on the floor (team plays per minute from the baselines).
+  usgOf(t) { const teamPlaysPer48 = 89.3 + 0.44 * 21.6 + BASE.tov; return t.min ? (100 * (t.fga + 0.44 * t.fta + t.tov) * 48) / (t.min * teamPlaysPer48) : 0; }
   eff(t) { return t.pts + t.orb + t.drb + t.ast + t.stl + t.blk - (t.fga - t.fgm) - (t.fta - t.ftm) - t.tov; }
   // A simple PER: efficiency per minute, scaled so the league average is 15.
   perOf(t, season) { const lg = this.db.lgRate?.[season] || 0.55; return t.min ? 15 * (this.eff(t) / t.min) / lg : 0; }
@@ -299,7 +365,7 @@ export class Game {
       const p = P[id], t = this.seasonTotals(p, Y);
       if (!t) { Object.assign(p, { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }); return; }
       const r1 = v => +(v / t.gp).toFixed(1);
-      Object.assign(p, { gp: t.gp, min: r1(t.min), pts: r1(t.pts), reb: r1(t.orb + t.drb), ast: r1(t.ast), per: +this.perOf(t, Y).toFixed(1) });
+      Object.assign(p, { gp: t.gp, min: r1(t.min), pts: r1(t.pts), reb: r1(t.orb + t.drb), ast: r1(t.ast), per: +this.perOf(t, Y).toFixed(1), ts: +this.tsOf(t).toFixed(3), usg: +this.usgOf(t).toFixed(1) });
     });
   }
 
@@ -462,8 +528,10 @@ export class Game {
       const order = teams.slice().sort((a, b) => a.str - b.str).map(t => t.tid);
       d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       prog.sort((a, b) => (b.to - b.from) - (a.to - a.from));
+      [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; });
+      this.refreshNorms({ rosters, season: Y });
       const pay0 = s.rosters[0].reduce((a, id) => a + P[id].amt, 0);
-      return { taxHist: [...(s.taxHist || []), pay0 > this.TAX], season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, results: [], po: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, prog, expanded, lgLog, log, screen: 'dash', tTid: 1, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      return { tstats: {}, taxHist: [...(s.taxHist || []), pay0 > this.TAX], season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, results: [], po: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, prog, expanded, lgLog, log, screen: 'dash', tTid: 1, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
   }
   startSeason() { this.setState(s => s.phase === 'preseason' && s.rosters[0].length <= 15 ? { phase: 'regular', prog: null } : null); }
@@ -506,16 +574,22 @@ export class Game {
   injTick(rosters, day, s, out, mins: Record<number, number> = {}) {
     const P = this.db.P, hb = 1 - (s.budget.Health - 10) / 40, pk = a => a[Math.floor(Math.random() * a.length)];
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
-      if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { if (+k === 0) out.push({ mine: true, text: p.name + ' returned from ' + p.inj.name.toLowerCase() }); delete p.inj; } return; }
-      const risk = .0045 * (1 + Math.max(0, p.age - 27) * .05) * (1.45 - p.r.endu / 100) * (1.25 - p.r.stre / 200) * ((mins[id] || 0) / 30) * (p.pers.prone ? 1.8 : 1);
+      if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { let lost = '';
+          // A major injury can also cost skill once he's back (rust, lost feel).
+          if (p.inj.major && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
+          if (+k === 0) out.push({ mine: true, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); delete p.inj; }
+        if (!p.inj || !p.inj.dtd || !mins[id]) return; }
+      const risk = .0045 * (1 + Math.max(0, p.age - 27) * .05) * (1.45 - p.r.endu / 100) * (1.25 - p.r.stre / 200) * ((mins[id] || 0) / 30) * (p.pers.prone ? 1.8 : 1) * (1 + (p.fat || 0) / 80) * (p.inj ? 1.5 : 1);
       if (Math.random() >= risk) return;
       const x = Math.random(); let inj;
       if (x < .03) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; ['spd', 'jmp', 'stre'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 4))); p.ovr = Math.max(25, p.ovr - 2); }
       else if (x < .15) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain']), games: 8 + Math.floor(Math.random() * 14) };
-      else { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Bruised knee', 'Back spasms', 'Sprained finger']), games: 1 + Math.floor(Math.random() * 6) }; p.minorCount = (p.minorCount || 0) + 1; }
+      else { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Bruised knee', 'Back spasms', 'Sprained finger']), games: 1 + Math.floor(Math.random() * 6) }; p.minorCount = (p.minorCount || 0) + 1;
+        // About a third of minor knocks are day-to-day: he plays through them at reduced effectiveness.
+        if (Math.random() < .35) inj.dtd = true; }
       if (+k === 0) inj.games = Math.max(1, Math.round(inj.games * hb));
       p.inj = inj; (p.injHist = p.injHist || []).push({ name: inj.name, games: inj.games, season: this.seasonLbl() });
-      out.push({ mine: +k === 0, major: !!inj.major, tid: +k, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + ', out about ' + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
+      out.push({ mine: +k === 0, major: !!inj.major, tid: +k, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
   }
   devTick(s, rosters, day) {
@@ -526,7 +600,10 @@ export class Game {
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, mine = +k === 0;
       const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
       const minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1, injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
-      const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * (0.6 + Math.random() * .8);
+      // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
+      const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
+      if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
+      const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? (s.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4;
@@ -534,7 +611,7 @@ export class Game {
       p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 85); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
-        const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : p.dev ? 'Dev league reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
+        const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'Dev league reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
         rows.push({ id, name: p.name, focus, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
     }));
     return { label: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), rows };
@@ -572,23 +649,33 @@ export class Game {
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), results = s.results.slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
     if (Math.random() < .35) { const e = this.aiMove(rosters, fa, day); if (e) lgLog.unshift(e); }
-    const cur = { ...s, rosters }, touched: number[] = [], mins: Record<number, number> = {};
+    const tstats = { ...(s.tstats || {}) };
+    Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
+    const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
     for (const [h, a] of games) {
       const mine = h === 0 || a === 0;
       const res = mine && forced ? forced : this.playGame(cur, h, a);
-      this.addBox(res, false, touched, mins);
+      this.addBox(res, false, touched, mins, cur);
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true); rec(teams[a], !homeWon, false);
       if (mine) { const us = h === 0 ? res.home : res.away, them = h === 0 ? res.away : res.home; results.unshift({ day, win: us.pts > them.pts, us: us.pts, them: them.pts, opp: h === 0 ? a : h, home: h === 0 }); }
     }
     this.refreshAverages(touched);
-    touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) q.adjust--; });
+    touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (this.isUser(s, this.tidOf(rosters, id)) && s.budget.Coaching >= 25 ? 0.25 : 0)); });
+    this.fatigueTick(rosters, mins);
     this.injTick(rosters, day, s, inj, mins);
     if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) { reports = [this.devTick(s, rosters, day), ...reports].slice(0, 6); (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(99, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } }); }
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
-    return { teams, results, day: day + 1, rosters, fa, lgLog, reports, simming: left > 0 ? { left } : null, log: [...inj.filter(x => x.mine).reverse().map(x => ({ date: this.fmtS(day), day, text: x.text })), ...s.log], tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    return { tstats, teams, results, day: day + 1, rosters, fa, lgLog, reports, simming: left > 0 ? { left } : null, log: [...inj.filter(x => x.mine).reverse().map(x => ({ date: this.fmtS(day), day, text: x.text })), ...s.log], tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
+  tidOf(rosters, id) { for (const k of Object.keys(rosters)) if (rosters[k].includes(id)) return +k; return -1; }
+  // Game-to-game fatigue: heavy minutes build it, a day off (and endurance) clears it.
+  fatigueTick(rosters, mins: Record<number, number>) {
+    const P = this.db.P;
+    Object.values(rosters).flat().forEach((id: any) => { const p = P[id], m = mins[id] || 0;
+      p.fat = Math.max(0, Math.min(100, (p.fat || 0) - (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
+  }
   rookieAmt(n) { return +(2.9 + Math.pow((30 - n) / 29, 1.6) * 10.9).toFixed(1); }
   aiDraft(untilMine) {
     this.setState(s => {
