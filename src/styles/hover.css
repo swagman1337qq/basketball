@@ -1,0 +1,8 @@
+/* Hover states from the prototype's style-hover attributes. !important beats the inline styles. */
+.hv1:hover { color:var(--color-accent-700) !important; }
+.hv2:hover { background:color-mix(in srgb, var(--color-text) 7%, transparent) !important; }
+.hv3:hover { background:var(--color-accent-100) !important; }
+.hv4:hover { color:var(--color-accent-700) !important; text-decoration:underline !important; }
+.hv5:hover { color:var(--color-accent-700) !important; background:var(--color-accent-100) !important; }
+.hv6:hover { text-decoration:underline !important; }
+.hv7:hover { color:var(--color-accent-700) !important; text-decoration:underline !important; }
