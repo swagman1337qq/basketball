@@ -48,8 +48,9 @@ export function DashboardScreen({ vm }: { vm: VM }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <div style={{ flex: "1" }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1" }}>
-                  BAL
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1", display: "flex", alignItems: "center", gap: "10px" }}>
+                  {vm.next.myLogo}
+                  {vm.myAbbr}
                 </div>
                 <div style={{ color: "var(--color-neutral-700)", fontSize: "12px" }}>
                   {vm.next.myRec}
@@ -59,10 +60,11 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                 {vm.next.vs}
               </div>
               <div style={{ flex: "1", textAlign: "right" }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1" }}>
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px" }}>
                   <button className="hv4" onClick={vm.next.openT} style={{ all: "unset", cursor: "pointer" }}>
                     {vm.next.abbr}
                   </button>
+                  {vm.next.logo}
                 </div>
                 <div style={{ color: "var(--color-neutral-700)", fontSize: "12px" }}>
                   {vm.next.oppRec}
@@ -96,7 +98,8 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                       {r.date}
                     </td>
                     <td style={{ padding: "5px 8px" }}>
-                      <button className="hv4" onClick={r.openT} style={{ all: "unset", cursor: "pointer" }}>
+                      <button className="hv4" onClick={r.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        {r.logo}
                         {r.opp}
                       </button>
                     </td>
@@ -192,7 +195,8 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                     {t.seed}
                   </td>
                   <td style={{ padding: "5px 8px", fontWeight: t.fw, borderBottom: t.line }}>
-                    <button className="hv4" onClick={t.openT} style={{ all: "unset", cursor: "pointer" }}>
+                    <button className="hv4" onClick={t.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                      {t.logo}
                       {t.name}
                     </button>
                   </td>

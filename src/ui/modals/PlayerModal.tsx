@@ -17,7 +17,8 @@ export function PlayerModal({ vm }: { vm: VM }) {
                 </button>
                 <span>
                   {" "}· {vm.pl.pos} ·{" "}
-                  <button className="hv4" onClick={vm.pl.openT} style={{ all: "unset", cursor: "pointer" }}>
+                  <button className="hv4" onClick={vm.pl.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "5px", verticalAlign: "middle" }}>
+                    {vm.pl.teamLogo}
                     {vm.pl.teamLabel}
                   </button>
                 </span>

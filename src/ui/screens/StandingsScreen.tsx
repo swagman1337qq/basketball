@@ -60,7 +60,8 @@ export function StandingsScreen({ vm }: { vm: VM }) {
                       {t.seed}
                     </td>
                     <td style={{ padding: "4px 6px", fontWeight: t.fw, whiteSpace: "nowrap", borderBottom: t.line }}>
-                      <button className="hv4" onClick={t.openT} style={{ all: "unset", cursor: "pointer" }}>
+                      <button className="hv4" onClick={t.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        {t.logo}
                         {t.name}
                       </button>
                     </td>

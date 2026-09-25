@@ -5,12 +5,13 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
     <>
       <header style={{ padding: "18px 28px 0", borderBottom: "1px solid var(--color-text)" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: "28px", paddingBottom: "12px", borderBottom: "1px solid var(--color-divider)" }}>
-          <div style={{ flex: "1", minWidth: "0" }}>
+          {vm.myLogoLg}
+          <div style={{ flex: "1", minWidth: "0", marginLeft: "-12px" }}>
             <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
               {vm.dateLong} · {vm.phaseLabel}
             </div>
             <div style={{ fontFamily: "var(--font-heading)", fontSize: "42px", fontWeight: "400", lineHeight: "1", marginTop: "4px", letterSpacing: "-.015em" }}>
-              The Baltimore Tides
+              The {vm.myName}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>

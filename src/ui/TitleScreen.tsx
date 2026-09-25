@@ -1,10 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { deleteSave, exportSave, importSave, listSaves, type SaveRow } from '../db/saves';
+import { Game } from '../engine/Game';
+import { TeamLogo } from './TeamLogo';
 import { applyTheme, lastTheme } from './theme';
 
 const kicker = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' } as const;
 
-export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number) => void }) {
+const market = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid-size' : 'Small');
+
+export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tid: number) => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saves, setSaves] = useState<SaveRow[] | null>(null);
@@ -12,14 +16,17 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const [seed, setSeed] = useState('2027');
   const [msg, setMsg] = useState('');
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
+  const [tid, setTid] = useState(0);
+  const seedNum = Number.isFinite(Number(seed)) && seed !== '' ? Math.floor(Number(seed)) : 2027;
+  const teams = useMemo(() => Game.preview(seedNum), [seedNum]);
+  const picked = teams.find(t => t.tid === tid) || teams[0];
 
   useLayoutEffect(() => applyTheme(rootRef.current, lastTheme() === 'dark'), []);
   const refresh = () => listSaves().then(setSaves).catch(() => { setSaves([]); setMsg('This browser blocked local storage, so saves are unavailable.'); });
   useEffect(() => { refresh(); }, []);
 
   const create = () => {
-    const n = Number(seed);
-    onCreate(name.trim() || 'My league', Number.isFinite(n) ? Math.floor(n) : 2027);
+    onCreate(name.trim() || 'My league', seedNum, picked.tid);
   };
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -34,7 +41,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
           <div style={kicker}>Basketball general manager · single player</div>
           <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>Front Office</h1>
           <p style={{ margin: '10px 0 0', color: 'var(--color-neutral-700)', maxWidth: '640px' }}>
-            Run the Baltimore Tides as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
+            Pick any of the league's 30 clubs and run it as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
             Leagues are saved in this browser automatically.
           </p>
         </header>
@@ -87,9 +94,49 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
               </div>
               <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)', marginTop: '4px' }}>The same seed always builds the same players, teams and draft classes. 2027 is the reference world.</div>
             </div>
-            <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>Start as GM of the Baltimore Tides</button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--color-divider)', paddingTop: '12px' }}>
+              <TeamLogo team={picked} size={48} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '11px', color: 'var(--color-neutral-700)' }}>Your team</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 600, lineHeight: 1.1 }}>{picked.region} {picked.name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{picked.outlook} · {picked.conf}ern Conference</div>
+              </div>
+            </div>
+            <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>Start as GM of the {picked.region} {picked.name}</button>
+            <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>Choose a different club below.</div>
           </section>
         </div>
+
+        <section style={{ marginTop: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--color-text)', paddingBottom: '6px', marginBottom: '4px' }}>
+            <h3 style={{ margin: 0, fontSize: '25px' }}>Choose your team</h3>
+            <span style={{ color: 'var(--color-neutral-700)' }}>Ranked by the average rating of each roster's top eight. The season starts 0–0.</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 32px' }}>
+            {['East', 'West'].map(conf => (
+              <div key={conf}>
+                <h4 style={{ margin: '14px 0 4px', fontSize: '19px' }}>{conf}ern Conference</h4>
+                {teams.filter(t => t.conf === conf).sort((a, b) => a.rank - b.rank).map(t => {
+                  const on = t.tid === picked.tid;
+                  return (
+                    <button key={t.tid} onClick={() => setTid(t.tid)} aria-pressed={on} className={on ? '' : 'hv3'}
+                      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? 'var(--color-accent-100)' : 'transparent' }}>
+                      <TeamLogo team={t} size={40} />
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: on ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.region} {t.name}</span>
+                        <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-neutral-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Best player: {t.star.name}, {t.star.pos} · {t.star.ovr} ovr · {market(t.mkt)} market · {t.arch}</span>
+                      </span>
+                      <span style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.outlook === 'Contender' ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.outlook}</span>
+                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-neutral-600)' }}>#{t.rank} · {t.top8.toFixed(1)}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {confirmDel && (

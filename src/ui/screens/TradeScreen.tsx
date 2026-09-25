@@ -6,8 +6,9 @@ export function TradeScreen({ vm }: { vm: VM }) {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 260px minmax(0,1fr)", gap: "24px", alignItems: "start" }}>
         <section>
           <div style={{ display: "flex", alignItems: "center", height: "36px", marginBottom: "4px" }}>
-            <h4 style={{ margin: "0", fontSize: "19px" }}>
-              Baltimore Tides send
+            <h4 style={{ margin: "0", fontSize: "19px", display: "flex", alignItems: "center", gap: "10px" }}>
+              {vm.myLogoTr}
+              {vm.myName} send
             </h4>
           </div>
           <table className="table" style={{ fontSize: "13px" }}>
@@ -182,6 +183,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
         </section>
         <section>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "36px", marginBottom: "4px" }}>
+            {vm.theirLogo}
             <select className="input" value={vm.tTid} onChange={vm.pickTeam} style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", minHeight: "34px", padding: "4px 8px" }}>
               {(vm.teamOptions || []).map((o: any, i: number) => (
                 <option key={i} value={o.value}>

@@ -6,9 +6,7 @@ export function TeamModal({ vm }: { vm: VM }) {
       <div onClick={vm.closeTeam} style={{ position: "absolute", inset: "0", zIndex: "14", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
         <div onClick={vm.stop} style={{ width: "min(1100px,100%)", maxHeight: "100%", overflow: "auto", boxSizing: "border-box", background: "var(--color-bg)", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)", padding: "22px 26px 28px" }}>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "12px", marginBottom: "14px" }}>
-            <div title="Logo placeholder" style={{ width: "58px", height: "58px", flex: "none", border: "1px solid var(--color-accent)", borderRadius: "50%", display: "grid", placeItems: "center", fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600", color: "var(--color-accent-700)" }}>
-              {vm.tm.abbr}
-            </div>
+            {vm.tm.logo}
             <div style={{ flex: "1", minWidth: "0" }}>
               <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
                 {vm.tm.line}

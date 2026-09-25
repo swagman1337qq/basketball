@@ -14,11 +14,11 @@ export function makeFace(p) {
     mouth: { w: +(0.85 + rnd() * .35).toFixed(2), smile: +(rnd() * .8 - .2).toFixed(2) }, facial: p.age < 21 ? 'none' : pick(['none', 'none', 'stubble', 'goatee', 'beard', 'mustache']), ears: +(0.9 + rnd() * .25).toFixed(2) };
 }
 
-export function faceSvg(f, tid) {
+export function faceSvg(f, jersey: [string, string] = ['#605d5d', '#bab6b6']) {
   const E = createElement, k = [0];
   const el = (t, a) => E(t, { key: k[0]++, ...a });
   const cx = 50, cy = 62, rw = 24 * f.head.w, rh = 30 * f.head.h, hc = f.hair.color, sk = f.skin;
-  const J = tid === 0 ? ['#201f1d', '#b68235'] : ['#605d5d', '#bab6b6'];
+  const J = jersey;
   const out = [];
   out.push(el('path', { d: 'M8 150 Q10 112 38 104 L62 104 Q90 112 92 150 Z', fill: J[0] }), el('path', { d: 'M38 104 L50 118 L62 104', fill: 'none', stroke: J[1], strokeWidth: 3 }));
   out.push(el('rect', { x: cx - 9, y: cy + rh - 8, width: 18, height: 16, fill: sk }));

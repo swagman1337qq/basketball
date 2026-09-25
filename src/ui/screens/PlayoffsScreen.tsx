@@ -26,7 +26,8 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
               <span style={{ width: "22px", textAlign: "right", color: "var(--color-neutral-600)" }}>
                 {x.n}
               </span>
-              <button className="hv6" onClick={x.open} style={{ all: "unset", cursor: "pointer", flex: "1" }}>
+              <button className="hv6" onClick={x.open} style={{ all: "unset", cursor: "pointer", flex: "1", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                {x.logo}
                 {x.name}
               </button>
               <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
@@ -51,7 +52,8 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
                   {x.conf}
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontWeight: x.fa, color: x.ca }}>
-                  <button className="hv6" onClick={x.oa} style={{ all: "unset", cursor: "pointer" }}>
+                  <button className="hv6" onClick={x.oa} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    {x.la}
                     {x.na}
                   </button>
                   <span>
@@ -59,7 +61,8 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontWeight: x.fb, color: x.cb }}>
-                  <button className="hv6" onClick={x.ob} style={{ all: "unset", cursor: "pointer" }}>
+                  <button className="hv6" onClick={x.ob} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    {x.lb}
                     {x.nb}
                   </button>
                   <span>
@@ -98,7 +101,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
                 Runner-up
               </th>
               <th style={{ padding: "6px 8px", textAlign: "right" }}>
-                Baltimore
+                {vm.myRegion}
               </th>
               <th style={{ padding: "6px 8px" }}>
                 Finish

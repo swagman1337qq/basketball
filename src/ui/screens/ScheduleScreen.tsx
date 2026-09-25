@@ -27,7 +27,8 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
                 {r.date}
               </td>
               <td style={{ padding: "5px 8px" }}>
-                <button className="hv4" onClick={r.openT} style={{ all: "unset", cursor: "pointer" }}>
+                <button className="hv4" onClick={r.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                  {r.logo}
                   {r.opp}
                 </button>
               </td>

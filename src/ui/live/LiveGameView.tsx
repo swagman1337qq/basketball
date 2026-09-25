@@ -6,6 +6,9 @@ export function LiveGameView({ vm }: { vm: VM }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr) auto", gap: "24px", alignItems: "center", padding: "12px 16px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px", justifyContent: "flex-end" }}>
+            <div style={{ alignSelf: "center" }}>
+              {vm.away.logo}
+            </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "var(--font-heading)", fontSize: "22px", fontWeight: "600", lineHeight: "1.1" }}>
                 <button className="hv7" onClick={vm.away.open} style={{ all: "unset", cursor: "pointer" }}>
@@ -80,6 +83,9 @@ export function LiveGameView({ vm }: { vm: VM }) {
                 {vm.home.rec} · Home
               </div>
             </div>
+            <div style={{ alignSelf: "center" }}>
+              {vm.home.logo}
+            </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "stretch", minWidth: "190px" }}>
             {!!vm.notDone && (<>
@@ -113,7 +119,8 @@ export function LiveGameView({ vm }: { vm: VM }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "22px", minWidth: "0" }}>
             {(vm.sides || []).map((sd: any, i: number) => (
               <section key={i}>
-                <h4 style={{ margin: "0 0 2px", fontSize: "19px" }}>
+                <h4 style={{ margin: "0 0 2px", fontSize: "19px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  {sd.small}
                   <button className="hv7" onClick={sd.open} style={{ all: "unset", cursor: "pointer" }}>
                     {sd.name}
                   </button>

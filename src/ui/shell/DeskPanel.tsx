@@ -9,6 +9,9 @@ export function DeskPanel({ vm }: { vm: VM }) {
             Next · {vm.next.when}
           </div>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "22px", fontWeight: "600", lineHeight: "1.15" }}>
+            <span style={{ display: "inline-block", verticalAlign: "-3px", marginRight: "8px" }}>
+              {vm.next.smLogo}
+            </span>
             {vm.next.vs}{" "}
             <button className="hv4" onClick={vm.next.openT} style={{ all: "unset", cursor: "pointer" }}>
               {vm.next.oppName}

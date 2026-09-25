@@ -151,3 +151,44 @@ export const MARKETS = [1.0, .75, 1.45, 1.2, .75, .85, 1.05, .85, .9, .85, .95, 
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway'];
 export const RATING_KEYS = ['hgt', 'stre', 'spd', 'jmp', 'endu', 'ins', 'dnk', 'ft', 'fg', 'tp', 'oiq', 'diq', 'drb', 'pss', 'reb'];
+
+// Expansion franchises join through Settings → League expansion. [region, nickname, abbr, conference, division, market]
+export const EXPANSION: [string, string, string, string, string, number][] = [['Louisville', 'Thoroughbreds', 'LOU', 'East', 'Central', .75], ['Mexico City', 'Águilas', 'MEX', 'West', 'Southwest', 1.3]];
+
+// Team identity: [primary, secondary] colors and the crest glyph (a Lucide icon name).
+// Original marks for fictional clubs; the crest is drawn by ui/TeamLogo.tsx.
+export const TEAM_STYLE: Record<string, { colors: [string, string]; icon: string }> = {
+  BAL: { colors: ['#1d3557', '#a8dadc'], icon: 'Waves' },
+  HFD: { colors: ['#8e3b1f', '#f1e3c8'], icon: 'Bird' },
+  BKN: { colors: ['#2b2b2b', '#c9894f'], icon: 'Anvil' },
+  NWK: { colors: ['#22254a', '#e7c46a'], icon: 'Sparkles' },
+  PRV: { colors: ['#1f5f63', '#e9efe8'], icon: 'Anchor' },
+  CLE: { colors: ['#6b1d1d', '#f2a541'], icon: 'Hammer' },
+  DET: { colors: ['#2f4a6b', '#d5d9de'], icon: 'Cog' },
+  CBS: { colors: ['#2d4a36', '#d8c29a'], icon: 'Moon' },
+  PIT: { colors: ['#1b1b1b', '#f0b429'], icon: 'Ship' },
+  CIN: { colors: ['#5e1f35', '#e0c07a'], icon: 'Castle' },
+  CHA: { colors: ['#4b2a6b', '#e6c36a'], icon: 'Crown' },
+  ATL: { colors: ['#a3222b', '#f6c453'], icon: 'Flame' },
+  TPA: { colors: ['#1e6f5c', '#e8f3ec'], icon: 'Origami' },
+  RAL: { colors: ['#35573a', '#e8dcc0'], icon: 'TreeDeciduous' },
+  NSH: { colors: ['#2e3a78', '#f2a07b'], icon: 'Guitar' },
+  SEA: { colors: ['#36475a', '#bfe3d0'], icon: 'CloudRainWind' },
+  POR: { colors: ['#8f2d25', '#f4e6cf'], icon: 'Axe' },
+  VAN: { colors: ['#15191e', '#d3e6ef'], icon: 'Fish' },
+  SLC: { colors: ['#1f3b63', '#eef2f5'], icon: 'Mountain' },
+  DEN: { colors: ['#2c5d8a', '#f2c14e'], icon: 'MountainSnow' },
+  SD: { colors: ['#0f6e8c', '#f3dfb3'], icon: 'Sunset' },
+  OAK: { colors: ['#7a3325', '#c9d6b5'], icon: 'TreePine' },
+  LV: { colors: ['#1c1a1a', '#d4af37'], icon: 'Spade' },
+  SAC: { colors: ['#3a2f5b', '#d9a93a'], icon: 'Gem' },
+  HNL: { colors: ['#127a7a', '#f7c8a3'], icon: 'TreePalm' },
+  AUS: { colors: ['#a4521b', '#f3ece2'], icon: 'Star' },
+  ABQ: { colors: ['#2a8c8c', '#f0d9b5'], icon: 'Wind' },
+  PHX: { colors: ['#c1461d', '#fbe3c1'], icon: 'Sun' },
+  KC: { colors: ['#1f2f4d', '#e4b363'], icon: 'Compass' },
+  STL: { colors: ['#24457a', '#f08a74'], icon: 'Rainbow' },
+  LOU: { colors: ['#4a1a2c', '#e9b7c1'], icon: 'Award' },
+  MEX: { colors: ['#1f5e3a', '#f0e6d2'], icon: 'Feather' },
+};
+export const teamStyle = (abbr: string) => TEAM_STYLE[abbr] || { colors: ['#605d5d', '#eae7e7'] as [string, string], icon: 'Circle' };

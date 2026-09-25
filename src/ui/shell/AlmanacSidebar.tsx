@@ -5,11 +5,14 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
     <>
       <aside style={{ width: "224px", flex: "none", display: "flex", flexDirection: "column", gap: "14px", padding: "18px 18px", background: "var(--color-surface)", borderRight: "1px solid var(--color-divider)", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}>
         <div>
+          <div style={{ marginBottom: "10px" }}>
+            {vm.myLogo}
+          </div>
           <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
             Front office
           </div>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "25px", fontWeight: "600", lineHeight: "1.1", marginTop: "4px" }}>
-            Baltimore Tides
+            {vm.myName}
           </div>
           <div style={{ color: "var(--color-neutral-700)", marginTop: "2px" }}>
             {vm.recordLine}

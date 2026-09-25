@@ -83,7 +83,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   {o.n}
                 </span>
                 <span style={{ width: "34px" }}>
-                  <button className="hv4" onClick={o.openT} style={{ all: "unset", cursor: "pointer" }}>
+                  <button className="hv4" onClick={o.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    {o.logo}
                     {o.abbr}
                   </button>
                 </span>
