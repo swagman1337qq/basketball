@@ -35,3 +35,27 @@ export const tradesOf = (g: Game): Trade[] => (g.db as any).trades || [];
 export const pickUsed = (g: Game, assetId: string) => ((g.db as any).pickUsed || {})[assetId] || null;
 // Every trade a pick changed hands in.
 export const pickTrades = (g: Game, assetId: string) => tradesOf(g).filter(t => t.aK.includes(assetId) || t.bK.includes(assetId));
+
+// A short note on how a player came to this team, for roster rows: "#2 pick in 2027",
+// "Signed as a free agent in 2027", "Traded from NSH in 2028", plus a later extension or
+// re-signing ("extended 2028"). Players from before the league began show their draft slot.
+export function howAcquired(g: Game, s: any, p: any, tid: number): string {
+  const tx: Tx[] = p.tx || [], T = s.teams, yr = (e: Tx) => { const m = String(e.date || '').match(/(\d{4})$/); return m ? m[1] : String(e.season); };
+  let arrive = -1;
+  tx.forEach((e, i) => { if ((e.k === 'draft' && e.tid === tid) || (e.k === 'trade' && e.to === tid) || (e.k === 'expansion' && e.to === tid) || (e.k === 'sign' && e.tid === tid && !/^Re-signed/.test(e.text || ''))) arrive = i; });
+  let head = '';
+  if (arrive >= 0) {
+    const e = tx[arrive];
+    head = e.k === 'draft' ? '#' + e.n + ' pick in ' + e.season
+      : e.k === 'trade' ? 'Traded from ' + (T[e.from!]?.abbr || '?') + ' in ' + yr(e)
+      : e.k === 'expansion' ? 'Expansion draft, ' + yr(e)
+      : /two-way/i.test(e.text || '') ? 'Signed to a two-way in ' + yr(e) : /10-day/i.test(e.text || '') ? 'Signed to a 10-day in ' + yr(e) : 'Signed as a free agent in ' + yr(e);
+  } else if (p.dr && p.draft) {
+    const n = (p.dr.rd - 1) * 30 + p.dr.pick;
+    head = '#' + n + ' pick in ' + p.draft + (p.draftTid != null && p.draftTid !== tid && T[p.draftTid] ? ' by ' + T[p.draftTid].abbr : '');
+  } else if (p.draft) head = 'Undrafted in ' + p.draft;
+  // The latest extension or re-signing since he arrived.
+  const later = tx.slice(arrive + 1).reverse().find(e => (e.k === 'extend' && e.tid === tid) || (e.k === 'sign' && e.tid === tid && /^Re-signed/.test(e.text || '')));
+  const tail = later ? (later.k === 'extend' ? 'extended ' : 're-signed ') + yr(later) : '';
+  return [head, tail].filter(Boolean).join(' · ');
+}

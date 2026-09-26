@@ -5,6 +5,7 @@ import { fmtMoney } from '../engine/capModel';
 import { glLabel } from '../engine/gleague';
 import { natDefault, regionOf, regions, roleDefs } from '../data/world';
 import { Game } from '../engine/Game';
+import { addTx } from '../engine/txlog';
 import { intelF } from '../engine/overseas';
 import { badgesOf, setRating, setWing, teamRating, wngOf } from '../engine/ratings';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, maxFor, nums, qoEligible, qoFor, rosterMax, signingMethods, stdIds, teamSalary, twoWayIds, yosOf } from '../engine/cba';
@@ -355,7 +356,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         askLine: md.hap < 30 ? 'His camp says he wants a fresh start.' : 'His camp is looking for about ' + money(ask) + ' a year over at least ' + minYears + ' year' + (minYears > 1 ? 's' : '') + '.',
         setYears: e => gm.setState({ extYears: +e.target.value, extMsg: null }), setAmt: e => gm.setState({ extAmt: +e.target.value, extMsg: null }),
         hasMsg: !!s.extMsg, msg: s.extMsg,
-        offer: () => { if (md.hap < 30) return gm.setState({ extMsg: pp.name + ' declined to discuss an extension.' }); if (amt > maxAllowed + 0.005) return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' }); if (amt >= ask - 0.05 && yrs >= minYears) { pp.ext = { amt, yrs, raise: 0.08 }; gm.setState(st => ({ extMsg: 'Agreed: ' + yrs + ' years from ' + money(amt) + ' (8% raises), starting ' + (pp.exp) + '–' + String(pp.exp + 1).slice(2) + '.', log: gm.logEntry(st, 'Extended ' + pp.name + ': ' + yrs + ' yrs from ' + money(amt) + (rook ? ' (rookie-scale extension)' : ' (veteran extension)')) })); } else gm.setState({ extMsg: 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.' }); } };
+        offer: () => { if (md.hap < 30) return gm.setState({ extMsg: pp.name + ' declined to discuss an extension.' }); if (amt > maxAllowed + 0.005) return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' }); if (amt >= ask - 0.05 && yrs >= minYears) { pp.ext = { amt, yrs, raise: 0.08 }; addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) }); gm.setState(st => ({ extMsg: 'Agreed: ' + yrs + ' years from ' + money(amt) + ' (8% raises), starting ' + (pp.exp) + '–' + String(pp.exp + 1).slice(2) + '.', log: gm.logEntry(st, 'Extended ' + pp.name + ': ' + yrs + ' yrs from ' + money(amt) + (rook ? ' (rookie-scale extension)' : ' (veteran extension)')) })); } else gm.setState({ extMsg: 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.' }); } };
     }
   }
   const tmT = s.teamModal != null ? T[s.teamModal] : null;
