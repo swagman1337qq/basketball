@@ -119,7 +119,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Represents
                   </span>
-                  <span style={{ display: "flex", gap: 6 }}><span style={{ flex: 1, minWidth: 0 }}><CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" /></span><Dice title="Another country he's eligible for (or any country)" onClick={vm.pl.ed.randRep} /></span>
+                  <span style={{ display: "flex", gap: 6 }}><span style={{ flex: 1, minWidth: 0 }}><CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" /></span><Dice title="A random country (any of the 215)" onClick={vm.pl.ed.randRep} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Motivation
                   </span>
