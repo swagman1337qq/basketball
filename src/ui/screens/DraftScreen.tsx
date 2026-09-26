@@ -46,6 +46,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
               {vm.dr.sub}
             </span>
           </div>
+          <button className="btn btn-secondary" onClick={vm.simOne} disabled={vm.dr.noSimMine} title="The team on the clock makes its pick" style={{ whiteSpace: "nowrap", flex: "none" }}>
+            Sim one pick
+          </button>
           <button className="btn btn-secondary" onClick={vm.simToMine} disabled={vm.dr.noSimMine} style={{ whiteSpace: "nowrap", flex: "none" }}>
             Sim to my pick
           </button>

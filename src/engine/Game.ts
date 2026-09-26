@@ -4,7 +4,7 @@
 import { createElement } from 'react';
 import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
-import { teamRating, wngBonus } from './ratings';
+import { setRating, teamRating, wngBonus } from './ratings';
 import { mediaPreds } from './media';
 import { snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
@@ -822,7 +822,12 @@ export class Game {
         if (a < 27) p.pot = Math.round(p.pot + potD + (nz() * 1.2 + (wk - 50) / 35 + form * 1.5 + (this.devK(p) - 1) * 2.5) * .6);
         else p.pot = Math.max(p.ovr, p.pot - 2);
         p.pot = this.cl(Math.max(p.pot, p.ovr), 25, 95);
-        Object.keys(p.r).forEach(k => { if (k !== 'hgt' || a <= 20) p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); }); return from; };
+        Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); });
+        // A late growth spurt: extremely rare, only for teenagers and 20–21-year-olds, one inch
+        // (4 height points). Wingspan never changes.
+        const spurt = a <= 19 ? .003 : a <= 21 ? .001 : 0; // about one player every two or three seasons, league-wide
+        if (Math.random() < spurt) { const inch = 1, hIn = this.inches(p.hgt), nIn = Math.min(91, hIn + inch); if (nIn > hIn) { p.hgt = Math.floor(nIn / 12) + '′' + (nIn % 12) + '″'; setRating(p, 'hgt', Math.min(100, p.r.hgt + 4 * (nIn - hIn))); lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' grew ' + (nIn - hIn === 1 ? 'an inch' : 'two inches') + ' over the summer (now ' + p.hgt + ')' }, ...lgLog]; } }
+        return from; };
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
       fa.forEach(id => grow(P[id], 0));
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
@@ -978,6 +983,8 @@ export class Game {
     return v - (p.amt - this.fair(p.ovr)) * Math.max(1, p.exp - (this.Y - 1)) * 0.35 * M[2];
   }
   kVal(k, st, giving, T) {
+    // Draft rights are worth the player (on his rookie deal), not the slot.
+    const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return Math.max(2, this.pVal({ ...p, amt: (r.rd || 1) === 1 ? this.rookieAmt(r.n) : nums(this).min(0), exp: this.Y + 4 }, st)); }
     const slot = this.projSlot(k, T);
     let v = k.rd === 1 ? 4 + 34 * Math.pow((31 - slot) / 30, 1.6) : 2.5;
     v *= k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.92 : 0.85;
@@ -1019,7 +1026,7 @@ export class Game {
     const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
     const minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1, stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
     const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt * (0.85 + (p.pers.work ?? 50) / 333) : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
-    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
+    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
     return { monthly, per: out };
   }
   // Tactics a roster can run: some options need players with the right roles.
@@ -1083,7 +1090,7 @@ export class Game {
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
-      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
+      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
       p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
       p.feed = [{ m: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
@@ -1201,7 +1208,7 @@ export class Game {
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
-      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(100, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
+      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
     // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
     const ib = inboxTick(this, s, day, rosters), favBench = { ...(s.favBench || {}) }, mandateFails = { ...(s.mandateFails || {}) };
@@ -1238,7 +1245,8 @@ export class Game {
   }
   rookieAmt(n) { return +(2.9 + Math.pow((30 - n) / 29, 1.6) * 10.9).toFixed(1); }
   // Draft picks by the AI. Stops at a managed team's pick when untilMine; otherwise auto-picks for them too.
-  aiDraft(untilMine) {
+  // AI picks until it's a managed team's turn (untilMine), for everyone, or for `limit` picks.
+  aiDraft(untilMine, limit = Infinity) {
     this.setState(s => {
       if (s.phase !== 'draft') return null;
       const picks = s.picks.map(p => ({ ...p })); let pi = s.pi; const taken = new Set(picks.filter(p => p.pid).map(p => p.pid));
@@ -1246,7 +1254,8 @@ export class Game {
       let st = s, clubs = { ...(s.clubs || {}) }, top: any = {};
       const setClub = (t, f) => { const pt = this.clubPatch({ ...st, clubs }, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; st = { ...s, ...top, clubs }; };
       const promiseOwner = id => s.managed.find(t => (this.clubOf(st, t)?.promises || {})[id]);
-      while (pi < picks.length && !(untilMine && !s.easy?.draft && this.isUser(s, this.owner2027(picks[pi].orig, s.assets, picks[pi].rd)))) {
+      let made = 0;
+      while (pi < picks.length && made < limit && !(untilMine && !s.easy?.draft && this.isUser(s, this.owner2027(picks[pi].orig, s.assets, picks[pi].rd)))) {
         const ow = this.owner2027(picks[pi].orig, s.assets, picks[pi].rd), ai = !this.isUser(s, ow);
         const avail0 = this.db.cls[this.Y].filter(id => !taken.has(id));
         const skip = x => promiseOwner(x) != null && Math.random() >= .4 && this.db.rank[x] > 3;
@@ -1269,7 +1278,7 @@ export class Game {
           const c = this.clubOf(st, ow); setClub(ow, { log: [{ date: this.fmtS(s.day), day: s.day, text: 'Auto-drafted ' + p.name + ' at #' + picks[pi].n }, ...(c.log || [])] });
         } else if (picks[pi].n <= 10) news.unshift(this.pressDraft(s, ow, p, picks[pi].n));
         lgLog.unshift({ day: s.day, type: 'Draft', teams: T.abbr, pids: [id], text: '#' + picks[pi].n + ' ' + T.region + ' ' + T.name + ' selected ' + p.name + ' (' + p.pos + ', ' + p.from.team + familyTag(this, p) + ')' });
-        pi++;
+        pi++; made++;
       }
       return { ...top, clubs, picks, pi, rosters, adv: {}, lgLog, news };
     });
@@ -1336,7 +1345,15 @@ export class Game {
       return { dialog: null };
     });
   }
-  pickLabel(k, T) { return k.yr + ' ' + (k.rd === 1 ? '1st' : '2nd') + (k.orig === k.owner ? '' : ' (via ' + T[k.orig].abbr + ')'); }
+  // Draft rights: on draft night, a pick that's been used on a player who hasn't signed yet (AI
+  // teams' picks sign when free agency opens). Trading the pick trades the player.
+  draftRights(k, s = this.state) {
+    if (!k || s.phase !== 'draft' || k.yr !== this.Y) return null;
+    const pk = s.picks.find(x => x.orig === k.orig && (x.rd || 1) === k.rd && x.pid); if (!pk) return null;
+    const onRoster = Object.values(s.rosters).some((ids: any) => ids.includes(pk.pid)); return onRoster ? null : pk;
+  }
+  pickLabel(k, T) { const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return 'Draft rights: ' + p.name + ' (#' + r.n + ', ' + p.pos + ')'; }
+    return k.yr + ' ' + (k.rd === 1 ? '1st' : '2nd') + (k.orig === k.owner ? '' : ' (via ' + T[k.orig].abbr + ')'); }
   propose() {
     this.setState(s => {
       const P = this.db.P, T = s.teams, t = T[s.tTid], ev = this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
@@ -1345,11 +1362,21 @@ export class Game {
       if (!ev.ok && !s.god && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + WANT[ev.st] + '\u201d' };
       const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
       const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
+      // Draft rights you receive: he signs his rookie deal with you right away (like your own picks).
+      const signed: string[] = [];
+      // As in the NBA: the team on the clock made the pick on your behalf and traded you his rights,
+      // so his draft record shows them; he signs his rookie deal with you.
+      const rightsIn: number[] = [];
+      s.tkTheirs.forEach(kid => { const r = this.draftRights(s.assets.find(a => a.id === kid), s); if (!r) return; const p = P[r.pid];
+        signDraftee(this, s, { rosters, fa: [] }, s.me, p, r, true); signed.push(p.name); rightsIn.push(p.id);
+        p.draftTid = s.tTid; const dt = (p.tx || []).slice().reverse().find((e: any) => e.k === 'draft'); if (dt) dt.tid = s.tTid;
+        const pu = (this.db as any).pickUsed?.[kid]; if (pu) pu.tid = s.tTid; });
       const cap = { ...(s.cap || {}) }, capNotes = tradeCap(this, s, cap, s.me, s.tTid, s.tMine, s.tTheirs);
-      recordTrade(this, s, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
+      const tradeId = recordTrade(this, s, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
+      rightsIn.forEach(id => addTx(this, s, P[id], { k: 'trade', from: s.tTid, to: s.me, trade: tradeId, text: 'Draft rights traded' }));
       const A = id => this.pickLabel(s.assets.find(a => a.id === id), T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
-      return { rosters, assets, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
+      return { rosters, assets, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : '') + (signed.length ? ' ' + T[s.tTid].abbr + ' made the pick on your behalf; ' + signed.join(' and ') + (signed.length === 1 ? ' signs his' : ' sign their') + ' rookie deal with you.' : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
   // Draft board shortcuts. Someone else's pick: trade with the team that owns it ("Trade for
