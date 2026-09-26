@@ -1,12 +1,14 @@
 import type { VM } from '../vm';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
+import { Seg } from '../kit';
+import { MockDrafts } from './MockDrafts';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
-  const [tk, setTk] = useState('');
+  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
   return (
     <>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" }}>
@@ -134,6 +136,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
           </>)}
         </section>
         <section>
+          {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
+          {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /></div>
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
@@ -192,6 +196,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
               ))}
             </tbody>
           </table>
+          </>)}
         </section>
       </div>
     </>

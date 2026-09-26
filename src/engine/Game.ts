@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
 import { teamRating, wngBonus } from './ratings';
+import { mediaPreds } from './media';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
@@ -881,6 +882,8 @@ export class Game {
       placeInGLeague(this, s, box.fa);
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
+    // Opening night: the media's preseason predictions are locked in.
+    if (this.state.phase === 'regular') mediaPreds(this, this.state);
   }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
