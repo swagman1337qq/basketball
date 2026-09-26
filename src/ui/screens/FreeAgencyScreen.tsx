@@ -6,6 +6,7 @@ import { BadgeChip } from '../BadgeChip';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
+import { useScoutSelect } from '../ScoutSelect';
 
 // The free agency clock: where we are on the NBA calendar, how much of the market has signed,
 // what happened since you last advanced, and the best players still out there.
@@ -56,6 +57,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const [f, setF] = useState<'all' | 'gl' | 'home'>('all'), [tk, setTk] = useState('');
   const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk));
   const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
+  const sc = useScoutSelect(vm, rows.map((p: any) => p.id));
   return (
     <>
       <FATracker vm={vm} />
@@ -71,9 +73,11 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         <TraitFilter value={tk} onChange={setTk} />
         <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>G League players are on standard G League deals: any NBA team can call them up by signing them.</span>
       </div>
+      {sc.bar()}{sc.Menu()}
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
         <thead>
           <tr>
+            {sc.head()}
             {(vm.faCols || []).map((c: any, i: number) => (
               <th key={i} onClick={c.onClick} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: c.color }}>
                 {c.label}{c.arrow}
@@ -87,13 +91,15 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         </thead>
         <tbody>
           {rows.map((p: any, i: number) => (
-            <tr key={i}>
+            <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+              {sc.cell(p.id)}
               <td style={{ padding: "4px 8px" }}>
                 <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                   <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
                   <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
                     {p.name}
                   </button>
+                  {sc.tag(p.id)}
                   {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
                   {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
                   {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>G League · {p.glT}</span>}

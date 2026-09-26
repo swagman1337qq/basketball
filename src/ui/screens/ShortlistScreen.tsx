@@ -1,5 +1,6 @@
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
+import { useScoutSelect } from '../ScoutSelect';
 
 export function ShortlistScreen({ vm }: { vm: VM }) {
   return (
@@ -46,18 +47,22 @@ export function ShortlistScreen({ vm }: { vm: VM }) {
 
 function ListTable({ vm, rows }: { vm: VM; rows: any[] }) {
   const srt = useSort<any>(rows, { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, money: r => parseFloat(String(r.money).replace(/[^0-9.]/g, '')) || 0 });
-  return (
+  const sc = useScoutSelect(vm, srt.rows.map((p: any) => p.id));
+  return (<>
+    {sc.bar()}{sc.Menu()}
     <table className="table" style={{ fontSize: "13px" }}>
-      <thead><tr>{srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('money', 'Contract / ask', 'right')}<th></th></tr></thead>
+      <thead><tr>{sc.head()}{srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('money', 'Contract / ask', 'right')}<th></th></tr></thead>
       <tbody>
         {srt.rows.map((p: any, i: number) => (
-          <tr key={i} onClick={p.open} style={{ cursor: "pointer" }}>
+          <tr key={i} onClick={p.open} onContextMenu={sc.onContext(p.id)} style={{ cursor: "pointer", background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+            {sc.cell(p.id)}
             <td style={{ padding: "5px 8px" }}>
               <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
                 <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
                 <span style={{ color: "var(--color-accent-700)" }}>
                   {p.name}
                 </span>
+                {sc.tag(p.id)}
               </span>
             </td>
             <td style={{ padding: "5px 8px" }}>
@@ -89,5 +94,5 @@ function ListTable({ vm, rows }: { vm: VM; rows: any[] }) {
         ))}
       </tbody>
     </table>
-  );
+  </>);
 }

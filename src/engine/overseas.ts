@@ -73,9 +73,31 @@ export function scoutTick(g: Game, s: any, overseas: number[]) {
     const sc = (s.scouts || []).filter(x => x.assign === reg); if (!sc.length) return;
     const gain = sc.reduce((a, x) => a + (x.spec === reg ? 1 : 0.6) * (0.5 + x.skill * 0.15), 0) * bF * ((s.scoutFocus || []).includes(id) ? 3 : 1) / Math.max(1, pros.filter(q => g.regionKey((P[q].from && P[q].from.country) || P[q].raised) === reg).length / 8);
     intel[id] = +Math.min(12, (intel[id] || 0) + gain).toFixed(2); });
+  // Players a scout follows personally (right-click → assign on the draft board): much faster than
+  // regional coverage, split between everyone he follows, better in his own region.
+  const asg: Record<number, string> = s.scoutAssign || {}, load: Record<string, number> = {};
+  Object.values(asg).forEach(n => (load[n] = (load[n] || 0) + 1));
+  Object.entries(asg).forEach(([k, n]) => { const id = +k, p = P[id], x = (s.scouts || []).find((y: any) => y.name === n); if (!p || !x || p.retired) return;
+    const reg = g.regionKey((p.from && p.from.country) || p.raised), per = (x.spec === reg ? 1.3 : 0.9) * (0.5 + x.skill * 0.15) * bF * 2.4 / Math.sqrt(load[n]);
+    intel[id] = +Math.min(12, (intel[id] || 0) + per).toFixed(2); });
   // Players on the scouting list outside the draft/overseas pools (NBA players, free agents):
   // the best pro scout adds intel every month.
   const best = Math.max(0, ...(s.scouts || []).map((x: any) => x.skill));
   (s.scoutList || []).filter((id: number) => !pros.includes(id) && P[id] && !P[id].retired).forEach((id: number) => { intel[id] = +Math.min(12, (intel[id] || 0) + (1 + best * 0.3) * bF).toFixed(2); });
   return intel;
+}
+
+// Personal scouting: which scout follows which players. Each scout can follow PERSONAL_MAX at once.
+export const PERSONAL_MAX = 8;
+export function assignScout(g: Game, name: string, ids: number[]): string {
+  let msg = '';
+  g.setState((st: any) => { const asg = { ...(st.scoutAssign || {}) }, mine = Object.keys(asg).filter(k => asg[k] === name).length;
+    const add = ids.filter(id => asg[id] !== name), room = Math.max(0, PERSONAL_MAX - mine), take = add.slice(0, room);
+    take.forEach(id => (asg[id] = name));
+    msg = take.length ? name + ' will follow ' + take.length + ' player' + (take.length === 1 ? '' : 's') + ' personally' + (add.length > take.length ? '; ' + (add.length - take.length) + ' not added (a scout can follow ' + PERSONAL_MAX + ' at a time)' : '') + '.' : name + ' is already following ' + PERSONAL_MAX + ' players. Free him up first.';
+    return { scoutAssign: asg }; });
+  return msg;
+}
+export function unassignScout(g: Game, ids: number[]) {
+  g.setState((st: any) => { const asg = { ...(st.scoutAssign || {}) }; ids.forEach(id => delete asg[id]); return { scoutAssign: asg }; });
 }

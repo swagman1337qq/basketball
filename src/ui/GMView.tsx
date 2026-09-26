@@ -46,6 +46,7 @@ import { PlayerSearch } from './PlayerSearch';
 import { TourOverlay } from './Tour';
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
 import { BoxScoreModal } from './modals/BoxScoreModal';
+import { SimMenu } from './SimMenu';
 import { GMSetupModal } from './modals/GMSetupModal';
 import type { VM } from './vm';
 
@@ -72,11 +73,7 @@ export function GMView({ vm }: { vm: VM }) {
               <span style={{ flex: "1", minWidth: "120px", fontSize: "12px", color: "var(--color-neutral-700)", textAlign: "right" }}>
                 {vm.ph.note}
               </span>
-              {(vm.ph.actions || []).map((a: any, i: number) => (
-                <button key={i} className="btn {{a.cls}}" onClick={a.go} disabled={a.dis} style={{ whiteSpace: "nowrap", fontSize: "13px", padding: "5px 12px" }}>
-                  {a.label}
-                </button>
-              ))}
+              <SimMenu actions={vm.ph.actions || []} />
             </div>
             {vm.hasModal ? <PlayerModal vm={vm} /> : vm.hasTeamModal ? <TeamModal vm={vm} /> : (<>
             <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "18px", paddingBottom: "10px", borderBottom: "1px solid var(--color-divider)" }}>

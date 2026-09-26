@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { Seg } from '../kit';
 import { MockDrafts } from './MockDrafts';
+import { useScoutSelect } from '../ScoutSelect';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
+  const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   return (
     <>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" }}>
@@ -140,9 +142,11 @@ export function DraftScreen({ vm }: { vm: VM }) {
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /></div>
+          {sc.bar()}{sc.Menu()}
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
+                {sc.head()}
                 {(vm.draftCols || []).map((c: any, i: number) => (
                   <th key={i} onClick={c.onClick} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: c.color }}>
                     {c.label}{c.arrow}
@@ -152,8 +156,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
               </tr>
             </thead>
             <tbody>
-              {(vm.draftRows || []).filter(byTrait(vm, tk)).map((p: any, i: number) => (
-                <tr key={i}>
+              {boardRows.map((p: any, i: number) => (
+                <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+                  {sc.cell(p.id)}
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {p.rank}
                   </td>
@@ -163,6 +168,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                       <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
                         {p.name}
                       </button>
+                      {sc.tag(p.id)}
                     </span>
                   </td>
                   <td style={{ padding: "4px 8px" }}>

@@ -2,6 +2,7 @@
 // a league-strength translation to the NBA, and buyout negotiations with their clubs.
 import { useState } from 'react';
 import type { VM } from '../vm';
+import { useScoutSelect } from '../ScoutSelect';
 import { byLast, useSort } from '../sortable';
 import { BUYOUT_EXEMPT, leagueStr, negotiateBuyout, translation } from '../../engine/overseas';
 import { Link, muted, NumInput, td, th } from '../kit';
@@ -12,6 +13,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
   const [neg, setNeg] = useState<{ pid: number; offer: number; pick: boolean; msg?: string } | null>(null);
   const srt = useSort<any>((vm.ovRows || []) as any[], { name: r => byLast(P[r.id] || r), club: r => r.club, age: r => r.age, pos: r => r.pos, trans: r => translation(gm, s, P[r.id]).pts, rating: r => { const t = translation(gm, s, P[r.id]); return (t.lo + t.hi) / 2; }, fee: r => P[r.id]?.abroad?.fee ?? 0, ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0 });
   const rows = srt.rows;
+  const sc = useScoutSelect(vm, rows.map((r: any) => r.id));
   return (
     <>
       <p style={{ margin: '0 0 6px', ...muted }}>
@@ -20,17 +22,19 @@ export function OverseasScreen({ vm }: { vm: VM }) {
       <p style={{ margin: '0 0 14px', ...muted, fontSize: '12px' }}>
         Returning players go through a league adjustment period of about 15 games (shorter for confident players), cut faster by 24+ minute nights and a Coaching budget of $25M or more. Up to {money(BUYOUT_EXEMPT)} of a buyout is exempt; the rest counts against your cap.
       </p>
+      {sc.bar()}{sc.Menu()}
       <table className="table" style={{ fontSize: '13px' }}>
         <thead>
-          <tr>{srt.head('name', 'Player')}{srt.head('club', 'Club · league strength')}<th style={th()}>Abroad this season</th>{srt.head('trans', 'Projected NBA translation')}{srt.head('rating', 'Rating', 'right')}{srt.head('fee', 'Contract')}{srt.head('ask', 'Asking', 'right')}<th style={th()}></th></tr>
+          <tr>{sc.head()}{srt.head('name', 'Player')}{srt.head('club', 'Club · league strength')}<th style={th()}>Abroad this season</th>{srt.head('trans', 'Projected NBA translation')}{srt.head('rating', 'Rating', 'right')}{srt.head('fee', 'Contract')}{srt.head('ask', 'Asking', 'right')}<th style={th()}></th></tr>
         </thead>
         <tbody>
           {rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (
-            <tr key={r.id}>
+            <tr key={r.id} onContextMenu={sc.onContext(r.id)} style={{ background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+              {sc.cell(r.id)}
               <td style={td()}>
                 <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                   <img src={r.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-                  <Link onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>{r.name}</Link>
+                  <Link onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>{r.name}</Link>{sc.tag(r.id)}
                   <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{r.pos} · {r.age} · {r.drafted}</span>
                 </span>
                 {p.overseasArc?.from && <div style={{ fontSize: '11px', color: 'var(--gm-good)' }}>Redemption arc: left {p.overseasArc.from} in {p.overseasArc.left} at {p.overseasArc.ovr}</div>}
