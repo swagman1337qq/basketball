@@ -1384,9 +1384,14 @@ export class Game {
     this.setState(s => {
       force = force && !!s.god;
       const P = this.db.P, T = s.teams, t = T[s.tTid], ev = this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
-      const WANT = { rebuild: 'Their priority is draft capital and young talent; they will take on salary to acquire it.', middle: 'They are looking for young, high-upside players and prefer to hold on to their picks.', contend: 'They are looking for proven contributors who can help immediately.' };
+      // What the other GM says, in his own words (a few ways to say it).
+      const WANT: Record<string, string[]> = {
+        rebuild: ['We’re building through the draft. Bring me picks and young talent and I’ll take on salary to get them.', 'Draft capital and young players are what we need right now. I can absorb a contract if that’s what it takes.', 'We’re rebuilding. Picks and kids move the needle for me; veterans don’t.'],
+        middle: ['I want young, high-upside players, and I’m not giving up our picks easily.', 'Show me young guys with a real ceiling. Our picks stay put unless the return is right.', 'We like upside. Give me a young player who can grow and we can talk, but I’m holding on to our picks.'],
+        contend: ['We’re trying to win now. I need proven players who can help us tonight.', 'Picks don’t help us this season. Give me someone who can play real minutes for a contender.', 'We’re in win-now mode: bring me a contributor, not a project.'] };
+      const say = (st: string) => { const a = WANT[st] || WANT.middle; return a[(s.tTid * 7 + s.day + (s.tTheirs.length + s.tMine.length) * 3) % a.length]; };
       if (!force) { const chk = checkTrade(this, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs); if (!chk.ok) return { tMsg: 'League office: ' + chk.errs.join(' ') }; }
-      if (!ev.ok && !force && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + WANT[ev.st] + '\u201d' };
+      if (!ev.ok && !force && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + say(ev.st) + '\u201d' };
       const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
       const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
       // Draft rights you receive: he signs his rookie deal with you right away (like your own picks).

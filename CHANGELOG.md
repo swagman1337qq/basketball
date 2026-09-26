@@ -56,6 +56,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- Other GMs turning down a trade now speak for themselves ("I want young, high-upside players, and I'm not giving up our picks easily") instead of describing their own team as "they". Several ways to say it for each kind of team.
 - The player header's season count includes seasons before this league began (a 2022 draftee is in season 5, not his "rookie season").
 - Monthly development reports said "undefined" instead of Acc (acceleration); Layups and Box out were also missing from report and tactics labels. Old reports are corrected when the league loads.
 - Tactics → training growth chart: all 18 ratings now fit on one row with their labels lined up.
