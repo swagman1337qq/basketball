@@ -7,7 +7,7 @@ import { voteHof } from './hof';
 import { teamRating, wngBonus } from './ratings';
 import { mediaPreds } from './media';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
+import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
@@ -778,6 +778,7 @@ export class Game {
       let done = 0;
       for (let d = 0; d < n; d++) { const fd = fd0 + d, pace = Game.faPace(fd), moves = Math.floor(pace) + (Math.random() < pace % 1 ? 1 : 0), st = { ...s, day: s.day + d };
         aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99); easyFreeAgency(this, st, box, lgLog); done++;
+        if (fd === 10) lgLog.unshift(...aiExtensions(this, { ...st, rosters: box.rosters, cap: box.cap }, 0.45)); // July: the first extension window
         if (offerSheets.length > sheets0 && !s.easy?.cap) break; } // stop the clock: one of your restricted free agents got an offer sheet
       // Easy mode answers offer sheets for your restricted free agents.
       if (s.easy?.cap) for (const o of offerSheets.slice()) { if (!this.isUser(s, o.to)) continue; const m = easyMatch(this, { ...s, rosters: box.rosters, cap: box.cap }, o), p = this.db.P[o.pid];
@@ -901,8 +902,12 @@ export class Game {
       placeInGLeague(this, s, box.fa);
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
-    // Opening night: the media's preseason predictions are locked in.
-    if (this.state.phase === 'regular') mediaPreds(this, this.state);
+    if (this.state.phase === 'regular') {
+      // Opening night: the extension deadline (AI teams finish their deals), and the media's
+      // preseason predictions are locked in.
+      const ext = aiExtensions(this, this.state, 0.5); if (ext.length) this.setState(st => ({ lgLog: [...ext, ...st.lgLog] }));
+      mediaPreds(this, this.state);
+    }
   }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }

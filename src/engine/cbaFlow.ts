@@ -3,7 +3,7 @@
 // AI free agency, draftee contracts, the in-season tick (10-days, hardship, two-way games,
 // disabled player exceptions) and the cap side of trades (TPEs, trade kickers).
 import type { Game } from './Game';
-import { recordPick } from './txlog';
+import { addTx, recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, ROSTER_MIN, rookieDeal, rosterMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { acceptance, aiTerms, applySigning, buyoutBlocked, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
@@ -317,4 +317,34 @@ export function renounce(g: Game, pid: number) {
     const c = { ...((s.cap || {})[tid] || {}) }; c.renounced = [...(c.renounced || []), pid]; p.birdTid = null; delete p.rfa;
     return { cap: { ...(s.cap || {}), [tid]: c }, log: g.logEntry(s, 'Renounced ' + p.name + ' (cap hold cleared, Bird rights gone)') };
   });
+}
+
+// AI teams extend their own players, as in the NBA: rookie-scale extensions for the young
+// players they believe in, and veteran extensions for the ones they want to keep before free
+// agency. Two windows: early July (once the new league year opens) and the October deadline
+// before opening night. `share` is the chance an eligible deal gets done in this window.
+export function aiExtensions(g: Game, s: any, share: number): any[] {
+  const P = g.db.P, N = nums(g), out: any[] = [], inFA = s.phase === 'fa', last = inFA ? g.Y + 1 : g.Y; // his final contract season
+  const all = (Object.values(s.rosters).flat() as number[]), avg = all.reduce((a, id) => a + (P[id]?.amt || 0), 0) / Math.max(1, all.length);
+  Object.keys(s.rosters).forEach(k => { const t = +k; if (g.isUser(s, t)) return;
+    let payroll = teamSalary(g, s, t);
+    s.rosters[t].forEach((id: number) => { const p = P[id]; if (!p || p.ext || p.exp !== last || ['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype)) return;
+      const rook = !!p.rookieScale, vetOk = !rook && (p.signed?.season != null ? g.Y - p.signed.season >= 2 : (p.yrsWith || 0) >= 2);
+      if (!rook && !vetOk) return;
+      // Worth keeping? Young players on what they'll become, veterans on what they are.
+      const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, p.pot - p.ovr) * 0.5) : p.ovr;
+      if (proj < (rook ? 56 : 58) || p.age >= 33) return;
+      const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
+      if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
+      const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
+      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, g.fair(proj) * (mot === 'Money' ? 1.1 : 1))).toFixed(2);
+      if (payroll - p.amt + amt > g.ownerCeiling(s.teams[t].arch) + 6) return; // the owner won't pay it
+      const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 30 ? 3 : 2;
+      p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;
+      const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1.08, i)).reduce((a, x) => a + x, 0), T = s.teams[t];
+      addTx(g, s, p, { k: 'extend', tid: t, text: 'Signed a ' + yrs + '-year ' + (rook ? 'rookie-scale ' : '') + 'extension · $' + total.toFixed(1) + 'M total' });
+      out.push({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: T.region + ' ' + T.name + ' signed ' + p.name + ' to a ' + yrs + '-year, $' + total.toFixed(1) + 'M ' + (rook ? 'rookie-scale ' : '') + 'extension (starts ' + (last) + '–' + String(last + 1).slice(2) + ')' });
+    });
+  });
+  return out;
 }
