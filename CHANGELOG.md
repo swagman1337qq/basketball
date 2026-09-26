@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **God Mode: edit height and wingspan in feet and inches**, next to the numbers (the height rating and the wingspan in inches). Change either one and the other follows; wingspan moves with height. **Position** is editable too (PG, SG, G, SF, GF, F, PF, FC, C) on the profile editor and the Edit player tab.
 - **Trade for players just drafted.** On draft night, a player an AI team has picked shows up in the trade screen as its "Draft rights" (and "Trade for player" on the draft board). As in the NBA, that team made the pick on your behalf: his record shows who drafted him, the rights are traded to you, and he signs his rookie deal with you.
 - **Sim one pick** on draft night (Draft screen and the season bar): the team on the clock makes its pick, and you watch the draft unfold one selection at a time.
 - **Scout any player you select.** Tick players (checkboxes, select all, or shift-click a range) on the Draft board, Free agency, Overseas or the Shortlist, then right-click (or use the bar above the table) to have one of your scouts follow them personally. Your read on them sharpens far faster than regional scouting alone, best in the scout's own region. Each scout can follow 8 players; a 👁 tag shows who's following whom.

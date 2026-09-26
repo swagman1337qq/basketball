@@ -79,6 +79,17 @@ export function linkNames(text: string, open: (id: number) => void, opts: { P?: 
   return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
 }
 
+// A length in feet and inches (two typed fields). Inches past 11 or below 0 carry into the feet.
+export function FtInInput({ inches, min, max, onValue, disabled }: { inches: number; min: number; max: number; onValue: (inches: number) => void; disabled?: boolean }) {
+  const ft = Math.floor(inches / 12), inch = inches % 12, set = (n: number) => { const v = Math.min(max, Math.max(min, n)); if (v !== inches) onValue(v); };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Feet and inches">
+      <NumInput value={ft} min={Math.floor(min / 12)} max={Math.floor(max / 12)} width={52} disabled={disabled} onValue={v => set(v * 12 + inch)} /><span style={muted}>′</span>
+      <NumInput value={inch} min={-1} max={12} width={56} disabled={disabled} onValue={v => set(ft * 12 + v)} /><span style={muted}>″</span>
+    </span>
+  );
+}
+
 // A typed number field (instead of a slider). The value applies on Enter or when the
 // field loses focus, clamped to [min, max] and rounded to `step`; the spinner arrows
 // apply at once. Partial typing ("7" on the way to "72") is never applied.

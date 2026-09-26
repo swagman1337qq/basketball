@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { VM } from '../vm';
 import { Dice } from '../kit';
 import { TransactionsTab } from './TransactionsTab';
-import { CountryPicker, NumInput } from '../kit';
+import { CountryPicker, FtInInput, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
 import { ScoutReportView } from '../ScoutReportView';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './ProfileExtras';
@@ -121,6 +121,16 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   </span>
                   <span style={{ display: "flex", gap: 6 }}><span style={{ flex: 1, minWidth: 0 }}><CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" /></span><Dice title="A random country (any of the 215)" onClick={vm.pl.ed.randRep} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
+                    Position
+                  </span>
+                  <span style={{ display: "flex", gap: 6 }}><select className="input" value={vm.pl.ed.posV} onChange={vm.pl.ed.setPos} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }}>
+                    {(vm.pl.ed.posOpts || []).map((o: any, i: number) => (
+                      <option key={i} value={o.v}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select><Dice title="A random position" onClick={() => { const o = vm.pl.ed.posOpts || []; vm.pl.ed.setPos({ target: { value: o[Math.floor(Math.random() * o.length)].v } }); }} /></span>
+                  <span style={{ color: "var(--color-neutral-700)" }}>
                     Motivation
                   </span>
                   <span style={{ display: "flex", gap: 6 }}><select className="input" value={vm.pl.ed.motV} onChange={vm.pl.ed.setMot} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }}>
@@ -198,7 +208,11 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       {r.label}
                     </span>
-                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.suffix || (r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined)} />
+                    <span style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.suffix} />
+                      {r.ftin && <FtInInput inches={r.ftin.inches} min={r.ftin.min} max={r.ftin.max} onValue={r.ftin.set} />}
+                      {r.note && <span style={{ color: "var(--color-neutral-700)", fontSize: "12px", whiteSpace: "nowrap" }}>{r.note}</span>}
+                    </span>
                     <span>{r.rand && <Dice onClick={r.rand} title={'Random ' + String(r.label).toLowerCase()} />}</span>
                   </div>
                 ))}

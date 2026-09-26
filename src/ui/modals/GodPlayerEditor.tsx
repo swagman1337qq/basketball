@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
-import { Combo, CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
+import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '../kit';
 import { namePools } from '../../data/world';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
@@ -43,7 +43,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string, unit?: string, rand?: () => number) => (
     <>
       <span style={muted}>{label}</span>
-      <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><NumInput value={v} min={mn} max={mx} step={1} onValue={set} suffix={(unit ? unit : '') + (fmt ? (unit ? ' · ' : '') + fmt(v) : '') || mn + '–' + mx} />{rand && <Dice onClick={() => set(rand())} title={'Random ' + label.toLowerCase()} />}</span>
+      <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><NumInput value={v} min={mn} max={mx} step={1} onValue={set} suffix={unit === 'inches' ? 'in' : (unit ? unit : '') + (fmt ? (unit ? ' · ' : '') + fmt(v) : '') || mn + '–' + mx} />{unit === 'inches' && <><FtInInput inches={v} min={mn} max={mx} onValue={set} />{fmt && label !== 'Height' && <span style={{ ...muted, fontSize: '12px', whiteSpace: 'nowrap' }}>{fmt(v).replace(/^\S+ /, '')}</span>}</>}{rand && <Dice onClick={() => set(rand())} title={'Random ' + label.toLowerCase()} />}</span>
     </>
   );
   const RN = () => randomName(origin, Math.random, bg || undefined);
@@ -71,7 +71,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <span style={muted}>Native last</span>{inRow(<input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} style={{ flex: 1, minWidth: 0 }} />, () => setNames(first, last, nFirst, RN().nativeLast || ''), 'A random native-script last name (countries with their own script)')}
           <span style={muted}>Date of birth</span>
           {inRow(<input className="input" type="date" style={{ flex: 1, minWidth: 0 }} value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />, () => { const age = 19 + Math.floor(Math.random() * 17), y = gm.Y - 1 - age, m = 1 + Math.floor(Math.random() * 12), d = 1 + Math.floor(Math.random() * 28); const v = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); const e = { target: { value: v } }; { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); } }, 'A random birthday (age 19–35)')}
-          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); setRating(q, 'hgt', cl(q.r.hgt + d * 4, 4, 100)); }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
+          <span style={muted}>Position</span>
+          {inRow(<select className="input" value={vm.pl.ed.posV} onChange={vm.pl.ed.setPos} style={{ flex: 1, minWidth: 0 }}>{(vm.pl.ed.posOpts || []).map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}</select>, () => { const o = vm.pl.ed.posOpts || []; vm.pl.ed.setPos({ target: { value: o[Math.floor(Math.random() * o.length)].v } }); }, 'A random position')}
+          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); if (!d) return; q.hgt = fmtH(v); setRating(q, 'hgt', cl(q.r.hgt + d * 4, 4, 100)); if (q.wing != null) q.wing += d; }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
           {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb', () => Math.round(hIn * 2.9 - 5 + Math.random() * 25))}
           {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => setWing(q, v)), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height) · rating ' + wngOf(v, hIn), 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
           <span style={muted}>Hometown</span>
