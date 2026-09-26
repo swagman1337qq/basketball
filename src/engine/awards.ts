@@ -7,11 +7,31 @@ import { DEFAULT_AWARDS, type AwardDef } from '../data/awardDefs';
 import { seasonAdvanced, seriesLine, type StatLine } from './advanced';
 import { compileFormula } from './formula';
 
-export interface AwardEntry { pid: number; tid: number; line: string; score: number }
+export interface AwardEntry { pid: number; tid: number; line: string; score: number; pts?: number; first?: number; share?: number }
+
+// The media vote: 100 voters rank the top candidates (MVP 10-7-5-3-1, other awards 5-3-1, as
+// in the NBA). Each voter sees the formula score with his own noise, so blowouts come out
+// unanimous and close races split. Deterministic per season and award.
+export const VOTERS = 100;
+export const POINTS: Record<string, number[]> = { MVP: [10, 7, 5, 3, 1] };
+export function runVote<T extends { score: number }>(cands: T[], key: string, season: number, pts = POINTS[key] || [5, 3, 1]): (T & { pts: number; first: number; share: number })[] {
+  if (!cands.length) return [];
+  let a = 0; for (const ch of key + season) a = (a * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+  const sc = cands.map(c => c.score), spread = Math.max(1e-6, sc[0] - sc[Math.min(sc.length - 1, 5)]), sd = spread / 4 + Math.abs(sc[0]) * 0.01;
+  const tally = cands.map(c => ({ ...c, pts: 0, first: 0, share: 0 }));
+  for (let v = 0; v < VOTERS; v++) {
+    const order = tally.map((c, i) => ({ i, x: c.score + gauss() * sd })).sort((p, q) => q.x - p.x);
+    order.slice(0, pts.length).forEach((o, r) => { tally[o.i].pts += pts[r]; if (r === 0) tally[o.i].first++; });
+  }
+  tally.forEach(c => (c.share = +(c.pts / (VOTERS * pts[0])).toFixed(3)));
+  return tally.filter(c => c.pts > 0).sort((p, q) => q.pts - p.pts || q.score - p.score);
+}
 export interface SeasonAwards {
   season: number;
   mvp: AwardEntry[]; dpoy: AwardEntry[]; roy: AwardEntry[]; smoy: AwardEntry[]; mip: AwardEntry[];
-  coy: { tid: number; name: string; line: string }[];
+  coy: { tid: number; name: string; line: string; pts?: number; first?: number; share?: number }[];
   allLeague: number[][]; allDef: number[][]; allRookie: number[];
   fmvp?: AwardEntry | null;
   // Formula era: every single-winner award by short name, multi-team awards, and the definitions used.
@@ -75,16 +95,16 @@ export function computeAwards(g: Game, s: any): SeasonAwards {
       if (TEAM_KEY[d.shortName] === 'allRookie') out.allRookie = tms.flat(); else if (TEAM_KEY[d.shortName]) out[TEAM_KEY[d.shortName]] = tms;
       return;
     }
-    list[d.shortName] = scored.slice(0, 5).map(e => ({ pid: e.pid, tid: e.tid, line: lineOf(e), score: +e.v.toFixed(2) }));
+    list[d.shortName] = runVote(scored.slice(0, 12).map(e => ({ pid: e.pid, tid: e.tid, line: lineOf(e), score: +e.v.toFixed(2) })), d.shortName, Y);
     const ck = CLASSIC[d.shortName] || (d.actAs && CLASSIC[d.actAs.toUpperCase()]);
     if (ck) out[ck] = list[d.shortName];
   });
 
   // Coach of the Year: most wins above what the roster's strength projected.
   const avgStr = T.reduce((a, t) => a + (t.str || 50), 0) / T.length;
-  out.coy = T.map(t => ({ t, v: g.pct(t) - Math.max(0.15, Math.min(0.85, 0.5 + ((t.str || 50) - avgStr) * 0.035)) }))
-    .sort((a, b) => b.v - a.v).slice(0, 3)
-    .map(({ t, v }) => ({ tid: t.tid, name: g.isUser(s, t.tid) ? 'You (GM & head coach)' : t.gm, line: t.w + '–' + t.l + ' · ' + (v >= 0 ? '+' : '') + Math.round(v * 82) + ' wins over projection' }));
+  out.coy = runVote<any>(T.map(t => ({ t, score: g.pct(t) - Math.max(0.15, Math.min(0.85, 0.5 + ((t.str || 50) - avgStr) * 0.035)) }))
+    .sort((a, b) => b.score - a.score).slice(0, 10), 'COY', Y)
+    .map(({ t, score: v, pts, first, share }) => ({ tid: t.tid, name: g.isUser(s, t.tid) ? 'You (GM & head coach)' : t.gm, line: t.w + '–' + t.l + ' · ' + (v >= 0 ? '+' : '') + Math.round(v * 82) + ' wins over projection', pts, first, share }));
   return out;
 }
 
