@@ -432,7 +432,7 @@ export class Game {
   }
   // This season's results for a team, newest first: { day, win, us, them, opp, home, po }.
   resultsOf(s, tid) {
-    return (s.games || []).filter(g => g.h === tid || g.a === tid).map(g => { const home = g.h === tid; return { day: g.day, win: home ? g.hp > g.ap : g.ap > g.hp, us: home ? g.hp : g.ap, them: home ? g.ap : g.hp, opp: home ? g.a : g.h, home, po: g.po }; }).reverse();
+    return (s.games || []).filter(g => g.h === tid || g.a === tid).map(g => { const home = g.h === tid; return { day: g.day, win: home ? g.hp > g.ap : g.ap > g.hp, us: home ? g.hp : g.ap, them: home ? g.ap : g.hp, opp: home ? g.a : g.h, home, po: g.po, bid: g.bid }; }).reverse();
   }
   gamesPlayed(s) { return Math.max(0, ...s.teams.map(t => t.w + t.l)); }
 
@@ -495,6 +495,16 @@ export class Game {
 
   // Box score → season totals. One stat row per player, season, team and regular/playoffs,
   // with home/road splits and the four shot tiers; team totals feed the Four Factors.
+  // Box scores for this season's games, compact: quarter scores and one line per player who
+  // played ([pid, min, pts, fgm, fga, tpm, tpa, ftm, fta, orb, drb, ast, stl, blk, tov, pf, +/-,
+  // started]). Kept for the current season only so saves stay small.
+  static BOX_F = ['min', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'pm', 'gs'];
+  keepBox(res: GameResult, day: number, kind?: string) {
+    const d: any = this.db, id = this.Y + '-' + (d.boxSeq = (d.boxSeq || 0) + 1), boxes = (d.boxes = d.boxes || {});
+    const side = (sd: any) => ({ tid: sd.tid, pts: sd.pts, qs: sd.qs, lines: Object.entries(sd.box).filter(([, b]: any) => b.min > 0).map(([pid, b]: any) => [+pid, ...Game.BOX_F.map(f => f === 'min' ? +(b.min || 0).toFixed(1) : b[f] || 0)]) });
+    boxes[id] = { season: this.Y, day, kind: kind || 'reg', ot: res.ot, home: side(res.home), away: side(res.away) };
+    return id;
+  }
   addBox(res: GameResult, po: boolean, touched?: number[], mins?: Record<number, number>, s?: any) {
     const P = this.db.P, Y = this.Y, SPLIT = ['gp', 'min', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'tov', 'stl', 'blk'];
     const sum = side => { const t: any = blankLine(); Object.values(side.box).forEach((b: any) => Object.keys(t).forEach(k => (t[k] += b[k] || 0))); return t; };
@@ -622,9 +632,9 @@ export class Game {
   // One postseason game: simulated (or the finished Live Game), logged, stats on the playoff line.
   private postGame(s, home, away, forced, kind, finals?) {
     const res = forced && forced.home.tid === home && forced.away.tid === away ? forced : this.playGame(s, home, away);
-    this.addBox(res, true);
+    this.addBox(res, true); const bid = this.keepBox(res, s.day, kind);
     if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
-    return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind } };
+    return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind, bid } };
   }
   simPlayin(forced?: GameResult) {
     this.setState(s => {
@@ -681,7 +691,7 @@ export class Game {
           games.push(log);
           const aWon = (res.home.pts > res.away.pts) === aHome;
           if (aWon) x.wa++; else x.wb++;
-          x.g.push({ h: home, hp: res.home.pts, ap: res.away.pts });
+          x.g.push({ h: home, hp: res.home.pts, ap: res.away.pts, bid: log.bid });
           if (done(x)) [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (W(x).t === t ? 'Won ' : 'Lost ') + (ri === 3 ? 'the Finals' : 'the ' + RN[ri]) + ' vs ' + s.teams[t === x.a ? x.b : x.a].abbr + ', ' + Math.max(x.wa, x.wb) + '–' + Math.min(x.wa, x.wb)); });
         });
         day++;
@@ -861,6 +871,7 @@ export class Game {
       let clubs = { ...(s.clubs || {}) }, top: any = {};
       s.managed.forEach(t => { const f: any = { prog: progBy[t] || [] }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
+      (this.db as any).boxes = {}; // last season's box scores go with its game log
       return { ...top, clubs, cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
@@ -1163,10 +1174,10 @@ export class Game {
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
     for (const [h, a] of games) {
       const res = forced && forced.home.tid === h && forced.away.tid === a ? forced : this.playGame(cur, h, a);
-      this.addBox(res, false, touched, mins, cur);
+      this.addBox(res, false, touched, mins, cur); const bid = this.keepBox(res, day);
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true); rec(teams[a], !homeWon, false);
-      gameLog.push({ day, h, a, hp: res.home.pts, ap: res.away.pts, ot: res.ot });
+      gameLog.push({ day, h, a, hp: res.home.pts, ap: res.away.pts, ot: res.ot, bid });
     }
     this.refreshAverages(touched);
     touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) { const c = this.clubOf(s, this.tidOf(rosters, id)); q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (c && c.budget.Coaching >= 25 ? 0.25 : 0)); } });

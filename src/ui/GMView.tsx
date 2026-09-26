@@ -45,6 +45,7 @@ import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
 import { TourOverlay } from './Tour';
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
+import { BoxScoreModal } from './modals/BoxScoreModal';
 import { GMSetupModal } from './modals/GMSetupModal';
 import type { VM } from './vm';
 
@@ -133,6 +134,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
+        {!!vm.ctx.s.boxId && <BoxScoreModal vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
         {vm.ctx.s.tour != null && <TourOverlay vm={vm} />}
       </div>

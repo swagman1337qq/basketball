@@ -29,6 +29,11 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
       {title && <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{title}</div>}
       <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.wa ?? ''} won={done && x.wa === 4} lost={done && x.wa < 4} placeholder={x.pa} />
       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.wb ?? ''} won={done && x.wb === 4} lost={done && x.wb < 4} placeholder={x.pb} />
+      {(x.g || []).length > 0 && <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
+        {(x.g || []).map((g: any, i: number) => { const box = g.bid && (vm.ctx.gm.db as any).boxes?.[g.bid], w = g.hp > g.ap ? g.h : (g.h === x.a ? x.b : x.a);
+          return <button key={i} className="hv4" disabled={!box} onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })} title={'Game ' + (i + 1) + ': ' + vm.ctx.T[w].abbr + ' won ' + Math.max(g.hp, g.ap) + '–' + Math.min(g.hp, g.ap) + (box ? ' · box score' : '')}
+            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--color-divider)', color: vm.ctx.isMine(w) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
+      </div>}
     </div>
   );
 }

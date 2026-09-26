@@ -107,7 +107,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                       {r.wl}
                     </td>
                     <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                      {r.score}
+                      {r.openBox ? <button className="hv4" onClick={r.openBox} title="Box score" style={{ all: "unset", cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>{r.score}</button> : r.score}
                     </td>
                   </tr>
                 ))}
