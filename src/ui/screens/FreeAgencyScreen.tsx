@@ -3,6 +3,12 @@ import type { VM } from '../vm';
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
   return (
     <>
+      {(vm.ctx.s.offerSheets || []).length > 0 && (
+        <div style={{ padding: "8px 12px", marginBottom: "12px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", fontSize: "13px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <span style={{ flex: 1 }}>Another team signed one of your restricted free agents to an offer sheet. Match it or let him go before preseason.</span>
+          <button className="btn btn-primary" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Open the cap sheet</button>
+        </div>
+      )}
       <table className="table" style={{ fontSize: "13px" }}>
         <thead>
           <tr>
@@ -12,7 +18,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               </th>
             ))}
             <th style={{ padding: "6px 8px" }}>
-              Exception
+              How you can sign him
             </th>
             <th style={{ padding: "6px 8px" }}></th>
           </tr>

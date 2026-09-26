@@ -3,11 +3,13 @@
 // owner-mandated fire sales. Everything the owner judges you on is computed here and
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import type { Game } from './Game';
+import { fmtMoney } from './capModel';
+import { capState, taxBill as cbaTax, teamSalary } from './cba';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 export const DEFAULT_BUDGET = { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 };
-export const money = (v: number) => (v < 0 ? '−' : '') + '$' + Math.abs(v).toFixed(1) + 'M';
+export const money = fmtMoney;
 
 // ── Finances ─────────────────────────────────────────────────────────────────────
 export function financesOf(g: Game, s: any, tid: number) {
@@ -15,17 +17,19 @@ export function financesOf(g: Game, s: any, tid: number) {
   const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800;
   const att = cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
   const tix = (b.Tickets * att * 41) / 1e6;
-  const payroll = g.payrollOf(s.rosters[tid]) + (T.capAdj || 0);
-  const taxHist = club?.taxHist || [];
+  const payroll = teamSalary(g, s, tid);
+  // Repeater: a taxpayer in at least three of the previous four seasons.
+  const taxHist = (s.cap?.[tid]?.taxHist) || club?.taxHist || [];
   const repeater = taxHist.slice(-4).filter(Boolean).length >= 3;
-  let taxBill = 0;
-  { let over = payroll - g.TAX, rate = 1.5 + (repeater ? 1 : 0); while (over > 0) { taxBill += Math.min(5, over) * rate; over -= 5; rate += rate < 1.75 ? 0.25 : rate < 2.5 ? 0.75 : 0.5; } }
-  taxBill = Math.max(0, taxBill + (T.taxAdj || 0));
+  const taxBill = Math.max(0, cbaTax(g, payroll, repeater) + (T.taxAdj || 0));
+  const lf = g.CAP / 165; // league revenue grows with the cap
+  void capState;
   const share = 25 * (mk - 0.95);
-  const rev: [string, number][] = [['Ticket sales', tix], ['National media rights', 152.0], ['Local media', 34.0 * Math.pow(mk, 1.5)], ['Sponsorship & naming', 48.0 * mk], ['Merchandise', 22 * mk * (0.8 + wp * 0.4)]];
+  const rev: [string, number][] = [['Ticket sales', tix * lf], ['National media rights', 152.0 * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
   if (share < 0) rev.push(['Revenue sharing received', -share]);
-  if (payroll <= g.TAX) rev.push(['Tax distribution (est.)', 11.5]);
-  const exp: [string, number][] = [['Player payroll', payroll], ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0], ['Front office & staff', 25.0], ['Team travel', 9.0], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching], ['Health', b.Health], ['Facilities', b.Facilities], ['Scouting', b.Scouting]];
+  if (payroll <= g.TAX) rev.push(['Tax distribution (est.)', 11.5 * lf]);
+  const dead = s.cap?.[tid]?.dead?.reduce((a, d) => a + (d.amts?.[g.Y] || 0), 0) || 0;
+  const exp: [string, number][] = [['Player payroll', payroll - dead - (T.capAdj || 0)], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
   const net = rev.reduce((a, r) => a + r[1], 0) - exp.reduce((a, r) => a + r[1], 0);
   return { payroll, att, cap, full: att / cap, tix, taxBill, repeater, rev, exp, net, budget: b };
 }
@@ -56,7 +60,7 @@ export function ownerReview(g: Game, s: any, tid: number) {
   const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const fin = financesOf(g, s, tid), payroll = fin.payroll;
   const confT = T.filter(t => t.conf === me.conf).sort((a, b) => g.pct(b) - g.pct(a) || b.w - a.w), seed = confT.indexOf(me) + 1;
-  const usedPick = a => a.yr === g.Y && a.rd === 1 && s.picks.some(x => x.orig === a.orig && x.pid);
+  const usedPick = a => a.yr === g.Y && s.picks.some(x => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid);
   const firsts = s.assets.filter(a => a.owner === tid && a.rd === 1 && !usedPick(a)).length;
   const avgAge = ids.reduce((a, id) => a + P[id].age, 0) / Math.max(1, ids.length), bestOvr = Math.max(...ids.map(id => P[id].ovr));
   const fav = ownerFavorite(g, s, tid), favBench = (s.favBench || {})[tid] || 0;
@@ -276,7 +280,7 @@ export function inboxTick(g: Game, s: any, day: number, rosters: any) {
       }
     });
     // Owner mandate: over the payroll ceiling → get under it by the trade deadline (day 50).
-    const T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), pay = g.payrollOf(rosters[tid]) + (T.capAdj || 0);
+    const T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), pay = teamSalary(g, { ...s, rosters }, tid);
     const club = g.clubOf(s, tid), open = (club?.inbox || []).find(x => x.kind === 'mandate' && !x.resolved);
     if (pay > ceil && !open && day < 45 && day % 5 === 0) push(tid, { pid: null, kind: 'mandate', deadline: 50, target: ceil, title: T.owner + ': cut payroll', text: 'Owner ' + T.owner + ' (' + T.arch + ') orders payroll under ' + money(ceil) + ' by the trade deadline (' + g.fmtS(50) + '). Otherwise he will order a fire sale of your worst contracts.', options: [{ k: 'ok', label: 'Understood' }] });
   });
@@ -302,7 +306,7 @@ export function resolveInbox(g: Game, id: string, choice: string) {
 export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[]) {
   const P = g.db.P, T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), sold: string[] = [];
   let guard = 0;
-  while (g.payrollOf(rosters[tid]) + (T.capAdj || 0) > ceil && rosters[tid].length > 8 && guard++ < 6) {
+  while (teamSalary(g, { ...s, rosters }, tid) > ceil && rosters[tid].length > 8 && guard++ < 6) {
     const worst = rosters[tid].slice().sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)))[0];
     const to = s.teams.filter(t => !g.isUser(s, t.tid) && rosters[t.tid].length < 15).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
     rosters[tid] = rosters[tid].filter(x => x !== worst);

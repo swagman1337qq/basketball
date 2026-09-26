@@ -46,6 +46,15 @@ src/
   engine/awards.ts       MVP, DPOY, ROY, 6MOY, MIP, Coach of the Year, All-League/Defense/Rookie
   engine/frontOffice.ts  finances, owner reviews and firing, job market, press, incentives,
                          stat-padding dilemmas, payroll mandates and fire sales
+  engine/cba.ts          the CBA's rules: cap/tax/apron numbers as shares of the cap, max and minimum
+                         salaries, Bird rights, cap holds, every signing method, trade matching,
+                         luxury tax, dead money, rookie scale, qualifying offers
+  engine/contracts.ts    signing a player (validation, whether he accepts, applying it), AI terms,
+                         waivers, stretch and buyouts
+  engine/cbaFlow.ts      the league year: user signings/releases, options and qualifying offers,
+                         restricted free agency and offer sheets, AI free agency, draftee contracts,
+                         10-days/hardship/two-ways/DPE in season, TPEs and trade kickers
+  engine/capModel.ts     real salary-cap history and the 500-season cap projection the league follows
   engine/overseas.ts     league-strength translation, buyouts, confidence, scouting intel
   engine/faces.ts        deterministic SVG faces
   engine/rng.ts          seeded mulberry32 RNG (the world seed is saved with the league)

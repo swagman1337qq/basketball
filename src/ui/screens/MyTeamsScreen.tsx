@@ -1,5 +1,6 @@
 // Multi-team dashboard: every franchise you run at a glance, with alerts, and switching.
 import type { VM } from '../vm';
+import { teamSalary, rosterMax, stdIds } from '../../engine/cba';
 import { h4Style, Kicker, Link, muted } from '../kit';
 
 export function MyTeamsScreen({ vm }: { vm: VM }) {
@@ -14,13 +15,14 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '18px', marginBottom: '28px' }}>
         {s.managed.map(tid => {
-          const t = T[tid], club = gm.clubOf(s, tid), ids = s.rosters[tid], pay = gm.payrollOf(ids), ceil = gm.ownerCeiling(t.arch);
+          const t = T[tid], club = gm.clubOf(s, tid), ids = s.rosters[tid], pay = teamSalary(gm, s, tid), ceil = gm.ownerCeiling(t.arch);
           const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w), seed = conf.indexOf(t) + 1;
           const post = gm.nextPostGame(s, tid), g = post ? { opp: post.home === tid ? post.away : post.home, home: post.home === tid } : s.phase === 'regular' ? gm.userGame(s.day, tid) : null;
           const inj = ids.filter(id => P[id].inj), inbox = (club?.inbox || []).filter(x => !x.done).length;
           const alerts: [string, string][] = [];
-          if (ids.length > 15) alerts.push(['bad', ids.length + ' players: cut to 15']);
-          if (ids.length < 13) alerts.push(['bad', 'Only ' + ids.length + ' players: sign to 13']);
+          const std = stdIds(gm, ids).length, lim = rosterMax(s);
+          if (std > lim) alerts.push(['bad', std + ' standard contracts: cut to ' + lim]);
+          if (std < 14 && s.phase !== 'fa' && s.phase !== 'draft') alerts.push(['bad', 'Only ' + std + ' players: sign to 14']);
           if (pay > ceil) alerts.push(['bad', 'Payroll ' + money(pay) + ' is over the owner’s ' + money(ceil) + ' ceiling']);
           else if (pay > gm.TAX) alerts.push(['warn', 'In the luxury tax (' + money(pay - gm.TAX) + ' over)']);
           if (inbox) alerts.push(['warn', inbox + ' decision' + (inbox === 1 ? '' : 's') + ' waiting in the inbox']);

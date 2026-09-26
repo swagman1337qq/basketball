@@ -2,9 +2,10 @@
 // you did wrong, how he feels about the job you're doing, and what he expects next.
 // It uses the same conditions as the owner review, so its verdict is the real one.
 import type { Game } from './Game';
+import { fmtMoney } from './capModel';
 import { fireReasons, ownerReview } from './frontOffice';
 
-const money = (v: number) => (v < 0 ? '−' : '') + '$' + Math.abs(v).toFixed(1) + 'M';
+const money = fmtMoney;
 const VOICE: Record<string, { open: string; care: string; next: string }> = {
   'Win-Now Spender': { open: 'I didn’t buy this team to be patient.', care: 'Banners are the only thing I measure. I’ll spend whatever it takes, but I expect to see it on the court.', next: 'Get us deeper into the playoffs. The checkbook is open.' },
   'Frugal Profit-Seeker': { open: 'I read the books before I read the box scores.', care: 'Every dollar matters to me. Win games, fine, but never by setting money on fire.', next: 'Stay under the tax and keep us in the black.' },

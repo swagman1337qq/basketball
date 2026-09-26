@@ -62,7 +62,8 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Incentives: availability, statistical, team success, accolades | Done | Chosen when signing; `frontOffice.ts` `incentiveOptions()`; settled after the season |
 | Likely vs unlikely cap accounting | Done | `Game.capHit()`; profile **Contract → Bonus checklist** |
 | Stat-padding dilemmas (protect a percentage, garbage-time minutes, feature me) | Done | Dashboard **Front-office inbox** (`inboxTick()` / `resolveInbox()`) |
-| Tiered tax, aprons, repeater tax, owner fire sales | Done | `financesOf()` (tiered and repeater rates); taxpayer MLE and no aggregation above the aprons (`Game.signHow()`, `Game.propose()`); payroll mandates become a fire sale at the deadline (`fireSale()`) |
+| Tiered tax, aprons, repeater tax, owner fire sales | Done | `cba.ts` `taxBill()` (tiered and repeater rates, assessed on the last day of the regular season); apron rules in `signingMethods()` and `checkTrade()`; payroll mandates become a fire sale at the deadline (`fireSale()`) |
+| The full CBA: every contract type and signing mechanism | Done | See "NBA CBA" below; **Cap sheet** screen |
 
 ## 7. International and minor-league lifecycle
 
@@ -110,7 +111,9 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 
 ## Simplifications worth knowing
 
-- Days on the calendar are game days, so the playoffs finish in the winter on the in-game calendar.
+- The 82 game days are spread from late October to mid-April; 10-day, trade-deadline and DPE dates sit on that calendar.
+- Two-way players play for the NBA team only (there's no simulated G League), up to 50 games.
+- Sign-and-trades and cash in trades aren't modeled.
 - Team renames apply to past seasons' displays too (history stores team IDs, not names).
 - The five-zone view derives the restricted-area/paint split from the rim tier by typical league shares.
 
@@ -123,3 +126,31 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Families: sons of former players (~2%) and brothers (~3%), at roughly real NBA rates, sharing surname, heritage and look; "Jr." for some sons; legacy retired players from before the league's records | `engine/family.ts`; profile Father/Son/Brother rows |
 | Hall of Fame: 3-season wait, transparent career score, up to five inductees a year, ballot and active-player watch list | `engine/hof.ts`; **Hall of Fame** screen |
 | Owner's year-end letter when the playoffs end: what you did right and wrong, how he feels, the verdict, next season's expectations | `engine/ownerLetter.ts`; reopen past letters on the **Owner** screen |
+| Team overall rating, worst-roster start, badges, profile redesign, draft-class and family links, God Mode true ratings and job security | Team overview, title screen, player profile |
+| Salary-cap outlook: real history since 1984-85 and a year-by-year projection for 500 seasons (inflation, fading real growth, media deals every 11 years, recessions, the 10% cap on yearly growth), applied each summer | `engine/capModel.ts`; League → **Cap outlook** |
+
+## NBA CBA (2023 agreement)
+
+All dollar figures are the CBA's real ratios to the cap, so they move with the cap outlook.
+
+| Rule | Where |
+|---|---|
+| Cap, tax line, 1st and 2nd aprons, salary floor (shortfall paid to players) | `cba.ts` `nums()`; **Cap sheet** |
+| Max salary 25/30/35% by service; Rose Rule (30% rookie extension after MVP/All-League/DPOY); designated veteran supermax (35%) | `maxFor()`, `honorsQualify()` |
+| Minimum salary by years of service; one-year veteran minimums count as the 2-year minimum | `nums().min()`; `applySigning()` (`capOverride`) |
+| Rookie scale (120% of scale, 4 years, team options on years 3 and 4); two-round, 60-pick draft; second-rounders on two-way or minimum deals | `rookieDeal()`, `signDraftee()` |
+| Bird rights: Full (up to the max, 5 yrs), Early (175% / 105% of average, 2–4 yrs), Non-Bird (120%); rights travel in trades | `birdOf()`, `signingMethods()` |
+| Cap holds, renouncing, incomplete-roster charges | `capHold()`, `teamSalary({ holds })`, `renounce()` |
+| Non-taxpayer MLE (hard cap at 1st apron), taxpayer MLE (2nd apron), room exception, bi-annual (not back-to-back), minimum exception, disabled player exception | `signingMethods()`, `freshExceptions()`, `seasonTick()` |
+| Hard caps triggered by the exceptions; method limits shrink to fit under them | `applySigning()`, `signingMethods()` |
+| Qualifying offers, restricted free agency, offer sheets and matching (user decides on the Cap sheet; AI decides by value), Arenas provision; unsigned RFAs accept the QO | `qoFor()`, `openFreeAgency()`, `aiFreeAgencyDay()`, `answerOfferSheet()` |
+| Player and team options; option decisions and QOs chosen on the Cap sheet before free agency | `openFreeAgency()`, `decisionsFor()` |
+| Two-way contracts (3 per team, under 4 years of service, off the cap, 50 games, not playoff-eligible, convertible) | `stdIds()/twoWayIds()`, `convertContract()`, `Game.simTeam()` |
+| Exhibit 10 (camp deals, convert to two-way or keep), 21-man offseason roster, 15 in season, 14 minimum | `signingMethods()`, `Game.startSeason()` |
+| 10-day contracts (two per team, then rest of season), hardship exception | `signingMethods()`, `seasonTick()` |
+| Extensions: rookie scale (up to 5 yrs, Rose Rule), veteran (2 years after signing, 140% rule, 4 yrs or 5 for supermax), over-38 rule | Profile **Contract → Extension** |
+| Trade kickers (up to 15%), no-trade clauses (8+ years, 4+ with the team) | Signing dialog; `tradeCap()` |
+| Waive (dead money as due), stretch provision (2N+1), buyouts, waiver claims, post-March 1 playoff ineligibility, buyout-market ban above the 1st apron | `waivePlayer()`, `buyoutBlocked()`, Release dialog |
+| Trade salary matching (200%+, +$ band, 125%+; 100% above the 1st apron; no aggregation above the 2nd), TPEs (one year), newly signed players can't be traded yet, deadline, Stepien rule, frozen pick above the 2nd apron, first-rounder to 30th after 3 of 5 seasons above it | `checkTrade()`, `tradeCap()`, `Game.runLottery()` |
+| Luxury tax brackets, repeater tax | `taxBill()`, `financesOf()` |
+| The new league year (cap growth, exceptions reset) starts when free agency opens | `Game.startFA()`, `openFreeAgency()` |

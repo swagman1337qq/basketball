@@ -4,6 +4,7 @@
 // Team IDs, engine formulas and past-season stats stay locked.
 import { useState } from 'react';
 import type { VM } from '../vm';
+import { teamSalary } from '../../engine/cba';
 import { OWNER_ARCHETYPES } from '../../data/world';
 import { processImage } from '../upload';
 import { Link, muted, NumInput, ruleH4 } from '../kit';
@@ -30,7 +31,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
       <span><span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><NumInput value={t[k] || 0} min={mn} max={mx} step={0.5} width={84} onValue={v => setT({ [k]: v })} suffix="$M" /></span><span style={{ ...muted, fontSize: '11px' }}>{help}</span></span>
     </>
   );
-  const pay = gm.payrollOf(s.rosters[tid]) + (t.capAdj || 0);
+  const pay = teamSalary(gm, s, tid);
   return (
     <>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
