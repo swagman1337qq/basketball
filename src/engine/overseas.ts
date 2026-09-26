@@ -73,5 +73,9 @@ export function scoutTick(g: Game, s: any, overseas: number[]) {
     const sc = (s.scouts || []).filter(x => x.assign === reg); if (!sc.length) return;
     const gain = sc.reduce((a, x) => a + (x.spec === reg ? 1 : 0.6) * (0.5 + x.skill * 0.15), 0) * bF * ((s.scoutFocus || []).includes(id) ? 3 : 1) / Math.max(1, pros.filter(q => g.regionKey((P[q].from && P[q].from.country) || P[q].raised) === reg).length / 8);
     intel[id] = +Math.min(12, (intel[id] || 0) + gain).toFixed(2); });
+  // Players on the scouting list outside the draft/overseas pools (NBA players, free agents):
+  // the best pro scout adds intel every month.
+  const best = Math.max(0, ...(s.scouts || []).map((x: any) => x.skill));
+  (s.scoutList || []).filter((id: number) => !pros.includes(id) && P[id] && !P[id].retired).forEach((id: number) => { intel[id] = +Math.min(12, (intel[id] || 0) + (1 + best * 0.3) * bF).toFixed(2); });
   return intel;
 }

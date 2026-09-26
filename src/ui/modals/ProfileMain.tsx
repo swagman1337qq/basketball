@@ -1,8 +1,10 @@
 // Player profile: the header (identity, badges, season snapshot, ratings, actions) and
 // the Overview tab, laid out as Profile & family · Ratings & badges · This season.
 import type { VM } from '../vm';
-import { badgesOf, TIERS } from '../../engine/ratings';
-import { Kicker, Link, muted, ruleH4 } from '../kit';
+import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
+import { BadgeChip } from '../BadgeChip';
+import { CountryPicker, Kicker, Link, muted, ruleH4 } from '../kit';
+import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 
 const chip = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: '999px', border: '1px solid var(--color-divider)', fontSize: '12px', whiteSpace: 'nowrap' as const };
@@ -48,7 +50,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             <Link onClick={() => pl.openT(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{pl.teamLogo}{pl.teamLabel}</Link>
           </div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '42px', lineHeight: 1.04, letterSpacing: '-.01em', marginTop: '2px' }}>
-            {p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
+            {p.num != null && tid >= 0 && <span title="Jersey number" style={{ ...muted, marginRight: '12px', fontSize: '26px' }}>#{p.num}</span>}{p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
             <span style={chip}>Age {p.age}</span>
@@ -59,7 +61,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           </div>
           {badges.length > 0 && (
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {badges.slice(0, 7).map(b => <span key={b.key} title={b.tierName + ' · ' + b.desc} style={{ ...chip, borderColor: b.color, color: b.color, fontWeight: 600 }}>◆ {b.name}</span>)}
+              {badges.slice(0, 7).map(b => <BadgeChip key={b.key} b={b} />)}
               {badges.length > 7 && <span style={{ ...chip, ...muted }}>+{badges.length - 7}</span>}
             </div>
           )}
@@ -125,7 +127,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             </Row>
           ))}
           {draftLabel && <Row k="Draft"><Link onClick={openClass} style={{ color: 'var(--color-accent-700)' }}>{draftLabel} ›</Link></Row>}
-          <Row k="Eligible for"><span style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>{(pl.elig || []).map((e: any, i: number) => <span key={i} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}><img src={e.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} /><button className="hv4" onClick={e.open} style={{ all: 'unset', cursor: 'pointer' }}>{e.name}</button><span style={{ ...muted, fontSize: '11px' }}>{e.why}</span></span>)}</span></Row>
+          <Row k="Eligible for"><EligEditor vm={vm} p={p} /></Row>
           {(p.family || []).length > 0 && (
             <>
               <h4 style={{ ...ruleH4, marginTop: '18px' }}>Family</h4>
@@ -171,7 +173,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           {badges.length === 0 ? <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic' }}>No badges yet. They’re earned by reaching rating thresholds.</p> : badges.map(b => (
             <div key={b.key} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) auto', gap: '8px', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>
               <span style={{ color: b.color }}>◆</span>
-              <span><b style={{ color: b.color }}>{b.name}</b><span style={{ ...muted, fontSize: '11.5px', display: 'block' }}>{b.desc}</span></span>
+              <span><b style={{ color: b.color }}>{b.name}</b><span style={{ ...muted, fontSize: '11.5px', display: 'block' }}>{b.desc}. <i>{BADGE_FLAVOR[b.key]}</i></span></span>
               <span style={{ fontSize: '11px', color: b.color, whiteSpace: 'nowrap' }}>{b.tierName}</span>
             </div>
           ))}
@@ -180,5 +182,38 @@ export function ProfileOverview({ vm }: { vm: VM }) {
         <section><OverviewExtras vm={vm} stack /></section>
       </div>
     </>
+  );
+}
+
+// National-team eligibility: who he can play for and which he represents. In God Mode,
+// add any country (type to search) with a reason, remove one, or switch who he represents.
+const WHY = ['citizen by birth', 'born there', 'through parents', 'through grandparents', 'naturalized', 'set in God Mode'];
+function EligEditor({ vm, p }: { vm: VM; p: any }) {
+  const { gm, s } = vm.ctx, C = gm.db.C, god = !!s.god, [why, setWhy] = useState('naturalized');
+  const bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+  const elig: any[] = p.elig || [];
+  const remove = (c: string) => { if (elig.length <= 1) return; p.elig = elig.filter(e => e.c !== c); if (p.rep === c) p.rep = p.elig[0].c; bump(); };
+  const represent = (c: string) => { p.rep = c; bump(); };
+  const add = (c: string) => { if (!elig.some(e => e.c === c)) p.elig = [...elig, { c, why }]; bump(); };
+  const setReason = (c: string, w: string) => { p.elig = elig.map(e => (e.c === c ? { ...e, why: w } : e)); bump(); };
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {elig.filter(e => C[e.c]).map(e => (
+        <span key={e.c} style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <img src={gm.flag(e.c)} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
+          <button className="hv4" onClick={() => gm.setState({ listModal: { type: 'country', code: e.c }, modal: false })} style={{ all: 'unset', cursor: 'pointer', fontWeight: p.rep === e.c ? 600 : 400 }}>{C[e.c].n}</button>
+          {p.rep === e.c && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: '999px', border: '1px solid var(--color-accent)', color: 'var(--color-accent-700)' }}>represents</span>}
+          {god ? <select value={e.why} onChange={ev => setReason(e.c, ev.target.value)} style={{ fontSize: '11px', padding: '0 4px', width: 'auto', minHeight: 0 }}>{[...new Set([...WHY, e.why])].map(w => <option key={w} value={w}>{w}</option>)}</select> : <span style={{ ...muted, fontSize: '11px' }}>{e.why}</span>}
+          {god && p.rep !== e.c && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '0 6px' }} onClick={() => represent(e.c)}>Represent</button>}
+          {god && elig.length > 1 && <button className="btn btn-ghost" title="Remove this eligibility" style={{ fontSize: '14px', lineHeight: 1, padding: '2px 7px', color: 'var(--gm-bad)', border: '1px solid var(--color-divider)' }} onClick={() => remove(e.c)}>✕</button>}
+        </span>
+      ))}
+      {god && (
+        <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+          <CountryPicker C={C} onPick={add} exclude={elig.map(e => e.c)} placeholder="+ Add a country…" width={180} />
+          <select value={why} onChange={ev => setWhy(ev.target.value)} style={{ fontSize: '11.5px', width: 'auto' }}>{WHY.map(w => <option key={w} value={w}>{w}</option>)}</select>
+        </span>
+      )}
+    </span>
   );
 }

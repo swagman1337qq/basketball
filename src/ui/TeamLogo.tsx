@@ -4,9 +4,9 @@
 // varsity octagon badge with a sunburst. Each uses the club's colors and emblem (glyphs
 // from Lucide, ISC license); small sizes drop the lettering so the mark stays legible.
 import { useId } from 'react';
-import { Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
+import { BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
 
-const GLYPHS: Record<string, LucideIcon> = { Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
+const GLYPHS: Record<string, LucideIcon> = { BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
 export const LOGO_STYLES = ['shield', 'roundel', 'script', 'badge'] as const;
 const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',

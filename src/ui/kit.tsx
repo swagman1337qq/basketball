@@ -98,3 +98,30 @@ export function NumInput({ value, min, max, step = 1, onValue, disabled, width =
     </span>
   );
 }
+
+// Type-to-search country picker (every country and territory), with flags.
+export function CountryPicker({ C, value, onPick, placeholder = 'Type a country…', exclude = [], width = 220 }: { C: Record<string, any>; value?: string; onPick: (code: string) => void; placeholder?: string; exclude?: string[]; width?: number | string }) {
+  const [q, setQ] = useState(''), [open, setOpen] = useState(false), [hi, setHi] = useState(0);
+  const norm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const all = Object.keys(C).filter(c => !exclude.includes(c)).sort((a, b) => C[a].n.localeCompare(C[b].n));
+  const nq = norm(q.trim()), list = (nq ? all.filter(c => norm(C[c].n).includes(nq) || c.toLowerCase() === nq).sort((a, b) => (norm(C[a].n).startsWith(nq) ? 0 : 1) - (norm(C[b].n).startsWith(nq) ? 0 : 1)) : all).slice(0, 60);
+  const pick = (c: string) => { onPick(c); setQ(''); setOpen(false); };
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', width }}>
+      <input className="input" value={open ? q : value && C[value] ? C[value].n : q} placeholder={placeholder} style={{ width: '100%', paddingLeft: value && !open ? '28px' : undefined }}
+        onFocus={() => { setOpen(true); setQ(''); setHi(0); }} onBlur={() => setTimeout(() => setOpen(false), 150)} onChange={e => { setQ(e.target.value); setHi(0); setOpen(true); }}
+        onKeyDown={e => { if (e.key === 'ArrowDown') { setHi(h => Math.min(list.length - 1, h + 1)); e.preventDefault(); } else if (e.key === 'ArrowUp') { setHi(h => Math.max(0, h - 1)); e.preventDefault(); } else if (e.key === 'Enter' && list[hi]) { pick(list[hi]); e.preventDefault(); } else if (e.key === 'Escape') { setOpen(false); e.stopPropagation(); } }} />
+      {value && !open && C[value] && <img src={'flags/' + C[value].iso + '.svg'} alt="" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', width: 16, height: 11, objectFit: 'cover' }} />}
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 40, top: 'calc(100% + 2px)', left: 0, right: 0, maxHeight: 260, overflowY: 'auto', background: 'var(--color-bg)', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)', boxShadow: '0 6px 18px rgba(0,0,0,.25)' }}>
+          {list.length === 0 && <div style={{ padding: '6px 10px', fontSize: '12.5px', color: 'var(--color-neutral-600)' }}>No match</div>}
+          {list.map((c, i) => (
+            <div key={c} onMouseDown={e => { e.preventDefault(); pick(c); }} onMouseEnter={() => setHi(i)} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '4px 10px', fontSize: '12.5px', cursor: 'pointer', background: i === hi ? 'var(--color-accent-100)' : undefined, color: i === hi ? 'var(--color-accent-800)' : undefined }}>
+              <img src={'flags/' + C[c].iso + '.svg'} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />{C[c].n}
+            </div>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}

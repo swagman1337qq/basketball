@@ -42,6 +42,28 @@ const DEFS: Def[] = [
   ['clutch', 'Clutch Gene', 'Wants the last shot, and makes it', p => (p.pers?.clutch ? 64 + Math.max(0, p.ovr - 50) * 0.6 : null), 64],
 ];
 
+// A line of flavor for each badge: what it looks like on the floor.
+export const BADGE_FLAVOR: Record<string, string> = {
+  sniper: 'Give him a sliver of daylight and it’s already in the air. Defenses close out a step early and still get burned.',
+  stretch: 'Drags the other team’s center out to the arc and leaves the paint wide open for everyone else.',
+  midrange: 'The lost art. Two dribbles, elbow, rise, splash. Nobody wants to guard the pull-up.',
+  tough: 'Fadeaways over two hands, reverses off the glass, one-legged floaters: the shot clock is never a problem.',
+  handles: 'Crossovers that put defenders on the floor. Highlight reels follow him around.',
+  flyer: 'Lobs thrown anywhere near the rim become dunks. Posters are a nightly risk for anyone in the way.',
+  fast: 'Grab the rebound, blink, and he’s already at the other rim. Transition terror.',
+  general: 'Directs traffic, sees passes before they open and makes four teammates better.',
+  lockdown: 'Picks up full court, fights through every screen and makes stars work for every touch.',
+  rim: 'Anything at the rim is contested. Drivers change their minds halfway through the lane.',
+  pickpocket: 'Quick hands in the passing lanes; careless dribblers get stripped and he’s off the other way.',
+  wall: 'Screens that stop guards cold and a post nobody can move. Contact is his friend.',
+  glass: 'Every miss is his. Second chances for his team, one-and-done for the other.',
+  post: 'Back to the basket, drop steps and hook shots. Double-team him or pay for it.',
+  ft: 'Money from the line. Foul him late and you’re just giving away points.',
+  iron: 'Never seems to get tired. Heavy minutes, back-to-backs, overtime: same player every night.',
+  iq: 'Always a step ahead: right rotation, right cut, right pass. Coaches love him.',
+  clutch: 'Wants the ball with the game on the line, and the last shot tends to fall.',
+};
+
 export function badgesOf(p: any): Badge[] {
   if (!p?.r) return [];
   const out: (Badge & { m: number })[] = [];

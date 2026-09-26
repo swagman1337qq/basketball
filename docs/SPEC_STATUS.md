@@ -128,6 +128,19 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Owner's year-end letter when the playoffs end: what you did right and wrong, how he feels, the verdict, next season's expectations | `engine/ownerLetter.ts`; reopen past letters on the **Owner** screen |
 | Team overall rating, worst-roster start, badges, profile redesign, draft-class and family links, God Mode true ratings and job security | Team overview, title screen, player profile |
 | Salary-cap outlook: real history since 1984-85 and a year-by-year projection for 500 seasons (inflation, fading real growth, media deals every 11 years, recessions, the 10% cap on yearly growth), applied each summer | `engine/capModel.ts`; League → **Cap outlook** |
+| Every country (215: all 193 UN members plus Kosovo, Palestine, Chinese Taipei, Hong Kong, Macau, Vatican City and FIBA territories), each with census-share population groups, name pools, cities, scouting region and flag | `data/nations.ts`, `data/names.ts`, `data/heritage.ts` |
+| Bigger name pools (40–60 per major pool), native scripts for Cyrillic, Arabic, Persian, Thai, Armenian and more; Chinese surnames weighted by frequency (Yuan Yida's published shares, top 100); Taiwanese surnames by the household registry | `data/names.ts`, `CN_SURNAMES`, `TW_POOL` |
+| U.S. and Canadian heritage mix matches NBA players (≈74% African American, 13.5% white, 10.5% multiracial, 1.6% Hispanic, 0.4% Asian American); separate first-name pools by community | `data/heritage.ts` |
+| Type-to-search country picker; God Mode: add/remove national-team eligibility with a reason, switch who he represents; add any country to the nationality mix | `CountryPicker` in `ui/kit.tsx`; profile **Eligible for**; Settings |
+| Player search on every layout (accent-insensitive) | `ui/PlayerSearch.tsx` |
+| Roster: any team and season, record/rank/rating/MOV/age/spots/payroll/cap/profit, cap indicator, play-through-injuries, auto sort / keep sorted / reset minutes, team notes, jersey numbers, starter/bench color blocks, per-player minute targets, NBA roster groups (15 standard, 3 two-way, Exhibit 10) | `ui/screens/RosterScreen.tsx`, `engine/jerseys.ts` |
+| Assistant coaches' lineup advice (starters with a positional mix, minutes for fatigue, age, form, development) with one-click apply | `engine/assistants.ts` |
+| Badge hover cards (what it is, tier, how it plays); mood hover cards (priorities, what's pulling on him, every factor) | `ui/BadgeChip.tsx`, `ui/MoodChip.tsx` |
+| Scouting reports for any player: measurements, 12 graded categories (scouts' eye blended with game production), overview, strengths, weaknesses, outlook, comparisons (plays like / best / worst case), notes, stat line; accuracy by scout skill, region, budget and time | `engine/scoutReport.ts`; **Scouting**, profile **Scouting report** |
+| Stats hub: player stats for any season or career (per game, totals, per 36, shooting, advanced), team stats and ratings by season, league stats, league history (champions, runners-up, Finals MVP, awards, best record, this season's race) | `ui/screens/StatsScreen.tsx` |
+| Player and team pages (full pages with Back) instead of pop-ups | `GMView.tsx` |
+| Play a month; sim to the trade deadline (early February) | Phase bar |
+| Team nicknames tied to what each city is known for | `data/world.ts` (`TEAMS`; old saves with default names are migrated) |
 
 ## NBA CBA (2023 agreement)
 

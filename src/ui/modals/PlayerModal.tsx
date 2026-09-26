@@ -1,14 +1,18 @@
+import { useEffect } from 'react';
 import type { VM } from '../vm';
-import { NumInput } from '../kit';
+import { CountryPicker, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
+import { ScoutReportView } from '../ScoutReportView';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './ProfileExtras';
 import { ProfileHeader, ProfileOverview } from './ProfileMain';
 
 export function PlayerModal({ vm }: { vm: VM }) {
+  useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.pid]);
   return (
     <>
-      <div onClick={vm.closeModal} style={{ position: "absolute", inset: "0", zIndex: "15", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
-        <div onClick={vm.stop} style={{ width: "min(1180px,100%)", maxHeight: "100%", overflow: "auto", boxSizing: "border-box", background: "var(--color-bg)", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)", padding: "22px 26px 28px" }}>
+      <div>
+        <div style={{ width: "100%", boxSizing: "border-box" }}>
+          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: "13px", marginBottom: "10px" }}>← Back</button>
           <ProfileHeader vm={vm} />
           <div style={{ display: "flex", gap: "22px", alignItems: "center", borderBottom: "1px solid var(--color-divider)", marginBottom: "20px" }}>
             {(vm.ptabs || []).map((t: any, i: number) => (
@@ -18,9 +22,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
             ))}
             <span style={{ flex: "1" }}></span>
             {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-primary" onClick={() => vm.ctx.gm.setState({ ptab: 'edit' })} style={{ fontSize: "13px" }}>✎ Edit player</button>}
-            <button className="btn btn-ghost" onClick={vm.closeModal} style={{ fontSize: "13px" }}>
-              Close
-            </button>
+
           </div>
           {!!vm.pl.tabOverview && <ProfileOverview vm={vm} />}
           {!!vm.pl.tabContract && (<>
@@ -95,6 +97,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
           {!!vm.pl.tabContract && <ContractExtras vm={vm} />}
           {!!vm.pl.tabDev && <DevelopmentTab vm={vm} />}
           {!!vm.pl.tabCompare && <CompareTab vm={vm} />}
+          {vm.ctx.s.ptab === 'scout' && <div style={{ marginTop: 20 }}><ScoutReportView vm={vm} pid={vm.ctx.s.pid} /></div>}
           {!!vm.pl.tabEdit && (<>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>
@@ -113,13 +116,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Represents
                   </span>
-                  <select className="input" value={vm.pl.ed.repV} onChange={vm.pl.ed.setRep} style={{ minHeight: "30px", fontSize: "13px" }}>
-                    {(vm.pl.ed.repOpts || []).map((o: any, i: number) => (
-                      <option key={i} value={o.v}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                  <CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" />
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Motivation
                   </span>

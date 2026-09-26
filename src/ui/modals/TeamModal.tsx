@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import type { VM } from '../vm';
 
 export function TeamModal({ vm }: { vm: VM }) {
+  useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.teamModal]);
   return (
     <>
-      <div onClick={vm.closeTeam} style={{ position: "absolute", inset: "0", zIndex: "14", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
-        <div onClick={vm.stop} style={{ width: "min(1100px,100%)", maxHeight: "100%", overflow: "auto", boxSizing: "border-box", background: "var(--color-bg)", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)", padding: "22px 26px 28px" }}>
+      <div>
+        <div style={{ width: "100%", boxSizing: "border-box" }}>
+          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: "13px", marginBottom: "10px" }}>← Back</button>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "12px", marginBottom: "14px" }}>
             {vm.tm.logo}
             <div style={{ flex: "1", minWidth: "0" }}>
@@ -21,10 +24,10 @@ export function TeamModal({ vm }: { vm: VM }) {
                 {vm.tm.staff}
               </div>
             </div>
-            <div style={{ textAlign: "center", padding: "0 8px" }} title="Team rating: the whole roster's overall ratings, weighted by rotation minutes">
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "44px", lineHeight: ".95", color: vm.tm.rating >= 60 ? "var(--gm-elite)" : "var(--color-text)" }}>{vm.tm.rating}</div>
-              <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)" }}>Team rating</div>
-              <div style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>{vm.tm.ratingRank}</div>
+            <div style={{ textAlign: "center", padding: "6px 14px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", minWidth: "110px" }} title="Team rating: the whole roster's overall ratings, weighted by rotation minutes">
+              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-neutral-700)", marginBottom: "4px" }}>Team rating</div>
+              <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "40px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: vm.tm.rating >= 60 ? "var(--gm-elite)" : "var(--color-text)" }}>{vm.tm.rating}<span style={{ fontSize: "15px", fontWeight: 400, color: "var(--color-neutral-600)" }}>/100</span></div>
+              <div style={{ fontSize: "13px", marginTop: "4px", color: "var(--color-neutral-700)" }}>{vm.tm.ratingRank}</div>
             </div>
             <div style={{ maxWidth: "320px" }}>
               <div style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600" }}>
@@ -43,9 +46,6 @@ export function TeamModal({ vm }: { vm: VM }) {
               {!!vm.tm.canSwitch && <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: "nowrap" }}>Switch to this team</button>}
               {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap" }}>Take over (God Mode)</button>}
               {!!vm.tm.canResign && <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Resign · hand to AI</button>}
-              <button className="btn btn-ghost" onClick={vm.closeTeam} style={{ fontSize: "13px" }}>
-                Close
-              </button>
             </div>
           </div>
           <div style={{ display: "flex", gap: "24px", marginBottom: "10px" }}>

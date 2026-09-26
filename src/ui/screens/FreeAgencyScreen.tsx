@@ -1,8 +1,10 @@
 import type { VM } from '../vm';
+import { CapBar } from '../CapBar';
 
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
   return (
     <>
+      <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} />
       {(vm.ctx.s.offerSheets || []).length > 0 && (
         <div style={{ padding: "8px 12px", marginBottom: "12px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", fontSize: "13px", display: "flex", gap: "10px", alignItems: "center" }}>
           <span style={{ flex: 1 }}>Another team signed one of your restricted free agents to an offer sheet. Match it or let him go before preseason.</span>

@@ -43,10 +43,12 @@ export function faceSvg(f, jersey: [string, string] = ['#605d5d', '#bab6b6']) {
   const nw = 4 * f.nose.w, nl = 9 * f.nose.len;
   out.push(el('path', { d: `M${cx - 1} ${ey + 2} L${cx - nw * .4} ${ey + nl} Q${cx} ${ey + nl + 2} ${cx + nw} ${ey + nl - 1}`, fill: 'none', stroke: 'rgba(0,0,0,.35)', strokeWidth: 1.4, strokeLinecap: 'round' }));
   const my = ey + nl + 8, mw = 8 * f.mouth.w;
-  out.push(el('path', { d: `M${cx - mw} ${my} Q${cx} ${my + 4 * f.mouth.smile + 1} ${cx + mw} ${my}`, fill: 'none', stroke: '#5a2e24', strokeWidth: 1.8, strokeLinecap: 'round' }));
   if (f.facial === 'stubble') out.push(el('path', { d: `M${cx - rw * .9} ${cy + 6} Q${cx - rw * .8} ${jawY - 2} ${cx} ${jawY + 3} Q${cx + rw * .8} ${jawY - 2} ${cx + rw * .9} ${cy + 6} Q${cx} ${my + 2} ${cx - rw * .9} ${cy + 6} Z`, fill: hc, opacity: .22 }));
-  if (f.facial === 'beard') out.push(el('path', { d: `M${cx - rw * .95} ${cy + 4} Q${cx - rw * .8} ${jawY} ${cx} ${jawY + 5} Q${cx + rw * .8} ${jawY} ${cx + rw * .95} ${cy + 4} Q${cx + mw + 2} ${my - 4} ${cx} ${my - 3} Q${cx - mw - 2} ${my - 4} ${cx - rw * .95} ${cy + 4} Z`, fill: hc, opacity: .92 }));
+  // Full beard: sideburns down the cheeks and around the jaw, open around the mouth (which is drawn on top).
+  if (f.facial === 'beard') out.push(el('path', { d: `M${cx - rw * .97} ${cy + 2} Q${cx - rw * .9} ${jawY - 4} ${cx - jw} ${jawY - 1} Q${cx} ${jawY + 7} ${cx + jw} ${jawY - 1} Q${cx + rw * .9} ${jawY - 4} ${cx + rw * .97} ${cy + 2} L${cx + rw * .78} ${cy + 4} Q${cx + rw * .7} ${my - 2} ${cx + mw + 3} ${my + 1} Q${cx} ${my + 9} ${cx - mw - 3} ${my + 1} Q${cx - rw * .7} ${my - 2} ${cx - rw * .78} ${cy + 4} Z`, fill: hc, opacity: .9 }),
+    el('path', { d: `M${cx - mw - 1} ${my - 2.5} Q${cx} ${my - 7} ${cx + mw + 1} ${my - 2.5}`, stroke: hc, strokeWidth: 3, fill: 'none', strokeLinecap: 'round', opacity: .9 }));
   if (f.facial === 'goatee') out.push(el('path', { d: `M${cx - 5} ${my + 3} Q${cx} ${jawY + 4} ${cx + 5} ${my + 3} Z`, fill: hc }));
   if (f.facial === 'mustache' || f.facial === 'goatee') out.push(el('path', { d: `M${cx - mw} ${my - 2} Q${cx} ${my - 6} ${cx + mw} ${my - 2}`, stroke: hc, strokeWidth: 2.4, fill: 'none', strokeLinecap: 'round' }));
+  out.push(el('path', { d: `M${cx - mw} ${my} Q${cx} ${my + 4 * f.mouth.smile + 1} ${cx + mw} ${my}`, fill: 'none', stroke: f.facial === 'beard' || f.facial === 'goatee' ? '#b0625a' : '#5a2e24', strokeWidth: 1.8, strokeLinecap: 'round' }));
   return E('svg', { viewBox: '0 0 100 150', width: '100%', height: '100%', style: { display: 'block' } }, ...out);
 }

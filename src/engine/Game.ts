@@ -2,16 +2,17 @@
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
 import { createElement } from 'react';
-import { nameFromGroup, pickGroup, randomName } from '../data/heritage';
+import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
 import { teamRating } from './ratings';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
+import { assignNumbers } from './jerseys';
 import { yearEndLetter } from './ownerLetter';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
-import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
+import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
@@ -47,6 +48,8 @@ export class Game {
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.refreshNorms(g.state);
+    g.state.intel = scoutTick(g, g.state, g.state.overseas);
+    assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     return g;
   }
 
@@ -95,8 +98,12 @@ export class Game {
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};
+    // Teams renamed in 2026 to fit their cities: saves that kept the old default nicknames update.
+    const fix = (t: any) => { if (t && OLD_NICKNAMES[t.abbr] === t.name) { const nt = TEAMS.find(x => x[2] === t.abbr); if (nt) { t.name = nt[1]; Object.assign(t, { icon: teamStyle(t.abbr).icon }); } } };
+    g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
+    assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     return g;
   }
 
@@ -132,6 +139,7 @@ export class Game {
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
       this.state = { ...this.state, ...patch };
+      if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch); this._rosterRef = patch.rosters; }
       this.version++;
       this.listeners.forEach(l => l());
     }
@@ -249,7 +257,7 @@ export class Game {
     // Heritage group by the country's population shares: it sets the name and the look.
     const grp = pickGroup(her, rnd), nm = grp ? nameFromGroup(her, grp, rnd) : null;
     const race = nm ? nm.race : wpick(C[her].race);
-    const pk = (born === 'US' || born === 'CA') && born !== her && rnd() < .35 ? 'us' : C[her].pool, np = NP[pk];
+    const amer = (born === 'US' || born === 'CA') && born !== her && rnd() < .35, pk = amer ? 'us' : C[her].pool, np = NP[pk] || NP.us;
     const f = pick(np.f), l = pick(np.l);
     const elig = [], add = (c, why) => { if (!elig.find(e => e.c === c)) elig.push({ c, why }); };
     if (born === her) add(born, 'citizen by birth'); else if (C[born].soli) add(born, 'born there');
@@ -263,9 +271,12 @@ export class Game {
     else if (pk === 'jp') native = NM.jp[l] + ' ' + NM.jp[f];
     else if (pk === 'gr' || pk === 'ge' || pk === 'il') native = NM[pk][f] + ' ' + NM[pk][l];
     else if (pk === 'rs' && ['RS', 'ME', 'BA'].includes(her)) native = cyr(f) + ' ' + cyr(l);
-    // Raised in North America with roots elsewhere: about a third carry American names.
-    if (nm && pk !== 'us') { disp = nm.name; native = nm.native; }
-    const nmx = nm && pk !== 'us' ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };
+    // Born in North America to immigrant parents: about a third get an American first name
+    // and keep the family surname (the way Okafor or Achiuwa did).
+    let amerFirst = '';
+    if (nm && amer) { const AP = allPools(), ps = AP[race === 'black' ? 'usb' : 'usw']; amerFirst = pick(ps.f); disp = amerFirst + ' ' + nm.last; native = ''; }
+    else if (nm) { disp = nm.name; native = nm.native; }
+    const nmx = nm && amer ? { first: amerFirst, last: nm.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } : nm ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };
     return { her, born, raised, race, name: disp, native, heritage: nm?.heritage, ...nmx, elig, rep, city: pick(C[born].cities) };
   }
   pipe(raised, cls) {
@@ -339,7 +350,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -403,12 +414,15 @@ export class Game {
     // Two-way players: 50 regular-season games, none in the postseason; players waived after
     // March 1 who signed elsewhere can't play in the postseason either.
     const post = s.phase === 'playoffs' || s.phase === 'playin';
-    let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
+    // Play through injuries: a managed club's setting (days of injury he'll play through,
+    // regular season and postseason); he plays at reduced strength.
+    const thr = user ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
+    let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
     if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid),
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && p.inj.dtd), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -653,7 +667,7 @@ export class Game {
         const sfmvp: Record<string, any> = {}; if (sd && po.rounds[2]) po.rounds[2].forEach(x => { sfmvp[x.conf] = seriesMvp(this, s, sd, po.cf, { a: x.a, b: x.b, winner: W(x).t }); });
         const aw = { ...((s.awards || {})[this.Y] || {}), fmvp: fm, sfmvp };
         const finOf = tid => { let fin = 'Missed the playoffs'; po.rounds.forEach((r, i) => r.forEach(x => { if (x.a === tid || x.b === tid) fin = W(x).t === tid ? (i === 3 ? 'Won the title' : fin) : 'Lost in the ' + RN[i]; })); if (fin === 'Missed the playoffs' && ['East', 'West'].some(c => s.playin?.[c]?.some(x => x.a === tid || x.b === tid))) fin = 'Lost in the play-in'; return fin; };
-        const teams = {}; s.managed.forEach(t => (teams[t] = { rec: T[t].w + '–' + T[t].l, fin: finOf(t) }));
+        const teams = {}; T.forEach(t => (teams[t.tid] = { rec: t.w + '–' + t.l, w: t.w, l: t.l, fin: finOf(t.tid), conf: t.conf, name: t.region + ' ' + t.name, abbr: t.abbr })); // every team, for league history
         out.history = [{ season: this.seasonLbl(), year: this.Y, champ: po.champ, runner: po.runner, rec: T[s.me].w + '–' + T[s.me].l, fin: finOf(s.me), teams, fmvp: fm?.pid }, ...s.history];
         out.awards = { ...(s.awards || {}), [this.Y]: aw };
         out.lgLog = [{ day, type: 'Award', teams: T[po.champ].abbr, text: T[po.champ].region + ' ' + T[po.champ].name + ' won the ' + this.seasonLbl() + ' championship' }, ...(fm ? [{ day, type: 'Award', teams: T[po.champ].abbr, pids: [fm.pid], text: this.db.P[fm.pid].name + ' is the Finals MVP: ' + fm.line }] : []), ...s.lgLog];
@@ -946,6 +960,7 @@ export class Game {
     const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
   }
   private busy = false;
+  _rosterRef: any = null;
 
   // Play n days. Every game is simulated in full; `forced` is the finished Live Game
   // for the user's game on the first day. Yields between days so the page stays responsive.
@@ -969,7 +984,9 @@ export class Game {
   simDay(s, forced: GameResult | undefined, left: number) {
     if (s.phase !== 'regular' || this.gamesPlayed(s) >= 82) return null;
     const day = s.day, games = this.db.days[day % this.db.days.length];
-    const rosters = { ...s.rosters }, fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) } };
+    const rosters = { ...s.rosters };
+    s.managed.forEach(t => { if (this.clubOf(s, t)?.keepSorted) rosters[t] = this.autoSorted(rosters[t]); });
+    const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) } };
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
     let news = s.news || [];
@@ -1022,6 +1039,8 @@ export class Game {
     return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
+  // Rotation order by rating: healthy players first, two-way players after the standard contracts.
+  autoSorted(ids) { const P = this.db.P, ok = id => !P[id].inj || P[id].inj.dtd; return ids.slice().sort((a, b) => (ok(b) ? 1 : 0) - (ok(a) ? 1 : 0) || (P[a].ctype === 'twoWay' ? 1 : 0) - (P[b].ctype === 'twoWay' ? 1 : 0) || P[b].ovr - P[a].ovr); }
   tidOf(rosters, id) { for (const k of Object.keys(rosters)) if (rosters[k].includes(id)) return +k; return -1; }
   // Game-to-game fatigue: heavy minutes build it, a day off (and endurance) clears it.
   fatigueTick(rosters, mins: Record<number, number>) {
@@ -1103,6 +1122,8 @@ export class Game {
     if (p.exp === this.Y && !p.ext && p.ovr >= 52) f.push(['No extension offered', -6 * (m === 'Money' || m === 'Loyalty' ? 1.5 : 1)]);
     if (m === 'Fame') f.push(['Market size', (me.mkt - 1) * 40]);
     if (m === 'Loyalty') f.push(['Years with the team', p.yrsWith * 3]);
+    { const c = this.clubOf(s, tid), fac = c?.budget?.Facilities; if (fac != null && Math.abs(fac - 14) >= 3) f.push(['Team facilities', Math.round((fac - 14) / 3)]); }
+    if (me.mkt >= 1.1 && wp >= .55) f.push(['Fan energy', 2]); else if (wp < .3 && (s.games || []).length > 60) f.push(['Fan energy', -2]);
     if (p.ext) f.push(['Recently extended', 8]);
     if (p.moodAdj) f.push([p.moodAdj < 0 ? 'Incentive dispute with the front office' : 'Front office backed him', p.moodAdj]);
     const k = p.pers.volatile ? 1.4 : p.pers.pro ? .7 : 1;

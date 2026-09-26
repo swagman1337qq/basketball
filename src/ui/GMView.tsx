@@ -30,6 +30,7 @@ import { LeagueEditorScreen } from './screens/LeagueEditorScreen';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { CapOutlookScreen } from './screens/CapOutlookScreen';
 import { CapSheetScreen } from './screens/CapSheetScreen';
+import { StatsScreen } from './screens/StatsScreen';
 import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
@@ -37,6 +38,7 @@ import { TeamModal } from './modals/TeamModal';
 import { PlayerModal } from './modals/PlayerModal';
 import { ConfirmDialog } from './modals/ConfirmDialog';
 import { ContractDialog } from './modals/ContractDialog';
+import { PlayerSearch } from './PlayerSearch';
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
 import type { VM } from './vm';
 
@@ -69,6 +71,7 @@ export function GMView({ vm }: { vm: VM }) {
                 </button>
               ))}
             </div>
+            {vm.hasModal ? <PlayerModal vm={vm} /> : vm.hasTeamModal ? <TeamModal vm={vm} /> : (<>
             <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "18px", paddingBottom: "10px", borderBottom: "1px solid var(--color-divider)" }}>
               <div style={{ flex: "1", minWidth: "0" }}>
                 <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
@@ -81,6 +84,7 @@ export function GMView({ vm }: { vm: VM }) {
               <div style={{ color: "var(--color-neutral-700)", textAlign: "right" }}>
                 {vm.page.meta}
               </div>
+              {!vm.isC && <PlayerSearch vm={vm} />}
             </div>
             {!!vm.is.dash && <InboxCard vm={vm} />}
             {!!vm.is.dash && <DashboardScreen vm={vm} />}
@@ -111,12 +115,12 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.hof && <HallOfFameScreen vm={vm} />}
             {!!vm.is.caps && <CapOutlookScreen vm={vm} />}
             {!!vm.is.capsheet && <CapSheetScreen vm={vm} />}
+            {!!vm.is.stats && <StatsScreen vm={vm} />}
+            </>)}
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}
         {!!vm.hasList && <ListModal vm={vm} />}
-        {!!vm.hasTeamModal && <TeamModal vm={vm} />}
-        {!!vm.hasModal && <PlayerModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
       </div>

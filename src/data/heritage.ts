@@ -6,9 +6,13 @@
 // a Frenchman of Congolese descent "Victor Wembanyama".
 //
 // Shares are rounded from national censuses and official estimates (2011–2023). France
-// doesn't collect ethnic data, so its shares are commonly cited estimates. Exception:
-// the United States uses the mix of its basketball player pool, not the census.
+// doesn't collect ethnic data, so its shares are commonly cited estimates. Exceptions:
+// the United States and Canada use the mix of their NBA players (about 74% African
+// American, 13.5% white, 10.5% multiracial, 1.6% Hispanic and 0.4% Asian American among
+// U.S.-born players), not the census. Every other country and territory is in nations.ts.
 import { cyr, namePools, nativeMaps } from './world';
+import { MORE, NEW_POOLS } from './names';
+import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
@@ -72,8 +76,8 @@ export const EXTRA_NATIVE: Record<string, Record<string, string>> = {
 const AFR = ['yo', 'ig', 'ha', 'cm', 'cd', 'sn', 'ml', 'ak', 'mn'];
 // Population groups per country (weights are population shares; they needn't sum to 1).
 export const GROUPS: Record<string, Group[]> = {
-  US: [g('African American', .62, 'us', 'us', B), g('White', .29, 'us', 'us', W), g('Hispanic', .06, ['us', 'la'], 'la', { brown: .8, white: .2 }), g('Asian American', .015, 'us', ['cnC', 'vn', 'fch'], A), g('Multiracial', .015, 'us', 'us', { black: .5, white: .3, brown: .2 })],
-  CA: [g('English Canadian', .50, 'us', 'us', W), g('French Canadian', .19, 'qc', 'qc', W), g('Indigenous', .05, 'us', ['us', 'qc'], Br), g('Indian', .04, ['us', 'in'], 'in', Br), g('Punjabi', .03, 'pa', 'pa', Br), g('Chinese', .047, 'cnC', 'cnC', A), g('Black', .043, 'us', ['us', 'jm', 'ht', 'so'], B), g('Filipino', .026, ['us', 'ph'], 'ph', { brown: .6, asian: .4 }), g('Arab', .019, ['us', 'lev'], 'lev', Br), g('Latin American', .016, 'la', 'la', Br)],
+  US: [g('African American', .74, 'usb', 'usb', B), g('White', .135, 'usw', 'usw', W), g('Multiracial', .105, ['usb', 'usw'], ['usb', 'usw'], { black: .55, white: .3, brown: .15 }), g('Hispanic', .016, 'hus', 'hus', { brown: .8, white: .2 }), g('Asian American', .004, ['cnC', 'usw'], ['cnC', 'vn', 'fch', 'kr'], A)],
+  CA: [g('Black Canadian', .50, ['usb', 'jm'], ['jm', 'usb', 'ht', 'so', 'yo', 'ig'], B), g('English Canadian', .30, 'usw', ['usw', 'gb'], W), g('French Canadian', .10, 'qc', 'qc', W), g('South Asian', .04, ['in', 'pa'], ['in', 'pa'], Br), g('Asian', .03, 'cnC', 'cnC', A), g('Filipino', .015, ['ph', 'usw'], 'ph', { brown: .6, asian: .4 }), g('Indigenous', .015, 'usw', ['usw', 'qc'], Br)],
   BS: [g('Bahamian', .90, 'us', ['bah', 'us'], B), g('White Bahamian', .05, 'us', ['bah', 'us'], W), g('Haitian', .05, 'ht', 'ht', B)],
   BR: [g('Pardo', .453, 'pt', 'pt', Br), g('White (Portuguese roots)', .33, 'pt', 'pt', W), g('White (Italian roots)', .105, 'pt', 'it', W), g('Black', .102, 'pt', 'pt', B), g('Indigenous', .006, 'pt', 'pt', Br), g('Japanese Brazilian', .004, 'pt', 'jp', A)],
   AR: [g('Spanish roots', .45, 'rp', 'rp', W), g('Italian roots', .40, 'rp', 'it', W), g('Mestizo', .10, 'rp', 'rp', Br), g('Syrian-Lebanese', .03, 'rp', 'lev', { white: .5, brown: .5 }), g('Indigenous', .02, 'rp', 'rp', Br)],
@@ -114,6 +118,31 @@ export const GROUPS: Record<string, Group[]> = {
   PH: [g('Filipino', .98, 'ph', 'ph', { brown: .7, asian: .3 }), g('Chinese Filipino', .015, 'fch', 'fch', A)],
 };
 
+NATIONS.forEach(([code, name, , , spec]) => {
+  const single = spec.length === 2 && !Array.isArray(spec[1]);
+  GROUPS[code] = single ? [g(name, 1, spec[0] as any, spec[0] as any, spec[1] as Race)] : (spec as any[]).map(x => g(x[0], x[1], x[2], x[3], x[4]));
+});
+
+// Every name pool (base, heritage extras, new pools and additions), native-script maps,
+// and frequency weights (Chinese and Taiwanese surnames), built once.
+let POOLS: any = null, NATIVE: any = null;
+const WEIGHT: Record<string, Record<string, number>> = {};
+export function allPools(): Record<string, { f: string[]; l: string[]; lf?: number }> { build(); return POOLS; }
+export function allNative() { build(); return NATIVE; }
+function build() {
+  if (POOLS) return;
+  const base: any = { ...namePools(), ...EXTRA_POOLS }, nm: any = { ...nativeMaps(), ...EXTRA_NATIVE };
+  POOLS = {}; Object.keys(base).forEach(k => (POOLS[k] = { ...base[k], f: [...base[k].f], l: [...base[k].l] }));
+  NATIVE = {}; Object.keys(nm).forEach(k => (NATIVE[k] = { ...nm[k] }));
+  const add = (k: string, side: 'f' | 'l', entries: string[] = []) => { const p = (POOLS[k] = POOLS[k] || { f: [], l: [] });
+    entries.forEach(e => { const [lat, nat, tone] = e.split('|'); if (!p[side].includes(lat)) p[side].push(lat); if (nat) (NATIVE[k] = NATIVE[k] || {})[lat] = nat; if (tone) NATIVE.cnT[lat] = tone; }); };
+  Object.entries(NEW_POOLS).forEach(([k, v]) => { add(k, 'f', v.f); add(k, 'l', v.l); if (v.lf) POOLS[k].lf = 1; });
+  Object.entries(MORE).forEach(([k, v]) => { add(k, 'f', v.f); add(k, 'l', v.l); });
+  POOLS.cn.l = CN_SURNAMES.map(x => x[0]); CN_SURNAMES.forEach(([k, h, t]) => { NATIVE.cn[k] = h; NATIVE.cnT[k] = t; });
+  WEIGHT.cn = Object.fromEntries(CN_SURNAMES.map(x => [x[0], x[3]]));
+  POOLS.tw = { lf: 1, f: [], l: [] }; add('tw', 'f', TW_POOL.f); add('tw', 'l', TW_POOL.l.map(x => x[0])); WEIGHT.tw = Object.fromEntries(TW_POOL.l.map(([e, w]) => [e.split('|')[0], w]));
+}
+
 export function groupsOf(country: string): Group[] { return GROUPS[country] || []; }
 export function pickGroup(country: string, rnd: () => number = Math.random): Group | null {
   const gs = groupsOf(country); if (!gs.length) return null;
@@ -122,28 +151,32 @@ export function pickGroup(country: string, rnd: () => number = Math.random): Gro
   return gs[gs.length - 1];
 }
 
-const FAMILY_FIRST = new Set(['cn', 'kr']);
+const FAMILY_FIRST = new Set(['cn', 'kr', 'tw', 'kp', 'kh', 'vn']);
 const CYR_COUNTRIES = ['RS', 'ME', 'BA'];
 
 // A name (Romanized + native script) and a look from a heritage group.
 export function nameFromGroup(country: string, grp: Group, rnd: () => number = Math.random) {
-  const NP: any = { ...namePools(), ...EXTRA_POOLS }, NM: any = { ...nativeMaps(), ...EXTRA_NATIVE };
+  const NP: any = allPools(), NM: any = allNative();
   const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
   const pool = (x: string | string[]) => (Array.isArray(x) ? pick(x) : x);
   let fp = pool(grp.f), lp = pool(grp.l);
   if (!NP[fp]?.f?.length) fp = NP[lp]?.f?.length ? lp : 'us';
   if (!NP[lp]?.l?.length) lp = NP[fp]?.l?.length ? fp : 'us';
-  const f = pick(NP[fp].f) as string; let l = pick(NP[lp].l) as string;
-  for (let i = 0; l === f && i < 5; i++) l = pick(NP[lp].l);
+  // Surnames by frequency where we have it (Chinese, Taiwanese), otherwise uniformly.
+  const pickL = () => { const w = WEIGHT[lp], a = NP[lp].l as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] || 0.05), 0); for (const x of a) { if ((r -= w[x] || 0.05) < 0) return x; } return a[a.length - 1]; };
+  const f = pick(NP[fp].f) as string; let l = pickL();
+  for (let i = 0; l === f && i < 5; i++) l = pickL();
   const same = fp === lp;
   let first = f, last = l, nativeFirst = '', nativeLast = '', sep = ' ';
   if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
-  else if (same && ['kr', 'jp', 'gr', 'ge', 'il', 'ail', 'ru', 'ug', 'mgl', 'bo'].includes(fp)) { nativeFirst = NM[fp][f] || ''; nativeLast = NM[fp][l] || ''; }
   else if (same && fp === 'rs' && CYR_COUNTRIES.includes(country)) { nativeFirst = cyr(f); nativeLast = cyr(l); }
+  else if (same && NM[fp] && fp !== 'rs') { nativeFirst = NM[fp][f] || ''; nativeLast = NM[fp][l] || ''; }
+  // Pool keys that disambiguate same-spelled surnames (e.g. Xu许) display as plain Latin.
+  first = first.replace(/[^\x00-\u024f\u1e00-\u1eff' ’-]+$/u, ''); last = last.replace(/[^\x00-\u024f\u1e00-\u1eff' ’-]+$/u, '');
   if (fp === 'ug' || fp === 'mgl') sep = '·'; else if (fp === 'bo') sep = '';
   const familyFirst = same && FAMILY_FIRST.has(fp);
   const name = familyFirst ? last + ' ' + first : first + ' ' + last;
-  const cjkFamily = same && (fp === 'cn' || fp === 'kr' || fp === 'jp');
+  const cjkFamily = same && ['cn', 'kr', 'jp', 'tw', 'kp'].includes(fp);
   const native = !nativeFirst || !nativeLast ? '' : cjkFamily ? nativeLast + (fp === 'jp' ? ' ' : '') + nativeFirst : nativeFirst + sep + nativeLast;
   const ks = Object.keys(grp.race); let r = rnd() * ks.reduce((a, k) => a + grp.race[k], 0), race = ks[0];
   for (const k of ks) { if ((r -= grp.race[k]) < 0) { race = k; break; } }

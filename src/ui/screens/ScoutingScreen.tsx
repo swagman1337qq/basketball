@@ -1,8 +1,10 @@
 import type { VM } from '../vm';
+import { ScoutReportsSection } from './ScoutReportsSection';
 
 export function ScoutingScreen({ vm }: { vm: VM }) {
   return (
     <>
+      <ScoutReportsSection vm={vm} />
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr)", gap: "32px", alignItems: "start" }}>
         <section>
           <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>

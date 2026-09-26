@@ -1,3 +1,4 @@
+import { NATIONS } from './nations';
 // World data: countries, name pools, clubs, scouting regions and roster roles.
 // Ported from the Claude Design prototype (GM App.dc.html).
 
@@ -49,8 +50,21 @@ export function countries() {
     CN: c('China', 'cn', A, 'cn', ['Beijing', 'Shanghai', 'Guangzhou', 'Shenzhen', 'Ürümqi', 'Qingdao']),
     JP: c('Japan', 'jp', A, 'jp', ['Tokyo', 'Osaka', 'Toyama', 'Sendai']),
     KR: c('South Korea', 'kr', A, 'kr', ['Seoul', 'Busan', 'Incheon']),
-    PH: c('Philippines', 'ph', { asian: .6, brown: .4 }, 'ph', ['Manila', 'Cebu City', 'Quezon City'])
+    PH: c('Philippines', 'ph', { asian: .6, brown: .4 }, 'ph', ['Manila', 'Cebu City', 'Quezon City']),
+    ...moreCountries()
   };
+}
+// The rest of the world (nations.ts): look = the population groups' races by share.
+function moreCountries() {
+  const out: Record<string, any> = {};
+  NATIONS.forEach(([code, n, , cities, spec, x]) => {
+    const single = spec.length === 2 && !Array.isArray(spec[1]), gs: any[] = single ? [[n, 1, spec[0], spec[0], spec[1]]] : spec as any[];
+    const race: Record<string, number> = {}, tot = gs.reduce((a, q) => a + q[1], 0);
+    gs.forEach(q => Object.entries(q[4] as Record<string, number>).forEach(([k, v]) => (race[k] = (race[k] || 0) + v * q[1] / tot)));
+    const lp = gs[0][3], pool = Array.isArray(lp) ? lp[0] : lp;
+    out[code] = { n, iso: code.toLowerCase(), race, pool, cities, ...(x || {}) };
+  });
+  return out;
 }
 
 export function namePools() {
@@ -143,7 +157,7 @@ export function nativeMaps() {
 
 export function natDefault() { return { AO: 6, CI: 5, JM: 5, VE: 6, UY: 4, US: 3050, CA: 55, FR: 50, RS: 40, AU: 38, ES: 25, DE: 25, BR: 22, NG: 22, HR: 20, LT: 17, GR: 15, TR: 15, AR: 14, SI: 13, SN: 12, IT: 12, GB: 12, CD: 10, CM: 9, DO: 9, LV: 8, GE: 8, BS: 8, ME: 8, BA: 8, CN: 7, PR: 6, MX: 6, IL: 5, ML: 4, SS: 4, JP: 4, NZ: 4, FI: 3, PH: 2, KR: 1, KE: 1 }; }
 
-export function regions() { return { NA: { name: 'North America', tier: 1, arche: 'Athletic wings, lead guards', c: ['US', 'CA', 'BS', 'PR', 'DO', 'MX'] }, WEU: { name: 'Western Europe', tier: 1, arche: 'Skilled bigs, 3-and-D wings', c: ['FR', 'ES', 'DE', 'IT', 'GB', 'FI'] }, BAL: { name: 'Balkans', tier: 1, arche: 'Playmaking bigs, shooters', c: ['RS', 'HR', 'SI', 'ME', 'BA'] }, EEU: { name: 'Baltics, Türkiye & Caucasus', tier: 2, arche: 'High-IQ forwards', c: ['LT', 'LV', 'TR', 'GE', 'IL'] }, AFR: { name: 'Africa', tier: 2, arche: 'Long, athletic rim protectors', c: ['NG', 'SN', 'ML', 'CM', 'CD', 'SS', 'KE'] }, OCE: { name: 'Oceania', tier: 2, arche: 'Tough two-way guards', c: ['AU', 'NZ'] }, SAM: { name: 'South America', tier: 3, arche: 'Physical forwards', c: ['BR', 'AR'] }, ASI: { name: 'East Asia & Pacific', tier: 3, arche: 'Shooters, tall centers', c: ['CN', 'JP', 'KR', 'PH'] }, EMG: { name: 'Emerging programs', tier: 4, arche: 'Raw, toolsy athletes; few pros', c: ['AO', 'CI', 'JM', 'VE', 'UY'] } }; }
+export function regions() { const R: any = { NA: { name: 'North America', tier: 1, arche: 'Athletic wings, lead guards', c: ['US', 'CA', 'BS', 'PR', 'DO', 'MX'] }, WEU: { name: 'Western Europe', tier: 1, arche: 'Skilled bigs, 3-and-D wings', c: ['FR', 'ES', 'DE', 'IT', 'GB', 'FI'] }, BAL: { name: 'Balkans', tier: 1, arche: 'Playmaking bigs, shooters', c: ['RS', 'HR', 'SI', 'ME', 'BA'] }, EEU: { name: 'Baltics, Türkiye & Caucasus', tier: 2, arche: 'High-IQ forwards', c: ['LT', 'LV', 'TR', 'GE', 'IL'] }, AFR: { name: 'Africa', tier: 2, arche: 'Long, athletic rim protectors', c: ['NG', 'SN', 'ML', 'CM', 'CD', 'SS', 'KE'] }, OCE: { name: 'Oceania', tier: 2, arche: 'Tough two-way guards', c: ['AU', 'NZ'] }, SAM: { name: 'South America', tier: 3, arche: 'Physical forwards', c: ['BR', 'AR'] }, ASI: { name: 'East Asia & Pacific', tier: 3, arche: 'Shooters, tall centers', c: ['CN', 'JP', 'KR', 'PH'] }, EMG: { name: 'Emerging programs', tier: 4, arche: 'Raw, toolsy athletes; few pros', c: ['AO', 'CI', 'JM', 'VE', 'UY'] } }; NATIONS.forEach(([code, , reg]) => { if (R[reg] && !R[reg].c.includes(code)) R[reg].c.push(code); }); return R; }
 
 export function regionOf(c) {
   const M = { Atlanta: 'Georgia', Chicago: 'Illinois', Houston: 'Texas', 'Los Angeles': 'California', Philadelphia: 'Pennsylvania', Detroit: 'Michigan', Oakland: 'California', Baltimore: 'Maryland', Memphis: 'Tennessee', Indianapolis: 'Indiana', Queens: 'New York', Dallas: 'Texas', Toronto: 'Ontario', Montreal: 'Quebec', Mississauga: 'Ontario', Brampton: 'Ontario', Vancouver: 'British Columbia', Hamilton: 'Ontario', 'São Paulo': 'São Paulo', 'Rio de Janeiro': 'Rio de Janeiro', 'Brasília': 'Federal District', 'Belo Horizonte': 'Minas Gerais', Franca: 'São Paulo', 'Córdoba': 'Córdoba Province', Rosario: 'Santa Fe', 'Bahía Blanca': 'Buenos Aires Province', Monterrey: 'Nuevo León', Guadalajara: 'Jalisco', 'Santo Domingo': 'Distrito Nacional', 'Santiago de los Caballeros': 'Santiago Province', Paris: 'Île-de-France', Lyon: 'Auvergne-Rhône-Alpes', 'Le Mans': 'Pays de la Loire', Strasbourg: 'Grand Est', Villeurbanne: 'Auvergne-Rhône-Alpes', Nanterre: 'Île-de-France', Madrid: 'Community of Madrid', Barcelona: 'Catalonia', 'Málaga': 'Andalusia', Valencia: 'Valencian Community', Badalona: 'Catalonia', Munich: 'Bavaria', Bamberg: 'Bavaria', Ulm: 'Baden-Württemberg', Milan: 'Lombardy', Bologna: 'Emilia-Romagna', Rome: 'Lazio', Treviso: 'Veneto', Varese: 'Lombardy', Athens: 'Attica', Thessaloniki: 'Central Macedonia', Piraeus: 'Attica', Patras: 'Western Greece', 'Novi Sad': 'Vojvodina', Sombor: 'Vojvodina', 'Niš': 'Nišava District', Split: 'Split-Dalmatia', Zadar: 'Zadar County', 'Šibenik': 'Šibenik-Knin County', Kaunas: 'Kaunas County', Vilnius: 'Vilnius County', 'Klaipėda': 'Klaipėda County', 'Šiauliai': 'Šiauliai County', Ankara: 'Ankara Province', Izmir: 'İzmir Province', Bursa: 'Bursa Province', 'Tel Aviv': 'Tel Aviv District', Jerusalem: 'Jerusalem District', Haifa: 'Haifa District', Herzliya: 'Tel Aviv District', Lagos: 'Lagos State', Abuja: 'Federal Capital Territory', Ibadan: 'Oyo State', Enugu: 'Enugu State', Dakar: 'Dakar Region', 'Thiès': 'Thiès Region', 'Saint-Louis': 'Saint-Louis Region', 'Yaoundé': 'Centre Region', Douala: 'Littoral Region', Bafoussam: 'West Region', Juba: 'Central Equatoria', Wau: 'Western Bahr el Ghazal', Malakal: 'Upper Nile', Nairobi: 'Nairobi County', Kakuma: 'Turkana County', Melbourne: 'Victoria', Sydney: 'New South Wales', Perth: 'Western Australia', Brisbane: 'Queensland', Adelaide: 'South Australia', Canberra: 'Australian Capital Territory', Auckland: 'Auckland', Wellington: 'Wellington', Christchurch: 'Canterbury', Guangzhou: 'Guangdong', Shenzhen: 'Guangdong', 'Ürümqi': 'Xinjiang Uyghur Autonomous Region', Qingdao: 'Shandong', Osaka: 'Osaka Prefecture', Toyama: 'Toyama Prefecture', Sendai: 'Miyagi Prefecture', Manila: 'Metro Manila', 'Cebu City': 'Cebu', 'Quezon City': 'Metro Manila', London: 'England', Manchester: 'England', Leicester: 'England', Tbilisi: '', Kutaisi: 'Imereti', Batumi: 'Adjara', Espoo: 'Uusimaa', Helsinki: 'Uusimaa', Tampere: 'Pirkanmaa', Maribor: 'Drava', Koper: 'Coastal–Karst', Mostar: 'Herzegovina-Neretva Canton', Tuzla: 'Tuzla Canton', Kayes: 'Kayes Region', Bamako: '', Lubumbashi: 'Haut-Katanga', 'Liepāja': 'Kurzeme', Ventspils: 'Kurzeme', Freeport: 'Grand Bahama', Nassau: 'New Providence', Bayamón: '', Ponce: '', Incheon: '', Busan: '' };
@@ -173,7 +187,9 @@ export function roleDefs(): any[] {
 export const COLLEGES = ['Kentucky', 'Gonzaga', 'Duke', 'Villanova', 'Baylor', 'Arizona', 'UCLA', 'Kansas', 'Michigan State', 'Houston', 'Creighton', 'Purdue', 'Tennessee', 'Iowa State', 'Marquette', 'Alabama', 'UConn', 'North Carolina', 'Texas', 'Auburn', 'Saint Mary’s', 'Florida', 'Arkansas', 'Indiana', 'USC', 'Oregon', 'Virginia', 'Memphis'];
 
 // [region, nickname, abbreviation, conference, division]. The user runs index 0.
-export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 'Tides', 'BAL', 'East', 'Atlantic'], ['Hartford', 'Kestrels', 'HFD', 'East', 'Atlantic'], ['Brooklyn', 'Ironworks', 'BKN', 'East', 'Atlantic'], ['Newark', 'Comets', 'NWK', 'East', 'Atlantic'], ['Providence', 'Anchors', 'PRV', 'East', 'Atlantic'], ['Cleveland', 'Forge', 'CLE', 'East', 'Central'], ['Detroit', 'Motors', 'DET', 'East', 'Central'], ['Columbus', 'Owls', 'CBS', 'East', 'Central'], ['Pittsburgh', 'Rivermen', 'PIT', 'East', 'Central'], ['Cincinnati', 'Barons', 'CIN', 'East', 'Central'], ['Charlotte', 'Monarchs', 'CHA', 'East', 'Southeast'], ['Atlanta', 'Firebirds', 'ATL', 'East', 'Southeast'], ['Tampa', 'Herons', 'TPA', 'East', 'Southeast'], ['Raleigh', 'Oaks', 'RAL', 'East', 'Southeast'], ['Nashville', 'Sound', 'NSH', 'East', 'Southeast'], ['Seattle', 'Squall', 'SEA', 'West', 'Northwest'], ['Portland', 'Lumberjacks', 'POR', 'West', 'Northwest'], ['Vancouver', 'Orcas', 'VAN', 'West', 'Northwest'], ['Salt Lake', 'Summit', 'SLC', 'West', 'Northwest'], ['Denver', 'Altitude', 'DEN', 'West', 'Northwest'], ['San Diego', 'Surf', 'SD', 'West', 'Pacific'], ['Oakland', 'Redwoods', 'OAK', 'West', 'Pacific'], ['Las Vegas', 'Jacks', 'LV', 'West', 'Pacific'], ['Sacramento', 'Gold', 'SAC', 'West', 'Pacific'], ['Honolulu', 'Waves', 'HNL', 'West', 'Pacific'], ['Austin', 'Outlaws', 'AUS', 'West', 'Southwest'], ['Albuquerque', 'Roadrunners', 'ABQ', 'West', 'Southwest'], ['Phoenix', 'Scorch', 'PHX', 'West', 'Southwest'], ['Kansas City', 'Scouts', 'KC', 'West', 'Southwest'], ['St. Louis', 'Arches', 'STL', 'West', 'Southwest']];
+export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 'Crabs', 'BAL', 'East', 'Atlantic'], ['Hartford', 'Underwriters', 'HFD', 'East', 'Atlantic'], ['Brooklyn', 'Trolleys', 'BKN', 'East', 'Atlantic'], ['Newark', 'Bricks', 'NWK', 'East', 'Atlantic'], ['Providence', 'Jewelers', 'PRV', 'East', 'Atlantic'], ['Cleveland', 'Amps', 'CLE', 'East', 'Central'], ['Detroit', 'Motors', 'DET', 'East', 'Central'], ['Columbus', 'Explorers', 'CBS', 'East', 'Central'], ['Pittsburgh', 'Inclines', 'PIT', 'East', 'Central'], ['Cincinnati', 'Riverboats', 'CIN', 'East', 'Central'], ['Charlotte', 'Racers', 'CHA', 'East', 'Southeast'], ['Atlanta', 'Firebirds', 'ATL', 'East', 'Southeast'], ['Tampa', 'Corsairs', 'TPA', 'East', 'Southeast'], ['Raleigh', 'Oaks', 'RAL', 'East', 'Southeast'], ['Nashville', 'Sound', 'NSH', 'East', 'Southeast'], ['Seattle', 'Roasters', 'SEA', 'West', 'Northwest'], ['Portland', 'Lumberjacks', 'POR', 'West', 'Northwest'], ['Vancouver', 'Orcas', 'VAN', 'West', 'Northwest'], ['Salt Lake', 'Gulls', 'SLC', 'West', 'Northwest'], ['Denver', 'Altitude', 'DEN', 'West', 'Northwest'], ['San Diego', 'Surf', 'SD', 'West', 'Pacific'], ['Oakland', 'Redwoods', 'OAK', 'West', 'Pacific'], ['Las Vegas', 'High Rollers', 'LV', 'West', 'Pacific'], ['Sacramento', 'Prospectors', 'SAC', 'West', 'Pacific'], ['Honolulu', 'Waves', 'HNL', 'West', 'Pacific'], ['Austin', 'Bats', 'AUS', 'West', 'Southwest'], ['Albuquerque', 'Roadrunners', 'ABQ', 'West', 'Southwest'], ['Phoenix', 'Saguaros', 'PHX', 'West', 'Southwest'], ['Kansas City', 'Pitmasters', 'KC', 'West', 'Southwest'], ['St. Louis', 'Arches', 'STL', 'West', 'Southwest']];
+// Nicknames before the 2026 rename, for migrating saves whose teams kept the defaults.
+export const OLD_NICKNAMES: Record<string, string> = {"BAL": "Tides", "HFD": "Kestrels", "BKN": "Ironworks", "NWK": "Comets", "PRV": "Anchors", "CLE": "Forge", "CBS": "Owls", "PIT": "Rivermen", "CIN": "Barons", "CHA": "Monarchs", "TPA": "Herons", "SEA": "Squall", "SLC": "Summit", "LV": "Jacks", "SAC": "Gold", "AUS": "Outlaws", "PHX": "Scorch", "KC": "Scouts"};
 export const MARKETS = [1.0, .75, 1.45, 1.2, .75, .85, 1.05, .85, .9, .85, .95, 1.15, 1.0, .8, .9, 1.15, .9, 1.05, .8, 1.05, 1.1, 1.25, .95, .85, .7, 1.0, .7, 1.15, .85, .9];
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway'];
@@ -185,35 +201,35 @@ export const EXPANSION: [string, string, string, string, string, number][] = [['
 // Team identity: [primary, secondary] colors and the crest glyph (a Lucide icon name).
 // Original marks for fictional clubs; the crest is drawn by ui/TeamLogo.tsx.
 export const TEAM_STYLE: Record<string, { colors: [string, string]; icon: string }> = {
-  BAL: { colors: ['#1d3557', '#a8dadc'], icon: 'Waves' },
-  HFD: { colors: ['#8e3b1f', '#f1e3c8'], icon: 'Bird' },
-  BKN: { colors: ['#2b2b2b', '#c9894f'], icon: 'Anvil' },
-  NWK: { colors: ['#22254a', '#e7c46a'], icon: 'Sparkles' },
-  PRV: { colors: ['#1f5f63', '#e9efe8'], icon: 'Anchor' },
-  CLE: { colors: ['#6b1d1d', '#f2a541'], icon: 'Hammer' },
+  BAL: { colors: ['#1d3557', '#a8dadc'], icon: 'Shell' },
+  HFD: { colors: ['#8e3b1f', '#f1e3c8'], icon: 'Umbrella' },
+  BKN: { colors: ['#2b2b2b', '#c9894f'], icon: 'TramFront' },
+  NWK: { colors: ['#22254a', '#e7c46a'], icon: 'BrickWall' },
+  PRV: { colors: ['#1f5f63', '#e9efe8'], icon: 'Gem' },
+  CLE: { colors: ['#6b1d1d', '#f2a541'], icon: 'Speaker' },
   DET: { colors: ['#2f4a6b', '#d5d9de'], icon: 'Cog' },
-  CBS: { colors: ['#2d4a36', '#d8c29a'], icon: 'Moon' },
-  PIT: { colors: ['#1b1b1b', '#f0b429'], icon: 'Ship' },
-  CIN: { colors: ['#5e1f35', '#e0c07a'], icon: 'Castle' },
-  CHA: { colors: ['#4b2a6b', '#e6c36a'], icon: 'Crown' },
+  CBS: { colors: ['#2d4a36', '#d8c29a'], icon: 'Compass' },
+  PIT: { colors: ['#1b1b1b', '#f0b429'], icon: 'CableCar' },
+  CIN: { colors: ['#5e1f35', '#e0c07a'], icon: 'Sailboat' },
+  CHA: { colors: ['#4b2a6b', '#e6c36a'], icon: 'Flag' },
   ATL: { colors: ['#a3222b', '#f6c453'], icon: 'Flame' },
-  TPA: { colors: ['#1e6f5c', '#e8f3ec'], icon: 'Origami' },
+  TPA: { colors: ['#1e6f5c', '#e8f3ec'], icon: 'Skull' },
   RAL: { colors: ['#35573a', '#e8dcc0'], icon: 'TreeDeciduous' },
   NSH: { colors: ['#2e3a78', '#f2a07b'], icon: 'Guitar' },
-  SEA: { colors: ['#36475a', '#bfe3d0'], icon: 'CloudRainWind' },
+  SEA: { colors: ['#36475a', '#bfe3d0'], icon: 'Coffee' },
   POR: { colors: ['#8f2d25', '#f4e6cf'], icon: 'Axe' },
   VAN: { colors: ['#15191e', '#d3e6ef'], icon: 'Fish' },
-  SLC: { colors: ['#1f3b63', '#eef2f5'], icon: 'Mountain' },
+  SLC: { colors: ['#1f3b63', '#eef2f5'], icon: 'Bird' },
   DEN: { colors: ['#2c5d8a', '#f2c14e'], icon: 'MountainSnow' },
   SD: { colors: ['#0f6e8c', '#f3dfb3'], icon: 'Sunset' },
   OAK: { colors: ['#7a3325', '#c9d6b5'], icon: 'TreePine' },
-  LV: { colors: ['#1c1a1a', '#d4af37'], icon: 'Spade' },
-  SAC: { colors: ['#3a2f5b', '#d9a93a'], icon: 'Gem' },
+  LV: { colors: ['#1c1a1a', '#d4af37'], icon: 'Dice5' },
+  SAC: { colors: ['#3a2f5b', '#d9a93a'], icon: 'Pickaxe' },
   HNL: { colors: ['#127a7a', '#f7c8a3'], icon: 'TreePalm' },
-  AUS: { colors: ['#a4521b', '#f3ece2'], icon: 'Star' },
+  AUS: { colors: ['#a4521b', '#f3ece2'], icon: 'Moon' },
   ABQ: { colors: ['#2a8c8c', '#f0d9b5'], icon: 'Wind' },
   PHX: { colors: ['#c1461d', '#fbe3c1'], icon: 'Sun' },
-  KC: { colors: ['#1f2f4d', '#e4b363'], icon: 'Compass' },
+  KC: { colors: ['#1f2f4d', '#e4b363'], icon: 'Flame' },
   STL: { colors: ['#24457a', '#f08a74'], icon: 'Rainbow' },
   LOU: { colors: ['#4a1a2c', '#e9b7c1'], icon: 'Award' },
   MEX: { colors: ['#1f5e3a', '#f0e6d2'], icon: 'Feather' },

@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { CountryPicker } from '../kit';
 import { ExpansionPicker } from './ExpansionPicker';
 import { AwardFormulas } from './AwardFormulas';
 import { RetirementSetting } from './RetirementSetting';
@@ -117,6 +118,10 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           <p style={{ margin: "4px 0 8px", fontSize: "12px", color: "var(--color-neutral-700)" }}>
             Weights are approximate counts of NBA players by nationality since 1980. They set how likely each country is for every newly generated player (draft classes, expansion). Click a country to see who represents it.
           </p>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", margin: "0 0 8px", fontSize: "12.5px" }}>
+            <span style={{ color: "var(--color-neutral-700)" }}>Add a country to the mix:</span>
+            <CountryPicker C={vm.ctx.gm.db.C} exclude={Object.keys(vm.ctx.s.natW || {})} onPick={(c: string) => vm.ctx.gm.setState((st: any) => ({ natW: { ...st.natW, [c]: 1 } }))} placeholder="Type any country…" />
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "0 24px" }}>
             {(vm.natRows || []).map((r: any, i: number) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1fr) 64px 80px", gap: "8px", alignItems: "center", padding: "3px 0", borderBottom: "1px solid var(--color-divider)" }}>
