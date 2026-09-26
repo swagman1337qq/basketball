@@ -157,17 +157,56 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
   const twoWay = topK.includes('diq') && topK.some(k => ['tp', 'fg', 'ins', 'dnk', 'lay', 'pss', 'drb'].includes(k));
   const posWord = p.pos === 'PG' ? 'point guard' : p.pos === 'C' ? 'center' : grp === 'G' ? 'guard' : grp === 'B' ? 'big' : 'wing';
-  const lvl = (v: number) => v >= 80 ? 'a franchise-level' : v >= 72 ? 'a high-level' : v >= 64 ? 'a quality starting' : v >= 57 ? 'a solid rotation' : v >= 50 ? 'a backup' : 'a fringe';
-  const upside = o.pot >= 80 ? 'franchise-player upside' : o.pot >= 72 ? 'legitimate star upside' : o.pot >= 64 ? 'real starter upside' : o.pot >= 57 ? 'rotation-player upside' : 'a shot at sticking in the league';
+  // Several ways to say each part, picked per player so reports don't all read alike.
+  const tk = pickOf(pid * 7919 + g.Y * 13 + 5), tier = (v: number) => v >= 80 ? 0 : v >= 72 ? 1 : v >= 64 ? 2 : v >= 57 ? 3 : v >= 50 ? 4 : 5;
+  const lvl = (v: number) => tk([['a franchise-level', 'a cornerstone', 'a face-of-the-franchise'], ['a high-level', 'an All-Star-caliber', 'a top-tier'], ['a quality starting', 'a legitimate starting', 'a starting-caliber'], ['a solid rotation', 'a dependable rotation', 'a useful rotation'], ['a backup', 'an end-of-bench', 'a reserve'], ['a fringe', 'a fringe roster', 'a roster-bubble']][tier(v)]);
+  const upside = tk([['franchise-player upside', 'the ceiling of a franchise player', 'No. 1 option upside'], ['legitimate star upside', 'All-Star upside', 'star potential'], ['real starter upside', 'the upside of a long-time starter', 'starting-caliber upside'], ['rotation-player upside', 'the upside of a solid rotation piece', 'a path to real rotation minutes'], ['a shot at sticking in the league', 'an outside shot at an NBA roster spot', 'a chance to stick in the league']][Math.min(4, tier(o.pot))]);
   const devG = new Set<string>(), devN = weakK.filter(k => { const c = CAT[k]; if (cats.includes(c) || devG.has(c)) return false; devG.add(c); return true; }).map(k => NOUN[k]).slice(0, 2), lastN = p.last || (p.familyFirst ? String(p.name).split(' ')[0] : String(p.name).split(' ').slice(-1)[0]);
-  const stand = rd.kind !== 'prospect' ? '' : !board ? 'a long shot to hear his name called' + (p.cls ? ' in ' + p.cls : '') : board <= 3 ? 'one of the elite prospects in the ' + p.cls + ' NBA Draft' : board <= 10 ? 'a top-10 talent in the ' + p.cls + ' class' : board <= 20 ? 'a lottery-caliber prospect in the ' + p.cls + ' class' : board <= 30 ? 'a first-round prospect in ' + p.cls : board <= 60 ? 'a second-round prospect in ' + p.cls : 'a long shot to hear his name called in ' + p.cls;
-  const opener = cats.length ? lastN + ' has ' + list(cats) + ' to become ' + lvl(o.pot) + ' ' + (twoWay && o.pot >= 57 ? 'two-way ' : '') + 'NBA ' + posWord + '. ' : lastN + ' is a work in progress without a standout skill yet; the path is becoming ' + lvl(o.pot) + ' NBA ' + posWord + '. ';
-  const grows = o.pot - o.ovr >= 6;
+  const yr = p.cls || g.Y, stand = rd.kind !== 'prospect' ? '' : tk(!board || board > 60 ? ['a long shot to hear his name called in ' + yr, 'a long shot to be drafted in ' + yr, 'likely to go undrafted in ' + yr]
+    : board <= 3 ? ['one of the elite prospects in the ' + yr + ' NBA Draft', 'a top-three talent in the ' + yr + ' class', 'in the conversation for the No. 1 pick in ' + yr]
+    : board <= 10 ? ['a top-10 talent in the ' + yr + ' class', 'a likely top-10 pick in ' + yr, 'firmly in the top 10 of the ' + yr + ' class']
+    : board <= 20 ? ['a lottery-caliber prospect in the ' + yr + ' class', 'a likely lottery pick in ' + yr, 'squarely in the ' + yr + ' lottery mix']
+    : board <= 30 ? ['a first-round prospect in ' + yr, 'a likely first-rounder in ' + yr, 'on track to go in the first round in ' + yr]
+    : ['a second-round prospect in ' + yr, 'a likely second-rounder in ' + yr, 'on the second-round radar in ' + yr]);
+  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1), one = devN.length === 1, vb = (a: string, b: string) => one ? a : b;
+  const poss = lastN + (/s$/i.test(lastN) ? '’' : '’s'), S = list(cats), D = list(devN), role = lvl(o.pot) + ' ' + (twoWay && o.pot >= 57 ? 'two-way ' : '') + 'NBA ' + posWord;
+  const opener = cats.length ? tk([
+    () => lastN + ' has ' + S + ' to become ' + role + '. ',
+    () => 'With ' + S + ', ' + lastN + ' has a clear path to becoming ' + role + '. ',
+    () => poss + ' calling card' + (cats.length === 1 ? ' is ' : 's are ') + S + ', the kind of foundation that projects to ' + role + '. ',
+    () => 'The appeal starts with ' + S + '; ' + lastN + ' profiles as ' + role + ' down the line. ',
+    () => lastN + ' brings ' + S + ' to the table, and the target is ' + role + '. ',
+  ])() : tk([
+    () => lastN + ' is a work in progress without a standout skill yet; the path is becoming ' + role + '. ',
+    () => 'Nothing in ' + poss + ' game jumps off the page yet, but the target is ' + role + '. ',
+  ])();
+  const grows = o.pot - o.ovr >= 6 && devN.length > 0;
+  const devLine = (withStand: boolean) => tk(withStand ? [
+    () => 'If his ' + D + ' continue' + vb('s', '') + ' to develop, he has ' + upside + ' and is ' + stand + '.',
+    () => 'The swing skill' + vb(' is his ', 's are his ') + D + ': if ' + vb('it comes', 'they come') + ' along, he has ' + upside + '. For now he is ' + stand + '.',
+    () => 'How far he goes depends on his ' + D + '; get there and he has ' + upside + '. He is ' + stand + '.',
+    () => cap(stand) + ', he has ' + upside + ' if his ' + D + ' catch' + vb('es', '') + ' up.',
+    () => 'The work is in his ' + D + '. Should that click, there is ' + upside + ' here, and he is ' + stand + '.',
+  ] : [
+    () => 'If his ' + D + ' continue' + vb('s', '') + ' to develop, he has ' + upside + '.',
+    () => 'How far he goes depends on his ' + D + '; get there and he has ' + upside + '.',
+    () => 'The swing skill' + vb(' is his ', 's are his ') + D + ': if ' + vb('it comes', 'they come') + ' along, he has ' + upside + '.',
+    () => 'With work on his ' + D + ', there is ' + upside + ' here.',
+  ])();
   const outlook = rd.kind === 'prospect'
-    ? opener + (grows && devN.length ? 'If his ' + list(devN) + ' continue' + (devN.length === 1 ? 's' : '') + ' to develop, he has ' + upside + ' and is ' + stand + '.' : 'His game is largely formed: what you see is close to what you get, and he is ' + stand + '.')
+    ? opener + (grows ? devLine(true) : tk([
+      'His game is largely formed: what you see is close to what you get, and he is ' + stand + '.',
+      'There isn’t much projection left, so teams are buying the player he is now: ' + stand + '.',
+      'A finished product more than a project, he is ' + stand + '.',
+      'Don’t expect big jumps from here. He is ' + stand + '.']))
     : rd.kind === 'overseas'
-      ? opener + (o.ovr >= 57 ? 'He could step into an NBA rotation today' : 'He would start on a two-way or at the end of a bench if he came over') + (grows && devN.length ? '; if his ' + list(devN) + ' keep' + (devN.length === 1 ? 's' : '') + ' improving, he has ' + upside + '.' : '.')
-      : (cats.length ? lastN + ' brings ' + list(cats) + ' as ' + an(ceilOf(o.ovr)) + '. ' : lastN + ' is ' + an(ceilOf(o.ovr)) + '. ') + (grows && devN.length ? 'If his ' + list(devN) + ' continue' + (devN.length === 1 ? 's' : '') + ' to develop, he has ' + upside + '.' : p.age >= 28 ? 'At ' + p.age + ', what you see is what you get.' : 'Close to the player he will be.');
+      ? opener + tk(o.ovr >= 57 ? ['He could step into an NBA rotation today.', 'He is ready to help an NBA rotation now.'] : ['He would start on a two-way or at the end of a bench if he came over.', 'Coming over now, he would be fighting for a two-way deal.', 'He would need time on a two-way or in the G League to adjust.']) + (grows ? ' ' + devLine(false) : '')
+      : (cats.length ? tk([
+          () => lastN + ' brings ' + S + ' as ' + an(ceilOf(o.ovr)) + '. ',
+          () => cap(an(ceilOf(o.ovr))) + ' right now, ' + lastN + ' leans on ' + S + '. ',
+          () => lastN + ' earns his minutes with ' + S + '; today he is ' + an(ceilOf(o.ovr)) + '. ',
+        ])() : lastN + ' is ' + an(ceilOf(o.ovr)) + '. ')
+        + (grows ? devLine(false) : p.age >= 28 ? tk(['At ' + p.age + ', what you see is what you get.', 'At ' + p.age + ', he is who he is.', 'At ' + p.age + ', don’t expect much more growth.']) : tk(['Close to the player he will be.', 'Not much projection left.', 'His development has mostly leveled off.']));
   const statRows = [...new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season))].sort((a: any, b: any) => b - a).slice(0, 4).map((y: any) => { const t = g.seasonTotals(p, y); if (!t || !t.gp) return null; const q = (v: number) => (v / t.gp).toFixed(1); return { season: (y - 1) + '–' + String(y).slice(2), gp: t.gp, min: q(t.min), pts: q(t.pts), reb: q(t.orb + t.drb), ast: q(t.ast), stl: q(t.stl), blk: q(t.blk), fg: t.fga ? (t.fgm / t.fga * 100).toFixed(1) : '—', tp: t.tpa ? (t.tpm / t.tpa * 100).toFixed(1) : '—', ft: t.fta ? (t.ftm / t.fta * 100).toFixed(1) : '—', per: g.perOf(t, y).toFixed(1) }; }).filter(Boolean);
   // Notes.
   const notes: string[] = [];
