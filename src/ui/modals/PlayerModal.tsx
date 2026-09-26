@@ -149,7 +149,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       {r.label}
                     </span>
-                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
+                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.suffix || (r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined)} />
                     <span>{r.rand && <Dice onClick={r.rand} title={'Random ' + String(r.label).toLowerCase()} />}</span>
                   </div>
                 ))}
@@ -198,7 +198,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       {r.label}
                     </span>
-                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
+                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.suffix || (r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined)} />
                     <span>{r.rand && <Dice onClick={r.rand} title={'Random ' + String(r.label).toLowerCase()} />}</span>
                   </div>
                 ))}

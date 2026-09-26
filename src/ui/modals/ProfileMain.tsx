@@ -170,7 +170,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             <div key={gi} style={{ marginBottom: '12px' }}>
               <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '6px 0 2px' }}>{g.label}</div>
               {(g.items || []).map((r: any, i: number) => { const t = rtier(r.v); return (
-                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 58px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 80px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
                   <span>{r.name}</span>
                   <div style={{ position: 'relative', height: 9, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)', borderRadius: 5 }}>
                     <div style={{ height: 9, width: r.w, background: t[1], borderRadius: 5 }} />

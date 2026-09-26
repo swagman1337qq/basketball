@@ -126,6 +126,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const pp = P[s.pid] || P[mine[0]], ptid = tidOf[pp.id];
   const pk = s.picks.find(x => x.pid === pp.id);
   const status = ptid === s.me ? 'mine' : ptid === -1 ? 'fa' : ptid === -2 ? 'abroad' : ptid >= 0 ? 'other' : pp.retired ? 'retired' : 'pro';
+  // Height in feet and inches. The height rating and the measurement move together: every 4
+  // rating points is an inch (wingspan follows, so arm length for his size stays the same).
+  const ftIn = (n: number) => Math.floor(n / 12) + '′' + (n % 12) + '″';
+  const setHgt = (p: any, v: number) => { const d = Math.floor(v / 4) - Math.floor(p.r.hgt / 4), hIn = gm.inches(p.hgt), nIn = cl(hIn + d, 66, 91); p.r.hgt = v; if (nIn !== hIn) { p.hgt = ftIn(nIn); if (p.wing != null) p.wing += nIn - hIn; } };
   const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]]];
   const career = [];
   if (status !== 'pro') {
@@ -142,7 +146,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   }
   const fc = gm.face(pp.id);
   const pl = { ...pp, flag: gm.flag(pp.rep), cname: C[pp.rep].n, tone: tone(pp.ovr), face: gm.faceEl(pp.id, ptid),
-    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row = { name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]) };
+    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row: any = { name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]) }; if (k === 'hgt') Object.assign(row, { text: pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)), hint: 'Height rating ' + pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)) + ' tall' });
       if (k !== 'hgt' || !pp.wing) return [row];
       // Wingspan is a measurement, not a rating: the bar shows how long his arms are for his height (the league averages +4″).
       const hIn = gm.inches(pp.hgt), ape = pp.wing - hIn, len = Math.round(cl(50 + (ape - 4) * 6, 1, 99));
@@ -318,7 +322,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         randNative: () => mut(p => { const r: any = randomName(p.rep); p.nativeFirst = r.nativeFirst || ''; p.nativeLast = r.nativeLast || ''; p.native = r.native || ''; }),
         sliders: [['Age', 'age', 16, 50, 1], ['Overall', 'ovr', 1, 100, 1], ['Potential', 'pot', 1, 100, 1], ['Salary', 'amt', 1.1, gm.MAXC, .1], ['Contract through', 'exp', gm.Y, gm.Y + 5, 1]].map(([label, k, mn, mx, stp]) => ({ label, min: mn, max: mx, step: stp, v: pp[k], rand: () => { const R = Math.random(), v = k === 'age' ? 19 + Math.floor(R * 17) : k === 'ovr' ? 38 + Math.floor(R * 34) : k === 'pot' ? Math.min(90, pp.ovr + Math.floor(R * (pp.age < 23 ? 22 : pp.age < 27 ? 8 : 2))) : k === 'amt' ? +cl(gm.fair(pp.ovr) * (0.6 + R * 0.8), 1.1, gm.MAXC).toFixed(1) : gm.Y + Math.floor(R * 5); pl.ed.sliders.find(x => x.label === label).set({ target: { value: v } }); }, val: k === 'amt' ? money(pp[k]) : String(pp[k]), set: e => mut(p => { const v = +e.target.value; if (k === 'age') { p.age = v; if (v >= 29) p.pot = Math.max(p.ovr, Math.min(p.pot, p.ovr + (v < 31 ? 2 : 0))); else if (v <= 22 && p.pot < p.ovr + 3) p.pot = Math.min(90, p.ovr + 3); if (p.dob) p.dob = (gm.Y - 1 - v) + p.dob.slice(4); return; } if (k === 'ovr') { const dl = v - p.ovr; Object.keys(p.r).forEach(x => p.r[x] = cl(p.r[x] + dl, 1, 100)); if (p.pot < v) p.pot = v; } if (k === 'pot' && v < p.ovr) return; p[k] = v; }) })),
         randRatings: () => mut(p => gm.randomRatings(p)), shiftAll: d => mut(p => { Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = cl(p.r[k] + d, 1, 100); }); p.ovr = cl(p.ovr + d, 1, 100); if (p.pot < p.ovr) p.pot = p.ovr; }),
-        ratings: RG.flatMap(([, ks]) => ks).map(([k, label]) => ({ label, min: 1, max: 100, step: 1, v: pp.r[k], val: String(pp.r[k]), set: e => mut(p => p.r[k] = +e.target.value), rand: () => mut(p => { p.r[k] = Math.round(cl(p.ovr + (Math.random() - .5) * 30, 4, 100)); }) })),
+        ratings: RG.flatMap(([, ks]) => ks).flatMap(([k, label]) => { const r = { label, min: 1, max: 100, step: 1, v: pp.r[k], val: String(pp.r[k]), suffix: k === 'hgt' ? ftIn(gm.inches(pp.hgt)) : undefined, set: e => mut(p => k === 'hgt' ? setHgt(p, +e.target.value) : (p.r[k] = +e.target.value)), rand: () => mut(p => { const v = Math.round(cl(p.ovr + (Math.random() - .5) * 30, 4, 100)); if (k === 'hgt') setHgt(p, v); else p.r[k] = v; }) };
+          if (k !== 'hgt') return [r];
+          // Wingspan is measured in inches; it moves with height when height changes.
+          const hIn = gm.inches(pp.hgt), wg = pp.wing ?? hIn + 4, ape = wg - hIn;
+          return [r, { label: 'Wingspan', min: hIn - 8, max: hIn + 14, step: 1, v: wg, val: String(wg), suffix: 'in · ' + ftIn(wg) + ' (' + (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″)', set: e => mut(p => { p.wing = +e.target.value; }), rand: () => mut(p => { p.wing = gm.inches(p.hgt) + Math.round(cl((Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8, -6, 12)); }) }]; }),
         randTraits: () => mut(p => { const R = () => Math.random(); Object.assign(p.pers, { alpha: R() < .2, touches: R() < .3, pro: R() < .35, volatile: R() < .15, crowd: R() < .15, clutch: R() < .1, prone: R() < .08, padder: R() < .08, legacy: R() < .12 }); p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && R() < .3; }),
         randMot: () => mut(p => { p.pers.mot = ['Winning', 'Winning', 'Money', 'Money', 'Fame', 'Loyalty', 'Playing time', 'Playing time'][Math.floor(Math.random() * 8)]; }),
         randRep: () => { const opts = Object.keys(C).filter(c => c !== pp.rep); pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } }); },
