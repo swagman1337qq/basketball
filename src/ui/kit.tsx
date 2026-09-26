@@ -127,6 +127,34 @@ export function CountryPicker({ C, value, onPick, placeholder = 'Type a country�
   );
 }
 
+// A text box with a drop-down of suggestions: pick one, or type anything. The list shows
+// everything when opened and narrows as you type. Options can carry a small note (sub).
+export function Combo({ value, options, onChange, onPick, placeholder, width = 180 }: { value: string; options: { v: string; sub?: string }[]; onChange: (v: string) => void; onPick?: (o: { v: string; sub?: string }) => void; placeholder?: string; width?: number | string }) {
+  const [open, setOpen] = useState(false), [typed, setTyped] = useState(false), [hi, setHi] = useState(0);
+  const norm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const nq = typed ? norm(value.trim()) : '';
+  const list = (nq ? options.filter(o => norm(o.v).includes(nq)).sort((a, b) => (norm(a.v).startsWith(nq) ? 0 : 1) - (norm(b.v).startsWith(nq) ? 0 : 1)) : options).slice(0, 80);
+  const pick = (o: { v: string; sub?: string }) => { (onPick || ((x: { v: string }) => onChange(x.v)))(o); setOpen(false); setTyped(false); };
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', width }}>
+      <input className="input" value={value} placeholder={placeholder} style={{ width: '100%', paddingRight: options.length ? 22 : undefined }}
+        onFocus={() => { setOpen(true); setTyped(false); setHi(-1); }} onBlur={() => setTimeout(() => setOpen(false), 150)} onChange={e => { onChange(e.target.value); setTyped(true); setOpen(true); setHi(0); }}
+        onKeyDown={e => { if (e.key === 'ArrowDown') { setOpen(true); setHi(h => Math.min(list.length - 1, h + 1)); e.preventDefault(); } else if (e.key === 'ArrowUp') { setHi(h => Math.max(0, h - 1)); e.preventDefault(); } else if (e.key === 'Enter') { if (open && list[hi]) pick(list[hi]); else setOpen(false); e.preventDefault(); } else if (e.key === 'Escape') { setOpen(false); e.stopPropagation(); } }} />
+      {options.length > 0 && <span aria-hidden style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--color-neutral-600)', pointerEvents: 'none' }}>▾</span>}
+      {open && options.length > 0 && (
+        <div style={{ position: 'absolute', zIndex: 40, top: 'calc(100% + 2px)', left: 0, minWidth: '100%', maxHeight: 260, overflowY: 'auto', background: 'var(--color-bg)', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)', boxShadow: '0 6px 18px rgba(0,0,0,.25)' }}>
+          {list.length === 0 && <div style={{ padding: '6px 10px', fontSize: '12.5px', color: 'var(--color-neutral-600)' }}>No match: keeps what you typed</div>}
+          {list.map((o, i) => (
+            <div key={o.v + (o.sub || '')} onMouseDown={e => { e.preventDefault(); pick(o); }} onMouseEnter={() => setHi(i)} style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', padding: '4px 10px', fontSize: '12.5px', cursor: 'pointer', whiteSpace: 'nowrap', background: i === hi ? 'var(--color-accent-100)' : o.v === value ? 'var(--color-neutral-100)' : undefined, color: i === hi ? 'var(--color-accent-800)' : undefined }}>
+              <span>{o.v}</span>{o.sub && <span style={{ color: 'var(--color-neutral-600)', fontSize: '11.5px' }}>{o.sub}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // A small "randomize this field" button (God Mode editor).
 export function Dice({ onClick, title = 'Randomize' }: { onClick: () => void; title?: string }) {
   return <button type="button" className="btn btn-ghost" onClick={onClick} title={title} aria-label={title} style={{ fontSize: '13px', padding: '2px 7px', flex: 'none' }}>🎲</button>;

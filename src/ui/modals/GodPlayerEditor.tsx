@@ -4,9 +4,10 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
-import { CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
+import { Combo, CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
 import { namePools } from '../../data/world';
 import { randomTeamIn } from '../../data/randomTeam';
+import { leaguesIn } from '../../data/leagues';
 import { allPools, groupsOf, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -21,6 +22,10 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const [originSel, setOrigin] = useState<string | null>(null), [bg, setBg] = useState('');
   if (!p) return null;
   const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
+  // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
+  // league, or every team in the country when the league is blank or typed by hand.
+  const lgs = p.from ? leaguesIn(p.from.country || p.raised || p.born) : [], curL = lgs.find(x => x.lg === p.from?.lg);
+  const teamOpts = curL ? curL.teams.map(t => ({ v: t })) : lgs.flatMap(x => x.teams.map(t => ({ v: t, sub: x.lg })));
   const C = gm.db.C, lf = p.familyFirst ?? !!allPools()[C[p.rep]?.pool]?.lf;
   const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
   const origin = originSel ?? p.rep;
@@ -76,9 +81,13 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           </span>
           {p.from && <><span style={muted}>{p.cls ? 'Playing for' : 'Came from'}</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input className="input" value={p.from.team || ''} onChange={e => mut(q => { q.from = { ...q.from, team: e.target.value }; })} placeholder="Team or school" style={{ flex: 1, minWidth: 120 }} />
-            <input className="input" value={p.from.lg || ''} onChange={e => mut(q => { q.from = { ...q.from, lg: e.target.value }; })} placeholder="League" style={{ width: 110 }} />
-            <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { ...q.from, country: c }; })} width={150} />
+            <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { team: '', lg: '', country: c }; })} width={150} />
+            <Combo value={p.from.lg || ''} options={lgs.map(x => ({ v: x.lg, sub: 'Tier ' + x.tier + ' · ' + x.teams.length + ' teams' }))} placeholder="League" width={170}
+              onChange={v => mut(q => { q.from = { ...q.from, lg: v }; })}
+              onPick={o => mut(q => { const L = lgs.find(x => x.lg === o.v); q.from = { ...q.from, lg: o.v, team: L && !L.teams.includes(q.from.team) ? '' : q.from.team }; })} />
+            <Combo value={p.from.team || ''} options={teamOpts} placeholder="Team or school" width={200}
+              onChange={v => mut(q => { q.from = { ...q.from, team: v }; })}
+              onPick={o => mut(q => { q.from = { ...q.from, team: o.v, lg: o.sub || q.from.lg }; })} />
             <button className="btn btn-ghost" title="A random team in the country selected here (club, college or school)" onClick={() => mut(q => { q.from = randomTeamIn(C, q.from?.country || q.raised || q.born, q.cls && q.cls > gm.Y); })} style={{ fontSize: '12px' }}>🎲</button>
           </span></>}
         </div>

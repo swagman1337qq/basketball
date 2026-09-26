@@ -121,7 +121,7 @@ export function clubs() {
     RS: [['Crvena zvezda', E], ['Partizan', E], ['Mega Basket', 'ABA League'], ['FMP Belgrade', 'ABA League']],
     LT: [['Žalgiris Kaunas', E], ['Rytas Vilnius', 'LKL'], ['Lietkabelis', 'LKL']],
     FR: [['Paris Basketball', E], ['ASVEL', E], ['AS Monaco', E], ['Le Mans Sarthe', 'LNB Élite'], ['Nanterre 92', 'LNB Élite'], ['Metropolitans 92', 'LNB Élite']],
-    DE: [['Bayern Munich', E], ['ALBA Berlin', E], ['ratiopharm Ulm', 'BBL'], ['Bamberg Baskets', 'BBL']],
+    DE: [['Bayern Munich', E], ['ALBA Berlin', 'BBL'], ['ratiopharm Ulm', 'BBL'], ['Bamberg Baskets', 'BBL']],
     IT: [['Olimpia Milano', E], ['Virtus Bologna', E], ['Reyer Venezia', 'Serie A'], ['Treviso Basket', 'Serie A']],
     IL: [['Maccabi Tel Aviv', E], ['Hapoel Tel Aviv', E], ['Hapoel Jerusalem', 'Israeli Premier League']],
     HR: [['Cibona', 'ABA League'], ['KK Split', 'ABA League'], ['KK Zadar', 'ABA League']],
