@@ -23,7 +23,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </button>
             ))}
             <span style={{ flex: "1" }}></span>
-            {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-primary" onClick={() => vm.ctx.gm.setState({ ptab: 'edit' })} style={{ fontSize: "13px" }}>✎ Edit player</button>}
+            {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-primary" onClick={() => vm.goTab('edit')} style={{ fontSize: "13px" }}>✎ Edit player</button>}
 
           </div>
           {!!vm.pl.tabOverview && <ProfileOverview vm={vm} />}

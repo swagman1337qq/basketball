@@ -11,6 +11,7 @@ import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, excepti
 import { financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
 import { firstRoundOrder } from '../engine/lottery';
 import { randomName } from '../data/heritage';
+import { randomTeamIn } from '../data/randomTeam';
 import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
 import { linkNames } from './kit';
@@ -24,19 +25,31 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const tone = v => v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(--color-neutral-500)' : 'var(--color-text)';
   // Player and team pages replace the screen; Back returns to wherever you came from.
-  const cur0 = () => (s.modal ? { p: s.pid } : s.teamModal != null ? { t: s.teamModal } : null);
+  // Back remembers where you were: the page, the tab you were on and how far you'd scrolled.
+  const mainEl = () => rootRef.current?.querySelector('main') as HTMLElement | null, curY = () => mainEl()?.scrollTop || 0;
+  // Restore after the screen has drawn (long lists can take a few frames to reach full height).
+  const scrollTo = (y: number) => { let n = 0; const tick = () => { const m = mainEl(); if (m) m.scrollTop = y || 0; if (m && Math.abs(m.scrollTop - (y || 0)) > 2 && n++ < 20) setTimeout(tick, 25); }; setTimeout(tick, 0); };
+  const cur0 = () => (s.modal ? { p: s.pid, tab: s.ptab || 'overview', tabs: s.ptabHist || [], y: curY() } : s.teamModal != null ? { t: s.teamModal, y: curY() } : null);
   // A popup list (a country, a draft class) is part of the history too: Back from a player you
   // opened from it returns to the list, with the page you opened the list from behind it.
   const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
-  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, pageStack: trail(st) })); };
+  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
   const go = k => () => gm.setState({ screen: k, q: '', modal: false, teamModal: null, pageStack: [] });
-  const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', pageStack: trail(st) })); };
-  const goBack = () => gm.setState(st => {
-    const stack = (st.pageStack || []).slice(); let prev = stack.pop(), list = null;
-    if (prev && prev.l) { list = prev.l; const under = stack[stack.length - 1]; prev = under && under.l == null ? stack.pop() : null; }
-    const page = !prev ? { modal: false, teamModal: null } : prev.p != null ? { modal: true, pid: prev.p, teamModal: null, ptab: 'overview' } : { teamModal: prev.t, modal: false };
-    return { ...page, listModal: list, pageStack: stack };
-  });
+  const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
+  const goBack = () => {
+    const st0 = gm.state;
+    // On a player page, Back first steps back through the tabs you visited (Edit player → Overview).
+    if (st0.modal && (st0.ptabHist || []).length) { const h = st0.ptabHist.slice(), t = h.pop(); gm.setState({ ptab: t, ptabHist: h }); return; }
+    let y = 0;
+    gm.setState(st => {
+      const stack = (st.pageStack || []).slice(); let prev = stack.pop(), list = null;
+      if (prev && prev.l) { list = prev.l; const under = stack[stack.length - 1]; prev = under && under.l == null ? stack.pop() : null; }
+      y = prev ? prev.y || 0 : st.baseY || 0;
+      const page = !prev ? { modal: false, teamModal: null } : prev.p != null ? { modal: true, pid: prev.p, teamModal: null, ptab: prev.tab || 'overview', ptabHist: prev.tabs || [] } : { teamModal: prev.t, modal: false };
+      return { ...page, listModal: list, pageStack: stack };
+    });
+    scrollTo(y);
+  };
   const T = s.teams, me = T[s.me], mine = s.rosters[s.me], pct = t => gm.pct(t), mine2 = t => gm.isUser(s, t);
   const logo = (tid, size = 18) => (tid >= 0 && T[tid] ? createElement(TeamLogo, { team: T[tid], size }) : null);
   const myName = me.region + ' ' + me.name;
@@ -311,14 +324,16 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         randMot: () => mut(p => { p.pers.mot = ['Winning', 'Winning', 'Money', 'Money', 'Fame', 'Loyalty', 'Playing time', 'Playing time'][Math.floor(Math.random() * 8)]; }),
         randRep: () => { const opts = Object.keys(C).filter(c => c !== pp.rep); pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } }); },
         motOpts: ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'].map(x => ({ v: x, label: x })), motV: pp.pers.mot, setMot: e => mut(p => p.pers.mot = e.target.value),
-        repOpts: Object.keys(C).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const undo = gm.renationalize(pp, code); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); },
+        repOpts: Object.keys(C).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, from: pp.from }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
+          // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).
+          const cs = C[code]?.cities || []; if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)]; pp.born = code; pp.raised = code; if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y)); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); },
         teamOpts: [{ v: '-1', label: 'Free agent' }, ...T.map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
         setTeam: e => { const to = +e.target.value; gm.setState(st => { const rosters = { ...st.rosters }; let fa = st.fa.filter(x => x !== pp.id); Object.keys(rosters).forEach(k => rosters[k] = rosters[k].filter(x => x !== pp.id)); if (to === -1) fa = [pp.id, ...fa]; else rosters[to] = [...rosters[to], pp.id]; return { rosters, fa, log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)) }; }); },
         traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),
         health: pp.inj ? pp.inj.name + ', ' + pp.inj.games + ' games left' : 'Healthy',
         heal: () => mut(p => { delete p.inj; }), injMinor: () => mut(p => p.inj = { name: 'Ankle sprain', games: 5 }), injMajor: () => mut(p => p.inj = { name: 'Torn ACL', games: 90, major: true }) };
     }
-    var ptabs = [['overview', 'Overview'], ['contract', 'Contract'], ['dev', 'Development'], ['history', 'History'], ['tx', 'Transactions'], ['scout', 'Scouting report'], ['compare', 'Comparison'], ...(s.god ? [['edit', 'Edit player']] : [])].map(([k, label]) => { const on = (s.ptab || 'overview') === k; return { label, go: () => gm.setState({ ptab: k }), color: on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on ? 600 : 400, ul: on ? 'var(--color-accent)' : 'transparent' }; });
+    var ptabs = [['overview', 'Overview'], ['contract', 'Contract'], ['dev', 'Development'], ['history', 'History'], ['tx', 'Transactions'], ['scout', 'Scouting report'], ['compare', 'Comparison'], ...(s.god ? [['edit', 'Edit player']] : [])].map(([k, label]) => { const on = (s.ptab || 'overview') === k; return { label, go: () => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), color: on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on ? 600 : 400, ul: on ? 'var(--color-accent)' : 'transparent' }; });
     var ext = {};
     if (canExt) {
       const rook = !!pp.rookieScale, avg = (Object.values(s.rosters).flat() as number[]).reduce((a, id) => a + P[id].amt, 0) / Math.max(1, (Object.values(s.rosters).flat() as number[]).length);
@@ -453,6 +468,6 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     fin, q: s.q, onSearch: e => gm.setState({ q: e.target.value }), matches, hasMatches: matches.length > 0, searchIcon: icon('search'),
     books: [{ k: 'Payroll', v: money(payroll) }, { k: capRoom >= 0 ? 'Cap space' : 'Over the cap', v: money(Math.abs(capRoom)) }, { k: 'Room under tax', v: money(gm.TAX - payroll) }, { k: 'Mid-level', v: (() => { const e = exceptionsOf(gm, s, s.me); return e.used.includes('ntmle') || e.used.includes('tpmle') ? 'Used' : e.used.includes('cap') ? 'Room exc. ' + money(e.room) : money(e.ntmle); })() }, { k: 'Next pick', v: myNext ? '#' + myNext.n : '—' }],
     log: s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P }) })), noLog: s.log.length === 0,
-    lm, hasList: !!s.listModal, closeList: () => gm.setState({ listModal: null }), scoutRegions, scoutsV, promisesV, noPromises: promisesV.length === 0, repV, ovRows, tacV, natRows, resetNat: () => gm.setState({ natW: natDefault() }), devRows, reportsV, noReports: s.reports.length === 0, own, god, firing, isGod: !!s.god, ph, pov, settings, hasProg, progRows, hasTeamModal: !!tmT, tm, closeTeam: goBack, viewTradeTeam: openTeam(s.tTid), themeLabel: dark ? 'Light mode' : 'Dark mode', toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }), rootRef, hasModal: !!s.modal, closeModal: goBack, goBack, ptabs, ext, hasDialog: !!dg, dlg, closeDialog: () => gm.setState({ dialog: null }), stop: e => e.stopPropagation()
+    lm, hasList: !!s.listModal, closeList: () => gm.setState({ listModal: null }), scoutRegions, scoutsV, promisesV, noPromises: promisesV.length === 0, repV, ovRows, tacV, natRows, resetNat: () => gm.setState({ natW: natDefault() }), devRows, reportsV, noReports: s.reports.length === 0, own, god, firing, isGod: !!s.god, ph, pov, settings, hasProg, progRows, hasTeamModal: !!tmT, tm, closeTeam: goBack, viewTradeTeam: openTeam(s.tTid), themeLabel: dark ? 'Light mode' : 'Dark mode', toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }), rootRef, hasModal: !!s.modal, closeModal: goBack, goBack, ptabs, ext, goTab: (k: string) => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), hasDialog: !!dg, dlg, closeDialog: () => gm.setState({ dialog: null }), stop: e => e.stopPropagation()
   };
 }

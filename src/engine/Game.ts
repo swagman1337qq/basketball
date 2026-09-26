@@ -182,7 +182,8 @@ export class Game {
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
     const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, heritage: p.heritage, familyFirst: p.familyFirst, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
-    p.rep = code; if (!p.elig.find(x => x.c === code)) p.elig = [...p.elig, { c: code, why: 'set in God Mode' }];
+    // Eligibility isn't touched: you manage it yourself on the player's profile.
+    p.rep = code;
     p.her = code; const nm = randomName(code); p.race = nm.race; p.heritage = nm.heritage; this.resetFace(p.id);
     if (withName) { const { race, heritage, ...name } = nm; void race; void heritage; Object.assign(p, name); }
     return undo;

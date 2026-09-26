@@ -5,22 +5,14 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
 import { CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
-import { clubs, COLLEGES, namePools } from '../../data/world';
+import { namePools } from '../../data/world';
+import { randomTeamIn } from '../../data/randomTeam';
 import { allPools, groupsOf, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
-// A random team in a given country: its pro clubs (or their U18 sides for prospects still
-// in school), American colleges and high schools, or a local academy where there's no pro league.
-function randomTeamIn(C: any, country: string, young: boolean) {
-  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)], cc = clubs()[country];
-  if (country === 'US') return young ? { team: pick(C.US.cities) + ' ' + pick(['Prep', 'Academy', 'Christian', 'High']), lg: 'High school', country } : { team: pick(COLLEGES), lg: 'NCAA', country };
-  if (cc && cc.length) { const k = pick(cc); return young ? { team: k[0] + ' U18', lg: 'Junior', country } : { team: k[0], lg: k[1], country }; }
-  const city = pick(C[country]?.cities || ['National']);
-  return { team: city + ' ' + pick(['Basketball Academy', 'Sports School', 'Basketball Club']), lg: young ? 'Junior' : 'Domestic league', country };
-}
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export function GodPlayerEditor({ vm }: { vm: VM }) {
@@ -34,8 +26,8 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const origin = originSel ?? p.rep;
   const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
   const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, her: p.her, born: p.born, raised: p.raised, city: p.city, elig: p.elig }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code });
-    // His hometown moves with him: born and raised in that country, citizen by birth.
-    const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; if (!(p.elig || []).some((e: any) => e.c === code)) p.elig = [{ c: code, why: 'citizen by birth' }, ...(p.elig || [])]; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
+    // His hometown moves with him (eligibility is left alone: edit it on the profile).
+    const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
   const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
   const nat = p.native || '', cjk = CJK.test(nat);
   const nFirst = p.nativeFirst ?? (cjk ? nat.slice(1) : nat.split(' ')[0] || ''), nLast = p.nativeLast ?? (cjk ? nat.slice(0, 1) : nat.split(' ').slice(1).join(' '));
@@ -79,7 +71,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <span style={muted}>Hometown</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />
-            <CountryPicker C={C} value={p.born} onPick={c => mut(q => { q.born = c; if (!(q.elig || []).some((e: any) => e.c === c) && C[c]?.soli) q.elig = [...(q.elig || []), { c, why: 'born there' }]; })} width={170} />
+            <CountryPicker C={C} value={p.born} onPick={c => mut(q => { q.born = c; })} width={170} />
             <button className="btn btn-ghost" title="A random city in that country" onClick={() => mut(q => { const cs = C[q.born]?.cities || []; if (cs.length) q.city = cs[Math.floor(Math.random() * cs.length)]; })} style={{ fontSize: '12px' }}>🎲</button>
           </span>
           {p.from && <><span style={muted}>{p.cls ? 'Playing for' : 'Came from'}</span>
