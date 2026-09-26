@@ -10,7 +10,7 @@ import { mulberry32 } from './rng';
 export type ReportKind = 'prospect' | 'overseas' | 'mine' | 'league' | 'fa';
 export interface Report {
   pid: number; kind: ReportKind; kindLabel: string; scout: string; confidence: string; margin: number; filed: string;
-  measure: [string, string][]; grades: [string, number, number, number | null, string][]; overall: number; projection: string; ceiling: string; comp: { id: number; name: string } | null; compNote: string; best: { id: number; name: string } | null; worst: { id: number; name: string } | null; outlook: string; outlookTitle?: string; statRows: any[];
+  measure: [string, string][]; grades: [string, number, number, number | null, string][]; overall: number; seen: { ovr: number; pot: number }; projection: string; ceiling: string; comp: { id: number; name: string } | null; compNote: string; best: { id: number; name: string } | null; worst: { id: number; name: string } | null; outlook: string; outlookTitle?: string; statRows: any[];
   overview: string; strengths: string[]; weaknesses: string[]; notes: string[];
 }
 
@@ -46,6 +46,11 @@ function observed(p: any, margin: number) {
   Object.keys(p.r).forEach(k => (out[k] = cl(Math.round(p.r[k] + (r() * 2 - 1) * margin * 1.3), 1, 100)));
   return { r: out, ovr: cl(Math.round(p.ovr + (r() * 2 - 1) * margin), 1, 100), pot: cl(Math.round(p.pot + (p.nz?.[1] ?? r() * 2 - 1) * margin * 1.4), 1, 100) };
 }
+
+// Where a rating sits in this league: 70+ is a franchise player, 63+ an All-Star, 56+ a starter
+// (about the top five on an average team), 48+ a rotation player, 41+ end of the bench.
+const TIER = [70, 63, 56, 48, 41];
+const tierOf = (v: number) => { const i = TIER.findIndex(t => v >= t); return i < 0 ? 5 : i; };
 
 const pickOf = (seed: number) => { const r = mulberry32(seed); return <T,>(a: T[]) => a[Math.floor(r() * a.length)]; };
 
@@ -125,9 +130,9 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const comp: any = near(Math.max(o.ovr, o.pot - 4)), bestC: any = o.pot - o.ovr >= 3 ? near(o.pot + 2, comp ? [comp.id] : []) : null, worstC: any = near(Math.max(40, (rd.kind === 'prospect' || rd.kind === 'overseas' ? o.ovr + 2 : o.ovr - 5)), [comp?.id, bestC?.id].filter(x => x != null));
   // Projection.
   const board = g.db.rank?.[pid], yo = Math.max(0, (p.cls || g.Y) - g.Y);
-  const ceilOf = (v: number) => (v >= 80 ? 'franchise player' : v >= 72 ? 'All-Star' : v >= 64 ? 'quality starter' : v >= 57 ? 'rotation player' : v >= 50 ? 'end-of-bench / two-way player' : 'G League player'), an = (w: string) => (/^[AEIOU]/i.test(w) ? 'an ' : 'a ') + w;
+  const ceilOf = (v: number) => ['franchise player', 'All-Star', 'quality starter', 'rotation player', 'end-of-bench / two-way player', 'G League player'][tierOf(v)], an = (w: string) => (/^[AEIOU]/i.test(w) ? 'an ' : 'a ') + w;
   const projection = rd.kind === 'prospect' ? (board ? (board <= 5 ? 'Top-5 pick' : board <= 14 ? 'Lottery pick' : board <= 30 ? 'First-round pick' : board <= 60 ? 'Second-round pick' : 'Undrafted free agent') : 'Unranked') + (yo ? ' in ' + p.cls + ' (' + yo + ' year' + (yo > 1 ? 's' : '') + ' away)' : ' this June')
-    : rd.kind === 'overseas' ? (o.ovr >= 55 ? 'Ready to contribute in the NBA now' : o.pot >= 60 ? 'NBA prospect: one or two more seasons abroad' : 'Long shot for the NBA')
+    : rd.kind === 'overseas' ? (o.ovr >= TIER[3] ? 'Ready to contribute in the NBA now' : o.pot >= TIER[2] ? 'NBA prospect: one or two more seasons abroad' : 'Long shot for the NBA')
     : 'Currently ' + an(ceilOf(o.ovr));
   const ceiling = 'Ceiling: ' + ceilOf(o.pot) + (o.pot - o.ovr >= 8 ? '; plenty of room to grow' : o.pot - o.ovr <= 1 && p.age >= 28 ? '; what you see is what you get' : '');
   // Strengths and weaknesses from the observed profile (relative to his position).
@@ -147,7 +152,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const ath = (R.spd + R.jmp) / 2 >= 68 ? 'a plus athlete' : (R.spd + R.jmp) / 2 <= 45 ? 'a below-average athlete' : 'an average athlete';
   const where = rd.kind === 'prospect' ? (p.from?.lg === 'NCAA' ? 'at ' + p.from.team : p.from?.lg === 'High school' ? 'in high school at ' + p.from.team : 'with ' + p.from?.team + ' in ' + (C[p.from?.country]?.n || 'his home country')) : rd.kind === 'overseas' ? 'for ' + p.abroad?.club + ' in ' + (C[p.abroad?.country]?.n || 'Europe') : 'in the NBA';
   const overview = p.name + ' is a ' + p.age + '-year-old ' + p.pos + ' from ' + (p.city ? p.city + ', ' : '') + (C[p.born]?.n || '') + ' playing ' + where + '. ' + p.hgt + ', ' + p.wt + ' lb with a ' + Math.floor(wing / 12) + '′' + (wing % 12) + '″ wingspan: ' + build + ' and ' + ath + '. ' +
-    (roles.length ? 'Profiles as a ' + roles.join(' and ') + '. ' : '') + (rd.kind === 'prospect' || rd.kind === 'overseas' ? (o.pot - o.ovr >= 12 ? 'Raw, but the tools are there and the ceiling is high.' : o.pot - o.ovr >= 6 ? 'Still developing, with a clear path to an NBA role.' : 'Fairly polished; less projection left in his game.') : o.ovr >= 70 ? 'One of the better players in the league at his position.' : o.ovr >= 60 ? 'A reliable rotation piece.' : 'Fighting for minutes at this level.');
+    (roles.length ? 'Profiles as a ' + roles.join(' and ') + '. ' : '') + (rd.kind === 'prospect' || rd.kind === 'overseas' ? (o.pot - o.ovr >= 12 ? 'Raw, but the tools are there and the ceiling is high.' : o.pot - o.ovr >= 6 ? 'Still developing, with a clear path to an NBA role.' : 'Fairly polished; less projection left in his game.') : o.ovr >= TIER[1] ? 'One of the better players in the league at his position.' : o.ovr >= TIER[2] ? 'A starting-caliber player.' : o.ovr >= TIER[3] ? 'A reliable rotation piece.' : 'Fighting for minutes at this level.');
   // Outlook: where he fits and what it would take.
   // The take: what he does well, what he can become, what has to develop, and where he stands
   // (written like a draft analyst's paragraph).
@@ -158,7 +163,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const twoWay = topK.includes('diq') && topK.some(k => ['tp', 'fg', 'ins', 'dnk', 'lay', 'pss', 'drb'].includes(k));
   const posWord = p.pos === 'PG' ? 'point guard' : p.pos === 'C' ? 'center' : grp === 'G' ? 'guard' : grp === 'B' ? 'big' : 'wing';
   // Several ways to say each part, picked per player so reports don't all read alike.
-  const tk = pickOf(pid * 7919 + g.Y * 13 + 5), tier = (v: number) => v >= 80 ? 0 : v >= 72 ? 1 : v >= 64 ? 2 : v >= 57 ? 3 : v >= 50 ? 4 : 5;
+  const tk = pickOf(pid * 7919 + g.Y * 13 + 5), tier = tierOf;
   const lvl = (v: number) => tk([['a franchise-level', 'a cornerstone', 'a face-of-the-franchise'], ['a high-level', 'an All-Star-caliber', 'a top-tier'], ['a quality starting', 'a legitimate starting', 'a starting-caliber'], ['a solid rotation', 'a dependable rotation', 'a useful rotation'], ['a backup', 'an end-of-bench', 'a reserve'], ['a fringe', 'a fringe roster', 'a roster-bubble']][tier(v)]);
   const upside = tk([['franchise-player upside', 'the ceiling of a franchise player', 'No. 1 option upside'], ['legitimate star upside', 'All-Star upside', 'star potential'], ['real starter upside', 'the upside of a long-time starter', 'starting-caliber upside'], ['rotation-player upside', 'the upside of a solid rotation piece', 'a path to real rotation minutes'], ['a shot at sticking in the league', 'an outside shot at an NBA roster spot', 'a chance to stick in the league']][Math.min(4, tier(o.pot))]);
   const devG = new Set<string>(), devN = weakK.filter(k => { const c = CAT[k]; if (cats.includes(c) || devG.has(c)) return false; devG.add(c); return true; }).map(k => NOUN[k]).slice(0, 2), lastN = p.last || (p.familyFirst ? String(p.name).split(' ')[0] : String(p.name).split(' ').slice(-1)[0]);
@@ -169,7 +174,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
     : board <= 30 ? ['a first-round prospect in ' + yr, 'a likely first-rounder in ' + yr, 'on track to go in the first round in ' + yr]
     : ['a second-round prospect in ' + yr, 'a likely second-rounder in ' + yr, 'on the second-round radar in ' + yr]);
   const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1), one = devN.length === 1, vb = (a: string, b: string) => one ? a : b;
-  const poss = lastN + (/s$/i.test(lastN) ? '’' : '’s'), S = list(cats), D = list(devN), role = lvl(o.pot) + ' ' + (twoWay && o.pot >= 57 ? 'two-way ' : '') + 'NBA ' + posWord;
+  const poss = lastN + (/s$/i.test(lastN) ? '’' : '’s'), S = list(cats), D = list(devN), role = lvl(o.pot) + ' ' + (twoWay && o.pot >= TIER[3] ? 'two-way ' : '') + 'NBA ' + posWord;
   const opener = cats.length ? tk([
     () => lastN + ' has ' + S + ' to become ' + role + '. ',
     () => 'With ' + S + ', ' + lastN + ' has a clear path to becoming ' + role + '. ',
@@ -200,7 +205,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
       'A finished product more than a project, he is ' + stand + '.',
       'Don’t expect big jumps from here. He is ' + stand + '.']))
     : rd.kind === 'overseas'
-      ? opener + tk(o.ovr >= 57 ? ['He could step into an NBA rotation today.', 'He is ready to help an NBA rotation now.'] : ['He would start on a two-way or at the end of a bench if he came over.', 'Coming over now, he would be fighting for a two-way deal.', 'He would need time on a two-way or in the G League to adjust.']) + (grows ? ' ' + devLine(false) : '')
+      ? opener + tk(o.ovr >= TIER[3] ? ['He could step into an NBA rotation today.', 'He is ready to help an NBA rotation now.'] : ['He would start on a two-way or at the end of a bench if he came over.', 'Coming over now, he would be fighting for a two-way deal.', 'He would need time on a two-way or in the G League to adjust.']) + (grows ? ' ' + devLine(false) : '')
       : (cats.length ? tk([
           () => lastN + ' brings ' + S + ' as ' + an(ceilOf(o.ovr)) + '. ',
           () => cap(an(ceilOf(o.ovr))) + ' right now, ' + lastN + ' leans on ' + S + '. ',
@@ -219,7 +224,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   if (rd.kind === 'league' || rd.kind === 'fa') notes.push(rd.kind === 'fa' ? 'Free agent, asking about ' + (p.ask || 0).toFixed(2) + 'M a year.' : 'Contract: ' + p.amt.toFixed(2) + 'M through ' + p.exp + '.');
   if (rd.margin >= 6) notes.push('Our read is rough: assign a scout to his region, add him to the scouting list and give it a few months.');
   return { pid, kind: rd.kind, kindLabel: { prospect: 'Draft prospect', overseas: 'Overseas', mine: 'Your team', league: 'NBA', fa: 'Free agent' }[rd.kind], scout: rd.scout, confidence: rd.confidence, margin: rd.margin,
-    filed: g.fmtS(s.day) + ', ' + g.seasonLbl(), measure, grades, overall, projection, ceiling, comp: comp ? { id: comp.id, name: comp.name } : null,
+    filed: g.fmtS(s.day) + ', ' + g.seasonLbl(), measure, grades, overall, seen: { ovr: o.ovr, pot: o.pot }, projection, ceiling, comp: comp ? { id: comp.id, name: comp.name } : null,
     compNote: comp ? (o.pot >= Math.max(comp.pot, comp.ovr) + 8 ? 'with more upside' : o.pot <= comp.ovr - 5 ? 'a lesser version' : '') : '', overview, strengths, weaknesses, notes,
     best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, outlookTitle: 'The bottom line', statRows };
 }

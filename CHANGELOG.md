@@ -26,7 +26,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
-- **Scouting reports:** the big number is now labeled "Scout grade" ("Grade" in the list). It's the scouts' grade, weighted mostly toward his ceiling, not his overall rating, which is why a raw 19-year-old can grade 85 while he's "currently an end-of-bench player".
+- **Scouting reports show the scouted Ovr and Pot** (what your scouts see, within their margin) instead of a separate 40–99 grade that was easy to mistake for either. The list has Ovr and Pot columns.
+- **Scouting report labels match this league.** "Quality starter", "rotation player", "end-of-bench" and the rest now follow where a rating really ranks: 56+ is a starter (about the top five on an average team), 48+ a rotation player, 63+ an All-Star, 70+ a franchise player. A 56 overall was being called end-of-bench.
+- **Player header:** height, weight and wingspan sit under the age, the season count under the draft slot, and points, rebounds, assists and PER are one line.
 - **Development isn't a straight line.** Every player now has a hidden development year: most are normal, some are breakouts, and some go nowhere or backwards. About a quarter to a third of young players don't improve in a given season. Potential can fall too: a serious injury, a rookie who can't adapt to NBA strength or pace, a young player who stalls, or a year well below expectations. The reason appears in the Development tab's year-by-year table.
 - **Scouting reports end with "The bottom line":** what he does well, what he can become, what has to develop, and where he stands in his class ("Byrd has the size, rebounding instincts and scoring punch to become a high-level NBA big. If his shooting and explosiveness continue to develop, he has legitimate star upside and is one of the elite prospects in the 2027 NBA Draft."). NBA and overseas players get one in the same style. Each part is written several different ways, so reports don't all read alike. This replaces the old "depends on development: above all, …" line.
 - **Scouting reports:** "with more upside" appears only when a prospect's ceiling is clearly above his comparison's. Comparisons are closer to his projected level. Size is judged from real height and wingspan for his position, and is never named as what his development depends on.
@@ -46,6 +48,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- The player header's season count includes seasons before this league began (a 2022 draftee is in season 5, not his "rookie season").
 - Monthly development reports said "undefined" instead of Acc (acceleration); Layups and Box out were also missing from report and tactics labels. Old reports are corrected when the league loads.
 - Tactics → training growth chart: all 18 ratings now fit on one row with their labels lined up.
 - Scores from games played before box scores existed now say so on hover instead of looking clickable.

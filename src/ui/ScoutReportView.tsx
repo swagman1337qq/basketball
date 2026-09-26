@@ -25,8 +25,11 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '2px 16px', fontSize: '12.5px' }}>{r.measure.map(([k, v]) => <div key={k}><span style={muted}>{k}: </span>{v}</div>)}</div>
         </div>
         <div style={{ textAlign: 'center', minWidth: 110 }}>
-          <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }} title="The scouts' grade: mostly his ceiling, partly who he is today. Not his overall rating.">Scout grade</div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', lineHeight: 1, color: gradeColor(r.overall / 10) }}>{r.overall}</div>
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }} title={'What your scouts see (± about ' + Math.max(1, Math.round(r.margin)) + ')'}>
+            {([['Ovr', r.seen.ovr], ['Pot', r.seen.pot]] as [string, number][]).map(([k, v]) => <div key={k}>
+              <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>Scouted {k}</div>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', lineHeight: 1, color: v >= 63 ? 'var(--gm-elite)' : v >= 56 ? 'var(--gm-good)' : v >= 48 ? 'var(--color-text)' : v >= 41 ? 'var(--color-accent-800)' : 'var(--gm-bad)' }}>{v}</div></div>)}
+          </div>
           <div style={{ fontSize: '12px', marginTop: 4 }}>{r.projection}</div>
           <div style={{ ...muted, fontSize: '11.5px' }}>{r.ceiling}</div>
           <button className="btn btn-ghost" onClick={toggle} style={{ fontSize: '11.5px', marginTop: 6 }}>{listed ? '✓ On scouting list' : '+ Add to scouting list'}</button>

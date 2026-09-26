@@ -12,14 +12,14 @@ import { Link, muted, ruleH4, Seg } from '../kit';
 export function ScoutReportsSection({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, P = gm.db.P;
   const [f, setF] = useState<'all' | ReportKind>('all'), [sel, setSel] = useState<number | null>(null), [q, setQ] = useState('');
-  const ids = scoutedIds(gm, s), reps = ids.filter(id => f === 'all' || kindOf(gm, s, P[id]) === f).map(id => scoutReport(gm, s, id)).sort((a, b) => b.overall - a.overall);
+  const ids = scoutedIds(gm, s), reps = ids.filter(id => f === 'all' || kindOf(gm, s, P[id]) === f).map(id => scoutReport(gm, s, id)).sort((a, b) => b.seen.pot - a.seen.pot || b.seen.ovr - a.seen.ovr);
   const fold = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const hits = q.trim().length >= 2 ? (Object.values(P) as any[]).filter(p => !p.retired && fold(p.name).includes(fold(q.trim()))).slice(0, 8) : [];
   const add = (id: number) => { gm.setState(st => ({ scoutList: [...new Set([...(st.scoutList || []), id])].slice(-20) })); setSel(id); setQ(''); };
   const kinds = ids.map(id => kindOf(gm, s, P[id])), counts = (k: string) => kinds.filter(x => x === k).length;
   const [tk, setTk] = useState(''), CONF: Record<string, number> = { 'Very high': 5, High: 4, Medium: 3, Low: 2, 'Very low': 1 };
-  const srt = useSort<any>(reps.filter(r => byTrait(vm, tk)({ id: r.pid })), { name: r => byLast(P[r.pid]), type: r => r.kindLabel, pos: r => P[r.pid].pos, age: r => P[r.pid].age, overall: r => r.overall, projection: r => r.projection, confidence: r => CONF[r.confidence] ?? 0, comp: r => r.comp?.name || null });
-  const H: [string, string, 'left' | 'right'][] = [['name', 'Player', 'left'], ['type', 'Type', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age', 'right'], ['overall', 'Grade', 'right'], ['projection', 'Projection', 'left'], ['confidence', 'Confidence', 'left'], ['comp', 'Plays like', 'left']];
+  const srt = useSort<any>(reps.filter(r => byTrait(vm, tk)({ id: r.pid })), { name: r => byLast(P[r.pid]), type: r => r.kindLabel, pos: r => P[r.pid].pos, age: r => P[r.pid].age, ovr: r => r.seen.ovr, pot: r => r.seen.pot, projection: r => r.projection, confidence: r => CONF[r.confidence] ?? 0, comp: r => r.comp?.name || null });
+  const H: [string, string, 'left' | 'right'][] = [['name', 'Player', 'left'], ['type', 'Type', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age', 'right'], ['ovr', 'Ovr', 'right'], ['pot', 'Pot', 'right'], ['projection', 'Projection', 'left'], ['confidence', 'Confidence', 'left'], ['comp', 'Plays like', 'left']];
   return (
     <section style={{ marginBottom: 26 }}>
       <h4 style={ruleH4}>Scouting reports</h4>
@@ -41,9 +41,9 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
             <tr key={r.pid} onClick={() => setSel(r.pid)} style={{ cursor: 'pointer', background: sel === r.pid ? 'var(--color-accent-100)' : undefined }}>
               <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}><img src={gm.flag(p.rep)} alt="" style={{ width: 16, height: 11, marginRight: 6, verticalAlign: 'middle' }} />{p.name}{(s.scoutList || []).includes(r.pid) ? ' ★' : ''}</td>
               <td style={{ padding: '4px 8px' }}>{r.kindLabel}</td><td style={{ padding: '4px 8px' }}>{p.pos}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.age}</td>
-              <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{r.overall}</td><td style={{ padding: '4px 8px' }}>{r.projection}</td><td style={{ padding: '4px 8px' }}>{r.confidence}</td><td style={{ padding: '4px 8px' }}>{r.comp ? <Link onClick={() => vm.ctx.open(r.comp!.id)}>{r.comp.name}</Link> : '—'}</td>
+              <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{r.seen.ovr}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{r.seen.pot}</td><td style={{ padding: '4px 8px' }}>{r.projection}</td><td style={{ padding: '4px 8px' }}>{r.confidence}</td><td style={{ padding: '4px 8px' }}>{r.comp ? <Link onClick={() => vm.ctx.open(r.comp!.id)}>{r.comp.name}</Link> : '—'}</td>
             </tr>); })}
-            {reps.length === 0 && <tr><td colSpan={8} style={{ padding: 10, ...muted }}>No reports in this group yet.</td></tr>}
+            {reps.length === 0 && <tr><td colSpan={9} style={{ padding: 10, ...muted }}>No reports in this group yet.</td></tr>}
           </tbody>
         </table>
       </div>

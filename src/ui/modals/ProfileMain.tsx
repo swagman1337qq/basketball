@@ -2,6 +2,7 @@
 // the Overview tab, laid out as Profile & family · Ratings & badges · This season.
 import type { VM } from '../vm';
 import { fmtChange } from '../../engine/progress';
+import { yosOf } from '../../engine/cba';
 import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
@@ -43,8 +44,10 @@ export function ProfileHeader({ vm }: { vm: VM }) {
   if (!p.id) return null;
   const t = gm.seasonTotals(p, gm.Y), gp = t?.gp || 0, f1 = (v: number) => v.toFixed(1);
   const badges = badgesOf(p), T = s.teams;
-  const yrs = new Set((p.stats || []).filter(r => !r.po).map(r => r.season)).size;
+  // His NBA season: years of service (including before this league began) plus this one once he has played.
+  const yrs = yosOf(gm, p) + ((p.stats || []).some(r => !r.po && r.season === gm.Y) ? 1 : 0);
   const tc = tid >= 0 ? T[tid].colors?.[0] : undefined;
+  const stack = { display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' } as const;
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0,1fr) auto', gap: '22px', alignItems: 'center', marginBottom: '14px' }}>
@@ -58,11 +61,16 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '42px', lineHeight: 1.04, letterSpacing: '-.01em', marginTop: '2px' }}>
             {p.num != null && tid >= 0 && <span title="Jersey number" style={{ ...muted, marginRight: '12px', fontSize: '26px' }}>#{p.num}</span>}{p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-            <span style={chip}>Age {p.age}</span>
-            <span style={chip} title="Height · weight · wingspan">{p.hgt} · {p.wt} lb{p.wing ? ' · ' + Math.floor(p.wing / 12) + '′' + (p.wing % 12) + '″ wingspan' : ''}</span>
-            {yrs > 0 && <span style={chip}>{yrs === 1 ? 'Rookie season' : 'Season ' + yrs}</span>}
-            {draftLabel && <button onClick={openClass} className="hv4" style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)', borderColor: 'color-mix(in srgb, var(--color-accent) 45%, var(--color-divider))' }} title="See everyone in this draft class">{draftLabel} ›</button>}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
+            {/* Age over his measurements; draft slot over his season count. */}
+            <span style={stack}>
+              <span style={chip}>Age {p.age}</span>
+              <span style={chip} title="Height · weight · wingspan">{p.hgt} · {p.wt} lb{p.wing ? ' · ' + Math.floor(p.wing / 12) + '′' + (p.wing % 12) + '″ wingspan' : ''}</span>
+            </span>
+            {(draftLabel || yrs > 0) && <span style={stack}>
+              {draftLabel && <button onClick={openClass} className="hv4" style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)', borderColor: 'color-mix(in srgb, var(--color-accent) 45%, var(--color-divider))' }} title="See everyone in this draft class">{draftLabel} ›</button>}
+              {yrs > 0 && <span style={chip}>{yrs === 1 ? 'Rookie season' : 'Season ' + yrs}</span>}
+            </span>}
             {(p.family || []).slice(0, 3).map(x => { const q = gm.db.P[x.pid]; return q ? <button key={x.pid} onClick={() => vm.ctx.open(x.pid)} className="hv4" style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)' }}>{{ father: 'Son of', son: 'Father of', brother: 'Brother of' }[x.rel]} {q.name} ›</button> : null; })}
           </div>
           {badges.length > 0 && (
@@ -75,7 +83,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
           {gp > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '2px 14px', fontSize: '12px', textAlign: 'right' }}>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', textAlign: 'center' }}>
               {[['PTS', t.pts / gp], ['REB', (t.orb + t.drb) / gp], ['AST', t.ast / gp], ['PER', gm.perOf(t, gm.Y)]].map(([k, v]: any) => (
                 <div key={k}><div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', lineHeight: 1 }}>{f1(v)}</div><div style={{ ...muted, fontSize: '10px', letterSpacing: '.08em' }}>{k}</div></div>
               ))}
