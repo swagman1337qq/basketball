@@ -196,7 +196,8 @@ export const OLD_NICKNAMES: Record<string, string> = {"BAL": "Tides", "HFD": "Ke
 export const MARKETS = [1.0, .75, 1.45, 1.2, .75, .85, 1.05, .85, .9, .85, .95, 1.15, 1.0, .8, .9, 1.15, .9, 1.05, .85, 1.05, 1.1, 1.25, .95, .85, 1.1, 1.0, .95, 1.15, 1.25, .9];
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway'];
-export const RATING_KEYS = ['hgt', 'stre', 'spd', 'jmp', 'endu', 'ins', 'dnk', 'ft', 'fg', 'tp', 'oiq', 'diq', 'drb', 'pss', 'reb'];
+// lay (layups), acc (acceleration / first step) and box (boxing out) were added in 2026; older saves get them derived on load.
+export const RATING_KEYS = ['hgt', 'stre', 'spd', 'acc', 'jmp', 'endu', 'ins', 'dnk', 'lay', 'ft', 'fg', 'tp', 'oiq', 'diq', 'drb', 'pss', 'reb', 'box'];
 
 // Expansion franchises join through Settings → League expansion. [region, nickname, abbr, conference, division, market]
 export const EXPANSION: [string, string, string, string, string, number][] = [['Louisville', 'Thoroughbreds', 'LOU', 'East', 'Central', .75], ['Mexico City', 'Águilas', 'MEX', 'West', 'Southwest', 1.3]];

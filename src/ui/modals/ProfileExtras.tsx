@@ -7,7 +7,7 @@ import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
 import { Bar, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
-const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks & layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding' };
+const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
 // Attribute thresholds that unlock each on-court role (mirrors roleDefs in data/world).
 const ROLE_REQ: [string, Record<string, number>, string?][] = [
   ['Primary creator', { drb: 62, pss: 60 }], ['Floor spacer', { tp: 60 }], ['3-and-D wing', { tp: 54, diq: 54 }, 'Guards and wings'], ['Point-of-attack defender', { diq: 58, spd: 60 }, 'Guards and wings'],

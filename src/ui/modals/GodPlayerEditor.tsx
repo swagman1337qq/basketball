@@ -24,7 +24,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
   const origin = originSel ?? p.rep;
   const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
-  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, her: p.her }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code }); gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
+  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, her: p.her, born: p.born, raised: p.raised, city: p.city, elig: p.elig }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code });
+    // His hometown moves with him: born and raised in that country, citizen by birth.
+    const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; if (!(p.elig || []).some((e: any) => e.c === code)) p.elig = [{ c: code, why: 'citizen by birth' }, ...(p.elig || [])]; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
   const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
   const nat = p.native || '', cjk = CJK.test(nat);
   const nFirst = p.nativeFirst ?? (cjk ? nat.slice(1) : nat.split(' ')[0] || ''), nLast = p.nativeLast ?? (cjk ? nat.slice(0, 1) : nat.split(' ').slice(1).join(' '));
@@ -62,9 +64,21 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <input className="input" type="date" value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />
           {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 100); }), fmtH, 'inches')}
           {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb')}
-          {num('Wingspan', wing, hIn - 2, hIn + 10, v => mut(q => { const d = v - (q.wing ?? wing); q.wing = v; q.r.hgt = cl(Math.round(q.r.hgt + d * 1.5), 4, 100); q.r.diq = cl(Math.round(q.r.diq + d * 0.5), 4, 100); }), fmtH, 'inches')}
+          {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => { q.wing = v; }), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height)', 'inches')}
+          <span style={muted}>Hometown</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />
+            <CountryPicker C={C} value={p.born} onPick={c => mut(q => { q.born = c; if (!(q.elig || []).some((e: any) => e.c === c) && C[c]?.soli) q.elig = [...(q.elig || []), { c, why: 'born there' }]; })} width={170} />
+            <button className="btn btn-ghost" title="A random city in that country" onClick={() => mut(q => { const cs = C[q.born]?.cities || []; if (cs.length) q.city = cs[Math.floor(Math.random() * cs.length)]; })} style={{ fontSize: '12px' }}>🎲</button>
+          </span>
+          {p.from && <><span style={muted}>{p.cls ? 'Playing for' : 'Came from'}</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input className="input" value={p.from.team || ''} onChange={e => mut(q => { q.from = { ...q.from, team: e.target.value }; })} placeholder="Team or school" style={{ flex: 1, minWidth: 120 }} />
+            <input className="input" value={p.from.lg || ''} onChange={e => mut(q => { q.from = { ...q.from, lg: e.target.value }; })} placeholder="League" style={{ width: 110 }} />
+            <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { ...q.from, country: c }; })} width={150} />
+          </span></>}
         </div>
-        <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height, weight and wingspan nudge the related ratings.</p>
+        <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height and weight nudge the related ratings. Wingspan is its own measurement: longer arms help contests, blocks, rebounds and steals. The team a prospect plays for decides which region’s scout covers him.</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Headshot</h4>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="gm-face" style={{ width: 64, height: 96, overflow: 'hidden', flex: 'none', borderRadius: 'var(--radius-sm)' }}>{gm.faceEl(p.id, -1)}</div>

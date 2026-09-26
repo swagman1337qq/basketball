@@ -31,7 +31,7 @@ import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult,
 export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221.7, VMIN: 3.87, MLE: 15.0, MAXC: 57.7 };
 
 const POS = [['PG', 'G'], ['SG', 'G'], ['G', 'G'], ['SF', 'W'], ['GF', 'W'], ['F', 'W'], ['PF', 'B'], ['FC', 'B'], ['C', 'B']];
-const BIAS = { G: { spd: 8, drb: 10, pss: 10, tp: 8, hgt: -14, ins: -10, reb: -10, stre: -6 }, W: { tp: 5, fg: 4, spd: 3, jmp: 4, diq: 3 }, B: { hgt: 14, ins: 12, reb: 12, stre: 10, dnk: 6, drb: -12, pss: -8, tp: -12, spd: -6 } };
+const BIAS = { G: { spd: 8, acc: 9, drb: 10, pss: 10, tp: 8, lay: 4, hgt: -14, ins: -10, reb: -10, box: -12, stre: -6 }, W: { tp: 5, fg: 4, spd: 3, acc: 3, jmp: 4, diq: 3, lay: 2 }, B: { hgt: 14, ins: 12, reb: 12, box: 12, stre: 10, dnk: 6, drb: -12, pss: -8, tp: -12, spd: -6, acc: -9 } };
 const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 'HR', 'RS', 'BS'];
 
 // UI-only keys that should not survive a reload.
@@ -110,6 +110,12 @@ export class Game {
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
+    // Saves from before layups / acceleration / box out / measured wingspans: derive them.
+    Object.values(g.db.P).forEach((p: any) => { if (!p.r) return; const h = (x: number) => (((p.id * x + 7) >>> 0) % 1000 / 1000 - 0.5), c = (v: number) => Math.round(Math.max(4, Math.min(100, v)));
+      if (p.r.lay == null) p.r.lay = c((p.r.dnk + p.r.ins) / 2 + (p.grp === 'G' ? 4 : 0) + h(97) * 16);
+      if (p.r.acc == null) p.r.acc = c(p.r.spd + (p.grp === 'G' ? 2 : p.grp === 'B' ? -3 : 0) + h(131) * 14);
+      if (p.r.box == null) p.r.box = c(p.r.reb * 0.45 + p.r.stre * 0.35 + p.r.hgt * 0.2 + h(173) * 20);
+      if (p.wing == null) { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), hIn = m ? +m[1] * 12 + +m[2] : 78; p.wing = hIn + Math.round(Math.max(-6, Math.min(12, (h(211) + h(223) + h(227)) * 6 + 3.8))); } });
     // Saves from before the Team player trait: hand it out the same way new players get it.
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
@@ -310,7 +316,9 @@ export class Game {
     const pot = Math.round(age < 23 ? ovr + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? ovr + rnd() * 5 : ovr);
     const r: any = {}; RATING_KEYS.forEach(k => r[k] = Math.round(cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 100)));
     const hIn = grp === 'G' ? 73 + Math.floor(rnd() * 5) : grp === 'W' ? 77 + Math.floor(rnd() * 4) : 81 + Math.floor(rnd() * 5);
-    const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 84), r, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
+    // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
+    const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
+    const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 84), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
       amt: Math.min(this.MAXC, 2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08 };
@@ -436,7 +444,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -862,6 +870,7 @@ export class Game {
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
   flag(code) { return 'flags/' + this.db.C[code].iso + '.svg'; }
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
+  inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
   fair(ovr) { return Math.min(this.MAXC, (2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52) * this.db.sf * this.CAP / CAPS0.CAP); }
   strategies(T, s = this.state) {
@@ -917,7 +926,7 @@ export class Game {
       out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, pid: id, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
   }
-  static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'spd', 'stre'], Rebounding: ['reb', 'stre'], Athleticism: ['spd', 'jmp', 'stre'], Conditioning: ['endu'] };
+  static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'acc', 'stre'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'], Conditioning: ['endu'] };
   // Expected monthly change per attribute for a player under a training focus (devTick without the dice).
   growthPreview(s, tid, p, focus) {
     const a = p.age, club = this.clubOf(s, tid), coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;

@@ -55,7 +55,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
             <span style={chip}>Age {p.age}</span>
-            <span style={chip}>{p.hgt} · {p.wt} lb</span>
+            <span style={chip} title="Height · weight · wingspan">{p.hgt} · {p.wt} lb{p.wing ? ' · ' + Math.floor(p.wing / 12) + '′' + (p.wing % 12) + '″ wingspan' : ''}</span>
             {yrs > 0 && <span style={chip}>{yrs === 1 ? 'Rookie season' : 'Season ' + yrs}</span>}
             {draftLabel && <button onClick={openClass} className="hv4" style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)', borderColor: 'color-mix(in srgb, var(--color-accent) 45%, var(--color-divider))' }} title="See everyone in this draft class">{draftLabel} ›</button>}
             {(p.family || []).slice(0, 3).map(x => { const q = gm.db.P[x.pid]; return q ? <button key={x.pid} onClick={() => vm.ctx.open(x.pid)} className="hv4" style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)' }}>{{ father: 'Son of', son: 'Father of', brother: 'Brother of' }[x.rel]} {q.name} ›</button> : null; })}

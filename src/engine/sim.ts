@@ -50,7 +50,7 @@ export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: '
 
 // A player's skill for each tier (0–99 scale).
 export function zoneSkill(r: any): Record<Zone, number> {
-  return { rim: 0.45 * r.dnk + 0.35 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, mid: r.fg, c3: r.tp, atb: r.tp };
+  return { rim: 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, mid: r.fg, c3: r.tp, atb: r.tp };
 }
 // Raw usage weight: how often he ends a possession while on the floor. USG% in the UI is
 // this relative to the league mean (= 20%). This is the usage-rate gatekeeper: volume
@@ -64,9 +64,15 @@ export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: bo
   return u;
 }
 export const mental = (r: any) => (r.oiq + r.diq) / 2;
-export const perimD = (r: any) => r.diq * 0.6 + r.spd * 0.4;
-export const interiorD = (r: any) => r.hgt * 0.5 + r.diq * 0.3 + r.jmp * 0.2;
-export const rebSkill = (r: any) => r.reb * 0.6 + r.hgt * 0.25 + r.jmp * 0.15;
+// `ape` is wingspan minus height in inches (the league averages about +4): long arms help
+// contests, blocks, rebounds and steals; short arms hurt them.
+const ape = (r: any) => (r.ape ?? 4) - 4;
+export const perimD = (r: any) => r.diq * 0.6 + r.spd * 0.2 + (r.acc ?? r.spd) * 0.2 + ape(r) * 0.6;
+export const interiorD = (r: any) => r.hgt * 0.5 + r.diq * 0.3 + r.jmp * 0.2 + ape(r) * 1.2;
+export const rebSkill = (r: any) => r.reb * 0.6 + r.hgt * 0.25 + r.jmp * 0.15 + ape(r) * 0.7;
+// Team rebounding also counts box-outs: a great boxer wins the glass for his team without
+// grabbing many rebounds himself.
+export const glassSkill = (r: any) => rebSkill(r) * 0.75 + (r.box ?? r.reb) * 0.25;
 
 export interface Norms {
   season: number;
@@ -138,7 +144,7 @@ function wpick<T>(arr: T[], w: (x: T) => number): T {
 }
 export const fmtClock = (t: number) => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
 export const qName = (q: number) => (q <= 4 ? 'Q' + q : 'OT' + (q > 5 ? q - 4 : ''));
-const LABEL: Record<Zone, (p: SimPlayer) => string> = { rim: p => (p.r.dnk > 62 ? 'a dunk' : 'a layup'), mid: () => 'a mid-range jumper', c3: () => 'a corner three', atb: () => 'a three pointer' };
+const LABEL: Record<Zone, (p: SimPlayer) => string> = { rim: p => (p.r.dnk > 62 && Math.random() < p.r.dnk / ((p.r.lay ?? 50) + p.r.dnk) ? 'a dunk' : 'a layup'), mid: () => 'a mid-range jumper', c3: () => 'a corner three', atb: () => 'a three pointer' };
 
 // Four Factors composite (Dean Oliver's 40/25/20/15 weights), in rough league standard deviations.
 export const ffScore = (f: FourFactors) => (0.4 * (f.efg - BASE.efg)) / 0.025 + (0.25 * (BASE.tovPct - f.tov)) / 0.012 + (0.2 * (f.orb - BASE.orbPct)) / 0.025 + (0.15 * (f.ftr - BASE.ftr)) / 0.03;
@@ -247,7 +253,7 @@ export class GameSim {
     const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.004 : 0;
     const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
 
-    const handleO = avg(onO, p => (p.r.drb + p.r.pss) / 2), pressD = avg(onD, p => perimD(p.r));
+    const handleO = avg(onO, p => p.r.drb * 0.45 + p.r.pss * 0.45 + (p.r.acc ?? p.r.drb) * 0.1), pressD = avg(onD, p => perimD(p.r));
     const connectors = onO.filter(p => p.roles?.includes('Connector')).length, poa = onD.filter(p => p.roles?.includes('Point-of-attack defender')).length;
     const star = onO.reduce((a, b) => (C(b).use > C(a).use ? b : a));
     // Usage decides who ends the trip (the gatekeeper); ball-handling decides turnovers.
@@ -286,7 +292,7 @@ export class GameSim {
       O.box[handler.id].tov++;
       const x = Math.random();
       if (x < RATE.stealShare) {
-        const s2 = wpick(onD, p => (p.r.diq + p.r.spd) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
+        const s2 = wpick(onD, p => Math.max(1, p.r.diq + (p.r.acc ?? p.r.spd) + ape(p.r) * 2) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
         D.box[s2.id].stl++;
         ev([s2.id, handler.id], () => s2.name + ' steals the ball from ' + handler.name, () => '(' + D.box[s2.id].stl + ' STL)');
       } else if (x < RATE.stealShare + RATE.offFoul) {
@@ -295,7 +301,7 @@ export class GameSim {
       } else ev([handler.id], () => handler.name + (Math.random() < 0.5 ? ' loses the ball out of bounds' : ' throws it away'), () => '(' + O.box[handler.id].tov + ' TOV)');
     } else if (kind === 'trip') {
       // Fouled on a missed shot: two free throws (three on a three).
-      const sh = wpick(onO, p => use(p) * (p.r.ins + p.r.dnk + p.r.stre / 2) * (p.roles?.includes('Slasher') ? 1.2 : 1));
+      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * (p.roles?.includes('Slasher') ? 1.2 : 1));
       keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
@@ -327,7 +333,7 @@ export class GameSim {
       } else {
         const blkP = BLOCK_ON_MISS[z] * Math.exp((intD - n.interiorD) / 25) * (rimPro ? 1.3 : 1);
         if (Math.random() < blkP) {
-          const bl = wpick(onD, p => Math.pow(p.r.hgt * 1.2 + p.r.jmp * 0.6 + p.r.diq * 0.4, 2) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
+          const bl = wpick(onD, p => Math.pow(Math.max(1, p.r.hgt * 1.2 + p.r.jmp * 0.6 + p.r.diq * 0.4 + ape(p.r) * 3), 2) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
         } else ev([sh.id], () => sh.name + ' misses ' + LABEL[z](sh));
@@ -370,11 +376,11 @@ export class GameSim {
   }
 
   private rebound(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], cAdv: number, ev: Ev) {
-    const orbP = cl(BASE.orbPct + 0.004 * (avg(onO, p => rebSkill(p.r)) - avg(onD, p => rebSkill(p.r))) + 0.015 * cAdv, 0.12, 0.42);
+    const orbP = cl(BASE.orbPct + 0.004 * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.015 * cAdv, 0.12, 0.42);
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
-      const rb = wpick(pool, p => Math.pow(rebSkill(p.r), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1));
+      const rb = wpick(pool, p => Math.pow(rebSkill(p.r), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }

@@ -60,6 +60,9 @@ const GOOD: Record<string, string[]> = {
   ft: ['Knocks down free throws, a good sign for his shooting touch.', 'Money at the line in late-game situations.'],
   ins: ['Polished around the basket with footwork and counters in the post.', 'Uses both hands to finish in traffic.'],
   dnk: ['Finishes with authority at the rim.', 'A threat as a roll man and lob target.'],
+  lay: ['Soft touch around the rim: floaters, scoops and reverses off the glass.', 'Finishes through contact with either hand.'],
+  acc: ['Explosive first step; gets a shoulder past his man from a standstill.', 'Gets to top speed in two dribbles.'],
+  box: ['Elite box-out habits: his man rarely touches a rebound, even if he doesn’t grab it himself.', 'Seals and holds position on every shot.'],
   drb: ['Tight handle; creates separation with crossovers and hesitations.', 'Can bring the ball up against pressure and run pick-and-roll.'],
   pss: ['Sees the floor and delivers on time: skip passes, pocket passes, hit-aheads.', 'Unselfish playmaker who makes the easy play and the hard one.'],
   oiq: ['High basketball IQ; always in the right spot and rarely forces anything.', 'Reads defenses quickly and plays within the offense.'],
@@ -77,6 +80,9 @@ const BAD: Record<string, string[]> = {
   ft: ['Poor free-throw shooter, which caps his value late in games.'],
   ins: ['Raw around the basket; needs a go-to move.'],
   dnk: ['Doesn’t finish strong at the rim.'],
+  lay: ['Little touch around the basket; misses too many layups.'],
+  acc: ['Slow first step; can’t turn the corner on drives.'],
+  box: ['Ball-watches on the glass instead of finding a body to box out.'],
   drb: ['Loose handle; turnover-prone when pressured.', 'Needs to tighten his handle before he can create for himself.'],
   pss: ['Tunnel vision at times; misses open teammates.', 'Not a natural passer.'],
   oiq: ['Decision-making lags behind his tools; forces shots.', 'Still learning to read defenses.'],
@@ -104,7 +110,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const w = Math.min(0.6, gp / 80);
   const eye: [string, number][] = [
     ['Athleticism', g10((R.spd + R.jmp + R.endu) / 3 + 4)], ['Size', sizeG], ['Defense', g10(R.diq * 0.6 + (grp === 'B' ? R.hgt : R.spd) * 0.4)], ['Strength', g10(R.stre)],
-    ['Quickness', g10(R.spd)], ['Leadership', g10(R.oiq * 0.6 + (p.age - 18) * 2 + (p.pers?.alpha ? 8 : 0) + (p.pers?.pro ? 8 : 0))], ['Jump shot', g10((R.tp + R.fg) / 2 + 3)], ['NBA ready', g10(o.ovr + 12)],
+    ['Quickness', g10((R.spd + (R.acc ?? R.spd)) / 2)], ['Leadership', g10(R.oiq * 0.6 + (p.age - 18) * 2 + (p.pers?.alpha ? 8 : 0) + (p.pers?.pro ? 8 : 0))], ['Jump shot', g10((R.tp + R.fg) / 2 + 3)], ['NBA ready', g10(o.ovr + 12)],
     ['Ball handling', g10(R.drb + (grp === 'B' ? 6 : 0))], ['Potential', g10(o.pot + 6)], ['Passing', g10(R.pss + (grp === 'B' ? 6 : 0))], ['Intangibles', g10(55 + (p.pers?.pro ? 12 : 0) + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 14 : 0) + ((p.pers?.work ?? 50) - 50) / 3)],
   ];
   const grades: [string, number, number, number | null, string][] = eye.map(([k, e]) => { const st = statG[k] ?? null, v = st == null ? e : Math.round((e * (1 - w) + st * w) * 2) / 2; return [k, v, e, st == null ? null : Math.round(st * 2) / 2, st == null ? 'Scouts’ eye' : 'Eye ' + e + ' · production ' + (Math.round(st * 2) / 2) + ' (' + gp + ' games)']; });

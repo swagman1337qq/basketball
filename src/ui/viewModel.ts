@@ -112,7 +112,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const pp = P[s.pid] || P[mine[0]], ptid = tidOf[pp.id];
   const pk = s.picks.find(x => x.pid === pp.id);
   const status = ptid === s.me ? 'mine' : ptid === -1 ? 'fa' : ptid === -2 ? 'abroad' : ptid >= 0 ? 'other' : pp.retired ? 'retired' : 'pro';
-  const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks & layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding']]]];
+  const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]]];
   const career = [];
   if (status !== 'pro') {
     // Seasons before the league began are scouting estimates; seasons since are real totals ÷ games.

@@ -21,7 +21,7 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
             <span style={{ fontFamily: 'var(--font-heading)', fontSize: compact ? '20px' : '24px' }}><Link onClick={() => open(pid)}>{p.name}</Link></span>
             <span style={{ fontSize: '11px', padding: '1px 8px', borderRadius: 999, border: '1px solid var(--color-divider)' }}>{r.kindLabel}</span>
           </div>
-          <div style={{ ...muted, fontSize: '12px', margin: '2px 0 6px' }}>Filed {r.filed} · {r.scout} · Confidence: <b>{r.confidence}</b>{r.margin > 0 ? ' (±' + r.margin.toFixed(1) + ')' : ''}</div>
+          <div style={{ ...muted, fontSize: '12px', margin: '2px 0 6px' }}>Filed {r.filed} · {/^No scout/.test(r.scout) ? r.scout : 'Scouted by ' + r.scout.replace(/^Your/, 'your')} · Confidence: <b>{r.confidence}</b>{r.margin > 0 ? ' (±' + r.margin.toFixed(1) + ')' : ''}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '2px 16px', fontSize: '12.5px' }}>{r.measure.map(([k, v]) => <div key={k}><span style={muted}>{k}: </span>{v}</div>)}</div>
         </div>
         <div style={{ textAlign: 'center', minWidth: 110 }}>
