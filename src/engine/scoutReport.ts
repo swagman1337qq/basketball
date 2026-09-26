@@ -182,7 +182,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   return { pid, kind: rd.kind, kindLabel: { prospect: 'Draft prospect', overseas: 'Overseas', mine: 'Your team', league: 'NBA', fa: 'Free agent' }[rd.kind], scout: rd.scout, confidence: rd.confidence, margin: rd.margin,
     filed: g.fmtS(s.day) + ', ' + g.seasonLbl(), measure, grades, overall, projection, ceiling, comp: comp ? { id: comp.id, name: comp.name } : null,
     compNote: comp ? (o.pot >= Math.max(comp.pot, comp.ovr) + 8 ? 'with more upside' : o.pot <= comp.ovr - 5 ? 'a lesser version' : '') : '', overview, strengths, weaknesses, notes,
-    best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, outlookTitle: rd.kind === 'prospect' ? 'Draft room take' : 'Scout’s take', statRows };
+    best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, outlookTitle: 'The bottom line', statRows };
 }
 
 // Everyone the club has a file on: the scouting list, focused prospects, prospects and
