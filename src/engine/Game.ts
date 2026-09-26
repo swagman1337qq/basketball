@@ -2,7 +2,8 @@
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
 import { createElement } from 'react';
-import { randomName, clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
+import { nameFromGroup, pickGroup, randomName } from '../data/heritage';
+import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
@@ -119,10 +120,10 @@ export class Game {
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
-    const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
+    const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, heritage: p.heritage, familyFirst: p.familyFirst, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
     p.rep = code; if (!p.elig.find(x => x.c === code)) p.elig = [...p.elig, { c: code, why: 'set in God Mode' }];
-    p.her = code; const r = C[code].race, ks = Object.keys(r); let x = Math.random(); p.race = ks.find(k => (x -= r[k]) < 0) || ks[0]; this.resetFace(p.id);
-    if (withName) Object.assign(p, randomName(code));
+    p.her = code; const nm = randomName(code); p.race = nm.race; p.heritage = nm.heritage; this.resetFace(p.id);
+    if (withName) { const { race, heritage, ...name } = nm; void race; void heritage; Object.assign(p, name); }
     return undo;
   }
   // Jersey in the team's colors; free agents and prospects wear grey.
@@ -191,7 +192,9 @@ export class Game {
     else if (her === 'US' && x < .04) { born = pick(['DE', 'IT', 'JP']); }
     else if (C[her].eu && x < .1) { raised = 'US'; }
     else if (her === 'CA' && x < .15) { raised = 'US'; }
-    const race = wpick(C[her].race);
+    // Heritage group by the country's population shares: it sets the name and the look.
+    const grp = pickGroup(her, rnd), nm = grp ? nameFromGroup(her, grp, rnd) : null;
+    const race = nm ? nm.race : wpick(C[her].race);
     const pk = (born === 'US' || born === 'CA') && born !== her && rnd() < .35 ? 'us' : C[her].pool, np = NP[pk];
     const f = pick(np.f), l = pick(np.l);
     const elig = [], add = (c, why) => { if (!elig.find(e => e.c === c)) elig.push({ c, why }); };
@@ -206,7 +209,9 @@ export class Game {
     else if (pk === 'jp') native = NM.jp[l] + ' ' + NM.jp[f];
     else if (pk === 'gr' || pk === 'ge' || pk === 'il') native = NM[pk][f] + ' ' + NM[pk][l];
     else if (pk === 'rs' && ['RS', 'ME', 'BA'].includes(her)) native = cyr(f) + ' ' + cyr(l);
-    return { her, born, raised, race, name: disp, native, elig, rep, city: pick(C[born].cities) };
+    // Raised in North America with roots elsewhere: about a third carry American names.
+    if (nm && pk !== 'us') { disp = nm.name; native = nm.native; }
+    return { her, born, raised, race, name: disp, native, heritage: nm?.heritage, familyFirst: nm && pk !== 'us' ? nm.familyFirst : undefined, elig, rep, city: pick(C[born].cities) };
   }
   pipe(raised, cls) {
     const rnd = () => this.rnd(), pick = a => a[Math.floor(rnd() * a.length)];

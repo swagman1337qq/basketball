@@ -58,8 +58,8 @@ export function namePools() {
     us: { f: ['Marcus', 'Devin', 'Andre', 'Julian', 'Tyrese', 'Malik', 'Isaiah', 'Cole', 'Jalen', 'Darius', 'Keenan', 'Rashad', 'Elijah', 'Grant', 'Caleb', 'Xavier', 'Dante', 'Quincy', 'Jonah', 'Amir', 'Tobias', 'Reggie', 'Silas', 'Brandon', 'Wes', 'Jordan', 'Myles', 'Cam', 'Trey', 'Donovan', 'Austin', 'Kobe', 'Terrence', 'Zion', 'Garrett', 'Derrick'], l: ['Hale', 'Brennan', 'Whitfield', 'Harlow', 'Pruitt', 'Vance', 'Crowder', 'Ashby', 'Ridley', 'Marsh', 'Tillman', 'Greer', 'Holloway', 'Draper', 'Quarles', 'Abernathy', 'Mercer', 'Stroud', 'Farrow', 'Calloway', 'Renner', 'Bishop', 'Hollis', 'Lyle', 'Sykes', 'Blackwood', 'Tennant', 'Washington', 'Jefferson', 'Coleman', 'Brooks', 'Bryant', 'Hayes', 'Simmons', 'Porter', 'Walker', 'Reed', 'Fields', 'Dawson', 'Mitchell'] },
     pt: { f: ['Bruno', 'Lucas', 'Gabriel', 'Rafael', 'Thiago', 'Mateus', 'Vitor', 'Caio', 'Yago', 'Henrique', 'Leonardo'], l: ['Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Costa', 'Almeida', 'Ferreira', 'Rocha', 'Barbosa', 'Carvalho'] },
     es: { f: ['Sergio', 'Pablo', 'Alejandro', 'Juan', 'Diego', 'Santiago', 'Nicolás', 'Facundo', 'Mateo', 'Iker', 'Álvaro', 'Hugo', 'Leandro', 'Gonzalo'], l: ['García', 'Fernández', 'López', 'Martínez', 'Navarro', 'Ruiz', 'Herrera', 'Vázquez', 'Castro', 'Romero', 'Delgado', 'Aguirre', 'Medina', 'Soto'] },
-    fr: { f: ['Théo', 'Hugo', 'Mathis', 'Killian', 'Yanis', 'Moussa', 'Enzo', 'Bilal', 'Adam', 'Nolan', 'Sékou', 'Maxime', 'Ousmane', 'Axel'], l: ['Martin', 'Bernard', 'Dubois', 'Lefèvre', 'Moreau', 'Laurent', 'Diallo', 'Traoré', 'Camara', 'Kouassi', 'Fournier', 'Girard', 'Coulibaly', 'Bonnet'] },
-    de: { f: ['Maximilian', 'Jonas', 'Leon', 'Tim', 'Moritz', 'Niklas', 'Justus', 'Isaac', 'Lukas', 'Felix', 'Johannes'], l: ['Müller', 'Schmidt', 'Wagner', 'Becker', 'Hoffmann', 'Weber', 'Koch', 'Richter', 'Braun', 'Krüger', 'Obi'] },
+    fr: { f: ['Théo', 'Hugo', 'Mathis', 'Killian', 'Yanis', 'Lucas', 'Enzo', 'Louis', 'Adam', 'Nolan', 'Nathan', 'Maxime', 'Arthur', 'Axel', 'Victor', 'Timothé'], l: ['Martin', 'Bernard', 'Dubois', 'Lefèvre', 'Moreau', 'Laurent', 'Petit', 'Durand', 'Leroy', 'Roux', 'Fournier', 'Girard', 'Fontaine', 'Bonnet', 'Lambert', 'Mercier'] },
+    de: { f: ['Maximilian', 'Jonas', 'Leon', 'Tim', 'Moritz', 'Niklas', 'Justus', 'Isaac', 'Lukas', 'Felix', 'Johannes'], l: ['Müller', 'Schmidt', 'Wagner', 'Becker', 'Hoffmann', 'Weber', 'Koch', 'Richter', 'Braun', 'Krüger', 'Schulz'] },
     it: { f: ['Matteo', 'Alessandro', 'Lorenzo', 'Simone', 'Nicolò', 'Gabriele', 'Achille', 'Davide', 'Riccardo'], l: ['Rossi', 'Bianchi', 'Ricci', 'Marino', 'Greco', 'Conti', 'Gallo', 'Fontana', 'Moretti', 'Esposito'] },
     gr: { f: ['Giorgos', 'Nikos', 'Kostas', 'Dimitris', 'Vasilis', 'Thanasis', 'Panagiotis', 'Yannis', 'Michalis'], l: ['Papadopoulos', 'Georgiou', 'Antonopoulos', 'Nikolaidis', 'Vlachos', 'Karras', 'Pappas', 'Dimitriou', 'Katsaros'] },
     rs: { f: ['Nikola', 'Luka', 'Bogdan', 'Marko', 'Stefan', 'Vasilije', 'Uroš', 'Nemanja', 'Aleksa', 'Filip', 'Dušan', 'Mihailo', 'Ognjen'], l: ['Petrović', 'Marković', 'Jovanović', 'Nikolić', 'Ilić', 'Popović', 'Savić', 'Kovačević', 'Stojanović', 'Lazić', 'Đorđević', 'Milić', 'Vuković'] },
@@ -253,23 +253,4 @@ export function genExpansionTeam(city: string, rnd: () => number = Math.random, 
   if (abbr.length < 3) abbr = (abbr + city.replace(/[^A-Za-z]/g, '').slice(1).toUpperCase()).slice(0, 3);
   for (let i = 0; taken.includes(abbr) && i < 5; i++) abbr = abbr.slice(0, 2) + String.fromCharCode(88 + i);
   return { region: city, name: pick(th.names), abbr, conf: c[1], div: c[2], mkt: c[3], colors: [c1, c2] as [string, string], icon: pick(th.icons) };
-}
-
-// ── Random real names (God Mode editor) ─────────────────────────────────────────
-// A name from the country's own pool: Romanized (with tones and diacritics) and, where
-// the country uses another script, the native form. Chinese and Korean names are family
-// name first; Japanese are given name first in Romanized form, family first in kanji.
-export function randomName(country: string, rnd: () => number = Math.random) {
-  const C = countries(), NP = namePools(), NM = nativeMaps(), pk = (C[country] && C[country].pool) || 'us', np = NP[pk] || NP.us;
-  const pick = (a: string[]) => a[Math.floor(rnd() * a.length)];
-  const f = pick(np.f), l = pick(np.l);
-  let first = f, last = l, nativeFirst = '', nativeLast = '';
-  if (pk === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
-  else if (pk === 'kr' || pk === 'jp' || pk === 'gr' || pk === 'ge' || pk === 'il') { nativeFirst = NM[pk][f] || ''; nativeLast = NM[pk][l] || ''; }
-  else if (pk === 'rs' && ['RS', 'ME', 'BA'].includes(country)) { nativeFirst = cyr(f); nativeLast = cyr(l); }
-  const familyFirst = !!np.lf;
-  const name = familyFirst ? last + ' ' + first : first + ' ' + last;
-  const cjk = pk === 'cn' || pk === 'kr' || pk === 'jp';
-  const native = !nativeFirst && !nativeLast ? '' : cjk ? nativeLast + (pk === 'jp' ? ' ' : '') + nativeFirst : nativeFirst + ' ' + nativeLast;
-  return { first, last, name, native, nativeFirst, nativeLast, familyFirst };
 }

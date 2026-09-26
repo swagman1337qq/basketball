@@ -5,7 +5,8 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
 import { muted, ruleH4 } from '../kit';
-import { namePools, randomName } from '../../data/world';
+import { namePools } from '../../data/world';
+import { groupsOf, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
@@ -16,14 +17,14 @@ const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export function GodPlayerEditor({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid];
   const [err, setErr] = useState('');
-  const [originSel, setOrigin] = useState<string | null>(null);
+  const [originSel, setOrigin] = useState<string | null>(null), [bg, setBg] = useState('');
   if (!p) return null;
   const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); };
   const C = gm.db.C, lf = p.familyFirst ?? !!namePools()[C[p.rep]?.pool]?.lf;
   const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
   const origin = originSel ?? p.rep;
   const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
-  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst }; Object.assign(p, randomName(code)); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
+  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, her: p.her }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code }); gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
   const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
   const nat = p.native || '', cjk = CJK.test(nat);
   const nFirst = p.nativeFirst ?? (cjk ? nat.slice(1) : nat.split(' ')[0] || ''), nLast = p.nativeLast ?? (cjk ? nat.slice(0, 1) : nat.split(' ').slice(1).join(' '));
@@ -45,7 +46,11 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         <div style={grid}>
           <span style={muted}>Random name</span>
           <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <select className="input" value={origin} onChange={e => setOrigin(e.target.value)} style={{ flex: 1, minWidth: '150px' }}>{Object.keys(C).sort((a, b) => C[a].n.localeCompare(C[b].n)).map(c => <option key={c} value={c}>{C[c].n}</option>)}</select>
+            <select className="input" value={origin} onChange={e => { setOrigin(e.target.value); setBg(''); }} style={{ flex: 1, minWidth: '150px' }}>{Object.keys(C).sort((a, b) => C[a].n.localeCompare(C[b].n)).map(c => <option key={c} value={c}>{C[c].n}</option>)}</select>
+            <select className="input" value={bg} onChange={e => setBg(e.target.value)} style={{ flex: 1, minWidth: '150px' }} title="Heritage within the country">
+              <option value="">Any background (by population)</option>
+              {(() => { const gs = groupsOf(origin), tot = gs.reduce((a, x) => a + x.w, 0); return gs.map(x => <option key={x.k} value={x.k}>{x.k} · {(100 * x.w / tot).toFixed(x.w / tot < 0.01 ? 2 : 1)}%</option>); })()}
+            </select>
             <button className="btn btn-secondary" onClick={() => reroll(origin)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A real name from that country, with the native script where it has one">🎲 Generate</button>
             {undo && <button className="btn btn-ghost" onClick={doUndo} style={{ fontSize: '12px' }}>Undo ({undo.name})</button>}
           </span>

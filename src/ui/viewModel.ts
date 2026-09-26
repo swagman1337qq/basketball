@@ -221,7 +221,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const openC = code => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'country', code }, modal: false }); };
   const openClass = yr => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'class', year: yr }, modal: false }); };
   pl.openRep = openC(pp.rep);
-  pl.bgRows = [...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : () => {} })), { k: 'Draft class', hasFlag: false, flag: '', v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'), open: openClass(pp.cls || pp.draft) }];
+  pl.bgRows = [...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : () => {} })), { k: 'Draft class', hasFlag: false, flag: '', v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'), open: openClass(pp.cls || pp.draft) }, ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: pp.heritage + ' · ' + C[pp.her].n, open: openC(pp.her) }] : [])];
   pl.elig = pl.elig.map((e, i) => ({ ...e, open: openC(pp.elig[i].c) }));
   const LMs = s.listModal; let lm = {};
   if (LMs) {
