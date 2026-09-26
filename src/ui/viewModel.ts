@@ -9,6 +9,7 @@ import { baseline, deltas } from '../engine/progress';
 import { addTx } from '../engine/txlog';
 import { intelF } from '../engine/overseas';
 import { badgesOf, setRating, setWing, teamRating, wngOf } from '../engine/ratings';
+import { askOffers, shopOffers } from '../engine/tradeOffers';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, extWindow, maxFor, nums, qoEligible, qoFor, rosterMax, signingMethods, stdIds, teamSalary, twoWayIds, yosOf } from '../engine/cba';
 import { financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
@@ -193,6 +194,32 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0], stratDesc: mine2(s.tTid) ? 'You run both franchises, so any trade you build goes through (salary rules still apply).' : STRAT[tst][1],
     meter: (any ? cl(50 + ev.diff / Math.max(10, Math.abs(ev.give)) * 60, 2, 98) : 50) + '%', verdict: !any ? 'Pick players or picks on either side to build an offer.' : ev.ok ? 'They would likely accept.' : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4 ? 'Not close yet.' : 'Close. A little more should do it.',
     cantPropose: !any || !salOk || !rosOk, cantForce: !any, god: !!s.god, cantBalance: !any, hasMsg: !!s.tMsg, msg: s.tMsg };
+  // Offers on request: shop your selected players/picks around the league, or ask the other team
+  // what it wants for its selected players/picks. Step through them, then accept, decline or negotiate.
+  const assetName = id => { const a = s.assets.find(x => x.id === id); return a ? gm.pickLabel(a, T) : ''; };
+  const pLine = id => { const q = P[id]; return { name: q.name, sub: q.pos + ' · ' + q.age + ' · ' + q.ovr + '/' + q.pot + ' · ' + money(q.amt) + (q.exp > gm.Y ? ' thru ' + q.exp : ''), ovr: q.ovr, open: open(id) }; };
+  const kLine = id => ({ name: assetName(id), sub: (() => { const a = s.assets.find(x => x.id === id); return a ? projTxt(a) : ''; })(), open: null });
+  const offerAsk = kind => () => {
+    const what = kind === 'shop' ? [...s.tMine.map(id => P[id].name), ...s.tkMine.map(assetName)].join(', ') : [...s.tTheirs.map(id => P[id].name), ...s.tkTheirs.map(assetName)].join(', ');
+    gm.setState({ offers: { kind, list: [], i: 0, what, tid: s.tTid, loading: true }, tMsg: null });
+    // Let the "calling around" message paint before the search runs.
+    setTimeout(() => { const st = gm.state as any; const list = kind === 'shop' ? shopOffers(gm, st, st.tMine, st.tkMine) : askOffers(gm, st, st.tTid, st.tTheirs, st.tkTheirs);
+      gm.setState(x => (x.offers && x.offers.loading ? { offers: { ...x.offers, list, loading: false } } : null)); }, 30); };
+  const OF = s.offers, ofc = OF && OF.list[OF.i];
+  const setOf = patch => gm.setState(st => ({ offers: st.offers ? { ...st.offers, ...patch } : null }));
+  const load = o => ({ tTid: o.tid, tMine: o.mine, tTheirs: o.theirs, tkMine: o.kMine, tkTheirs: o.kTheirs });
+  const offersV = !OF ? null : {
+    title: OF.kind === 'shop' ? 'Offers for ' + OF.what : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
+    loading: !!OF.loading, count: OF.list.length, pos: OF.list.length ? OF.i + 1 : 0, empty: !OF.loading && OF.list.length === 0,
+    emptyMsg: OF.kind === 'shop' ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' + (s.phase === 'regular' && s.day > DAY.TRADE_DEADLINE ? ' (the trade deadline has passed)' : '') + '.' : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
+    ...(ofc ? { logo: logo(ofc.tid, 34), team: T[ofc.tid].region + ' ' + T[ofc.tid].name, strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0], note: ofc.note,
+      get: [...ofc.theirs.map(pLine), ...ofc.kTheirs.map(kLine)], send: [...ofc.mine.map(pLine), ...ofc.kMine.map(kLine)],
+      gm: T[ofc.tid].gm } : {}),
+    prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }), next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
+    accept: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null }); gm.propose(); },
+    decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) } }; }),
+    negotiate: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null, tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”' }); },
+    close: () => gm.setState({ offers: null }) };
   const teamOptions = T.filter(t => t.tid !== s.me).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
 
   const MOOD = { Eager: ['var(--color-accent-100)', 'var(--color-accent-800)'], Open: ['var(--color-neutral-100)', 'var(--color-neutral-800)'], Reluctant: ['transparent', 'var(--color-neutral-600)'] };
@@ -485,7 +512,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     comp, depth, roles, pl, showJson: s.showJson, toggleJson: () => gm.setState(st => ({ showJson: !st.showJson })), downloadFaces: () => gm.downloadFaces(),
     standGroups, standSegs, standConf: conf,
     tMine: mine.map(tRow('tMine')), tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')), tMinePicks: myAssets.map(kRow('tkMine')), tTheirPicks: theirAssets.map(kRow('tkTheirs')), tr, teamOptions, tTid: s.tTid,
-    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), forceAccept: () => gm.propose(true), balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
+    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), forceAccept: () => gm.propose(true), shopOffers: offerAsk('shop'), askOffers: offerAsk('ask'), canShop: s.tMine.length + s.tkMine.length > 0, canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid), offersV, balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
     faCols, faRows, faNote, dr, dClasses, draftCols, draftRows, simToMine: () => gm.aiDraft(true), simOne: () => gm.aiDraft(true, 1), simAll: () => gm.aiDraft(false),
     askScouts: () => gm.setState(st => ({ adv: { ...st.adv, scouts: true } })), askAgm: () => gm.setState(st => ({ adv: { ...st.adv, agm: true } })),
     fin, q: s.q, onSearch: e => gm.setState({ q: e.target.value }), matches, hasMatches: matches.length > 0, searchIcon: icon('search'),
