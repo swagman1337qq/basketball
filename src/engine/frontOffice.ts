@@ -14,24 +14,48 @@ export const DEFAULT_BUDGET = { Coaching: 18, Health: 10, Facilities: 14, Scouti
 export const money = fmtMoney;
 
 // ── Finances ─────────────────────────────────────────────────────────────────────
-export function financesOf(g: Game, s: any, tid: number) {
+// Local revenue (tickets, local media, sponsorship, merchandise): what revenue sharing is based on.
+function localOf(g: Game, s: any, tid: number) {
   const T = s.teams[tid], club = g.clubOf(s, tid), b = club ? club.budget : DEFAULT_BUDGET;
-  const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800;
+  const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800, lf = g.CAP / 165; // league revenue grows with the cap
   const att = cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
   const tix = (b.Tickets * att * 41) / 1e6;
+  const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
+  return { b, att, cap, tix, lf, parts, total: parts.reduce((a, p) => a + p[1], 0) };
+}
+
+// Revenue sharing, modeled on the NBA's: about $400M a year (at today's cap) goes to teams
+// below the league's average local revenue, most to the smallest markets (the top recipients
+// get about $40–45M, around 20 teams receive something). Half of the league's luxury-tax
+// payments fund it; teams well above average local revenue pay the rest, the biggest markets
+// the most. A recipient that doesn't fill its arena has its payment cut (up to 25%), like the
+// CBA's revenue-generation requirements. Positive = received, negative = paid.
+export function revenueSharing(g: Game, s: any, tid: number) {
+  const L = s.teams.map((t: any) => localOf(g, s, t.tid)), tot = L.map((x: any) => x.total), avg = tot.reduce((a: number, v: number) => a + v, 0) / tot.length, lf = g.CAP / 165;
+  const need = tot.map((v: number) => Math.max(0, avg * 1.02 - v)), over = tot.map((v: number) => Math.pow(Math.max(0, v - avg * 1.05), 0.6));
+  const needSum = need.reduce((a: number, v: number) => a + v, 0) || 1, overSum = over.reduce((a: number, v: number) => a + v, 0) || 1;
+  const fill = (x: any) => cl(1 - Math.max(0, 0.85 - x.att / x.cap) * 1.25, 0.75, 1);
+  const pool = 400 * lf, got = need.map((v: number, i: number) => Math.min(45 * lf, pool * v / needSum) * fill(L[i])), paid = got.reduce((a: number, v: number) => a + v, 0);
+  const taxHalf = 0.5 * s.teams.reduce((a: number, t: any) => { const h = (s.cap?.[t.tid]?.taxHist) || []; return a + cbaTax(g, teamSalary(g, s, t.tid), h.slice(-4).filter(Boolean).length >= 3); }, 0);
+  const fromTeams = Math.max(0.3 * paid, paid - taxHalf), i = s.teams.findIndex((t: any) => t.tid === tid);
+  return got[i] > 0 ? got[i] : -fromTeams * over[i] / overSum;
+}
+
+// ── Finances ─────────────────────────────────────────────────────────────────────
+export function financesOf(g: Game, s: any, tid: number) {
+  const T = s.teams[tid], { b, att, cap, tix, lf, parts } = localOf(g, s, tid);
   const payroll = teamSalary(g, s, tid);
   // Repeater: a taxpayer in at least three of the previous four seasons.
-  const taxHist = (s.cap?.[tid]?.taxHist) || club?.taxHist || [];
+  const club = g.clubOf(s, tid), taxHist = (s.cap?.[tid]?.taxHist) || club?.taxHist || [];
   const repeater = taxHist.slice(-4).filter(Boolean).length >= 3;
   const taxBill = Math.max(0, cbaTax(g, payroll, repeater) + (T.taxAdj || 0));
-  const lf = g.CAP / 165; // league revenue grows with the cap
   void capState;
-  const share = 25 * (mk - 0.95);
-  const rev: [string, number][] = [['Ticket sales', tix * lf], ['National media rights', 152.0 * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
-  if (share < 0) rev.push(['Revenue sharing received', -share]);
+  const share = revenueSharing(g, s, tid);
+  const rev: [string, number][] = [parts[0], ['National media rights', 152.0 * lf], ...parts.slice(1)];
+  if (share > 0.05) rev.push(['Revenue sharing received', share]);
   if (payroll <= g.TAX) rev.push(['Tax distribution (est.)', 11.5 * lf]);
   const dead = s.cap?.[tid]?.dead?.reduce((a, d) => a + (d.amts?.[g.Y] || 0), 0) || 0;
-  const exp: [string, number][] = [['Player payroll', payroll - dead - (T.capAdj || 0)], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
+  const exp: [string, number][] = [...(share < -0.05 ? [['Revenue sharing paid', -share] as [string, number]] : []), ['Player payroll', payroll - dead - (T.capAdj || 0)], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
   const net = rev.reduce((a, r) => a + r[1], 0) - exp.reduce((a, r) => a + r[1], 0);
   return { payroll, att, cap, full: att / cap, tix, taxBill, repeater, rev, exp, net, budget: b };
 }

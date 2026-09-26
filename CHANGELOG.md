@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Contracts tab** (Team): your upcoming free agents summer by summer for the next four summers. Each player is marked restricted (with his estimated qualifying offer) or unrestricted, with the Bird rights you'll hold, his estimated cap hold, player and team options (and what happens if they're declined), and when he can sign an extension. Also shows offer sheets, your own free agents during free agency, and decisions due on the Cap sheet.
 - **Scouting reports list:** click the "Plays like" player to open his profile.
 - **God Mode: edit height and wingspan in feet and inches**, next to the numbers (the height rating and the wingspan in inches). Change either one and the other follows; wingspan moves with height. **Position** is editable too (PG, SG, G, SF, GF, F, PF, FC, C) on the profile editor and the Edit player tab.
 - **Trade for players just drafted.** On draft night, a player an AI team has picked shows up in the trade screen as its "Draft rights" (and "Trade for player" on the draft board). As in the NBA, that team made the pick on your behalf: his record shows who drafted him, the rights are traded to you, and he signs his rookie deal with you.
@@ -26,6 +27,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Revenue sharing works like the NBA's.** About $400M a year (at today's cap) goes to the roughly 18–20 teams below the league's average local revenue, up to about $45M for the smallest markets (it was about $5M). Half of the league's luxury-tax payments fund it and big-market teams pay the rest (they now see "Revenue sharing paid" on Finances). A receiving team that doesn't fill its arena gets up to 25% less.
 - **Overall and Potential rings are colour-coded** by where the rating ranks in the league, with the tier named underneath ("Starter", "All-Star ceiling"…): purple Superstar (70+), bright green All-Star (63+), green Starter (56+), white Rotation (48+), orange Bench (41+), red Fringe (below 41). Hover the tier name for the scale. Scouted Ovr/Pot in scouting reports use the same colours.
 - **Scouting reports show the scouted Ovr and Pot** (what your scouts see, within their margin) instead of a separate 40–99 grade that was easy to mistake for either. The list has Ovr and Pot columns.
 - **Scouting report labels match this league.** "Quality starter", "rotation player", "end-of-bench" and the rest now follow where a rating really ranks: 56+ is a starter (about the top five on an average team), 48+ a rotation player, 63+ an All-Star, 70+ a franchise player. A 56 overall was being called end-of-bench.
