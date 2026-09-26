@@ -48,7 +48,7 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
           <h4 style={ruleH4}>Overview</h4><p style={{ margin: '0 0 12px', lineHeight: 1.55 }}>{r.overview}</p>
           <h4 style={ruleH4}>Strengths</h4><ul style={{ margin: '0 0 12px', paddingLeft: 18, lineHeight: 1.55 }}>{r.strengths.map((x, i) => <li key={i}>{x}</li>)}</ul>
           <h4 style={ruleH4}>Weaknesses</h4><ul style={{ margin: '0 0 12px', paddingLeft: 18, lineHeight: 1.55 }}>{r.weaknesses.map((x, i) => <li key={i}>{x}</li>)}</ul>
-          <h4 style={ruleH4}>Outlook</h4><p style={{ margin: '0 0 12px', lineHeight: 1.55 }}>{r.outlook}</p>
+          <h4 style={ruleH4}>{r.outlookTitle || 'Outlook'}</h4><p style={{ margin: '0 0 12px', lineHeight: 1.55 }}>{r.outlook}</p>
         </div>
         <div>
           <h4 style={ruleH4}>NBA comparison</h4>

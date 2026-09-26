@@ -10,7 +10,7 @@ import { mulberry32 } from './rng';
 export type ReportKind = 'prospect' | 'overseas' | 'mine' | 'league' | 'fa';
 export interface Report {
   pid: number; kind: ReportKind; kindLabel: string; scout: string; confidence: string; margin: number; filed: string;
-  measure: [string, string][]; grades: [string, number, number, number | null, string][]; overall: number; projection: string; ceiling: string; comp: { id: number; name: string } | null; compNote: string; best: { id: number; name: string } | null; worst: { id: number; name: string } | null; outlook: string; statRows: any[];
+  measure: [string, string][]; grades: [string, number, number, number | null, string][]; overall: number; projection: string; ceiling: string; comp: { id: number; name: string } | null; compNote: string; best: { id: number; name: string } | null; worst: { id: number; name: string } | null; outlook: string; outlookTitle?: string; statRows: any[];
   overview: string; strengths: string[]; weaknesses: string[]; notes: string[];
 }
 
@@ -149,9 +149,25 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const overview = p.name + ' is a ' + p.age + '-year-old ' + p.pos + ' from ' + (p.city ? p.city + ', ' : '') + (C[p.born]?.n || '') + ' playing ' + where + '. ' + p.hgt + ', ' + p.wt + ' lb with a ' + Math.floor(wing / 12) + '′' + (wing % 12) + '″ wingspan: ' + build + ' and ' + ath + '. ' +
     (roles.length ? 'Profiles as a ' + roles.join(' and ') + '. ' : '') + (rd.kind === 'prospect' || rd.kind === 'overseas' ? (o.pot - o.ovr >= 12 ? 'Raw, but the tools are there and the ceiling is high.' : o.pot - o.ovr >= 6 ? 'Still developing, with a clear path to an NBA role.' : 'Fairly polished; less projection left in his game.') : o.ovr >= 70 ? 'One of the better players in the league at his position.' : o.ovr >= 60 ? 'A reliable rotation piece.' : 'Fighting for minutes at this level.');
   // Outlook: where he fits and what it would take.
-  const topW = weakK[0] ? (weaknesses[0] || '').replace(/\.$/, '').toLowerCase() : ''; // a skill he can work on, never his size
-  const outlook = (rd.kind === 'prospect' ? 'Projects as ' + an(ceilOf(Math.round((o.ovr + o.pot) / 2) + 3)) + ' early in his career. ' : rd.kind === 'overseas' ? 'Would ' + (o.ovr >= 55 ? 'step into an NBA rotation' : 'start on a two-way or at the end of a bench') + ' if he came over. ' : '') +
-    (o.pot - o.ovr >= 6 ? 'Hitting his ceiling as ' + an(ceilOf(o.pot)) + ' depends on development' + (topW ? ': above all, ' + topW + '.' : '.') : 'His game is largely formed; the value is in what he does now' + (strengths[0] ? ': ' + strengths[0].replace(/\.$/, '').toLowerCase() + '.' : '.'));
+  // The take: what he does well, what he can become, what has to develop, and where he stands
+  // (written like a draft analyst's paragraph).
+  const NOUN: Record<string, string> = { tp: 'shooting', fg: 'mid-range game', ft: 'free-throw shooting', drb: 'ball handling', pss: 'playmaking', oiq: 'feel for the game', diq: 'defense', ins: 'post game', dnk: 'finishing', lay: 'touch around the rim', reb: 'rebounding', box: 'rebounding', stre: 'strength', spd: 'speed', acc: 'first step', jmp: 'explosiveness', endu: 'conditioning' };
+  const CAT: Record<string, string> = { spd: 'the physical tools', acc: 'the physical tools', jmp: 'the physical tools', stre: 'the physical tools', endu: 'a relentless motor', tp: 'shooting touch', fg: 'shot-making', ft: 'shooting touch', ins: 'scoring punch', dnk: 'scoring punch', lay: 'scoring punch', diq: 'defensive impact', reb: 'rebounding instincts', box: 'rebounding instincts', pss: 'court vision', drb: 'shot creation', oiq: 'basketball IQ' };
+  const topK = keys.slice(0, 4).filter(k => R[k] + (posAdj[k] || 0) >= 55), cats = [...new Set([...(sizeG >= 7.5 ? ['the size'] : []), ...topK.map(k => CAT[k])])].slice(0, 3);
+  const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+  const twoWay = topK.includes('diq') && topK.some(k => ['tp', 'fg', 'ins', 'dnk', 'lay', 'pss', 'drb'].includes(k));
+  const posWord = p.pos === 'PG' ? 'point guard' : p.pos === 'C' ? 'center' : grp === 'G' ? 'guard' : grp === 'B' ? 'big' : 'wing';
+  const lvl = (v: number) => v >= 80 ? 'a franchise-level' : v >= 72 ? 'a high-level' : v >= 64 ? 'a quality starting' : v >= 57 ? 'a solid rotation' : v >= 50 ? 'a backup' : 'a fringe';
+  const upside = o.pot >= 80 ? 'franchise-player upside' : o.pot >= 72 ? 'legitimate star upside' : o.pot >= 64 ? 'real starter upside' : o.pot >= 57 ? 'rotation-player upside' : 'a shot at sticking in the league';
+  const devG = new Set<string>(), devN = weakK.filter(k => { const c = CAT[k]; if (cats.includes(c) || devG.has(c)) return false; devG.add(c); return true; }).map(k => NOUN[k]).slice(0, 2), lastN = p.last || (p.familyFirst ? String(p.name).split(' ')[0] : String(p.name).split(' ').slice(-1)[0]);
+  const stand = rd.kind !== 'prospect' ? '' : !board ? 'a long shot to hear his name called' + (p.cls ? ' in ' + p.cls : '') : board <= 3 ? 'one of the elite prospects in the ' + p.cls + ' NBA Draft' : board <= 10 ? 'a top-10 talent in the ' + p.cls + ' class' : board <= 20 ? 'a lottery-caliber prospect in the ' + p.cls + ' class' : board <= 30 ? 'a first-round prospect in ' + p.cls : board <= 60 ? 'a second-round prospect in ' + p.cls : 'a long shot to hear his name called in ' + p.cls;
+  const opener = cats.length ? lastN + ' has ' + list(cats) + ' to become ' + lvl(o.pot) + ' ' + (twoWay && o.pot >= 57 ? 'two-way ' : '') + 'NBA ' + posWord + '. ' : lastN + ' is a work in progress without a standout skill yet; the path is becoming ' + lvl(o.pot) + ' NBA ' + posWord + '. ';
+  const grows = o.pot - o.ovr >= 6;
+  const outlook = rd.kind === 'prospect'
+    ? opener + (grows && devN.length ? 'If his ' + list(devN) + ' continue' + (devN.length === 1 ? 's' : '') + ' to develop, he has ' + upside + ' and is ' + stand + '.' : 'His game is largely formed: what you see is close to what you get, and he is ' + stand + '.')
+    : rd.kind === 'overseas'
+      ? opener + (o.ovr >= 57 ? 'He could step into an NBA rotation today' : 'He would start on a two-way or at the end of a bench if he came over') + (grows && devN.length ? '; if his ' + list(devN) + ' keep' + (devN.length === 1 ? 's' : '') + ' improving, he has ' + upside + '.' : '.')
+      : (cats.length ? lastN + ' brings ' + list(cats) + ' as ' + an(ceilOf(o.ovr)) + '. ' : lastN + ' is ' + an(ceilOf(o.ovr)) + '. ') + (grows && devN.length ? 'If his ' + list(devN) + ' continue' + (devN.length === 1 ? 's' : '') + ' to develop, he has ' + upside + '.' : p.age >= 28 ? 'At ' + p.age + ', what you see is what you get.' : 'Close to the player he will be.');
   const statRows = [...new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season))].sort((a: any, b: any) => b - a).slice(0, 4).map((y: any) => { const t = g.seasonTotals(p, y); if (!t || !t.gp) return null; const q = (v: number) => (v / t.gp).toFixed(1); return { season: (y - 1) + '–' + String(y).slice(2), gp: t.gp, min: q(t.min), pts: q(t.pts), reb: q(t.orb + t.drb), ast: q(t.ast), stl: q(t.stl), blk: q(t.blk), fg: t.fga ? (t.fgm / t.fga * 100).toFixed(1) : '—', tp: t.tpa ? (t.tpm / t.tpa * 100).toFixed(1) : '—', ft: t.fta ? (t.ftm / t.fta * 100).toFixed(1) : '—', per: g.perOf(t, y).toFixed(1) }; }).filter(Boolean);
   // Notes.
   const notes: string[] = [];
@@ -166,7 +182,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   return { pid, kind: rd.kind, kindLabel: { prospect: 'Draft prospect', overseas: 'Overseas', mine: 'Your team', league: 'NBA', fa: 'Free agent' }[rd.kind], scout: rd.scout, confidence: rd.confidence, margin: rd.margin,
     filed: g.fmtS(s.day) + ', ' + g.seasonLbl(), measure, grades, overall, projection, ceiling, comp: comp ? { id: comp.id, name: comp.name } : null,
     compNote: comp ? (o.pot >= Math.max(comp.pot, comp.ovr) + 8 ? 'with more upside' : o.pot <= comp.ovr - 5 ? 'a lesser version' : '') : '', overview, strengths, weaknesses, notes,
-    best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, statRows };
+    best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, outlookTitle: rd.kind === 'prospect' ? 'Draft room take' : 'Scout’s take', statRows };
 }
 
 // Everyone the club has a file on: the scouting list, focused prospects, prospects and
