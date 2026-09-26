@@ -1,5 +1,5 @@
 // A player's mood with a hover card explaining why he feels that way.
-import { useState } from 'react';
+import { HoverCard } from './HoverCard';
 
 // Plain-language reasons for each mood factor (negative, positive).
 const WHY: Record<string, [string, string]> = {
@@ -44,23 +44,17 @@ function tensions(p: any, fs: { n: string; v: number }[]) {
 }
 
 export function MoodChip({ label, color, factors, name, p }: { label: string; color: string; factors: any[]; name?: string; p?: any }) {
-  const [hover, setHover] = useState(false);
   const fs = (factors || []).map(f => (Array.isArray(f) ? { n: f[0], v: +f[1] } : { n: f.n, v: +f.v })).filter(f => f.v !== 0).sort((a, b) => a.v - b.v);
   const neg = fs.filter(f => f.v < 0), pos = fs.filter(f => f.v > 0).reverse();
   const txt = (f: any) => (WHY[f.n] ? WHY[f.n][f.v < 0 ? 0 : 1] : '') || f.n;
   return (
-    <span style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <span style={{ color, cursor: 'help', borderBottom: '1px dotted currentColor', whiteSpace: 'nowrap' }}>{label}</span>
-      {hover && (
-        <span role="tooltip" style={{ position: 'absolute', zIndex: 60, right: 0, top: 'calc(100% + 4px)', width: 260, padding: '8px 10px', background: 'var(--color-bg)', color: 'var(--color-text)', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)', boxShadow: '0 6px 18px rgba(0,0,0,.3)', fontSize: '12px', lineHeight: 1.45, whiteSpace: 'normal', textAlign: 'left', fontWeight: 400 }}>
-          <b style={{ display: 'block', marginBottom: '3px', color }}>{name ? name + ': ' : ''}{label}</b>
-          {priorities(p).length > 0 && <span style={{ display: 'block', marginBottom: '4px' }}>Priorities: {priorities(p).join(', ')}</span>}
-          {tensions(p, fs).map(t => <span key={t} style={{ display: 'block', color: 'var(--color-accent-800)', marginBottom: '2px' }}>{t}</span>)}
-          {neg.length === 0 && pos.length === 0 && <span style={{ color: 'var(--color-neutral-700)' }}>Nothing on his mind.</span>}
-          {neg.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-bad)' }}><span style={{ color: 'var(--gm-bad)', width: 26, textAlign: 'right', flex: 'none' }}>{f.v}</span><span>{txt(f)}</span></span>)}
-          {pos.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-good)' }}><span style={{ color: 'var(--gm-good)', width: 26, textAlign: 'right', flex: 'none' }}>+{f.v}</span><span>{txt(f)}</span></span>)}
-        </span>
-      )}
-    </span>
+    <HoverCard width={270} anchor={<span style={{ color, cursor: 'help', borderBottom: '1px dotted currentColor', whiteSpace: 'nowrap' }}>{label}</span>}>
+      <b style={{ display: 'block', marginBottom: '3px', color }}>{name ? name + ': ' : ''}{label}</b>
+      {priorities(p).length > 0 && <span style={{ display: 'block', marginBottom: '4px' }}>Priorities: {priorities(p).join(', ')}</span>}
+      {tensions(p, fs).map(t => <span key={t} style={{ display: 'block', color: 'var(--color-accent-800)', marginBottom: '2px' }}>{t}</span>)}
+      {neg.length === 0 && pos.length === 0 && <span style={{ color: 'var(--color-neutral-700)' }}>Nothing on his mind.</span>}
+      {neg.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-bad)' }}><span style={{ width: 26, textAlign: 'right', flex: 'none' }}>{f.v}</span><span>{txt(f)}</span></span>)}
+      {pos.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-good)' }}><span style={{ width: 26, textAlign: 'right', flex: 'none' }}>+{f.v}</span><span>{txt(f)}</span></span>)}
+    </HoverCard>
   );
 }

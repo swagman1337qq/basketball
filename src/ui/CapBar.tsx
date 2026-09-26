@@ -11,7 +11,7 @@ export function CapBar({ gm, s, tid, compact }: { gm: Game; s: any; tid: number;
   const marks: [string, number][] = [['Floor', N.FLOOR], ['Cap', N.CAP], ['Tax', N.TAX], ['1st apron', N.AP1], ['2nd apron', N.AP2]];
   const room = N.CAP - payH;
   return (
-    <div style={{ margin: compact ? '0 0 12px' : '0 0 16px' }}>
+    <div data-tour="capbar" style={{ margin: compact ? '0 0 12px' : '0 0 16px' }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'baseline', flexWrap: 'wrap', fontSize: '12.5px', marginBottom: '4px' }}>
         <b style={{ color: state[1] }}>{state[0]}</b>
         <span>Team salary {fmtMoney(pay)}{payH !== pay ? ' · ' + fmtMoney(payH) + ' with cap holds' : ''}</span>

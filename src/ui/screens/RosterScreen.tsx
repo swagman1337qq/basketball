@@ -136,7 +136,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
             <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}>Auto sort roster</button>
             <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => delete P[id].rot); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Reset playing time</button>
-            <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>Ask the assistant coaches</button>
+            <button data-tour="advice" className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>Ask the assistant coaches</button>
           </div>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}><input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto sorted (re-sorts before every game)</label>
         </div>}
@@ -151,7 +151,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target overrides the automatic minutes for his slot.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of 15{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (21 allowed in the offseason, 15 by opening night)' : ''}</div>
-          <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
+          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the 15-man roster and the cap; up to 50 NBA games; not playoff-eligible.</span></div>
           {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{tw.map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>

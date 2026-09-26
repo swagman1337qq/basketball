@@ -34,6 +34,7 @@ export function scoutRead(g: Game, s: any, p: any) {
   if (kind === 'mine') { margin = 0.5; scout = 'Your coaching staff (sees him every day)'; }
   else if (kind === 'league' || kind === 'fa') { const gp = p.gp || 0; margin = cl((3.2 - Math.min(gp, 40) / 20) * bF / intelF(s, p.id) * (listed ? 0.7 : 1), 0.8, 4); scout = (best ? best.name : 'Pro scouting') + ' (pro personnel)'; }
   else { const yo = Math.max(0, (p.cls || g.Y) - g.Y); margin = cl((yo * 5 + 3) * bF * g.regFactor(p, s) / intelF(s, p.id), 1, 20); scout = inReg.length ? inReg.map((x: any) => x.name).join(' & ') + ' (' + REG[regK].name + ')' : 'No scout in ' + REG[regK].name + ': video and word of mouth only'; }
+  if (s.easy?.scouting) margin *= 0.35; // easy mode: forgiving scouting
   if (s.god) margin = 0;
   const confidence = margin <= 1 ? 'Very high' : margin <= 2.5 ? 'High' : margin <= 5 ? 'Medium' : margin <= 9 ? 'Low' : 'Very low';
   return { kind, margin, scout, confidence };

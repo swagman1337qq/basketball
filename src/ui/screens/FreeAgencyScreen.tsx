@@ -1,7 +1,13 @@
 import type { VM } from '../vm';
 import { CapBar } from '../CapBar';
+import { useState } from 'react';
+import { Seg } from '../kit';
+import { BadgeChip } from '../BadgeChip';
 
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
+  const [f, setF] = useState<'all' | 'gl' | 'home'>('all');
+  const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT));
+  const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
   return (
     <>
       <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} />
@@ -11,7 +17,11 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           <button className="btn btn-primary" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Open the cap sheet</button>
         </div>
       )}
-      <table className="table" style={{ fontSize: "13px" }}>
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
+        <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + (vm.faRows || []).length], ['gl', 'In the G League ' + nGl], ['home', 'Unsigned ' + ((vm.faRows || []).length - nGl)]]} onChange={setF} />
+        <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>G League players are on standard G League deals: any NBA team can call them up by signing them.</span>
+      </div>
+      <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
         <thead>
           <tr>
             {(vm.faCols || []).map((c: any, i: number) => (
@@ -26,7 +36,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           </tr>
         </thead>
         <tbody>
-          {(vm.faRows || []).map((p: any, i: number) => (
+          {rows.map((p: any, i: number) => (
             <tr key={i}>
               <td style={{ padding: "4px 8px" }}>
                 <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
@@ -34,6 +44,9 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                   <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
                     {p.name}
                   </button>
+                  {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
+                  {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
+                  {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>G League · {p.glT}</span>}
                 </span>
               </td>
               <td style={{ padding: "4px 8px" }}>

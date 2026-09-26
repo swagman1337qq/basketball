@@ -6,10 +6,13 @@ import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage
 import { voteHof } from './hof';
 import { teamRating } from './ratings';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
+import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
+import { gLeagueTick, placeInGLeague } from './gleague';
+import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
+import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
@@ -29,7 +32,7 @@ const BIAS = { G: { spd: 8, drb: 10, pss: 10, tp: 8, hgt: -14, ins: -10, reb: -1
 const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 'HR', 'RS', 'BS'];
 
 // UI-only keys that should not survive a reload.
-const TRANSIENT = { modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null };
+const TRANSIENT = { tour: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null };
 
 export interface SaveData { db: any; state: any }
 
@@ -49,6 +52,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
+    placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the G League
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     return g;
   }
@@ -194,13 +198,15 @@ export class Game {
       ps.sort((a, b) => b.ovr - a.ovr);
       rosters[t.tid] = ps.map(p => p.id);
     });
-    const fa = []; for (let k = 0; k < 18; k++) fa.push(mk(k < 3 ? 55 + rnd() * 5 : 38 + rnd() * 15, 23 + Math.floor(rnd() * 12), W_NBA, 0).id);
+    // About 90 unsigned players at any time in season, like the NBA's pool of veterans, G League
+    // call-up candidates and undrafted players: a few useful vets, the rest end-of-bench types.
+    const fa = []; for (let k = 0; k < 90; k++) fa.push(mk(k < 5 ? 54 + rnd() * 6 : k < 25 ? 47 + rnd() * 8 : 38 + rnd() * 12, 22 + Math.floor(rnd() * 13), W_NBA, 0).id);
     const os = []; for (let k = 0; k < 22; k++) { const p = mk(44 + rnd() * 12, 22 + Math.floor(rnd() * 8), W_NBA, 0); const cc0 = CLUBS[p.raised] ? p.raised : pick(['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT']), k2 = pick(CLUBS[cc0]), out = rnd() < .45;
       p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: +(8 + (p.ovr - 44) * 1.1 + rnd() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + rnd() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + rnd() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? .3 + rnd() * .7 : 1.5 + rnd() * 3.5).toFixed(1) }; os.push(p.id); }
     const cls = { 2027: [], 2028: [], 2029: [] };
-    for (let k = 0; k < 70; k++) { const p = mk(30 + rnd() * 14, 19 + Math.floor(rnd() * 3), W_NBA, 2027); p.pot = Math.round(cl(p.ovr + 8 + rnd() * 22, 45, 79)); cls[2027].push(p.id); }
-    for (let k = 0; k < 66; k++) { const p = mk(25 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = Math.round(cl(p.ovr + 16 + rnd() * 26, 45, 82)); cls[2028].push(p.id); }
-    for (let k = 0; k < 64; k++) { const p = mk(22 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = Math.round(cl(p.ovr + 20 + rnd() * 28, 45, 84)); cls[2029].push(p.id); }
+    for (let k = 0; k < 105; k++) { const p = mk(29 + rnd() * 14, 19 + Math.floor(rnd() * 3), W_NBA, 2027); p.pot = Math.round(cl(p.ovr + 8 + rnd() * 22, 45, 79)); cls[2027].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = mk(24 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = Math.round(cl(p.ovr + 16 + rnd() * 26, 45, 82)); cls[2028].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = mk(21 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = Math.round(cl(p.ovr + 20 + rnd() * 28, 45, 84)); cls[2029].push(p.id); }
     (Object.values(P) as any[]).filter(p => p.cls).forEach(p => { p.exp = p.cls + 3; });
     // Real draft slots for today's players: each past class gets unique picks 1–60
     // (best prospects first, with some noise); the rest went undrafted.
@@ -416,7 +422,7 @@ export class Game {
     const post = s.phase === 'playoffs' || s.phase === 'playin';
     // Play through injuries: a managed club's setting (days of injury he'll play through,
     // regular season and postseason); he plays at reduced strength.
-    const thr = user ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
+    const thr = user && !s.easy?.injuries ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
     let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
     if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
@@ -734,7 +740,10 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'fa') return null;
       const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice();
-      for (let d = 0; d < days; d++) aiFreeAgencyDay(this, { ...s, day: s.day + d }, box, lgLog, offerSheets);
+      for (let d = 0; d < days; d++) { aiFreeAgencyDay(this, { ...s, day: s.day + d }, box, lgLog, offerSheets); easyFreeAgency(this, { ...s, day: s.day + d }, box, lgLog); }
+      // Easy mode answers offer sheets for your restricted free agents.
+      if (s.easy?.cap) for (const o of offerSheets.slice()) { if (!this.isUser(s, o.to)) continue; const m = easyMatch(this, { ...s, rosters: box.rosters, cap: box.cap }, o), p = this.db.P[o.pid];
+        lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[m ? o.to : o.from].abbr, pids: [o.pid], text: applySigning(this, { ...s, rosters: box.rosters }, box, m ? o.to : o.from, p, m ? { ...o.terms, method: 'bird' } : o.terms) + (m ? ' (matched the offer sheet, easy mode)' : ' (' + s.teams[o.to].abbr + ' declined to match, easy mode)') }); offerSheets.splice(offerSheets.indexOf(o), 1); }
       return { ...box, lgLog, offerSheets, day: s.day + days };
     });
   }
@@ -752,33 +761,41 @@ export class Game {
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; return false; });
       Object.keys(rosters).forEach(k => { const user = this.isUser(s, +k), out = rosters[k].filter(id => retire(id) && (!user || P[id].ovr < 55 || P[id].age >= 38)); out.forEach(id => (P[id].retired = { season: this.Y, age: P[id].age, tid: +k, why: 'Retired' })); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
-      const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 10);
-      left.forEach(id => { Object.assign(P[id], { cls: 0, dr: null, draft: this.Y, amt: nums(this).min(0), ask: nums(this).min(0), exp: Y + 1, yrsWith: 0, yos0: 0 }); fa.push(id); });
+      // About 100 prospects declare each year and 60 are drafted; the best ~45 undrafted players
+      // sign as free agents (Exhibit 10s, two-ways, the G League). The rest go overseas or back to school.
+      const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 45);
+      left.forEach(id => { Object.assign(P[id], { undrafted: this.Y, cls: 0, dr: null, draft: this.Y, amt: nums(this).min(0), ask: nums(this).min(0), exp: Y + 1, yrsWith: 0, yos0: 0 }); fa.push(id); });
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: ['Kentucky', 'Duke', 'Kansas', 'UCLA', 'Gonzaga', 'Arizona', 'UConn', 'Houston'][id % 8], lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
-      d.cls[Y + 2] = []; for (let k = 0; k < 64 + 2 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = Math.round(this.cl(p.ovr + 20 + Math.random() * 28, 45, 84)); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
+      d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = Math.round(this.cl(p.ovr + 20 + Math.random() * 28, 45, 84)); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
       d.cls[Y + 2].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       teams.forEach(t => [1, 2].forEach(rd => assets.push({ id: (Y + 2) + '-' + rd + '-' + t.tid, yr: Y + 2, rd, orig: t.tid, owner: t.tid })));
-      let expanded = s.expanded;
-      if (s.expansion && !s.expanded) {
-        const NEW = s.expTeams && s.expTeams.length === 2 ? s.expTeams : EXPANSION.map(n => ({ region: n[0], name: n[1], abbr: n[2], conf: n[3], div: n[4], mkt: n[5], ...teamStyle(n[2]) }));
-        NEW.forEach((n, j) => { const tid = teams.length; const t = { tid, ...n, str: 46, owner: namePools().us.f[(tid * 7) % 20] + ' ' + OWNER_SURNAMES[(tid * 3) % OWNER_SURNAMES.length], arch: OWNER_ARCHETYPES[tid % OWNER_ARCHETYPES.length], gm: namePools().us.f[(tid * 5) % 20] + ' ' + namePools().us.l[(tid * 11) % 20], seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
-        const base = teams.length - 2;
-        for (let t = 0; t < base; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = base + (t % 2); rosters[nt] = [...rosters[nt], id]; }
-        [base, base + 1].forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
-
-        for (let k = 0; k < 2; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
-        expanded = true; lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to 32 teams: ' + NEW.map(n => n.region + ' ' + n.name).join(' and ') + '.' }, ...lgLog];
+      // Expansion: any even number of new franchises (chosen from the franchise database or
+      // designed in Settings) join now; the league can expand again later.
+      let expanded = s.expanded, expansion = s.expansion, expTeams = s.expTeams;
+      if (s.expansion) {
+        const picks = (s.expTeams || []).filter(Boolean).filter(n => !teams.some(t => t.abbr === n.abbr || t.region + t.name === n.region + n.name));
+        const dflt = ['East', 'West'].map(c => FRANCHISES.find(f => f.conf === c && f.pop >= 1 && !teams.some(t => t.region === f.region || t.abbr === f.abbr))).filter(Boolean).map((f: any) => ({ region: f.region, name: f.name, abbr: f.abbr, conf: f.conf, div: f.div, mkt: marketOf(f), colors: f.colors, icon: f.icon }));
+        const NEW = picks.length >= 2 && picks.length % 2 === 0 ? picks : dflt;
+        NEW.forEach(n => { const tid = teams.length; const t = { tid, ...n, str: 46, owner: namePools().us.f[(tid * 7) % 20] + ' ' + OWNER_SURNAMES[(tid * 3) % OWNER_SURNAMES.length], arch: OWNER_ARCHETYPES[tid % OWNER_ARCHETYPES.length], gm: namePools().us.f[(tid * 5) % 20] + ' ' + namePools().us.l[(tid * 11) % 20], seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
+        const first = teams.length - NEW.length, newT = NEW.map((_, j) => first + j);
+        // Expansion draft: each existing AI club loses one player outside its top eight.
+        for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; }
+        newT.forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
+        for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
+        expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
+        lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to ' + teams.length + ' teams: ' + NEW.map(n => n.region + ' ' + n.name).join(', ') + '.' }, ...lgLog];
       }
       // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to 14
       // with minimum deals and cut to 15 (guaranteed money they waive stays on their cap).
       const box = { rosters, fa, overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, byClub: Record<number, string[]> = {};
-      const lgA: any[] = []; acceptQualifyingOffers(this, s, box, lgA, byClub);
-      Object.keys(box.rosters).forEach(k => { if (this.isUser(s, +k)) return; fillRoster(this, s, box, +k, lgA); trimRoster(this, s, box, +k, lgA); });
+      const lgA: any[] = [], sT = { ...s, teams }; acceptQualifyingOffers(this, sT, box, lgA, byClub);
+      Object.keys(box.rosters).forEach(k => { if (this.isUser(s, +k)) return; fillRoster(this, sT, box, +k, lgA); trimRoster(this, sT, box, +k, lgA); });
       // Free agents with no NBA future leave the league.
       // Unsigned free agents with no NBA future leave the league (or retire when they're old).
-      box.fa = box.fa.filter(id => { const p = P[id]; if (p.rfa || p.age < 23 || (p.ovr >= 47 && p.age < 33) || p.ovr >= 55) return true; p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' }; return false; });
-      // The market holds about 45 players into the season; the rest sign abroad or move on.
-      if (box.fa.length > 45) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 45));
+      box.fa = box.fa.filter(id => { const p = P[id]; if (p.rfa || p.age < 24 || (p.ovr >= 43 && p.age < 31) || (p.ovr >= 48 && p.age < 34) || p.ovr >= 55) return true; p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' }; return false; });
+      // The market holds about 90 players into the season (the NBA's in-season pool of unsigned
+      // veterans and G League hopefuls); the rest sign abroad or move on.
+      if (box.fa.length > 90) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 90));
         box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; return false; }); }
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
@@ -792,7 +809,7 @@ export class Game {
       let clubs = { ...(s.clubs || {}) }, top: any = {};
       s.managed.forEach(t => { const f: any = { prog: progBy[t] || [] }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
-      return { ...top, clubs, cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      return { ...top, clubs, cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
   }
@@ -819,11 +836,18 @@ export class Game {
   // players still on the roster become standard contracts; short clubs sign minimum deals.
   startSeason() {
     this.setState(s => {
-      if (s.phase !== 'preseason' || s.unemployed || !s.managed.every(t => stdIds(this, s.rosters[t]).length <= 15 && twoWayIds(this, s.rosters[t]).length <= TWO_WAY_MAX)) return null;
+      if (s.phase !== 'preseason' || s.unemployed) return null;
       const P = this.db.P, box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), by: Record<number, string[]> = {};
+      easyCuts(this, s, box, lgLog);
+      if (!s.managed.every(t => stdIds(this, box.rosters[t]).length <= 15 && twoWayIds(this, box.rosters[t]).length <= TWO_WAY_MAX)) return null;
       Object.keys(box.rosters).forEach(k => { const t = +k; box.rosters[t].forEach(id => { if (P[id].ctype === 'ex10') P[id].ctype = 'min'; });
         if (!this.isUser(s, t)) trimRoster(this, s, box, t, lgLog);
         const signed = fillRoster(this, s, box, t, lgLog); if (signed.length && this.isUser(s, t)) by[t] = ['League minimum of ' + ROSTER_MIN + ' players: signed ' + signed.join(', ') + ' to minimum deals']; });
+      // The league always has about 90 unsigned players on opening night: journeymen back from
+      // overseas, G League veterans and late bloomers join the pool if it has run low.
+      for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
+        Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
+      placeInGLeague(this, s, box.fa);
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
   }
@@ -986,6 +1010,7 @@ export class Game {
     const day = s.day, games = this.db.days[day % this.db.days.length];
     const rosters = { ...s.rosters };
     s.managed.forEach(t => { if (this.clubOf(s, t)?.keepSorted) rosters[t] = this.autoSorted(rosters[t]); });
+    easyLineups(this, s, rosters, day);
     const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) } };
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
@@ -1013,6 +1038,8 @@ export class Game {
       const reps = this.devTick(s, rosters, day);
       s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}) })));
       confidenceTick(this, s, rosters);
+      placeInGLeague(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
+      if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
       (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => q.r[k] = Math.min(100, q.r[k] + w)); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
     // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
@@ -1058,7 +1085,7 @@ export class Game {
       let st = s, clubs = { ...(s.clubs || {}) }, top: any = {};
       const setClub = (t, f) => { const pt = this.clubPatch({ ...st, clubs }, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; st = { ...s, ...top, clubs }; };
       const promiseOwner = id => s.managed.find(t => (this.clubOf(st, t)?.promises || {})[id]);
-      while (pi < picks.length && !(untilMine && this.isUser(s, this.owner2027(picks[pi].orig, s.assets, picks[pi].rd)))) {
+      while (pi < picks.length && !(untilMine && !s.easy?.draft && this.isUser(s, this.owner2027(picks[pi].orig, s.assets, picks[pi].rd)))) {
         const ow = this.owner2027(picks[pi].orig, s.assets, picks[pi].rd), ai = !this.isUser(s, ow);
         const avail0 = this.db.cls[this.Y].filter(id => !taken.has(id));
         const skip = x => promiseOwner(x) != null && Math.random() >= .4 && this.db.rank[x] > 3;

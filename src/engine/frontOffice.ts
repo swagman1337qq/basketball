@@ -141,7 +141,7 @@ export function seasonReview(g: Game) {
     if ((aw.coy || [])[0] && g.isUser(s, aw.coy[0].tid)) career.coy = (career.coy || 0) + 1;
     const fired: number[] = [];
     s.managed.forEach(tid => {
-      const rv = ownerReview(g, s, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god ? [] : fireReasons(g, s, tid, rv, fin);
+      const rv = ownerReview(g, s, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god || s.easy?.fire ? [] : fireReasons(g, s, tid, rv, fin);
       career.seasons.push({ season: Y, tid, w: T[tid].w, l: T[tid].l, fin, sec: rv.sec, fired: reasons.length > 0 });
       if (reasons.length) {
         fired.push(tid); career.fired = (career.fired || 0) + 1;

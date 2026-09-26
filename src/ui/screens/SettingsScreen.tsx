@@ -1,5 +1,6 @@
 import type { VM } from '../vm';
 import { CountryPicker } from '../kit';
+import { EasyToggles } from '../Tour';
 import { ExpansionPicker } from './ExpansionPicker';
 import { AwardFormulas } from './AwardFormulas';
 import { RetirementSetting } from './RetirementSetting';
@@ -96,7 +97,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
               {vm.settings.expLabel}
             </div>
             <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-              Two new teams join at the next preseason through an expansion draft. The schedule, lottery, draft pool and salary cap adjust.
+              New franchises (any even number, picked below from the franchise database or designed yourself) join at the next preseason through an expansion draft. The schedule, lottery and draft pool adjust. You can expand again in later seasons.
             </div>
           </div>
           <button className="btn btn-secondary" onClick={vm.settings.toggleExp} disabled={vm.settings.expDis} style={{ whiteSpace: "nowrap" }}>
@@ -104,6 +105,11 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           </button>
         </div>
         <ExpansionPicker vm={vm} />
+        <div style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>Easy mode</div>
+          <p style={{ margin: "4px 0 8px", fontSize: "12px", color: "var(--color-neutral-700)" }}>Hand off any part of the job. Everything is off unless you turn it on.</p>
+          <EasyToggles vm={vm} />
+        </div>
         <RetirementSetting vm={vm} />
         <AwardFormulas vm={vm} />
         <div style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>

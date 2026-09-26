@@ -4,15 +4,16 @@
 // varsity octagon badge with a sunburst. Each uses the club's colors and emblem (glyphs
 // from Lucide, ISC license); small sizes drop the lettering so the mark stays legible.
 import { useId } from 'react';
-import { BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
+import { Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
 
-const GLYPHS: Record<string, LucideIcon> = { BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
+const GLYPHS: Record<string, LucideIcon> = { Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
+export const GLYPH_NAMES = Object.keys(GLYPHS).sort();
 export const LOGO_STYLES = ['shield', 'roundel', 'script', 'badge'] as const;
 const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',
   BKN: 'roundel', NWK: 'roundel', DET: 'roundel', PIT: 'roundel', SEA: 'roundel', VAN: 'roundel', SAC: 'roundel', KC: 'roundel', STL: 'roundel', MEX: 'roundel',
-  ATL: 'script', NSH: 'script', LV: 'script', SD: 'script', HNL: 'script', PHX: 'script', AUS: 'script', CHA: 'script',
-  CLE: 'badge', SLC: 'badge', DEN: 'badge', ABQ: 'badge',
+  ATL: 'script', NSH: 'script', LV: 'script', SD: 'script', HNL: 'script', SA: 'script', PHX: 'script', AUS: 'script', CHA: 'script',
+  CLE: 'badge', SLC: 'badge', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
 };
 
 export interface CrestTeam { region?: string; name?: string; abbr?: string; colors?: [string, string]; icon?: string; logoImg?: string; logoStyle?: string }

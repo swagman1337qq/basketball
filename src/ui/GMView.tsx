@@ -39,6 +39,7 @@ import { PlayerModal } from './modals/PlayerModal';
 import { ConfirmDialog } from './modals/ConfirmDialog';
 import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
+import { TourOverlay } from './Tour';
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
 import type { VM } from './vm';
 
@@ -53,7 +54,7 @@ export function GMView({ vm }: { vm: VM }) {
           {!!vm.isC && <DeskTopbar vm={vm} />}
           <main style={{ flex: "1", overflow: "auto", padding: "22px 28px 40px" }}>
             <div className="team-stripe" />
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
+            <div data-tour="phase" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
               <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
                 {vm.ph.season}
               </span>
@@ -123,6 +124,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
+        {vm.ctx.s.tour != null && <TourOverlay vm={vm} />}
       </div>
     </>
   );

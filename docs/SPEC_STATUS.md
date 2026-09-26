@@ -141,6 +141,12 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Player and team pages (full pages with Back) instead of pop-ups | `GMView.tsx` |
 | Play a month; sim to the trade deadline (early February) | Phase bar |
 | Team nicknames tied to what each city is known for | `data/world.ts` (`TEAMS`; old saves with default names are migrated) |
+| League cities all have metro areas of 1 million+ (San Jose and San Antonio replaced Honolulu and Albuquerque); franchise database of 45 ready-made teams (1M+ cities, plus a few smaller ones flagged) with colors, crests and metro populations; create-your-own teams; expand by any even number, again in later seasons | `data/franchises.ts`; Settings → **League expansion** |
+| Floating hover cards (never clipped, never force a scroll) for badges and moods | `ui/HoverCard.tsx` |
+| Free-agent pool at NBA size: about 90 in season, 150–230 when free agency opens; draft classes of about 100 prospects, the best ~45 undrafted become free agents (tagged, some unsigned for years) | `Game.makeDB()`, `Game.startPreseason()`, `Game.startSeason()` |
+| G League: every club has an affiliate; unsigned players play there on standard G League contracts ($40,500 in 2025-26, scaling with the cap) and any NBA team can call them up; affiliate rights (up to 5 camp cuts) and returning rights; Exhibit 10 cuts join the affiliate; G League stat lines; young players develop there | `engine/gleague.ts`; Free agency filter, profile label |
+| Tutorial (only when you press it): a coach card that walks through basketball basics, ratings, lineups, the calendar, the cap, tax, aprons, Bird rights, free agency, trades, the draft and the owner, jumping to each screen and highlighting what it describes; skippable | `ui/Tour.tsx`; nav → **Tutorial** |
+| Easy mode (every switch off by default): lineup and minutes, tactics, contract paperwork, filling the roster in free agency, draft picks, never fired, easier scouting, resting injured players | `engine/easy.ts`; Settings → **Easy mode** and the tutorial's first step |
 
 ## NBA CBA (2023 agreement)
 

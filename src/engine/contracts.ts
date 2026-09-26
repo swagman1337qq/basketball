@@ -1,6 +1,7 @@
 // Contracts in practice: signing (every method in cba.ts), whether a player accepts,
 // how AI teams sign, and waiving (dead money, the stretch provision, buyouts, claims).
 import type { Game } from './Game';
+import { callUpNote } from './gleague';
 import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, signingMethods, stdIds, teamSalary, yosOf, deadSchedule, type Method } from './cba';
 
 export interface Terms { method: string; amt: number; years: number; opt?: 'player' | 'team' | null; inc?: any[]; kicker?: number; ntc?: boolean }
@@ -51,8 +52,8 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   if (t.method === 'tpmle' && cap.hardCap !== 'AP1') cap.hardCap = 'AP2';
   if (t.method === 'dpe') cap.dpe = null;
   cap.exc = exc; box.cap[tid] = cap;
-  const T = s.teams[tid];
-  return T.region + ' ' + T.name + ' signed ' + p.name + ' · ' + describe(g, t, p) ;
+  const T = s.teams[tid], cu = callUpNote(g, s, p, tid);
+  return T.region + ' ' + T.name + ' signed ' + p.name + ' · ' + describe(g, t, p) + cu;
 }
 function describe(g: Game, t: Terms, p: any) {
   const lab: Record<string, string> = { cap: 'cap space', bird: 'Bird rights', ntmle: 'non-taxpayer mid-level', tpmle: 'taxpayer mid-level', room: 'room exception', bae: 'bi-annual exception', min: 'minimum', twoWay: 'two-way contract', ex10: 'Exhibit 10', tenDay: '10-day contract', hardship: 'hardship exception', dpe: 'disabled player exception', offer: 'offer sheet', rookie: 'rookie scale' };
@@ -108,7 +109,7 @@ export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; 
   } else {
     const total = Object.values(amts).reduce((a: number, b: any) => a + b, 0) as number;
     if (total > 0) cap.dead = [...(cap.dead || []), { pid: p.id, name: p.name, amts, mode, season: g.Y }];
-    box.fa.push(p.id); p.waived = { season: g.Y, day: s.day, prevAmt: p.amt, tid };
+    box.fa.push(p.id); p.waived = { season: g.Y, day: s.day, prevAmt: p.amt, tid }; p.lastTid = tid; if (p.ctype === 'ex10') p.wasEx10 = true;
     p.ask = Math.max(nums(g).min(yosOf(g, p)), +(g.fair(p.ovr) * 0.8).toFixed(2)); p.birdTid = null; p.yrsWith = 0; p.ctype = 'standard'; delete p.opt; delete p.tenDay; delete p.twoWay; delete p.capOverride; p.kicker = 0; p.ntc = false; p.inc = [];
     lines.push(T.region + ' ' + T.name + (mode === 'buyout' ? ' bought out ' : ' waived ') + p.name + (total > 0 ? ' · ' + total.toFixed(2) + 'M dead money' + (mode === 'stretch' ? ' stretched over ' + Object.keys(amts).length + ' seasons' : '') : ''));
   }
