@@ -74,7 +74,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
             {p.native && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>({p.native})</span>}
             {cur && bs.map(b => <BadgeChip key={b.key} b={b} small />)}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
-            {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '11px', color: 'var(--color-neutral-600)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
+            {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
             {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day' : 'Out ' + p.inj.games + 'g'} · {p.inj.name}</span>}
           </span>
         </td>

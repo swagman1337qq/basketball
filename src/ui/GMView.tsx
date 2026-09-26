@@ -31,6 +31,7 @@ import { LeagueStatsScreen } from './screens/LeagueStatsScreen';
 import { LeagueEditorScreen } from './screens/LeagueEditorScreen';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { PredictionsScreen } from './screens/PredictionsScreen';
+import { ChangelogScreen } from './screens/ChangelogScreen';
 import { CapOutlookScreen } from './screens/CapOutlookScreen';
 import { CapSheetScreen } from './screens/CapSheetScreen';
 import { StatsScreen } from './screens/StatsScreen';
@@ -121,6 +122,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.editor && <LeagueEditorScreen vm={vm} />}
             {!!vm.is.hof && <HallOfFameScreen vm={vm} />}
             {!!vm.is.preds && <PredictionsScreen vm={vm} />}
+            {!!vm.is.changelog && <ChangelogScreen />}
             {!!vm.is.caps && <CapOutlookScreen vm={vm} />}
             {!!vm.is.capsheet && <CapSheetScreen vm={vm} />}
             {!!vm.is.stats && <StatsScreen vm={vm} />}
