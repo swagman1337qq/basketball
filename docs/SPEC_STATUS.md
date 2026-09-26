@@ -14,7 +14,7 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Four shot-quality tiers in the engine, five zones in the UI | Done | Engine tiers: rim, mid-range, corner 3, above-the-break 3 (`BASE.zone`). Profile **Overview → Shooting by zone** splits the rim tier into restricted area and paint for the five-zone view. |
 | Four Factors clutch tiebreaker (last 5 minutes, margin ≤ 6) | Done | `sim.ts` `ffScore()`, applied per possession in `step()` |
 | Season structure: 82 games, play-in, East/West best-of-7 bracket, lottery, draft, free agency | Done | **Playoffs** screen shows the play-in as a bracket and the NBA-style bracket; 15 teams per conference (16 after expansion) |
-| Awards | Done | `awards.ts`; **Awards** screen (MVP, DPOY, ROY, 6MOY, MIP, Coach of the Year, Finals MVP, All-League, All-Defense, All-Rookie) |
+| Awards | Done | Voted by formula in the Basketball GM custom-award format (`data/awardDefs.ts`, evaluated by `formula.ts`): MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, conference-finals MVPs, All-League (3), All-Defensive (2), All-Rookie (2), OPOY, Playmaker, the Jokic advanced-stats award, Glue Guy, LVP, Mr. Perfectly Average, Least Improved, Least Efficient, Worst Defender, plus Coach of the Year. The advanced stats they use (PER, WS/OWS/DWS/WS48, BPM/OBPM/DBPM, VORP, EWA, on/off, USG%, AST%, rebound/steal/block/turnover rates, ORtg/DRtg) come from `advanced.ts`. Edit, import or export the formulas in **Settings → Award formulas**. |
 
 ## 2. Injury, health and environment
 

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
 import { muted, ruleH4 } from '../kit';
+import { namePools, randomName } from '../../data/world';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
@@ -15,12 +16,18 @@ const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export function GodPlayerEditor({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid];
   const [err, setErr] = useState('');
+  const [originSel, setOrigin] = useState<string | null>(null);
   if (!p) return null;
   const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); };
-  const parts = String(p.name).split(' '), first = p.first ?? parts[0], last = p.last ?? parts.slice(1).join(' ');
+  const C = gm.db.C, lf = p.familyFirst ?? !!namePools()[C[p.rep]?.pool]?.lf;
+  const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
+  const origin = originSel ?? p.rep;
+  const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
+  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst }; Object.assign(p, randomName(code)); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
+  const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
   const nat = p.native || '', cjk = CJK.test(nat);
   const nFirst = p.nativeFirst ?? (cjk ? nat.slice(1) : nat.split(' ')[0] || ''), nLast = p.nativeLast ?? (cjk ? nat.slice(0, 1) : nat.split(' ').slice(1).join(' '));
-  const setNames = (f: string, l: string, nf: string, nl: string) => mut(q => { q.first = f; q.last = l; q.name = (f + ' ' + l).trim(); q.nativeFirst = nf; q.nativeLast = nl; q.native = CJK.test(nf + nl) ? nl + nf : (nf + ' ' + nl).trim(); });
+  const setNames = (f: string, l: string, nf: string, nl: string) => mut(q => { q.first = f; q.last = l; q.name = (lf ? l + ' ' + f : f + ' ' + l).trim(); q.nativeFirst = nf; q.nativeLast = nl; q.native = CJK.test(nf + nl) ? nl + nf : (nf + ' ' + nl).trim(); });
   const hIn = inchesOf(p.hgt), wing = p.wing ?? hIn + 3 + (p.id % 4);
   const dob = p.dob || (gm.Y - 1 - p.age) + '-' + String(1 + (p.id % 12)).padStart(2, '0') + '-' + String(1 + (p.id % 28)).padStart(2, '0');
   const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string) => (
@@ -36,6 +43,12 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
       <section>
         <h4 style={ruleH4}>Biography</h4>
         <div style={grid}>
+          <span style={muted}>Random name</span>
+          <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <select className="input" value={origin} onChange={e => setOrigin(e.target.value)} style={{ flex: 1, minWidth: '150px' }}>{Object.keys(C).sort((a, b) => C[a].n.localeCompare(C[b].n)).map(c => <option key={c} value={c}>{C[c].n}</option>)}</select>
+            <button className="btn btn-secondary" onClick={() => reroll(origin)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A real name from that country, with the native script where it has one">🎲 Generate</button>
+            {undo && <button className="btn btn-ghost" onClick={doUndo} style={{ fontSize: '12px' }}>Undo ({undo.name})</button>}
+          </span>
           <span style={muted}>First name</span><input className="input" value={first} onChange={e => setNames(e.target.value, last, nFirst, nLast)} />
           <span style={muted}>Last name</span><input className="input" value={last} onChange={e => setNames(first, e.target.value, nFirst, nLast)} />
           <span style={muted}>Native first</span><input className="input" value={nFirst} placeholder="e.g. 伟 or Никола" onChange={e => setNames(first, last, e.target.value, nLast)} />

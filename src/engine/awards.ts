@@ -1,7 +1,11 @@
-// Season awards, voted at the end of the regular season (Finals MVP after the Finals).
-// Eligibility follows the league's games-played rule: 58 of 82 games (70%) for the
-// individual awards and All-League teams.
+// Season awards from formulas (Basketball GM custom-award format; defaults in
+// data/awardDefs.ts, editable in Settings). Regular-season awards are voted when the
+// regular season ends; series MVPs (Finals, conference finals) when those series end.
+// Coach of the Year stays a front-office award: wins above the roster's projection.
 import type { Game } from './Game';
+import { DEFAULT_AWARDS, type AwardDef } from '../data/awardDefs';
+import { seasonAdvanced, seriesLine, type StatLine } from './advanced';
+import { compileFormula } from './formula';
 
 export interface AwardEntry { pid: number; tid: number; line: string; score: number }
 export interface SeasonAwards {
@@ -10,68 +14,103 @@ export interface SeasonAwards {
   coy: { tid: number; name: string; line: string }[];
   allLeague: number[][]; allDef: number[][]; allRookie: number[];
   fmvp?: AwardEntry | null;
+  // Formula era: every single-winner award by short name, multi-team awards, and the definitions used.
+  list?: Record<string, AwardEntry[]>; teams?: Record<string, number[][]>; sfmvp?: Record<string, AwardEntry | null>; defs?: { shortName: string; name: string; showStats?: string; numTeams?: number; statRange?: number }[];
 }
 
-const MIN_GP = 58;
-const f1 = (v: number) => v.toFixed(1);
+// Where the classic keys come from (so incentives, history and old saves keep working).
+const CLASSIC: Record<string, string> = { MVP: 'mvp', DPOY: 'dpoy', ROY: 'roy', SMOY: 'smoy', MIP: 'mip' };
+const TEAM_KEY: Record<string, string> = { ALL: 'allLeague', DEF: 'allDef', ALR: 'allRookie' };
+const INELIGIBLE = -1000;
+const f1 = (v: number) => (isFinite(v) ? v.toFixed(1) : '—');
+
+export function awardDefs(s: any): AwardDef[] { return s.awardDefs && s.awardDefs.length ? s.awardDefs : DEFAULT_AWARDS; }
+
+export function statLine(x: StatLine, kind?: string) {
+  return kind === 'defense'
+    ? f1(x.stl) + ' stl · ' + f1(x.blk) + ' blk · ' + f1(x.drb) + ' dreb · DRtg ' + f1(x.drtg) + ' · DWS ' + f1(x.dws)
+    : f1(x.pts) + ' pts · ' + f1(x.trb) + ' reb · ' + f1(x.ast) + ' ast · PER ' + f1(x.per) + ' · WS ' + f1(x.ws);
+}
+
+// numWon.X and numWonConsecutive.X for a player, from earlier seasons' awards.
+function wonVars(s: any, season: number, pid: number, defs: AwardDef[]) {
+  const v: Record<string, number> = {}, past = Object.values(s.awards || {}).filter((a: any) => a.season < season).sort((a: any, b: any) => b.season - a.season) as any[];
+  const winner = (a: any, sn: string) => a.list?.[sn]?.[0]?.pid ?? (CLASSIC[sn] ? a[CLASSIC[sn]]?.[0]?.pid : sn === 'FMVP' ? a.fmvp?.pid : undefined);
+  defs.forEach(d => {
+    const sn = d.shortName; let n = 0, c = 0, run = true, y = season - 1;
+    past.forEach(a => { const w = winner(a, sn) === pid; if (w) n++; if (run && a.season === y && w) { c++; y--; } else if (a.season <= y) run = false; });
+    v['numWon.' + sn] = n; v['numWonConsecutive.' + sn] = c;
+  });
+  return v;
+}
 
 export function computeAwards(g: Game, s: any): SeasonAwards {
-  const P = g.db.P, Y = g.Y, T = s.teams;
-  const tidOf: Record<number, number> = {};
-  Object.keys(s.rosters).forEach(k => s.rosters[k].forEach(id => (tidOf[id] = +k)));
-  const wp = tid => g.pct(T[tid]);
-  const rows = (Object.values(P) as any[]).map(p => ({ p, t: g.seasonTotals(p, Y), prev: g.seasonTotals(p, Y - 1) })).filter(x => x.t && x.t.gp > 0);
-  const tid = (x: any) => tidOf[x.p.id] ?? (x.p.stats || []).filter(r => r.season === Y && !r.po).slice(-1)[0]?.tid ?? -1;
-  const pg = (t, k) => t[k] / t.gp;
-  const line = t => f1(pg(t, 'pts')) + ' pts · ' + f1((t.orb + t.drb) / t.gp) + ' reb · ' + f1(pg(t, 'ast')) + ' ast';
-  const dline = t => f1(pg(t, 'stl')) + ' stl · ' + f1(pg(t, 'blk')) + ' blk · ' + f1(t.drb / t.gp) + ' dreb';
-  const eff = t => g.eff(t) / t.gp;
-  // Team defensive rating (points allowed per 100 possessions) for the defense award.
-  const drtg = tid2 => { const ts = s.tstats?.[tid2]; return ts && ts.gp ? (100 * ts.oPts) / Math.max(1, g.possOf(ts)) : 114.5; };
-  const lgDrtg = T.reduce((a, t) => a + drtg(t.tid), 0) / T.length;
+  const P = g.db.P, Y = g.Y, T = s.teams, defs = awardDefs(s);
+  const adv = seasonAdvanced(g, s, Y).byPid, prevAdv = seasonAdvanced(g, s, Y - 1).byPid;
+  const rookie = (p: any) => p.draft === Y - 1 && !(p.stats || []).some(r => r.season < Y && !r.po);
+  const cands = Object.keys(adv).map(Number);
+  const list: Record<string, AwardEntry[]> = {}, teams: Record<string, number[][]> = {};
+  const out: SeasonAwards = { season: Y, mvp: [], dpoy: [], roy: [], smoy: [], mip: [], coy: [], allLeague: [], allDef: [], allRookie: [], fmvp: null, list, teams, sfmvp: {}, defs: defs.map(d => ({ shortName: d.shortName, name: d.name, showStats: d.showStats, numTeams: d.numTeams, statRange: d.statRange })) };
 
-  const elig = rows.filter(x => x.t.gp >= MIN_GP);
-  const mvpScore = x => eff(x.t) * Math.pow(Math.min(1, pg(x.t, 'min') / 34), 0.3) + 18 * wp(tid(x)) + 0.25 * g.perOf(x.t, Y);
-  const dpScore = x => (x.t.stl * 1.8 + x.t.blk * 1.6 + x.t.drb * 0.3) / x.t.gp + (x.p.r.diq - 50) * 0.08 + (lgDrtg - drtg(tid(x))) * 0.15 + Math.min(1, pg(x.t, 'min') / 30) * 2;
-  const rookie = x => x.p.draft === Y - 1 && !(x.p.stats || []).some(r => r.season < Y);
-  const top = (xs, score, n, lineF = line) => xs.map(x => ({ x, v: score(x) })).sort((a, b) => b.v - a.v).slice(0, n).map(({ x, v }) => ({ pid: x.p.id, tid: tid(x), line: lineF(x.t), score: +v.toFixed(2) }));
-
-  const mvp = top(elig, mvpScore, 5);
-  const dpoy = top(elig, dpScore, 5, dline);
-  const roy = top(rows.filter(x => rookie(x) && x.t.gp >= 40), x => mvpScore(x) - 18 * wp(tid(x)), 5);
-  const smoy = top(elig.filter(x => x.t.gs / x.t.gp < 0.4), x => pg(x.t, 'pts') + 0.5 * eff(x.t), 5);
-  const mip = top(elig.filter(x => x.prev && x.prev.gp >= 20 && !rookie(x)), x => eff(x.t) - g.eff(x.prev) / x.prev.gp, 5, t => line(t));
+  defs.filter(d => !d.statRange).forEach(d => {
+    let fn; try { fn = compileFormula(d.formula); } catch { return; }
+    const scored = cands.map(pid => {
+      const p = P[pid], x = adv[pid];
+      if (d.rookie && !rookie(p)) return null;
+      if (d.bench && x.gs * 2 > x.gp) return null;
+      let vars: Record<string, number> = { ...x };
+      if (d.mip) {
+        const pr = prevAdv[pid]; if (!pr || pr.gp < 20 || rookie(p)) return null;
+        // Most Improved: this season's stats minus last season's (games, minutes and team context stay current).
+        Object.keys(x).forEach(k => { if (!['gp', 'gs', 'min', 'minTot', 'seasonFraction', 'winp', 'teamWs', 'tid', 'age', 'won'].includes(k) && typeof pr[k] === 'number') vars[k] = x[k] - pr[k]; });
+      }
+      vars = { ...vars, ...wonVars(s, Y, pid, defs) };
+      const v = fn.run(vars);
+      return v <= INELIGIBLE ? null : { pid, v, x, tid: x.tid };
+    }).filter(Boolean).sort((a, b) => b.v - a.v);
+    const lineOf = (e: any) => d.mip && prevAdv[e.pid] ? statLine(e.x, d.showStats) + ' · ' + (e.x.pts - prevAdv[e.pid].pts >= 0 ? '+' : '') + f1(e.x.pts - prevAdv[e.pid].pts) + ' pts vs last year' : statLine(e.x, d.showStats);
+    if (d.numTeams) {
+      const tms = teamsOf(scored, d.numTeams, P, d.shortName !== 'ALR');
+      teams[d.shortName] = tms;
+      if (TEAM_KEY[d.shortName] === 'allRookie') out.allRookie = tms.flat(); else if (TEAM_KEY[d.shortName]) out[TEAM_KEY[d.shortName]] = tms;
+      return;
+    }
+    list[d.shortName] = scored.slice(0, 5).map(e => ({ pid: e.pid, tid: e.tid, line: lineOf(e), score: +e.v.toFixed(2) }));
+    const ck = CLASSIC[d.shortName] || (d.actAs && CLASSIC[d.actAs.toUpperCase()]);
+    if (ck) out[ck] = list[d.shortName];
+  });
 
   // Coach of the Year: most wins above what the roster's strength projected.
   const avgStr = T.reduce((a, t) => a + (t.str || 50), 0) / T.length;
-  const coy = T.map(t => ({ t, v: wp(t.tid) - Math.max(0.15, Math.min(0.85, 0.5 + ((t.str || 50) - avgStr) * 0.035)) }))
+  out.coy = T.map(t => ({ t, v: g.pct(t) - Math.max(0.15, Math.min(0.85, 0.5 + ((t.str || 50) - avgStr) * 0.035)) }))
     .sort((a, b) => b.v - a.v).slice(0, 3)
     .map(({ t, v }) => ({ tid: t.tid, name: g.isUser(s, t.tid) ? 'You (GM & head coach)' : t.gm, line: t.w + '–' + t.l + ' · ' + (v >= 0 ? '+' : '') + Math.round(v * 82) + ' wins over projection' }));
-
-  // All-League and All-Defensive teams: two guards, two wings, one big each.
-  const teamsOf = (ranked: any[], nTeams: number) => {
-    const used = new Set<number>(), out: number[][] = [];
-    for (let k = 0; k < nTeams; k++) {
-      const team: number[] = [];
-      for (const [grp, n] of [['G', 2], ['W', 2], ['B', 1]] as [string, number][]) {
-        ranked.filter(x => x.p.grp === grp && !used.has(x.p.id)).slice(0, n).forEach(x => { team.push(x.p.id); used.add(x.p.id); });
-      }
-      ranked.filter(x => !used.has(x.p.id)).slice(0, 5 - team.length).forEach(x => { team.push(x.p.id); used.add(x.p.id); });
-      out.push(team);
-    }
-    return out;
-  };
-  const byMvp = elig.slice().sort((a, b) => mvpScore(b) - mvpScore(a)), byDp = elig.slice().sort((a, b) => dpScore(b) - dpScore(a));
-  const allRookie = rows.filter(x => rookie(x) && x.t.gp >= 30).sort((a, b) => mvpScore(b) - mvpScore(a)).slice(0, 5).map(x => x.p.id);
-  return { season: Y, mvp, dpoy, roy, smoy, mip, coy, allLeague: teamsOf(byMvp, 3), allDef: teamsOf(byDp, 2), allRookie, fmvp: null };
+  return out;
 }
 
-// Finals MVP: best Finals performer on the champion.
-export function finalsMvp(g: Game, finals: Record<number, any>, champ: number, s: any): AwardEntry | null {
-  const ids = Object.keys(finals).map(Number).filter(id => s.rosters[champ]?.includes(id));
-  if (!ids.length) return null;
-  const best = ids.sort((a, b) => g.eff(finals[b]) - g.eff(finals[a]))[0], t = finals[best];
-  return { pid: best, tid: champ, line: f1(t.pts / t.gp) + ' pts · ' + f1((t.orb + t.drb) / t.gp) + ' reb · ' + f1(t.ast / t.gp) + ' ast in the Finals', score: g.eff(t) / t.gp };
+// All-League style teams: two guards, two forwards, one center each (positional), or the top five.
+function teamsOf(ranked: any[], nTeams: number, P: any, positional: boolean) {
+  const used = new Set<number>(), out: number[][] = [];
+  for (let k = 0; k < nTeams; k++) {
+    const team: number[] = [];
+    if (positional) for (const [grp, n] of [['G', 2], ['W', 2], ['B', 1]] as [string, number][]) ranked.filter(x => P[x.pid].grp === grp && !used.has(x.pid)).slice(0, n).forEach(x => { team.push(x.pid); used.add(x.pid); });
+    ranked.filter(x => !used.has(x.pid)).slice(0, 5 - team.length).forEach(x => { team.push(x.pid); used.add(x.pid); });
+    out.push(team);
+  }
+  return out;
+}
+
+// Series MVP (Finals: statRange -1; conference finals: -2) from series totals.
+export function seriesMvp(g: Game, s: any, def: AwardDef, box: Record<number, any>, series: { a: number; b: number; winner: number }): AwardEntry | null {
+  let fn; try { fn = compileFormula(def.formula); } catch { return null; }
+  const inTeam = (id: number, t: number) => (s.rosters[t] || []).includes(id);
+  const best = Object.keys(box).map(Number).filter(id => inTeam(id, series.a) || inTeam(id, series.b)).map(id => {
+    const x = seriesLine(box[id]), tid = inTeam(id, series.a) ? series.a : series.b;
+    const v = fn.run({ ...x, won: tid === series.winner ? 1 : 0, ...wonVars(s, g.Y, id, awardDefs(s)) });
+    return { pid: id, tid, v, x };
+  }).sort((a, b) => b.v - a.v)[0];
+  if (!best) return null;
+  return { pid: best.pid, tid: best.tid, line: f1(best.x.pts) + ' pts · ' + f1(best.x.trb) + ' reb · ' + f1(best.x.ast) + ' ast · Game Score ' + f1(best.x.gmsc), score: +best.v.toFixed(2) };
 }
 
 // Every award a player has won, for his profile.
@@ -79,8 +118,10 @@ export function awardsOf(s: any, pid: number) {
   const out: { season: number; label: string }[] = [];
   const LB: Record<string, string> = { mvp: 'MVP', dpoy: 'Defensive Player of the Year', roy: 'Rookie of the Year', smoy: 'Sixth Man of the Year', mip: 'Most Improved Player' };
   Object.values(s.awards || {}).forEach((a: any) => {
-    Object.keys(LB).forEach(k => { if (a[k]?.[0]?.pid === pid) out.push({ season: a.season, label: LB[k] }); });
+    if (a.list) (a.defs || []).forEach(d => { if (!d.numTeams && !d.statRange && a.list[d.shortName]?.[0]?.pid === pid) out.push({ season: a.season, label: d.name }); });
+    else Object.keys(LB).forEach(k => { if (a[k]?.[0]?.pid === pid) out.push({ season: a.season, label: LB[k] }); });
     if (a.fmvp?.pid === pid) out.push({ season: a.season, label: 'Finals MVP' });
+    Object.entries(a.sfmvp || {}).forEach(([c, e]: any) => { if (e?.pid === pid) out.push({ season: a.season, label: c + ' Finals MVP' }); });
     a.allLeague?.forEach((t, i) => { if (t.includes(pid)) out.push({ season: a.season, label: ['First', 'Second', 'Third'][i] + ' Team All-League' }); });
     a.allDef?.forEach((t, i) => { if (t.includes(pid)) out.push({ season: a.season, label: ['First', 'Second'][i] + ' Team All-Defensive' }); });
     if (a.allRookie?.includes(pid)) out.push({ season: a.season, label: 'All-Rookie Team' });

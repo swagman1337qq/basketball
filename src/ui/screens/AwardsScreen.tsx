@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { h4Style, Kicker, Link, muted, Seg } from '../kit';
+import { awardDefs } from '../../engine/awards';
 
 const INDIV: [string, string][] = [['mvp', 'Most Valuable Player'], ['dpoy', 'Defensive Player of the Year'], ['roy', 'Rookie of the Year'], ['smoy', 'Sixth Man of the Year'], ['mip', 'Most Improved Player']];
 
@@ -12,13 +13,13 @@ export function AwardsScreen({ vm }: { vm: VM }) {
   const [pick, setPick] = useState<number | null>(null);
   const yr = pick && seasons.includes(pick) ? pick : seasons[0];
   if (!yr) return <p style={{ ...muted, fontStyle: 'italic' }}>Awards are voted when the regular season ends. Finish the {gm.seasonLbl()} regular season to see the first winners.</p>;
-  const a = s.awards[yr];
+  const a = s.awards[yr], defs = awardDefs(s);
   const lbl = y => y - 1 + '–' + String(y).slice(2);
-  const Card = ({ k, title }: { k: string; title: string }) => {
-    const list = a[k] || [], w = list[0];
+  const Card = ({ k, title, entries, hint }: { k: string; title: string; entries?: any[]; hint?: string }) => {
+    const list = entries || a[k] || [], w = list[0];
     return (
       <section className="card" style={{ padding: '14px 16px', gap: '8px' }}>
-        <Kicker accent>{title}</Kicker>
+        <div title={hint}><Kicker accent>{title}</Kicker></div>
         {w ? (
           <>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -39,7 +40,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
               ))}
             </div>
           </>
-        ) : <p style={{ ...muted, margin: 0, fontStyle: 'italic' }}>{k === 'mip' ? 'Not awarded: it needs a previous league season to compare against.' : 'No eligible players.'}</p>}
+        ) : <p style={{ ...muted, margin: 0, fontStyle: 'italic' }}>{k === 'mip' || k === 'MIP' || k === 'LIP' ? 'Not awarded: it needs a previous league season to compare against.' : 'No eligible players.'}</p>}
       </section>
     );
   };
@@ -66,10 +67,10 @@ export function AwardsScreen({ vm }: { vm: VM }) {
     <>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
         <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => setPick(v)} />
-        <span style={{ ...muted, fontSize: '12px' }}>Individual awards and All-League teams need {58} of 82 games played.</span>
+        <span style={{ ...muted, fontSize: '12px' }}>{a.list ? 'Voted by formula (hover a title to see it; edit them in Settings → Award formulas). Most awards need 65 games.' : 'Individual awards and All-League teams need 58 of 82 games played.'}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '18px', marginBottom: '26px' }}>
-        {INDIV.map(([k, t]) => <Card key={k} k={k} title={t} />)}
+        {a.list ? (a.defs || []).filter(d => !d.numTeams && !d.statRange).map(d => <Card key={d.shortName} k={d.shortName} title={d.name} entries={a.list[d.shortName]} hint={defs.find(x => x.shortName === d.shortName)?.formula} />) : INDIV.map(([k, t]) => <Card key={k} k={k} title={t} />)}
         <section className="card" style={{ padding: '14px 16px', gap: '8px' }}>
           <Kicker accent>Coach of the Year</Kicker>
           {a.coy.map((c, i) => (
@@ -82,6 +83,12 @@ export function AwardsScreen({ vm }: { vm: VM }) {
             </div>
           ))}
         </section>
+        {Object.entries(a.sfmvp || {}).filter(([, e]) => e).map(([c, e]: any) => (
+          <section key={c} className="card" style={{ padding: '14px 16px', gap: '8px', flexDirection: 'row', alignItems: 'center' }}>
+            {logo(e.tid, 34)}
+            <div><Kicker accent>{c} Finals MVP</Kicker><Link onClick={() => open(e.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '19px', fontWeight: 600 }}>{P[e.pid].name}</Link><div style={{ fontSize: '12px' }}>{e.line}</div></div>
+          </section>
+        ))}
         {a.fmvp && (
           <section className="card" style={{ padding: '14px 16px', gap: '8px', gridColumn: 'span 3', flexDirection: 'row', alignItems: 'center' }}>
             {logo(a.fmvp.tid, 40)}
@@ -95,9 +102,9 @@ export function AwardsScreen({ vm }: { vm: VM }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <TeamTable title="All-League" teams={a.allLeague} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (a.teams?.ALR?.length || 1) > 1 ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,2fr) minmax(0,1fr)', gap: '24px' }}>
           <TeamTable title="All-Defensive" teams={a.allDef} />
-          <TeamTable title="All-Rookie" teams={[a.allRookie]} />
+          <TeamTable title="All-Rookie" teams={a.teams?.ALR || [a.allRookie]} />
         </div>
       </div>
     </>

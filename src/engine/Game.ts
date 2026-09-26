@@ -2,10 +2,10 @@
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
 import { createElement } from 'react';
-import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
+import { randomName, clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
-import { computeAwards, finalsMvp } from './awards';
+import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
 import { baseAfterIncentives, fireSale, inboxTick, ownerFavorite } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
@@ -115,6 +115,16 @@ export class Game {
   wpick(o) { const e: [string, any][] = (Object.entries(o) as [string, any][]); let t = e.reduce((a, x) => a + x[1], 0) * this.rnd(); for (const [k, w] of e) { t -= w; if (t <= 0) return k; } return e[0][0]; }
 
   face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
+  resetFace(pid) { delete this.faceCache[pid]; }
+  // God Mode: a player now represents another country. Heritage, look and name follow it.
+  renationalize(p, code, withName = true) {
+    const C = this.db.C; if (!C[code]) return null;
+    const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
+    p.rep = code; if (!p.elig.find(x => x.c === code)) p.elig = [...p.elig, { c: code, why: 'set in God Mode' }];
+    p.her = code; const r = C[code].race, ks = Object.keys(r); let x = Math.random(); p.race = ks.find(k => (x -= r[k]) < 0) || ks[0]; this.resetFace(p.id);
+    if (withName) Object.assign(p, randomName(code));
+    return undo;
+  }
   // Jersey in the team's colors; free agents and prospects wear grey.
   faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid]; return faceSvg(this.face(pid), t && t.colors ? t.colors : undefined); }
   downloadFaces() {
@@ -486,6 +496,7 @@ export class Game {
       const LB = { mvp: 'Most Valuable Player', dpoy: 'Defensive Player of the Year', roy: 'Rookie of the Year', smoy: 'Sixth Man of the Year', mip: 'Most Improved Player' };
       Object.keys(LB).forEach(k => { const w = aw[k][0]; if (!w) return; lgLog.unshift({ day: s.day, type: 'Award', teams: T[w.tid]?.abbr || 'League', pids: [w.pid], text: P[w.pid].name + ' (' + (T[w.tid]?.abbr || 'FA') + ') is the ' + LB[k] + ': ' + w.line });
         if (k === 'mvp' && T[w.tid]) news.unshift({ day: s.day, season: this.Y, kind: 'award', tid: w.tid, who: T[w.tid].owner, role: 'Owner, ' + T[w.tid].abbr, pids: [w.pid], quote: P[w.pid].name + ' carried this franchise all year. Nobody in this league was more valuable, and nobody worked harder.' }); });
+      (aw.defs || []).filter(d => !d.numTeams && !d.statRange && !['MVP', 'DPOY', 'ROY', 'SMOY', 'MIP'].includes(d.shortName)).forEach(d => { const w = aw.list?.[d.shortName]?.[0]; if (w) lgLog.unshift({ day: s.day, type: 'Award', teams: T[w.tid]?.abbr || 'League', pids: [w.pid], text: P[w.pid].name + ' (' + (T[w.tid]?.abbr || 'FA') + ') wins the ' + d.name + ': ' + w.line }); });
       if (aw.coy[0]) lgLog.unshift({ day: s.day, type: 'Award', teams: T[aw.coy[0].tid].abbr, text: aw.coy[0].name + ' (' + T[aw.coy[0].tid].abbr + ') is the Coach of the Year: ' + aw.coy[0].line });
       return { phase: 'playin', seeds, playin, awards: { ...(s.awards || {}), [this.Y]: aw }, screen: 'playoffs', lgLog, news };
     });
@@ -501,7 +512,7 @@ export class Game {
   private postGame(s, home, away, forced, kind, finals?) {
     const res = forced && forced.home.tid === home && forced.away.tid === away ? forced : this.playGame(s, home, away);
     this.addBox(res, true);
-    if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
+    if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
     return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind } };
   }
   simPlayin(forced?: GameResult) {
@@ -535,7 +546,7 @@ export class Game {
   simPo(mode, forced?: GameResult) {
     this.setState(s => {
       if (s.phase !== 'playoffs' || !s.po || s.po.champ != null) return null;
-      const po = { ...s.po, finals: { ...(s.po.finals || {}) }, rounds: s.po.rounds.map(r => r.map(x => ({ ...x, g: (x.g || []).slice() }))) };
+      const po = { ...s.po, finals: { ...(s.po.finals || {}) }, cf: { ...(s.po.cf || {}) }, rounds: s.po.rounds.map(r => r.map(x => ({ ...x, g: (x.g || []).slice() }))) };
       const RN = ['first round', 'conference semifinals', 'conference finals', 'Finals'];
       const W = x => x.wa === 4 ? { t: x.a, sd: x.sa } : { t: x.b, sd: x.sb }, L = x => x.wa === 4 ? x.b : x.a, done = x => x.wa === 4 || x.wb === 4;
       const games = (s.games || []).slice(); let day = s.day, st: any = { ...s }, clubs = { ...(s.clubs || {}) }, used = false;
@@ -555,7 +566,7 @@ export class Game {
           const n = x.wa + x.wb, aHome = [0, 1, 4, 6].includes(n), home = aHome ? x.a : x.b, away = aHome ? x.b : x.a;
           const f = !used && forced && forced.home.tid === home && forced.away.tid === away ? forced : undefined;
           if (f) used = true;
-          const { res, log } = this.postGame({ ...s, day }, home, away, f, 'po', ri === 3 ? po.finals : null);
+          const { res, log } = this.postGame({ ...s, day }, home, away, f, 'po', ri === 3 ? po.finals : ri === 2 ? po.cf : null);
           games.push(log);
           const aWon = (res.home.pts > res.away.pts) === aHome;
           if (aWon) x.wa++; else x.wb++;
@@ -569,7 +580,10 @@ export class Game {
       if (mode === 'game') playDay(); else if (mode === 'round') { const n0 = po.rounds.length; while (po.rounds.length === n0 && po.champ == null && g++ < 10) playDay(); } else while (po.champ == null && g++ < 40) playDay();
       const out: any = { ...st, clubs, po, games, day };
       if (po.champ != null) {
-        const T = s.teams, fm = finalsMvp(this, po.finals, po.champ, s), aw = { ...((s.awards || {})[this.Y] || {}), fmvp: fm };
+        const T = s.teams, defs = awardDefs(s), fd = defs.find(d => d.statRange === -1), sd = defs.find(d => d.statRange === -2);
+        const fin = po.rounds[3][0], fm = fd ? seriesMvp(this, s, fd, po.finals, { a: fin.a, b: fin.b, winner: po.champ }) : null;
+        const sfmvp: Record<string, any> = {}; if (sd && po.rounds[2]) po.rounds[2].forEach(x => { sfmvp[x.conf] = seriesMvp(this, s, sd, po.cf, { a: x.a, b: x.b, winner: W(x).t }); });
+        const aw = { ...((s.awards || {})[this.Y] || {}), fmvp: fm, sfmvp };
         const finOf = tid => { let fin = 'Missed the playoffs'; po.rounds.forEach((r, i) => r.forEach(x => { if (x.a === tid || x.b === tid) fin = W(x).t === tid ? (i === 3 ? 'Won the title' : fin) : 'Lost in the ' + RN[i]; })); if (fin === 'Missed the playoffs' && ['East', 'West'].some(c => s.playin?.[c]?.some(x => x.a === tid || x.b === tid))) fin = 'Lost in the play-in'; return fin; };
         const teams = {}; s.managed.forEach(t => (teams[t] = { rec: T[t].w + '–' + T[t].l, fin: finOf(t) }));
         out.history = [{ season: this.seasonLbl(), year: this.Y, champ: po.champ, runner: po.runner, rec: T[s.me].w + '–' + T[s.me].l, fin: finOf(s.me), teams, fmvp: fm?.pid }, ...s.history];
@@ -676,7 +690,7 @@ export class Game {
       let clubs = { ...(s.clubs || {}) }, top: any = {};
       s.managed.forEach(t => { const c = this.clubOf(s, t), f = { taxHist: [...(c.taxHist || []), this.payrollOf(s.rosters[t]) > this.TAX], prog: progBy[t] || [] };
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
-      return { ...top, clubs, tstats: {}, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      return { ...top, clubs, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: order.map((orig, i) => ({ n: i + 1, orig, pid: null })), pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
   }
   // Opening night: every club needs 13 players. Short-handed managed clubs sign the best

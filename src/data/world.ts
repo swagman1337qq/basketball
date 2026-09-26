@@ -12,9 +12,9 @@ export function countries() {
     BS: c('Bahamas', 'bs', B, 'us', ['Nassau', 'Freeport']),
     BR: c('Brazil', 'br', { brown: .5, black: .3, white: .2 }, 'pt', ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Belo Horizonte', 'Franca'], { soli: 1 }),
     AR: c('Argentina', 'ar', { white: .8, brown: .2 }, 'es', ['Buenos Aires', 'Córdoba', 'Rosario', 'Bahía Blanca'], { soli: 1 }),
-    MX: c('Mexico', 'mx', { brown: .85, white: .15 }, 'es', ['Mexico City', 'Monterrey', 'Guadalajara'], { soli: 1 }),
-    DO: c('Dominican Republic', 'do', { brown: .6, black: .4 }, 'es', ['Santo Domingo', 'Santiago de los Caballeros']),
-    PR: c('Puerto Rico', 'pr', { brown: .6, black: .25, white: .15 }, 'es', ['San Juan', 'Bayamón', 'Ponce'], { soli: 1 }),
+    MX: c('Mexico', 'mx', { brown: .85, white: .15 }, 'la', ['Mexico City', 'Monterrey', 'Guadalajara'], { soli: 1 }),
+    DO: c('Dominican Republic', 'do', { brown: .6, black: .4 }, 'la', ['Santo Domingo', 'Santiago de los Caballeros']),
+    PR: c('Puerto Rico', 'pr', { brown: .6, black: .25, white: .15 }, 'la', ['San Juan', 'Bayamón', 'Ponce'], { soli: 1 }),
     FR: c('France', 'fr', { white: .45, black: .5, brown: .05 }, 'fr', ['Paris', 'Lyon', 'Le Mans', 'Strasbourg', 'Villeurbanne', 'Nanterre'], { eu: 1 }),
     ES: c('Spain', 'es', { white: .9, black: .1 }, 'es', ['Madrid', 'Barcelona', 'Málaga', 'Valencia', 'Badalona'], { eu: 1 }),
     DE: c('Germany', 'de', { white: .75, black: .25 }, 'de', ['Berlin', 'Munich', 'Hamburg', 'Bamberg', 'Ulm'], { eu: 1 }),
@@ -34,15 +34,15 @@ export function countries() {
     GB: c('Great Britain', 'gb', { white: .55, black: .45 }, 'au', ['London', 'Manchester', 'Leicester'], { eu: 1 }),
     NG: c('Nigeria', 'ng', B, 'ng', ['Lagos', 'Abuja', 'Ibadan', 'Enugu']),
     SN: c('Senegal', 'sn', B, 'sn', ['Dakar', 'Thiès', 'Saint-Louis']),
-    ML: c('Mali', 'ml', B, 'sn', ['Bamako', 'Kayes']),
+    ML: c('Mali', 'ml', B, 'ml', ['Bamako', 'Kayes']),
     CM: c('Cameroon', 'cm', B, 'cm', ['Yaoundé', 'Douala', 'Bafoussam']),
-    CD: c('DR Congo', 'cd', B, 'cm', ['Kinshasa', 'Lubumbashi']),
+    CD: c('DR Congo', 'cd', B, 'cd', ['Kinshasa', 'Lubumbashi']),
     SS: c('South Sudan', 'ss', B, 'ss', ['Juba', 'Wau', 'Malakal']),
-    KE: c('Kenya', 'ke', B, 'ss', ['Nairobi', 'Kakuma']),
-    AO: c('Angola', 'ao', B, 'pt', ['Luanda', 'Benguela', 'Lobito']),
-    CI: c('Côte d’Ivoire', 'ci', B, 'fr', ['Abidjan', 'Bouaké', 'Yamoussoukro']),
-    JM: c('Jamaica', 'jm', B, 'us', ['Kingston', 'Montego Bay', 'Spanish Town']),
-    VE: c('Venezuela', 've', { brown: .7, white: .2, black: .1 }, 'es', ['Caracas', 'Barquisimeto', 'Maracaibo', 'Valencia']),
+    KE: c('Kenya', 'ke', B, 'ke', ['Nairobi', 'Kakuma']),
+    AO: c('Angola', 'ao', B, 'ao', ['Luanda', 'Benguela', 'Lobito']),
+    CI: c('Côte d’Ivoire', 'ci', B, 'ci', ['Abidjan', 'Bouaké', 'Yamoussoukro']),
+    JM: c('Jamaica', 'jm', B, 'jm', ['Kingston', 'Montego Bay', 'Spanish Town']),
+    VE: c('Venezuela', 've', { brown: .7, white: .2, black: .1 }, 'la', ['Caracas', 'Barquisimeto', 'Maracaibo', 'Valencia']),
     UY: c('Uruguay', 'uy', { white: .85, brown: .15 }, 'es', ['Montevideo', 'Salto', 'Paysandú']),
     AU: c('Australia', 'au', { white: .8, black: .15, brown: .05 }, 'au', ['Melbourne', 'Sydney', 'Perth', 'Brisbane', 'Adelaide', 'Canberra']),
     NZ: c('New Zealand', 'nz', { white: .6, brown: .4 }, 'au', ['Auckland', 'Wellington', 'Christchurch']),
@@ -76,10 +76,18 @@ export function namePools() {
     cm: { f: ['Pascal', 'Christian', 'Yannick', 'Landry', 'Ulrich', 'Joël', 'Arsène', 'Jean-Pierre'], l: ['Mbah', 'Ngando', 'Eyenga', 'Mbida', 'Fotso', 'Nkoulou', 'Tchoua', 'Kabongo'] },
     ss: { f: ['Deng', 'Majok', 'Bol', 'Akol', 'Garang', 'Mayen', 'Wal', 'Makur', 'Kuany'], l: ['Deng', 'Garang', 'Mayen', 'Akec', 'Chol', 'Maker', 'Kuol', 'Jok', 'Madut'] },
     au: { f: ['Josh', 'Jack', 'Mitch', 'Liam', 'Cooper', 'Tyson', 'Will', 'Harry', 'Lachlan', 'Callum', 'Oscar'], l: ['Smith', 'Kelly', 'Walsh', 'O\u2019Brien', 'Harris', 'McKenzie', 'Taylor', 'Ryan', 'Brooks', 'Fraser', 'Doyle'] },
-    cn: { lf: 1, f: ['Haoran', 'Wei', 'Jun', 'Yuhang', 'Zhe', 'Rui', 'Ming', 'Kai', 'Yiran', 'Zihan', 'Jiahao', 'Tianyu'], l: ['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Hu', 'Zhou', 'Xu', 'Sun', 'Guo'] },
-    jp: { f: ['Yuta', 'Rui', 'Kai', 'Yuki', 'Haruto', 'Sora', 'Ren', 'Kota'], l: ['Tanaka', 'Suzuki', 'Sato', 'Takahashi', 'Ito', 'Yamamoto', 'Nakamura', 'Kobayashi'] },
-    kr: { lf: 1, f: ['Ji-hoon', 'Min-jun', 'Seung-woo', 'Hyun-woo', 'Do-yun', 'Jae-won'], l: ['Kim', 'Lee', 'Park', 'Choi', 'Jung', 'Kang', 'Yoon'] },
-    ph: { f: ['Juan', 'Carlo', 'Kai', 'Jericho', 'Miguel', 'Paolo', 'Dwight'], l: ['Santos', 'Reyes', 'Cruz', 'Bautista', 'Ramos', 'Mendoza', 'Tolentino'] }
+    cn: { lf: 1, f: ['Haoran', 'Wei', 'Jun', 'Yuhang', 'Zhe', 'Rui', 'Ming', 'Kai', 'Jiahao', 'Tianyu', 'Hao', 'Lei', 'Qiang', 'Tao', 'Peng', 'Bo', 'Zhiwei', 'Junjie', 'Zixuan', 'Minghao', 'Chenyu', 'Bowen', 'Wenbo', 'Fei', 'Long', 'Yichen'], l: ['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Hu', 'Zhou', 'Xu', 'Sun', 'Guo', 'Huang', 'Wu', 'Zhu', 'Gao', 'Lin', 'He', 'Ma', 'Luo', 'Liang', 'Song', 'Zheng', 'Han', 'Tang', 'Feng', 'Cao', 'Deng', 'Xie'] },
+    jp: { f: ['Yuta', 'Rui', 'Kai', 'Yuki', 'Haruto', 'Sora', 'Ren', 'Kota', 'Daiki', 'Yudai', 'Takumi', 'Shota', 'Kenta', 'Ryota', 'Sho', 'Makoto', 'Kazuki', 'Riku', 'Yuma'], l: ['Tanaka', 'Suzuki', 'Sato', 'Takahashi', 'Ito', 'Yamamoto', 'Nakamura', 'Kobayashi', 'Watanabe', 'Kato', 'Yoshida', 'Yamada', 'Sasaki', 'Matsumoto', 'Inoue', 'Kimura', 'Hayashi', 'Shimizu'] },
+    kr: { lf: 1, f: ['Ji-hoon', 'Min-jun', 'Seung-woo', 'Hyun-woo', 'Do-yun', 'Jae-won', 'Ji-ho', 'Jun-seo', 'Seo-jun', 'Ye-jun', 'Si-woo', 'Dong-hyun', 'Sung-min', 'Hyun-jun', 'Jae-hyun', 'Tae-hoon', 'Min-seok'], l: ['Kim', 'Lee', 'Park', 'Choi', 'Jung', 'Kang', 'Yoon', 'Cho', 'Jang', 'Lim', 'Han', 'Shin', 'Seo', 'Kwon', 'Song', 'Hwang', 'Ahn'] },
+    ph: { f: ['Juan', 'Carlo', 'Kai', 'Jericho', 'Miguel', 'Paolo', 'Dwight'], l: ['Santos', 'Reyes', 'Cruz', 'Bautista', 'Ramos', 'Mendoza', 'Tolentino'] },
+    // Country-specific pools (common real given names and surnames).
+    la: { f: ['José', 'Luis', 'Carlos', 'Jorge', 'Miguel', 'Ángel', 'Francisco', 'Jesús', 'Daniel', 'Andrés', 'Eduardo', 'Ricardo', 'Alejandro', 'Emmanuel'], l: ['Hernández', 'González', 'Rodríguez', 'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera', 'Gómez', 'Díaz', 'Cruz', 'Morales', 'Reyes', 'Ortiz'] },
+    ml: { f: ['Mamadou', 'Moussa', 'Seydou', 'Boubacar', 'Souleymane', 'Adama', 'Oumar', 'Bakary', 'Modibo', 'Siaka'], l: ['Keïta', 'Traoré', 'Coulibaly', 'Diarra', 'Sissoko', 'Konaté', 'Doumbia', 'Maïga', 'Touré', 'Camara'] },
+    cd: { f: ['Jonathan', 'Christian', 'Emmanuel', 'Patrick', 'Glody', 'Rodrigue', 'Merveille', 'Junior', 'Bienvenu', 'Exaucé'], l: ['Mukendi', 'Kabongo', 'Tshibangu', 'Ilunga', 'Mutombo', 'Kalala', 'Mbuyi', 'Lukusa', 'Kasongo', 'Nkulu'] },
+    ke: { f: ['Brian', 'Kevin', 'Dennis', 'Collins', 'Victor', 'Tylor', 'Griffin', 'Felix', 'Ian', 'Allan'], l: ['Otieno', 'Odhiambo', 'Ochieng', 'Kiprop', 'Mutua', 'Kamau', 'Wanjala', 'Omondi', 'Kiplagat', 'Njoroge'] },
+    ao: { f: ['Carlos', 'Edson', 'Yanick', 'Olímpio', 'Leonel', 'Gerson', 'Valdelício', 'Childe', 'Eduardo', 'Hermenegildo'], l: ['Morais', 'Gonçalves', 'Cipriano', 'Almeida', 'Fernandes', 'Mingas', 'Kiala', 'Neto', 'Dias', 'Lutonda'] },
+    ci: { f: ['Koffi', 'Yao', 'Kouadio', 'Konan', 'Aboubakar', 'Sékou', 'Christian', 'Jean-Marc', 'Serge', 'Ismaël'], l: ['Kouassi', 'Koné', 'Ouattara', 'Bamba', 'Touré', 'N’Guessan', 'Kouamé', 'Konaté', 'Diabaté', 'Yao'] },
+    jm: { f: ['Andre', 'Damian', 'Kemar', 'Romario', 'Shamar', 'Omar', 'Jevaughn', 'Tajay', 'Rushane', 'Nicholas'], l: ['Brown', 'Campbell', 'Williams', 'Clarke', 'Grant', 'Morgan', 'Reid', 'McKenzie', 'Francis', 'Gordon'] }
   };
 }
 
@@ -111,15 +119,26 @@ export function clubs() {
 export function nativeMaps() {
   if (nativeMapCache) return nativeMapCache;
   const z = (k, v) => Object.fromEntries(k.map((x, i) => [x, v[i]]));
-  return nativeMapCache = {
+  const out = {
     cn: z(['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Hu', 'Zhou', 'Xu', 'Sun', 'Guo', 'Haoran', 'Wei', 'Jun', 'Yuhang', 'Zhe', 'Rui', 'Ming', 'Kai', 'Yiran', 'Zihan', 'Jiahao', 'Tianyu'], ['王', '李', '张', '刘', '陈', '杨', '赵', '胡', '周', '徐', '孙', '郭', '浩然', '伟', '俊', '宇航', '哲', '睿', '明', '凯', '一然', '子涵', '家豪', '天宇']),
     cnT: z(['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Hu', 'Zhou', 'Xu', 'Sun', 'Guo', 'Haoran', 'Wei', 'Jun', 'Yuhang', 'Zhe', 'Rui', 'Ming', 'Kai', 'Yiran', 'Zihan', 'Jiahao', 'Tianyu'], ['Wáng', 'Lǐ', 'Zhāng', 'Liú', 'Chén', 'Yáng', 'Zhào', 'Hú', 'Zhōu', 'Xú', 'Sūn', 'Guō', 'Hàorán', 'Wěi', 'Jùn', 'Yǔháng', 'Zhé', 'Ruì', 'Míng', 'Kǎi', 'Yīrán', 'Zǐhán', 'Jiāháo', 'Tiānyǔ']),
     kr: z(['Kim', 'Lee', 'Park', 'Choi', 'Jung', 'Kang', 'Yoon', 'Ji-hoon', 'Min-jun', 'Seung-woo', 'Hyun-woo', 'Do-yun', 'Jae-won'], ['김', '이', '박', '최', '정', '강', '윤', '지훈', '민준', '승우', '현우', '도윤', '재원']),
-    jp: z(['Tanaka', 'Suzuki', 'Sato', 'Takahashi', 'Ito', 'Yamamoto', 'Nakamura', 'Kobayashi', 'Yuta', 'Rui', 'Kai', 'Yuki', 'Haruto', 'Sora', 'Ren', 'Kota'], ['田中', '鈴木', '佐藤', '高橋', '伊藤', '山本', '中村', '小林', '悠太', '塁', '海', '勇気', '陽翔', '空', '蓮', '康太']),
+    jp: z(['Tanaka', 'Suzuki', 'Sato', 'Takahashi', 'Ito', 'Yamamoto', 'Nakamura', 'Kobayashi', 'Yuta', 'Rui', 'Kai', 'Yuki', 'Haruto', 'Sora', 'Ren', 'Kota'], ['田中', '鈴木', '佐藤', '高橋', '伊藤', '山本', '中村', '小林', '悠太', '塁', '海', '祐希', '陽翔', '空', '蓮', '康太']),
     gr: z(['Giorgos', 'Nikos', 'Kostas', 'Dimitris', 'Vasilis', 'Thanasis', 'Panagiotis', 'Yannis', 'Michalis', 'Papadopoulos', 'Georgiou', 'Antonopoulos', 'Nikolaidis', 'Vlachos', 'Karras', 'Pappas', 'Dimitriou', 'Katsaros'], ['Γιώργος', 'Νίκος', 'Κώστας', 'Δημήτρης', 'Βασίλης', 'Θανάσης', 'Παναγιώτης', 'Γιάννης', 'Μιχάλης', 'Παπαδόπουλος', 'Γεωργίου', 'Αντωνόπουλος', 'Νικολαΐδης', 'Βλάχος', 'Καρράς', 'Παππάς', 'Δημητρίου', 'Κατσαρός']),
     ge: z(['Giorgi', 'Tornike', 'Goga', 'Sandro', 'Levan', 'Luka', 'Beridze', 'Kapanadze', 'Gelashvili', 'Lomidze', 'Tsiklauri', 'Chkheidze'], ['გიორგი', 'თორნიკე', 'გოგა', 'სანდრო', 'ლევან', 'ლუკა', 'ბერიძე', 'კაპანაძე', 'გელაშვილი', 'ლომიძე', 'წიკლაური', 'ჩხეიძე']),
     il: z(['Yam', 'Omri', 'Tamir', 'Itay', 'Noam', 'Ben', 'Roman', 'Guy', 'Cohen', 'Levy', 'Peretz', 'Mizrahi', 'Friedman', 'Katz', 'Ben-David', 'Shapiro'], ['ים', 'עמרי', 'תמיר', 'איתי', 'נועם', 'בן', 'רומן', 'גיא', 'כהן', 'לוי', 'פרץ', 'מזרחי', 'פרידמן', 'כץ', 'בן דוד', 'שפירא'])
   };
+  // More real names: hanzi with tone-marked pinyin, hangul, kanji.
+  const add = (m, k, v) => Object.assign(m, z(k, v));
+  add(out.cn, ['Huang', 'Wu', 'Zhu', 'Gao', 'Lin', 'He', 'Ma', 'Luo', 'Liang', 'Song', 'Zheng', 'Han', 'Tang', 'Feng', 'Cao', 'Deng', 'Xie', 'Hao', 'Lei', 'Qiang', 'Tao', 'Peng', 'Bo', 'Zhiwei', 'Junjie', 'Zixuan', 'Minghao', 'Chenyu', 'Bowen', 'Wenbo', 'Fei', 'Long', 'Yichen'],
+    ['黄', '吴', '朱', '高', '林', '何', '马', '罗', '梁', '宋', '郑', '韩', '唐', '冯', '曹', '邓', '谢', '浩', '磊', '强', '涛', '鹏', '博', '志伟', '俊杰', '子轩', '明浩', '晨宇', '博文', '文博', '飞', '龙', '奕辰']);
+  add(out.cnT, ['Huang', 'Wu', 'Zhu', 'Gao', 'Lin', 'He', 'Ma', 'Luo', 'Liang', 'Song', 'Zheng', 'Han', 'Tang', 'Feng', 'Cao', 'Deng', 'Xie', 'Hao', 'Lei', 'Qiang', 'Tao', 'Peng', 'Bo', 'Zhiwei', 'Junjie', 'Zixuan', 'Minghao', 'Chenyu', 'Bowen', 'Wenbo', 'Fei', 'Long', 'Yichen'],
+    ['Huáng', 'Wú', 'Zhū', 'Gāo', 'Lín', 'Hé', 'Mǎ', 'Luó', 'Liáng', 'Sòng', 'Zhèng', 'Hán', 'Táng', 'Féng', 'Cáo', 'Dèng', 'Xiè', 'Hào', 'Lěi', 'Qiáng', 'Tāo', 'Péng', 'Bó', 'Zhìwěi', 'Jùnjié', 'Zǐxuān', 'Mínghào', 'Chényǔ', 'Bówén', 'Wénbó', 'Fēi', 'Lóng', 'Yìchén']);
+  add(out.kr, ['Cho', 'Jang', 'Lim', 'Han', 'Shin', 'Seo', 'Kwon', 'Song', 'Hwang', 'Ahn', 'Ji-ho', 'Jun-seo', 'Seo-jun', 'Ye-jun', 'Si-woo', 'Dong-hyun', 'Sung-min', 'Hyun-jun', 'Jae-hyun', 'Tae-hoon', 'Min-seok'],
+    ['조', '장', '임', '한', '신', '서', '권', '송', '황', '안', '지호', '준서', '서준', '예준', '시우', '동현', '성민', '현준', '재현', '태훈', '민석']);
+  add(out.jp, ['Watanabe', 'Kato', 'Yoshida', 'Yamada', 'Sasaki', 'Matsumoto', 'Inoue', 'Kimura', 'Hayashi', 'Shimizu', 'Daiki', 'Yudai', 'Takumi', 'Shota', 'Kenta', 'Ryota', 'Sho', 'Makoto', 'Kazuki', 'Riku', 'Yuma'],
+    ['渡辺', '加藤', '吉田', '山田', '佐々木', '松本', '井上', '木村', '林', '清水', '大輝', '雄大', '拓海', '翔太', '健太', '亮太', '翔', '誠', '和樹', '陸', '悠真']);
+  return (nativeMapCache = out);
 }
 
 export function natDefault() { return { AO: 6, CI: 5, JM: 5, VE: 6, UY: 4, US: 3050, CA: 55, FR: 50, RS: 40, AU: 38, ES: 25, DE: 25, BR: 22, NG: 22, HR: 20, LT: 17, GR: 15, TR: 15, AR: 14, SI: 13, SN: 12, IT: 12, GB: 12, CD: 10, CM: 9, DO: 9, LV: 8, GE: 8, BS: 8, ME: 8, BA: 8, CN: 7, PR: 6, MX: 6, IL: 5, ML: 4, SS: 4, JP: 4, NZ: 4, FI: 3, PH: 2, KR: 1, KE: 1 }; }
@@ -234,4 +253,23 @@ export function genExpansionTeam(city: string, rnd: () => number = Math.random, 
   if (abbr.length < 3) abbr = (abbr + city.replace(/[^A-Za-z]/g, '').slice(1).toUpperCase()).slice(0, 3);
   for (let i = 0; taken.includes(abbr) && i < 5; i++) abbr = abbr.slice(0, 2) + String.fromCharCode(88 + i);
   return { region: city, name: pick(th.names), abbr, conf: c[1], div: c[2], mkt: c[3], colors: [c1, c2] as [string, string], icon: pick(th.icons) };
+}
+
+// ── Random real names (God Mode editor) ─────────────────────────────────────────
+// A name from the country's own pool: Romanized (with tones and diacritics) and, where
+// the country uses another script, the native form. Chinese and Korean names are family
+// name first; Japanese are given name first in Romanized form, family first in kanji.
+export function randomName(country: string, rnd: () => number = Math.random) {
+  const C = countries(), NP = namePools(), NM = nativeMaps(), pk = (C[country] && C[country].pool) || 'us', np = NP[pk] || NP.us;
+  const pick = (a: string[]) => a[Math.floor(rnd() * a.length)];
+  const f = pick(np.f), l = pick(np.l);
+  let first = f, last = l, nativeFirst = '', nativeLast = '';
+  if (pk === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
+  else if (pk === 'kr' || pk === 'jp' || pk === 'gr' || pk === 'ge' || pk === 'il') { nativeFirst = NM[pk][f] || ''; nativeLast = NM[pk][l] || ''; }
+  else if (pk === 'rs' && ['RS', 'ME', 'BA'].includes(country)) { nativeFirst = cyr(f); nativeLast = cyr(l); }
+  const familyFirst = !!np.lf;
+  const name = familyFirst ? last + ' ' + first : first + ' ' + last;
+  const cjk = pk === 'cn' || pk === 'kr' || pk === 'jp';
+  const native = !nativeFirst && !nativeLast ? '' : cjk ? nativeLast + (pk === 'jp' ? ' ' : '') + nativeFirst : nativeFirst + ' ' + nativeLast;
+  return { first, last, name, native, nativeFirst, nativeLast, familyFirst };
 }

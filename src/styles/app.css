@@ -12,3 +12,19 @@ a:hover { color: var(--color-accent-600); }
 .team-stripe { height: 3px; margin: -22px -28px 19px; background: linear-gradient(90deg, var(--team-1, var(--color-accent)) 0 70%, var(--team-2, var(--color-accent)) 70% 100%); opacity: .85; }
 aside { box-shadow: inset -2px 0 0 color-mix(in srgb, var(--team-1, transparent) 55%, transparent); }
 main .card { border-top-color: color-mix(in srgb, var(--team-1, var(--color-divider)) 45%, var(--color-divider)); }
+/* Dropdowns: a solid surface, a clear border and chevron, and option lists that follow
+   the theme (the native popup otherwise shows light text on a light list in dark mode). */
+select, select.input {
+  -webkit-appearance: none; appearance: none;
+  min-height: 34px; padding: 6px 32px 6px 10px; font: inherit; font-size: 13.5px;
+  color: var(--color-text); background-color: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-text) 32%, transparent); border-radius: var(--radius-md);
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-accent-700) 50%), linear-gradient(135deg, var(--color-accent-700) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat;
+  cursor: pointer;
+}
+select:hover { border-color: color-mix(in srgb, var(--color-text) 55%, transparent); background-color: color-mix(in srgb, var(--color-text) 6%, var(--color-surface)); }
+select:focus-visible { border-color: var(--color-accent); outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent); outline-offset: 1px; }
+select:disabled { opacity: .5; cursor: not-allowed; }
+select option, select optgroup { background-color: var(--color-surface); color: var(--color-text); }
+select option:checked { background-color: var(--color-accent-200); color: var(--color-text); }

@@ -1,5 +1,6 @@
 import type { VM } from '../vm';
 import { ExpansionPicker } from './ExpansionPicker';
+import { AwardFormulas } from './AwardFormulas';
 
 export function SettingsScreen({ vm }: { vm: VM }) {
   return (
@@ -101,6 +102,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           </button>
         </div>
         <ExpansionPicker vm={vm} />
+        <AwardFormulas vm={vm} />
         <div style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
             <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", flex: "1" }}>

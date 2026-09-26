@@ -71,28 +71,34 @@ export function DraftScreen({ vm }: { vm: VM }) {
           ))}
         </div>
       </>)}
-      <div style={{ display: "grid", gridTemplateColumns: "230px minmax(0,1fr)", gap: "28px", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(280px,320px) minmax(0,1fr)", gap: "28px", alignItems: "start" }}>
         <section>
           {!!vm.dr.isCurrent && (<>
             <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>
               First round
             </h4>
-            {(vm.dr.order || []).map((o: any, i: number) => (
-              <div key={i} style={{ display: "flex", gap: "8px", padding: "3px 6px", borderBottom: "1px solid var(--color-divider)", background: o.bg, color: o.color, fontWeight: o.fw }}>
-                <span style={{ width: "20px", textAlign: "right", color: "var(--color-neutral-600)" }}>
-                  {o.n}
-                </span>
-                <span style={{ width: "34px" }}>
-                  <button className="hv4" onClick={o.openT} style={{ all: "unset", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    {o.logo}
-                    {o.abbr}
-                  </button>
-                </span>
-                <span style={{ flex: "1", minWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: o.fs }}>
-                  {o.who}
-                </span>
-              </div>
-            ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "calc(100vh - 260px)", overflowY: "auto", paddingRight: "4px" }}>
+              {(vm.dr.order || []).map((o: any, i: number) => (
+                <div key={i} ref={o.onClock ? (el => { const box = el?.parentElement; if (el && box && box.dataset.at !== String(o.n)) { box.dataset.at = String(o.n); box.scrollTop = el.offsetTop - box.offsetTop - 90; } }) : undefined} style={{ display: "grid", gridTemplateColumns: "30px 30px minmax(0,1fr)", gap: "10px", alignItems: "center", padding: "8px 10px", borderRadius: "var(--radius-md)", border: o.onClock ? "1px solid var(--color-accent)" : "1px solid var(--color-divider)", background: o.onClock ? "var(--color-accent-100)" : o.mine ? "color-mix(in srgb, var(--color-accent) 6%, transparent)" : "transparent" }}>
+                  <span style={{ fontFamily: "var(--font-heading)", fontSize: "20px", textAlign: "right", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.n}</span>
+                  <button onClick={o.openT} title={o.team} style={{ all: "unset", cursor: "pointer" }}>{o.logoLg}</button>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "baseline", fontSize: "13px", color: o.mine ? "var(--color-accent-700)" : "var(--color-text)", fontWeight: o.mine ? 600 : 400 }}>
+                      <button className="hv4" onClick={o.openT} style={{ all: "unset", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.team}</button>
+                      {o.via && <span style={{ fontSize: "11px", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{o.via}</span>}
+                    </div>
+                    {o.pid ? (
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.35 }}>
+                        <button className="hv1" onClick={o.openP} style={{ all: "unset", cursor: "pointer", fontWeight: 600 }}>{o.who}</button>
+                        <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.pmeta}</div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "12px", fontStyle: "italic", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.onClock ? "On the clock" : "Pick " + o.n}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </>)}
           {!!vm.dr.isFuture && (<>
             <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>
