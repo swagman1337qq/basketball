@@ -33,6 +33,10 @@ function Ring({ v, label, tone }: { v: number; label: string; tone?: string }) {
   );
 }
 
+// Rating tiers: a word and a color for every rating, so the numbers read at a glance.
+const RTIERS: [string, string, number][] = [['Elite', 'var(--gm-elite)', 80], ['Great', 'var(--gm-good)', 70], ['Good', '#4a9fd8', 60], ['Average', 'var(--color-text)', 50], ['Below avg', '#d98a2b', 40], ['Poor', 'var(--gm-bad)', 0]];
+const rtier = (v: number): [string, string] => { const t = RTIERS.find(x => v >= x[2]) || RTIERS[RTIERS.length - 1]; return [t[0], t[1]]; };
+
 export function ProfileHeader({ vm }: { vm: VM }) {
   const { gm, s, p, tid, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl;
   if (!p.id) return null;
@@ -165,15 +169,20 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           {(pl.groups || []).map((g: any, gi: number) => (
             <div key={gi} style={{ marginBottom: '12px' }}>
               <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '6px 0 2px' }}>{g.label}</div>
-              {(g.items || []).map((r: any, i: number) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '112px minmax(0,1fr) 30px', gap: '8px', alignItems: 'center', padding: '2px 0', fontSize: '12.5px' }}>
-                  <span style={muted}>{r.name}</span>
-                  <div style={{ height: 5, background: 'var(--color-neutral-300)', borderRadius: 3 }}><div style={{ height: 5, width: r.w, background: r.v >= 70 ? 'var(--gm-elite)' : r.v >= 55 ? 'var(--color-accent)' : 'var(--color-neutral-500)', borderRadius: 3 }} /></div>
-                  <span style={{ textAlign: 'right', color: r.tone, fontWeight: 600 }}>{r.v}</span>
+              {(g.items || []).map((r: any, i: number) => { const t = rtier(r.v); return (
+                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 58px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+                  <span>{r.name}</span>
+                  <div style={{ position: 'relative', height: 9, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)', borderRadius: 5 }}>
+                    <div style={{ height: 9, width: r.w, background: t[1], borderRadius: 5 }} />
+                    <div title="League average (50)" style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }} />
+                  </div>
+                  <span style={{ textAlign: 'right', color: t[1], fontWeight: 700, fontSize: r.text ? '13.5px' : '16px', whiteSpace: 'nowrap' }}>{r.text || r.v}</span>
+                  <span style={{ fontSize: '11.5px', color: t[1], whiteSpace: 'nowrap' }}>{r.sub || t[0]}</span>
                 </div>
-              ))}
+              ); })}
             </div>
           ))}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', margin: '-4px 0 8px' }}>{RTIERS.map(([n, c, lo]) => <span key={n} style={{ color: c }}>■ {n} {lo}+</span>)}<span style={muted}>· the line marks the league average</span></div>
           <h4 style={{ ...ruleH4, marginTop: '14px' }}>Badges</h4>
           {badges.length === 0 ? <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic' }}>No badges yet. They’re earned by reaching rating thresholds.</p> : badges.map(b => (
             <div key={b.key} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) auto', gap: '8px', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>

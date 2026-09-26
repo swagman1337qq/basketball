@@ -128,7 +128,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   }
   const fc = gm.face(pp.id);
   const pl = { ...pp, flag: gm.flag(pp.rep), cname: C[pp.rep].n, tone: tone(pp.ovr), face: gm.faceEl(pp.id, ptid),
-    groups: RG.map(([label, ks]) => ({ label, items: ks.map(([k, n]) => ({ name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]) })) })),
+    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row = { name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]) };
+      if (k !== 'hgt' || !pp.wing) return [row];
+      // Wingspan is a measurement, not a rating: the bar shows how long his arms are for his height (the league averages +4″).
+      const hIn = gm.inches(pp.hgt), ape = pp.wing - hIn, len = Math.round(cl(50 + (ape - 4) * 6, 1, 99));
+      return [row, { name: 'Wingspan', v: len, w: len + '%', text: Math.floor(pp.wing / 12) + '′' + (pp.wing % 12) + '″', sub: (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″', hint: 'Wingspan ' + Math.floor(pp.wing / 12) + '′' + (pp.wing % 12) + '″, ' + (ape >= 0 ? ape + '″ longer' : -ape + '″ shorter') + ' than his height (league average: +4″)' }];
+    }) })),
     teamLogo: ptid >= 0 ? logo(ptid, 16) : null, teamLabel: ptid === -2 ? 'Overseas · ' + pp.abroad.club + ' (' + pp.abroad.lg + ')' : ptid >= 0 ? T[ptid].region + ' ' + T[ptid].name : ptid === -1 ? (glLabel(s, pp) ? 'G League · ' + glLabel(s, pp) : 'Free agent') : pk ? 'Drafted #' + pk.n + ' by ' + T[gm.owner2027(pk.orig, s.assets, pk.rd)].abbr : 'Class of ' + pp.cls + ' prospect',
     bio: 'Age ' + pp.age + ' · ' + pp.hgt + ' · ' + pp.wt + ' lb · ' + (() => { const fr = pp.from.lg === 'NCAA' || pp.from.lg === 'High school' ? pp.from.team + ' (' + pp.from.lg + ')' : pp.from.team + ', ' + C[pp.from.country].n; if (status === 'pro' && !pk) return 'Playing for ' + fr; const dd = pk ? { rd: 1, pick: pk.n } : pp.dr; return dd ? 'Drafted ' + pp.draft + ' in round ' + dd.rd + ', pick #' + dd.pick + ', overall #' + ((dd.rd - 1) * 30 + dd.pick) + ' – out of ' + fr : 'Undrafted in ' + pp.draft + ' – out of ' + fr; })(),
     contractLine: status === 'retired' ? ((s.hof || []).some(h => h.pid === pp.id) ? 'Hall of Famer · ' : '') + 'Retired after the ' + (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) + ' season, at ' + pp.retired.age : status === 'fa' ? 'Asking ' + money(gm.askFor(pp, s)) + ' per year through ' + pp.exp + ' · ' + pp.mood.toLowerCase() + ' to sign' : status === 'pro' ? 'Projected #' + d.rank[pp.id] + ' on the ' + pp.cls + ' big board' : money(pp.amt) + ' per year through ' + pp.exp,
