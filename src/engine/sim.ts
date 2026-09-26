@@ -111,6 +111,7 @@ export interface SimTeam {
   tid: number; name: string; abbr: string; rec: string; players: SimPlayer[];
   tactics?: Tactics | null; situ?: { lead?: Tactics | null; trail?: Tactics | null } | null;
   ff?: FourFactors; // season Four Factors (regressed early on) for the clutch tiebreaker
+  chem?: number; // locker room 0–100: a good room shoots a little better, a toxic one worse
 }
 export interface SimOpts { pbp?: boolean; norms?: Norms }
 
@@ -307,7 +308,7 @@ export class GameSim {
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
       const defAdj = z === 'rim' ? 0.003 * (intD - n.interiorD) + (rimPro ? 0.01 : 0) : z === 'mid' ? 0.0015 * (pressD - n.perimD) : 0.0012 * (pressD - n.perimD);
       const tacD = ({ Switch: { c3: -0.01, atb: -0.01, rim: 0.01 }, Drop: { mid: 0.02, rim: -0.02 } } as any)[tD.def || '']?.[z] || 0;
-      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0);
+      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

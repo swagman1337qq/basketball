@@ -1,6 +1,9 @@
 import type { VM } from '../vm';
+import { byLast, useSort } from '../sortable';
+import { MentoringSection } from '../LockerRoom';
 
 export function DevelopmentScreen({ vm }: { vm: VM }) {
+  const srtD = useSort<any>(vm.devRows || [], { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, min: r => parseFloat(r.min) || 0, focus: r => r.focus, asg: r => String(r.asg) });
   return (
     <>
       <p style={{ margin: "0 0 12px", color: "var(--color-neutral-700)" }}>
@@ -9,34 +12,11 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
       <table className="table" style={{ fontSize: "13px" }}>
         <thead>
           <tr>
-            <th style={{ padding: "6px 8px" }}>
-              Player
-            </th>
-            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-              Age
-            </th>
-            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-              Ovr
-            </th>
-            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-              Pot
-            </th>
-            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-              Min
-            </th>
-            <th style={{ padding: "6px 8px" }}>
-              Training focus
-            </th>
-            <th style={{ padding: "6px 8px" }}>
-              Assignment
-            </th>
-            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-              Last month
-            </th>
-          </tr>
+{srtD.head('name', 'Player')}{srtD.head('age', 'Age', 'right')}{srtD.head('ovr', 'Ovr', 'right')}{srtD.head('pot', 'Pot', 'right')}{srtD.head('min', 'Min', 'right')}{srtD.head('focus', 'Training focus')}{srtD.head('asg', 'Assignment')}<th style={{ padding: '6px 8px', textAlign: 'right' }}>Last month</th>
+</tr>
         </thead>
         <tbody>
-          {(vm.devRows || []).map((p: any, i: number) => (
+          {srtD.rows.map((p: any, i: number) => (
             <tr key={i}>
               <td style={{ padding: "4px 8px" }}>
                 <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
@@ -125,6 +105,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
           </table>
         </section>
       ))}
+      <MentoringSection vm={vm} tid={vm.ctx.s.me} />
     </>
   );
 }

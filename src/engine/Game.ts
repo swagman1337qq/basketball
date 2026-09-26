@@ -23,6 +23,7 @@ import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
 import { fireSale, inboxTick, ownerFavorite } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
+import { lockerRoom, mentorTick } from './lockerRoom';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -109,7 +110,7 @@ export class Game {
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
     // Saves from before the Team player trait: hand it out the same way new players get it.
-    Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; });
+    Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     return g;
   }
@@ -314,6 +315,7 @@ export class Game {
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08 };
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
     p.pers.legacy = rnd() < .12; // legacy-driven
+    p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (rnd() + rnd() + rnd() - 1.5) * 45))); // hidden: how open he is to change
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
@@ -361,7 +363,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -431,7 +433,7 @@ export class Game {
     let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
     if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid),
+    return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
       players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: p.r, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
@@ -945,7 +947,7 @@ export class Game {
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
-      const work = annual > 0 ? 0.85 + (p.pers.work ?? 50) / 333 : 1;
+      const work = annual > 0 ? (0.85 + (p.pers.work ?? 50) / 333) * (1 + (lockerRoom(this, s, +k, rosters).score - 50) / 500) : 1;
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
@@ -1040,8 +1042,9 @@ export class Game {
     let clubs = { ...(s.clubs || {}) }, patch: any = {};
     const addClub = (tid, f) => { const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs); if (pt.clubs) clubs = pt.clubs; else patch = { ...patch, ...pt }; };
     if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) {
-      const reps = this.devTick(s, rosters, day);
-      s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}) })));
+      const reps = this.devTick(s, rosters, day), mnt = mentorTick(this, s, rosters);
+      s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}), ...(mnt[t] ? { log: [...mnt[t].map(text => ({ date: this.fmtS(day), day, text: 'Mentoring: ' + text })), ...(c.log || [])] } : {}) })));
+      Object.entries(mnt).forEach(([t, xs]) => xs.forEach(text => lgLog.unshift({ day, type: 'Team', teams: s.teams[+t].abbr, text })));
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
@@ -1143,7 +1146,7 @@ export class Game {
     if (m === 'Fame') x *= 1 - (me.mkt - 1) * .4;
     return +Math.max(nums(this).min(yosOf(this, p)), x || 0).toFixed(2);
   }
-  moodOf(p, idx, s, tid = s.me) {
+  moodOf(p, idx, s, tid = s.me, noRoom = false) {
     const me = s.teams[tid], wp = this.pct(me), m = p.pers.mot, w = k => m === k ? 2 : 1, P = this.db.P;
     const rank = s.rosters[tid].map(id => P[id]).sort((a, b) => b.ovr - a.ovr).findIndex(x => x.id === p.id);
     const f: any[] = [['Team success', (wp - .5) * 50 * (m === 'Winning' ? 2 : .6)]];
@@ -1161,6 +1164,7 @@ export class Game {
     if (me.mkt >= 1.1 && wp >= .55) f.push(['Fan energy', 2]); else if (wp < .3 && (s.games || []).length > 60) f.push(['Fan energy', -2]);
     if (p.ext) f.push(['Recently extended', 8]);
     if (p.moodAdj) f.push([p.moodAdj < 0 ? 'Incentive dispute with the front office' : 'Front office backed him', p.moodAdj]);
+    if (!noRoom) { const rm = lockerRoom(this, s, tid); const v = Math.round((rm.score - 50) / 10); if (v) f.push(['Locker room', v]); }
     const k = p.pers.volatile ? 1.4 : p.pers.pro ? .7 : 1;
     const fs = f.map(([n, v]) => [n, Math.round(v * k)]); if (p.pers.pro) fs.push(['Consummate professional', 5]);
     const out = fs.filter(x => x[1] !== 0), hap = Math.round(this.cl(55 + out.reduce((a, x) => a + x[1], 0), 0, 100));

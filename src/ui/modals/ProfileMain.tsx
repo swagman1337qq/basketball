@@ -151,6 +151,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             <HoverCard key={t.k} width={240} anchor={<button className="tag" onClick={t.open || undefined} style={{ border: 'none', cursor: t.open ? 'pointer' : 'help', background: 'var(--color-neutral-200)', color: 'var(--color-neutral-800)', font: 'inherit', fontSize: '12px' }}>{t.label}</button>}>
               <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.label}</div><div style={{ fontSize: '12.5px' }}>{t.desc}</div>{t.open && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>Click to see every player with this trait.</div>}
             </HoverCard>))}</div>
+          {pl.mal != null && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }} title="Hidden: how open he is to changing his personality (mentoring, locker room). Only God Mode shows it.">Malleability {pl.mal}/100 · {pl.mal >= 70 ? 'impressionable' : pl.mal >= 40 ? 'open to change' : pl.mal >= 20 ? 'set in his ways' : 'fiercely independent'}</div>}
           <h4 style={{ ...ruleH4, marginTop: '18px', display: 'flex', justifyContent: 'space-between' }}><span>Happiness</span><span style={{ color: pl.hapColor, fontSize: '15px' }}>{pl.hapLabel}</span></h4>
           {pl.hasMood ? (
             <>

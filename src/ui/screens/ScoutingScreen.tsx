@@ -1,7 +1,9 @@
 import type { VM } from '../vm';
+import { byLast, useSort } from '../sortable';
 import { ScoutReportsSection } from './ScoutReportsSection';
 
 export function ScoutingScreen({ vm }: { vm: VM }) {
+  const srtR = useSort<any>(vm.scoutRegions || [], { name: r => r.name, tier: r => String(r.tier), n: r => +r.n || 0, who: r => String(r.who), margin: r => -(parseFloat(String(r.margin).replace(/[^0-9.]/g, '')) || 0) });
   return (
     <>
       <ScoutReportsSection vm={vm} />
@@ -13,28 +15,11 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-                <th style={{ padding: "6px 8px" }}>
-                  Region
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Talent
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Typical prospects
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Prospects
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Coverage
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Margin
-                </th>
-              </tr>
+{srtR.head('name', 'Region')}{srtR.head('tier', 'Talent')}<th style={{ padding: '6px 8px' }}>Typical prospects</th>{srtR.head('n', 'Prospects', 'right')}{srtR.head('who', 'Coverage')}{srtR.head('margin', 'Margin', 'right')}
+</tr>
             </thead>
             <tbody>
-              {(vm.scoutRegions || []).map((r: any, i: number) => (
+              {srtR.rows.map((r: any, i: number) => (
                 <tr key={i}>
                   <td style={{ padding: "5px 8px" }}>
                     {r.name}

@@ -25,6 +25,9 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Selfish players: more shots and points, fewer passes, worse team offense and defense (negative +/-), teammates annoyed | Done | `sim.ts`, `moodOf()` |
 | Vietnamese names: family + middle + given (3 parts ~82%, 4 parts ~15%), weighted surnames (Nguyễn 38%…), full diacritics as the native name | Done | `data/vietnamese.ts` |
 | Back from a player opened out of a country / draft-class list returns to that list | Done | `pageStack` in `viewModel.ts` |
+| Locker room (team morale): happiness, veteran leaders, winning, troublemakers; affects mood, shooting and growth | Done | `engine/lockerRoom.ts`, Roster header |
+| Mentoring and culture: paired or informal veteran mentors can remove bad traits / pass on good ones; bad rooms breed egos, great rooms team players; all gated by a hidden malleability (God Mode shows it) and rare | Done | `mentorTick()`, Development → Mentoring |
+| Click-to-sort columns (player by last name) on player lists, standings, transactions (date), stats, trade, draft, free agency, shortlist, scouting, overseas, development; college / former club opens a player list | Done | `ui/sortable.tsx` |
 | Awards | Done | Voted by formula in the Basketball GM custom-award format (`data/awardDefs.ts`, evaluated by `formula.ts`): MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, conference-finals MVPs, All-League (3), All-Defensive (2), All-Rookie (2), OPOY, Playmaker, the Jokic advanced-stats award, Glue Guy, LVP, Mr. Perfectly Average, Least Improved, Least Efficient, Worst Defender, plus Coach of the Year. The advanced stats they use (PER, WS/OWS/DWS/WS48, BPM/OBPM/DBPM, VORP, EWA, on/off, USG%, AST%, rebound/steal/block/turnover rates, ORtg/DRtg) come from `advanced.ts`. Edit, import or export the formulas in **Settings → Award formulas**. |
 
 ## 2. Injury, health and environment

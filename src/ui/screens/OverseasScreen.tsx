@@ -2,6 +2,7 @@
 // a league-strength translation to the NBA, and buyout negotiations with their clubs.
 import { useState } from 'react';
 import type { VM } from '../vm';
+import { byLast, useSort } from '../sortable';
 import { BUYOUT_EXEMPT, leagueStr, negotiateBuyout, translation } from '../../engine/overseas';
 import { Link, muted, NumInput, td, th } from '../kit';
 
@@ -9,7 +10,8 @@ export function OverseasScreen({ vm }: { vm: VM }) {
   const { gm, s, open, money } = vm.ctx;
   const P = gm.db.P;
   const [neg, setNeg] = useState<{ pid: number; offer: number; pick: boolean; msg?: string } | null>(null);
-  const rows = (vm.ovRows || []) as any[];
+  const srt = useSort<any>((vm.ovRows || []) as any[], { name: r => byLast(P[r.id] || r), club: r => r.club, age: r => r.age, pos: r => r.pos, trans: r => translation(gm, s, P[r.id]).pts, rating: r => { const t = translation(gm, s, P[r.id]); return (t.lo + t.hi) / 2; }, fee: r => P[r.id]?.abroad?.fee ?? 0, ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0 });
+  const rows = srt.rows;
   return (
     <>
       <p style={{ margin: '0 0 6px', ...muted }}>
@@ -20,7 +22,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
       </p>
       <table className="table" style={{ fontSize: '13px' }}>
         <thead>
-          <tr><th style={th()}>Player</th><th style={th()}>Club · league strength</th><th style={th()}>Abroad this season</th><th style={th()}>Projected NBA translation</th><th style={th('right')}>Rating</th><th style={th()}>Contract</th><th style={th('right')}>Asking</th><th style={th()}></th></tr>
+          <tr>{srt.head('name', 'Player')}{srt.head('club', 'Club · league strength')}<th style={th()}>Abroad this season</th>{srt.head('trans', 'Projected NBA translation')}{srt.head('rating', 'Rating', 'right')}{srt.head('fee', 'Contract')}{srt.head('ask', 'Asking', 'right')}<th style={th()}></th></tr>
         </thead>
         <tbody>
           {rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (

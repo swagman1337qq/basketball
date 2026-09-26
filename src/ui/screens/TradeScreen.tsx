@@ -1,6 +1,9 @@
 import type { VM } from '../vm';
+import { byLast, useSort } from '../sortable';
 
 export function TradeScreen({ vm }: { vm: VM }) {
+  const srtT = useSort<any>(vm.tTheirs || [], { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, contract: r => parseFloat(String(r.contract).replace(/[^0-9.]/g, '')) || 0 });
+  const srtM = useSort<any>(vm.tMine || [], { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, contract: r => parseFloat(String(r.contract).replace(/[^0-9.]/g, '')) || 0 });
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 260px minmax(0,1fr)", gap: "24px", alignItems: "start" }}>
@@ -14,26 +17,11 @@ export function TradeScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-                <th style={{ padding: "6px 8px", width: "22px" }}></th>
-                <th style={{ padding: "6px 8px" }}>
-                  Player
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Age
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Ovr
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Pot
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Contract
-                </th>
-              </tr>
+{srtM.head('name', 'Player')}{srtM.head('age', 'Age', 'right')}{srtM.head('ovr', 'Ovr', 'right')}{srtM.head('pot', 'Pot', 'right')}{srtM.head('contract', 'Contract', 'right')}
+</tr>
             </thead>
             <tbody>
-              {(vm.tMine || []).map((p: any, i: number) => (
+              {srtM.rows.map((p: any, i: number) => (
                 <tr key={i} onClick={p.toggle} style={{ cursor: "pointer", background: p.bg }}>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>
@@ -201,26 +189,11 @@ export function TradeScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-                <th style={{ padding: "6px 8px", width: "22px" }}></th>
-                <th style={{ padding: "6px 8px" }}>
-                  Player
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Age
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Ovr
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Pot
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Contract
-                </th>
-              </tr>
+{srtT.head('name', 'Player')}{srtT.head('age', 'Age', 'right')}{srtT.head('ovr', 'Ovr', 'right')}{srtT.head('pot', 'Pot', 'right')}{srtT.head('contract', 'Contract', 'right')}
+</tr>
             </thead>
             <tbody>
-              {(vm.tTheirs || []).map((p: any, i: number) => (
+              {srtT.rows.map((p: any, i: number) => (
                 <tr key={i} onClick={p.toggle} style={{ cursor: "pointer", background: p.bg }}>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>

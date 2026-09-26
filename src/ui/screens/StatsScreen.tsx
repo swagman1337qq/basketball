@@ -2,6 +2,7 @@
 // advanced), team stats and ratings by season, the league-wide page, and league history
 // (champions, runners-up, Finals MVPs, every major award, best records, this season's race).
 import { useMemo, useState } from 'react';
+import { byLast } from '../sortable';
 import type { VM } from '../vm';
 import { seasonAdvanced } from '../../engine/advanced';
 import { computeAwards } from '../../engine/awards';
@@ -31,7 +32,9 @@ const lbl = (y: number) => y - 1 + '–' + String(y).slice(2);
 
 function SortTable({ cols, rows, initial = 2, limit = 250 }: { cols: [string, string, (r: any) => any, number?][]; rows: any[]; initial?: number; limit?: number }) {
   const [sort, setSort] = useState<[number, number]>([initial, -1]);
-  const c = cols[sort[0]], srt = rows.slice().sort((a, b) => { const x = c[2](a), y = c[2](b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y)) * sort[1] * -1; return ((y ?? -1e9) - (x ?? -1e9)) * (sort[1] === -1 ? 1 : -1); });
+  // Name columns render links: sort players by last name, teams by name.
+  const val = (r: any) => { const v = c[2](r); return v && typeof v === 'object' ? (r.p ? byLast(r.p) : r.t ? r.t.region + ' ' + r.t.name : '') : v; };
+  const c = cols[sort[0]], srt = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y)) * sort[1] * -1; return ((y ?? -1e9) - (x ?? -1e9)) * (sort[1] === -1 ? 1 : -1); });
   return (
     <div style={{ overflowX: 'auto' }}>
       <table className="table" style={{ fontSize: '12.5px', minWidth: 900 }}>

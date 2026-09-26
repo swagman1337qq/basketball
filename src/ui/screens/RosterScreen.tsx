@@ -7,6 +7,7 @@
 // two-way players and, in the offseason, Exhibit 10 camp deals.
 import { useState } from 'react';
 import type { VM } from '../vm';
+import { LockerRoomChip } from '../LockerRoom';
 import { BadgeChip } from '../BadgeChip';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
@@ -124,6 +125,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           {cur && <div>{rank}{['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}{gb ? ', ' + gb : ''}</div>}
           {cur && <div>Team rating: <b>{tr}</b>/100 <span style={muted}>({trRank}{['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})</span></div>}
           <div>{mov != null && <>MOV: <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{mov >= 0 ? '+' : ''}{mov.toFixed(1)}</b> · </>}Average age {avgAge.toFixed(1)}</div>
+          <div>Locker room: <LockerRoomChip vm={vm} tid={tid} /></div>
           {cur && <div style={{ marginTop: 6 }}>{Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}</div>}
           {fin && <div>Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b></div>}
         </div>

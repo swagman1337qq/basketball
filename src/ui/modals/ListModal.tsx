@@ -1,6 +1,8 @@
 import type { VM } from '../vm';
+import { byLast, useSort } from '../sortable';
 
 export function ListModal({ vm }: { vm: VM }) {
+  const srt = useSort<any>(vm.lm.rows || [], { name: byLast, team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, extra: r => r.extra });
   return (
     <>
       <div onClick={vm.closeList} style={{ position: "absolute", inset: "0", zIndex: "14", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
@@ -24,31 +26,11 @@ export function ListModal({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-                <th style={{ padding: "6px 8px" }}>
-                  Player
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Team
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Pos
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Age
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Ovr
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Pot
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  {vm.lm.extraH}
-                </th>
+                {srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('extra', vm.lm.extraH)}
               </tr>
             </thead>
             <tbody>
-              {(vm.lm.rows || []).map((p: any, i: number) => (
+              {srt.rows.map((p: any, i: number) => (
                 <tr key={i} onClick={p.open} style={{ cursor: "pointer" }}>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
