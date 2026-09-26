@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { acceptJob, applyForJob, reputation } from '../../engine/frontOffice';
-import { EXPERIENCE, GENEROSITY, answerOffer, askExtension, contractOf } from '../../engine/gmCareer';
+import { EXPERIENCE, GENEROSITY, answerOffer, askExtension, contractOf, givenName, isFamilyFirst } from '../../engine/gmCareer';
 import { Headshot } from '../modals/GMSetupModal';
 import { h4Style, Kicker, Link, muted, ruleH4, Stat, td, th } from '../kit';
 
@@ -32,6 +32,7 @@ export function CareerScreen({ vm }: { vm: VM }) {
             <div style={{ flex: 1, minWidth: 240 }}>
               <Kicker>{s.gm ? s.gm.name + ' · ' + gm.db.C[s.gm.nat].n + ' · ' + EXPERIENCE[s.gm.exp].label : 'Your contract'}</Kicker>
               <div style={{ fontSize: '20px', fontWeight: 600, margin: '2px 0' }}>{s.unemployed ? 'No contract' : '$' + k.salary.toFixed(2) + 'M a season with the ' + kt.name + ', through ' + yr(k.thru)}</div>
+              {s.gm && <div style={{ fontSize: '12px', margin: '2px 0 4px', display: 'flex', gap: 6, alignItems: 'center' }}><span style={muted}>Name order</span><select className="input" value={isFamilyFirst(s.gm) ? 'f' : 'g'} onChange={e => gm.setState(st => ({ gm: { ...st.gm, familyFirst: e.target.value === 'f' } }))} style={{ width: 'auto', minHeight: 26, fontSize: '12px', padding: '1px 6px' }}><option value="g">Given name first</option><option value="f">Family name first</option></select><span style={muted}>· the owner calls you {givenName(s.gm)}</span></div>}
               {!s.unemployed && <div style={{ ...muted, fontSize: '12.5px' }}>{left > 0 ? left + ' more season' + (left === 1 ? '' : 's') + ' after this one.' : 'This is the final season of your deal.'} {kt.owner} is a {kt.arch} and {G.note}.{k.assumed ? ' (Terms estimated for a league started before GM contracts.)' : ''}</div>}
               {o && (
                 <div style={{ marginTop: 10, padding: '10px 12px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)' }}>

@@ -105,7 +105,18 @@ export function answerOffer(g: Game, yes: boolean) {
 }
 
 // Finishing the "Create your GM" step at the start of a league.
-export interface GMProfile { name: string; nat: string; exp: number; race: string; seed: number; img?: string }
+export interface GMProfile { name: string; nat: string; exp: number; race: string; seed: number; img?: string; familyFirst?: boolean }
+// Countries whose names are written family name first (Nguyễn Văn Hùng, Wang Xiaoming, Kim Min-jun, Nagy László).
+export const FAMILY_FIRST_NATS = ['VN', 'CN', 'TW', 'HK', 'MO', 'KR', 'KP', 'KH', 'HU', 'MN'];
+export const isFamilyFirst = (gm: Partial<GMProfile> | null | undefined) => gm?.familyFirst ?? FAMILY_FIRST_NATS.includes(gm?.nat || '');
+// What people call you: the given name. Vietnamese go by the last word (Hùng), others by
+// everything after the family name.
+export function givenName(gm: Partial<GMProfile> | null | undefined) {
+  const parts = String(gm?.name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'GM';
+  if (!isFamilyFirst(gm) || parts.length === 1) return parts[0];
+  return gm?.nat === 'VN' ? parts[parts.length - 1] : parts.slice(1).join(' ');
+}
 export function finishGMSetup(g: Game, gm: GMProfile) {
   g.setState(s => {
     const E = EXPERIENCE[gm.exp] ?? EXPERIENCE[2];

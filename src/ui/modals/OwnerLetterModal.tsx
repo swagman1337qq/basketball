@@ -2,6 +2,7 @@
 // Owner screen). One letter per franchise you run.
 import { useState } from 'react';
 import type { VM } from '../vm';
+import { givenName } from '../../engine/gmCareer';
 import { Kicker, muted } from '../kit';
 
 const VERDICT: Record<string, [string, string]> = { extend: ['Full confidence', 'var(--gm-good)'], stay: ['Staying on', 'var(--color-text)'], warning: ['Final warning', 'var(--color-accent-700)'], fired: ['Fired', 'var(--gm-bad)'] };
@@ -26,7 +27,7 @@ export function OwnerLetterModal({ vm }: { vm: VM }) {
           </div>
           <div style={{ textAlign: 'right' }}><div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: vc }}>{vl}</div><div style={{ ...muted, fontSize: '11.5px' }}>Job security {L.sec}</div></div>
         </div>
-        <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', lineHeight: 1.45 }}>Dear {s.gm?.name ? s.gm.name.split(' ')[0] : 'GM'},</p>
+        <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', lineHeight: 1.45 }}>Dear {s.gm?.name ? givenName(s.gm) : 'GM'},</p>
         <div>
           <Kicker>What you did right</Kicker>
           <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.right.map((x, k) => <li key={k} style={{ color: 'var(--color-text)' }}><span style={{ color: 'var(--gm-good)' }}>✓ </span>{x}</li>)}</ul>

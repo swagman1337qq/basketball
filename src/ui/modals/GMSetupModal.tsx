@@ -6,7 +6,7 @@ import type { VM } from '../vm';
 import { CountryPicker, Kicker, muted } from '../kit';
 import { randomName } from '../../data/heritage';
 import { makeFace, faceSvg } from '../../engine/faces';
-import { EXPERIENCE, GENEROSITY, RACES, finishGMSetup, gmFaceInput, startingContract, type GMProfile } from '../../engine/gmCareer';
+import { EXPERIENCE, FAMILY_FIRST_NATS, GENEROSITY, RACES, finishGMSetup, givenName, gmFaceInput, startingContract, type GMProfile } from '../../engine/gmCareer';
 import { processImage } from '../upload';
 
 export function Headshot({ gm, team, size = 96 }: { gm: GMProfile; team?: any; size?: number }) {
@@ -19,7 +19,7 @@ export function Headshot({ gm, team, size = 96 }: { gm: GMProfile; team?: any; s
 
 export function GMSetupModal({ vm }: { vm: VM }) {
   const { gm, s, T } = vm.ctx, C = gm.db.C, team = T[s.me];
-  const fresh = (nat: string, race?: string): GMProfile => { const r = randomName(nat); return { name: r.name, nat, exp: 2, race: race || (['black', 'white', 'asian', 'brown'].includes(r.race) ? r.race : 'white'), seed: Math.floor(Math.random() * 1e6) }; };
+  const fresh = (nat: string, race?: string): GMProfile => { const r = randomName(nat); return { name: r.name, familyFirst: !!r.familyFirst || FAMILY_FIRST_NATS.includes(nat), nat, exp: 2, race: race || (['black', 'white', 'asian', 'brown'].includes(r.race) ? r.race : 'white'), seed: Math.floor(Math.random() * 1e6) }; };
   const [p, setP] = useState<GMProfile>(() => fresh('US'));
   const [err, setErr] = useState('');
   const E = EXPERIENCE[p.exp], k = startingContract(gm, s, s.me, p.exp), G = GENEROSITY[team.arch];
@@ -48,7 +48,7 @@ export function GMSetupModal({ vm }: { vm: VM }) {
               <span style={lab}>Name</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input className="input" value={p.name} maxLength={40} onChange={e => set({ name: e.target.value })} style={{ flex: 1, minWidth: 0 }} />
-                <button className="btn btn-ghost" title="A random name from your nationality" onClick={() => set({ name: randomName(p.nat).name })} style={{ fontSize: '12px' }}>Random</button>
+                <button className="btn btn-ghost" title="A random name from your nationality" onClick={() => { const r = randomName(p.nat); set({ name: r.name, familyFirst: !!r.familyFirst || FAMILY_FIRST_NATS.includes(p.nat) }); }} style={{ fontSize: '12px' }}>Random</button>
               </div>
             </div>
             <div>
@@ -57,7 +57,15 @@ export function GMSetupModal({ vm }: { vm: VM }) {
                 <img src={gm.flag(p.nat)} alt="" style={{ width: 22, height: 15, objectFit: 'cover', borderRadius: 2 }} />
                 <span style={{ fontSize: '13px' }}>{C[p.nat].n}</span>
               </div>
-              <div style={{ marginTop: 4 }}><CountryPicker C={C} onPick={c => { const r = randomName(c); set({ nat: c, name: r.name, race: ['black', 'white', 'asian', 'brown'].includes(r.race) ? r.race : p.race, img: undefined }); }} placeholder="Type to change…" width="100%" /></div>
+              <div style={{ marginTop: 4 }}><CountryPicker C={C} onPick={c => { const r = randomName(c); set({ nat: c, name: r.name, familyFirst: !!r.familyFirst || FAMILY_FIRST_NATS.includes(c), race: ['black', 'white', 'asian', 'brown'].includes(r.race) ? r.race : p.race, img: undefined }); }} placeholder="Type to change…" width="100%" /></div>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lab}>Name order</span>
+              <select className="input" value={p.familyFirst ? 'f' : 'g'} onChange={e => set({ familyFirst: e.target.value === 'f' })} style={{ width: '100%' }}>
+                <option value="g">Given name first (Tyler Nguyen)</option>
+                <option value="f">Family name first (Nguyen Van Hung)</option>
+              </select>
+              <div style={{ ...muted, fontSize: '12px', marginTop: 3 }}>The owner will call you <b>{givenName(p)}</b>.</div>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <span style={lab}>Experience</span>
