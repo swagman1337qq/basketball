@@ -8,7 +8,7 @@ const kicker = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppe
 
 const market = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid-size' : 'Small');
 
-export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tids: number[]) => void }) {
+export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tids: number[], worst?: boolean) => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saves, setSaves] = useState<SaveRow[] | null>(null);
@@ -17,6 +17,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const [msg, setMsg] = useState('');
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
   const [sel, setSel] = useState<number[]>([0]);
+  const [worst, setWorst] = useState(false);
   const seedNum = Number.isFinite(Number(seed)) && seed !== '' ? Math.floor(Number(seed)) : 2027;
   const teams = useMemo(() => Game.preview(seedNum), [seedNum]);
   const picked = teams.find(t => t.tid === sel[0]) || teams[0];
@@ -27,7 +28,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   useEffect(() => { refresh(); }, []);
 
   const create = () => {
-    onCreate(name.trim() || 'My league', seedNum, sel);
+    onCreate(name.trim() || 'My league', seedNum, sel, worst);
   };
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -103,6 +104,10 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
                 <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{sel.length > 1 ? '+ ' + (sel.length - 1) + ' more: ' + sel.slice(1).map(t => teams[t].abbr).join(', ') : picked.outlook + ' · ' + picked.conf + 'ern Conference'}</div>
               </div>
             </div>
+            <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px' }}>
+              <input type="checkbox" checked={worst} onChange={e => setWorst(e.target.checked)} style={{ marginTop: '3px' }} />
+              <span><b>Swap my roster with the worst roster</b><span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>{worst ? 'You start with the ' + (teams.slice().sort((a, b) => a.top8 - b.top8)[0].region) + ' roster (team rating ' + teams.slice().sort((a, b) => a.top8 - b.top8)[0].top8 + ')' + (sel.length > 1 ? '; your other teams take the next-worst rosters' : '') + '. Your club keeps its name, market and owner.' : 'Off: rosters are dealt at random, as listed below.'}</span></span>
+            </label>
             <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>{sel.length > 1 ? 'Start running ' + sel.length + ' franchises' : 'Start as GM of the ' + picked.region + ' ' + picked.name}</button>
             <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>Check one or more clubs below. The first one you pick is on screen first; switch any time.</div>
           </section>
@@ -111,7 +116,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
         <section style={{ marginTop: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--color-text)', paddingBottom: '6px', marginBottom: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '25px' }}>Select managed teams</h3>
-            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>Run one club or as many as all 30. Ranked by each roster's top-eight rating; the season starts 0–0.</span>
+            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>Run one club or as many as all 30. Ranked by team rating (the roster weighted by rotation minutes); the season starts 0–0.</span>
             <button className="btn btn-ghost" onClick={() => setSel(teams.map(t => t.tid))} style={{ fontSize: '12px' }}>Select all</button>
             <button className="btn btn-ghost" onClick={() => setSel([sel[0]])} style={{ fontSize: '12px' }}>Just one</button>
           </div>
@@ -132,7 +137,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
                       </span>
                       <span style={{ textAlign: 'right' }}>
                         <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.outlook === 'Contender' ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.outlook}</span>
-                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-neutral-600)' }}>#{t.rank} · {t.top8.toFixed(1)}</span>
+                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-neutral-600)' }}>#{t.rank} · rating {t.top8.toFixed(1)}</span>
                       </span>
                     </button>
                   );

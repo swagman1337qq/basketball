@@ -63,7 +63,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
               {vm.god.label}
             </div>
             <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-              Edit any player or team, move players anywhere, and make trades and signings without cap or salary-matching rules. IDs, engine formulas and past-season stats stay locked.
+              Edit any player or team, see every player’s true ratings, move players anywhere, and make trades and signings without cap or salary-matching rules. You can’t be fired. IDs, engine formulas and past-season stats stay locked.
             </div>
           </div>
           <button className="btn btn-secondary" onClick={vm.god.toggle} style={{ whiteSpace: "nowrap" }}>

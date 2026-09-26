@@ -50,6 +50,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   <span style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>
                     {p.native ? "(" + p.native + ")" : ""}
                   </span>
+                  {(p.topBadges || []).map((b: any) => <span key={b.key} title={b.name + ' · ' + b.tierName} style={{ fontSize: "10.5px", color: b.color, border: "1px solid " + b.color, borderRadius: "999px", padding: "0 6px", whiteSpace: "nowrap" }}>{b.name}</span>)}
                   <span style={{ fontSize: "10px", letterSpacing: ".08em", color: "var(--color-neutral-600)" }}>
                     {p.role}
                   </span>

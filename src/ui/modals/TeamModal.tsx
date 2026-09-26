@@ -21,6 +21,11 @@ export function TeamModal({ vm }: { vm: VM }) {
                 {vm.tm.staff}
               </div>
             </div>
+            <div style={{ textAlign: "center", padding: "0 8px" }} title="Team rating: the whole roster's overall ratings, weighted by rotation minutes">
+              <div style={{ fontFamily: "var(--font-heading)", fontSize: "44px", lineHeight: ".95", color: vm.tm.rating >= 60 ? "var(--gm-elite)" : "var(--color-text)" }}>{vm.tm.rating}</div>
+              <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)" }}>Team rating</div>
+              <div style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>{vm.tm.ratingRank}</div>
+            </div>
             <div style={{ maxWidth: "320px" }}>
               <div style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600" }}>
                 {vm.tm.strat}

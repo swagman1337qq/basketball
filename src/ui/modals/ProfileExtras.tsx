@@ -29,7 +29,7 @@ export function fiveZones(t: any) {
 }
 const LEAGUE_ZONE = [0.696, 0.44, 0.415, 0.388, 0.352];
 
-export function OverviewExtras({ vm }: { vm: VM }) {
+export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
   const { gm, s, open } = vm.ctx, { p, tid } = useP(vm);
   if (!p) return null;
   const t = gm.seasonTotals(p, gm.Y), rows = (p.stats || []).filter(r => r.season === gm.Y && !r.po);
@@ -41,7 +41,7 @@ export function OverviewExtras({ vm }: { vm: VM }) {
   const zones = t ? fiveZones(t) : [];
   const role = p.pers.crowd || (t && gm.usgOf(t) < 20) ? 'Role player: expect a road drop-off' : 'Star-level usage: venue barely matters';
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '28px', marginTop: '26px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: stack ? 'minmax(0,1fr)' : 'repeat(3,minmax(0,1fr))', gap: stack ? '22px' : '28px', marginTop: stack ? 0 : '26px' }}>
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}
@@ -112,7 +112,7 @@ export function ContractExtras({ vm }: { vm: VM }) {
 export function DevelopmentTab({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, { p, tid } = useP(vm);
   if (!p) return null;
-  const mine = tid >= 0 && gm.isUser(s, tid);
+  const mine = (tid >= 0 && gm.isUser(s, tid)) || !!s.god; // God Mode sees everything exactly
   const scoutF = 1 - Math.min(0.6, ((s.budget?.Scouting ?? 4) - 4) / 20);
   const margin = mine ? 0 : Math.round(3 * gm.regFactor(p, s) * scoutF / intelF(s, p.id) + (tid < 0 && p.cls ? Math.max(0, p.cls - gm.Y) * 4 : 0));
   const roles = gm.rolesOf(p), feed = p.feed || [];
@@ -122,7 +122,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
       <section>
         <h4 style={ruleH4}>Ratings & scouting confidence</h4>
-        <Row k="Overall" v={mine ? p.ovr + ' (exact: your own player)' : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} />
+        <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} />
         <Row k="Potential" v={mine ? p.pot : Math.max(p.ovr, p.pot - margin * 2) + '–' + (p.pot + margin * 2)} />
         <Row k="Confidence" v={mine ? (conf >= 70 ? 'Brimming' : conf >= 55 ? 'Assured' : conf >= 40 ? 'Steady' : conf >= 25 ? 'Shaken' : 'Fragile') : 'Hidden'} c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined} />
         {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}

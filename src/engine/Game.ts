@@ -4,6 +4,7 @@
 import { createElement } from 'react';
 import { nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
+import { teamRating } from './ratings';
 import { yearEndLetter } from './ownerLetter';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
@@ -36,19 +37,30 @@ export class Game {
 
   // A new league. `tids` are the franchises the user will run (1 to all of them);
   // the first is the one on screen.
-  static create(seed = 2027, tids: number | number[] = 0) {
+  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean } = {}) {
     const g = new Game();
     g.makeDB(seed);
+    if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.refreshNorms(g.state);
     return g;
   }
 
+  // Start-screen option: the teams you picked take the league's worst rosters (the first
+  // pick gets the very worst), swapping with whoever had them.
+  swapToWorst(tids: number[]) {
+    const d = this.db, P = d.P, done: number[] = [];
+    tids.forEach(mine => {
+      const worst = d.teams.map(t => t.tid).filter(t => !done.includes(t)).sort((a, b) => teamRating(P, d.rosters[a]) - teamRating(P, d.rosters[b]))[0];
+      if (worst != null && worst !== mine) { [d.rosters[mine], d.rosters[worst]] = [d.rosters[worst], d.rosters[mine]]; const a = d.teams[mine], b = d.teams[worst]; [a.str, b.str] = [b.str, a.str]; }
+      done.push(mine);
+    });
+  }
   // Team cards for the start screen, from the same seeded world create() would build.
   static preview(seed = 2027) {
     const g = new Game();
     const d = g.makeDB(seed), P = d.P;
-    const top8 = t => { const o = d.rosters[t.tid].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); return o.reduce((a, b) => a + b, 0) / o.length; };
+    const top8 = t => teamRating(P, d.rosters[t.tid]);
     const out = d.teams.map(t => { const ids = d.rosters[t.tid], star = ids.map(id => P[id]).sort((a, b) => b.ovr - a.ovr)[0];
       return { tid: t.tid, region: t.region, name: t.name, abbr: t.abbr, conf: t.conf, div: t.div, colors: t.colors, icon: t.icon, mkt: t.mkt, arch: t.arch, owner: t.owner, top8: top8(t), payroll: ids.reduce((a, id) => a + P[id].amt, 0), star: { name: star.name, pos: star.pos, ovr: star.ovr, age: star.age } }; });
     const rk = out.slice().sort((a, b) => b.top8 - a.top8).map(t => t.tid);
@@ -142,8 +154,8 @@ export class Game {
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
-    const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: i === 0 ? 56 : 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
-    teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = i === 0 ? 'Win-Now Spender' : pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
+    const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
+    teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
     const rosters = {};
     teams.forEach(t => {
       const young = t.str < 50 ? 3 : 0;
@@ -161,6 +173,14 @@ export class Game {
     for (let k = 0; k < 30; k++) { const p = mk(28 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = Math.round(cl(p.ovr + 16 + rnd() * 26, 45, 82)); cls[2028].push(p.id); }
     for (let k = 0; k < 25; k++) { const p = mk(24 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = Math.round(cl(p.ovr + 20 + rnd() * 28, 45, 84)); cls[2029].push(p.id); }
     (Object.values(P) as any[]).filter(p => p.cls).forEach(p => { p.exp = p.cls + 3; });
+    // Real draft slots for today's players: each past class gets unique picks 1–60
+    // (best prospects first, with some noise); the rest went undrafted.
+    const byYear: Record<number, any[]> = {};
+    (Object.values(P) as any[]).filter(p => !p.cls && p.dr).forEach(p => (byYear[p.draft] = byYear[p.draft] || []).push(p));
+    Object.values(byYear).forEach(ps => ps.map(p => ({ p, k: p.pot + rnd() * 14 })).sort((a, b) => b.k - a.k).forEach(({ p }, i) => {
+      p.dr = i < 60 ? { rd: i < 30 ? 1 : 2, pick: (i % 30) + 1 } : null;
+      p.rookie = !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
+    }));
     // Scale contracts so the average payroll sits near $172M, then pull every team
     // between the salary floor and the 2nd apron (real payrolls cluster there).
     const tot = Object.values(rosters).reduce((a: number, ids: any) => a + ids.reduce((x, id) => x + P[id].amt, 0), 0) as number;
@@ -173,6 +193,8 @@ export class Game {
     // Families. Former players from before the league's records (fathers for future sons),
     // then brothers and sons among today's players and prospects at real NBA rates.
     for (let k = 0; k < 60; k++) { const p = mk(44 + rnd() * 26, 40 + Math.floor(rnd() * 22), W_NBA, 0); p.retired = { season: 2026 - Math.floor(rnd() * Math.max(1, p.age - 35)), age: 34 + Math.floor(rnd() * 5), tid: -1, why: 'Retired', legacy: true }; p.draft = 2026 - (p.age - 21); legacyCareer(p, rnd); }
+    { const used = new Set((Object.values(P) as any[]).filter(p => p.dr && !p.legacy).map(p => p.draft + '-' + p.dr.rd + '-' + p.dr.pick));
+      (Object.values(P) as any[]).filter(p => p.legacy).forEach(p => { if (!p.dr) return; let n = 1 + Math.floor(rnd() * 40); for (let k = 0; k < 60 && used.has(p.draft + '-' + (n <= 30 ? 1 : 2) + '-' + (((n - 1) % 30) + 1)); k++) n = (n % 60) + 1; p.dr = { rd: n <= 30 ? 1 : 2, pick: ((n - 1) % 30) + 1 }; used.add(p.draft + '-' + p.dr.rd + '-' + p.dr.pick); }); }
     const st0 = { rosters, fa, overseas: os }; db.cls = cls;
     const everyone = [...Object.values(rosters).flat(), ...fa, ...os, ...cls[2027], ...cls[2028], ...cls[2029]] as number[];
     everyone.forEach(id => { const p = P[id]; if (p.family) return; if (!maybeSon(this, p, rnd) && rnd() < BROTHER_RATE / 2) maybeBrother(this, { ...st0, rosters }, p, rnd, true); });

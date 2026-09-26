@@ -12,8 +12,8 @@ export function App() {
   const [open, setOpen] = useState<Open | null>(null);
   const [error, setError] = useState('');
 
-  const onCreate = useCallback(async (name: string, seed: number, tids: number[]) => {
-    const game = Game.create(seed, tids);
+  const onCreate = useCallback(async (name: string, seed: number, tids: number[], worst = false) => {
+    const game = Game.create(seed, tids, { worst });
     const now = Date.now();
     const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
     row.summary = summarize(row.data);

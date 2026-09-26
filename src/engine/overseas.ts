@@ -18,7 +18,7 @@ export const leagueStr = (lg: string) => LEAGUE_STR[lg] ?? 0.45;
 // whose width depends on how well you scout his region.
 export function translation(g: Game, s: any, p: any) {
   const a = p.abroad || {}, f = leagueStr(a.lg), role = 0.62;
-  const margin = Math.round(3 * g.regFactor(p, s) / intelF(s, p.id));
+  const margin = s.god ? 0 : Math.round(3 * g.regFactor(p, s) / intelF(s, p.id));
   return {
     str: f, pts: +(a.pts * f * role * 1.35).toFixed(1), reb: +(a.reb * (0.55 + f * 0.5) * role).toFixed(1), ast: +(a.ast * (0.5 + f * 0.5) * role).toFixed(1),
     lo: Math.max(25, p.ovr - margin), hi: p.ovr + margin, margin,

@@ -59,7 +59,7 @@ export function yearEndLetter(g: Game, s: any, tid: number, fin: string): OwnerL
   if (!right.length) right.push('Honestly, I had to look hard. You kept the locker room together, and that counts for something.');
   if (!wrong.length) wrong.push('Not much. Keep doing what you’re doing.');
   // How he feels, and the decision.
-  const reasons = s.ownerFiring === false ? [] : fireReasons(g, s, tid, rv, fin);
+  const reasons = s.ownerFiring === false || s.god ? [] : fireReasons(g, s, tid, rv, fin);
   const verdict: OwnerLetter['verdict'] = reasons.length ? 'fired' : rv.sec >= 75 ? 'extend' : rv.sec >= 45 ? 'stay' : 'warning';
   const feel = v.open + ' ' + v.care + ' ' + ({
     extend: 'I’m thrilled with what you’re building here. You have my full confidence, and you’ll have it next year too.',

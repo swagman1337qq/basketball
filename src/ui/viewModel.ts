@@ -4,6 +4,7 @@ import { createElement, type RefObject } from 'react';
 import { natDefault, regionOf, regions, roleDefs } from '../data/world';
 import { Game } from '../engine/Game';
 import { intelF } from '../engine/overseas';
+import { badgesOf, teamRating } from '../engine/ratings';
 import { baseAfterIncentives, financesOf, incentiveOptions, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
 import { TeamLogo } from './TeamLogo';
 import { linkNames } from './kit';
@@ -32,7 +33,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const dateLong = gm.dateOf(s.day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const sortBy = (arr, [k, dir]) => arr.slice().sort((a, b) => { const x = a[k], y = b[k]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
   const hdr = (tbl, cols) => cols.map(([k, label, al]) => { const [sk, sd] = s.sort[tbl]; return { label, align: al || 'right', arrow: sk === k ? (sd > 0 ? ' ↑' : ' ↓') : '', color: sk === k ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)', onClick: () => gm.setState(st => ({ sort: { ...st.sort, [tbl]: [k, st.sort[tbl][0] === k ? -st.sort[tbl][1] : (['rk', 'name', 'pos', 'rank', 'fromT', 'age', 'mood'].includes(k) ? 1 : -1)] } })) }; });
-  const pBase = id => { const p = P[id]; return { ...p, native: p.native || '', injTag: p.inj ? 'Out ' + p.inj.games + 'g · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(p.pot), open: open(id) }; };
+  const pBase = id => { const p = P[id]; return { ...p, topBadges: badgesOf(p).slice(0, 3), native: p.native || '', injTag: p.inj ? 'Out ' + p.inj.games + 'g · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(p.pot), open: open(id) }; };
   const strat = gm.strategies(T);
   const STRAT = { rebuild: ['Rebuilding', 'Prioritizing draft capital and young upside. Willing to absorb unfavorable contracts as the cost of acquiring picks.'], middle: ['On the rise', 'Building around a young core. Values high-upside players and is reluctant to move picks except for a priority target.'], contend: ['Contending', 'In win-now mode. Will part with draft picks for proven, immediate contributors.'] };
 
@@ -54,11 +55,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const leaders = [['pts', 'Pts'], ['reb', 'Reb'], ['ast', 'Ast']].map(([k, label]) => { const p = played.slice().sort((a, b) => b[k] - a[k])[0]; return p ? { label, name: p.name, value: p[k].toFixed(1), open: open(p.id) } : { label, name: '—', value: '', open: () => {} }; });
   const lineup = mine.slice(0, 5).map(id => ({ ...pBase(id), face: gm.faceEl(id, s.me) }));
   const confMini = confT.slice(0, 10).map((t, i) => ({ logo: logo(t.tid, 18), seed: i + 1, name: t.region + ' ' + t.name, rec: t.w + '–' + t.l, gb: gb(t, confT[0]), bg: t.tid === s.me ? 'var(--color-accent-100)' : mine2(t.tid) ? 'color-mix(in srgb, var(--color-accent-100) 55%, transparent)' : 'transparent', fw: mine2(t.tid) ? 600 : 400, openT: openTeam(t.tid), line: i === 5 ? '1px solid var(--color-text)' : '1px solid var(--color-divider)' }));
+  const trOf = tid => teamRating(P, s.rosters[tid] || []), trRank = tid => 1 + T.filter(t => trOf(t.tid) > trOf(tid)).length;
   const dashStats = [
     { label: 'Record', value: me.w + '–' + me.l, sub: strk(me) + ' streak · ' + l10(me) + ' in last 10' },
     { label: me.conf + ' seed', value: ord(seed), sub: seed === 1 ? 'Leading the conference' : gb(me, confT[0]) + ' games back of ' + confT[0].abbr },
     { label: 'Payroll', value: money(payroll), sub: (capRoom >= 0 ? money(capRoom) + ' under the cap' : money(-capRoom) + ' over the cap') + ' · ' + money(gm.TAX - payroll) + ' to the tax' },
-    { label: 'Roster', value: mine.length + '/15', sub: mine.length < 15 ? (15 - mine.length) + ' open spot' + (15 - mine.length > 1 ? 's' : '') : 'Full' }];
+    { label: 'Team rating', value: String(trOf(s.me)), sub: ord(trRank(s.me)) + ' of ' + T.length + ' · ' + mine.length + '/15 players' }];
 
   const byOrder = s.sort.roster[0] === 'rk' && s.sort.roster[1] === 1;
   const moveTo = (id, to) => gm.setState(st => { const o = st.rosters[st.me].filter(x => x !== id); o.splice(cl(to, 0, o.length), 0, id); return { rosters: { ...st.rosters, [st.me]: o }, sort: { ...st.sort, roster: ['rk', 1] }, dragId: null, overId: null }; });
@@ -154,7 +156,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
 
   const scoutF = 1.5 - (s.budget.Scouting - 1) / 11;
   const yearsOut = s.dClass - gm.Y, spread = (yearsOut * 5 + 3) * scoutF;
-  const est = (p, i) => Math.round((i ? p.pot : p.ovr) + p.nz[i] * spread * 1.6);
+  // God Mode sees true ratings; otherwise these are your scouts' estimates.
+  const est = (p, i) => s.god ? (i ? p.pot : p.ovr) : Math.round((i ? p.pot : p.ovr) + p.nz[i] * spread * 1.6);
   const cur = s.phase === 'draft' ? s.picks[s.pi] : null, onClock = !!cur && mine2(gm.owner2027(cur.orig, s.assets)), taken = new Set(s.picks.filter(x => x.pid).map(x => x.pid));
   const myPicks = s.picks.filter(x => mine2(gm.owner2027(x.orig, s.assets))), myNext = myPicks.find(x => !x.pid);
   const isCur = s.dClass === gm.Y;
@@ -183,7 +186,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     }
   }
   const dr = { isCurrent: isCur, isFuture: !isCur, hasAdvice: advice.length > 0, advice, noAdvice: !myNext,
-    classNote: isCur ? 'Ratings are your scouts\u2019 estimates (±' + Math.round(spread) + ').' : 'Early look, ' + yearsOut + ' year' + (yearsOut > 1 ? 's' : '') + ' out. Ranges narrow as prospects develop and as you spend more on scouting.',
+    classNote: s.god ? 'God Mode: true ratings shown.' : isCur ? 'Ratings are your scouts\u2019 estimates (±' + Math.round(spread) + ').' : 'Early look, ' + yearsOut + ' year' + (yearsOut > 1 ? 's' : '') + ' out. Ranges narrow as prospects develop and as you spend more on scouting.',
     scoutLine: 'Scouting budget ' + money(s.budget.Scouting) + ' (' + scoutRank + ' in the league). Ranges shown are ±' + Math.round(spread) + '.',
     myFuture: s.assets.filter(a => a.owner === s.me && a.yr === s.dClass).map(a => ({ label: gm.pickLabel(a, T), proj: projTxt(a) })),
     status: cur ? 'Pick ' + cur.n + ' · ' + (onClock ? 'You are on the clock' + (gm.owner2027(cur.orig, s.assets) !== s.me ? ' as ' + T[gm.owner2027(cur.orig, s.assets)].abbr : '') : T[gm.owner2027(cur.orig, s.assets)].region + ' ' + T[gm.owner2027(cur.orig, s.assets)].name + ' on the clock') : 'First round complete',
@@ -217,7 +220,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const allTx = [...s.log.map(l => ({ day: l.day ?? s.day, type: typeOf(l.text), teams: me.abbr, text: l.text, mine: true })), ...s.lgLog.map(e => ({ ...e, mine: false }))].sort((x, y) => y.day - x.day);
   const txRows = allTx.filter(x => s.txFilter === 'All' || x.type === s.txFilter).map(x => ({ date: gm.fmtS(x.day), type: x.type, teams: x.teams, teamLinks: String(x.teams).split(' · ').map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })), text: linkNames(x.text, id => open(id)(null), { P }), bg: x.mine ? 'var(--color-accent-100)' : 'transparent' }));
   const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft'].map(k => ({ label: k === 'All' ? 'All' : k === 'Trade' ? 'Trades' : k === 'Signing' ? 'Signings' : k === 'Release' ? 'Releases' : 'Draft', onClick: () => gm.setState({ txFilter: k }), color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
-  const teamOf = id => { const t = tidOf[id]; return t >= 0 ? T[t].abbr : t === -1 ? 'Free agent' : t === -2 ? 'Overseas' : 'Class of ' + P[id].cls; };
+  const teamOf = id => { const t = tidOf[id]; return t >= 0 ? T[t].abbr : t === -1 ? 'Free agent' : t === -2 ? 'Overseas' : P[id].retired ? 'Retired' : 'Class of ' + P[id].cls; };
   const openC = code => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'country', code }, modal: false }); };
   const openClass = yr => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'class', year: yr }, modal: false }); };
   pl.openRep = openC(pp.rep);
@@ -225,7 +228,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   pl.elig = pl.elig.map((e, i) => ({ ...e, open: openC(pp.elig[i].c) }));
   const LMs = s.listModal; let lm = {};
   if (LMs) {
-    const act = (Object.values(P) as any[]).filter(p => tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y));
+    const act = (Object.values(P) as any[]).filter(p => tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || (LMs.type === 'class' && (p.retired || p.dr || p.cls)));
     let ps = LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
     if (LMs.type === 'class') ps.sort((x, y) => (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) - (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99));
     lm = { title: LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' ? gm.flag(LMs.code) : '', hasFlag: LMs.type === 'country', sub: ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: LMs.type === 'country' ? 'Born' : 'Pick',
@@ -289,7 +292,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   }
   const tmT = s.teamModal != null ? T[s.teamModal] : null;
   const tm = !tmT ? {} : (() => { const tid = tmT.tid, ids = mine2(tid) ? s.rosters[tid].slice() : s.rosters[tid].slice().sort((x, y) => P[y].ovr - P[x].ovr), pay = ids.reduce((a, id) => a + P[id].amt, 0), cs = T.filter(t => t.conf === tmT.conf).sort(byPct), ks = s.assets.filter(a => a.owner === tid && !usedPick(a));
-    return { logo: logo(tid, 58), abbr: tmT.abbr, name: tmT.region + ' ' + tmT.name, line: ord(cs.indexOf(tmT) + 1) + ' in the ' + tmT.conf + ' · ' + tmT.div + ' Division', rec: tmT.w + '–' + tmT.l + ' · ' + strk(tmT) + ' · ' + l10(tmT) + ' last 10', market: (tmT.mkt >= 1.15 ? 'Large' : tmT.mkt >= .95 ? 'Mid-large' : tmT.mkt >= .85 ? 'Mid-size' : 'Small') + ' market',
+    return { rating: trOf(tid), ratingRank: ord(trRank(tid)) + ' of ' + T.length, logo: logo(tid, 58), abbr: tmT.abbr, name: tmT.region + ' ' + tmT.name, line: ord(cs.indexOf(tmT) + 1) + ' in the ' + tmT.conf + ' · ' + tmT.div + ' Division', rec: tmT.w + '–' + tmT.l + ' · ' + strk(tmT) + ' · ' + l10(tmT) + ' last 10', market: (tmT.mkt >= 1.15 ? 'Large' : tmT.mkt >= .95 ? 'Mid-large' : tmT.mkt >= .85 ? 'Mid-size' : 'Small') + ' market',
       strat: tid === s.me ? 'Your team' : mine2(tid) ? 'Also yours' : STRAT[strat[tid]][0], stratDesc: mine2(tid) ? '' : STRAT[strat[tid]][1], payroll: money(pay), cap: pay > gm.TAX ? money(pay - gm.TAX) + ' over the tax' : pay > gm.CAP ? money(pay - gm.CAP) + ' over the cap' : money(gm.CAP - pay) + ' in cap space',
       staff: 'Owner ' + tmT.owner + ' (' + tmT.arch + ') · GM ' + tmT.gm, region: tmT.region, nm: tmT.name, setRegion: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, region: v } : t) })); }, setName: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, name: v } : t) })); }, setAbbr: e => { const v = e.target.value.toUpperCase().slice(0, 4); gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, abbr: v } : t) })); },
       rows: ids.map(id => ({ ...pBase(id), contract: money(P[id].amt) })), picks: ks.length ? ks.map(a => gm.pickLabel(a, T) + ' (' + projTxt(a).replace('Proj. ', '') + ')').join(' · ') : 'None', isOther: tid !== s.me,
@@ -307,7 +310,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const reportsV = s.reports.map(r => ({ label: r.label, rows: r.rows.map(x => ({ ...x, color: x.up ? 'var(--gm-good)' : 'var(--gm-bad)', open: open(x.id) })) }));
   const REG = regions();
   if (status === 'pro' || status === 'abroad') {
-    const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), iF = intelF(s, pp.id), margin = Math.round((yo * 5 + 3) * scoutF * fac / iF);
+    const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), iF = intelF(s, pp.id), margin = s.god ? 0 : Math.round((yo * 5 + 3) * scoutF * fac / iF);
     const LBR = { hgt: 'size', stre: 'strength', spd: 'speed', jmp: 'leaping', endu: 'motor', ins: 'post game', dnk: 'finishing', ft: 'free throws', fg: 'mid-range', tp: 'three-point shooting', oiq: 'feel for the game', diq: 'defensive instincts', drb: 'handle', pss: 'passing', reb: 'rebounding' };
     const relK = Object.keys(pp.r).sort((x, y) => pp.r[y] - pp.r[x]);
     let comp = null, best = 1e9; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => { const q = P[id]; let dd = 0; Object.keys(q.r).forEach(k => dd += Math.pow((q.r[k] - q.ovr) - (pp.r[k] - pp.ovr), 2)); if (dd < best) { best = dd; comp = q; } }));
@@ -335,7 +338,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     total: Math.round(mine.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0)), rot: mine.map((id, i) => ({ name: P[id].name, pos: P[id].pos, tag: P[id].inj ? 'Injured' : P[id].dev ? 'Dev league' : i < 5 ? 'Starter' : '', v: rotOf(id), val: rotOf(id) + ' min' + (P[id].gp ? ' · plays ' + Math.round(P[id].min) : ''), dis: !!(P[id].inj || P[id].dev), set: e => { P[id].rot = +e.target.value; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); } })) };
   const natTot = (Object.values(s.natW) as any[]).reduce((a, x) => a + (+x || 0), 0);
   const natRows = Object.keys(C).filter(c => s.natW[c] !== undefined).sort((x, y) => (s.natW[y] || 0) - (s.natW[x] || 0)).map(c => ({ flag: gm.flag(c), name: C[c].n, w: s.natW[c], share: ((s.natW[c] || 0) / natTot * 100).toFixed(1) + '%', set: e => { const v = Math.max(0, +e.target.value || 0); gm.setState(st => ({ natW: { ...st.natW, [c]: v } })); }, open: openC(c) }));
-  const firing = { on: s.ownerFiring !== false, label: s.ownerFiring === false ? 'Off: owners review you but can’t fire you' : 'On: owners fire you if their written conditions are broken', btn: s.ownerFiring === false ? 'Turn on' : 'Turn off', toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })) };
+  const firing = { on: s.ownerFiring !== false && !s.god, label: s.god ? 'God Mode is on: you can’t be fired' : s.ownerFiring === false ? 'Off: owners review you but can’t fire you' : 'On: owners fire you if their written conditions are broken', btn: s.ownerFiring === false ? 'Turn on' : 'Turn off', toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })) };
   const god = { on: !!s.god, label: s.god ? 'On' : 'Off', btn: s.god ? 'Turn off' : 'Turn on', toggle: () => gm.setState(st => ({ god: !st.god })) };
   const gp = gm.gamesPlayed(s), PH = [['regular', 'Regular season'], ['playin', 'Play-in'], ['playoffs', 'Playoffs'], ['lottery', 'Lottery'], ['draft', 'Draft'], ['fa', 'Free agency'], ['preseason', 'Preseason']];
   const phK = s.phase;
@@ -371,7 +374,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const settings = { expLabel: s.expanded ? 'Expanded to 32 teams' : s.expansion ? 'On: two teams join at the next preseason' : 'Off: 30 teams', expBtn: s.expansion ? 'Turn off' : 'Turn on', expDis: s.expanded, toggleExp: () => gm.setState(st => st.expanded ? null : { expansion: !st.expansion }) };
   const hasProg = s.phase === 'preseason' && !!s.prog, progRows = (s.prog || []).map(x => ({ name: P[x.id].name, from: x.from, to: x.to, d: (x.to - x.from > 0 ? '+' : '') + (x.to - x.from), color: x.to > x.from ? 'var(--gm-good)' : x.to < x.from ? 'var(--gm-bad)' : 'var(--color-text)', open: open(x.id) }));
   const titles = { hof: 'Hall of Fame', editor: 'Team & league editor', league: 'League stats', career: 'Career & job market', press: 'Press room', awards: 'Awards', teams: 'My teams', tactics: 'Tactics & rotation', scouting: 'Global scouting', overseas: 'Overseas market', dev: 'Player development', owner: 'Ownership', playoffs: 'Playoffs', settings: 'Settings', game: 'Live game', schedule: 'Schedule', tx: 'League transactions', short: 'Shortlist', dash: 'Dashboard', standings: 'Standings', roster: 'Roster', depth: 'Roster construction', player: 'Player', fin: 'Finances', trade: 'Trade', fa: 'Free agency', draft: 'Draft' };
-  const metas = { hof: (s.hof || []).length + ' inducted', editor: 'God Mode', league: 'Anchored to the 2026 league averages', career: 'Reputation ' + reputation(s) + ' · ' + ((s.career?.seasons || []).length) + ' seasons', press: 'Owners and GMs around the league, on the record', awards: 'Voted at the end of the regular season', teams: s.managed.length + ' franchise' + (s.managed.length === 1 ? '' : 's') + ' under your control', tactics: 'You are GM and head coach', scouting: s.scouts.length + ' scouts · agent reputation ' + s.agentRep, overseas: (s.overseas || []).length + ' players abroad', dev: 'Growth is calculated monthly', owner: me.owner + ' · ' + me.arch, playoffs: gm.seasonLbl() + ' postseason · 15 teams per conference', settings: '', game: next.oppName, schedule: (me.w + me.l) + ' played · ' + (82 - me.w - me.l) + ' remaining', tx: 'All ' + T.length + ' teams', short: s.lists.reduce((a, l) => a + l.ids.length, 0) + ' players tracked', dash: '', standings: (me.w + me.l) + ' of 82 games played', roster: mine.length + ' players · payroll ' + money(payroll), depth: 'From your current rotation', player: '', fin: 'Market size: ' + (mk >= 1.15 ? 'large' : mk >= .95 ? 'mid-large' : mk >= .85 ? 'mid' : 'small') + ' (' + ord(mRank) + ' of ' + T.length + ') · cap ' + money(gm.CAP), trade: 'Payroll ' + money(payroll), fa: s.fa.length + ' available · ' + (15 - mine.length) + ' roster spot' + (15 - mine.length === 1 ? '' : 's'), draft: isCur ? 'Big board · ' + clsIds.length + ' prospects left' : 'Class of ' + s.dClass + ' · ' + clsIds.length + ' tracked' };
+  const metas = { hof: (s.hof || []).length + ' inducted', editor: 'God Mode', league: 'Anchored to the 2026 league averages', career: 'Reputation ' + reputation(s) + ' · ' + ((s.career?.seasons || []).length) + ' seasons', press: 'Owners and GMs around the league, on the record', awards: 'Voted at the end of the regular season', teams: s.managed.length + ' franchise' + (s.managed.length === 1 ? '' : 's') + ' under your control', tactics: 'You are GM and head coach', scouting: s.scouts.length + ' scouts · agent reputation ' + s.agentRep, overseas: (s.overseas || []).length + ' players abroad', dev: 'Growth is calculated monthly', owner: me.owner + ' · ' + me.arch, playoffs: gm.seasonLbl() + ' postseason · 15 teams per conference', settings: '', game: next.oppName, schedule: (me.w + me.l) + ' played · ' + (82 - me.w - me.l) + ' remaining', tx: 'All ' + T.length + ' teams', short: s.lists.reduce((a, l) => a + l.ids.length, 0) + ' players tracked', dash: '', standings: (me.w + me.l) + ' of 82 games played', roster: 'Team rating ' + trOf(s.me) + ' (' + ord(trRank(s.me)) + ') · ' + mine.length + ' players · payroll ' + money(payroll), depth: 'From your current rotation', player: '', fin: 'Market size: ' + (mk >= 1.15 ? 'large' : mk >= .95 ? 'mid-large' : mk >= .85 ? 'mid' : 'small') + ' (' + ord(mRank) + ' of ' + T.length + ') · cap ' + money(gm.CAP), trade: 'Payroll ' + money(payroll), fa: s.fa.length + ' available · ' + (15 - mine.length) + ' roster spot' + (15 - mine.length === 1 ? '' : 's'), draft: isCur ? 'Big board · ' + clsIds.length + ' prospects left' : 'Class of ' + s.dClass + ' · ' + clsIds.length + ' tracked' };
   const page = { kicker: variant === 'B' ? myName : dateLong, title: titles[s.screen], meta: metas[s.screen] };
 
   const qq = s.q.trim().toLowerCase();
