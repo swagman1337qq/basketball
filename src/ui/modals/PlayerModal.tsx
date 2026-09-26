@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
 import { Dice } from '../kit';
-import { randomName } from '../../data/heritage';
 import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
@@ -112,11 +111,11 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Name
                   </span>
-                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.name} onChange={vm.pl.ed.setName} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random name from the country he represents" onClick={() => { const r = randomName(vm.ctx.s.god ? vm.pl.ed.repV : vm.pl.ed.repV); vm.pl.ed.setName({ target: { value: r.name } }); vm.pl.ed.setNative({ target: { value: r.native || '' } }); }} /></span>
+                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.name} onChange={vm.pl.ed.setName} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random name from the country he represents" onClick={vm.pl.ed.randName} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Native script
                   </span>
-                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.native} onChange={vm.pl.ed.setNative} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random native-script name (countries with their own script)" onClick={() => vm.pl.ed.setNative({ target: { value: randomName(vm.pl.ed.repV).native || '' } })} /></span>
+                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.native} onChange={vm.pl.ed.setNative} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random native-script name (countries with their own script)" onClick={vm.pl.ed.randNative} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Represents
                   </span>
