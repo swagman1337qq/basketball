@@ -4,6 +4,53 @@ import { useState } from 'react';
 import { Seg } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { TraitFilter, byTrait } from '../TraitFilter';
+import { Link, muted } from '../kit';
+import { Game } from '../../engine/Game';
+
+// The free agency clock: where we are on the NBA calendar, how much of the market has signed,
+// what happened since you last advanced, and the best players still out there.
+function FATracker({ vm }: { vm: VM }) {
+  const { gm, s, T, logo, open } = vm.ctx, P = gm.db.P;
+  if (s.phase !== 'fa') return null;
+  const fd = gm.faDayOf(s), END = Game.FA_END, date = gm.faDate(s).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const top: number[] = s.faTop || [], unsigned = new Set<number>(s.fa), signedTop = top.filter(id => !unsigned.has(id)).length;
+  const since = s.faPrev ?? s.day, fromT = s.faStart ?? 0;
+  const sign = (s.lgLog || []).filter((e: any) => e.type === 'Signing' && e.day >= fromT && (e.pids || []).length);
+  const fresh = sign.filter((e: any) => e.day >= since), recent = (fresh.length ? fresh : sign).slice(0, 14);
+  const best = s.fa.map((id: number) => P[id]).filter((p: any) => p && !p.retired).sort((a: any, b: any) => b.ovr - a.ovr).slice(0, 8);
+  const marks: [number, string][] = [[0, 'Jun 30 · open'], [15, 'Summer League'], [46, 'August'], [END, 'Sep 30 · training camp']];
+  return (
+    <section className="card" style={{ padding: '12px 14px', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
+        <div><div style={{ fontSize: '18px', fontWeight: 600 }}>{date}</div><div style={{ ...muted, fontSize: '12.5px' }}>Day {fd} of free agency · {gm.faStage(fd)}</div></div>
+        <div style={{ fontSize: '13px' }}><b>{signedTop}</b> of the top {top.length} free agents have signed · <b>{s.fa.length}</b> players unsigned</div>
+      </div>
+      <div style={{ position: 'relative', height: 30 }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 6, borderRadius: 3, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)' }} />
+        <div style={{ position: 'absolute', left: (10 / END * 100) + '%', width: (10 / END * 100) + '%', top: 8, height: 6, background: 'color-mix(in srgb, var(--color-accent) 35%, transparent)' }} title="Summer League" />
+        <div style={{ position: 'absolute', left: 0, width: Math.min(100, fd / END * 100) + '%', top: 8, height: 6, borderRadius: 3, background: 'var(--color-accent)' }} />
+        <div title="July 6: the moratorium ends and deals become official" style={{ position: 'absolute', left: (6 / END * 100) + '%', top: 4, width: 2, height: 14, background: 'var(--color-text)', opacity: .5 }} />
+        {marks.filter(m => m[1]).map(([d, l]) => <span key={d} style={{ position: 'absolute', left: (d / END * 100) + '%', top: 16, transform: d === END ? 'translateX(-100%)' : d ? 'translateX(-50%)' : undefined, fontSize: '10.5px', ...muted, whiteSpace: 'nowrap' }}>{l}</span>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>{fresh.length ? fresh.length + ' signing' + (fresh.length === 1 ? '' : 's') + ' since you last advanced' : 'Latest signings'}</div>
+          {recent.length ? recent.map((e: any, i: number) => (
+            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'baseline', fontSize: '12.5px', padding: '2px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+              <span style={{ ...muted, fontSize: '11px', width: 44, flex: 'none' }}>{e.date || ''}</span><span>{e.text}</span>
+            </div>)) : <div style={{ ...muted, fontSize: '12.5px' }}>Nobody has signed yet. Negotiations open tonight.</div>}
+        </div>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>Best still available</div>
+          {best.map((p: any) => (
+            <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '12.5px', padding: '2px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+              <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span><Link onClick={() => open(p.id)}>{p.name}</Link><span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age}{p.birdTid != null && T[p.birdTid] ? ' · last with ' + T[p.birdTid].abbr : ''}{p.rfa ? ' · restricted' : ''}{p.ask ? ' · asking $' + p.ask.toFixed(1) + 'M' : ''}</span>
+            </div>))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const [f, setF] = useState<'all' | 'gl' | 'home'>('all'), [tk, setTk] = useState('');
@@ -11,6 +58,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
   return (
     <>
+      <FATracker vm={vm} />
       <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} />
       {(vm.ctx.s.offerSheets || []).length > 0 && (
         <div style={{ padding: "8px 12px", marginBottom: "12px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", fontSize: "13px", display: "flex", gap: "10px", alignItems: "center" }}>

@@ -214,10 +214,10 @@ export function openFreeAgency(g: Game, s: any) {
 }
 
 // ── AI free agency, one day at a time ─────────────────────────────────────────────
-export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12) {
+export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12, decay = 0.97) {
   const P = g.db.P, N = nums(g), T = s.teams;
   // Unsigned players lower their asks as the market dries up.
-  box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, (p.ask || minS) * 0.97).toFixed(2); });
+  box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, (p.ask || minS) * decay).toFixed(2); });
   for (let k = 0; k < moves; k++) {
     const pool = box.fa.filter(id => !P[id].retired).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 10); if (!pool.length) break;
     const id = pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa };

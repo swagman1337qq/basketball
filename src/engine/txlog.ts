@@ -11,6 +11,7 @@ export interface Trade { id: number; season: number; date: string; a: number; b:
 const dateOf = (g: Game, s: any) => {
   const ph = s.phase, Y = g.Y;
   if (ph === 'regular' || ph === 'preseason') return g.dateOf(s.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (ph === 'fa' && s.faStart != null) return g.faDate(s, Math.max(0, s.day - s.faStart)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   return { playin: 'Apr ' + Y, playoffs: 'May ' + Y, lottery: 'May ' + Y, draft: 'Jun ' + Y, fa: 'Jul ' + Y } [ph as string] || String(Y);
 };
 export function addTx(g: Game, s: any, p: any, e: Omit<Tx, 'season' | 'date'>) {

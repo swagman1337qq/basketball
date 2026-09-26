@@ -755,21 +755,40 @@ export class Game {
       ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'VMIN', 'MLE', 'MAXC'].forEach(k => (d.caps[k] = +(d.caps[k] * growth).toFixed(1)));
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
       const out = openFreeAgency(this, s);
-      return { ...out, lgLog: [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], phase: 'fa', screen: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
+      const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
+      return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', screen: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
   }
+  // Free agency runs on the NBA calendar: negotiations open June 30 (day 0), the moratorium ends
+  // July 6, Summer League is mid-July, then the market thins out until training camps open
+  // September 30. Most of the big names agree in the first days; the rest trickle in.
+  static FA_END = 92;
+  faDayOf(s = this.state) { return s.phase === 'fa' ? Math.max(0, s.day - (s.faStart ?? s.day)) : 0; }
+  faDate(s = this.state, fd = this.faDayOf(s)) { return new Date(this.Y, 5, 30 + fd); }
+  faStage(fd: number) { return fd === 0 ? 'Negotiations open at 6 p.m. ET' : fd < 6 ? 'Moratorium: deals are agreed now and become official July 6' : fd < 10 ? 'Deals are official' : fd <= 20 ? 'Summer League in Las Vegas' : fd <= 60 ? 'The quiet stretch: the market thins out' : fd < Game.FA_END ? 'Camp invites and last-minute deals' : 'Training camps open'; }
+  // How many moves AI teams try each day: a frenzy the first night, tapering to a trickle.
+  static faPace(fd: number) { return fd === 0 ? 30 : fd === 1 ? 20 : fd === 2 ? 12 : fd < 6 ? 6 : fd < 10 ? 4 : fd <= 20 ? 2.5 : fd <= 45 ? 1 : fd <= 80 ? 0.6 : 1.5; }
+  // Log entries made during free agency carry their real calendar date.
+  stampFA(s, lgLog: any[], oldLen: number) { const n = lgLog.length - oldLen; if (n <= 0 || s.faStart == null) return lgLog; return lgLog.map((e, i) => i < n && !e.date && e.day >= s.faStart ? { ...e, date: new Date(this.Y, 5, 30 + e.day - s.faStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } : e); }
   advanceFA(days) {
     this.setState(s => {
       if (s.phase !== 'fa') return null;
-      const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice();
-      for (let d = 0; d < days; d++) { aiFreeAgencyDay(this, { ...s, day: s.day + d }, box, lgLog, offerSheets); easyFreeAgency(this, { ...s, day: s.day + d }, box, lgLog); }
+      const fd0 = this.faDayOf(s), n = Math.max(0, Math.min(days, Game.FA_END - fd0)); if (!n) return null;
+      const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice(), sheets0 = offerSheets.length;
+      let done = 0;
+      for (let d = 0; d < n; d++) { const fd = fd0 + d, pace = Game.faPace(fd), moves = Math.floor(pace) + (Math.random() < pace % 1 ? 1 : 0), st = { ...s, day: s.day + d };
+        aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99); easyFreeAgency(this, st, box, lgLog); done++;
+        if (offerSheets.length > sheets0 && !s.easy?.cap) break; } // stop the clock: one of your restricted free agents got an offer sheet
       // Easy mode answers offer sheets for your restricted free agents.
       if (s.easy?.cap) for (const o of offerSheets.slice()) { if (!this.isUser(s, o.to)) continue; const m = easyMatch(this, { ...s, rosters: box.rosters, cap: box.cap }, o), p = this.db.P[o.pid];
         lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[m ? o.to : o.from].abbr, pids: [o.pid], text: applySigning(this, { ...s, rosters: box.rosters }, box, m ? o.to : o.from, p, m ? { ...o.terms, method: 'bird' } : o.terms) + (m ? ' (matched the offer sheet, easy mode)' : ' (' + s.teams[o.to].abbr + ' declined to match, easy mode)') }); offerSheets.splice(offerSheets.indexOf(o), 1); }
-      return { ...box, lgLog, offerSheets, day: s.day + days };
+      return { ...box, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, day: s.day + done, faPrev: s.day };
     });
   }
   startPreseason() {
+    // Training camp: play out what's left of free agency first (stops if one of your restricted
+    // free agents gets an offer sheet you need to answer).
+    if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length) return null;
       const P = this.db.P, d = this.db, Y = this.Y + 1, coachOf = k => { const c = this.clubOf(s, +k); return c ? (c.budget.Coaching - 18) / 12 : 0; }, progBy: Record<number, any[]> = {};
