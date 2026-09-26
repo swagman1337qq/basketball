@@ -47,6 +47,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             <span style={muted}>Abbreviation</span><input className="input" defaultValue={t.abbr} key={'ab' + tid} onBlur={e => setAbbr(e.target.value)} />
             <span style={muted}>Colors</span>
             <span style={{ display: 'flex', gap: '8px' }}>{[0, 1].map(i => <input key={i} type="color" value={(t.colors || ['#444444', '#eeeeee'])[i]} onChange={e => { const c = [...(t.colors || ['#444444', '#eeeeee'])]; c[i] = e.target.value; setT({ colors: c }); }} style={{ width: 48, height: 30, border: 'none', background: 'none' }} />)}</span>
+            <span style={muted}>Logo style</span><select className="input" value={t.logoStyle || ''} onChange={e => setT({ logoStyle: e.target.value || undefined })}><option value="">Default</option><option value="shield">Shield (soccer crest)</option><option value="roundel">Roundel (classic)</option><option value="script">Script wordmark (70s)</option><option value="badge">Varsity badge</option></select>
             <span style={muted}>Crest</span><select className="input" value={t.icon || 'Circle'} onChange={e => setT({ icon: e.target.value })}>{GLYPHS.map(g => <option key={g}>{g}</option>)}</select>
             <span style={muted}>Logo image</span>
             <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
