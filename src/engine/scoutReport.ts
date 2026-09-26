@@ -137,7 +137,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const weaknesses = keys.slice(-4).reverse().filter(k => R[k] + (posAdj[k] || 0) < 62).map(k => pick(BAD[k]));
   if (!strengths.length) strengths.push('No standout skill yet; a jack of all trades who needs one thing to hang his hat on.');
   if (!weaknesses.length) weaknesses.push('Few holes in his game. Consistency night to night is the main thing to watch.');
-  const roles = g.rolesOf(p, true).slice(0, 2).map((x: string) => x.toLowerCase());
+  const roles = g.rolesOf(p, o.pot).slice(0, 2).map((x: string) => x.toLowerCase());
   const build = sizeG >= 7.5 ? 'big for his position' : sizeG <= 3.5 ? 'undersized' : 'solid size for his position';
   const ath = (R.spd + R.jmp) / 2 >= 68 ? 'a plus athlete' : (R.spd + R.jmp) / 2 <= 45 ? 'a below-average athlete' : 'an average athlete';
   const where = rd.kind === 'prospect' ? (p.from?.lg === 'NCAA' ? 'at ' + p.from.team : p.from?.lg === 'High school' ? 'in high school at ' + p.from.team : 'with ' + p.from?.team + ' in ' + (C[p.from?.country]?.n || 'his home country')) : rd.kind === 'overseas' ? 'for ' + p.abroad?.club + ' in ' + (C[p.abroad?.country]?.n || 'Europe') : 'in the NBA';

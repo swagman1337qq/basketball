@@ -1368,5 +1368,9 @@ export class Game {
       return { tMine: best.p ? [...s.tMine, best.p] : s.tMine, tkMine: best.k ? [...s.tkMine, best.k] : s.tkMine, tMsg: 'They would do it if you add ' + what + '.' };
     });
   }
-  rolesOf(p, rel?) { const v = k => rel ? p.r[k] - p.ovr + 58 : p.r[k]; return roleDefs().filter(r => r[4](v, p)).map(r => r[0]); }
+  // Roles he fills now, or (proj) the ones he projects into at his ceiling: every skill grows by
+  // 60% of the gap between his overall and his potential (a number = the scouts' estimate of it:
+  // most players don't hit their full ceiling in every skill); height
+  // doesn't grow. A raw 19-year-old only "projects as a shooter" if his shot gets there.
+  rolesOf(p, proj?: boolean | number) { const up = proj ? 0.6 * Math.max(0, (typeof proj === 'number' ? proj : p.pot) - p.ovr) : 0, v = k => k === 'hgt' ? p.r[k] : p.r[k] + up; return roleDefs().filter(r => r[4](v, p)).map(r => r[0]); }
 }

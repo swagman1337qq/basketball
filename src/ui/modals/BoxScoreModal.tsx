@@ -52,7 +52,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
               {sides.map((sd: any, i: number) => (
                 <span key={i} style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                   {i === 1 && <span style={{ ...muted, fontSize: '13px' }}>at</span>}
-                  {logo(sd.tid, 32)}<span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px' }}>{T[sd.tid].abbr}</span>
+                  <button className="hv4" title={'Open the ' + T[sd.tid].region + ' ' + T[sd.tid].name + ' page'} onClick={() => { close(); openTeam(sd.tid); }} style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', gap: 8, alignItems: 'center' }}>{logo(sd.tid, 32)}<span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px' }}>{T[sd.tid].abbr}</span></button>
                   <span style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', fontWeight: sd.pts > sides[1 - i].pts ? 700 : 400, color: sd.pts > sides[1 - i].pts ? 'var(--color-text)' : 'var(--color-neutral-600)' }}>{sd.pts}</span>
                 </span>))}
             </div>
@@ -62,7 +62,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
         {per > 0 && (
           <table className="table" style={{ fontSize: '12.5px', width: 'auto' }}>
             <thead><tr>{th('', true)}{Array.from({ length: per }, (_, i) => th(i < 4 ? 'Q' + (i + 1) : 'OT' + (per > 5 ? i - 3 : '')))}{th('Final')}</tr></thead>
-            <tbody>{sides.map((sd: any) => <tr key={sd.tid}><td style={{ padding: '4px 6px', fontWeight: 600 }}>{T[sd.tid].abbr}</td>{Array.from({ length: per }, (_, i) => td(sd.qs?.[i] ?? ''))}{td(sd.pts, { fontWeight: 700 })}</tr>)}</tbody>
+            <tbody>{sides.map((sd: any) => <tr key={sd.tid}><td style={{ padding: '4px 6px', fontWeight: 600 }}><Link onClick={() => { close(); openTeam(sd.tid); }}>{T[sd.tid].abbr}</Link></td>{Array.from({ length: per }, (_, i) => td(sd.qs?.[i] ?? ''))}{td(sd.pts, { fontWeight: 700 })}</tr>)}</tbody>
           </table>)}
         {sides.map(team)}
       </div>

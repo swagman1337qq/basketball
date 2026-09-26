@@ -218,7 +218,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     }
     if (s.adv.agm && pool.length) {
       const top = pool.slice(0, 10);
-      const sc = id => { const fit = gm.rolesOf(P[id], true).filter(r => gaps.includes(r)); return { id, fit, v: (est(P[id], 1) * .7 + est(P[id], 0) * .3) + fit.length * 6 + (P[id].age <= 19 ? 2 : 0) }; };
+      const sc = id => { const fit = gm.rolesOf(P[id], est(P[id], 1)).filter(r => gaps.includes(r)); return { id, fit, v: (est(P[id], 1) * .7 + est(P[id], 0) * .3) + fit.length * 6 + (P[id].age <= 19 ? 2 : 0) }; };
       const b = top.map(sc).sort((x, y) => y.v - x.v)[0], p = P[b.id], bpa = top[0] === b.id;
       const roleName = (r: string) => r.toLowerCase().replace('3-and-d', '3-and-D'), listOf = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
       const fitTxt = listOf(b.fit.slice(0, 2).map(r => (/^[aeiou]/i.test(r) ? 'an ' : 'a ') + roleName(r))) + (b.fit.length > 2 ? ', plus ' + (b.fit.length - 2) + ' more of our needs' : '');
@@ -387,7 +387,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     const canPromise = status === 'pro' && pp.cls === gm.Y && ['regular', 'playin', 'playoffs', 'lottery', 'draft'].includes(s.phase) && !!myNext && !taken.has(pp.id) && Object.keys(s.promises).length < 2 && !s.promises[pp.id];
     pl.isPro = true;
     pl.sr = { margin, scout: sc.length ? 'Scouted by ' + sc.map(x => x.name).join(', ') : 'No scout assigned to ' + REG[gm.regionKey((pp.from && pp.from.country) || pp.raised)].name, str: LBR[relK[0]] + ', ' + LBR[relK[1]], weak: LBR[relK[relK.length - 1]] + ', ' + LBR[relK[relK.length - 2]],
-      summary: pp.pos + ' who projects as a ' + (gm.rolesOf(pp, true).slice(0, 2).join(' and ').toLowerCase() || 'developmental rotation player') + '. Our read on his ceiling is potential around ' + (pp.pot + Math.round(pp.nz[1] * margin * 1.6)) + ', give or take ' + margin + '.',
+      summary: pp.pos + ' who projects as a ' + (gm.rolesOf(pp, pp.pot + Math.round(pp.nz[1] * margin * 1.6)).slice(0, 2).join(' and ').toLowerCase() || 'developmental rotation player') + '. Our read on his ceiling is potential around ' + (pp.pot + Math.round(pp.nz[1] * margin * 1.6)) + ', give or take ' + margin + '.',
       comp: comp ? comp.name : '—', openComp: comp ? open(comp.id) : () => {}, intang: fac <= .6 ? ([pp.pers.alpha && 'wants to lead', pp.pers.pro && 'consummate professional', pp.pers.volatile && 'volatile', pp.pers.clutch && 'clutch', pp.pers.prone && 'injury history'].filter(Boolean).join(', ') || 'even-keeled') + '; motivated by ' + pp.pers.mot.toLowerCase() : 'Unknown until a specialist scouts his region',
       intel: ((s.intel || {})[pp.id] || 0).toFixed(1), focused: (s.scoutFocus || []).includes(pp.id), toggleFocus: () => gm.setState(st => { const f0 = st.scoutFocus || []; return { scoutFocus: f0.includes(pp.id) ? f0.filter(x => x !== pp.id) : [...f0, pp.id].slice(-5) }; }),
       canPromise, promised: !!s.promises[pp.id], pickN: s.promises[pp.id] ? s.promises[pp.id].n : myNext ? myNext.n : '',

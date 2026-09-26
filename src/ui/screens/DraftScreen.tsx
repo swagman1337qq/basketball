@@ -87,13 +87,14 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "calc(100vh - 260px)", overflowY: "auto", paddingRight: "4px" }}>
               {(vm.dr.order || []).map((o: any, i: number) => (
-                <div key={i} ref={o.onClock ? (el => { const box = el?.parentElement; if (el && box && box.dataset.at !== String(o.n)) { box.dataset.at = String(o.n); box.scrollTop = el.offsetTop - box.offsetTop - 90; } }) : undefined} style={{ display: "grid", gridTemplateColumns: "30px 30px minmax(0,1fr)", gap: "10px", alignItems: "center", padding: "8px 10px", borderRadius: "var(--radius-md)", border: o.onClock ? "1px solid var(--color-accent)" : "1px solid var(--color-divider)", background: o.onClock ? "var(--color-accent-100)" : o.mine ? "color-mix(in srgb, var(--color-accent) 6%, transparent)" : "transparent" }}>
+                <div key={i} ref={o.onClock ? (el => { const box = el?.parentElement; if (el && box && box.dataset.at !== String(o.n)) { box.dataset.at = String(o.n); box.scrollTop = el.offsetTop - box.offsetTop - 90; } }) : undefined} style={{ display: "grid", gridTemplateColumns: "30px 30px minmax(0,1fr)", gap: "10px", alignItems: "center", padding: "8px 10px", borderRadius: "var(--radius-md)", border: o.onClock ? "2px solid var(--color-accent)" : o.mine ? "2px solid var(--color-accent)" : "1px solid var(--color-divider)", borderLeft: o.mine ? "6px solid var(--color-accent)" : undefined, background: o.onClock ? "var(--color-accent-100)" : o.mine ? "color-mix(in srgb, var(--color-accent) 18%, transparent)" : "transparent", boxShadow: o.mine ? "0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent), 0 2px 10px color-mix(in srgb, var(--color-accent) 25%, transparent)" : undefined }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontSize: "20px", textAlign: "right", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.n}</span>
                   <button onClick={o.openT} title={o.team} style={{ all: "unset", cursor: "pointer" }}>{o.logoLg}</button>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", gap: "6px", alignItems: "baseline", fontSize: "13px", color: o.mine ? "var(--color-accent-700)" : "var(--color-text)", fontWeight: o.mine ? 600 : 400 }}>
                       <button className="hv4" onClick={o.openT} style={{ all: "unset", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.team}</button>
                       {o.via && <span style={{ fontSize: "11px", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>{o.via}</span>}
+                      {o.mine && <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: ".08em", padding: "1px 6px", borderRadius: 3, background: "var(--color-accent)", color: "var(--color-bg)", whiteSpace: "nowrap" }}>YOUR PICK</span>}
                     </div>
                     {o.pid ? (
                       <div style={{ fontSize: "12.5px", lineHeight: 1.35 }}>

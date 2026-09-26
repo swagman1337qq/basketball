@@ -182,7 +182,7 @@ export function roleDefs(): any[] {
   return [
     ['Primary creator', 'Runs the offense off the dribble', 2, 3, v => v('drb') >= 62 && v('pss') >= 60],
     ['Floor spacer', 'A real threat from three', 4, 6, v => v('tp') >= 60],
-    ['3-and-D wing', 'Hits open threes and guards wings', 3, 4, (v, p) => p.grp !== 'B' && v('tp') >= 54 && v('diq') >= 54],
+    ['3-and-D wing', 'Hits open threes and guards wings', 3, 4, (v, p) => (p.grp === 'W' || (p.grp === 'G' && v('hgt') >= 45)) && v('tp') >= 54 && v('diq') >= 54],
     ['Point-of-attack defender', 'Pressures the ball handler', 2, 3, (v, p) => p.grp !== 'B' && v('diq') >= 58 && v('spd') >= 60],
     ['Slasher', 'Gets downhill and finishes', 2, 3, v => (v('spd') + v('jmp') + v('dnk')) / 3 >= 60],
     ['Rim protector', 'Anchors the paint on defense', 2, 3, (v, p) => p.grp === 'B' && v('hgt') >= 62 && v('diq') >= 52],
