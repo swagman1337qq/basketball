@@ -1,6 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
+import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
@@ -385,7 +386,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -1100,6 +1101,8 @@ export class Game {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
+    // Assistant coaches re-check the development-league assignments they're in charge of.
+    Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
       // Few minutes slow a young player down, unless he works at it (G League minutes count too).
@@ -1110,7 +1113,7 @@ export class Game {
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
       const work = this.devMult(p, annual) * (annual > 0 ? 1 + (lockerRoom(this, s, +k, rosters).score - 50) / 500 : 1);
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
-      const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
+      const focus = mine ? ((club.coachAuto || {})[id] ? coachFocus(p).focus : club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
