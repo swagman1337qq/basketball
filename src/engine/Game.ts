@@ -775,7 +775,17 @@ export class Game {
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
       Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
-      const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; const a = p.age, base = a <= 22 ? 2 + Math.random() * 4 : a <= 25 ? 1 + Math.random() * 3 : a <= 28 ? -1 + Math.random() * 3 : a <= 31 ? -3 + Math.random() * 3 : -5 + Math.random() * 4; const dlt = Math.round(base * .5 + bonus); const from = p.ovr; p.ovr = this.cl(p.ovr + dlt, 25, 100); if (p.pot < p.ovr) p.pot = p.ovr; if (a >= 28) p.pot = Math.max(p.ovr, p.pot - 2); Object.keys(p.r).forEach(k => p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100))); return from; };
+      const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+        // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
+        // from the season he just had, and luck. Now and then a young player breaks out or stalls.
+        let x = rate * this.devMult(p, rate) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
+        let potD = 0; if (a <= 24 && p.pot - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
+        const dlt = Math.round(x), from = p.ovr; p.ovr = this.cl(p.ovr + dlt, 25, 100);
+        // His ceiling is re-estimated: hard work, a good season and his development factor raise it.
+        if (a < 27) p.pot = Math.round(p.pot + potD + (nz() * 1.2 + (wk - 50) / 35 + form * 1.5 + (this.devK(p) - 1) * 2.5) * .6);
+        else p.pot = Math.max(p.ovr, p.pot - 2);
+        p.pot = this.cl(Math.max(p.pot, p.ovr), 25, 95);
+        Object.keys(p.r).forEach(k => { if (k !== 'hgt' || a <= 20) p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); }); return from; };
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
       fa.forEach(id => grow(P[id], 0));
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
@@ -978,21 +988,57 @@ export class Game {
       Drop: [n('Rim protector') >= 1, 'a rim protector'],
     } as Record<string, [boolean, string]>;
   }
+  // Development: how a player's overall moves is an accumulation of things, not just his age.
+  //  - Potential: young players grow toward their ceiling, faster the further below it they are
+  //    (on course to reach it around 27); one already at his ceiling barely moves.
+  //  - Work ethic: hard workers grow faster and age slower, and keep improving without minutes
+  //    (the rookie buried on the bench who lives in the gym).
+  //  - Playing time, the G League, the coaching budget, training focus, the locker room, mentors.
+  //  - Traits: legacy-driven and professional players push themselves; volatile ones don't.
+  //  - A hidden development factor, fixed for each player: some keep getting better for years,
+  //    some peak early and never improve (the great rookie season that turns out to be his best).
+  //  - The season he had: a breakout year builds confidence and raises his ceiling a little.
+  //  - Luck: every year has some.
+  devK(p) { if (p.devK == null) { const h = (x: number) => (((p.id * x + 11) >>> 0) % 1000) / 1000; p.devK = +Math.exp((h(7919) + h(104729) + h(15485863) - 1.5) * 2 * 0.28).toFixed(2); } return p.devK; }
+  // Expected yearly change in overall before personality, minutes and luck.
+  devRate(p, age = p.age) {
+    const ageBase = age <= 22 ? 4 : age <= 25 ? 2.5 : age <= 28 ? .8 : Game.ageDecline(age);
+    if (ageBase <= 0 || age >= 28) return ageBase;
+    const need = Math.max(0, p.pot - p.ovr) / Math.max(1.5, 27 - age);
+    return 0.35 * ageBase + 0.8 * need;
+  }
+  // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
+  // 35, −5 at 38, −7 at 40, −11 at 44 for a typical player; work ethic and the hidden factor
+  // move it). Athleticism goes first; shooting and feel for the game hold on longer.
+  static ageDecline(age) { const t = age - 29; return (-0.4 - 0.25 * t - 0.03 * t * t) / 0.83; }
+  // Personality, traits and the hidden factor: speeds growth (rate > 0) or slows decline (rate < 0).
+  devMult(p, rate) {
+    const w = p.pers?.work ?? 50, k = this.devK(p);
+    if (rate > 0) return (0.7 + w / 167) * (p.pers?.legacy ? 1.08 : 1) * (p.pers?.pro ? 1.06 : 1) * (p.pers?.volatile ? .94 : 1) * k;
+    return (1.2 - w / 250) * (p.pers?.pro ? .9 : 1) / Math.sqrt(k);
+  }
+  // How his season went against what his overall predicted (−1 … +1; 0 with under 20 games).
+  seasonForm(p, season = this.Y) {
+    const r = (p.stats || []).find(x => x.season === season && !x.po); if (!r || r.gp < 20) return 0;
+    return this.cl((this.perOf(r, season) - (15 + (p.ovr - 50) * 0.75)) / 8, -1, 1);
+  }
   devTick(s, rosters, day) {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb' };
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
-      const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
-      const minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1, injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
+      const annual = this.devRate(p), wk = p.pers?.work ?? 50;
+      // Few minutes slow a young player down, unless he works at it (G League minutes count too).
+      let minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1; if (minF < 1) minF += (1 - minF) * this.cl((wk - 55) / 45, 0, 1) * .8;
+      const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
-      const work = annual > 0 ? (0.85 + (p.pers.work ?? 50) / 333) * (1 + (lockerRoom(this, s, +k, rosters).score - 50) / 500) : 1;
+      const work = this.devMult(p, annual) * (annual > 0 ? 1 + (lockerRoom(this, s, +k, rosters).score - 50) / 500 : 1);
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? (club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
-      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4;
+      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = a <= 20 ? .3 : 0; if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
       p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
       p.feed = [{ m: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
