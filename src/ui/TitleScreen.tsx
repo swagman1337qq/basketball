@@ -13,7 +13,8 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const fileRef = useRef<HTMLInputElement>(null);
   const [saves, setSaves] = useState<SaveRow[] | null>(null);
   const [name, setName] = useState('My league');
-  const [seed, setSeed] = useState('2027');
+  // Every new league gets its own world unless you pick a seed (2027 is the reference world).
+  const [seed, setSeed] = useState(() => String(1 + Math.floor(Math.random() * 999999)));
   const [msg, setMsg] = useState('');
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
   const [sel, setSel] = useState<number[]>([0]);
@@ -93,9 +94,10 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
               <label htmlFor="league-seed">World seed</label>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <input id="league-seed" className="input" inputMode="numeric" value={seed} onChange={e => setSeed(e.target.value.replace(/[^\d]/g, ''))} />
-                <button className="btn btn-ghost" onClick={() => setSeed(String(Math.floor(Math.random() * 1e6)))} style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>Random</button>
+                <button className="btn btn-ghost" onClick={() => setSeed(String(1 + Math.floor(Math.random() * 999999)))} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A new random world">🎲 New world</button>
+                <button className="btn btn-ghost" onClick={() => setSeed('2027')} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="The reference world: the same players every time">2027</button>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)', marginTop: '4px' }}>The same seed always builds the same players, teams and draft classes. 2027 is the reference world.</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)', marginTop: '4px' }}>Each new league starts in a fresh random world: new players, rosters, owners and draft classes. Type a seed to replay a world exactly (the same seed always builds the same league; 2027 is the reference world).</div>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--color-divider)', paddingTop: '12px' }}>
               <TeamLogo team={picked} size={48} />

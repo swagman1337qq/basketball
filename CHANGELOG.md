@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **A new world for every league.** New leagues start from a random seed, so players, rosters, owners and draft classes are different each time. Type a seed (or press 2027 for the reference world) to replay one exactly. More owner names.
 - **Leagues menu.** A "Leagues ▾" button at the top of the sidebar (also in the collapsed rail): back to the main menu, start a new league, export this one, or switch straight to another saved league. Your league is saved first.
 - **What's new.** This changelog, readable in the game (League → What's new) and kept up to date with every change.
 - **AI extensions.** AI teams now sign rookie-scale and veteran extensions for players worth keeping, in a July window and at the October deadline before opening night. Loyal players sign more readily, money-first players tend to test free agency, and owners won't go past their payroll limit.
