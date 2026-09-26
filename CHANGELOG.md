@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Scouting reports list:** click the "Plays like" player to open his profile.
 - **God Mode: edit height and wingspan in feet and inches**, next to the numbers (the height rating and the wingspan in inches). Change either one and the other follows; wingspan moves with height. **Position** is editable too (PG, SG, G, SF, GF, F, PF, FC, C) on the profile editor and the Edit player tab.
 - **Trade for players just drafted.** On draft night, a player an AI team has picked shows up in the trade screen as its "Draft rights" (and "Trade for player" on the draft board). As in the NBA, that team made the pick on your behalf: his record shows who drafted him, the rights are traded to you, and he signs his rookie deal with you.
 - **Sim one pick** on draft night (Draft screen and the season bar): the team on the clock makes its pick, and you watch the draft unfold one selection at a time.
@@ -25,6 +26,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Scouting reports:** the big number is now labeled "Scout grade" ("Grade" in the list). It's the scouts' grade, weighted mostly toward his ceiling, not his overall rating, which is why a raw 19-year-old can grade 85 while he's "currently an end-of-bench player".
 - **Development isn't a straight line.** Every player now has a hidden development year: most are normal, some are breakouts, and some go nowhere or backwards. About a quarter to a third of young players don't improve in a given season. Potential can fall too: a serious injury, a rookie who can't adapt to NBA strength or pace, a young player who stalls, or a year well below expectations. The reason appears in the Development tab's year-by-year table.
 - **Scouting reports end with "The bottom line":** what he does well, what he can become, what has to develop, and where he stands in his class ("Byrd has the size, rebounding instincts and scoring punch to become a high-level NBA big. If his shooting and explosiveness continue to develop, he has legitimate star upside and is one of the elite prospects in the 2027 NBA Draft."). NBA and overseas players get one in the same style. Each part is written several different ways, so reports don't all read alike. This replaces the old "depends on development: above all, …" line.
 - **Scouting reports:** "with more upside" appears only when a prospect's ceiling is clearly above his comparison's. Comparisons are closer to his projected level. Size is judged from real height and wingspan for his position, and is never named as what his development depends on.

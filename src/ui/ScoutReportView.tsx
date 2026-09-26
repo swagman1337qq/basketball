@@ -25,7 +25,7 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '2px 16px', fontSize: '12.5px' }}>{r.measure.map(([k, v]) => <div key={k}><span style={muted}>{k}: </span>{v}</div>)}</div>
         </div>
         <div style={{ textAlign: 'center', minWidth: 110 }}>
-          <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>Overall</div>
+          <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }} title="The scouts' grade: mostly his ceiling, partly who he is today. Not his overall rating.">Scout grade</div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', lineHeight: 1, color: gradeColor(r.overall / 10) }}>{r.overall}</div>
           <div style={{ fontSize: '12px', marginTop: 4 }}>{r.projection}</div>
           <div style={{ ...muted, fontSize: '11.5px' }}>{r.ceiling}</div>
