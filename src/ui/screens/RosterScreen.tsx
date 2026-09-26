@@ -84,10 +84,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <td style={{ ...tdr, color: vm.ctx.tone(p.pot) }}>{p.pot}</td>
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && <td style={tdr}>{p.exp}</td>}
-        {mine && <td style={{ ...tdr, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title="Target minutes per game (blank = automatic by rotation slot)">
-          <NumInput stepper value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} />
-          {P[id].rot != null && <button className="btn btn-ghost" title="Back to automatic" onClick={() => { delete P[id].rot; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} style={{ fontSize: '10px', padding: '0 4px' }}>auto</button>}
-        </td>}
+        {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (
+          <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him' : 'Automatic: minutes come from his rotation slot'}>
+            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
+              <NumInput stepper disabled={!man} value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; bump(); }} />
+            </span>
+            <button className="btn btn-secondary" onClick={() => { if (man) delete P[id].rot; else P[id].rot = rotOf(id); bump(); }}
+              title={man ? 'Go back to automatic minutes' : 'Set his minutes yourself'} style={{ fontSize: '11.5px', padding: '2px 0', width: 62, marginLeft: 6, verticalAlign: 'middle' }}>{man ? 'Auto' : 'Manual'}</button>
+          </td>); })()}
         <td style={tdr}>{ln.gp}</td>
         <td style={tdr}>{ln.min.toFixed(1)}</td>
         <td style={tdr}>{ln.pts.toFixed(1)}</td>
@@ -101,7 +105,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const Head = () => (
     <thead><tr>
       <th style={{ width: 6, padding: 0 }} />{mine && <th />}<th style={{ ...tdr, fontWeight: 600 }}>#</th><th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>Player</th><th style={{ ...td, textAlign: 'left' }}>Pos</th><th style={tdr}>Age</th><th style={tdr}>Ovr</th><th style={tdr}>Pot</th>
-      {cur && <th style={tdr}>Contract</th>}{cur && <th style={tdr}>Exp</th>}{mine && <th style={tdr} title="Target minutes per game">Min target</th>}
+      {cur && <th style={tdr}>Contract</th>}{cur && <th style={tdr}>Exp</th>}{mine && <th style={{ ...tdr, textAlign: 'center' }} title="Target minutes per game: automatic by rotation slot, or Manual to set them yourself">Min target</th>}
       <th style={tdr}>GP</th><th style={tdr}>Min</th><th style={tdr}>Pts</th><th style={tdr}>Reb</th><th style={tdr}>Ast</th><th style={tdr}>PER</th>{cur && isMine(tid) && <th style={{ ...td, textAlign: 'left' }}>Mood</th>}
     </tr></thead>
   );
@@ -153,7 +157,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
       {advice && <AdvicePanel vm={vm} advice={advice} onApply={() => { applyAdvice(gm, tid, advice); setAdvice(null); }} onClose={() => setAdvice(null)} />}
       {cur ? (
         <>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target overrides the automatic minutes for his slot.' : 'Green marks the starting five.'}</p>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of 15{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (21 allowed in the offseason, 15 by opening night)' : ''}</div>
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the 15-man roster and the cap; up to 50 NBA games; not playoff-eligible.</span></div>
