@@ -24,6 +24,7 @@ import { computeNorms } from './norms';
 import { fireSale, inboxTick, ownerFavorite } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
+import { addTx, recordTrade } from './txlog';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -765,8 +766,8 @@ export class Game {
       fa.forEach(id => grow(P[id], 0));
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
-      fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; return false; });
-      Object.keys(rosters).forEach(k => { const user = this.isUser(s, +k), out = rosters[k].filter(id => retire(id) && (!user || P[id].ovr < 55 || P[id].age >= 38)); out.forEach(id => (P[id].retired = { season: this.Y, age: P[id].age, tid: +k, why: 'Retired' })); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
+      fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
+      Object.keys(rosters).forEach(k => { const user = this.isUser(s, +k), out = rosters[k].filter(id => retire(id) && (!user || P[id].ovr < 55 || P[id].age >= 38)); out.forEach(id => { P[id].retired = { season: this.Y, age: P[id].age, tid: +k, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', tid: +k, text: 'Retired at ' + P[id].age }); }); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
       // About 100 prospects declare each year and 60 are drafted; the best ~45 undrafted players
       // sign as free agents (Exhibit 10s, two-ways, the G League). The rest go overseas or back to school.
       const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 45);
@@ -785,7 +786,7 @@ export class Game {
         NEW.forEach(n => { const tid = teams.length; const t = { tid, ...n, str: 46, owner: namePools().us.f[(tid * 7) % 20] + ' ' + OWNER_SURNAMES[(tid * 3) % OWNER_SURNAMES.length], arch: OWNER_ARCHETYPES[tid % OWNER_ARCHETYPES.length], gm: namePools().us.f[(tid * 5) % 20] + ' ' + namePools().us.l[(tid * 11) % 20], seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }; teams.push(t); d.teams.push({ ...t }); rosters[tid] = []; [Y, Y + 1, Y + 2].forEach(yr => [1, 2].forEach(rd => assets.push({ id: yr + '-' + rd + '-' + tid, yr, rd, orig: tid, owner: tid }))); });
         const first = teams.length - NEW.length, newT = NEW.map((_, j) => first + j);
         // Expansion draft: each existing AI club loses one player outside its top eight.
-        for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; }
+        for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; addTx(this, s, P[id], { k: 'expansion', from: t, to: nt }); }
         newT.forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
         for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
         expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
@@ -802,7 +803,7 @@ export class Game {
       // The market holds about 90 players into the season (the NBA's in-season pool of unsigned
       // veterans and G League hopefuls); the rest sign abroad or move on.
       if (box.fa.length > 90) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 90));
-        box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; return false; }); }
+        box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; addTx(this, s, P[id], { k: 'retire', text: P[id].retired.why + ' at ' + P[id].age }); return false; }); }
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
       Object.keys(rosters).forEach(k => { if (!this.isUser(s, +k)) { const o = rosters[k].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); teams[k].str = o.reduce((a, b) => a + b, 0) / o.length - 4.3; } });
@@ -983,9 +984,30 @@ export class Game {
       if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.ownerCeiling(T[t].arch)) return null;
       if (p.waived?.season === this.Y && p.waived.prevAmt > nums(this).NTMLE && teamSalary(this, st, t) > this.AP1) return null;
       return { day, type: 'Signing', teams: T[t].abbr, pids: [id], text: applySigning(this, st, box, t, p, terms) }; }
+    // A contender buys: a player plus its own first-round pick for a better veteran from a rebuilding club.
+    if (r < .6 && box.assets && s.day < DAY.TRADE_DEADLINE) {
+      const strat = this.strategies(T, s), con = ai.filter(t => strat[t] === 'contend'), reb = ai.filter(t => strat[t] === 'rebuild');
+      if (con.length && reb.length) {
+        const a = con[Math.floor(Math.random() * con.length)], b = reb[Math.floor(Math.random() * reb.length)];
+        const k = box.assets.filter(x => x.owner === a && x.orig === a && x.rd === 1 && x.yr > this.Y).sort((x, y) => x.yr - y.yr)[0];
+        const top3 = box.rosters[a].map(id => P[id]).sort((x, y) => y.ovr - x.ovr).slice(0, 3).map(p => p.id);
+        for (const pb of box.rosters[b].map(id => P[id]).filter(p => p.age >= 25 && p.ovr >= 54).sort((x, y) => y.ovr - x.ovr).slice(0, 3)) {
+          if (!k) break;
+          // Outgoing: lesser players (not the contender's top three), biggest salaries first, until the money works.
+          const pool = box.rosters[a].map(id => P[id]).filter(p => !top3.includes(p.id) && p.ovr <= pb.ovr - 3).sort((x, y) => y.amt - x.amt), out: any[] = [];
+          for (const p of pool) { if (out.reduce((t, x) => t + x.amt, 0) >= pb.amt * 0.8 || out.length >= 2) break; if (p.amt <= pb.amt * 1.25) out.push(p); }
+          const ids = out.map(p => p.id);
+          if (!ids.length || !checkTrade(this, st, a, b, ids, [pb.id], [k.id], []).ok) continue;
+          tradeCap(this, st, box.cap, a, b, ids, [pb.id]); recordTrade(this, st, a, b, ids, [pb.id], [k.id], []);
+          box.rosters[a] = [...box.rosters[a].filter(x => !ids.includes(x)), pb.id]; box.rosters[b] = [...box.rosters[b].filter(x => x !== pb.id), ...ids];
+          box.assets = box.assets.map(x => x.id === k.id ? { ...x, owner: b } : x);
+          return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [...ids, pb.id], text: T[a].region + ' traded ' + out.map(p => p.name).join(' and ') + ' and a ' + this.pickLabel(k, T) + ' pick to ' + T[b].region + ' for ' + pb.name };
+        }
+      }
+    }
     if (r < .75) { const a = tid(), b = tid(); if (a === b) return null; const pa = box.rosters[a][3 + Math.floor(Math.random() * 9)]; if (!pa) return null; const c = box.rosters[b].filter(id => Math.abs(P[id].ovr - P[pa].ovr) <= 3 && Math.abs(P[id].amt - P[pa].amt) <= P[pa].amt * .3 + 2); if (!c.length) return null; const pb = c[Math.floor(Math.random() * c.length)];
       if (!checkTrade(this, st, a, b, [pa], [pb], [], []).ok) return null;
-      tradeCap(this, st, box.cap, a, b, [pa], [pb]);
+      tradeCap(this, st, box.cap, a, b, [pa], [pb]); recordTrade(this, st, a, b, [pa], [pb]);
       box.rosters[a] = box.rosters[a].map(x => x === pa ? pb : x); box.rosters[b] = box.rosters[b].map(x => x === pb ? pa : x); return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [pa, pb], text: T[a].region + ' traded ' + P[pa].name + ' to ' + T[b].region + ' for ' + P[pb].name }; }
     const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < 15) return null; const w = std.map(id => P[id]).sort((a, b) => a.ovr - b.ovr)[0], best = Math.max(0, ...box.fa.map(id => P[id].ovr)); if (!w || best < w.ovr + 4) return null;
     const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
@@ -1018,7 +1040,7 @@ export class Game {
     const rosters = { ...s.rosters };
     s.managed.forEach(t => { if (this.clubOf(s, t)?.keepSorted) rosters[t] = this.autoSorted(rosters[t]); });
     easyLineups(this, s, rosters, day);
-    const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) } };
+    const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box: any = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) }, assets: s.assets };
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
     let news = s.news || [];
@@ -1071,7 +1093,7 @@ export class Game {
     });
     s.managed.forEach(t => { const mine = [...inj.filter(x => x.mine && x.tid === t).reverse().map(x => x.text), ...(cbaLog[t] || [])]; if (mine.length) addClub(t, c => ({ log: [...mine.map(text => ({ date: this.fmtS(day), day, text })), ...(c.log || [])] })); });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
-    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
   // Rotation order by rating: healthy players first, two-way players after the standard contracts.
@@ -1178,7 +1200,7 @@ export class Game {
     if (dg0?.type === 'release') return userRelease(this);
     this.setState(s => {
       const dg = s.dialog; if (!dg) return null; const p = this.db.P[dg.pid];
-      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; p.overseasArc = { left: this.Y, from: s.teams[s.me].abbr, ovr: p.ovr, club: k2[0], lg: k2[1] }; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
+      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; addTx(this, s, p, { k: 'abroad', tid: s.me, text: 'Released to play overseas for ' + k2[0] + ' (' + k2[1] + ')' }); p.overseasArc = { left: this.Y, from: s.teams[s.me].abbr, ovr: p.ovr, club: k2[0], lg: k2[1] }; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
       if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
       return { dialog: null };
     });
@@ -1193,6 +1215,7 @@ export class Game {
       const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
       const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
       const cap = { ...(s.cap || {}) }, capNotes = tradeCap(this, s, cap, s.me, s.tTid, s.tMine, s.tTheirs);
+      recordTrade(this, s, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
       const A = id => this.pickLabel(s.assets.find(a => a.id === id), T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
       return { rosters, assets, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };

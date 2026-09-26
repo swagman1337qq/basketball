@@ -301,7 +301,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         health: pp.inj ? pp.inj.name + ', ' + pp.inj.games + ' games left' : 'Healthy',
         heal: () => mut(p => { delete p.inj; }), injMinor: () => mut(p => p.inj = { name: 'Ankle sprain', games: 5 }), injMajor: () => mut(p => p.inj = { name: 'Torn ACL', games: 90, major: true }) };
     }
-    var ptabs = [['overview', 'Overview'], ['contract', 'Contract'], ['dev', 'Development'], ['history', 'History'], ['scout', 'Scouting report'], ['compare', 'Comparison'], ...(s.god ? [['edit', 'Edit player']] : [])].map(([k, label]) => { const on = (s.ptab || 'overview') === k; return { label, go: () => gm.setState({ ptab: k }), color: on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on ? 600 : 400, ul: on ? 'var(--color-accent)' : 'transparent' }; });
+    var ptabs = [['overview', 'Overview'], ['contract', 'Contract'], ['dev', 'Development'], ['history', 'History'], ['tx', 'Transactions'], ['scout', 'Scouting report'], ['compare', 'Comparison'], ...(s.god ? [['edit', 'Edit player']] : [])].map(([k, label]) => { const on = (s.ptab || 'overview') === k; return { label, go: () => gm.setState({ ptab: k }), color: on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on ? 600 : 400, ul: on ? 'var(--color-accent)' : 'transparent' }; });
     var ext = {};
     if (canExt) {
       const rook = !!pp.rookieScale, avg = (Object.values(s.rosters).flat() as number[]).reduce((a, id) => a + P[id].amt, 0) / Math.max(1, (Object.values(s.rosters).flat() as number[]).length);

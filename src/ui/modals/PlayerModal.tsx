@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
+import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
 import { ScoutReportView } from '../ScoutReportView';
@@ -98,6 +99,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
           {!!vm.pl.tabDev && <DevelopmentTab vm={vm} />}
           {!!vm.pl.tabCompare && <CompareTab vm={vm} />}
           {vm.ctx.s.ptab === 'scout' && <div style={{ marginTop: 20 }}><ScoutReportView vm={vm} pid={vm.ctx.s.pid} /></div>}
+          {vm.ctx.s.ptab === 'tx' && <TransactionsTab vm={vm} />}
           {!!vm.pl.tabEdit && (<>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>

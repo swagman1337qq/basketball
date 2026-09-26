@@ -1,6 +1,7 @@
 // Contracts in practice: signing (every method in cba.ts), whether a player accepts,
 // how AI teams sign, and waiving (dead money, the stretch provision, buyouts, claims).
 import type { Game } from './Game';
+import { addTx } from './txlog';
 import { callUpNote } from './gleague';
 import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, signingMethods, stdIds, teamSalary, yosOf, deadSchedule, type Method } from './cba';
 
@@ -53,7 +54,9 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   if (t.method === 'dpe') cap.dpe = null;
   cap.exc = exc; box.cap[tid] = cap;
   const T = s.teams[tid], cu = callUpNote(g, s, p, tid);
-  return T.region + ' ' + T.name + ' signed ' + p.name + ' · ' + describe(g, t, p) + cu;
+  const txt = T.region + ' ' + T.name + ' signed ' + p.name + ' · ' + describe(g, t, p) + cu;
+  addTx(g, s, p, { k: 'sign', tid, text: (prevTid === tid ? 'Re-signed' : 'Signed') + ' · ' + describe(g, t, p) + cu });
+  return txt;
 }
 function describe(g: Game, t: Terms, p: any) {
   const lab: Record<string, string> = { cap: 'cap space', bird: 'Bird rights', ntmle: 'non-taxpayer mid-level', tpmle: 'taxpayer mid-level', room: 'room exception', bae: 'bi-annual exception', min: 'minimum', twoWay: 'two-way contract', ex10: 'Exhibit 10', tenDay: '10-day contract', hardship: 'hardship exception', dpe: 'disabled player exception', offer: 'offer sheet', rookie: 'rookie scale' };
@@ -114,6 +117,7 @@ export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; 
     lines.push(T.region + ' ' + T.name + (mode === 'buyout' ? ' bought out ' : ' waived ') + p.name + (total > 0 ? ' · ' + total.toFixed(2) + 'M dead money' + (mode === 'stretch' ? ' stretched over ' + Object.keys(amts).length + ' seasons' : '') : ''));
   }
   box.cap[tid] = cap;
+  addTx(g, s, p, { k: 'waive', tid, text: lines[0] });
   return lines;
 }
 

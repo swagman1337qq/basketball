@@ -6,6 +6,7 @@ import type { Game } from './Game';
 import { fmtMoney } from './capModel';
 import { capState, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
+import { addTx, recordTrade } from './txlog';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -326,6 +327,7 @@ export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[
     const to = s.teams.filter(t => !g.isUser(s, t.tid) && rosters[t.tid].length < 15).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
     rosters[tid] = rosters[tid].filter(x => x !== worst);
     if (to) rosters[to.tid] = [...rosters[to.tid], worst];
+    if (to) recordTrade(g, s, tid, to.tid, [worst], [], [], [], 'Fire sale on the owner’s orders'); else addTx(g, s, P[worst], { k: 'waive', tid, text: 'Waived in a fire sale on the owner’s orders' });
     sold.push(P[worst].name + (to ? ' to ' + to.abbr : ' (waived)'));
     lgLog.unshift({ day: s.day, type: 'Trade', teams: T.abbr + (to ? ' · ' + to.abbr : ''), pids: [worst], text: 'Fire sale: the ' + T.region + ' ' + T.name + ' dumped ' + P[worst].name + (to ? ' to ' + to.region + ' for nothing' : '') + ' on the owner’s orders' });
   }

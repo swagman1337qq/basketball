@@ -3,6 +3,7 @@
 // AI free agency, draftee contracts, the in-season tick (10-days, hardship, two-way games,
 // disabled player exceptions) and the cap side of trades (TPEs, trade kickers).
 import type { Game } from './Game';
+import { recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, ROSTER_MIN, rookieDeal, rosterMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { acceptance, aiTerms, applySigning, buyoutBlocked, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
@@ -137,6 +138,7 @@ export function signDraftee(g: Game, s: any, box: { rosters: any; fa: number[] }
   const rd = pk.rd || 1, n = rd === 1 ? pk.n : pk.n - 30, Y = g.Y, deal = rookieDeal(g, n, rd), N = nums(g);
   Object.assign(p, { dr: { rd, pick: n }, draft: Y, yrsWith: 0, yos0: 0, draftTid: tid, rookieTid: tid, birdTid: null, inc: [], kicker: 0, ntc: false, signed: { season: Y + 1, day: s.day, phase: 'draft', tid, method: 'rookie' } });
   delete p.capOverride; delete p.opt; delete p.leftAsFA;
+  recordPick(g, s, p, pk as any, tid);
   if (rd === 1) {
     Object.assign(p, { amt: deal.amt, exp: Y + 4, raise: 0.05, ctype: 'rookie', rookie: true, rookieScale: { pick: n, tid }, opt: { kind: 'team', season: Y + 3 } });
     box.rosters[tid] = [...box.rosters[tid], p.id]; return 'rookie';
