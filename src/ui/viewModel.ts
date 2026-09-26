@@ -18,7 +18,7 @@ import { TeamLogo } from './TeamLogo';
 import { linkNames } from './kit';
 import type { VM } from './vm';
 
-export interface ViewExtras { saveName: string; onExit: () => void; onExport: () => void; saveStatus: string }
+export interface ViewExtras { saveId: string; saveName: string; onExit: () => void; onExport: () => void; onSwitch: (id: string) => void; saveStatus: string }
 
 export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, extra: ViewExtras): VM {
   const s = gm.state, d = gm.db, P = d.P, C = d.C, cl = gm.cl, variant = s.variant ?? 'A';
@@ -445,7 +445,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     lotto: (s.lotto || []).map(x => ({ logo: logo(x.t, 16), n: x.n, name: T[x.t].region + ' ' + T[x.t].name, move: x.from > x.n ? '▲ from ' + x.from : x.from < x.n ? '▼ from ' + x.from : '—', color: mine2(x.t) ? 'var(--color-accent-700)' : 'var(--color-text)', open: openTeam(x.t) })), hasLotto: !!s.lotto };
   const LAYOUTS = [['A', 'Almanac', 'Grouped sidebar with the play controls always within reach.'], ['B', 'Broadsheet', 'Newspaper masthead, one row of tabs, full-width tables.'], ['C', 'Desk', 'Icon rail, jump-to-player search, and a side panel with the next game, books and transactions.']];
   const layout = { desc: LAYOUTS.find(x => x[0] === variant)[2], segs: LAYOUTS.map(([k, label]) => ({ label, onClick: () => gm.setState({ variant: k }), color: variant === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: variant === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' })) };
-  const save = { name: extra.saveName, status: extra.saveStatus, onExport: extra.onExport, onExit: extra.onExit };
+  const save = { id: extra.saveId, name: extra.saveName, status: extra.saveStatus, onExport: extra.onExport, onExit: extra.onExit, onSwitch: extra.onSwitch };
   const settings = { expLabel: (s.expansion ? 'On: ' + ((s.expTeams || []).length >= 2 ? (s.expTeams || []).length : 2) + ' teams join at the next preseason' : 'Off') + ' · ' + T.length + ' teams now', expBtn: s.expansion ? 'Turn off' : 'Turn on', expDis: false, toggleExp: () => gm.setState(st => ({ expansion: !st.expansion })) };
   const hasProg = s.phase === 'preseason' && !!s.prog, progRows = (s.prog || []).map(x => ({ name: P[x.id].name, from: x.from, to: x.to, d: (x.to - x.from > 0 ? '+' : '') + (x.to - x.from), color: x.to > x.from ? 'var(--gm-good)' : x.to < x.from ? 'var(--gm-bad)' : 'var(--color-text)', open: open(x.id) }));
   const titles = { changelog: 'What\'s new', preds: 'Predictions', playin: 'Play-in tournament', lottery: 'Draft lottery', stats: 'Stats', capsheet: 'Cap sheet', caps: 'Salary cap outlook', hof: 'Hall of Fame', editor: 'Team & league editor', league: 'League stats', career: 'Career & job market', press: 'Press room', awards: 'Awards', teams: 'My teams', tactics: 'Tactics & rotation', scouting: 'Global scouting', overseas: 'Overseas market', dev: 'Player development', owner: 'Ownership', playoffs: 'Playoffs', settings: 'Settings', game: 'Live game', schedule: 'Schedule', tx: 'League transactions', short: 'Shortlist', dash: 'Dashboard', standings: 'Standings', roster: 'Roster', depth: 'Roster construction', player: 'Player', fin: 'Finances', trade: 'Trade', fa: 'Free agency', draft: 'Draft' };

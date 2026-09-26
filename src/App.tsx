@@ -28,10 +28,10 @@ export function App() {
   }, []);
 
   if (!open) return <TitleScreen onOpen={onOpen} onCreate={onCreate} />;
-  return <GameScreen key={open.id} open={open} error={error} onExit={() => setOpen(null)} />;
+  return <GameScreen key={open.id} open={open} error={error} onExit={() => setOpen(null)} onSwitch={onOpen} />;
 }
 
-function GameScreen({ open, error, onExit }: { open: Open; error: string; onExit: () => void }) {
+function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: string; onExit: () => void; onSwitch: (id: string) => void }) {
   const { game } = open;
   const version = useSyncExternalStore(game.subscribe, game.getVersion);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -86,6 +86,6 @@ function GameScreen({ open, error, onExit }: { open: Open; error: string; onExit
   useLayoutEffect(() => { applyTheme(rootRef.current, dark, game.state.teams[game.state.me]?.colors); rememberTheme(dark ? 'dark' : 'light'); });
 
   const exportNow = () => exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
-  const vm = buildView(game, rootRef, { saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onExport: exportNow });
+  const vm = buildView(game, rootRef, { saveId: open.id, saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onSwitch: async (id: string) => { await save(); onSwitch(id); }, onExport: exportNow });
   return <GMView vm={vm} />;
 }

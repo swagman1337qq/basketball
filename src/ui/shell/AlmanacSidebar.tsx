@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { LeagueMenu } from '../LeagueMenu';
 
 // Collapsed: a narrow rail of icons, each with its name underneath (and on hover).
 function Rail({ vm }: { vm: VM }) {
@@ -9,6 +10,7 @@ function Rail({ vm }: { vm: VM }) {
         <span style={{ fontSize: "18px", lineHeight: 1 }}>»</span><span style={tiny}>Expand</span>
       </button>
       <div title={vm.myName} style={{ padding: "6px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>{vm.myLogoSm}<span style={{ ...tiny, fontWeight: 600 }}>{vm.myAbbr}</span></div>
+      <LeagueMenu vm={vm} compact />
       <button className="btn btn-primary" onClick={vm.play1} title="Play next game" style={{ width: "66px", padding: "4px 0", fontSize: "11px" }}>▶ Game</button>
       <button className="btn btn-secondary" onClick={vm.play7} title="Play one week" style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>▶▶ Week</button>
       {(vm.navGroups || []).map((g: any, gi: number) => (
@@ -52,6 +54,7 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
             </select>
           )}
         </div>
+        <LeagueMenu vm={vm} />
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <button className="btn btn-primary" onClick={vm.play1} style={{ width: "100%" }}>
             Play next game

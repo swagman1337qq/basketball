@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { LeagueMenu } from '../LeagueMenu';
 
 export function DeskTopbar({ vm }: { vm: VM }) {
   return (
@@ -34,6 +35,7 @@ export function DeskTopbar({ vm }: { vm: VM }) {
         <div style={{ color: "var(--color-neutral-700)" }}>
           {vm.dateLong}
         </div>
+        <LeagueMenu vm={vm} bar />
         <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: "nowrap", fontSize: "13px" }}>
           {vm.themeLabel}
         </button>

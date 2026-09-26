@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Leagues menu.** A "Leagues ▾" button at the top of the sidebar (also in the collapsed rail): back to the main menu, start a new league, export this one, or switch straight to another saved league. Your league is saved first.
 - **What's new.** This changelog, readable in the game (League → What's new) and kept up to date with every change.
 - **AI extensions.** AI teams now sign rookie-scale and veteran extensions for players worth keeping, in a July window and at the October deadline before opening night. Loyal players sign more readily, money-first players tend to test free agency, and owners won't go past their payroll limit.
 - **Roster notes.** Each roster row shows how the player joined the team ("#2 pick in 2027", "Signed as a free agent in 2027", "Traded from DAL in 2028") and his latest extension or re-signing. Blank for players who were already on the roster when the league began.
@@ -25,6 +26,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- Saved leagues show your own team's name and record (they showed the first team in the league).
 - The name fields in Identity and Biography (God Mode) stay in sync both ways.
 - The Represents 🎲 picks from every country; changing Represents moves hometown and "Playing for" to that country but leaves eligibility alone.
 - Back from the Edit player tab returns to the profile you were on, not the top of the draft.

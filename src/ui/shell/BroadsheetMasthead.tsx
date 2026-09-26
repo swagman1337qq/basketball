@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { LeagueMenu } from '../LeagueMenu';
 
 export function BroadsheetMasthead({ vm }: { vm: VM }) {
   return (
@@ -28,7 +29,8 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
             </div>
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
-            <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: "nowrap", fontSize: "13px" }}>
+            <LeagueMenu vm={vm} bar />
+        <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: "nowrap", fontSize: "13px" }}>
               {vm.themeLabel}
             </button>
             <button className="btn btn-secondary" onClick={vm.play7} style={{ whiteSpace: "nowrap" }}>

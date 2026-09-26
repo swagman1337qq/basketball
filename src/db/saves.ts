@@ -41,9 +41,9 @@ export async function deleteSave(id: string) {
 }
 
 export function summarize(data: SaveData) {
-  const s = data.state, me = s.teams[0];
-  const PH = { regular: 'Regular season', playoffs: 'Playoffs', lottery: 'Lottery', draft: 'Draft', fa: 'Free agency', preseason: 'Preseason' };
-  return (s.season - 1) + '–' + String(s.season).slice(2) + ' · ' + me.w + '–' + me.l + ' · ' + (PH[s.phase] || s.phase);
+  const s = data.state, me = s.teams[s.me ?? 0] || s.teams[0];
+  const PH = { regular: 'Regular season', playin: 'Play-in', playoffs: 'Playoffs', lottery: 'Lottery', draft: 'Draft', fa: 'Free agency', preseason: 'Preseason' };
+  return me.region + ' ' + me.name + ' · ' + (s.season - 1) + '–' + String(s.season).slice(2) + ' · ' + me.w + '–' + me.l + ' · ' + (PH[s.phase] || s.phase);
 }
 
 const FILE_KIND = 'front-office-save';
