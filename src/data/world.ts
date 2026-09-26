@@ -1,10 +1,17 @@
+import { EXTRA_CITIES, EXTRA_REGIONS } from './cities';
 import { NATIONS } from './nations';
 // World data: countries, name pools, clubs, scouting regions and roster roles.
 // Ported from the Claude Design prototype (GM App.dc.html).
 
 let nativeMapCache: any = null;
 
+// Every country with its extra hometowns (data/cities.ts) folded in.
 export function countries() {
+  const C: any = countries0();
+  Object.entries(EXTRA_CITIES).forEach(([k, xs]) => { if (C[k]) C[k].cities = [...new Set([...C[k].cities, ...xs])]; });
+  return C;
+}
+function countries0() {
   const W = { white: 1 }, B = { black: 1 }, A = { asian: 1 };
   const c = (n, iso, race, pool, cities, x?): any => ({ n, iso, race, pool, cities, ...(x || {}) });
   return {
@@ -161,7 +168,7 @@ export function regions() { const R: any = { NA: { name: 'North America', tier: 
 
 export function regionOf(c) {
   const M = { Atlanta: 'Georgia', Chicago: 'Illinois', Houston: 'Texas', 'Los Angeles': 'California', Philadelphia: 'Pennsylvania', Detroit: 'Michigan', Oakland: 'California', Baltimore: 'Maryland', Memphis: 'Tennessee', Indianapolis: 'Indiana', Queens: 'New York', Dallas: 'Texas', Toronto: 'Ontario', Montreal: 'Quebec', Mississauga: 'Ontario', Brampton: 'Ontario', Vancouver: 'British Columbia', Hamilton: 'Ontario', 'São Paulo': 'São Paulo', 'Rio de Janeiro': 'Rio de Janeiro', 'Brasília': 'Federal District', 'Belo Horizonte': 'Minas Gerais', Franca: 'São Paulo', 'Córdoba': 'Córdoba Province', Rosario: 'Santa Fe', 'Bahía Blanca': 'Buenos Aires Province', Monterrey: 'Nuevo León', Guadalajara: 'Jalisco', 'Santo Domingo': 'Distrito Nacional', 'Santiago de los Caballeros': 'Santiago Province', Paris: 'Île-de-France', Lyon: 'Auvergne-Rhône-Alpes', 'Le Mans': 'Pays de la Loire', Strasbourg: 'Grand Est', Villeurbanne: 'Auvergne-Rhône-Alpes', Nanterre: 'Île-de-France', Madrid: 'Community of Madrid', Barcelona: 'Catalonia', 'Málaga': 'Andalusia', Valencia: 'Valencian Community', Badalona: 'Catalonia', Munich: 'Bavaria', Bamberg: 'Bavaria', Ulm: 'Baden-Württemberg', Milan: 'Lombardy', Bologna: 'Emilia-Romagna', Rome: 'Lazio', Treviso: 'Veneto', Varese: 'Lombardy', Athens: 'Attica', Thessaloniki: 'Central Macedonia', Piraeus: 'Attica', Patras: 'Western Greece', 'Novi Sad': 'Vojvodina', Sombor: 'Vojvodina', 'Niš': 'Nišava District', Split: 'Split-Dalmatia', Zadar: 'Zadar County', 'Šibenik': 'Šibenik-Knin County', Kaunas: 'Kaunas County', Vilnius: 'Vilnius County', 'Klaipėda': 'Klaipėda County', 'Šiauliai': 'Šiauliai County', Ankara: 'Ankara Province', Izmir: 'İzmir Province', Bursa: 'Bursa Province', 'Tel Aviv': 'Tel Aviv District', Jerusalem: 'Jerusalem District', Haifa: 'Haifa District', Herzliya: 'Tel Aviv District', Lagos: 'Lagos State', Abuja: 'Federal Capital Territory', Ibadan: 'Oyo State', Enugu: 'Enugu State', Dakar: 'Dakar Region', 'Thiès': 'Thiès Region', 'Saint-Louis': 'Saint-Louis Region', 'Yaoundé': 'Centre Region', Douala: 'Littoral Region', Bafoussam: 'West Region', Juba: 'Central Equatoria', Wau: 'Western Bahr el Ghazal', Malakal: 'Upper Nile', Nairobi: 'Nairobi County', Kakuma: 'Turkana County', Melbourne: 'Victoria', Sydney: 'New South Wales', Perth: 'Western Australia', Brisbane: 'Queensland', Adelaide: 'South Australia', Canberra: 'Australian Capital Territory', Auckland: 'Auckland', Wellington: 'Wellington', Christchurch: 'Canterbury', Guangzhou: 'Guangdong', Shenzhen: 'Guangdong', 'Ürümqi': 'Xinjiang Uyghur Autonomous Region', Qingdao: 'Shandong', Osaka: 'Osaka Prefecture', Toyama: 'Toyama Prefecture', Sendai: 'Miyagi Prefecture', Manila: 'Metro Manila', 'Cebu City': 'Cebu', 'Quezon City': 'Metro Manila', London: 'England', Manchester: 'England', Leicester: 'England', Tbilisi: '', Kutaisi: 'Imereti', Batumi: 'Adjara', Espoo: 'Uusimaa', Helsinki: 'Uusimaa', Tampere: 'Pirkanmaa', Maribor: 'Drava', Koper: 'Coastal–Karst', Mostar: 'Herzegovina-Neretva Canton', Tuzla: 'Tuzla Canton', Kayes: 'Kayes Region', Bamako: '', Lubumbashi: 'Haut-Katanga', 'Liepāja': 'Kurzeme', Ventspils: 'Kurzeme', Freeport: 'Grand Bahama', Nassau: 'New Providence', Bayamón: '', Ponce: '', Incheon: '', Busan: '' };
-  return M[c] || '';
+  return M[c] || EXTRA_REGIONS[c] || '';
 }
 
 export function cyr(w) {

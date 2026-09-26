@@ -187,6 +187,11 @@ export function PlayerModal({ vm }: { vm: VM }) {
                 <h4 style={{ margin: "0 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
                   Ratings
                 </h4>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "0 0 8px" }}>
+                  <button className="btn btn-secondary" onClick={vm.pl.ed.randRatings} style={{ fontSize: "12px" }} title="New ratings around his overall, shaped by position (height stays)">🎲 Randomize ratings</button>
+                  <button className="btn btn-secondary" onClick={() => vm.pl.ed.shiftAll(-1)} style={{ fontSize: "12px" }} title="Every rating except height −1 (overall too); wingspan is a measurement and doesn't change">−1 all</button>
+                  <button className="btn btn-secondary" onClick={() => vm.pl.ed.shiftAll(1)} style={{ fontSize: "12px" }} title="Every rating except height +1 (overall too); wingspan is a measurement and doesn't change">+1 all</button>
+                </div>
                 {(vm.pl.ed.ratings || []).map((r: any, i: number) => (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 40px", gap: "12px", alignItems: "center", padding: "3px 0" }}>
                     <span style={{ color: "var(--color-neutral-700)" }}>

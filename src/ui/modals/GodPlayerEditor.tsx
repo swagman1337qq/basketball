@@ -76,6 +76,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <input className="input" value={p.from.team || ''} onChange={e => mut(q => { q.from = { ...q.from, team: e.target.value }; })} placeholder="Team or school" style={{ flex: 1, minWidth: 120 }} />
             <input className="input" value={p.from.lg || ''} onChange={e => mut(q => { q.from = { ...q.from, lg: e.target.value }; })} placeholder="League" style={{ width: 110 }} />
             <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { ...q.from, country: c }; })} width={150} />
+            <button className="btn btn-ghost" title="A random team for where he grew up (college, club or school)" onClick={() => mut(q => { q.from = gm.pipe(q.raised || q.born, q.cls || 0); })} style={{ fontSize: '12px' }}>🎲</button>
           </span></>}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height and weight nudge the related ratings. Wingspan is its own measurement: longer arms help contests, blocks, rebounds and steals. The team a prospect plays for decides which region’s scout covers him.</p>
@@ -83,6 +84,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="gm-face" style={{ width: 64, height: 96, overflow: 'hidden', flex: 'none', borderRadius: 'var(--radius-sm)' }}>{gm.faceEl(p.id, -1)}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <button className="btn btn-secondary" onClick={() => mut(q => { q.faceSeed = Math.floor(Math.random() * 1e9); delete q.faceImg; gm.resetFace(q.id); })} style={{ fontSize: '12px' }}>🎲 New face</button>
             <label className="btn btn-secondary" style={{ fontSize: '12px', cursor: 'pointer' }}>Upload JPG/PNG<input type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={e => upload(e.target.files?.[0])} /></label>
             {p.faceImg && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => mut(q => delete q.faceImg)}>Use the generated face</button>}
             <span style={{ ...muted, fontSize: '11px' }}>Cropped to 2:3 and resized to 160×240.</span>

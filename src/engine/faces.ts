@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { mulberry32 } from './rng';
 
 export function makeFace(p) {
-  const pid = p.id, rnd = mulberry32(pid * 7919 + 13), pick = a => a[Math.floor(rnd() * a.length)], race = p.race;
+  const pid = p.id, rnd = mulberry32((p.faceSeed ?? pid) * 7919 + 13), pick = a => a[Math.floor(rnd() * a.length)], race = p.race;
   const SK = { white: ['#f1d3bd', '#e8c1a4', '#dcae8e', '#f5dcc8'], black: ['#6b4430', '#5a3825', '#7a4e35', '#4a2e1f', '#8a5a3d'], asian: ['#f0d2b0', '#e6c39d', '#dcb58c'], brown: ['#c89468', '#b98256', '#a8734a', '#d4a37a'] };
   const HC = { asian: ['#16120f', '#211a14'], black: ['#15100d', '#1e1712'], brown: ['#1f1712', '#2e2219', '#3b2a1e'], white: ['#2b1d14', '#4a3322', '#7a5a3a', '#a07a4f', '#c9a36a', '#1f1712'] };
   const ST = { black: ['buzz', 'short', 'fade', 'afro', 'locs', 'bald', 'braids'], asian: ['short', 'sidepart', 'spiky', 'buzz', 'fringe'], white: ['short', 'sidepart', 'buzz', 'messy', 'bald', 'long'], brown: ['short', 'fade', 'buzz', 'curly', 'sidepart'] };

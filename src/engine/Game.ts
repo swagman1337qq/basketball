@@ -176,6 +176,8 @@ export class Game {
 
   face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
   resetFace(pid) { delete this.faceCache[pid]; }
+  // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
+  randomRatings(p) { RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.ovr + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
