@@ -7,6 +7,7 @@ import { processImage } from '../upload';
 import { Combo, CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
 import { namePools } from '../../data/world';
 import { randomTeamIn } from '../../data/randomTeam';
+import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { allPools, groupsOf, randomName } from '../../data/heritage';
 
@@ -70,9 +71,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <span style={muted}>Native last</span>{inRow(<input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} style={{ flex: 1, minWidth: 0 }} />, () => setNames(first, last, nFirst, RN().nativeLast || ''), 'A random native-script last name (countries with their own script)')}
           <span style={muted}>Date of birth</span>
           {inRow(<input className="input" type="date" style={{ flex: 1, minWidth: 0 }} value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />, () => { const age = 19 + Math.floor(Math.random() * 17), y = gm.Y - 1 - age, m = 1 + Math.floor(Math.random() * 12), d = 1 + Math.floor(Math.random() * 28); const v = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); const e = { target: { value: v } }; { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); } }, 'A random birthday (age 19–35)')}
-          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 100); }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
+          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); setRating(q, 'hgt', cl(q.r.hgt + d * 4, 4, 100)); }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
           {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb', () => Math.round(hIn * 2.9 - 5 + Math.random() * 25))}
-          {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => { q.wing = v; }), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height)', 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
+          {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => setWing(q, v)), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height) · rating ' + wngOf(v, hIn), 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
           <span style={muted}>Hometown</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />

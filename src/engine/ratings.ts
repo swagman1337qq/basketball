@@ -79,3 +79,32 @@ export function badgesOf(p: any): Badge[] {
   return out.sort((a, b) => b.tier - a.tier || b.m - a.m).map(({ m, ...b }) => { void m; return b; });
 }
 export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }));
+
+// How much each rating counts toward a player's overall, by position group (G guards, W wings,
+// B bigs): guards live on handle, passing and shooting; bigs on size, rebounding and rim
+// protection. Used when a rating is edited in God Mode, so the overall moves with it.
+export const OVR_W: Record<string, Record<string, number>> = {
+  G: { hgt: 1, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
+  W: { hgt: 1.1, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, drb: 1.1, pss: 1, reb: .8, box: .6 },
+  B: { hgt: 1.8, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+};
+export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
+// Move the overall by a change in its ratings (fractions carry over), and potential with it:
+// better skills today mean a higher ceiling too.
+export function nudgeOvr(p: any, d: number) {
+  if (p.ovrF == null || Math.round(p.ovrF) !== p.ovr) p.ovrF = p.ovr; // overall was set directly since
+  p.ovrF += d; const to = Math.max(1, Math.min(100, Math.round(p.ovrF))), dO = to - p.ovr;
+  if (dO) { p.ovr = to; p.pot = Math.max(p.ovr, Math.min(100, p.pot + dO)); }
+}
+export function setRating(p: any, k: string, v: number) { const d = v - p.r[k]; p.r[k] = v; if (d) nudgeOvr(p, d * ovrShare(p.grp, k)); }
+
+// Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is
+// tall); every inch longer or shorter is 6 points. It counts toward the overall at a set rate per
+// position: a great wingspan (+12″, about 98) is worth up to ~+4 for a big, +3 for a wing, +2 for
+// a guard, and a short one costs the same.
+export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
+export const WNG_W: Record<string, number> = { G: .04, W: .06, B: .08 };
+export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(100, 50 + (wing - hIn - 4) * 6)));
+export const wngRating = (p: any) => wngOf(p.wing ?? inchesOf(p.hgt) + 4, inchesOf(p.hgt));
+export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? .06);
+export function setWing(p: any, inches: number) { const a = wngRating(p); p.wing = inches; nudgeOvr(p, (wngRating(p) - a) * (WNG_W[p.grp] ?? .06)); }

@@ -4,7 +4,7 @@
 import { createElement } from 'react';
 import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
 import { voteHof } from './hof';
-import { teamRating } from './ratings';
+import { teamRating, wngBonus } from './ratings';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
@@ -116,6 +116,8 @@ export class Game {
       if (p.r.acc == null) p.r.acc = c(p.r.spd + (p.grp === 'G' ? 2 : p.grp === 'B' ? -3 : 0) + h(131) * 14);
       if (p.r.box == null) p.r.box = c(p.r.reb * 0.45 + p.r.stre * 0.35 + p.r.hgt * 0.2 + h(173) * 20);
       if (p.wing == null) { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), hIn = m ? +m[1] * 12 + +m[2] : 78; p.wing = hIn + Math.round(Math.max(-6, Math.min(12, (h(211) + h(223) + h(227)) * 6 + 3.8))); } });
+    // Saves from before wingspan counted toward the overall.
+    Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.wOvr) { const w = Math.round(wngBonus(p)); p.ovr = Math.max(1, Math.min(100, p.ovr + w)); p.pot = Math.max(p.ovr, Math.min(100, p.pot + w)); p.wOvr = 1; } });
     // Saves from before the Team player trait: hand it out the same way new players get it.
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
@@ -331,6 +333,7 @@ export class Game {
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
+    { const w = Math.round(wngBonus(p)); p.ovr = cl(p.ovr + w, 22, 100); p.pot = Math.max(p.ovr, p.pot + w); p.wOvr = 1; } // wingspan counts toward the overall
     P[p.id] = p; return p;
   }
   rng(seed) { return mulberry32(seed); }
