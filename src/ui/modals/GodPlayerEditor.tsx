@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
-import { muted, ruleH4 } from '../kit';
+import { muted, NumInput, ruleH4 } from '../kit';
 import { namePools } from '../../data/world';
 import { groupsOf, randomName } from '../../data/heritage';
 
@@ -31,10 +31,10 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const setNames = (f: string, l: string, nf: string, nl: string) => mut(q => { q.first = f; q.last = l; q.name = (lf ? l + ' ' + f : f + ' ' + l).trim(); q.nativeFirst = nf; q.nativeLast = nl; q.native = CJK.test(nf + nl) ? nl + nf : (nf + ' ' + nl).trim(); });
   const hIn = inchesOf(p.hgt), wing = p.wing ?? hIn + 3 + (p.id % 4);
   const dob = p.dob || (gm.Y - 1 - p.age) + '-' + String(1 + (p.id % 12)).padStart(2, '0') + '-' + String(1 + (p.id % 28)).padStart(2, '0');
-  const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string) => (
+  const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string, unit?: string) => (
     <>
       <span style={muted}>{label}</span>
-      <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><input type="range" min={mn} max={mx} step={1} value={v} onChange={e => set(+e.target.value)} style={{ flex: 1, accentColor: 'var(--color-accent)' }} /><span style={{ width: '64px', textAlign: 'right' }}>{fmt ? fmt(v) : v}</span></span>
+      <NumInput value={v} min={mn} max={mx} step={1} onValue={set} suffix={(unit ? unit : '') + (fmt ? (unit ? ' · ' : '') + fmt(v) : '') || mn + '–' + mx} />
     </>
   );
   const grid = { display: 'grid', gridTemplateColumns: '120px minmax(0,1fr)', gap: '8px 12px', alignItems: 'center' } as const;
@@ -60,9 +60,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <span style={muted}>Native last</span><input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} />
           <span style={muted}>Date of birth</span>
           <input className="input" type="date" value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />
-          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 99); }), fmtH)}
-          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 99); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 99); }), v => v + ' lb')}
-          {num('Wingspan', wing, hIn - 2, hIn + 10, v => mut(q => { const d = v - (q.wing ?? wing); q.wing = v; q.r.hgt = cl(Math.round(q.r.hgt + d * 1.5), 4, 99); q.r.diq = cl(Math.round(q.r.diq + d * 0.5), 4, 99); }), fmtH)}
+          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 99); }), fmtH, 'inches')}
+          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 99); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 99); }), undefined, 'lb')}
+          {num('Wingspan', wing, hIn - 2, hIn + 10, v => mut(q => { const d = v - (q.wing ?? wing); q.wing = v; q.r.hgt = cl(Math.round(q.r.hgt + d * 1.5), 4, 99); q.r.diq = cl(Math.round(q.r.diq + d * 0.5), 4, 99); }), fmtH, 'inches')}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height, weight and wingspan nudge the related ratings.</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Headshot</h4>
@@ -82,7 +82,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {num('Work ethic', p.pers.work ?? 50, 0, 100, v => mut(q => (q.pers.work = v)))}
           {num('Loyalty', p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45), 0, 100, v => mut(q => (q.pers.loyalty = v)))}
           {num('Ambition', p.pers.ambition ?? (p.pers.mot === 'Money' || p.pers.mot === 'Fame' ? 75 : 45), 0, 100, v => mut(q => (q.pers.ambition = v)))}
-          {num('Morale', p.moodAdj || 0, -30, 30, v => mut(q => (q.moodAdj = v)), v => (v > 0 ? '+' : '') + v)}
+          {num('Morale', p.moodAdj || 0, -30, 30, v => mut(q => (q.moodAdj = v)), undefined, '−30 to +30')}
           {num('Confidence', Math.round(p.conf ?? 50), 5, 95, v => mut(q => (q.conf = v)))}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Work ethic scales monthly growth (±15%); loyalty vs ambition decides draft-night heists; morale shifts happiness; confidence nudges shooting and the adjustment period.</p>

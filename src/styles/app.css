@@ -28,3 +28,6 @@ select:focus-visible { border-color: var(--color-accent); outline: 2px solid col
 select:disabled { opacity: .5; cursor: not-allowed; }
 select option, select optgroup { background-color: var(--color-surface); color: var(--color-text); }
 select option:checked { background-color: var(--color-accent-200); color: var(--color-text); }
+/* Typed number fields: compact, and the spinner arrows match the theme. */
+.num-input { width: auto; color-scheme: inherit; }
+.num-input::-webkit-inner-spin-button { opacity: .6; }

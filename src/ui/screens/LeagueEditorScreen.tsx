@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { OWNER_ARCHETYPES } from '../../data/world';
 import { processImage } from '../upload';
-import { Link, muted, ruleH4 } from '../kit';
+import { Link, muted, NumInput, ruleH4 } from '../kit';
 
 const GLYPHS = ['Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
 
@@ -27,7 +27,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
   const adj = (label: string, k: string, mn: number, mx: number, help: string) => (
     <>
       <span style={muted}>{label}</span>
-      <span><span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><input type="range" min={mn} max={mx} step={0.5} value={t[k] || 0} onChange={e => setT({ [k]: +e.target.value })} style={{ flex: 1, accentColor: 'var(--color-accent)' }} /><span style={{ width: '70px', textAlign: 'right' }}>{(t[k] || 0) > 0 ? '+' : ''}{money(t[k] || 0)}</span></span><span style={{ ...muted, fontSize: '11px' }}>{help}</span></span>
+      <span><span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><NumInput value={t[k] || 0} min={mn} max={mx} step={0.5} width={84} onValue={v => setT({ [k]: v })} suffix="$M" /></span><span style={{ ...muted, fontSize: '11px' }}>{help}</span></span>
     </>
   );
   const pay = gm.payrollOf(s.rosters[tid]) + (t.capAdj || 0);
@@ -56,7 +56,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             </span>
             <span style={muted}>Arena</span><input className="input" value={t.arena ?? t.region + ' Arena'} onChange={e => setT({ arena: e.target.value })} />
             <span style={muted}>Capacity</span>
-            <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><input type="range" min={8000} max={25000} step={100} value={t.arenaCap || 18800} onChange={e => setT({ arenaCap: +e.target.value })} style={{ flex: 1, accentColor: 'var(--color-accent)' }} /><span style={{ width: '60px', textAlign: 'right' }}>{(t.arenaCap || 18800).toLocaleString()}</span></span>
+            <NumInput value={t.arenaCap || 18800} min={8000} max={25000} step={100} width={96} onValue={v => setT({ arenaCap: v })} suffix="seats (8,000–25,000)" />
           </div>
           {err && <p style={{ color: 'var(--gm-bad)', fontSize: '12px' }}>{err}</p>}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '12px' }}>{logo(tid, 64)}{logo(tid, 32)}{logo(tid, 18)}</div>

@@ -1,6 +1,6 @@
 // Small building blocks for hand-written screens, matching the Classical styling
 // used by the generated ones (inline styles, hairline rules, heading font).
-import type { CSSProperties, ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 
 export const kickerStyle: CSSProperties = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' };
 export const accentKicker: CSSProperties = { ...kickerStyle, color: 'var(--color-accent-700)' };
@@ -76,4 +76,25 @@ export function linkNames(text: string, open: (id: number) => void, opts: { P?: 
   const parts = text.split(re);
   if (parts.length === 1) return text;
   return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
+}
+
+// A typed number field (instead of a slider). The value applies on Enter or when the
+// field loses focus, clamped to [min, max] and rounded to `step`; the spinner arrows
+// apply at once. Partial typing ("7" on the way to "72") is never applied.
+export function NumInput({ value, min, max, step = 1, onValue, disabled, width = 76, suffix, title }: { value: number; min?: number; max?: number; step?: number; onValue: (v: number) => void; disabled?: boolean; width?: number; suffix?: ReactNode; title?: string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const dec = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+  const norm = (n: number) => { let v = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n)); v = Math.round(v / step) * step; return +v.toFixed(dec); };
+  const commit = (txt: string) => { const n = parseFloat(txt); if (isFinite(n)) { const v = norm(n); if (v !== value) onValue(v); } setDraft(null); };
+  const shown = draft ?? (isFinite(value) ? (+value).toFixed(dec) : '');
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <input className="input num-input" type="number" inputMode="decimal" min={min} max={max} step={step} value={shown} disabled={disabled} title={title}
+        onChange={e => { const t = e.target.value, n = parseFloat(t); setDraft(t); if (isFinite(n) && Math.abs(n - value) <= step + 1e-9 && n >= (min ?? -Infinity) && n <= (max ?? Infinity)) { onValue(norm(n)); setDraft(null); } }}
+        onBlur={e => commit(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); } }}
+        style={{ width, minHeight: '30px', padding: '4px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
+      {suffix != null && <span style={{ ...muted, fontSize: '12px', whiteSpace: 'nowrap' }}>{suffix}</span>}
+    </span>
+  );
 }

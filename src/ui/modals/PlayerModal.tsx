@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras, OverviewExtras } from './ProfileExtras';
 
@@ -311,7 +312,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       Years
                     </span>
-                    <input type="range" min="1" max={vm.ext.maxYears} step="1" value={vm.ext.years} onChange={vm.ext.setYears} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
+                    <NumInput value={vm.ext.years} min={1} max={vm.ext.maxYears} step={1} onValue={v => vm.ext.setYears({ target: { value: v } })} suffix={'max ' + vm.ext.maxYears} />
                     <span style={{ textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
                       {vm.ext.yearsLabel}
                     </span>
@@ -320,7 +321,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       Per year
                     </span>
-                    <input type="range" min={vm.ext.min} max={vm.ext.max} step="0.1" value={vm.ext.amt} onChange={vm.ext.setAmt} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
+                    <NumInput value={vm.ext.amt} min={vm.ext.min} max={vm.ext.max} step={0.1} width={90} onValue={v => vm.ext.setAmt({ target: { value: v } })} suffix={'$M · ' + vm.ext.min + '–' + vm.ext.max} />
                     <span style={{ textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
                       {vm.ext.amtLabel}
                     </span>
@@ -408,10 +409,8 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       {r.label}
                     </span>
-                    <input type="range" min={r.min} max={r.max} step={r.step} value={r.v} onChange={r.set} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
-                    <span style={{ textAlign: "right" }}>
-                      {r.val}
-                    </span>
+                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
+                    <span></span>
                   </div>
                 ))}
                 <h4 style={{ margin: "16px 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
@@ -454,10 +453,8 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       {r.label}
                     </span>
-                    <input type="range" min={r.min} max={r.max} step={r.step} value={r.v} onChange={r.set} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
-                    <span style={{ textAlign: "right" }}>
-                      {r.val}
-                    </span>
+                    <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
+                    <span></span>
                   </div>
                 ))}
               </section>

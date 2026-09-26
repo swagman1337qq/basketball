@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { NumInput } from '../kit';
 
 export function FinancesScreen({ vm }: { vm: VM }) {
   return (
@@ -90,7 +91,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                 </div>
               </div>
               <div>
-                <input type="range" min={b.min} max={b.max} step={b.step} value={b.v} onChange={b.set} style={{ width: "100%", accentColor: "var(--color-accent)", margin: "0" }} />
+                <NumInput value={b.v} min={b.min} max={b.max} step={b.step} onValue={v => b.set({ target: { value: v } })} suffix={b.name === "Ticket price" ? "$ per ticket" : "$M per season"} />
                 <div style={{ fontSize: "11px", color: "var(--color-neutral-700)" }}>
                   {b.effect}
                 </div>

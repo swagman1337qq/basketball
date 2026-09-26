@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { BUYOUT_EXEMPT, leagueStr, negotiateBuyout, translation } from '../../engine/overseas';
-import { Link, muted, td, th } from '../kit';
+import { Link, muted, NumInput, td, th } from '../kit';
 
 export function OverseasScreen({ vm }: { vm: VM }) {
   const { gm, s, open, money } = vm.ctx;
@@ -57,8 +57,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
             <div className="dialog-body">
               {p.name}’s contract has a buyout. The club is asking {money(a.fee)}. Make an offer; you can sweeten it with a second-round pick. Three rejected offers and they walk away for the season.
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0 6px' }}>
-                <input type="range" min={0.1} max={Math.max(0.2, a.fee)} step={0.05} value={neg.offer} onChange={e => setNeg({ ...neg, offer: +e.target.value, msg: undefined })} style={{ flex: 1 }} />
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', minWidth: '70px', textAlign: 'right' }}>{money(neg.offer)}</span>
+                <span style={muted}>Your offer</span><NumInput value={neg.offer} min={0.05} max={Math.max(0.2, a.fee)} step={0.05} width={90} onValue={v => setNeg({ ...neg, offer: v, msg: undefined })} suffix={'$M (asking ' + money(a.fee) + ')'} />
               </div>
               <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12.5px' }}><input type="checkbox" checked={neg.pick} onChange={e => setNeg({ ...neg, pick: e.target.checked })} /> Include a second-round pick</label>
               <div style={{ fontSize: '12px', ...muted, marginTop: '6px' }}>Cap hit from this buyout: {neg.offer > BUYOUT_EXEMPT ? money(neg.offer - BUYOUT_EXEMPT) : 'none'}</div>
