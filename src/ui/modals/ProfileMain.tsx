@@ -3,6 +3,7 @@
 import type { VM } from '../vm';
 import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
 import { BadgeChip } from '../BadgeChip';
+import { HoverCard } from '../HoverCard';
 import { CountryPicker, Kicker, Link, muted, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
@@ -13,7 +14,7 @@ function useProfile(vm: VM) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid] || {};
   let tid = -9; Object.keys(s.rosters).forEach(k => { if (s.rosters[k].includes(p.id)) tid = +k; });
   const draftYear = p.cls || p.draft;
-  const openClass = () => draftYear && gm.setState({ listModal: { type: 'class', year: draftYear }, modal: false });
+  const openClass = () => draftYear && gm.setState({ listModal: { type: 'class', year: draftYear } });
   const draftLabel = p.cls && !p.dr ? 'Class of ' + p.cls : p.dr ? draftYear + ' draft · round ' + p.dr.rd + ', pick ' + p.dr.pick : draftYear ? draftYear + ' draft · undrafted' : '';
   return { gm, s, p, tid, draftYear, openClass, draftLabel };
 }
@@ -123,7 +124,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           <h4 style={ruleH4}>Profile</h4>
           {bio.map((r, i) => (
             <Row key={i} k={r.k}>
-              <span style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>{r.hasFlag && <img src={r.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />}<button className="hv4" onClick={r.open} style={{ all: 'unset', cursor: 'pointer' }}>{r.v}</button></span>
+              <span style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>{r.hasFlag && <img src={r.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />}{r.open ? <button className="hv4" onClick={r.open} style={{ all: 'unset', cursor: 'pointer' }}>{r.v}</button> : <span>{r.v}</span>}</span>
             </Row>
           ))}
           {draftLabel && <Row k="Draft"><Link onClick={openClass} style={{ color: 'var(--color-accent-700)' }}>{draftLabel} ›</Link></Row>}
@@ -146,7 +147,10 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           <h4 style={{ ...ruleH4, marginTop: '18px' }}>Personality</h4>
           <Row k="Motivated by"><b>{pl.mot}</b></Row>
           <p style={{ margin: '6px 0', ...muted, fontSize: '12px' }}>{pl.motDesc}</p>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>{(pl.traits || []).map((x: string, i: number) => <span key={i} className="tag" style={{ background: 'var(--color-neutral-200)', color: 'var(--color-neutral-800)' }}>{x}</span>)}</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>{(pl.traits || []).map((t: any) => (
+            <HoverCard key={t.k} width={240} anchor={<button className="tag" onClick={t.open || undefined} style={{ border: 'none', cursor: t.open ? 'pointer' : 'help', background: 'var(--color-neutral-200)', color: 'var(--color-neutral-800)', font: 'inherit', fontSize: '12px' }}>{t.label}</button>}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.label}</div><div style={{ fontSize: '12.5px' }}>{t.desc}</div>{t.open && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>Click to see every player with this trait.</div>}
+            </HoverCard>))}</div>
           <h4 style={{ ...ruleH4, marginTop: '18px', display: 'flex', justifyContent: 'space-between' }}><span>Happiness</span><span style={{ color: pl.hapColor, fontSize: '15px' }}>{pl.hapLabel}</span></h4>
           {pl.hasMood ? (
             <>
@@ -201,7 +205,7 @@ function EligEditor({ vm, p }: { vm: VM; p: any }) {
       {elig.filter(e => C[e.c]).map(e => (
         <span key={e.c} style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           <img src={gm.flag(e.c)} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-          <button className="hv4" onClick={() => gm.setState({ listModal: { type: 'country', code: e.c }, modal: false })} style={{ all: 'unset', cursor: 'pointer', fontWeight: p.rep === e.c ? 600 : 400 }}>{C[e.c].n}</button>
+          <button className="hv4" onClick={() => gm.setState({ listModal: { type: 'country', code: e.c } })} style={{ all: 'unset', cursor: 'pointer', fontWeight: p.rep === e.c ? 600 : 400 }}>{C[e.c].n}</button>
           {p.rep === e.c && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: '999px', border: '1px solid var(--color-accent)', color: 'var(--color-accent-700)' }}>represents</span>}
           {god ? <select value={e.why} onChange={ev => setReason(e.c, ev.target.value)} style={{ fontSize: '11px', padding: '0 4px', width: 'auto', minHeight: 0 }}>{[...new Set([...WHY, e.why])].map(w => <option key={w} value={w}>{w}</option>)}</select> : <span style={{ ...muted, fontSize: '11px' }}>{e.why}</span>}
           {god && p.rep !== e.c && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '0 6px' }} onClick={() => represent(e.c)}>Represent</button>}

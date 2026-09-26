@@ -1,6 +1,9 @@
 import type { VM } from '../vm';
+import { useState } from 'react';
+import { TraitFilter, byTrait } from '../TraitFilter';
 
 export function DraftScreen({ vm }: { vm: VM }) {
+  const [tk, setTk] = useState('');
   return (
     <>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" }}>
@@ -120,6 +123,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
           </>)}
         </section>
         <section>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /></div>
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
@@ -132,7 +136,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
               </tr>
             </thead>
             <tbody>
-              {(vm.draftRows || []).map((p: any, i: number) => (
+              {(vm.draftRows || []).filter(byTrait(vm, tk)).map((p: any, i: number) => (
                 <tr key={i}>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {p.rank}

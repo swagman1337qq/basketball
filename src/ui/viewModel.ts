@@ -10,6 +10,7 @@ import { badgesOf, teamRating } from '../engine/ratings';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, maxFor, nums, qoEligible, qoFor, rosterMax, signingMethods, stdIds, teamSalary, twoWayIds, yosOf } from '../engine/cba';
 import { financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
 import { firstRoundOrder } from '../engine/lottery';
+import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
 import { linkNames } from './kit';
 import type { VM } from './vm';
@@ -23,10 +24,18 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const tone = v => v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(--color-neutral-500)' : 'var(--color-text)';
   // Player and team pages replace the screen; Back returns to wherever you came from.
   const cur0 = () => (s.modal ? { p: s.pid } : s.teamModal != null ? { t: s.teamModal } : null);
-  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); const c = cur0(); gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, pageStack: [...(st.pageStack || []), ...(c ? [c] : [])].slice(-20) })); };
+  // A popup list (a country, a draft class) is part of the history too: Back from a player you
+  // opened from it returns to the list, with the page you opened the list from behind it.
+  const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
+  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, pageStack: trail(st) })); };
   const go = k => () => gm.setState({ screen: k, q: '', modal: false, teamModal: null, pageStack: [] });
-  const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; const c = cur0(); gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', pageStack: [...(st.pageStack || []), ...(c ? [c] : [])].slice(-20) })); };
-  const goBack = () => gm.setState(st => { const stack = (st.pageStack || []).slice(), prev = stack.pop(); return prev ? (prev.p != null ? { modal: true, pid: prev.p, teamModal: null, pageStack: stack, ptab: 'overview' } : { teamModal: prev.t, modal: false, pageStack: stack }) : { modal: false, teamModal: null, pageStack: [] }; });
+  const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', pageStack: trail(st) })); };
+  const goBack = () => gm.setState(st => {
+    const stack = (st.pageStack || []).slice(); let prev = stack.pop(), list = null;
+    if (prev && prev.l) { list = prev.l; const under = stack[stack.length - 1]; prev = under && under.l == null ? stack.pop() : null; }
+    const page = !prev ? { modal: false, teamModal: null } : prev.p != null ? { modal: true, pid: prev.p, teamModal: null, ptab: 'overview' } : { teamModal: prev.t, modal: false };
+    return { ...page, listModal: list, pageStack: stack };
+  });
   const T = s.teams, me = T[s.me], mine = s.rosters[s.me], pct = t => gm.pct(t), mine2 = t => gm.isUser(s, t);
   const logo = (tid, size = 18) => (tid >= 0 && T[tid] ? createElement(TeamLogo, { team: T[tid], size }) : null);
   const myName = me.region + ' ' + me.name;
@@ -229,18 +238,20 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const txRows = allTx.filter(x => s.txFilter === 'All' || x.type === s.txFilter).map(x => ({ date: gm.fmtS(x.day), type: x.type, teams: x.teams, teamLinks: String(x.teams).split(' · ').map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })), text: linkNames(x.text, id => open(id)(null), { P }), bg: x.mine ? 'var(--color-accent-100)' : 'transparent' }));
   const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft'].map(k => ({ label: k === 'All' ? 'All' : k === 'Trade' ? 'Trades' : k === 'Signing' ? 'Signings' : k === 'Release' ? 'Releases' : 'Draft', onClick: () => gm.setState({ txFilter: k }), color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
   const teamOf = id => { const t = tidOf[id]; return t >= 0 ? T[t].abbr : t === -1 ? 'Free agent' : t === -2 ? 'Overseas' : P[id].retired ? 'Retired' : 'Class of ' + P[id].cls; };
-  const openC = code => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'country', code }, modal: false }); };
-  const openClass = yr => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'class', year: yr }, modal: false }); };
+  const openC = code => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'country', code } }); };
+  const openClass = yr => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'class', year: yr } }); };
   pl.openRep = openC(pp.rep);
-  pl.bgRows = [...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : () => {} })), { k: 'Draft class', hasFlag: false, flag: '', v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'), open: openClass(pp.cls || pp.draft) }, ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: pp.heritage + ' · ' + C[pp.her].n, open: openC(pp.her) }] : []), ...(pp.family || []).filter(x => P[x.pid]).map(x => ({ k: { father: 'Father', son: 'Son', brother: 'Brother' }[x.rel], hasFlag: false, flag: '', v: P[x.pid].name + (P[x.pid].retired ? ' (retired' + ((s.hof || []).some(h => h.pid === x.pid) ? ', Hall of Fame' : '') + ')' : tidOf[x.pid] >= 0 ? ' · ' + T[tidOf[x.pid]].abbr : ''), open: open(x.pid) }))];
+  pl.bgRows = [...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : null })), { k: 'Draft class', hasFlag: false, flag: '', v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'), open: openClass(pp.cls || pp.draft) }, ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: pp.heritage + ' · ' + C[pp.her].n }] : []), ...(pp.family || []).filter(x => P[x.pid]).map(x => ({ k: { father: 'Father', son: 'Son', brother: 'Brother' }[x.rel], hasFlag: false, flag: '', v: P[x.pid].name + (P[x.pid].retired ? ' (retired' + ((s.hof || []).some(h => h.pid === x.pid) ? ', Hall of Fame' : '') + ')' : tidOf[x.pid] >= 0 ? ' · ' + T[tidOf[x.pid]].abbr : ''), open: open(x.pid) }))];
   pl.elig = pl.elig.map((e, i) => ({ ...e, open: openC(pp.elig[i].c) }));
   const LMs = s.listModal; let lm = {};
   if (LMs) {
     const act = (Object.values(P) as any[]).filter(p => tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || (LMs.type === 'class' && (p.retired || p.dr || p.cls)));
-    let ps = LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
+    const reads = LMs.type === 'trait' ? new Map(act.map(p => [p.id, traitRead(gm, s, p)])) : null;
+    let ps = LMs.type === 'trait' ? act.filter(p => reads.get(p.id).keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
     if (LMs.type === 'class') ps.sort((x, y) => (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) - (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99));
-    lm = { title: LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' ? gm.flag(LMs.code) : '', hasFlag: LMs.type === 'country', sub: ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: LMs.type === 'country' ? 'Born' : 'Pick',
-      rows: ps.map(p => ({ ...pBase(p.id), team: teamOf(p.id), openT: openTeam(tidOf[p.id] ?? -1), extra: LMs.type === 'country' ? C[p.born].n : p.cls ? 'Board #' + d.rank[p.id] : p.dr ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)' : 'Undrafted' })) };
+    const TL = LMs.type === 'trait' ? TRAIT[LMs.k] : null;
+    lm = { title: TL ? TL.label : LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' ? gm.flag(LMs.code) : '', hasFlag: LMs.type === 'country', sub: TL ? TL.desc + ' ' + ps.length + ' players.' : ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: TL ? 'Pos' : LMs.type === 'country' ? 'Born' : 'Pick',
+      rows: ps.map(p => ({ ...pBase(p.id), team: teamOf(p.id), openT: openTeam(tidOf[p.id] ?? -1), extra: TL ? p.pos : LMs.type === 'country' ? C[p.born].n : p.cls ? 'Board #' + d.rank[p.id] : p.dr ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)' : 'Undrafted' })) };
   }
   const togList = (lid, pid) => () => gm.setState(st => ({ lists: st.lists.map(l => l.id !== lid ? l : { ...l, ids: l.ids.includes(pid) ? l.ids.filter(x => x !== pid) : [...l.ids, pid] }) }));
   pl.lists = s.lists.map(l => { const on = l.ids.includes(pp.id); return { name: l.name, mark: on ? '✓ ' : '+ ', toggle: togList(l.id, pp.id), color: on ? 'var(--color-accent-800)' : 'var(--color-text)', bg: on ? 'var(--color-accent-100)' : 'transparent', border: on ? 'var(--color-accent)' : 'var(--color-divider)' }; });
@@ -252,8 +263,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     const FIT = { Winning: top ? 'Would see ' + me.region + ' as a contender.' : 'Your record would be a hard sell.', Money: 'Will follow the biggest offer.', Fame: me.mkt >= 1.1 ? me.region + '\u2019s market appeals to him.' : 'Would prefer a bigger market than ' + me.region + '.', Loyalty: 'Hard to pry away from his current team.', 'Playing time': 'Would want a clear path to starter minutes.' };
     const md = status === 'mine' ? gm.moodOf(pp, mine.indexOf(pp.id), s) : null;
     pl.openT = openTeam(ptid >= 0 ? ptid : pk ? gm.owner2027(pk.orig, s.assets, pk.rd) : -1);
-    pl.mot = m; pl.motDesc = MOTD[m]; pl.traits = [pp.pers.alpha && 'Wants to lead his own team', pp.pers.touches && 'Wants the ball', pp.pers.pro && 'Consummate professional', pp.pers.volatile && 'Volatile', pp.pers.crowd && 'Crowd reliant', pp.pers.clutch && 'Clutch', pp.pers.prone && 'Injury prone'].filter(Boolean);
-    if (!pl.traits.length) pl.traits = ['Even-keeled'];
+    pl.mot = m; pl.motDesc = MOTD[m]; { const tr = traitRead(gm, s, pp); pl.traits = (tr.keys.length ? tr.keys.map(k => TRAIT[k]) : tr.none ? [] : [EVEN]).map(t => ({ ...t, open: t.k === 'even' ? null : () => gm.setState({ listModal: { type: 'trait', k: t.k } }) })); pl.traitNote = tr.note; pl.traitNone = tr.none; pl.traitExact = tr.exact; }
     pl.hasMood = !!md; pl.noMood = !md; pl.hapLabel = md ? md.hapLabel + ' · ' + md.hap : ''; pl.hapColor = md ? md.hapColor : 'var(--color-text)'; pl.hapW = md ? md.hap + '%' : '0%';
     pl.factors = md ? md.factors.map(([n, v]) => ({ n, v: (v > 0 ? '+' : '') + v, color: v > 0 ? 'var(--gm-good)' : 'var(--gm-bad)' })) : [];
     pl.fitNote = 'Happiness is tracked for players on your roster. ' + FIT[m];
@@ -285,7 +295,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         repOpts: Object.keys(C).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const undo = gm.renationalize(pp, code); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); },
         teamOpts: [{ v: '-1', label: 'Free agent' }, ...T.map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
         setTeam: e => { const to = +e.target.value; gm.setState(st => { const rosters = { ...st.rosters }; let fa = st.fa.filter(x => x !== pp.id); Object.keys(rosters).forEach(k => rosters[k] = rosters[k].filter(x => x !== pp.id)); if (to === -1) fa = [pp.id, ...fa]; else rosters[to] = [...rosters[to], pp.id]; return { rosters, fa, log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)) }; }); },
-        traits: [['alpha', 'Wants to lead'], ['touches', 'Wants the ball'], ['pro', 'Professional'], ['volatile', 'Volatile'], ['crowd', 'Crowd reliant'], ['clutch', 'Clutch'], ['prone', 'Injury prone'], ['padder', 'Stat padder']].map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),
+        traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),
         health: pp.inj ? pp.inj.name + ', ' + pp.inj.games + ' games left' : 'Healthy',
         heal: () => mut(p => { delete p.inj; }), injMinor: () => mut(p => p.inj = { name: 'Ankle sprain', games: 5 }), injMajor: () => mut(p => p.inj = { name: 'Torn ACL', games: 90, major: true }) };
     }

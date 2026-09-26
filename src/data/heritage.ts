@@ -13,6 +13,7 @@
 import { cyr, namePools, nativeMaps } from './world';
 import { MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
+import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
@@ -140,6 +141,8 @@ function build() {
   Object.entries(MORE).forEach(([k, v]) => { add(k, 'f', v.f); add(k, 'l', v.l); });
   POOLS.cn.l = CN_SURNAMES.map(x => x[0]); CN_SURNAMES.forEach(([k, h, t]) => { NATIVE.cn[k] = h; NATIVE.cnT[k] = t; });
   WEIGHT.cn = Object.fromEntries(CN_SURNAMES.map(x => [x[0], x[3]]));
+  // Vietnamese: weighted family names; full names (with middle names) come from vietnameseName().
+  POOLS.vn = { ...(POOLS.vn || {}), f: VN_GIVEN.map(e => e.split('|')[0]), l: VN_SURNAME_LIST.slice() }; WEIGHT.vn = VN_SURNAME_WEIGHT; NATIVE.vn = { ...(NATIVE.vn || {}), ...VN_NATIVE };
   POOLS.tw = { lf: 1, f: [], l: [] }; add('tw', 'f', TW_POOL.f); add('tw', 'l', TW_POOL.l.map(x => x[0])); WEIGHT.tw = Object.fromEntries(TW_POOL.l.map(([e, w]) => [e.split('|')[0], w]));
 }
 
@@ -168,7 +171,8 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   for (let i = 0; l === f && i < 5; i++) l = pickL();
   const same = fp === lp;
   let first = f, last = l, nativeFirst = '', nativeLast = '', sep = ' ';
-  if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
+  if (same && fp === 'vn') { const v = vietnameseName(rnd); first = v.first; last = v.last; nativeFirst = v.nativeFirst; nativeLast = v.nativeLast; }
+  else if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
   else if (same && fp === 'rs' && CYR_COUNTRIES.includes(country)) { nativeFirst = cyr(f); nativeLast = cyr(l); }
   else if (same && NM[fp] && fp !== 'rs') { nativeFirst = NM[fp][f] || ''; nativeLast = NM[fp][l] || ''; }
   // Pool keys that disambiguate same-spelled surnames (e.g. Xu许) display as plain Latin.
@@ -176,11 +180,11 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   if (fp === 'ug' || fp === 'mgl') sep = '·'; else if (fp === 'bo') sep = '';
   const familyFirst = same && FAMILY_FIRST.has(fp);
   const name = familyFirst ? last + ' ' + first : first + ' ' + last;
-  const cjkFamily = same && ['cn', 'kr', 'jp', 'tw', 'kp'].includes(fp);
-  const native = !nativeFirst || !nativeLast ? '' : cjkFamily ? nativeLast + (fp === 'jp' ? ' ' : '') + nativeFirst : nativeFirst + sep + nativeLast;
+  const cjkFamily = same && ['cn', 'kr', 'jp', 'tw', 'kp', 'vn'].includes(fp), spaced = fp === 'jp' || fp === 'vn';
+  const native = !nativeFirst || !nativeLast ? '' : cjkFamily ? nativeLast + (spaced ? ' ' : '') + nativeFirst : nativeFirst + sep + nativeLast;
   const ks = Object.keys(grp.race); let r = rnd() * ks.reduce((a, k) => a + grp.race[k], 0), race = ks[0];
   for (const k of ks) { if ((r -= grp.race[k]) < 0) { race = k; break; } }
-  const nOrder = cjkFamily ? (fp === 'jp' ? 'lf ' : 'lf') : 'fl';
+  const nOrder = cjkFamily ? (spaced ? 'lf ' : 'lf') : 'fl';
   return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k, nOrder, nSep: sep };
 }
 

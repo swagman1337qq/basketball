@@ -3,10 +3,11 @@ import { CapBar } from '../CapBar';
 import { useState } from 'react';
 import { Seg } from '../kit';
 import { BadgeChip } from '../BadgeChip';
+import { TraitFilter, byTrait } from '../TraitFilter';
 
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
-  const [f, setF] = useState<'all' | 'gl' | 'home'>('all');
-  const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT));
+  const [f, setF] = useState<'all' | 'gl' | 'home'>('all'), [tk, setTk] = useState('');
+  const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk));
   const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
   return (
     <>
@@ -19,6 +20,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
       )}
       <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
         <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + (vm.faRows || []).length], ['gl', 'In the G League ' + nGl], ['home', 'Unsigned ' + ((vm.faRows || []).length - nGl)]]} onChange={setF} />
+        <TraitFilter value={tk} onChange={setTk} />
         <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>G League players are on standard G League deals: any NBA team can call them up by signing them.</span>
       </div>
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>

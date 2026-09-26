@@ -99,7 +99,7 @@ export function shotProfile(p: { r: any; roles?: string[] }, n: Norms, mult?: Pa
 
 export interface SimPlayer {
   id: number; name: string; pos: string; grp: string; ovr: number; r: any;
-  crowd?: boolean; clutch?: boolean; padder?: boolean; alpha?: boolean; touches?: boolean;
+  crowd?: boolean; clutch?: boolean; padder?: boolean; selfish?: boolean; alpha?: boolean; touches?: boolean;
   adj?: boolean; dtd?: boolean; fat?: number; protect?: boolean; flag?: string;
   conf?: number; // hidden confidence 0–100 (50 neutral): a small shooting nudge either way
   roles?: string[];
@@ -250,7 +250,9 @@ export class GameSim {
     const connectors = onO.filter(p => p.roles?.includes('Connector')).length, poa = onD.filter(p => p.roles?.includes('Point-of-attack defender')).length;
     const star = onO.reduce((a, b) => (C(b).use > C(a).use ? b : a));
     // Usage decides who ends the trip (the gatekeeper); ball-handling decides turnovers.
-    const use = (p: SimPlayer) => C(p).use * (p.padder ? 1.1 : 1) * (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1);
+    // Selfish players take far more shots (big numbers), stop the ball for everyone else and
+    // don't get back on defense: good stats, a worse team.
+    const use = (p: SimPlayer) => C(p).use * (p.selfish ? 1.3 : p.padder ? 1.1 : 1) * (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1);
     const pTov = RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (tD.def === 'Aggressive' ? 0.02 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (tD.def === 'Aggressive' ? 1.15 : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (tD.def === 'Aggressive' ? 1.25 : 1);
@@ -305,7 +307,7 @@ export class GameSim {
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
       const defAdj = z === 'rim' ? 0.003 * (intD - n.interiorD) + (rimPro ? 0.01 : 0) : z === 'mid' ? 0.0015 * (pressD - n.perimD) : 0.0012 * (pressD - n.perimD);
       const tacD = ({ Switch: { c3: -0.01, atb: -0.01, rim: 0.01 }, Drop: { mid: 0.02, rim: -0.02 } } as any)[tD.def || '']?.[z] || 0;
-      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0);
+      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0);
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -316,7 +318,7 @@ export class GameSim {
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate, 0.2, 0.97)) {
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 5) * (p.roles?.includes('Primary creator') ? 1.3 : 1));
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 5) * (p.roles?.includes('Primary creator') ? 1.3 : 1) * (p.selfish ? 0.35 : 1));
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);

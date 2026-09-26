@@ -19,6 +19,9 @@ const WHY: Record<string, [string, string]> = {
   'Incentive dispute with the front office': ['Upset about an incentive dispute with the front office', ''],
   'Front office backed him': ['', 'Feels backed by the front office'],
   'Consummate professional': ['', 'A pro: keeps his feelings in check'],
+  'Team-first': ['', 'A team player: happy when the team wins'],
+  'Selfish teammate': ['Tired of a teammate who never passes', ''],
+  'Chasing a legacy': ['Losing is hurting his legacy', 'Building his legacy as a star on a winner'],
   'Team facilities': ['Unimpressed by the team facilities', 'Likes the lavish team facilities'],
   'Fan energy': ['Misses playing in front of a full building', 'Likes the energy from the fan base'],
 };
