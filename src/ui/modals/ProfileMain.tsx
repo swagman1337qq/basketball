@@ -1,6 +1,7 @@
 // Player profile: the header (identity, badges, season snapshot, ratings, actions) and
 // the Overview tab, laid out as Profile & family · Ratings & badges · This season.
 import type { VM } from '../vm';
+import { fmtChange } from '../../engine/progress';
 import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
@@ -169,17 +170,19 @@ export function ProfileOverview({ vm }: { vm: VM }) {
         </section>
         <section>
           <h4 style={ruleH4}>Ratings</h4>
+          {pl.progLabel && <div style={{ ...muted, fontSize: '12px', margin: '0 0 4px' }}>▲▼ change since {pl.progLabel}: overall <b style={{ color: pl.progOvr > 0 ? 'var(--gm-good)' : pl.progOvr < 0 ? 'var(--gm-bad)' : undefined }}>{fmtChange(pl.progOvr)}</b>, potential <b style={{ color: pl.progPot > 0 ? 'var(--gm-good)' : pl.progPot < 0 ? 'var(--gm-bad)' : undefined }}>{fmtChange(pl.progPot, 0)}</b>. Year by year on the Development tab.</div>}
           {(pl.groups || []).map((g: any, gi: number) => (
             <div key={gi} style={{ marginBottom: '12px' }}>
               <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '6px 0 2px' }}>{g.label}</div>
               {(g.items || []).map((r: any, i: number) => { const t = rtier(r.v); return (
-                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 80px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 80px 44px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
                   <span>{r.name}</span>
                   <div style={{ position: 'relative', height: 9, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)', borderRadius: 5 }}>
                     <div style={{ height: 9, width: r.w, background: t[1], borderRadius: 5 }} />
                     <div title="League average (50)" style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }} />
                   </div>
                   <span style={{ textAlign: 'right', color: t[1], fontWeight: 700, fontSize: r.text ? '13.5px' : '16px', whiteSpace: 'nowrap' }}>{r.text || r.v}</span>
+                  <span title={r.d ? (r.d > 0 ? 'Up ' : 'Down ') + Math.abs(r.d).toFixed(1) + ' since ' + pl.progLabel : ''} style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: r.d > 0 ? 'var(--gm-good)' : r.d < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{r.d == null || Math.abs(r.d) < 0.05 ? '' : fmtChange(r.d)}</span>
                   <span style={{ fontSize: '11.5px', color: t[1], whiteSpace: 'nowrap' }}>{r.sub || t[0]}</span>
                 </div>
               ); })}

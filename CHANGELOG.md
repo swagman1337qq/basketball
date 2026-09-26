@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Player progress.** The Roster shows ▲/▼ under each player's Ovr and Pot: how much he's improved or declined over the past year (to one decimal, e.g. ▲6.9, ▼1.1). His profile shows the change beside every rating, and his Development tab has a year-by-year table: overall on opening night, change during the season, over the summer, the year's total, and his biggest gains and drops. Ratings are recorded on opening night and at the end of every season.
 - **Box score team names** open the team's page.
 - **Full scouting report button** on a player's Overview, next to the short report, jumps to his complete Scouting report tab.
 - **Box scores.** Click any score (Dashboard, Schedule, play-in games, and G1, G2… under each playoff series) to see the box score: quarter by quarter, and every player's minutes, points, rebounds, assists, steals, blocks, turnovers, shooting and +/−. Kept for the current season.

@@ -5,6 +5,7 @@ import { fmtMoney } from '../engine/capModel';
 import { glLabel } from '../engine/gleague';
 import { natDefault, regionOf, regions, roleDefs } from '../data/world';
 import { Game } from '../engine/Game';
+import { baseline, deltas } from '../engine/progress';
 import { addTx } from '../engine/txlog';
 import { intelF } from '../engine/overseas';
 import { badgesOf, setRating, setWing, teamRating, wngOf } from '../engine/ratings';
@@ -146,8 +147,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       career.push({ season: (r.season - 1) + '–' + String(r.season).slice(2), team: t ? t.region + ' ' + t.name : '—', lg: r.po ? 'Playoffs' : 'League', gp: r.gp, min: g1(r.min), pts: g1(r.pts), reb: g1(r.orb + r.drb), ast: g1(r.ast), per: gm.perOf(r, r.season).toFixed(1), fw: r.season === gm.Y && !r.po ? 600 : 400 }); });
   }
   const fc = gm.face(pp.id);
-  const pl = { ...pp, flag: gm.flag(pp.rep), cname: C[pp.rep].n, tone: tone(pp.ovr), face: gm.faceEl(pp.id, ptid),
-    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row: any = { name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]) }; if (k === 'hgt') Object.assign(row, { text: pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)), hint: 'Height rating ' + pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)) + ' tall' });
+  const progB = baseline(gm, pp), progD = progB ? deltas(pp, progB.snap) : null;
+  const pl = { ...pp, progLabel: progB ? progB.label : null, progOvr: progD ? progD.ovr : null, progPot: progD ? progD.pot : null, flag: gm.flag(pp.rep), cname: C[pp.rep].n, tone: tone(pp.ovr), face: gm.faceEl(pp.id, ptid),
+    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row: any = { name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]), d: progD && progD.r[k] != null ? progD.r[k] : null }; if (k === 'hgt') Object.assign(row, { text: pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)), hint: 'Height rating ' + pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)) + ' tall' });
       if (k !== 'hgt' || !pp.wing) return [row];
       // Wingspan is a measurement, not a rating: the bar shows how long his arms are for his height (the league averages +4″).
       const hIn = gm.inches(pp.hgt), ape = pp.wing - hIn, len = wngOf(pp.wing, hIn);

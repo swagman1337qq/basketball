@@ -3,6 +3,7 @@
 // the Development and Comparison tabs; and the overseas arc (History).
 import { useState, type ReactNode } from 'react';
 import type { VM } from '../vm';
+import { fmtChange, RNAME, yearByYear } from '../../engine/progress';
 import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
 import { Bar, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
@@ -118,7 +119,28 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
   const roles = gm.rolesOf(p), feed = p.feed || [];
   const next = ROLE_REQ.filter(([n]) => !roles.includes(n)).map(([n, req, only]) => { const gaps = Object.entries(req).map(([k, v]) => [k, v - val(p, k)] as [string, number]).filter(([, g]) => g > 0); return { n, only, gaps, tot: gaps.reduce((a, [, g]) => a + g, 0) }; }).filter(x => x.tot <= 12).sort((a, b) => a.tot - b.tot).slice(0, 4);
   const conf = p.conf ?? 50;
-  return (
+  const years = yearByYear(gm, p), sg = (x: number | null, dec = 1) => x == null ? <span style={muted}>—</span> : <b style={{ color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</b>;
+  const mv = (xs: [string, number][]) => xs.length ? xs.map(([k2, d]) => RNAME[k2] + ' ' + fmtChange(d)).join(', ') : <span style={muted}>—</span>;
+  return (<>
+    <section style={{ marginBottom: 22 }}>
+      <h4 style={ruleH4}>Year by year</h4>
+      {years.length ? (
+        <table className="table" style={{ fontSize: '13px' }}>
+          <thead><tr>{['Season', 'Overall on opening night', 'During the season', 'Over the summer', 'Year total', 'Potential', 'Biggest gains', 'Biggest drops'].map((h, x) => <th key={h} style={{ padding: '5px 8px', textAlign: x >= 1 && x <= 5 ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+          <tbody>{years.map(y => (
+            <tr key={y.season}>
+              <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{y.season - 1}–{String(y.season).slice(2)}{y.live ? <span style={{ ...muted, fontSize: '11px' }}> · so far</span> : ''}</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.open}</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.inSeason)}</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.summer)}</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.total)}</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.pot}{y.potD ? <span style={{ fontSize: '11px' }}> ({sg(y.potD, 0)})</span> : ''}</td>
+              <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-good)' }}>{mv(y.up)}</td>
+              <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-bad)' }}>{mv(y.down)}</td>
+            </tr>))}</tbody>
+        </table>) : <p style={{ ...muted, fontStyle: 'italic' }}>No history yet: ratings are recorded on opening night and at the end of every season.</p>}
+      <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>Overall and every rating are recorded on opening night and at the end of each season, before summer development. The Roster shows the change over the past year under Ovr and Pot.</p>
+    </section>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
       <section>
         <h4 style={ruleH4}>Ratings & scouting confidence</h4>
@@ -148,7 +170,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
         {p.age < 24 && (p.minorCount || 0) >= 2 && <p style={{ color: bad, fontSize: '12px' }}>{p.minorCount} minor injuries this season: his growth is being stunted{p.minorCount >= 3 ? ' and his ceiling may drop' : ''}.</p>}
       </section>
     </div>
-  );
+  </>);
 }
 
 export function HistoryExtras({ vm }: { vm: VM }) {

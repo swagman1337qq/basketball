@@ -10,6 +10,7 @@ import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { BadgeChip } from '../BadgeChip';
 import { howAcquired } from '../../engine/txlog';
+import { baseline, deltas, fmtChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
 import { badgesOf, teamRating } from '../../engine/ratings';
@@ -80,8 +81,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
         </td>
         <td style={td}>{p.pos}</td>
         <td style={tdr}>{ageOf(p)}</td>
-        <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>{p.ovr}</td>
-        <td style={{ ...tdr, color: vm.ctx.tone(p.pot) }}>{p.pot}</td>
+        {(() => { const b = cur ? baseline(gm, p) : null, d = b ? deltas(p, b.snap) : null;
+          const mark = (x: number, dec: number, what: string) => b && <div title={what + (x > 0 ? ' up ' : x < 0 ? ' down ' : ' unchanged ') + (x ? Math.abs(x).toFixed(dec) + ' ' : '') + 'since ' + b.label} style={{ fontSize: '10.5px', fontWeight: 700, lineHeight: 1, marginTop: 1, color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</div>;
+          return (<>
+            <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>{p.ovr}{d && mark(d.ovr, 1, 'Overall')}</td>
+            <td style={{ ...tdr, color: vm.ctx.tone(p.pot) }}>{p.pot}{d && mark(d.pot, 0, 'Potential')}</td>
+          </>); })()}
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && <td style={tdr}>{p.exp}</td>}
         {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (

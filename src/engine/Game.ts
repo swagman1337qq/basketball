@@ -6,6 +6,7 @@ import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage
 import { voteHof } from './hof';
 import { teamRating, wngBonus } from './ratings';
 import { mediaPreds } from './media';
+import { snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
@@ -58,6 +59,7 @@ export class Game {
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the G League
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
+    snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
     return g;
   }
 
@@ -122,6 +124,7 @@ export class Game {
     // Saves from before the Team player trait: hand it out the same way new players get it.
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
+    snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
     return g;
   }
 
@@ -802,6 +805,7 @@ export class Game {
     if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length) return null;
+      snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, coachOf = k => { const c = this.clubOf(s, +k); return c ? (c.budget.Coaching - 18) / 12 : 0; }, progBy: Record<number, any[]> = {};
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
@@ -918,6 +922,7 @@ export class Game {
       // preseason predictions are locked in.
       const ext = aiExtensions(this, this.state, 0.5); if (ext.length) this.setState(st => ({ lgLog: [...ext, ...st.lgLog] }));
       mediaPreds(this, this.state);
+      snapOpening(this, this.state); // opening-night ratings for year-over-year progress
     }
   }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
