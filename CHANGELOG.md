@@ -27,6 +27,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- Create your GM: the name-order choices use your own name (which part is the family name, and what the owner will call you) instead of a fixed Vietnamese example.
 - Saved leagues show your own team's name and record (they showed the first team in the league).
 - The name fields in Identity and Biography (God Mode) stay in sync both ways.
 - The Represents 🎲 picks from every country; changing Represents moves hometown and "Playing for" to that country but leaves eligibility alone.

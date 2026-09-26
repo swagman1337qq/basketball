@@ -26,6 +26,12 @@ export function GMSetupModal({ vm }: { vm: VM }) {
   const set = (x: Partial<GMProfile>) => setP(o => ({ ...o, ...x }));
   const done = (tour: boolean) => { finishGMSetup(gm, { ...p, name: p.name.trim() || 'The GM' }); if (tour) gm.setState({ tour: 0, tourMode: null }); };
   const lab = { fontSize: '12px', fontWeight: 600, marginBottom: 3, display: 'block' } as const;
+  // Each name-order option spelled out with the name you entered: which part is the family name,
+  // and what the owner will call you.
+  const order = (ff: boolean) => { const parts = p.name.trim().split(/\s+/).filter(Boolean), g = givenName({ ...p, familyFirst: ff });
+    if (parts.length < 2) return ff ? 'Family name first' : 'Given name first';
+    const fam = ff ? parts[0] : parts.slice(1).join(' ');
+    return (ff ? 'Family name first' : 'Given name first') + ': ' + fam + ' is the family name, you’re called ' + g; };
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 60%, transparent)', zIndex: 40, padding: '16px', overflowY: 'auto' }}>
       <div className="card" style={{ width: 'min(760px, 100%)', padding: '22px 26px', gap: '14px', background: 'var(--color-surface)', boxShadow: 'var(--shadow-lg)' }}>
@@ -62,8 +68,8 @@ export function GMSetupModal({ vm }: { vm: VM }) {
             <div style={{ gridColumn: '1 / -1' }}>
               <span style={lab}>Name order</span>
               <select className="input" value={p.familyFirst ? 'f' : 'g'} onChange={e => set({ familyFirst: e.target.value === 'f' })} style={{ width: '100%' }}>
-                <option value="g">Given name first (Tyler Nguyen)</option>
-                <option value="f">Family name first (Nguyen Van Hung)</option>
+                <option value="g">{order(false)}</option>
+                <option value="f">{order(true)}</option>
               </select>
               <div style={{ ...muted, fontSize: '12px', marginTop: 3 }}>The owner will call you <b>{givenName(p)}</b>.</div>
             </div>
