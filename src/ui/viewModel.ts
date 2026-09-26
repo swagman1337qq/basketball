@@ -185,14 +185,14 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const myAssets = s.assets.filter(a => a.owner === s.me && (!usedPick(a) || gm.draftRights(a, s))), theirAssets = s.assets.filter(a => a.owner === s.tTid && (!usedPick(a) || gm.draftRights(a, s)));
   const send = s.tMine.map(id => P[id]), get = s.tTheirs.map(id => P[id]);
   const out = send.reduce((a, p) => a + gm.capHit(p), 0), inc = get.reduce((a, p) => a + gm.capHit(p), 0), after = payroll - out + inc;
-  const chk = checkTrade(gm, s, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs), salOk = chk.ok, rosOk = true;
+  const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs), salOk = chk.ok, rosOk = true;
   const any = send.length + get.length + s.tkMine.length + s.tkTheirs.length > 0;
   const ev = gm.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
   const tst = strat[s.tTid] || 'middle';
   const tr = { out: money(out), in: money(inc), after: money(after), sal: chk.ok ? (after <= gm.CAP ? 'Under the cap' : 'Passes the league office') : chk.errs[0], salColor: chk.ok ? 'var(--color-text)' : 'var(--gm-bad)', ros: chk.errs.length > 1 ? chk.errs.slice(1).join(' ') : chk.notes.join(' ') || 'OK', rosColor: chk.errs.length > 1 ? 'var(--gm-bad)' : 'var(--color-text)',
     stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0], stratDesc: mine2(s.tTid) ? 'You run both franchises, so any trade you build goes through (salary rules still apply).' : STRAT[tst][1],
     meter: (any ? cl(50 + ev.diff / Math.max(10, Math.abs(ev.give)) * 60, 2, 98) : 50) + '%', verdict: !any ? 'Pick players or picks on either side to build an offer.' : ev.ok ? 'They would likely accept.' : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4 ? 'Not close yet.' : 'Close. A little more should do it.',
-    cantPropose: !any || (!s.god && (!salOk || !rosOk)), cantBalance: !any, hasMsg: !!s.tMsg, msg: s.tMsg };
+    cantPropose: !any || !salOk || !rosOk, cantForce: !any, god: !!s.god, cantBalance: !any, hasMsg: !!s.tMsg, msg: s.tMsg };
   const teamOptions = T.filter(t => t.tid !== s.me).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
 
   const MOOD = { Eager: ['var(--color-accent-100)', 'var(--color-accent-800)'], Open: ['var(--color-neutral-100)', 'var(--color-neutral-800)'], Reluctant: ['transparent', 'var(--color-neutral-600)'] };
@@ -485,7 +485,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     comp, depth, roles, pl, showJson: s.showJson, toggleJson: () => gm.setState(st => ({ showJson: !st.showJson })), downloadFaces: () => gm.downloadFaces(),
     standGroups, standSegs, standConf: conf,
     tMine: mine.map(tRow('tMine')), tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')), tMinePicks: myAssets.map(kRow('tkMine')), tTheirPicks: theirAssets.map(kRow('tkTheirs')), tr, teamOptions, tTid: s.tTid,
-    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
+    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), forceAccept: () => gm.propose(true), balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
     faCols, faRows, faNote, dr, dClasses, draftCols, draftRows, simToMine: () => gm.aiDraft(true), simOne: () => gm.aiDraft(true, 1), simAll: () => gm.aiDraft(false),
     askScouts: () => gm.setState(st => ({ adv: { ...st.adv, scouts: true } })), askAgm: () => gm.setState(st => ({ adv: { ...st.adv, agm: true } })),
     fin, q: s.q, onSearch: e => gm.setState({ q: e.target.value }), matches, hasMatches: matches.length > 0, searchIcon: icon('search'),
