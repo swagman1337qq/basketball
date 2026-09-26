@@ -6,23 +6,26 @@ export function makeFace(p) {
   const pid = p.id, rnd = mulberry32((p.faceSeed ?? pid) * 7919 + 13), pick = a => a[Math.floor(rnd() * a.length)], race = p.race;
   const SK = { white: ['#f6dcc8', '#f1d3bd', '#ecc8ae', '#e8c1a4', '#e2b594', '#dcae8e', '#d3a07e', '#f3d6c2'], black: ['#9a6a48', '#8a5a3d', '#7a4e35', '#6b4430', '#5a3825', '#4a2e1f', '#3d261a', '#a8744f', '#613f2b'], asian: ['#f3dcc0', '#f0d2b0', '#ebcaa4', '#e6c39d', '#dcb58c', '#d2a77c', '#c99d74'], brown: ['#d9ac84', '#d4a37a', '#c89468', '#be8a5e', '#b98256', '#a8734a', '#9a6843', '#8c5e3c'] };
   const HC = { asian: ['#16120f', '#211a14', '#1b1511', '#2a211a'], black: ['#15100d', '#1e1712', '#110d0b', '#2a1f18'], brown: ['#1f1712', '#2e2219', '#3b2a1e', '#171210', '#4a3526'], white: ['#2b1d14', '#4a3322', '#7a5a3a', '#a07a4f', '#c9a36a', '#1f1712', '#8a3f1f', '#b5572a', '#d8bb7c', '#5c4430'] };
-  const DYED = ['#c9a36a', '#8a3f1f', '#b8b0a4', '#d8bb7c'];
+  // Dyed hair: bleached blond for some Black players, a brown tint for some Asian players (never red).
+  const DYED = { black: ['#d8bb7c', '#c9a36a'], asian: ['#4a3526', '#5a4030'] };
+  // Facial hair by look: East Asian players are mostly clean-shaven.
+  const FH = { asian: ['none', 'none', 'none', 'none', 'none', 'none', 'stubble', 'stubble', 'mustache', 'goatee', 'soulpatch'], black: ['none', 'none', 'stubble', 'stubble', 'goatee', 'beard', 'beard', 'mustache', 'chinstrap', 'circle', 'soulpatch', 'heavy'], white: ['none', 'none', 'none', 'stubble', 'stubble', 'goatee', 'beard', 'mustache', 'chinstrap', 'circle', 'heavy'], brown: ['none', 'none', 'stubble', 'stubble', 'goatee', 'beard', 'mustache', 'chinstrap', 'circle', 'soulpatch'] };
   const ST = {
     black: ['buzz', 'buzz', 'short', 'fade', 'fade', 'waves', 'waves', 'afro', 'locs', 'bald', 'braids', 'cornrows', 'twists', 'hightop', 'frohawk', 'flattop', 'crew', 'mohawk'],
-    asian: ['short', 'sidepart', 'spiky', 'buzz', 'fringe', 'undercut', 'textured', 'curtains', 'crew', 'slick', 'messy', 'fade'],
+    asian: ['short', 'short', 'sidepart', 'sidepart', 'buzz', 'buzz', 'fringe', 'undercut', 'textured', 'crew', 'crew', 'fade', 'spiky'],
     white: ['short', 'sidepart', 'buzz', 'messy', 'bald', 'long', 'undercut', 'slick', 'bun', 'crew', 'curly', 'textured', 'fauxhawk', 'curtains', 'fade'],
     brown: ['short', 'fade', 'buzz', 'curly', 'sidepart', 'waves', 'undercut', 'slick', 'crew', 'textured', 'mohawk', 'bun', 'messy', 'bald'],
   };
   const EYE = { white: ['#3a2a1e', '#4a6a8a', '#5b7a4a', '#6b5a3a', '#2a1f18', '#4e7ea8'], brown: ['#2a1f18', '#3a2a1e', '#5a4a2a', '#4a3a26'], black: ['#1a1512', '#2a1f18'], asian: ['#1a1512', '#2a1f18'] };
   const grey = p.age >= 33 && rnd() < .4, style = pick(ST[race] || ST.white);
-  const dyed = !grey && (race === 'asian' || race === 'black') && rnd() < .07;
+  const dyed = !grey && DYED[race] && rnd() < .05;
   return { v: 2, generator: 'Basketball Manager faces', race, skin: pick(SK[race]), head: { w: +(0.86 + rnd() * .26).toFixed(2), h: +(0.93 + rnd() * .16).toFixed(2), jaw: +rnd().toFixed(2) },
-    hair: { style, color: grey ? pick(['#8d8a86', '#a8a49e', '#6f6a64']) : dyed ? pick(DYED) : pick(HC[race]) },
-    eyes: { shape: race === 'asian' ? pick(['narrow', 'narrow', 'hooded']) : pick(['round', 'almond', 'almond', 'hooded']), size: +(0.88 + rnd() * .28).toFixed(2), spacing: +(0.93 + rnd() * .16).toFixed(2), color: pick(EYE[race] || EYE.white) },
+    hair: { style, color: grey ? pick(['#8d8a86', '#a8a49e', '#6f6a64']) : dyed ? pick(DYED[race]) : pick(HC[race]) },
+    eyes: { shape: race === 'asian' ? pick(['narrow', 'narrow', 'almond']) : pick(['round', 'almond', 'almond', 'hooded']), size: +(0.88 + rnd() * .28).toFixed(2), spacing: +(0.93 + rnd() * .16).toFixed(2), color: pick(EYE[race] || EYE.white) },
     brows: { tilt: +((rnd() - .5) * .5).toFixed(2), thick: +(1.4 + rnd() * 2).toFixed(2), arch: rnd() < .35 },
     nose: { w: +((0.78 + rnd() * .55) * (race === 'black' ? 1.25 : 1)).toFixed(2), len: +(0.88 + rnd() * .34).toFixed(2), bridge: rnd() < .4 },
     mouth: { w: +(0.82 + rnd() * .4).toFixed(2), smile: +(rnd() * .9 - .25).toFixed(2), lips: +(rnd() * (race === 'black' ? 1 : .6)).toFixed(2) },
-    facial: p.age < 20 ? 'none' : pick(['none', 'none', 'none', 'stubble', 'stubble', 'goatee', 'beard', 'mustache', 'chinstrap', 'circle', 'soulpatch', 'heavy']),
+    facial: p.age < 20 ? 'none' : pick(FH[race] || FH.white),
     ears: +(0.88 + rnd() * .3).toFixed(2),
     extra: { headband: rnd() < .07 ? pick(['#ffffff', '#1a1a1a', '#c8102e', '#1d428a']) : null, earring: rnd() < .08, freckles: race === 'white' && rnd() < .12, lines: p.age >= 33 && rnd() < .5 } };
 }
