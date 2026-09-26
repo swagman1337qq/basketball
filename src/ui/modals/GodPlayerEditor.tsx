@@ -4,14 +4,23 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
-import { CountryPicker, muted, NumInput, ruleH4 } from '../kit';
-import { namePools } from '../../data/world';
+import { CountryPicker, Dice, muted, NumInput, ruleH4 } from '../kit';
+import { clubs, COLLEGES, namePools } from '../../data/world';
 import { allPools, groupsOf, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
+// A random team in a given country: its pro clubs (or their U18 sides for prospects still
+// in school), American colleges and high schools, or a local academy where there's no pro league.
+function randomTeamIn(C: any, country: string, young: boolean) {
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)], cc = clubs()[country];
+  if (country === 'US') return young ? { team: pick(C.US.cities) + ' ' + pick(['Prep', 'Academy', 'Christian', 'High']), lg: 'High school', country } : { team: pick(COLLEGES), lg: 'NCAA', country };
+  if (cc && cc.length) { const k = pick(cc); return young ? { team: k[0] + ' U18', lg: 'Junior', country } : { team: k[0], lg: k[1], country }; }
+  const city = pick(C[country]?.cities || ['National']);
+  return { team: city + ' ' + pick(['Basketball Academy', 'Sports School', 'Basketball Club']), lg: young ? 'Junior' : 'Domestic league', country };
+}
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export function GodPlayerEditor({ vm }: { vm: VM }) {
@@ -33,12 +42,14 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const setNames = (f: string, l: string, nf: string, nl: string) => mut(q => { q.first = f; q.last = l; q.name = (lf ? l + ' ' + f : f + ' ' + l).trim(); q.nativeFirst = nf; q.nativeLast = nl; q.native = CJK.test(nf + nl) ? nl + nf : (nf + ' ' + nl).trim(); });
   const hIn = inchesOf(p.hgt), wing = p.wing ?? hIn + 3 + (p.id % 4);
   const dob = p.dob || (gm.Y - 1 - p.age) + '-' + String(1 + (p.id % 12)).padStart(2, '0') + '-' + String(1 + (p.id % 28)).padStart(2, '0');
-  const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string, unit?: string) => (
+  const num = (label: string, v: number, mn: number, mx: number, set: (v: number) => void, fmt?: (v: number) => string, unit?: string, rand?: () => number) => (
     <>
       <span style={muted}>{label}</span>
-      <NumInput value={v} min={mn} max={mx} step={1} onValue={set} suffix={(unit ? unit : '') + (fmt ? (unit ? ' · ' : '') + fmt(v) : '') || mn + '–' + mx} />
+      <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><NumInput value={v} min={mn} max={mx} step={1} onValue={set} suffix={(unit ? unit : '') + (fmt ? (unit ? ' · ' : '') + fmt(v) : '') || mn + '–' + mx} />{rand && <Dice onClick={() => set(rand())} title={'Random ' + label.toLowerCase()} />}</span>
     </>
   );
+  const RN = () => randomName(origin, Math.random, bg || undefined);
+  const inRow = (input: any, onDice: () => void, title: string) => <span style={{ display: 'flex', gap: 6 }}>{input}<Dice onClick={onDice} title={title} /></span>;
   const grid = { display: 'grid', gridTemplateColumns: '120px minmax(0,1fr)', gap: '8px 12px', alignItems: 'center' } as const;
   const upload = async (f?: File) => { if (!f) return; setErr(''); try { const url = await processImage(f, 160, 240, 'image/jpeg'); mut(q => (q.faceImg = url)); } catch (e: any) { setErr(e.message); } };
   return (
@@ -56,15 +67,15 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <button className="btn btn-secondary" onClick={() => reroll(origin)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A real name from that country, with the native script where it has one">🎲 Generate</button>
             {undo && <button className="btn btn-ghost" onClick={doUndo} style={{ fontSize: '12px' }}>Undo ({undo.name})</button>}
           </span>
-          <span style={muted}>First name</span><input className="input" value={first} onChange={e => setNames(e.target.value, last, nFirst, nLast)} />
-          <span style={muted}>Last name</span><input className="input" value={last} onChange={e => setNames(first, e.target.value, nFirst, nLast)} />
-          <span style={muted}>Native first</span><input className="input" value={nFirst} placeholder="e.g. 伟 or Никола" onChange={e => setNames(first, last, e.target.value, nLast)} />
-          <span style={muted}>Native last</span><input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} />
+          <span style={muted}>First name</span>{inRow(<input className="input" value={first} onChange={e => setNames(e.target.value, last, nFirst, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => { const r = RN(); setNames(r.first, last, r.nativeFirst || nFirst, nLast); }, 'A random first name from the country above')}
+          <span style={muted}>Last name</span>{inRow(<input className="input" value={last} onChange={e => setNames(first, e.target.value, nFirst, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => { const r = RN(); setNames(first, r.last, nFirst, r.nativeLast || nLast); }, 'A random last name from the country above')}
+          <span style={muted}>Native first</span>{inRow(<input className="input" value={nFirst} placeholder="e.g. 伟 or Никола" onChange={e => setNames(first, last, e.target.value, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => setNames(first, last, RN().nativeFirst || '', nLast), 'A random native-script first name (countries with their own script)')}
+          <span style={muted}>Native last</span>{inRow(<input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} style={{ flex: 1, minWidth: 0 }} />, () => setNames(first, last, nFirst, RN().nativeLast || ''), 'A random native-script last name (countries with their own script)')}
           <span style={muted}>Date of birth</span>
-          <input className="input" type="date" value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />
-          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 100); }), fmtH, 'inches')}
-          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb')}
-          {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => { q.wing = v; }), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height)', 'inches')}
+          {inRow(<input className="input" type="date" style={{ flex: 1, minWidth: 0 }} value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />, () => { const age = 19 + Math.floor(Math.random() * 17), y = gm.Y - 1 - age, m = 1 + Math.floor(Math.random() * 12), d = 1 + Math.floor(Math.random() * 28); const v = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); const e = { target: { value: v } }; { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); } }, 'A random birthday (age 19–35)')}
+          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 100); }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
+          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb', () => Math.round(hIn * 2.9 - 5 + Math.random() * 25))}
+          {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => { q.wing = v; }), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height)', 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
           <span style={muted}>Hometown</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />
@@ -76,7 +87,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <input className="input" value={p.from.team || ''} onChange={e => mut(q => { q.from = { ...q.from, team: e.target.value }; })} placeholder="Team or school" style={{ flex: 1, minWidth: 120 }} />
             <input className="input" value={p.from.lg || ''} onChange={e => mut(q => { q.from = { ...q.from, lg: e.target.value }; })} placeholder="League" style={{ width: 110 }} />
             <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { ...q.from, country: c }; })} width={150} />
-            <button className="btn btn-ghost" title="A random team for where he grew up (college, club or school)" onClick={() => mut(q => { q.from = gm.pipe(q.raised || q.born, q.cls || 0); })} style={{ fontSize: '12px' }}>🎲</button>
+            <button className="btn btn-ghost" title="A random team in the country selected here (club, college or school)" onClick={() => mut(q => { q.from = randomTeamIn(C, q.from?.country || q.raised || q.born, q.cls && q.cls > gm.Y); })} style={{ fontSize: '12px' }}>🎲</button>
           </span></>}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height and weight nudge the related ratings. Wingspan is its own measurement: longer arms help contests, blocks, rebounds and steals. The team a prospect plays for decides which region’s scout covers him.</p>

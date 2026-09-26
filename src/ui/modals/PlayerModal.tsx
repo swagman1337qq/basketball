@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
+import { Dice } from '../kit';
+import { randomName } from '../../data/heritage';
 import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
@@ -110,35 +112,35 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Name
                   </span>
-                  <input className="input" value={vm.pl.ed.name} onChange={vm.pl.ed.setName} style={{ minHeight: "30px", fontSize: "13px" }} />
+                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.name} onChange={vm.pl.ed.setName} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random name from the country he represents" onClick={() => { const r = randomName(vm.ctx.s.god ? vm.pl.ed.repV : vm.pl.ed.repV); vm.pl.ed.setName({ target: { value: r.name } }); vm.pl.ed.setNative({ target: { value: r.native || '' } }); }} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Native script
                   </span>
-                  <input className="input" value={vm.pl.ed.native} onChange={vm.pl.ed.setNative} style={{ minHeight: "30px", fontSize: "13px" }} />
+                  <span style={{ display: "flex", gap: 6 }}><input className="input" value={vm.pl.ed.native} onChange={vm.pl.ed.setNative} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }} /><Dice title="A random native-script name (countries with their own script)" onClick={() => vm.pl.ed.setNative({ target: { value: randomName(vm.pl.ed.repV).native || '' } })} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Represents
                   </span>
-                  <CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" />
+                  <span style={{ display: "flex", gap: 6 }}><span style={{ flex: 1, minWidth: 0 }}><CountryPicker C={vm.ctx.gm.db.C} value={vm.pl.ed.repV} onPick={(c: string) => vm.pl.ed.setRep({ target: { value: c } })} width="100%" /></span><Dice title="Another country he's eligible for (or any country)" onClick={vm.pl.ed.randRep} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Motivation
                   </span>
-                  <select className="input" value={vm.pl.ed.motV} onChange={vm.pl.ed.setMot} style={{ minHeight: "30px", fontSize: "13px" }}>
+                  <span style={{ display: "flex", gap: 6 }}><select className="input" value={vm.pl.ed.motV} onChange={vm.pl.ed.setMot} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }}>
                     {(vm.pl.ed.motOpts || []).map((o: any, i: number) => (
                       <option key={i} value={o.v}>
                         {o.label}
                       </option>
                     ))}
-                  </select>
+                  </select><Dice title="A random motivation" onClick={vm.pl.ed.randMot} /></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Team
                   </span>
-                  <select className="input" value={vm.pl.ed.teamV} onChange={vm.pl.ed.setTeam} style={{ minHeight: "30px", fontSize: "13px" }}>
+                  <span style={{ display: "flex", gap: 6 }}><select className="input" value={vm.pl.ed.teamV} onChange={vm.pl.ed.setTeam} style={{ minHeight: "30px", fontSize: "13px", flex: 1, minWidth: 0 }}>
                     {(vm.pl.ed.teamOpts || []).map((o: any, i: number) => (
                       <option key={i} value={o.v}>
                         {o.label}
                       </option>
                     ))}
-                  </select>
+                  </select><Dice title="Move him to a random team" onClick={() => { const o = vm.pl.ed.teamOpts || []; if (o.length) vm.pl.ed.setTeam({ target: { value: o[Math.floor(Math.random() * o.length)].v } }); }} /></span>
                 </div>
                 <h4 style={{ margin: "0 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
                   Core
@@ -149,11 +151,11 @@ export function PlayerModal({ vm }: { vm: VM }) {
                       {r.label}
                     </span>
                     <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
-                    <span></span>
+                    <span>{r.rand && <Dice onClick={r.rand} title={'Random ' + String(r.label).toLowerCase()} />}</span>
                   </div>
                 ))}
                 <h4 style={{ margin: "16px 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
-                  Traits
+                  Traits <Dice onClick={vm.pl.ed.randTraits} title="Random personality traits" />
                 </h4>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {(vm.pl.ed.traits || []).map((c: any, i: number) => (
@@ -198,7 +200,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                       {r.label}
                     </span>
                     <NumInput value={r.v} min={r.min} max={r.max} step={r.step} onValue={v => r.set({ target: { value: v } })} suffix={r.label === 'Salary' ? '$M per year' : r.label === 'Age' ? 'years' : undefined} />
-                    <span></span>
+                    <span>{r.rand && <Dice onClick={r.rand} title={'Random ' + String(r.label).toLowerCase()} />}</span>
                   </div>
                 ))}
               </section>

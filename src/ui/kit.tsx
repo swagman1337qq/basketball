@@ -126,3 +126,8 @@ export function CountryPicker({ C, value, onPick, placeholder = 'Type a countryâ
     </span>
   );
 }
+
+// A small "randomize this field" button (God Mode editor).
+export function Dice({ onClick, title = 'Randomize' }: { onClick: () => void; title?: string }) {
+  return <button type="button" className="btn btn-ghost" onClick={onClick} title={title} aria-label={title} style={{ fontSize: '13px', padding: '2px 7px', flex: 'none' }}>ðŸŽ²</button>;
+}
