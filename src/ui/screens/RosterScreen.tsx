@@ -85,7 +85,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && <td style={tdr}>{p.exp}</td>}
         {mine && <td style={{ ...tdr, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title="Target minutes per game (blank = automatic by rotation slot)">
-          <NumInput value={rotOf(id)} min={0} max={48} step={1} width={52} onValue={v => { P[id].rot = v; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} />
+          <NumInput stepper value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} />
           {P[id].rot != null && <button className="btn btn-ghost" title="Back to automatic" onClick={() => { delete P[id].rot; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} style={{ fontSize: '10px', padding: '0 4px' }}>auto</button>}
         </td>}
         <td style={tdr}>{ln.gp}</td>

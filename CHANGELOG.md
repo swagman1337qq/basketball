@@ -17,6 +17,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Min target** (Roster) is a bigger box with large − / + buttons, easier to click and to type in.
 - **Roster notes** are bigger and easier to read.
 - **Development.** Yearly growth now depends on potential (players grow toward their ceiling), work ethic (hard workers improve even without minutes), minutes, G League time, coaching, training focus, the locker room, mentors, traits, a hidden development factor (late bloomers and players who peak early), the season he had, and luck. Potential is re-estimated every offseason.
 - **Aging.** Decline speeds up every year after 29: about −1 a year at 31, −2 at 33, −3 at 35, −5 at 38 and −7 at 40. Athleticism goes first; shooting and basketball IQ last longer.
