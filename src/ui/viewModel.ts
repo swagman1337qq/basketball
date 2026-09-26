@@ -222,8 +222,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     }
   }
   // Before draft night the order is projected: the lottery by expected pick (3-2-1 odds), then the rest by record.
-  const preDraft = ['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase) && gm.gamesPlayed(s) > 0;
-  const pkList = preDraft ? (() => { const r1 = firstRoundOrder(gm, s).order, r2 = T.map(t => t.tid).sort((a, b) => pct(T[a]) - pct(T[b]) || a - b); return [...r1.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...r2.map((orig, i) => ({ n: r1.length + i + 1, rd: 2, orig, pid: null }))]; })() : s.picks;
+  const pkList = gm.boardOrder(s);
   const dr = { isCurrent: isCur, isFuture: !isCur, hasAdvice: advice.length > 0, advice, noAdvice: !myNext,
     classNote: s.god ? 'God Mode: true ratings shown.' : isCur ? 'Ratings are your scouts\u2019 estimates (±' + Math.round(spread) + ').' : 'Early look, ' + yearsOut + ' year' + (yearsOut > 1 ? 's' : '') + ' out. Ranges narrow as prospects develop and as you spend more on scouting.',
     scoutLine: 'Scouting budget ' + money(s.budget.Scouting) + ' (' + scoutRank + ' in the league). Ranges shown are ±' + Math.round(spread) + '.',

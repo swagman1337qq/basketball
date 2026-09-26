@@ -882,9 +882,34 @@ export class Game {
     srt.forEach((t, i) => out[t.tid] = i < 9 ? 'contend' : i >= 20 ? 'rebuild' : 'middle');
     return out;
   }
-  slotOf(orig, T) { const srt = T.slice().sort((a, b) => this.pct(a) - this.pct(b)); return srt.findIndex(t => t.tid === orig) + 1; }
+  // Where a team ranks, worst first: by record, or before any games by roster strength (the
+  // order this season's picks were set in).
+  slotOf(orig, T) {
+    if (!this.gamesPlayed(this.state)) { const i = this.state.picks.filter(x => (x.rd || 1) === 1).findIndex(x => x.orig === orig); if (i >= 0) return i + 1; }
+    const srt = T.slice().sort((a, b) => this.pct(a) - this.pct(b)); return srt.findIndex(t => t.tid === orig) + 1;
+  }
+  // This year's draft order, as the draft board shows it and trades value it: the real order
+  // once it's set; before that a projection, the lottery teams by expected pick under the
+  // 3-2-1 lottery and everyone else worst first (by record, or by roster strength before any
+  // games are played).
+  private boardCache = new WeakMap<object, any[]>();
+  boardOrder(s = this.state) {
+    const hit = this.boardCache.get(s); if (hit) return hit;
+    const T = s.teams, pct = t => this.pct(t), gp = this.gamesPlayed(s);
+    const list = (r1: number[], r2: number[]) => [...r1.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...r2.map((orig, i) => ({ n: r1.length + i + 1, rd: 2, orig, pid: null }))];
+    let out = s.picks;
+    if (['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase) && gp > 0) out = list(firstRoundOrder(this, s).order, T.map(t => t.tid).sort((a, b) => pct(T[a]) - pct(T[b]) || a - b));
+    else if (['preseason', 'regular'].includes(s.phase) && !gp) {
+      const r1 = s.picks.filter(x => (x.rd || 1) === 1).map(x => x.orig), ex = expectedByRank(T.length), L = Math.min(r1.length, ex.length - 1);
+      const lot = r1.slice(0, L).map((orig, i) => ({ orig, e: ex[i + 1] })).sort((a, b) => a.e - b.e).map(x => x.orig);
+      out = list([...lot, ...r1.slice(L)], s.picks.filter(x => x.rd === 2).map(x => x.orig));
+    }
+    this.boardCache.set(s, out); return out;
+  }
   // Expected slot under the 3-2-1 lottery (the worst records no longer mean the best odds).
-  projSlot(k, T) { const s = expectedByRank(T.length)[this.slotOf(k.orig, T)] ?? this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
+  // This year's firsts use the draft board's order, so the two always agree.
+  projSlot(k, T) { if (k.yr === this.Y && (k.rd || 1) === 1) { const x = this.boardOrder().find(p => (p.rd || 1) === 1 && p.orig === k.orig); if (x) return x.n; }
+    const s = expectedByRank(T.length)[this.slotOf(k.orig, T)] ?? this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
   pVal(p, st) {
     const base = Math.pow(Math.max(0, p.ovr - 38), 1.9) / 10;
     const gap = Math.max(0, p.pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
