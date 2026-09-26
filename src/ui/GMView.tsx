@@ -27,12 +27,14 @@ import { CareerScreen } from './screens/CareerScreen';
 import { PressScreen } from './screens/PressScreen';
 import { LeagueStatsScreen } from './screens/LeagueStatsScreen';
 import { LeagueEditorScreen } from './screens/LeagueEditorScreen';
+import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
 import { TeamModal } from './modals/TeamModal';
 import { PlayerModal } from './modals/PlayerModal';
 import { ConfirmDialog } from './modals/ConfirmDialog';
+import { OwnerLetterModal } from './modals/OwnerLetterModal';
 import type { VM } from './vm';
 
 export function GMView({ vm }: { vm: VM }) {
@@ -103,6 +105,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.press && <PressScreen vm={vm} />}
             {!!vm.is.league && <LeagueStatsScreen vm={vm} />}
             {!!vm.is.editor && <LeagueEditorScreen vm={vm} />}
+            {!!vm.is.hof && <HallOfFameScreen vm={vm} />}
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}
@@ -110,6 +113,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasTeamModal && <TeamModal vm={vm} />}
         {!!vm.hasModal && <PlayerModal vm={vm} />}
         {!!vm.hasDialog && <ConfirmDialog vm={vm} />}
+        {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
       </div>
     </>
   );

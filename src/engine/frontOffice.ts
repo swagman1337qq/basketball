@@ -86,7 +86,7 @@ export function ownerReview(g: Game, s: any, tid: number) {
 }
 
 // End-of-season firing check against the owner's written conditions.
-function fireReasons(g: Game, s: any, tid: number, rv: ReturnType<typeof ownerReview>, finThis: string) {
+export function fireReasons(g: Game, s: any, tid: number, rv: ReturnType<typeof ownerReview>, finThis: string) {
   const out: string[] = [], hist = (s.teamHist || {})[tid] || [], last = hist[hist.length - 1];
   const missed = f => f === 'Missed the playoffs' || f === 'Lost in the play-in';
   if (rv.sec < 15) out.push('Job security fell to ' + rv.sec);

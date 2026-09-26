@@ -19,7 +19,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const [err, setErr] = useState('');
   const [originSel, setOrigin] = useState<string | null>(null), [bg, setBg] = useState('');
   if (!p) return null;
-  const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); };
+  const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   const C = gm.db.C, lf = p.familyFirst ?? !!namePools()[C[p.rep]?.pool]?.lf;
   const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
   const origin = originSel ?? p.rep;
@@ -60,9 +60,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           <span style={muted}>Native last</span><input className="input" value={nLast} placeholder="e.g. 陈 or Јокић" onChange={e => setNames(first, last, nFirst, e.target.value)} />
           <span style={muted}>Date of birth</span>
           <input className="input" type="date" value={dob} onChange={e => { const v = e.target.value; if (!/^\d{4}-\d\d-\d\d$/.test(v)) return; mut(q => { q.dob = v; const y = +v.slice(0, 4), md = v.slice(5); q.age = cl(gm.Y - 1 - y - (md > '10-01' ? 1 : 0), 16, 45); if (q.age >= 29) q.pot = Math.max(q.ovr, Math.min(q.pot, q.ovr + 2)); }); }} />
-          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 99); }), fmtH, 'inches')}
-          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 99); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 99); }), undefined, 'lb')}
-          {num('Wingspan', wing, hIn - 2, hIn + 10, v => mut(q => { const d = v - (q.wing ?? wing); q.wing = v; q.r.hgt = cl(Math.round(q.r.hgt + d * 1.5), 4, 99); q.r.diq = cl(Math.round(q.r.diq + d * 0.5), 4, 99); }), fmtH, 'inches')}
+          {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); q.hgt = fmtH(v); q.r.hgt = cl(q.r.hgt + d * 4, 4, 100); }), fmtH, 'inches')}
+          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb')}
+          {num('Wingspan', wing, hIn - 2, hIn + 10, v => mut(q => { const d = v - (q.wing ?? wing); q.wing = v; q.r.hgt = cl(Math.round(q.r.hgt + d * 1.5), 4, 100); q.r.diq = cl(Math.round(q.r.diq + d * 0.5), 4, 100); }), fmtH, 'inches')}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height, weight and wingspan nudge the related ratings.</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Headshot</h4>

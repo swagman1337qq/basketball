@@ -86,6 +86,12 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           <h4 style={{ margin: "22px 0 4px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
             Franchise history
           </h4>
+          {Object.keys(vm.ctx.s.letters || {}).length > 0 && (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "0 0 8px" }}>
+              <span style={{ fontSize: "12px", color: "var(--color-neutral-700)", alignSelf: "center" }}>Year-end letters:</span>
+              {Object.keys(vm.ctx.s.letters).map(Number).sort((a, b) => b - a).map(y => <button key={y} className="btn btn-secondary" style={{ fontSize: "12px", padding: "3px 10px" }} onClick={() => vm.ctx.gm.setState({ letterOpen: y })}>{y - 1}–{String(y).slice(2)}</button>)}
+            </div>
+          )}
           {(vm.own.hist || []).length === 0 ? <p style={{ fontSize: "12px", color: "var(--color-neutral-700)", fontStyle: "italic" }}>Reviewed at the end of each season.</p> : (
             <table className="table" style={{ fontSize: "12.5px" }}>
               <thead><tr><th style={{ padding: "5px 8px" }}>Season</th><th style={{ padding: "5px 8px", textAlign: "right" }}>W–L</th><th style={{ padding: "5px 8px" }}>Finish</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Payroll</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Profit</th></tr></thead>

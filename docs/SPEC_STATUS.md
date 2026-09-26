@@ -113,3 +113,13 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 - Days on the calendar are game days, so the playoffs finish in the winter on the in-game calendar.
 - Team renames apply to past seasons' displays too (history stores team IDs, not names).
 - The five-zone view derives the restricted-area/paint split from the rim tier by typical league shares.
+
+## Added since
+
+| Feature | Where |
+|---|---|
+| Ratings, overall and potential top out at 100 | Engine clamps and the player editor |
+| Mandatory retirement age (off by default); players retire the moment they reach it | Settings → Retirement age; `Game.enforceRetirement()` |
+| Families: sons of former players (~2%) and brothers (~3%), at roughly real NBA rates, sharing surname, heritage and look; "Jr." for some sons; legacy retired players from before the league's records | `engine/family.ts`; profile Father/Son/Brother rows |
+| Hall of Fame: 3-season wait, transparent career score, up to five inductees a year, ballot and active-player watch list | `engine/hof.ts`; **Hall of Fame** screen |
+| Owner's year-end letter when the playoffs end: what you did right and wrong, how he feels, the verdict, next season's expectations | `engine/ownerLetter.ts`; reopen past letters on the **Owner** screen |

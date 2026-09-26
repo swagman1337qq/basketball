@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { Kicker, Link, linkNames, muted, Seg } from '../kit';
 
-const KIND: Record<string, string> = { trade: 'Trade', sign: 'Signing', draft: 'Draft', fired: 'Firing', hired: 'Hiring', review: 'Owner review', offer: 'Job offer', interview: 'Interview', firesale: 'Fire sale', award: 'Awards', title: 'Champions' };
+const KIND: Record<string, string> = { trade: 'Trade', sign: 'Signing', draft: 'Draft', fired: 'Firing', hired: 'Hiring', review: 'Owner review', offer: 'Job offer', interview: 'Interview', firesale: 'Fire sale', award: 'Awards', title: 'Champions', hof: 'Hall of Fame' };
 
 export function PressScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeam } = vm.ctx;

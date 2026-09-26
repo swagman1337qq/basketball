@@ -1,6 +1,7 @@
 import type { VM } from '../vm';
 import { ExpansionPicker } from './ExpansionPicker';
 import { AwardFormulas } from './AwardFormulas';
+import { RetirementSetting } from './RetirementSetting';
 
 export function SettingsScreen({ vm }: { vm: VM }) {
   return (
@@ -102,6 +103,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           </button>
         </div>
         <ExpansionPicker vm={vm} />
+        <RetirementSetting vm={vm} />
         <AwardFormulas vm={vm} />
         <div style={{ padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>

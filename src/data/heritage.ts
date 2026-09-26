@@ -147,7 +147,8 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   const native = !nativeFirst || !nativeLast ? '' : cjkFamily ? nativeLast + (fp === 'jp' ? ' ' : '') + nativeFirst : nativeFirst + sep + nativeLast;
   const ks = Object.keys(grp.race); let r = rnd() * ks.reduce((a, k) => a + grp.race[k], 0), race = ks[0];
   for (const k of ks) { if ((r -= grp.race[k]) < 0) { race = k; break; } }
-  return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k };
+  const nOrder = cjkFamily ? (fp === 'jp' ? 'lf ' : 'lf') : 'fl';
+  return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k, nOrder, nSep: sep };
 }
 
 // A random real name for a country: a heritage group drawn by population share (or the

@@ -154,7 +154,15 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
 export function HistoryExtras({ vm }: { vm: VM }) {
   const { gm, money } = vm.ctx, { p } = useP(vm);
   if (!p) return null;
-  const arc = p.overseasArc, a = p.abroad;
+  const arc = p.overseasArc, a = p.abroad, L = p.legacy;
+  if (L) return (
+    <section style={{ marginTop: '22px' }}>
+      <h4 style={ruleH4}>Career before the league’s records</h4>
+      <Row k="Seasons" v={L.seasons + ' (retired ' + p.retired.season + ')'} />
+      <Row k="Per game" v={L.pts + ' pts · ' + L.reb + ' reb · ' + L.ast + ' ast'} />
+      {L.allStar > 0 && <Row k="All-Star" v={L.allStar + (L.allStar === 1 ? ' selection' : ' selections')} c={gold} />}
+    </section>
+  );
   if (!arc && !a && !(p.adjust > 0)) return null;
   return (
     <section style={{ marginTop: '22px' }}>

@@ -72,6 +72,7 @@ function GameScreen({ open, error, onExit }: { open: Open; error: string; onExit
       if (e.key !== 'Escape') return;
       const s = game.state;
       if (s.dialog) game.setState({ dialog: null });
+      else if (s.letterOpen) game.setState({ letterOpen: null });
       else if (s.modal) game.setState({ modal: false });
       else if (s.teamModal != null) game.setState({ teamModal: null });
       else if (s.listModal) game.setState({ listModal: null });
