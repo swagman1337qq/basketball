@@ -1233,6 +1233,18 @@ export class Game {
       return { rosters, assets, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
+  // Draft board shortcuts. Someone else's pick: trade with the team that owns it ("Trade for
+  // pick" puts the pick on their side of the table). Your pick: trade with the partner you had
+  // up ("Trade pick" puts it on yours). "Propose trade" opens the same screen with nothing selected.
+  pickToTrade(assetId: string, select: boolean) {
+    const a0 = this.state.assets.find(a => a.id === assetId); if (!a0) return;
+    if (this.isUser(this.state, a0.owner) && a0.owner !== this.state.me) this.switchTeam(a0.owner);
+    this.setState(s => {
+      const a = s.assets.find(x => x.id === assetId); if (!a) return null;
+      const mine = a.owner === s.me, tTid = mine ? (this.isUser(s, s.tTid) ? s.teams.find(t => !this.isUser(s, t.tid))?.tid ?? s.tTid : s.tTid) : a.owner;
+      return { modal: false, teamModal: null, listModal: null, screen: 'trade', tTid, tMine: [], tTheirs: [], tkMine: select && mine ? [assetId] : [], tkTheirs: select && !mine ? [assetId] : [], tMsg: null };
+    });
+  }
   balance() {
     this.setState(s => {
       const P = this.db.P;

@@ -2,6 +2,9 @@ import type { VM } from '../vm';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
 
+// Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
+const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
+
 export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState('');
   return (
@@ -98,6 +101,12 @@ export function DraftScreen({ vm }: { vm: VM }) {
                     ) : (
                       <div style={{ fontSize: "12px", fontStyle: "italic", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.onClock ? "On the clock" : "Pick " + o.n}</div>
                     )}
+                    {o.canTrade && (
+                      <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
+                        <button className="btn btn-secondary" onClick={o.tradePick} style={pickBtn}>{o.tradeLbl}</button>
+                        <button className="btn btn-ghost" onClick={o.proposeTrade} style={pickBtn}>Propose trade</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -108,12 +117,14 @@ export function DraftScreen({ vm }: { vm: VM }) {
               Your picks
             </h4>
             {(vm.dr.myFuture || []).map((k: any, i: number) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 2px", borderBottom: "1px solid var(--color-divider)" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", padding: "4px 2px", borderBottom: "1px solid var(--color-divider)" }}>
                 <span>
                   {k.label}
                 </span>
-                <span style={{ color: "var(--color-neutral-700)" }}>
-                  {k.proj}
+                <span style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <span style={{ color: "var(--color-neutral-700)" }}>{k.proj}</span>
+                  {k.tradePick && <button className="btn btn-secondary" onClick={k.tradePick} style={pickBtn}>Trade pick</button>}
+                  {k.proposeTrade && <button className="btn btn-ghost" onClick={k.proposeTrade} style={pickBtn}>Propose trade</button>}
                 </span>
               </div>
             ))}
