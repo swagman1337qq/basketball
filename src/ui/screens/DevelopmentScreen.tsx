@@ -12,16 +12,16 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
             <th style={{ padding: "6px 8px" }}>
               Player
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Age
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Ovr
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Pot
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Min
             </th>
             <th style={{ padding: "6px 8px" }}>
@@ -30,7 +30,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
             <th style={{ padding: "6px 8px" }}>
               Assignment
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Last month
             </th>
           </tr>
@@ -47,16 +47,16 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                   {p.injTag}
                 </span>
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.age}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                 {p.ovr}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right", color: p.ptone }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
                 {p.pot}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.min}
               </td>
               <td style={{ padding: "3px 8px" }}>
@@ -78,7 +78,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                   </button>
                 </>)}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right", color: p.lastColor, fontWeight: "600" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.lastColor, fontWeight: "600" }}>
                 {p.last}
               </td>
             </tr>
@@ -110,7 +110,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", color: "var(--color-neutral-700)" }}>
                     {x.focus}{x.dev ? <span style={{ color: "var(--gm-good)" }}> · Dev league</span> : null}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: x.color, fontWeight: "600" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: x.color, fontWeight: "600" }}>
                     {x.d} ovr
                   </td>
                   <td style={{ padding: "4px 8px", fontSize: "12px" }}>

@@ -18,16 +18,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Player
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Age
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Ovr
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Pot
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Contract
                 </th>
               </tr>
@@ -49,16 +49,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
                       </span>
                     </span>
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                     {p.ovr}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.pot}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.contract}
                   </td>
                 </tr>
@@ -80,7 +80,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {k.label}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {k.proj}
                   </td>
                 </tr>
@@ -205,16 +205,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Player
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Age
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Ovr
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Pot
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Contract
                 </th>
               </tr>
@@ -236,16 +236,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
                       </span>
                     </span>
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                     {p.ovr}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.pot}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.contract}
                   </td>
                 </tr>
@@ -267,7 +267,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {k.label}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {k.proj}
                   </td>
                 </tr>

@@ -52,19 +52,19 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "4px 8px" }}>
                 {p.pos}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.age}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                 {p.ovr}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right", color: p.ptone }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
                 {p.pot}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.askS}
               </td>
-              <td style={{ padding: "4px 8px", textAlign: "right" }}>
+              <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.exp}
               </td>
               <td style={{ padding: "4px 8px" }}>
@@ -78,7 +78,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "4px 8px", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                 {p.how}
               </td>
-              <td style={{ padding: "3px 8px", textAlign: "right" }}>
+              <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 <button className="btn btn-primary" onClick={p.sign} disabled={p.cant} style={{ fontSize: "12px", padding: "3px 12px" }}>
                   Sign
                 </button>

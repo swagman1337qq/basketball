@@ -45,7 +45,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {r.name}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {r.v}
                   </td>
                 </tr>
@@ -60,7 +60,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {r.name}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {r.v}
                   </td>
                 </tr>
@@ -69,7 +69,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                 <td style={{ padding: "8px", fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
                   Net
                 </td>
-                <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600", borderTop: "1px solid var(--color-text)", color: vm.fin.netColor }}>
+                <td style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600", borderTop: "1px solid var(--color-text)", color: vm.fin.netColor }}>
                   {vm.fin.net}
                 </td>
               </tr>

@@ -4,6 +4,7 @@
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
 import { fireReasons, ownerReview } from './frontOffice';
+import { contractDecision, contractOf } from './gmCareer';
 
 const money = fmtMoney;
 const VOICE: Record<string, { open: string; care: string; next: string }> = {
@@ -14,7 +15,7 @@ const VOICE: Record<string, { open: string; care: string; next: string }> = {
   'Meddling Micromanager': { open: 'I watched every game this year. I have notes.', care: 'I trust you, but I’m going to keep asking questions. That’s how I run everything I own.', next: 'Play my guy, and win more than we lose.' },
 };
 
-export interface OwnerLetter { tid: number; season: number; owner: string; arch: string; sec: number; verdict: 'extend' | 'stay' | 'warning' | 'fired'; right: string[]; wrong: string[]; feel: string; next: string[]; fin: string; record: string }
+export interface OwnerLetter { contract?: string; tid: number; season: number; owner: string; arch: string; sec: number; verdict: 'extend' | 'stay' | 'warning' | 'fired'; right: string[]; wrong: string[]; feel: string; next: string[]; fin: string; record: string }
 
 export function yearEndLetter(g: Game, s: any, tid: number, fin: string): OwnerLetter {
   const T = s.teams, me = T[tid], P = g.db.P, Y = g.Y, ids = s.rosters[tid] || [];
@@ -69,5 +70,6 @@ export function yearEndLetter(g: Game, s: any, tid: number, fin: string): OwnerL
     fired: 'I’ve made a decision: I’m making a change. ' + (reasons[0] || '') + '. Thank you for your work.',
   } as Record<string, string>)[verdict];
   if (verdict !== 'fired') next.push(v.next);
-  return { tid, season: Y, owner: me.owner, arch: me.arch, sec: rv.sec, verdict, right, wrong, feel, next: [...new Set(next)].slice(0, 3), fin, record: me.w + '–' + me.l };
+  const contract = verdict !== 'fired' && contractOf(g, s).tid === tid ? contractDecision(g, s, tid).text : '';
+  return { contract, tid, season: Y, owner: me.owner, arch: me.arch, sec: rv.sec, verdict, right, wrong, feel, next: [...new Set(next)].slice(0, 3), fin, record: me.w + '–' + me.l };
 }

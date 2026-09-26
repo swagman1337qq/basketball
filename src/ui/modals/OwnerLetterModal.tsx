@@ -26,7 +26,7 @@ export function OwnerLetterModal({ vm }: { vm: VM }) {
           </div>
           <div style={{ textAlign: 'right' }}><div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', color: vc }}>{vl}</div><div style={{ ...muted, fontSize: '11.5px' }}>Job security {L.sec}</div></div>
         </div>
-        <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', lineHeight: 1.45 }}>Dear GM,</p>
+        <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', lineHeight: 1.45 }}>Dear {s.gm?.name ? s.gm.name.split(' ')[0] : 'GM'},</p>
         <div>
           <Kicker>What you did right</Kicker>
           <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.right.map((x, k) => <li key={k} style={{ color: 'var(--color-text)' }}><span style={{ color: 'var(--gm-good)' }}>✓ </span>{x}</li>)}</ul>
@@ -39,6 +39,7 @@ export function OwnerLetterModal({ vm }: { vm: VM }) {
           <Kicker>How I feel about what you’re doing here</Kicker>
           <p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{L.feel}</p>
         </div>
+        {!!L.contract && <div><Kicker>About your contract</Kicker><p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{L.contract}</p>{s.gmOffer && s.gmOffer.tid === L.tid && <p style={{ ...muted, fontSize: '12px', margin: '4px 0 0' }}>Answer the offer on the Career screen{s.gmOffer.kind === 'expiring' ? ' before free agency opens' : ''}.</p>}</div>}
         {L.next.length > 0 && <div><Kicker>Next season I expect</Kicker><ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.next.map((x, k) => <li key={k}>{x}</li>)}</ul></div>}
         <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', fontStyle: 'italic' }}>— {L.owner}</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>

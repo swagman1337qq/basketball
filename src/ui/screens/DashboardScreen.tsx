@@ -106,7 +106,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                     <td style={{ padding: "5px 8px", color: r.color, fontWeight: "600" }}>
                       {r.wl}
                     </td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                    <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                       {r.score}
                     </td>
                   </tr>
@@ -180,10 +180,10 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Team
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   W–L
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   GB
                 </th>
               </tr>
@@ -200,10 +200,10 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                       {t.name}
                     </button>
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right", borderBottom: t.line }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                     {t.rec}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right", color: "var(--color-neutral-700)", borderBottom: t.line }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)", borderBottom: t.line }}>
                     {t.gb}
                   </td>
                 </tr>

@@ -81,28 +81,28 @@ export function TeamModal({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Pos
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Age
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Ovr
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Pot
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Contract
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Exp
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Pts
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Reb
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Ast
                 </th>
               </tr>
@@ -121,28 +121,28 @@ export function TeamModal({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {p.pos}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                     {p.ovr}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: p.ptone }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
                     {p.pot}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.contract}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.exp}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.pts}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.reb}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.ast}
                   </td>
                 </tr>

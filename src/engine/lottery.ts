@@ -42,7 +42,7 @@ function streaks(g: Game, s: any, tid: number) {
 // The lottery field: from the real play-in once the 7-v-8 games are done, otherwise
 // "if the season ended today" from the current standings.
 export function lotteryField(g: Game, s: any): Field {
-  const teams: LotTeam[] = [], confs = ['East', 'West'], cmp = worstFirst(g, s);
+  const teams: LotTeam[] = [], confs = ['West', 'East'], cmp = worstFirst(g, s);
   const seedsOf = (c: string): number[] => (s.seeds?.[c] && s.playin ? s.seeds[c] : g.seeds(s, c));
   let projected = false; const out: { tid: number; conf: string; seed: number }[] = [];
   confs.forEach(c => {
@@ -129,4 +129,29 @@ export function firstRoundOrder(g: Game, s: any, drawn?: number[]) {
   const lotT = lotIdx.map(i => f.teams[i].tid ?? f.teams[i].cand![1]);
   const rest = s.teams.map((t: any) => t.tid).filter((t: number) => !lotT.includes(t)).sort(cmp);
   return { field: f, lot: lotIdx, order: [...lotT, ...rest] };
+}
+
+// Lottery night: picks are revealed from the last lottery pick up to No. 1. Given the teams
+// already revealed (they hold the last slots), each team still in the envelope has this
+// chance of being No. 1. Exact: the chance that the first draws took exactly the unrevealed
+// teams, starting with this one (the later draws then depend only on which teams are left).
+export function liveNo1(f: LotTeam[], order: number[], revealed: number): Map<number, number> {
+  const n = f.length, S = order.slice(0, n - revealed), out = new Map<number, number>();
+  if (revealed === 0) { const o = lotteryOdds(f); S.forEach(i => out.set(i, o[i][0])); return out; }
+  if (S.length === 1) { out.set(S[0], 1); return out; }
+  const k = S.length, pos = new Map(S.map((i, b) => [i, b])), full = (1 << k) - 1;
+  const step = (drawnF: number[], slot: number) => { const left = f.map((_, i) => i).filter(i => !drawnF.includes(i)); const c = eligible(f, left, slot); return { c, tot: c.reduce((a, i) => a + f[i].balls, 0) }; };
+  const first = step([], 1); let sum = 0;
+  S.forEach(i => {
+    if (!first.c.includes(i)) { out.set(i, 0); return; }
+    const F = new Float64Array(1 << k); F[1 << pos.get(i)!] = f[i].balls / first.tot;
+    for (let m = 1; m < full; m++) {
+      const p = F[m]; if (!p) continue;
+      const drawn = S.filter((_, b) => m & (1 << b)), { c, tot } = step(drawn, drawn.length + 1);
+      c.forEach(j => { const b = pos.get(j); if (b != null && !(m & (1 << b))) F[m | (1 << b)] += p * f[j].balls / tot; });
+    }
+    out.set(i, F[full]); sum += F[full];
+  });
+  out.forEach((v, i) => out.set(i, sum ? v / sum : 0));
+  return out;
 }

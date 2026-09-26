@@ -79,10 +79,10 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
             <th style={{ padding: "6px 8px" }}>
               What it means
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Have
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Target
             </th>
             <th style={{ padding: "6px 8px" }}>
@@ -102,10 +102,10 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "5px 8px", color: "var(--color-neutral-700)" }}>
                 {r.desc}
               </td>
-              <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
+              <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
                 {r.count}
               </td>
-              <td style={{ padding: "5px 8px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+              <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                 {r.target}
               </td>
               <td style={{ padding: "5px 8px", color: r.color, fontWeight: r.fw }}>

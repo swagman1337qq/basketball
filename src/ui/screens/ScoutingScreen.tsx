@@ -22,7 +22,7 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Typical prospects
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Prospects
                 </th>
                 <th style={{ padding: "6px 8px" }}>
@@ -45,7 +45,7 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "5px 8px", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                     {r.arche}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {r.n}
                   </td>
                   <td style={{ padding: "5px 8px", color: r.color }}>

@@ -3,7 +3,7 @@
 // results once it's drawn.
 import type { VM } from '../vm';
 import { h4Style, Link, muted, td, th } from '../kit';
-import { BALLS, FLOOR, TIER_LABEL, expectedPick, lotteryField, lotteryOdds, type LotTeam, type Tier } from '../../engine/lottery';
+import { BALLS, FLOOR, TIER_LABEL, expectedPick, liveNo1, lotteryField, lotteryOdds, type LotTeam, type Tier } from '../../engine/lottery';
 
 const TIER_SHORT: Record<Tier, string> = { bottom: 'Bottom 3', out: 'Missed play-in', playin: 'Play-in 9/10', loser78: '7 v 8 loser' };
 const TIER_COLOR: Record<Tier, string> = { bottom: 'var(--gm-bad)', out: 'var(--color-accent-700)', playin: 'var(--color-text)', loser78: 'var(--color-neutral-600)' };
@@ -13,9 +13,53 @@ function Balls({ n, color }: { n: number; color: string }) {
   return <span style={{ display: 'inline-flex', gap: 2 }}>{Array.from({ length: n }, (_, i) => <span key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: color, display: 'inline-block' }} />)}</span>;
 }
 
+
+// Lottery night: the picks come out from the last lottery pick up to No. 1. After each
+// reveal, every team still waiting sees its chance of No. 1 update.
+function LotteryNight({ vm }: { vm: VM }) {
+  const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
+  const L = s.lotto as any[], n = L.length, rev = s.lotReveal ?? n;
+  const byFrom = L.slice().sort((a, b) => a.from - b.from);
+  const f: LotTeam[] = byFrom.map(x => ({ tid: x.t, conf: '', seed: 0, tier: x.tier, balls: x.balls, noOne: !!x.noOne, noTop5: !!x.noTop5, why: [] }));
+  const order = L.map(x => x.from - 1), now = liveNo1(f, order, rev), before = rev ? liveNo1(f, order, rev - 1) : now;
+  const owner = (t: number) => gm.owner2027(t, s.assets, 1);
+  const waiting = order.slice(0, n - rev).map(i => ({ i, x: byFrom[i], p: now.get(i) || 0, d: (now.get(i) || 0) - (before.get(i) || 0) })).sort((a, b) => b.p - a.p);
+  const shown = L.slice(n - rev).slice().reverse(), next = n - rev;
+  const reveal = (k: number) => gm.setState(st => ({ lotReveal: Math.min(n, (st.lotReveal ?? n) + k) }));
+  const row = (x: any, extra: any) => { const ow = owner(x.t); return (
+    <div key={x.t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderBottom: '1px solid var(--color-divider)', color: isMine(x.t) || isMine(ow) ? 'var(--color-accent-700)' : undefined, fontWeight: isMine(ow) ? 600 : 400 }}>
+      {logo(x.t, 22)}<span style={{ flex: 1, minWidth: 0 }}><Link onClick={() => openTeam(x.t)}>{T[x.t].region} {T[x.t].name}</Link>{ow !== x.t && <span style={{ fontSize: '11px', ...muted }}> · pick owned by {T[ow].abbr}</span>}<br /><span style={{ fontSize: '11px', color: TIER_COLOR[x.tier as Tier] }}>{TIER_SHORT[x.tier as Tier]} · <Balls n={x.balls} color={TIER_COLOR[x.tier as Tier]} /></span></span>{extra}
+    </div>); };
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '12px 16px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', marginBottom: 18 }}>
+        <div style={{ flex: 1, minWidth: 220 }}><b>Lottery night, {gm.Y}.</b> The envelopes open from pick {n} up to No. 1. {rev ? rev + ' of ' + n + ' revealed.' : 'Nothing revealed yet.'}</div>
+        <button className="btn btn-primary" onClick={() => reveal(1)}>Reveal pick No. {next}</button>
+        {next > 4 && <button className="btn btn-secondary" onClick={() => reveal(next - 4)}>Skip to the top 4</button>}
+        <button className="btn btn-ghost" onClick={() => reveal(n)}>Show all</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,380px),1fr))', gap: 28 }}>
+        <section>
+          <h4 style={h4Style}>Still waiting · chance of No. 1</h4>
+          {waiting.map(w => row(w.x, (
+            <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '20px', fontWeight: 600 }}>{(w.p * 100).toFixed(1)}%</span><br />
+              <span style={{ fontSize: '11px', color: w.d > 0.0005 ? 'var(--gm-good)' : w.d < -0.0005 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{rev ? (w.d > 0.0005 ? '▲ ' : w.d < -0.0005 ? '▼ ' : '') + (Math.abs(w.d) * 100).toFixed(1) + ' since last pick' : 'started at ' + (w.x.odds1 * 100).toFixed(1) + '%'}</span>
+            </span>)))}
+        </section>
+        <section>
+          <h4 style={h4Style}>Revealed</h4>
+          {shown.length ? shown.map(x => row(x, <span style={{ fontSize: '22px', fontWeight: 600, minWidth: 44, textAlign: 'right' }}>#{x.n}</span>)) : <p style={muted}>The first envelope is pick No. {n}.</p>}
+        </section>
+      </div>
+    </>
+  );
+}
+
 export function LotteryScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
   const gp = gm.gamesPlayed(s);
+  if (s.lotto?.[0]?.tier && (s.lotReveal ?? 99) < s.lotto.length) return <LotteryNight vm={vm} />;
   const rules = (
     <section style={{ marginBottom: '22px' }}>
       <h4 style={h4Style}>How the 2027 lottery works</h4>
@@ -25,7 +69,8 @@ export function LotteryScreen({ vm }: { vm: VM }) {
           ['3 · 2 · 1', <>Missed the play-in: <Balls n={3} color={TIER_COLOR.out} /> Bottom three and play-in 9/10 seeds: <Balls n={2} color={TIER_COLOR.bottom} /> 7 v 8 losers: <Balls n={1} color={TIER_COLOR.loser78} /></>],
           ['Every pick is drawn', 'Picks 1 to 16 all come out of the drum. Once a team is drawn, its balls come out.'],
           ['Losing on purpose doesn’t pay', 'The three worst teams get fewer balls than the next seven, but can’t fall below pick ' + FLOOR + '.'],
-          ['No repeat winners', 'A team’s own pick can’t be No. 1 two drafts in a row, or top-5 three drafts in a row.'],
+          ['No repeat winners', 'A team’s own pick can’t be No. 1 two drafts in a row, or top-5 three drafts in a row, even if another team now holds it.'],
+          ['Protections and discipline', 'New trades can’t protect a pick top-12 to top-15, and the league can cut the odds, move the pick or fine a team caught tanking. (Picks in this league carry no protections.)'],
         ].map(([h, b], i) => (
           <div key={i} style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 10px', fontSize: '12.5px' }}>
             <div style={{ fontWeight: 600, marginBottom: 2 }}>{h}</div><div style={muted}>{b}</div>
@@ -130,7 +175,7 @@ export function LotteryScreen({ vm }: { vm: VM }) {
             </tbody>
           </table>
         </div>
-        <p style={{ ...muted, fontSize: '12px', marginTop: 8 }}>Balls: {Object.entries(BALLS).map(([k, v]) => TIER_SHORT[k as Tier] + ' ' + v).join(' · ')}. After the lottery, the rest of the first round goes worst record first. The NBA approved this system for the 2027–2029 drafts; this league keeps it after that.</p>
+        <p style={{ ...muted, fontSize: '12px', marginTop: 8 }}>Balls: {Object.entries(BALLS).map(([k, v]) => TIER_SHORT[k as Tier] + ' ' + v).join(' · ')}. After the lottery, the rest of the first round goes worst record first. The NBA approved this system for the 2027, 2028 and 2029 drafts; the Board of Governors votes on the rules from 2030. This league keeps the 3-2-1 lottery after that.</p>
       </section>
       {rules}
     </>

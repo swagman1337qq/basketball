@@ -7,8 +7,9 @@ export const accentKicker: CSSProperties = { ...kickerStyle, color: 'var(--color
 export const h4Style: CSSProperties = { margin: '0 0 4px', fontSize: '19px' };
 export const ruleH4: CSSProperties = { margin: '0 0 6px', fontSize: '18px', borderBottom: '1px solid var(--color-text)', paddingBottom: '4px' };
 export const muted: CSSProperties = { color: 'var(--color-neutral-700)' };
-export const th = (align: 'left' | 'right' = 'left'): CSSProperties => ({ padding: '6px 8px', textAlign: align });
-export const td = (align: 'left' | 'right' = 'left', extra?: CSSProperties): CSSProperties => ({ padding: '5px 8px', textAlign: align, ...extra });
+// Right-aligned cells hold numbers and records (60–22): never wrap them.
+export const th = (align: 'left' | 'right' = 'left'): CSSProperties => ({ padding: '6px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}) });
+export const td = (align: 'left' | 'right' = 'left', extra?: CSSProperties): CSSProperties => ({ padding: '5px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}), ...extra });
 export const linkBtn: CSSProperties = { all: 'unset', cursor: 'pointer' };
 
 export function Kicker({ children, accent }: { children: ReactNode; accent?: boolean }) {

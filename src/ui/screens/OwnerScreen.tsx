@@ -55,7 +55,7 @@ export function OwnerScreen({ vm }: { vm: VM }) {
                 <th style={{ padding: "6px 8px" }}>
                   Demand
                 </th>
-                <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                   Now
                 </th>
                 <th style={{ padding: "6px 8px" }}>
@@ -69,7 +69,7 @@ export function OwnerScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "6px 8px" }}>
                     {d.d}
                   </td>
-                  <td style={{ padding: "6px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {d.cur}
                   </td>
                   <td style={{ padding: "6px 8px", color: d.color, fontWeight: "600" }}>
@@ -94,9 +94,9 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           )}
           {(vm.own.hist || []).length === 0 ? <p style={{ fontSize: "12px", color: "var(--color-neutral-700)", fontStyle: "italic" }}>Reviewed at the end of each season.</p> : (
             <table className="table" style={{ fontSize: "12.5px" }}>
-              <thead><tr><th style={{ padding: "5px 8px" }}>Season</th><th style={{ padding: "5px 8px", textAlign: "right" }}>W–L</th><th style={{ padding: "5px 8px" }}>Finish</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Payroll</th><th style={{ padding: "5px 8px", textAlign: "right" }}>Profit</th></tr></thead>
+              <thead><tr><th style={{ padding: "5px 8px" }}>Season</th><th style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>W–L</th><th style={{ padding: "5px 8px" }}>Finish</th><th style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>Payroll</th><th style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>Profit</th></tr></thead>
               <tbody>{vm.own.hist.map((h: any, i: number) => (
-                <tr key={i}><td style={{ padding: "5px 8px" }}>{h.season - 1}–{String(h.season).slice(2)}</td><td style={{ padding: "5px 8px", textAlign: "right" }}>{h.w}–{h.l}</td><td style={{ padding: "5px 8px" }}>{h.fin}</td><td style={{ padding: "5px 8px", textAlign: "right" }}>${h.payroll.toFixed(1)}M</td><td style={{ padding: "5px 8px", textAlign: "right", color: h.net < 0 ? "var(--gm-bad)" : "var(--gm-good)" }}>{h.net < 0 ? "−" : ""}${Math.abs(h.net).toFixed(1)}M</td></tr>
+                <tr key={i}><td style={{ padding: "5px 8px" }}>{h.season - 1}–{String(h.season).slice(2)}</td><td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>{h.w}–{h.l}</td><td style={{ padding: "5px 8px" }}>{h.fin}</td><td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>${h.payroll.toFixed(1)}M</td><td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: h.net < 0 ? "var(--gm-bad)" : "var(--gm-good)" }}>{h.net < 0 ? "−" : ""}${Math.abs(h.net).toFixed(1)}M</td></tr>
               ))}</tbody>
             </table>
           )}

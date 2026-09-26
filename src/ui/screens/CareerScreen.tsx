@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { acceptJob, applyForJob, reputation } from '../../engine/frontOffice';
+import { EXPERIENCE, GENEROSITY, answerOffer, askExtension, contractOf } from '../../engine/gmCareer';
+import { Headshot } from '../modals/GMSetupModal';
 import { h4Style, Kicker, Link, muted, ruleH4, Stat, td, th } from '../kit';
 
 export function CareerScreen({ vm }: { vm: VM }) {
@@ -18,18 +20,44 @@ export function CareerScreen({ vm }: { vm: VM }) {
       {s.unemployed && (
         <section className="card" style={{ padding: '14px 16px', marginBottom: '20px', borderColor: 'var(--gm-bad)' }}>
           <Kicker>Out of work</Kicker>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px' }}>You were fired.</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px' }}>{s.walkedFrom != null ? 'You walked away from the ' + T[s.walkedFrom].name + '.' : (c.seasons || []).slice(-1)[0]?.expired ? 'Your contract wasn’t renewed.' : 'You were fired.'}</div>
           <p style={{ ...muted, margin: 0 }}>The league won’t move on until you take a job. Apply below or accept an offer; the season resumes with your new club.</p>
         </section>
       )}
+      {(() => {
+        const k = contractOf(gm, s), kt = T[k.tid], left = k.thru - gm.Y, o = s.gmOffer, G = GENEROSITY[kt.arch], yr = (y: number) => (y - 1) + '–' + String(y).slice(2);
+        return (
+          <section className="card" style={{ padding: '14px 16px', marginBottom: '22px', display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {s.gm && <Headshot gm={s.gm} size={72} />}
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <Kicker>{s.gm ? s.gm.name + ' · ' + gm.db.C[s.gm.nat].n + ' · ' + EXPERIENCE[s.gm.exp].label : 'Your contract'}</Kicker>
+              <div style={{ fontSize: '20px', fontWeight: 600, margin: '2px 0' }}>{s.unemployed ? 'No contract' : '$' + k.salary.toFixed(2) + 'M a season with the ' + kt.name + ', through ' + yr(k.thru)}</div>
+              {!s.unemployed && <div style={{ ...muted, fontSize: '12.5px' }}>{left > 0 ? left + ' more season' + (left === 1 ? '' : 's') + ' after this one.' : 'This is the final season of your deal.'} {kt.owner} is a {kt.arch} and {G.note}.{k.assumed ? ' (Terms estimated for a league started before GM contracts.)' : ''}</div>}
+              {o && (
+                <div style={{ marginTop: 10, padding: '10px 12px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontWeight: 600 }}>{T[o.tid].owner} offers {o.kind === 'expiring' ? 'a new deal' : 'an extension'}: {o.years} year{o.years === 1 ? '' : 's'} at ${o.salary.toFixed(2)}M a season</div>
+                  <div style={{ ...muted, fontSize: '12.5px', margin: '2px 0 8px' }}>“{o.quote}”{o.kind === 'expiring' ? ' Your deal is up: decline and you leave the team. Answer before free agency opens.' : ' Decline and your current deal stays as it is.'}</div>
+                  <div style={{ display: 'flex', gap: 8 }}><button className="btn btn-primary" onClick={() => answerOffer(gm, true)}>Accept</button><button className="btn btn-secondary" onClick={() => answerOffer(gm, false)}>{o.kind === 'expiring' ? 'Decline and leave' : 'Decline'}</button></div>
+                </div>
+              )}
+              {!o && !s.unemployed && (
+                <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary" disabled={s.gmAsk === gm.Y} onClick={() => askExtension(gm)} style={{ fontSize: '12.5px' }}>Ask {kt.owner} for an extension</button>
+                  <span style={{ ...muted, fontSize: '12px' }}>{s.gmAsk === gm.Y ? (s.gmReply ? '“' + s.gmReply + '”' : 'You’ve asked this season.') : 'Once a season. The owner says yes only when he’s happy (job security 60+) and your deal has 2 or fewer seasons left.'}</span>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: '24px', marginBottom: '26px' }}>
         <Stat label="Reputation" value={rep} sub={rep >= 70 ? 'In demand' : rep >= 50 ? 'Respected' : rep >= 35 ? 'Unproven' : 'Damaged'} />
         <Stat label="Career record" value={w + '–' + l} sub={(c.seasons || []).length + ' seasons'} />
         <Stat label="Titles" value={titles} sub={(c.coy || 0) + '× Coach of the Year'} />
-        <Stat label="Times fired" value={c.fired || 0} sub={c.contract ? 'Contract: ' + c.contract.years + ' yrs · ' + money(c.contract.salary) + '/yr' : 'Original hire'} />
+        <Stat label="Times fired" value={c.fired || 0} sub={(c.seasons || []).filter(x => x.expired).length + ' contract' + ((c.seasons || []).filter(x => x.expired).length === 1 ? '' : 's') + ' not renewed'} />
       </div>
       <p style={{ ...muted, fontSize: '12px', margin: '0 0 22px' }}>
-        Reputation = 50 + (career win% − .500) × 120 + 8 per title + 2 per playoff trip + 4 per Coach of the Year − 12 per firing, capped 0–100. Owners with openings hire when your reputation clears what their roster and market demand.
+        Reputation starts from your experience and blends toward your record as seasons pass: 50 + (career win% − .500) × 120 + 8 per title + 2 per playoff trip + 4 per Coach of the Year − 12 per firing, capped 0–100. Owners with openings hire when your reputation clears what their roster and market demand.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr)', gap: '32px', alignItems: 'start' }}>
         <section>

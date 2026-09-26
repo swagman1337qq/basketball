@@ -41,7 +41,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
       <div style={{ maxWidth: '980px', margin: '0 auto', padding: '48px 28px 64px' }}>
         <header style={{ borderBottom: '1px solid var(--color-text)', paddingBottom: '14px', marginBottom: '28px' }}>
           <div style={kicker}>Basketball general manager · single player</div>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>Front Office</h1>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>BBall Manager</h1>
           <p style={{ margin: '10px 0 0', color: 'var(--color-neutral-700)', maxWidth: '640px' }}>
             Pick any of the league's 30 clubs (or several at once) and run them as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
             Leagues are saved in this browser automatically.
@@ -121,7 +121,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
             <button className="btn btn-ghost" onClick={() => setSel([sel[0]])} style={{ fontSize: '12px' }}>Just one</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 32px' }}>
-            {['East', 'West'].map(conf => (
+            {['West', 'East'].map(conf => (
               <div key={conf}>
                 <h4 style={{ margin: '14px 0 4px', fontSize: '19px' }}>{conf}ern Conference</h4>
                 {teams.filter(t => t.conf === conf).sort((a, b) => a.rank - b.rank).map(t => {

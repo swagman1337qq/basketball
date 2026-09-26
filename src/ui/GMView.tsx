@@ -43,12 +43,13 @@ import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
 import { TourOverlay } from './Tour';
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
+import { GMSetupModal } from './modals/GMSetupModal';
 import type { VM } from './vm';
 
 export function GMView({ vm }: { vm: VM }) {
   return (
     <>
-      <div ref={vm.rootRef} style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden", position: "relative", background: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: "1.45", fontVariantNumeric: "tabular-nums" }}>
+      <div ref={vm.rootRef} style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden", position: "relative", background: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: "1.45", fontVariantNumeric: "lining-nums" }}>
         {!!vm.isA && <AlmanacSidebar vm={vm} />}
         {!!vm.isC && <DeskRail vm={vm} />}
         <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
@@ -128,6 +129,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
+        {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
         {vm.ctx.s.tour != null && <TourOverlay vm={vm} />}
       </div>
     </>

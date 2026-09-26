@@ -12,10 +12,10 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
             <th style={{ padding: "6px 8px" }}>
               Opponent
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Their record
             </th>
-            <th style={{ padding: "6px 8px", textAlign: "right" }}>
+            <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               Result
             </th>
           </tr>
@@ -32,7 +32,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
                   {r.opp}
                 </button>
               </td>
-              <td style={{ padding: "5px 8px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+              <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                 {r.rec}
               </td>
               <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>

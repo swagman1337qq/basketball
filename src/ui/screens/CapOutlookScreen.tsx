@@ -45,14 +45,14 @@ export function CapOutlookScreen({ vm }: { vm: VM }) {
           {decades.map(d => <button key={d} onClick={() => setDecade(d)} className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '2px 7px', boxShadow: decade === d ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }}>{d}s</button>)}
         </div>
         <table className="table" style={{ fontSize: '12.5px', maxWidth: '760px' }}>
-          <thead><tr><th style={{ padding: '5px 8px' }}>Season</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Change</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Salary cap</th><th style={{ padding: '5px 8px' }}>Why</th></tr></thead>
+          <thead><tr><th style={{ padding: '5px 8px' }}>Season</th><th style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Change</th><th style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Salary cap</th><th style={{ padding: '5px 8px' }}>Why</th></tr></thead>
           <tbody>
-            {decade < 2030 && CAP_HISTORY.filter(([y]) => Math.floor(y / 10) * 10 === decade || (decade === 2020 && y >= 2020)).map(([y, c], i, arr) => { const prev = CAP_HISTORY.find(h => h[0] === y - 1); const g = prev ? (c / prev[1] - 1) * 100 : 0; void arr; void i; return <tr key={'h' + y}><td style={{ padding: '4px 8px' }}>{y - 1}–{String(y).slice(2)}</td><td style={{ padding: '4px 8px', textAlign: 'right', color: g < 0 ? 'var(--gm-bad)' : undefined }}>{prev ? (g >= 0 ? '+' : '') + g.toFixed(1) + '%' : ''}</td><td style={{ padding: '4px 8px', textAlign: 'right' }}>{fmtMoney(c)}</td><td style={{ padding: '4px 8px', ...muted }}>Actual</td></tr>; })}
+            {decade < 2030 && CAP_HISTORY.filter(([y]) => Math.floor(y / 10) * 10 === decade || (decade === 2020 && y >= 2020)).map(([y, c], i, arr) => { const prev = CAP_HISTORY.find(h => h[0] === y - 1); const g = prev ? (c / prev[1] - 1) * 100 : 0; void arr; void i; return <tr key={'h' + y}><td style={{ padding: '4px 8px' }}>{y - 1}–{String(y).slice(2)}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: g < 0 ? 'var(--gm-bad)' : undefined }}>{prev ? (g >= 0 ? '+' : '') + g.toFixed(1) + '%' : ''}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtMoney(c)}</td><td style={{ padding: '4px 8px', ...muted }}>Actual</td></tr>; })}
             {proj.filter(x => Math.floor(x.season / 10) * 10 === decade).map(x => (
               <tr key={x.season} style={{ background: x.season === Y ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : undefined }}>
                 <td style={{ padding: '4px 8px' }}>{x.season - 1}–{String(x.season).slice(2)}{x.season === Y ? ' · now' : ''}</td>
-                <td style={{ padding: '4px 8px', textAlign: 'right', color: x.growth < 0 ? 'var(--gm-bad)' : x.growth >= 8 ? 'var(--gm-good)' : undefined }}>{x.growth >= 0 ? '+' : ''}{x.growth.toFixed(2)}%</td>
-                <td style={{ padding: '4px 8px', textAlign: 'right' }}>{fmtMoney(x.cap)}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: x.growth < 0 ? 'var(--gm-bad)' : x.growth >= 8 ? 'var(--gm-good)' : undefined }}>{x.growth >= 0 ? '+' : ''}{x.growth.toFixed(2)}%</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtMoney(x.cap)}</td>
                 <td style={{ padding: '4px 8px', ...muted }}>{x.note || (x.season < Y ? 'Applied' : 'Projected')}</td>
               </tr>
             ))}

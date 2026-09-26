@@ -27,28 +27,28 @@ export function StandingsScreen({ vm }: { vm: VM }) {
                   <th style={{ padding: "6px 6px" }}>
                     Team
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     W
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     L
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     Pct
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     GB
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     Home
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     Road
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     L10
                   </th>
-                  <th style={{ padding: "6px 6px", textAlign: "right" }}>
+                  <th style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                     Strk
                   </th>
                 </tr>
@@ -65,28 +65,28 @@ export function StandingsScreen({ vm }: { vm: VM }) {
                         {t.name}
                       </button>
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.w}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.l}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.pct}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.gb}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", color: "var(--color-neutral-700)", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)", borderBottom: t.line }}>
                       {t.home}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", color: "var(--color-neutral-700)", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)", borderBottom: t.line }}>
                       {t.road}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.l10}
                     </td>
-                    <td style={{ padding: "4px 6px", textAlign: "right", borderBottom: t.line }}>
+                    <td style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: t.line }}>
                       {t.strk}
                     </td>
                   </tr>

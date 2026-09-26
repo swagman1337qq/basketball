@@ -5,6 +5,7 @@
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
 import { capState, taxBill as cbaTax, teamSalary } from './cba';
+import { contractDecision, gmSalary } from './gmCareer';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -104,16 +105,19 @@ export function fireReasons(g: Game, s: any, tid: number, rv: ReturnType<typeof 
 
 // ── Career & job market ──────────────────────────────────────────────────────────
 export function reputation(s: any) {
-  const c = s.career || { seasons: [] }, ss = c.seasons || [];
-  if (!ss.length) return 50;
+  // Starts from your experience (set when you create your GM); your record here takes over as the seasons pile up.
+  const c = s.career || { seasons: [] }, ss = c.seasons || [], base = c.repBase ?? 50;
+  if (!ss.length) return base;
   const wp = ss.reduce((a, x) => a + x.w / Math.max(1, x.w + x.l), 0) / ss.length;
   const titles = ss.filter(x => x.fin === 'Won the title').length, apps = ss.filter(x => !/Missed|play-in/.test(x.fin)).length;
-  return Math.round(cl(50 + (wp - 0.5) * 120 + titles * 8 + apps * 2 + (c.coy || 0) * 4 - (c.fired || 0) * 12, 0, 100));
+  const perf = 50 + (wp - 0.5) * 120 + titles * 8 + apps * 2 + (c.coy || 0) * 4 - (c.fired || 0) * 12, n = ss.length;
+  return Math.round(cl((base * 3 + perf * n) / (3 + n) + (perf > 50 ? titles * 2 : 0), 0, 100));
 }
 const teamNeed = (g: Game, s: any, tid: number) => { const P = g.db.P, o = s.rosters[tid].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); const top8 = o.reduce((a, b) => a + b, 0) / Math.max(1, o.length); return 35 + (top8 - 50) * 1.8 + (s.teams[tid].mkt - 1) * 20; };
-function contractOptions(tid: number, rep: number) {
-  const base = 3 + rep / 25;
-  return [{ years: 2, salary: +(base * 1.2).toFixed(1) }, { years: 3, salary: +base.toFixed(1) }, { years: 5, salary: +(base * 0.85).toFixed(1) }].map(o => ({ ...o, tid }));
+// What a hiring owner offers ($M a year): set by your reputation and by what kind of owner he is.
+function contractOptions(s: any, tid: number, rep: number) {
+  const base = gmSalary(rep, s.teams[tid].arch, 65);
+  return [{ years: 2, salary: +(base * 1.1).toFixed(2) }, { years: 3, salary: +base.toFixed(2) }, { years: 5, salary: +(base * 0.9).toFixed(2) }].map(o => ({ ...o, tid }));
 }
 
 // ── Season-end review: incentives, owner verdicts, career record, job market ───────
@@ -151,6 +155,17 @@ export function seasonReview(g: Game) {
         news.unshift({ day: s.day, season: Y, kind: 'review', tid, who: T[tid].owner, role: 'Owner, ' + T[tid].abbr, quote: rv.sec >= 70 ? 'I couldn’t be happier with the direction. We’re building something here.' : rv.sec >= 40 ? 'Some good, some to fix. I expect progress next season.' : 'I’m not satisfied. The conditions are on the table and they haven’t changed.' });
       }
     });
+    // Your contract: extended, offered, or allowed to run out (same decision as the owner's letter).
+    let gmOffer = s.gmOffer || null;
+    if (!fired.includes(s.me)) {
+      const d = contractDecision(g, s, s.me);
+      if (d.offer) gmOffer = d.offer;
+      else if (d.expiring) {
+        fired.push(s.me); const last = career.seasons[career.seasons.length - 1]; if (last) { last.expired = true; }
+        news.unshift({ day: s.day, season: Y, kind: 'fired', tid: s.me, who: T[s.me].owner, role: 'Owner, ' + T[s.me].abbr, quote: 'The contract is up and we’ve decided not to renew it. We thank them for their work.' });
+        lgLog.unshift({ day: s.day, type: 'Career', teams: T[s.me].abbr, text: T[s.me].owner + ' let your contract with the ' + T[s.me].region + ' ' + T[s.me].name + ' expire' });
+      }
+    }
     T.forEach(t => { const rv = financesOf(g, s, t.tid); teamHist[t.tid] = [...(teamHist[t.tid] || []), { season: Y, w: t.w, l: t.l, fin: finOf(t.tid), net: +rv.net.toFixed(1), payroll: +rv.payroll.toFixed(1), att: rv.att }]; });
 
     // 3. Job market: AI owners fire their GMs; good reputations draw offers.
@@ -161,14 +176,14 @@ export function seasonReview(g: Game) {
     const vacancies = vac.map(tid => ({ tid, reason: T[tid].owner + ' fired GM ' + T[tid].gm + ' after a ' + T[tid].w + '–' + T[tid].l + ' season' }));
     vacancies.forEach(v => lgLog.unshift({ day: s.day, type: 'Career', teams: T[v.tid].abbr, text: v.reason }));
     const offers = [], allFired0 = fired.length > 0 && fired.length >= s.managed.length;
-    vacancies.slice().sort((a, b) => teamNeed(g, s, a.tid) - teamNeed(g, s, b.tid)).forEach(v => { if (offers.length < 3 && (rep >= teamNeed(g, s, v.tid) - 5 || (allFired0 && offers.length < 2))) offers.push({ id: 'o' + v.tid + Y, tid: v.tid, from: 'vacancy', note: T[v.tid].owner + ' wants you to rebuild the ' + T[v.tid].name + '.', options: contractOptions(v.tid, rep) }); });
-    if (rep >= 65) aiT.filter(t => g.pct(t) >= 0.55 && !vac.includes(t.tid)).slice(0, 3).forEach(t => { if (Math.random() < (rep - 55) / 100) offers.push({ id: 'o' + t.tid + Y, tid: t.tid, from: 'poach', note: t.owner + ' (' + t.arch + ') would replace ' + t.gm + ' to bring you in.', options: contractOptions(t.tid, rep + 10) }); });
+    vacancies.slice().sort((a, b) => teamNeed(g, s, a.tid) - teamNeed(g, s, b.tid)).forEach(v => { if (offers.length < 3 && (rep >= teamNeed(g, s, v.tid) - 5 || (allFired0 && offers.length < 2))) offers.push({ id: 'o' + v.tid + Y, tid: v.tid, from: 'vacancy', note: T[v.tid].owner + ' wants you to rebuild the ' + T[v.tid].name + '.', options: contractOptions(s, v.tid, rep) }); });
+    if (rep >= 65) aiT.filter(t => g.pct(t) >= 0.55 && !vac.includes(t.tid)).slice(0, 3).forEach(t => { if (Math.random() < (rep - 55) / 100) offers.push({ id: 'o' + t.tid + Y, tid: t.tid, from: 'poach', note: t.owner + ' (' + t.arch + ') would replace ' + t.gm + ' to bring you in.', options: contractOptions(s, t.tid, rep + 10) }); });
     const OQ = ['We’ve reached out. The job is theirs if they want it.', 'I want a builder, and I think we’ve found one. We’ve made our pitch.', 'Their record speaks for itself. We’d love to have them here.', 'We’ve made an offer. Now it’s their call.'];
     offers.forEach((o, i) => news.unshift({ day: s.day, season: Y, kind: 'offer', tid: o.tid, who: T[o.tid].owner, role: 'Owner, ' + T[o.tid].abbr, quote: OQ[(i + o.tid) % OQ.length] }));
     // Fired from every club you run: you stay in charge until you accept a new job.
     const allFired = fired.length && fired.length >= s.managed.length;
     fired.filter(t => !allFired || t !== s.me).forEach(t => { if (s.managed.length > 1) { /* handed over after the updater */ } });
-    return { ...top, clubs, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: fired.length ? 'career' : 'playoffs' };
+    return { ...top, clubs, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, gmOffer, gmAsk: null, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: fired.length ? 'career' : 'playoffs' };
   });
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
@@ -195,7 +210,7 @@ export function applyForJob(g: Game, tid: number) {
     const j = s.jobs; if (!j || j.applied?.[tid]) return null;
     const rep = reputation(s), need = teamNeed(g, s, tid), chance = 1 / (1 + Math.exp(-(rep - need) / 8));
     const ok = Math.random() < chance, T = s.teams[tid];
-    const offers = ok ? [...j.offers, { id: 'o' + tid + g.Y + 'a', tid, from: 'applied', note: T.owner + ' was impressed in the interview.', options: contractOptions(tid, rep) }] : j.offers;
+    const offers = ok ? [...j.offers, { id: 'o' + tid + g.Y + 'a', tid, from: 'applied', note: T.owner + ' was impressed in the interview.', options: contractOptions(s, tid, rep) }] : j.offers;
     return { jobs: { ...j, offers, applied: { ...(j.applied || {}), [tid]: ok ? 'offer' : 'declined' } }, news: [{ day: s.day, season: g.Y, kind: 'interview', tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: ok ? 'We had a great conversation. We’ve made an offer.' : 'We’ve decided to go in another direction.' }, ...(s.news || [])] };
   });
 }
@@ -203,7 +218,7 @@ export function acceptJob(g: Game, offerId: string, optIdx: number, leave: boole
   const s = g.state, o = s.jobs?.offers.find(x => x.id === offerId); if (!o) return;
   const opt = o.options[optIdx], old = s.me, T = s.teams[o.tid];
   g.takeOver(o.tid, 'Hired as GM & head coach of');
-  g.setState(st => ({ jobs: { ...st.jobs, offers: st.jobs.offers.filter(x => x.id !== offerId) }, unemployed: false, career: { ...(st.career || {}), contract: { tid: o.tid, years: opt.years, salary: opt.salary, from: g.Y } }, news: [{ day: st.day, season: g.Y, kind: 'hired', tid: o.tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: 'We got our number one choice. ' + opt.years + ' years, and full control of basketball operations.' }, ...(st.news || [])] }));
+  g.setState(st => ({ jobs: { ...st.jobs, offers: st.jobs.offers.filter(x => x.id !== offerId) }, unemployed: false, career: { ...(st.career || {}), contract: { tid: o.tid, years: opt.years, salary: opt.salary, from: g.Y + 1, thru: g.Y + opt.years, signed: g.Y } }, gmOffer: null, news: [{ day: st.day, season: g.Y, kind: 'hired', tid: o.tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: 'We got our number one choice. ' + opt.years + ' years, and full control of basketball operations.' }, ...(st.news || [])] }));
   const firedFrom = g.state.firedFrom || [];
   if (leave || g.state.unemployed) { [old, ...firedFrom].forEach(t => { if (t !== o.tid && g.isUser(g.state, t) && g.state.managed.length > 1) g.handToAI(t, firedFrom.includes(t) ? 'Fired from' : 'Left for another job:'); }); }
   g.setState({ firedFrom: [], unemployed: false });

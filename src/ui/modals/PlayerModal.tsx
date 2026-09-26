@@ -216,22 +216,22 @@ export function PlayerModal({ vm }: { vm: VM }) {
                       <th style={{ padding: "6px 8px" }}>
                         League
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         GP
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Min
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Pts
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Reb
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Ast
                       </th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                         PER
                       </th>
                     </tr>
@@ -248,22 +248,22 @@ export function PlayerModal({ vm }: { vm: VM }) {
                         <td style={{ padding: "5px 8px", color: "var(--color-neutral-700)" }}>
                           {c.lg}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.gp}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.min}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.pts}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.reb}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.ast}
                         </td>
-                        <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                        <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                           {c.per}
                         </td>
                       </tr>

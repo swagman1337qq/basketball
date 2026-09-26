@@ -55,19 +55,19 @@ export function ShortlistScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "5px 8px" }}>
                     {p.pos}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right", color: p.tone, fontWeight: "600" }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
                     {p.ovr}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right", color: p.ptone }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
                     {p.pot}
                   </td>
-                  <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.money}
                   </td>
-                  <td style={{ padding: "3px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button className="btn btn-ghost" onClick={p.remove} style={{ fontSize: "12px" }}>
                       Remove
                     </button>

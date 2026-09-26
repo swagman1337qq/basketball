@@ -134,43 +134,43 @@ export function LiveGameView({ vm }: { vm: VM }) {
                       <th style={{ padding: "5px 6px" }}>
                         Pos
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Min
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         FG
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         3P
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         FT
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         OR
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Reb
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Ast
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         TO
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Stl
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Blk
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         PF
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         Pts
                       </th>
-                      <th style={{ padding: "5px 6px", textAlign: "right" }}>
+                      <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>
                         +/−
                       </th>
                     </tr>
@@ -189,43 +189,43 @@ export function LiveGameView({ vm }: { vm: VM }) {
                         <td style={{ padding: "3px 6px", borderBottom: r.line }}>
                           {r.pos}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.min}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.fg}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.tp}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.ft}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.orb}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.trb}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.ast}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.tov}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.stl}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.blk}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.pf}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", fontWeight: "600", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "600", borderBottom: r.line }}>
                           {r.pts}
                         </td>
-                        <td style={{ padding: "3px 6px", textAlign: "right", borderBottom: r.line }}>
+                        <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", borderBottom: r.line }}>
                           {r.pm}
                         </td>
                       </tr>
@@ -236,37 +236,37 @@ export function LiveGameView({ vm }: { vm: VM }) {
                       </td>
                       <td style={{ borderTop: "1px solid var(--color-text)" }}></td>
                       <td style={{ borderTop: "1px solid var(--color-text)" }}></td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.fg}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.tp}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.ft}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.orb}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.trb}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.ast}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.tov}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.stl}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.blk}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.pf}
                       </td>
-                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "600", borderTop: "1px solid var(--color-text)" }}>
                         {sd.tot.pts}
                       </td>
                       <td style={{ borderTop: "1px solid var(--color-text)" }}></td>
@@ -277,13 +277,13 @@ export function LiveGameView({ vm }: { vm: VM }) {
                       </td>
                       <td></td>
                       <td></td>
-                      <td style={{ padding: "3px 6px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                      <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                         {sd.tot.fgp}
                       </td>
-                      <td style={{ padding: "3px 6px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                      <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                         {sd.tot.tpp}
                       </td>
-                      <td style={{ padding: "3px 6px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                      <td style={{ padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                         {sd.tot.ftp}
                       </td>
                       <td colSpan={9}></td>

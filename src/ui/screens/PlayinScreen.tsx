@@ -30,7 +30,7 @@ export function PlayinScreen({ vm }: { vm: VM }) {
         <b>If the season ended today.</b> {gp < 82 ? gp + ' of 82 games played, so this will change.' : 'The regular season is over: start the play-in from the bar above.'} Seeds 7 and 8 get two chances to make the playoffs; seeds 9 and 10 must win twice.
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', gap: '28px' }}>
-        {['East', 'West'].map(c => {
+        {['West', 'East'].map(c => {
           const sd = gm.seeds(s, c), six = T[sd[5]], ten = T[sd[9]];
           const gb = (t: any, ref: any) => { const g = ((ref.w - t.w) + (t.l - ref.l)) / 2; return g === 0 ? '—' : (g > 0 ? g : '+' + -g).toString(); };
           return (

@@ -40,7 +40,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
         <>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: '12.5px' }}>
             <input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search city, nickname or what it’s known for…" style={{ width: 280 }} />
-            <Seg<any> value={conf} options={[['all', 'Both'], ['East', 'East'], ['West', 'West']]} onChange={setConf} />
+            <Seg<any> value={conf} options={[['all', 'Both'], ['West', 'West'], ['East', 'East']]} onChange={setConf} />
             <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={big} onChange={e => setBig(e.target.checked)} /> Only metros of 1 million+</label>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
@@ -63,7 +63,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
             <span style={muted}>City</span><input className="input" value={draft.region} onChange={e => set({ region: e.target.value })} placeholder="e.g. Seoul" />
             <span style={muted}>Nickname</span><input className="input" value={draft.name} onChange={e => set({ name: e.target.value })} placeholder="e.g. Tigers" />
             <span style={muted}>Abbreviation</span><input className="input" value={draft.abbr} onChange={e => set({ abbr: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) })} placeholder="2–4 letters" style={{ width: 90 }} />
-            <span style={muted}>Conference</span><Seg<string> value={draft.conf} options={[['East', 'East'], ['West', 'West']]} onChange={c => set({ conf: c, div: DIVS[c][0] })} />
+            <span style={muted}>Conference</span><Seg<string> value={draft.conf} options={[['West', 'West'], ['East', 'East']]} onChange={c => set({ conf: c, div: DIVS[c][0] })} />
             <span style={muted}>Division</span><select className="input" value={draft.div} onChange={e => set({ div: e.target.value })} style={{ width: 'auto' }}>{DIVS[draft.conf].map(d => <option key={d}>{d}</option>)}</select>
             <span style={muted}>Market size</span><NumInput value={draft.mkt} min={0.6} max={1.6} step={0.05} onValue={v => set({ mkt: v })} suffix="× (1 = average; 1.5 = New York)" />
             <span style={muted}>Colors</span><span style={{ display: 'flex', gap: 8 }}><input type="color" value={draft.colors[0]} onChange={e => set({ colors: [e.target.value, draft.colors[1]] })} /><input type="color" value={draft.colors[1]} onChange={e => set({ colors: [draft.colors[0], e.target.value] })} /></span>

@@ -1,5 +1,5 @@
 /* Classical — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
-/* Fonts (Cormorant Garamond, Lora) are bundled locally via @fontsource in main.tsx instead of the Google Fonts @import. */
+/* Inter (a plain, highly readable sans with straight, even-width numbers) is bundled locally via @fontsource in main.tsx. */
 
 :root {
   --color-bg: #f3f2f2;
@@ -41,11 +41,11 @@
   --color-accent-2-800: #573d14;
   --color-accent-2-900: #382810;
 
-  --font-heading: "Cormorant Garamond", system-ui, sans-serif;
+  --font-heading: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-heading-weight: 600; /* review round 3: bold retired — semibold is the
      interface headings' ceiling (they need the weight at small sizes); display
      text goes lighter still, to the normal cut (see the deck) */
-  --font-body: "Lora", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --space-1: 4.6px;
   --space-2: 9.2px;
@@ -69,7 +69,10 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  font-variant-numeric: lining-nums; /* plain, full-height numbers */
 }
+/* Even-width digits only where numbers stack in columns (Inter would also widen hyphens elsewhere). */
+table td, table th { font-variant-numeric: lining-nums tabular-nums; }
 h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
 
 .plate{filter:sepia(0.22) saturate(0.82) contrast(1.05);box-sizing:border-box;

@@ -33,7 +33,7 @@ const BIAS = { G: { spd: 8, drb: 10, pss: 10, tp: 8, hgt: -14, ins: -10, reb: -1
 const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 'HR', 'RS', 'BS'];
 
 // UI-only keys that should not survive a reload.
-const TRANSIENT = { tour: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null };
+const TRANSIENT = { tour: null, tourMode: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null };
 
 export interface SaveData { db: any; state: any }
 
@@ -335,7 +335,7 @@ export class Game {
     tids.slice(1).forEach((t, i) => (base.clubs[t] = this.defaultClub(i + 1)));
     const box0 = { rosters: rosters0, fa: fa0, overseas: [], cap: {} }, st0 = { ...base, teams: d.teams, phase: 'preseason', day: 0, rosters: rosters0, fa: fa0, cap: box0.cap, assets: d.assets, god: false };
     for (let k = 0; k < 14; k++) { const e = this.aiMove(box0, -14 + k, st0); if (e) lg0.unshift(e); }
-    return { ...base, ...this.defaultClub(0), screen: 'dash', pid: d.rosters[me][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: box0.rosters, fa: box0.fa, cap: box0.cap, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), listModal: null, god: false, phase: 'regular', season: 2027, po: null, playin: null, playinRes: [], history: [], expansion: false, expanded: false, lotto: null, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, games: [],
+    return { ...base, ...this.defaultClub(0), screen: 'dash', pid: d.rosters[me][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: box0.rosters, fa: box0.fa, cap: box0.cap, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), listModal: null, god: false, phase: 'regular', season: 2027, po: null, playin: null, playinRes: [], history: [], expansion: false, expanded: false, lotto: null, gmSetup: true, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, games: [],
       sort: { roster: ['rk', 1], fa: ['ovr', -1], draft: ['rank', 1] }, stand: 'conf', tTid: d.teams.find(t => !tids.includes(t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null,
       assets: d.assets.map(a => ({ ...a })), picks: [...d.order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...d.order.map((orig, i) => ({ n: d.order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: 2027, adv: {},
       q: '', dialog: null, showJson: false, tstats: {}, awards: {}, news: [], career: { seasons: [], hires: [] } };
@@ -712,19 +712,20 @@ export class Game {
       // The 3-2-1 lottery (lottery.ts): all 16 lottery picks are drawn.
       const lgLog0: any[] = [], byW = (a, b) => this.pct(s.teams[a]) - this.pct(s.teams[b]);
       const f = lotteryField(this, s), drawn = drawLottery(f.teams), { order: r1 } = firstRoundOrder(this, s, drawn);
-      const lotto = drawn.map((i, k) => { const x = f.teams[i], odds = lotteryOdds(f.teams)[i]; return { n: k + 1, t: x.tid, from: i + 1, tier: x.tier, balls: x.balls, odds1: odds[0], exp: +expectedPick(odds).toFixed(1) }; });
+      const lotto = drawn.map((i, k) => { const x = f.teams[i], odds = lotteryOdds(f.teams)[i]; return { n: k + 1, t: x.tid, from: i + 1, tier: x.tier, balls: x.balls, noOne: x.noOne, noTop5: x.noTop5, odds1: odds[0], exp: +expectedPick(odds).toFixed(1) }; });
       // Teams above the 2nd apron in 3 of the last 5 seasons pick last in the first round.
       const demoted = r1.filter(t => ((s.cap?.[t]?.ap2Hist) || []).slice(-5).filter(Boolean).length >= 3);
       const first = [...r1.filter(t => !demoted.includes(t)), ...demoted], second = s.teams.map(t => t.tid).sort((a, b) => byW(a, b) || a - b);
       const picks = [...first.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...second.map((orig, i) => ({ n: first.length + i + 1, rd: 2, orig, pid: null }))];
       if (demoted.length) lgLog0.push(...demoted.map(t => ({ day: s.day, type: 'Draft', teams: s.teams[t].abbr, text: s.teams[t].region + '’s first-round pick moved to the end of the round: above the 2nd apron in 3 of the last 5 seasons' })));
       const jump = lotto.filter(x => x.n < x.exp - 0.5), lotHist = { ...(s.lotHist || {}), [this.Y]: Object.fromEntries(first.map((t, i) => [t, i + 1])) };
-      return { phase: 'draft', picks, pi: 0, lotto, lotHist, screen: 'draft', dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
+      return { phase: 'draft', picks, pi: 0, lotto, lotHist, lotReveal: 0, screen: 'lottery', dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
   startFA() {
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
+      if (s.gmOffer?.kind === 'expiring' && !s.unemployed) return null; // answer the owner's contract offer first
       // A new league year starts when free agency opens: the cap follows the projected cap
       // outlook (at most +10% a year, as the CBA allows), and every number tied to it (tax,
       // aprons, exceptions, max and min salaries) moves with it.

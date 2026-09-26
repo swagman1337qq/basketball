@@ -134,7 +134,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
             <tbody>
               {(vm.draftRows || []).map((p: any, i: number) => (
                 <tr key={i}>
-                  <td style={{ padding: "4px 8px", textAlign: "right", color: "var(--color-neutral-700)" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {p.rank}
                   </td>
                   <td style={{ padding: "4px 8px" }}>
@@ -148,7 +148,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     {p.pos}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
                   <td style={{ padding: "4px 8px" }}>
@@ -157,7 +157,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                       {p.fromL}
                     </span>
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.hgt}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600", whiteSpace: "nowrap" }}>
@@ -166,7 +166,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", color: p.ptone, fontWeight: "600", whiteSpace: "nowrap" }}>
                     {p.potS}
                   </td>
-                  <td style={{ padding: "3px 8px", textAlign: "right" }}>
+                  <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {!!p.showDraft && (<>
                       <button className="btn btn-primary" onClick={p.draft} disabled={p.cant} style={{ fontSize: "12px", padding: "3px 12px" }}>
                         Draft

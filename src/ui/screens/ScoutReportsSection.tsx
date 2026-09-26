@@ -34,8 +34,8 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
           <tbody>{reps.map(r => { const p = P[r.pid]; return (
             <tr key={r.pid} onClick={() => setSel(r.pid)} style={{ cursor: 'pointer', background: sel === r.pid ? 'var(--color-accent-100)' : undefined }}>
               <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}><img src={gm.flag(p.rep)} alt="" style={{ width: 16, height: 11, marginRight: 6, verticalAlign: 'middle' }} />{p.name}{(s.scoutList || []).includes(r.pid) ? ' ★' : ''}</td>
-              <td style={{ padding: '4px 8px' }}>{r.kindLabel}</td><td style={{ padding: '4px 8px' }}>{p.pos}</td><td style={{ padding: '4px 8px', textAlign: 'right' }}>{p.age}</td>
-              <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 600 }}>{r.overall}</td><td style={{ padding: '4px 8px' }}>{r.projection}</td><td style={{ padding: '4px 8px' }}>{r.confidence}</td><td style={{ padding: '4px 8px' }}>{r.comp?.name || '—'}</td>
+              <td style={{ padding: '4px 8px' }}>{r.kindLabel}</td><td style={{ padding: '4px 8px' }}>{p.pos}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.age}</td>
+              <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{r.overall}</td><td style={{ padding: '4px 8px' }}>{r.projection}</td><td style={{ padding: '4px 8px' }}>{r.confidence}</td><td style={{ padding: '4px 8px' }}>{r.comp?.name || '—'}</td>
             </tr>); })}
             {reps.length === 0 && <tr><td colSpan={8} style={{ padding: 10, ...muted }}>No reports in this group yet.</td></tr>}
           </tbody>

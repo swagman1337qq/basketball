@@ -1,5 +1,5 @@
-// Postseason: play-in games, then an NBA-style bracket with the East on the left, the
-// West on the right and the Finals in the middle. Past seasons and the lottery below.
+// Postseason: play-in games, then an NBA-style bracket with the West on the left, the
+// East on the right and the Finals in the middle. Past seasons and the lottery below.
 import type { ReactNode } from 'react';
 import type { VM } from '../vm';
 import { h4Style, Kicker, Link, muted, td, th } from '../kit';
@@ -50,7 +50,7 @@ export function PlayinBracket({ vm }: { vm: VM }) {
         <h4 style={h4Style}>Play-in tournament</h4>
         <p style={{ ...muted, margin: '0 0 10px', fontSize: '12px' }}>Seed 7 hosts 8: the winner is the 7 seed. Seed 9 hosts 10: the loser is out. The loser of 7 v 8 then hosts the winner of 9 v 10 for the 8 seed.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '28px' }}>
-          {['East', 'West'].map(c => (
+          {['West', 'East'].map(c => (
             <div key={c}>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', marginBottom: '6px' }}>{c}ern Conference</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '10px' }}>
@@ -83,7 +83,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
   if (!rounds) {
     projected = true;
     const r1 = [];
-    ['East', 'West'].forEach(c => {
+    ['West', 'East'].forEach(c => {
       const sd = s.seeds?.[c] || gm.seeds(s, c), pin = s.playin?.[c];
       const seven = pin?.[0]?.done ? pin[0].w : null, eight = pin?.[2]?.done ? pin[2].w : null;
       [[0, 7], [3, 4], [2, 5], [1, 6]].forEach(([i, j]) => r1.push({ conf: c, a: sd[i], sa: i + 1, b: j === 6 ? seven : j === 7 ? eight : sd[j], sb: j + 1, pb: 'Play-in winner' }));
@@ -115,16 +115,16 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
       <section style={{ marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
           <h4 style={h4Style}>{projected ? 'Playoff bracket, if the season ended today' : 'Playoff bracket'}</h4>
-          <span style={{ ...muted, fontSize: '12px' }}>East on the left, West on the right; conference champions meet in the Finals. Hover a series for game scores.</span>
+          <span style={{ ...muted, fontSize: '12px' }}>West on the left, East on the right; conference champions meet in the Finals. Hover a series for game scores.</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,minmax(0,1fr))', gap: '10px', marginTop: '8px' }}>
-          <Column label="East · R1">{col(0, 'East', 4)}</Column>
-          <Column label="East · Semis">{col(1, 'East', 2)}</Column>
-          <Column label="East · Finals">{col(2, 'East', 1)}</Column>
-          <Column label="Finals">{finals ? <SeriesCard vm={vm} x={finals} /> : empty(1)}</Column>
-          <Column label="West · Finals">{col(2, 'West', 1)}</Column>
-          <Column label="West · Semis">{col(1, 'West', 2)}</Column>
           <Column label="West · R1">{col(0, 'West', 4)}</Column>
+          <Column label="West · Semis">{col(1, 'West', 2)}</Column>
+          <Column label="West · Finals">{col(2, 'West', 1)}</Column>
+          <Column label="Finals">{finals ? <SeriesCard vm={vm} x={finals} /> : empty(1)}</Column>
+          <Column label="East · Finals">{col(2, 'East', 1)}</Column>
+          <Column label="East · Semis">{col(1, 'East', 2)}</Column>
+          <Column label="East · R1">{col(0, 'East', 4)}</Column>
         </div>
         {projected && s.phase === 'regular' && <p style={{ ...muted, fontSize: '12px', margin: '10px 0 0' }}>Seeds 1–6 qualify directly; seeds 7–10 go to the play-in for the last two spots in each conference.</p>}
       </section>
