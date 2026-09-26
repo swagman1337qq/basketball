@@ -3,7 +3,7 @@
 // outlook, notes and the stat line.
 import type { VM } from './vm';
 import { scoutReport } from '../engine/scoutReport';
-import { Link, muted, ruleH4 } from './kit';
+import { Link, muted, ratingTier, ruleH4 } from './kit';
 
 const gradeColor = (v: number) => (v >= 8.5 ? 'var(--gm-elite)' : v >= 7 ? 'var(--gm-good)' : v >= 5 ? 'var(--color-text)' : v >= 3.5 ? 'var(--color-accent-800)' : 'var(--gm-bad)');
 
@@ -28,7 +28,7 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }} title={'What your scouts see (± about ' + Math.max(1, Math.round(r.margin)) + ')'}>
             {([['Ovr', r.seen.ovr], ['Pot', r.seen.pot]] as [string, number][]).map(([k, v]) => <div key={k}>
               <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>Scouted {k}</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', lineHeight: 1, color: v >= 63 ? 'var(--gm-elite)' : v >= 56 ? 'var(--gm-good)' : v >= 48 ? 'var(--color-text)' : v >= 41 ? 'var(--color-accent-800)' : 'var(--gm-bad)' }}>{v}</div></div>)}
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', lineHeight: 1, color: ratingTier(v).color }}>{v}</div></div>)}
           </div>
           <div style={{ fontSize: '12px', marginTop: 4 }}>{r.projection}</div>
           <div style={{ ...muted, fontSize: '11.5px' }}>{r.ceiling}</div>

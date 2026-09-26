@@ -26,6 +26,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Overall and Potential rings are colour-coded** by where the rating ranks in the league, with the tier named underneath ("Starter", "All-Star ceiling"…): purple Superstar (70+), bright green All-Star (63+), green Starter (56+), white Rotation (48+), orange Bench (41+), red Fringe (below 41). Hover the tier name for the scale. Scouted Ovr/Pot in scouting reports use the same colours.
 - **Scouting reports show the scouted Ovr and Pot** (what your scouts see, within their margin) instead of a separate 40–99 grade that was easy to mistake for either. The list has Ovr and Pot columns.
 - **Scouting report labels match this league.** "Quality starter", "rotation player", "end-of-bench" and the rest now follow where a rating really ranks: 56+ is a starter (about the top five on an average team), 48+ a rotation player, 63+ an All-Star, 70+ a franchise player. A 56 overall was being called end-of-bench.
 - **Player header:** height, weight and wingspan sit under the age, the season count under the draft slot, and points, rebounds, assists and PER are one line.

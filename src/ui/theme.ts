@@ -10,6 +10,11 @@ export function applyTheme(el: HTMLElement | null, dark: boolean, team?: [string
   // Data colours: neon green for growth and wins, soft red for decline, injuries and losses.
   el.style.setProperty('--gm-good', dark ? 'oklch(0.87 0.22 145)' : 'oklch(0.52 0.16 148)');
   el.style.setProperty('--gm-bad', dark ? 'oklch(0.72 0.14 25)' : 'oklch(0.52 0.16 25)');
+  // Rating scale (Overall / Potential rings): purple superstar, bright green All-Star, green starter,
+  // plain rotation player, orange bench, red below that.
+  const RT = dark ? ['oklch(0.76 0.17 305)', 'oklch(0.87 0.22 145)', 'oklch(0.80 0.12 155)', 'var(--color-text)', 'oklch(0.80 0.14 65)', 'oklch(0.70 0.16 25)']
+    : ['oklch(0.50 0.20 305)', 'oklch(0.52 0.17 148)', 'oklch(0.58 0.11 158)', 'var(--color-text)', 'oklch(0.60 0.15 55)', 'oklch(0.52 0.18 25)'];
+  RT.forEach((c, i) => el.style.setProperty('--rt-' + i, c));
   el.style.colorScheme = dark ? 'dark' : 'light';
   document.body.style.background = dark ? DARK['--color-bg'] : '';
 }

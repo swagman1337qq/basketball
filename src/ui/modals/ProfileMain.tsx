@@ -6,7 +6,7 @@ import { yosOf } from '../../engine/cba';
 import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
-import { CountryPicker, Kicker, Link, muted, ruleH4 } from '../kit';
+import { CountryPicker, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 
@@ -21,8 +21,8 @@ function useProfile(vm: VM) {
   return { gm, s, p, tid, draftYear, openClass, draftLabel };
 }
 
-function Ring({ v, label, tone }: { v: number; label: string; tone?: string }) {
-  const r = 30, c = 2 * Math.PI * r, f = Math.max(0, Math.min(100, v)) / 100;
+function Ring({ v, label, ceiling }: { v: number; label: string; ceiling?: boolean }) {
+  const r = 30, c = 2 * Math.PI * r, f = Math.max(0, Math.min(100, v)) / 100, t = ratingTier(v), tone = t.color;
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width="76" height="76" viewBox="0 0 76 76" aria-label={label + ' ' + v}>
@@ -31,6 +31,7 @@ function Ring({ v, label, tone }: { v: number; label: string; tone?: string }) {
         <text x="38" y="45" textAnchor="middle" fontFamily="var(--font-heading)" fontSize="24" fill={tone || 'var(--color-text)'}>{v}</text>
       </svg>
       <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: '11px', color: tone, marginTop: 1 }} title={RATING_TIERS.map(([n, name], i) => (i === RATING_TIERS.length - 1 ? 'below 41' : n + '+') + ' ' + name).join(' · ')}>{t.name}{ceiling ? ' ceiling' : ''}</div>
     </div>
   );
 }
@@ -89,8 +90,8 @@ export function ProfileHeader({ vm }: { vm: VM }) {
               ))}
             </div>
           )}
-          <Ring v={p.ovr} label="Overall" tone={pl.tone} />
-          <Ring v={p.pot} label="Potential" tone="var(--color-neutral-600)" />
+          <Ring v={p.ovr} label="Overall" />
+          <Ring v={p.pot} label="Potential" ceiling />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '130px' }}>
             {pl.isMine && <><button className="btn btn-secondary" onClick={pl.release}>Release</button><button className="btn btn-ghost" onClick={pl.toAbroad} style={{ fontSize: '12px' }}>Release to play overseas</button></>}
             {pl.isOther && <button className="btn btn-primary" onClick={pl.tradeFor}>Trade for</button>}

@@ -79,6 +79,10 @@ export function linkNames(text: string, open: (id: number) => void, opts: { P?: 
   return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
 }
 
+// Where a rating sits in this league (same cut-offs as the scouting reports) and its colour.
+export const RATING_TIERS: [number, string][] = [[70, 'Superstar'], [63, 'All-Star'], [56, 'Starter'], [48, 'Rotation'], [41, 'Bench'], [0, 'Fringe']];
+export const ratingTier = (v: number) => { const i = RATING_TIERS.findIndex(([t]) => v >= t); return { i, name: RATING_TIERS[i][1], color: 'var(--rt-' + i + ')' }; };
+
 // A length in feet and inches (two typed fields). Inches past 11 or below 0 carry into the feet.
 export function FtInInput({ inches, min, max, onValue, disabled }: { inches: number; min: number; max: number; onValue: (inches: number) => void; disabled?: boolean }) {
   const ft = Math.floor(inches / 12), inch = inches % 12, set = (n: number) => { const v = Math.min(max, Math.max(min, n)); if (v !== inches) onValue(v); };
