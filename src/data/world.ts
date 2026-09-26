@@ -128,7 +128,8 @@ export function clubs() {
     SI: [['Cedevita Olimpija', 'ABA League']], ME: [['Budućnost', 'ABA League']], BA: [['Igokea', 'ABA League']],
     LV: [['VEF Rīga', 'Latvian-Estonian League']], GE: [['Rustavi', 'Georgian Superleague']], FI: [['Helsinki Seagulls', 'Korisliiga']], GB: [['London Lions', 'Super League Basketball']],
     AU: [['Sydney Kings', 'NBL'], ['Melbourne United', 'NBL'], ['Perth Wildcats', 'NBL'], ['Brisbane Bullets', 'NBL'], ['Adelaide 36ers', 'NBL']], NZ: [['New Zealand Breakers', 'NBL']],
-    CN: [['Guangdong Southern Tigers', 'CBA'], ['Shanghai Sharks', 'CBA'], ['Xinjiang Flying Tigers', 'CBA'], ['Fujian Sturgeons', 'CBA'], ['Beijing Ducks', 'CBA'], ['Liaoning Flying Leopards', 'CBA']],
+    // All 20 CBA clubs.
+    CN: [['Beijing Ducks', 'CBA'], ['Beijing Royal Fighters', 'CBA'], ['Fujian Sturgeons', 'CBA'], ['Guangdong Southern Tigers', 'CBA'], ['Guangzhou Loong Lions', 'CBA'], ['Jiangsu Dragons', 'CBA'], ['Jilin Northeast Tigers', 'CBA'], ['Liaoning Flying Leopards', 'CBA'], ['Nanjing Monkey Kings', 'CBA'], ['Ningbo Rockets', 'CBA'], ['Qingdao Eagles', 'CBA'], ['Shandong Hi-Speed Kirin', 'CBA'], ['Shanghai Sharks', 'CBA'], ['Shanxi Loongs', 'CBA'], ['Shenzhen Leopards', 'CBA'], ['Sichuan Blue Whales', 'CBA'], ['Tianjin Pioneers', 'CBA'], ['Xinjiang Flying Tigers', 'CBA'], ['Zhejiang Golden Bulls', 'CBA'], ['Zhejiang Lions', 'CBA']],
     JP: [['Alvark Tokyo', 'B.League'], ['Chiba Jets', 'B.League'], ['Ryukyu Golden Kings', 'B.League']], KR: [['Seoul SK Knights', 'KBL']], PH: [['San Miguel Beermen', 'PBA']],
     BR: [['Flamengo', 'NBB'], ['Franca', 'NBB'], ['Minas', 'NBB']], AR: [['Quimsa', 'Liga Nacional'], ['Boca Juniors', 'Liga Nacional'], ['Instituto', 'Liga Nacional']], MX: [['Fuerza Regia', 'LNBP']],
     AO: [['Petro de Luanda', 'Basketball Africa League'], ['Primeiro de Agosto', 'Angolan Unitel League']],

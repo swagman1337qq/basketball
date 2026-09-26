@@ -201,7 +201,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       const top = pool.slice(0, 10);
       const sc = id => { const fit = gm.rolesOf(P[id], true).filter(r => gaps.includes(r)); return { id, fit, v: (est(P[id], 1) * .7 + est(P[id], 0) * .3) + fit.length * 6 + (P[id].age <= 19 ? 2 : 0) }; };
       const b = top.map(sc).sort((x, y) => y.v - x.v)[0], p = P[b.id], bpa = top[0] === b.id;
-      const why = b.fit.length ? 'We\u2019re thin at ' + gaps.slice(0, 2).join(' and ').toLowerCase() + '. ' + p.name + ' projects as a ' + b.fit.join(' and ').toLowerCase() + (bpa ? ', and he\u2019s also the best player ' + where + '.' : '. He\u2019s #' + d.rank[b.id] + ' on the board, so it\u2019s a slight reach for fit, but he fills a hole.') : 'No need is worth reaching for. Take the best player ' + where + ': ' + p.name + ' (#' + d.rank[b.id] + ').';
+      const roleName = (r: string) => r.toLowerCase().replace('3-and-d', '3-and-D'), listOf = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+      const fitTxt = listOf(b.fit.slice(0, 2).map(r => (/^[aeiou]/i.test(r) ? 'an ' : 'a ') + roleName(r))) + (b.fit.length > 2 ? ', plus ' + (b.fit.length - 2) + ' more of our needs' : '');
+      const why = b.fit.length ? 'We\u2019re thin at ' + listOf(gaps.slice(0, 2).map(roleName)) + '. ' + p.name + ' projects as ' + fitTxt + (bpa ? ', and he\u2019s also the best player ' + where + '.' : '. He\u2019s #' + d.rank[b.id] + ' on the board, so it\u2019s a slight reach for fit, but he fills a hole.') : 'No need is worth reaching for. Take the best player ' + where + ': ' + p.name + ' (#' + d.rank[b.id] + ').';
       advice.push({ who: 'Assistant GM', name: p.name, meta: p.pos + ' · ' + p.age + ' · ' + p.from.team + ' (' + p.from.lg + ') · ' + C[p.rep].n, open: open(b.id), canDraft: onClock, draft: () => gm.draftPick(b.id), why });
     }
   }
