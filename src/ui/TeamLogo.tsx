@@ -13,7 +13,7 @@ const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',
   BKN: 'roundel', NWK: 'roundel', DET: 'roundel', PIT: 'roundel', SEA: 'roundel', VAN: 'roundel', SAC: 'roundel', KC: 'roundel', STL: 'roundel', MEX: 'roundel',
   ATL: 'script', NSH: 'script', LV: 'script', SD: 'script', HNL: 'script', SA: 'script', PHX: 'script', AUS: 'script', CHA: 'script',
-  CLE: 'badge', SLC: 'badge', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
+  CLE: 'badge', SLC: 'badge', DAL: 'shield', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
 };
 
 export interface CrestTeam { region?: string; name?: string; abbr?: string; colors?: [string, string]; icon?: string; logoImg?: string; logoStyle?: string }

@@ -20,7 +20,7 @@ Legend: **Done** is implemented and playable. **Partial** notes what's simplifie
 | Create your GM: name, nationality, experience (none → legendary), race, generated headshot (new face / upload) | Done | `GMSetupModal`, `gmCareer.ts` |
 | GM contract: years and salary; owner offers extensions when happy, lets it expire when not; pay by owner personality (frugal caps it, win-now spends); ask for an extension once a season | Done | `contractDecision()`, `askExtension()`, Career screen, owner letter |
 | Tutorial: quick / in-depth (every tab and rule) / no thanks; automation offered at the end | Done | `Tour.tsx` |
-| Readable UI: Inter throughout, plain full-height numbers; collapsible menu with labeled icons; Western Conference first everywhere; brand renamed BBall Manager | Done | `classical.css`, `AlmanacSidebar` |
+| Readable UI: Inter throughout, plain full-height numbers; collapsible menu with labeled icons; Western Conference first everywhere; brand renamed Basketball Manager; Dallas replaced Salt Lake (now in the expansion database) | Done | `classical.css`, `AlmanacSidebar` |
 | Awards | Done | Voted by formula in the Basketball GM custom-award format (`data/awardDefs.ts`, evaluated by `formula.ts`): MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, conference-finals MVPs, All-League (3), All-Defensive (2), All-Rookie (2), OPOY, Playmaker, the Jokic advanced-stats award, Glue Guy, LVP, Mr. Perfectly Average, Least Improved, Least Efficient, Worst Defender, plus Coach of the Year. The advanced stats they use (PER, WS/OWS/DWS/WS48, BPM/OBPM/DBPM, VORP, EWA, on/off, USG%, AST%, rebound/steal/block/turnover rates, ORtg/DRtg) come from `advanced.ts`. Edit, import or export the formulas in **Settings → Award formulas**. |
 
 ## 2. Injury, health and environment

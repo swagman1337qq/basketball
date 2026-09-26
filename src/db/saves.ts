@@ -60,7 +60,7 @@ export function exportSave(row: SaveRow) {
 
 export async function importSave(file: File): Promise<SaveRow> {
   const json = JSON.parse(await file.text());
-  if (json?.kind !== FILE_KIND || !json.data?.db || !json.data?.state) throw new Error('That file is not a BBall Manager save.');
+  if (json?.kind !== FILE_KIND || !json.data?.db || !json.data?.state) throw new Error('That file is not a Basketball Manager save.');
   const now = Date.now();
   const row: SaveRow = { id: newSaveId(), name: json.name || 'Imported league', createdAt: json.createdAt || now, updatedAt: now, summary: summarize(json.data), data: json.data };
   await putSave(row);

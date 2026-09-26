@@ -37,7 +37,7 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
             <button className="btn btn-ghost" onClick={vm.toggleNav} title="Collapse the menu to icons" aria-label="Collapse the menu" style={{ fontSize: "12px", padding: "2px 8px" }}>« Collapse</button>
           </div>
           <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
-            BBall Manager
+            Basketball Manager
           </div>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "25px", fontWeight: "600", lineHeight: "1.1", marginTop: "4px" }}>
             {vm.myName}

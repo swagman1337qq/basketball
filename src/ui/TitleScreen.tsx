@@ -17,11 +17,12 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const [msg, setMsg] = useState('');
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
   const [sel, setSel] = useState<number[]>([0]);
+  const [multi, setMulti] = useState(false); // one team unless you ask for more
   const [worst, setWorst] = useState(false);
   const seedNum = Number.isFinite(Number(seed)) && seed !== '' ? Math.floor(Number(seed)) : 2027;
   const teams = useMemo(() => Game.preview(seedNum), [seedNum]);
   const picked = teams.find(t => t.tid === sel[0]) || teams[0];
-  const toggle = (t: number) => setSel(x => (x.includes(t) ? (x.length > 1 ? x.filter(y => y !== t) : x) : [...x, t]));
+  const toggle = (t: number) => setSel(x => (!multi ? [t] : x.includes(t) ? (x.length > 1 ? x.filter(y => y !== t) : x) : [...x, t]));
 
   useLayoutEffect(() => applyTheme(rootRef.current, lastTheme() === 'dark'), []);
   const refresh = () => listSaves().then(setSaves).catch(() => { setSaves([]); setMsg('This browser blocked local storage, so saves are unavailable.'); });
@@ -41,7 +42,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
       <div style={{ maxWidth: '980px', margin: '0 auto', padding: '48px 28px 64px' }}>
         <header style={{ borderBottom: '1px solid var(--color-text)', paddingBottom: '14px', marginBottom: '28px' }}>
           <div style={kicker}>Basketball general manager · single player</div>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>BBall Manager</h1>
+          <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '56px', lineHeight: 1, margin: '6px 0 0', letterSpacing: '-.015em' }}>Basketball Manager</h1>
           <p style={{ margin: '10px 0 0', color: 'var(--color-neutral-700)', maxWidth: '640px' }}>
             Pick any of the league's 30 clubs (or several at once) and run them as general manager and head coach: set the rotation, trade, sign, draft and develop players across as many seasons as you like.
             Leagues are saved in this browser automatically.
@@ -115,10 +116,10 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
 
         <section style={{ marginTop: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--color-text)', paddingBottom: '6px', marginBottom: '4px' }}>
-            <h3 style={{ margin: 0, fontSize: '25px' }}>Select managed teams</h3>
-            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>Run one club or as many as all 30. Ranked by team rating (the roster weighted by rotation minutes); the season starts 0–0.</span>
-            <button className="btn btn-ghost" onClick={() => setSel(teams.map(t => t.tid))} style={{ fontSize: '12px' }}>Select all</button>
-            <button className="btn btn-ghost" onClick={() => setSel([sel[0]])} style={{ fontSize: '12px' }}>Just one</button>
+            <h3 style={{ margin: 0, fontSize: '25px' }}>{multi ? 'Select your teams' : 'Select your team'}</h3>
+            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>{multi ? 'Click as many clubs as you like (up to all 30); the first one you picked is where you start.' : 'Click a club to run it.'} Ranked by team rating (the roster weighted by rotation minutes); the season starts 0–0.</span>
+            {multi && <button className="btn btn-ghost" onClick={() => setSel(teams.map(t => t.tid))} style={{ fontSize: '12px' }}>Select all</button>}
+            <button className="btn btn-ghost" onClick={() => { if (multi) setSel([sel[0]]); setMulti(!multi); }} style={{ fontSize: '12px' }}>{multi ? 'Back to one team' : 'Multiple teams'}</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 32px' }}>
             {['West', 'East'].map(conf => (
@@ -127,9 +128,9 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
                 {teams.filter(t => t.conf === conf).sort((a, b) => a.rank - b.rank).map(t => {
                   const on = sel.includes(t.tid), first = sel[0] === t.tid;
                   return (
-                    <button key={t.tid} onClick={() => toggle(t.tid)} role="checkbox" aria-checked={on} className={on ? '' : 'hv3'}
+                    <button key={t.tid} onClick={() => toggle(t.tid)} role={multi ? 'checkbox' : 'radio'} aria-checked={on} className={on ? '' : 'hv3'}
                       style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '14px 40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? 'var(--color-accent-100)' : 'transparent' }}>
-                      <span style={{ display: 'grid', placeItems: 'center', width: '14px', height: '14px', border: '1px solid var(--color-accent)', borderRadius: '2px', background: on ? 'var(--color-accent)' : 'transparent', color: 'var(--color-bg)', fontSize: '10px', lineHeight: 1 }}>{on ? '✓' : ''}</span>
+                      <span style={{ display: 'grid', placeItems: 'center', width: '14px', height: '14px', border: '1px solid var(--color-accent)', borderRadius: multi ? '2px' : '50%', background: on ? 'var(--color-accent)' : 'transparent', color: 'var(--color-bg)', fontSize: '10px', lineHeight: 1 }}>{on ? '✓' : ''}</span>
                       <TeamLogo team={t} size={40} />
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: on ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.region} {t.name}{first && sel.length > 1 ? ' · first' : ''}</span>

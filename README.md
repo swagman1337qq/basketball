@@ -1,4 +1,4 @@
-# BBall Manager
+# Basketball Manager
 
 A single-player basketball GM and head-coach sim that runs entirely in your browser. Run one club or any number of the 30 (15 per conference): set the rotation and tactics, trade, sign free agents and overseas players, scout the world and draft, develop young players, and keep your owner happy, season after season, through a play-in, an East/West playoff bracket, awards, and a job market that can fire or hire you.
 

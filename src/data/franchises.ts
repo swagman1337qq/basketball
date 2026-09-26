@@ -36,7 +36,7 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Los Angeles', name: 'Marquees', abbr: 'LA', conf: 'West', div: 'Pacific', colors: ['#2b1a4f', '#f4c542'], icon: 'Clapperboard', pop: 12.8, known: 'Hollywood premieres', mkt: 1.5 },
   { region: 'Inland Empire', name: 'Groves', abbr: 'IE', conf: 'West', div: 'Pacific', colors: ['#2e6b30', '#f39a1e'], icon: 'Citrus', pop: 4.7, known: 'The citrus groves of Riverside' },
   { region: 'San Francisco', name: 'Fog', abbr: 'SF', conf: 'West', div: 'Pacific', colors: ['#8b2a1f', '#cfd8dc'], icon: 'CloudFog', pop: 4.6, known: 'Karl the Fog and the Golden Gate' },
-  { region: 'Dallas', name: 'Wildcatters', abbr: 'DAL', conf: 'West', div: 'Southwest', colors: ['#0f2a44', '#c8a24a'], icon: 'Drill', pop: 8.1, known: 'The oil boom wildcatters' },
+  { region: 'Salt Lake', name: 'Gulls', abbr: 'SLC', conf: 'West', div: 'Northwest', colors: ['#1f3b63', '#eef2f5'], icon: 'Bird', pop: 1.3, known: 'The California gulls of the Great Salt Lake', mkt: .8 },
   { region: 'Houston', name: 'Orbit', abbr: 'HOU', conf: 'West', div: 'Southwest', colors: ['#141d3b', '#f26b21'], icon: 'Rocket', pop: 7.5, known: 'Mission Control and the space program' },
   { region: 'Oklahoma City', name: 'Twisters', abbr: 'OKC', conf: 'West', div: 'Southwest', colors: ['#3f4b5a', '#f4a259'], icon: 'Tornado', pop: 1.48, known: 'Tornado Alley' },
   { region: 'Tulsa', name: 'Gushers', abbr: 'TUL', conf: 'West', div: 'Southwest', colors: ['#161616', '#e0b04a'], icon: 'Fuel', pop: 1.03, known: 'The Oil Capital of the World and Route 66' },
