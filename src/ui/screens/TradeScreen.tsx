@@ -2,6 +2,9 @@ import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 
 export function TradeScreen({ vm }: { vm: VM }) {
+  // ‹ › step through the other teams in the menu's order.
+  const cycle = (d: number) => { const o = vm.teamOptions || [], i = o.findIndex((x: any) => String(x.value) === String(vm.tTid)); if (o.length) vm.pickTeam({ target: { value: o[(i + d + o.length) % o.length].value } }); };
+  const arrowBtn = { minWidth: 30, padding: "2px 8px", fontSize: "20px", lineHeight: 1 } as const;
   const srtT = useSort<any>(vm.tTheirs || [], { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, contract: r => parseFloat(String(r.contract).replace(/[^0-9.]/g, '')) || 0 });
   const srtM = useSort<any>(vm.tMine || [], { name: r => byLast(vm.ctx.gm.db.P[r.id] || r), age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, contract: r => parseFloat(String(r.contract).replace(/[^0-9.]/g, '')) || 0 });
   return (
@@ -17,7 +20,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-{srtM.head('name', 'Player')}{srtM.head('age', 'Age', 'right')}{srtM.head('ovr', 'Ovr', 'right')}{srtM.head('pot', 'Pot', 'right')}{srtM.head('contract', 'Contract', 'right')}
+<th style={{ width: 22, padding: '4px 8px' }} />{srtM.head('name', 'Player')}{srtM.head('age', 'Age', 'right')}{srtM.head('ovr', 'Ovr', 'right')}{srtM.head('pot', 'Pot', 'right')}{srtM.head('contract', 'Contract', 'right')}
 </tr>
             </thead>
             <tbody>
@@ -175,13 +178,15 @@ export function TradeScreen({ vm }: { vm: VM }) {
         <section>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "36px", marginBottom: "4px" }}>
             {vm.theirLogo}
-            <select className="input" value={vm.tTid} onChange={vm.pickTeam} style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", minHeight: "34px", padding: "4px 8px" }}>
+            <button className="btn btn-ghost" onClick={() => cycle(-1)} title="Previous team" aria-label="Previous team" style={arrowBtn}>‹</button>
+            <select className="input" value={vm.tTid} onChange={vm.pickTeam} style={{ fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: "600", minHeight: "34px", padding: "4px 26px 4px 8px", flex: "1 1 auto", minWidth: 0 }}>
               {(vm.teamOptions || []).map((o: any, i: number) => (
                 <option key={i} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </select>
+            <button className="btn btn-ghost" onClick={() => cycle(1)} title="Next team" aria-label="Next team" style={arrowBtn}>›</button>
             <span style={{ color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>
               send
             </span>
@@ -192,7 +197,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-{srtT.head('name', 'Player')}{srtT.head('age', 'Age', 'right')}{srtT.head('ovr', 'Ovr', 'right')}{srtT.head('pot', 'Pot', 'right')}{srtT.head('contract', 'Contract', 'right')}
+<th style={{ width: 22, padding: '4px 8px' }} />{srtT.head('name', 'Player')}{srtT.head('age', 'Age', 'right')}{srtT.head('ovr', 'Ovr', 'right')}{srtT.head('pot', 'Pot', 'right')}{srtT.head('contract', 'Contract', 'right')}
 </tr>
             </thead>
             <tbody>

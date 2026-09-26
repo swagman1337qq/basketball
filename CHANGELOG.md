@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Trade screen: ‹ › arrows** on either side of the other team's menu step through the league one team at a time.
 - **Let assistant coaches decide** (Development tab), for one player or everyone at once. The coaches pick his training focus (the costliest gaps for his position; conditioning for veterans 31 and up) and decide between the development league and the main roster (young players outside the top ten go down for game reps and come back once they earn a rotation spot). They re-check both every month and moves show in your log. Hover the coaches' tag to see why; "Take over" hands control back.
 - **Extend buttons.** Players eligible for an extension have an "Extend…" button on their profile header and on the Contracts tab (which also lists everyone eligible right now). It opens the extension offer on his Contract tab.
 - **Contracts tab** (Team): your upcoming free agents summer by summer for the next four summers. Each player is marked restricted (with his estimated qualifying offer) or unrestricted, with the Bird rights you'll hold, his estimated cap hold, player and team options (and what happens if they're declined), and when he can sign an extension. Also shows offer sheets, your own free agents during free agency, and decisions due on the Cap sheet.
@@ -56,6 +57,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- Trade screen: the column headings (Age, Ovr, Pot, Contract) line up with their numbers again, and the team menu no longer cuts off the team's name.
 - Other GMs turning down a trade now speak for themselves ("I want young, high-upside players, and I'm not giving up our picks easily") instead of describing their own team as "they". Several ways to say it for each kind of team.
 - The player header's season count includes seasons before this league began (a 2022 draftee is in season 5, not his "rookie season").
 - Monthly development reports said "undefined" instead of Acc (acceleration); Layups and Box out were also missing from report and tactics labels. Old reports are corrected when the league loads.
