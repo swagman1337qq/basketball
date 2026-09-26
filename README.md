@@ -26,11 +26,17 @@ npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build
 ```
 
-## Deploy to GitHub Pages
+## Play it online
 
-1. Push to `main`.
-2. In the repo, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**.
-3. `.github/workflows/deploy.yml` builds and publishes the site. It will be at `https://<user>.github.io/<repo>/`.
+**https://swagman1337qq.github.io/basketball/**
+
+The site is published from the `gh-pages` branch (built files only). To publish the latest code:
+
+```bash
+npm run deploy     # builds and pushes dist/ to gh-pages; live in about a minute
+```
+
+Saves live in each browser (IndexedDB), so every player keeps their own leagues; use Export/Import in Settings to move a league between devices.
 
 ## Code map
 
