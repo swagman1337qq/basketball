@@ -37,7 +37,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
               </td>
               <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {!!r.notNext && (<>
-                  {r.openBox ? <button className="hv4" onClick={r.openBox} title="Box score" style={{ all: "unset", cursor: "pointer", color: r.resColor, fontWeight: 600, textDecoration: "underline dotted", textUnderlineOffset: 3 }}>{r.res}</button> : <span style={{ color: r.resColor, fontWeight: "600" }}>{r.res}</span>}
+                  {r.openBox ? <button className="hv4" onClick={r.openBox} title="Box score" style={{ all: "unset", cursor: "pointer", color: r.resColor, fontWeight: 600, textDecoration: "underline dotted", textUnderlineOffset: 3 }}>{r.res}</button> : <span title="No box score: played before box scores were added" style={{ color: r.resColor, fontWeight: "600" }}>{r.res}</span>}
                 </>)}
                 {!!r.isNext && (<>
                   <span style={{ display: "inline-flex", gap: "6px" }}>

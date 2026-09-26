@@ -119,7 +119,10 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             <div><div style={{ ...muted, fontSize: '11px' }}>Plays like</div><Link onClick={() => pl.sr.openComp(null)} style={{ color: 'var(--color-accent-700)' }}>{pl.sr.comp}</Link></div>
           </div>
           <div style={{ ...muted, fontSize: '12px' }}>Intangibles: {pl.sr.intang}</div>
-          {pl.sr.canPromise && <div><button className="btn btn-primary" onClick={pl.sr.promise} style={{ fontSize: '13px' }}>Promise to draft him at #{pl.sr.pickN}</button></div>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={() => vm.goTab('scout')} style={{ fontSize: '13px' }}>Full scouting report →</button>
+            {pl.sr.canPromise && <button className="btn btn-primary" onClick={pl.sr.promise} style={{ fontSize: '13px' }}>Promise to draft him at #{pl.sr.pickN}</button>}
+          </div>
           {pl.sr.promised && <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{ color: 'var(--color-accent-800)' }}>You promised him the No. {pl.sr.pickN} pick.</span><button className="btn btn-ghost" onClick={pl.sr.unpromise} style={{ fontSize: '12px' }}>Withdraw</button></div>}
         </section>
       )}

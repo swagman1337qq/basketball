@@ -31,8 +31,8 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.wb ?? ''} won={done && x.wb === 4} lost={done && x.wb < 4} placeholder={x.pb} />
       {(x.g || []).length > 0 && <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
         {(x.g || []).map((g: any, i: number) => { const box = g.bid && (vm.ctx.gm.db as any).boxes?.[g.bid], w = g.hp > g.ap ? g.h : (g.h === x.a ? x.b : x.a);
-          return <button key={i} className="hv4" disabled={!box} onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })} title={'Game ' + (i + 1) + ': ' + vm.ctx.T[w].abbr + ' won ' + Math.max(g.hp, g.ap) + '–' + Math.min(g.hp, g.ap) + (box ? ' · box score' : '')}
-            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--color-divider)', color: vm.ctx.isMine(w) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
+          return <button key={i} className="hv4" disabled={!box} onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })} title={'Game ' + (i + 1) + ': ' + vm.ctx.T[w].abbr + ' won ' + Math.max(g.hp, g.ap) + '–' + Math.min(g.hp, g.ap) + (box ? ' · click for the box score' : ' · no box score (played before box scores were added)')}
+            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--color-divider)', opacity: box ? 1 : .5, textDecoration: box ? 'underline dotted' : 'none', color: vm.ctx.isMine(w) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
       </div>}
     </div>
   );
@@ -64,7 +64,8 @@ export function PlayinBracket({ vm }: { vm: VM }) {
                   const mineGame = x.a != null && (isMine(x.a) || isMine(x.b));
                   return (
                     <div key={x.id} style={{ border: '1px solid ' + (mineGame ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{x.label}{x.done ? ' · Final' : next ? ' · Next' : ''}</div>
+                      <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)', display: 'flex', justifyContent: 'space-between', gap: 6 }}><span>{x.label}{x.done ? ' · Final' : next ? ' · Next' : ''}</span>
+                        {x.done && (x.bid && (gm.db as any).boxes?.[x.bid] ? <button className="hv4" onClick={() => gm.setState({ boxId: x.bid })} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', color: 'var(--color-accent-700)' }}>Box score</button> : <span title="Played before box scores were added">No box score</span>)}</div>
                       <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.done ? x.hp : ''} won={x.done && x.w === x.a} lost={x.done && x.w !== x.a} placeholder="Loser of 7 v 8" />
                       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.done ? x.ap : ''} won={x.done && x.w === x.b} lost={x.done && x.w !== x.b} placeholder="Winner of 9 v 10" />
                       {next && mineGame && <button className="btn btn-primary" onClick={() => gm.setState({ screen: 'game' })} style={{ fontSize: '12px', padding: '3px 10px', marginTop: '2px' }}>Watch</button>}
