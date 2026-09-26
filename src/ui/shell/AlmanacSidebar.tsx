@@ -14,8 +14,8 @@ function Rail({ vm }: { vm: VM }) {
       <button className="btn btn-primary" onClick={vm.play1} title="Play next game" style={{ width: "66px", padding: "4px 0", fontSize: "11px" }}>▶ Game</button>
       <button className="btn btn-secondary" onClick={vm.play7} title="Play one week" style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>▶▶ Week</button>
       {(vm.navGroups || []).map((g: any, gi: number) => (
-        <div key={gi} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", width: "100%", borderTop: "1px solid var(--color-divider)", paddingTop: "4px", marginTop: "2px" }}>
-          <span style={{ ...tiny, fontSize: "8.5px", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{g.label}</span>
+        <div key={gi} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", width: "100%", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "6px", marginTop: "8px" }}>
+          <span style={{ ...tiny, fontSize: "9.5px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-accent-700)", marginBottom: "2px" }}>{g.label === "Management" ? "Manage" : g.label}</span>
           {(g.items || []).map((n: any, i: number) => (
             <button key={i} className="hv2" onClick={n.go} title={n.label} aria-label={n.label} style={{ all: "unset", boxSizing: "border-box", cursor: "pointer", width: "72px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "5px 2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring }}>
               {n.icon}<span style={{ ...tiny, fontWeight: n.fw }}>{n.label}</span>
@@ -64,8 +64,8 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
           </button>
         </div>
         {(vm.navGroups || []).map((g: any, i: number) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)", padding: "0 0 4px", borderBottom: "1px solid var(--color-divider)", marginBottom: "4px" }}>
+          <div key={i} style={{ display: "flex", flexDirection: "column", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "8px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", padding: "0 0 4px", marginBottom: "2px" }}>
               {g.label}
             </div>
             {(g.items || []).map((n: any, i: number) => (

@@ -20,6 +20,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Sidebar:** Team (Dashboard, Roster, Depth chart…) is at the top, then Management, then League, with clear dividers and gold section names between them.
 - **Draft board:** your picks stand out much more (thick gold border, gold background, a YOUR PICK tag).
 - **Draft advice** judges what a prospect projects into at his ceiling, not relative to his own ratings: a raw 19-year-old with a weak shot is no longer called a floor spacer, and "3-and-D wing" needs wing size.
 - **Min target** (Roster) is a bigger box with large − / + buttons. It's greyed out while minutes are automatic; press Manual to set them yourself, Auto to hand them back. The column is centered.
