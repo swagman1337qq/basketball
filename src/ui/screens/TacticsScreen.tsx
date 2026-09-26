@@ -5,6 +5,9 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { Game } from '../../engine/Game';
 import { Kicker, muted, NumInput, ruleH4 } from '../kit';
+import { BadgeChip } from '../BadgeChip';
+import { HoverCard } from '../HoverCard';
+import { badgesOf } from '../../engine/ratings';
 
 const TAC: [string, string, string[], string][] = [
   ['pace', 'Pace', ['Slow', 'Balanced', 'Fast'], 'Faster pace means more possessions and rewards speed and endurance.'],
@@ -94,7 +97,9 @@ export function TacticsScreen({ vm }: { vm: VM }) {
             <div key={id} draggable onDragStart={() => setDrag(id)} onDragOver={e => { e.preventDefault(); setOver(id); }} onDragLeave={() => setOver(null)} onDrop={e => { e.preventDefault(); if (drag != null) move(drag, id); setDrag(null); setOver(null); }} onDragEnd={() => { setDrag(null); setOver(null); }}
               style={{ display: 'grid', gridTemplateColumns: '14px minmax(0,1fr) 72px 118px', gap: '10px', alignItems: 'center', padding: '4px 0', borderBottom: i === 4 ? '1px solid var(--color-accent)' : '1px solid var(--color-divider)', borderTop: over === id && drag !== id ? '2px solid var(--color-accent)' : '2px solid transparent', opacity: drag === id ? 0.5 : 1, cursor: 'grab' }}>
               <span style={{ ...muted, fontSize: '12px' }} aria-hidden>⋮⋮</span>
-              <span><button className="hv4" onClick={() => open(id)} style={{ all: 'unset', cursor: 'pointer' }}>{p.name}</button> <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{p.pos} · {p.ovr}</span></span>
+              <span style={{ minWidth: 0 }}><button className="hv4" onClick={() => open(id)} style={{ all: 'unset', cursor: 'pointer' }}>{p.name}</button> <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{p.pos} · {p.ovr}</span>
+                {(() => { const bs = badgesOf(p); return bs.length > 0 && <span style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '3px' }}>{bs.slice(0, 4).map(b => <BadgeChip key={b.key} b={b} small />)}{bs.length > 4 && <HoverCard width={260} anchor={<span style={{ fontSize: '10.5px', color: 'var(--color-neutral-600)', cursor: 'help' }}>+{bs.length - 4}</span>}><span style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>{bs.slice(4).map(b => <BadgeChip key={b.key} b={b} small />)}</span></HoverCard>}</span>; })()}
+              </span>
               <span style={{ fontSize: '11px', color: p.inj ? 'var(--gm-bad)' : 'var(--color-accent-700)' }}>{p.inj ? (p.inj.dtd ? 'Day-to-day' : 'Injured') : p.dev ? 'Dev league' : i < 5 ? 'Starter' : ''}</span>
               <span style={{ justifySelf: 'end' }}><NumInput value={rotOf(id)} min={0} max={48} step={1} width={64} disabled={dis} onValue={v => { p.rot = v; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} suffix="min" /></span>
             </div>
