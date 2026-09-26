@@ -44,7 +44,7 @@ export function yearByYear(g: Game, p: any) {
     const e = h[y].e, next = h[y + 1]?.o ?? (y === g.Y ? snap(p) : e), live = !h[y + 1]?.o && y === g.Y;
     const moves = next ? Object.keys(o.r).map(k => [k, d1((next.r[k] ?? o.r[k]) - o.r[k])] as [string, number]).filter(([, d]) => Math.abs(d) >= 0.05).sort((a, b) => b[1] - a[1]) : [];
     out.push({ season: y, open: o.ovrI ?? Math.round(o.ovr), pot: o.pot, inSeason: e ? d1(e.ovr - o.ovr) : live ? d1(exactOvr(p) - o.ovr) : null, summer: e && h[y + 1]?.o ? d1(h[y + 1].o.ovr - e.ovr) : null,
-      total: next ? d1(next.ovr - o.ovr) : null, potD: next ? next.pot - o.pot : null, up: moves.filter(m => m[1] > 0).slice(0, 3), down: moves.filter(m => m[1] < 0).slice(-3).reverse(), live });
+      total: next ? d1(next.ovr - o.ovr) : null, potD: next ? next.pot - o.pot : null, up: moves.filter(m => m[1] > 0).slice(0, 3), down: moves.filter(m => m[1] < 0).slice(-3).reverse(), live, why: (h[y]?.why || []) as string[] });
   });
   return out;
 }

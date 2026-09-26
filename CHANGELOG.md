@@ -24,6 +24,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Development isn't a straight line.** Every player now has a hidden development year: most are normal, some are breakouts, and some go nowhere or backwards. About a quarter to a third of young players don't improve in a given season. Potential can fall too: a serious injury, a rookie who can't adapt to NBA strength or pace, a young player who stalls, or a year well below expectations. The reason appears in the Development tab's year-by-year table.
+- **Scouting reports:** "with more upside" appears only when a prospect's ceiling is clearly above his comparison's. Comparisons are closer to his projected level. Size is judged from real height and wingspan for his position, and is never named as what his development depends on.
 - **Height and wingspan in development:** wingspan never changes. Height changes only with an extremely rare late growth spurt: one inch, for teenagers and 20–21-year-olds, about one player every two or three seasons league-wide, announced in Transactions. Before, the height rating crept up on its own (including in the G League and overseas).
 - **Season bar:** the sim buttons are one split button. The main part runs your usual choice; ▾ lists every option (a day, a week, a month, to the trade deadline, to the end of the season…) and remembers what you picked.
 - **Sidebar:** Team (Dashboard, Roster, Depth chart…) is at the top, then Management, then League, with clear dividers and gold section names between them.

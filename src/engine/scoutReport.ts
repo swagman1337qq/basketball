@@ -121,7 +121,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const measure: [string, string][] = [['Position', p.pos], ['Age', String(p.age)], ['Height', p.hgt], ['Weight', p.wt + ' lb'], ['Wingspan', Math.floor(wing / 12) + '′' + (wing % 12) + '″ (' + (wing - hIn >= 0 ? '+' : '') + (wing - hIn) + ')'], ['Hand', p.id % 9 === 0 ? 'Left' : 'Right'], ['Team', team], ['Hometown', (p.city ? p.city + ', ' : '') + (C[p.born]?.n || '')], ['Represents', C[p.rep]?.n || '']];
   // Comparisons: active players whose rating profile is closest (shape), at his current level,
   // at his ceiling (best case) and below it (worst case).
-  const near = (level: number, skip: number[] = []) => { let c: any = null, b = 1e9; Object.values(s.rosters).flat().forEach((id: any) => { if (id === pid || skip.includes(id)) return; const q = P[id]; let d = q.grp === grp ? 0 : 400; Object.keys(q.r).forEach(k => (d += Math.pow(q.r[k] - q.ovr - (R[k] - o.ovr), 2))); d += Math.pow(q.ovr - level, 2) * 3; if (d < b) { b = d; c = q; } }); return c; };
+  const near = (level: number, skip: number[] = []) => { let c: any = null, b = 1e9; Object.values(s.rosters).flat().forEach((id: any) => { if (id === pid || skip.includes(id)) return; const q = P[id]; let d = q.grp === grp ? 0 : 400; Object.keys(q.r).forEach(k => (d += Math.pow(q.r[k] - q.ovr - (R[k] - o.ovr), 2))); d += Math.pow(q.ovr - level, 2) * 12; if (d < b) { b = d; c = q; } }); return c; };
   const comp: any = near(Math.max(o.ovr, o.pot - 4)), bestC: any = o.pot - o.ovr >= 3 ? near(o.pot + 2, comp ? [comp.id] : []) : null, worstC: any = near(Math.max(40, (rd.kind === 'prospect' || rd.kind === 'overseas' ? o.ovr + 2 : o.ovr - 5)), [comp?.id, bestC?.id].filter(x => x != null));
   // Projection.
   const board = g.db.rank?.[pid], yo = Math.max(0, (p.cls || g.Y) - g.Y);
@@ -132,9 +132,14 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const ceiling = 'Ceiling: ' + ceilOf(o.pot) + (o.pot - o.ovr >= 8 ? '; plenty of room to grow' : o.pot - o.ovr <= 1 && p.age >= 28 ? '; what you see is what you get' : '');
   // Strengths and weaknesses from the observed profile (relative to his position).
   const posAdj: Record<string, number> = grp === 'G' ? { hgt: 14, reb: 10, ins: 8, stre: 6, drb: -6, pss: -6 } : grp === 'B' ? { spd: 8, drb: 10, pss: 6, tp: 6, hgt: -10, reb: -8, ins: -8 } : {};
-  const keys = Object.keys(R).filter(k => GOOD[k]).sort((a, b) => R[b] + (posAdj[b] || 0) - (R[a] + (posAdj[a] || 0)));
+  // Size is judged from his real height and wingspan for his position (not the height rating),
+  // and it's never something he can "develop"; skills are ranked relative to his position.
+  const keys = Object.keys(R).filter(k => GOOD[k] && k !== 'hgt').sort((a, b) => R[b] + (posAdj[b] || 0) - (R[a] + (posAdj[a] || 0)));
+  const weakK = keys.slice(-4).reverse().filter(k => R[k] + (posAdj[k] || 0) < 62);
   const strengths = keys.slice(0, 4).filter(k => R[k] + (posAdj[k] || 0) >= 55).map(k => pick(GOOD[k]));
-  const weaknesses = keys.slice(-4).reverse().filter(k => R[k] + (posAdj[k] || 0) < 62).map(k => pick(BAD[k]));
+  const weaknesses = weakK.map(k => pick(BAD[k]));
+  if (sizeG >= 7.5) strengths.unshift(GOOD.hgt[wing0 - hIn0 >= 6 ? 1 : 0]);
+  if (sizeG <= 3.5) weaknesses.push(wing0 - hIn0 <= 1 ? BAD.hgt[1] : BAD.hgt[0]);
   if (!strengths.length) strengths.push('No standout skill yet; a jack of all trades who needs one thing to hang his hat on.');
   if (!weaknesses.length) weaknesses.push('Few holes in his game. Consistency night to night is the main thing to watch.');
   const roles = g.rolesOf(p, o.pot).slice(0, 2).map((x: string) => x.toLowerCase());
@@ -144,7 +149,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const overview = p.name + ' is a ' + p.age + '-year-old ' + p.pos + ' from ' + (p.city ? p.city + ', ' : '') + (C[p.born]?.n || '') + ' playing ' + where + '. ' + p.hgt + ', ' + p.wt + ' lb with a ' + Math.floor(wing / 12) + '′' + (wing % 12) + '″ wingspan: ' + build + ' and ' + ath + '. ' +
     (roles.length ? 'Profiles as a ' + roles.join(' and ') + '. ' : '') + (rd.kind === 'prospect' || rd.kind === 'overseas' ? (o.pot - o.ovr >= 12 ? 'Raw, but the tools are there and the ceiling is high.' : o.pot - o.ovr >= 6 ? 'Still developing, with a clear path to an NBA role.' : 'Fairly polished; less projection left in his game.') : o.ovr >= 70 ? 'One of the better players in the league at his position.' : o.ovr >= 60 ? 'A reliable rotation piece.' : 'Fighting for minutes at this level.');
   // Outlook: where he fits and what it would take.
-  const topW = weaknesses[0] ? weaknesses[0].replace(/\.$/, '').toLowerCase() : '';
+  const topW = weakK[0] ? (weaknesses[0] || '').replace(/\.$/, '').toLowerCase() : ''; // a skill he can work on, never his size
   const outlook = (rd.kind === 'prospect' ? 'Projects as ' + an(ceilOf(Math.round((o.ovr + o.pot) / 2) + 3)) + ' early in his career. ' : rd.kind === 'overseas' ? 'Would ' + (o.ovr >= 55 ? 'step into an NBA rotation' : 'start on a two-way or at the end of a bench') + ' if he came over. ' : '') +
     (o.pot - o.ovr >= 6 ? 'Hitting his ceiling as ' + an(ceilOf(o.pot)) + ' depends on development' + (topW ? ': above all, ' + topW + '.' : '.') : 'His game is largely formed; the value is in what he does now' + (strengths[0] ? ': ' + strengths[0].replace(/\.$/, '').toLowerCase() + '.' : '.'));
   const statRows = [...new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season))].sort((a: any, b: any) => b - a).slice(0, 4).map((y: any) => { const t = g.seasonTotals(p, y); if (!t || !t.gp) return null; const q = (v: number) => (v / t.gp).toFixed(1); return { season: (y - 1) + '–' + String(y).slice(2), gp: t.gp, min: q(t.min), pts: q(t.pts), reb: q(t.orb + t.drb), ast: q(t.ast), stl: q(t.stl), blk: q(t.blk), fg: t.fga ? (t.fgm / t.fga * 100).toFixed(1) : '—', tp: t.tpa ? (t.tpm / t.tpa * 100).toFixed(1) : '—', ft: t.fta ? (t.ftm / t.fta * 100).toFixed(1) : '—', per: g.perOf(t, y).toFixed(1) }; }).filter(Boolean);
@@ -160,7 +165,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   if (rd.margin >= 6) notes.push('Our read is rough: assign a scout to his region, add him to the scouting list and give it a few months.');
   return { pid, kind: rd.kind, kindLabel: { prospect: 'Draft prospect', overseas: 'Overseas', mine: 'Your team', league: 'NBA', fa: 'Free agent' }[rd.kind], scout: rd.scout, confidence: rd.confidence, margin: rd.margin,
     filed: g.fmtS(s.day) + ', ' + g.seasonLbl(), measure, grades, overall, projection, ceiling, comp: comp ? { id: comp.id, name: comp.name } : null,
-    compNote: comp ? (o.pot >= comp.ovr + 4 ? 'with more upside' : o.pot <= comp.ovr - 6 ? 'a lesser version' : 'a similar player') : '', overview, strengths, weaknesses, notes,
+    compNote: comp ? (o.pot >= Math.max(comp.pot, comp.ovr) + 8 ? 'with more upside' : o.pot <= comp.ovr - 5 ? 'a lesser version' : '') : '', overview, strengths, weaknesses, notes,
     best: bestC ? { id: bestC.id, name: bestC.name } : null, worst: worstC ? { id: worstC.id, name: worstC.name } : null, outlook, statRows };
 }
 

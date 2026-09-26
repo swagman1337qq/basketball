@@ -60,6 +60,7 @@ export class Game {
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the G League
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
+    g.rollDevYear(g.state);
     return g;
   }
 
@@ -815,11 +816,24 @@ export class Game {
       const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
-        let x = rate * this.devMult(p, rate) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
+        let x = rate * this.devMult(p, rate) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
         let potD = 0; if (a <= 24 && p.pot - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
         const dlt = Math.round(x), from = p.ovr; p.ovr = this.cl(p.ovr + dlt, 25, 100);
         // His ceiling is re-estimated: hard work, a good season and his development factor raise it.
-        if (a < 27) p.pot = Math.round(p.pot + potD + (nz() * 1.2 + (wk - 50) / 35 + form * 1.5 + (this.devK(p) - 1) * 2.5) * .6);
+        // His ceiling is re-estimated from how the year actually went, and it can fall: a serious
+        // injury, a rookie who couldn't adapt to the NBA, a young player who stalled.
+        if (a < 27) {
+          const why: string[] = [], o0 = p.rh?.[this.Y]?.o?.ovrI ?? from, gain = p.ovr - o0, expG = Math.max(0, rate * this.devMult(p, rate));
+          let pd = potD + (nz() + (wk - 50) / 40 + (this.devK(p) - 1) * 2) * .5 + 0.4 * (gain - 0.7 * expG);
+          const inj = (p.injHist || []).find((h: any) => h.season === this.seasonLbl() && h.games >= 40);
+          if (inj) { pd -= 2 + Math.random() * 3; why.push('Setback: ' + inj.name); }
+          if (p.draft === this.Y - 1 && form < -0.25) { pd -= 1 + Math.random() * 2; why.push('Couldn’t adapt to the NBA’s ' + (p.r.stre <= p.r.spd ? 'strength' : 'speed and pace')); }
+          if (a <= 24 && gain <= 0 && !inj) { pd -= 1 + Math.random(); why.push('Stalled'); }
+          if (gain >= 0.7 * expG + 3) why.push('Breakout year');
+          else if (!why.length && p.dyS === this.Y && (p.dy ?? 1) < 0.2) why.push('A lost year');
+          p.pot = Math.round(p.pot + pd);
+          if (why.length && p.rh?.[this.Y]) p.rh[this.Y].why = why;
+        }
         else p.pot = Math.max(p.ovr, p.pot - 2);
         p.pot = this.cl(Math.max(p.pot, p.ovr), 25, 95);
         Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); });
@@ -930,6 +944,7 @@ export class Game {
       const ext = aiExtensions(this, this.state, 0.5); if (ext.length) this.setState(st => ({ lgLog: [...ext, ...st.lgLog] }));
       mediaPreds(this, this.state);
       snapOpening(this, this.state); // opening-night ratings for year-over-year progress
+      this.rollDevYear(this.state);
     }
   }
   fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
@@ -1052,6 +1067,13 @@ export class Game {
   //  - The season he had: a breakout year builds confidence and raises his ceiling a little.
   //  - Luck: every year has some.
   devK(p) { if (p.devK == null) { const h = (x: number) => (((p.id * x + 11) >>> 0) % 1000) / 1000; p.devK = +Math.exp((h(7919) + h(104729) + h(15485863) - 1.5) * 2 * 0.28).toFixed(2); } return p.devK; }
+  // This season's development form, rolled on opening night: progress isn't linear. Most years
+  // are normal (about 1), some are breakouts (2+), and some go nowhere or backwards (0 or below:
+  // a player who can't adapt, loses confidence, or just has a lost year). Hard workers lean up.
+  rollDevYear(s = this.state) {
+    const P = this.db.P, g3 = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+    [...(Object.values(s.rosters).flat() as number[]), ...(s.fa || [])].forEach(id => { const p = P[id]; if (!p) return; p.dy = +Math.max(-0.8, Math.min(2.8, 1 + 0.85 * g3() + ((p.pers?.work ?? 50) - 50) / 200)).toFixed(2); p.dyS = this.Y; });
+  }
   // Expected yearly change in overall before personality, minutes and luck.
   devRate(p, age = p.age) {
     const ageBase = age <= 22 ? 4 : age <= 25 ? 2.5 : age <= 28 ? .8 : Game.ageDecline(age);
@@ -1079,7 +1101,7 @@ export class Game {
     const FOC = Game.FOCUS;
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
-      const annual = this.devRate(p), wk = p.pers?.work ?? 50;
+      const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
       // Few minutes slow a young player down, unless he works at it (G League minutes count too).
       let minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1; if (minF < 1) minF += (1 - minF) * this.cl((wk - 55) / 45, 0, 1) * .8;
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;

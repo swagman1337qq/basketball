@@ -126,7 +126,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
       <h4 style={ruleH4}>Year by year</h4>
       {years.length ? (
         <table className="table" style={{ fontSize: '13px' }}>
-          <thead><tr>{['Season', 'Overall on opening night', 'During the season', 'Over the summer', 'Year total', 'Potential', 'Biggest gains', 'Biggest drops'].map((h, x) => <th key={h} style={{ padding: '5px 8px', textAlign: x >= 1 && x <= 5 ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{['Season', 'Overall on opening night', 'During the season', 'Over the summer', 'Year total', 'Potential', 'Biggest gains', 'Biggest drops', 'Notes'].map((h, x) => <th key={h} style={{ padding: '5px 8px', textAlign: x >= 1 && x <= 5 ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
           <tbody>{years.map(y => (
             <tr key={y.season}>
               <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{y.season - 1}–{String(y.season).slice(2)}{y.live ? <span style={{ ...muted, fontSize: '11px' }}> · so far</span> : ''}</td>
@@ -137,6 +137,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
               <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.pot}{y.potD ? <span style={{ fontSize: '11px' }}> ({sg(y.potD, 0)})</span> : ''}</td>
               <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-good)' }}>{mv(y.up)}</td>
               <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-bad)' }}>{mv(y.down)}</td>
+              <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>{y.why.length ? y.why.join(' · ') : <span style={muted}>—</span>}</td>
             </tr>))}</tbody>
         </table>) : <p style={{ ...muted, fontStyle: 'italic' }}>No history yet: ratings are recorded on opening night and at the end of every season.</p>}
       <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>Overall and every rating are recorded on opening night and at the end of each season, before summer development. The Roster shows the change over the past year under Ovr and Pot.</p>
