@@ -18,6 +18,7 @@ import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from '.
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
+import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
 import { fireSale, inboxTick, ownerFavorite } from './frontOffice';
@@ -708,19 +709,17 @@ export class Game {
     this.setState(s => {
       if (s.unemployed) return null;
       if (s.phase !== 'lottery') return null;
-      const inPO = new Set(s.po.rounds[0].flatMap(x => [x.a, x.b])), lgLog0: any[] = [];
-      const byW = (a, b) => this.pct(s.teams[a]) - this.pct(s.teams[b]);
-      const lot = s.teams.map(t => t.tid).filter(t => !inPO.has(t)).sort(byW), rest = [...inPO].sort(byW);
-      const ODDS = [140, 140, 140, 125, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5], pool = lot.map((t, i) => ({ t, w: ODDS[i] ?? 5, slot: i + 1 })), top = [];
-      for (let k = 0; k < 4 && pool.length; k++) { let r = Math.random() * pool.reduce((a, x) => a + x.w, 0); const i = pool.findIndex(x => (r -= x.w) <= 0); top.push(pool.splice(i < 0 ? 0 : i, 1)[0]); }
-      const order = [...top, ...pool.sort((a, b) => a.slot - b.slot)], lotto = order.map((x, i) => ({ n: i + 1, t: x.t, from: x.slot }));
+      // The 3-2-1 lottery (lottery.ts): all 16 lottery picks are drawn.
+      const lgLog0: any[] = [], byW = (a, b) => this.pct(s.teams[a]) - this.pct(s.teams[b]);
+      const f = lotteryField(this, s), drawn = drawLottery(f.teams), { order: r1 } = firstRoundOrder(this, s, drawn);
+      const lotto = drawn.map((i, k) => { const x = f.teams[i], odds = lotteryOdds(f.teams)[i]; return { n: k + 1, t: x.tid, from: i + 1, tier: x.tier, balls: x.balls, odds1: odds[0], exp: +expectedPick(odds).toFixed(1) }; });
       // Teams above the 2nd apron in 3 of the last 5 seasons pick last in the first round.
-      const r1 = [...order.map(x => x.t), ...rest], demoted = r1.filter(t => ((s.cap?.[t]?.ap2Hist) || []).slice(-5).filter(Boolean).length >= 3);
+      const demoted = r1.filter(t => ((s.cap?.[t]?.ap2Hist) || []).slice(-5).filter(Boolean).length >= 3);
       const first = [...r1.filter(t => !demoted.includes(t)), ...demoted], second = s.teams.map(t => t.tid).sort((a, b) => byW(a, b) || a - b);
       const picks = [...first.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...second.map((orig, i) => ({ n: first.length + i + 1, rd: 2, orig, pid: null }))];
       if (demoted.length) lgLog0.push(...demoted.map(t => ({ day: s.day, type: 'Draft', teams: s.teams[t].abbr, text: s.teams[t].region + '’s first-round pick moved to the end of the round: above the 2nd apron in 3 of the last 5 seasons' })));
-      const jump = lotto.filter(x => x.from > x.n);
-      return { phase: 'draft', picks, pi: 0, lotto, screen: 'draft', dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery' + (lotto[0].from > 1 ? ', jumping from the No. ' + lotto[0].from + ' slot' : '') + (jump.length > 1 ? '. ' + jump.length + ' teams moved up.' : '') }, ...s.lgLog] };
+      const jump = lotto.filter(x => x.n < x.exp - 0.5), lotHist = { ...(s.lotHist || {}), [this.Y]: Object.fromEntries(first.map((t, i) => [t, i + 1])) };
+      return { phase: 'draft', picks, pi: 0, lotto, lotHist, screen: 'draft', dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
   startFA() {
@@ -864,7 +863,8 @@ export class Game {
     return out;
   }
   slotOf(orig, T) { const srt = T.slice().sort((a, b) => this.pct(a) - this.pct(b)); return srt.findIndex(t => t.tid === orig) + 1; }
-  projSlot(k, T) { const s = this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
+  // Expected slot under the 3-2-1 lottery (the worst records no longer mean the best odds).
+  projSlot(k, T) { const s = expectedByRank(T.length)[this.slotOf(k.orig, T)] ?? this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
   pVal(p, st) {
     const base = Math.pow(Math.max(0, p.ovr - 38), 1.9) / 10;
     const gap = Math.max(0, p.pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;

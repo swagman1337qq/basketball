@@ -148,7 +148,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             Season format
           </div>
           <div style={{ color: "var(--color-neutral-700)" }}>
-            82 games, a play-in for seeds 7–10, then four best-of-7 rounds. The offseason runs lottery, draft, free agency and preseason.
+            82 games, a play-in for seeds 7–10, then four best-of-7 rounds. The offseason runs the 2027-rules “3-2-1” draft lottery (16 teams, all 16 picks drawn), the draft, free agency and preseason.
           </div>
         </div>
       </section>

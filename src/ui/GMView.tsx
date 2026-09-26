@@ -14,6 +14,8 @@ import { ScheduleScreen } from './screens/ScheduleScreen';
 import { TransactionsScreen } from './screens/TransactionsScreen';
 import { ShortlistScreen } from './screens/ShortlistScreen';
 import { PlayoffsScreen } from './screens/PlayoffsScreen';
+import { PlayinScreen } from './screens/PlayinScreen';
+import { LotteryScreen } from './screens/LotteryScreen';
 import { AwardsScreen } from './screens/AwardsScreen';
 import { MyTeamsScreen } from './screens/MyTeamsScreen';
 import { TacticsScreen } from './screens/TacticsScreen';
@@ -100,6 +102,8 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.tx && <TransactionsScreen vm={vm} />}
             {!!vm.is.short && <ShortlistScreen vm={vm} />}
             {!!vm.is.playoffs && <PlayoffsScreen vm={vm} />}
+            {!!vm.is.playin && <PlayinScreen vm={vm} />}
+            {!!vm.is.lottery && <LotteryScreen vm={vm} />}
             {!!vm.is.awards && <AwardsScreen vm={vm} />}
             {!!vm.is.teams && <MyTeamsScreen vm={vm} />}
             {!!vm.is.tactics && <TacticsScreen vm={vm} />}

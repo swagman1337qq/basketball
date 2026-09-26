@@ -6,7 +6,7 @@ import { h4Style, Kicker, Link, muted, td, th } from '../kit';
 
 const RN = ['First round', 'Conference semifinals', 'Conference finals', 'Finals'];
 
-function TeamLine({ vm, tid, seed, wins, won, lost, placeholder }: { vm: VM; tid: number | null; seed?: number | null; wins?: ReactNode; won?: boolean; lost?: boolean; placeholder?: string }) {
+export function TeamLine({ vm, tid, seed, wins, won, lost, placeholder }: { vm: VM; tid: number | null; seed?: number | null; wins?: ReactNode; won?: boolean; lost?: boolean; placeholder?: string }) {
   const { T, logo, openTeam, isMine } = vm.ctx;
   const t = tid != null ? T[tid] : null;
   return (
@@ -39,6 +39,38 @@ function Column({ label, children }: { label: string; children: ReactNode }) {
       <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-neutral-700)', borderBottom: '1px solid var(--color-text)', paddingBottom: '3px', marginBottom: '8px', textAlign: 'center' }}>{label}</div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', gap: '10px', minHeight: '330px' }}>{children}</div>
     </div>
+  );
+}
+
+// The real play-in games of this season, by conference.
+export function PlayinBracket({ vm }: { vm: VM }) {
+  const { gm, s, isMine } = vm.ctx;
+  return (
+      <section style={{ marginBottom: '26px' }}>
+        <h4 style={h4Style}>Play-in tournament</h4>
+        <p style={{ ...muted, margin: '0 0 10px', fontSize: '12px' }}>Seed 7 hosts 8: the winner is the 7 seed. Seed 9 hosts 10: the loser is out. The loser of 7 v 8 then hosts the winner of 9 v 10 for the 8 seed.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '28px' }}>
+          {['East', 'West'].map(c => (
+            <div key={c}>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', marginBottom: '6px' }}>{c}ern Conference</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '10px' }}>
+                {s.playin[c].map(x => {
+                  const next = !x.done && gm.playinPending(s.playin).some(p => p.x === x || (p.x.id === x.id && p.c === c));
+                  const mineGame = x.a != null && (isMine(x.a) || isMine(x.b));
+                  return (
+                    <div key={x.id} style={{ border: '1px solid ' + (mineGame ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{x.label}{x.done ? ' · Final' : next ? ' · Next' : ''}</div>
+                      <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.done ? x.hp : ''} won={x.done && x.w === x.a} lost={x.done && x.w !== x.a} placeholder="Loser of 7 v 8" />
+                      <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.done ? x.ap : ''} won={x.done && x.w === x.b} lost={x.done && x.w !== x.b} placeholder="Winner of 9 v 10" />
+                      {next && mineGame && <button className="btn btn-primary" onClick={() => gm.setState({ screen: 'game' })} style={{ fontSize: '12px', padding: '3px 10px', marginTop: '2px' }}>Watch</button>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
   );
 }
 
@@ -78,33 +110,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
         </div>
       )}
 
-      {s.playin && (
-        <section style={{ marginBottom: '26px' }}>
-          <h4 style={h4Style}>Play-in tournament</h4>
-          <p style={{ ...muted, margin: '0 0 10px', fontSize: '12px' }}>Seed 7 hosts 8: the winner is the 7 seed. Seed 9 hosts 10: the loser is out. The loser of 7 v 8 then hosts the winner of 9 v 10 for the 8 seed.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '28px' }}>
-            {['East', 'West'].map(c => (
-              <div key={c}>
-                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', marginBottom: '6px' }}>{c}ern Conference</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '10px' }}>
-                  {s.playin[c].map(x => {
-                    const next = !x.done && gm.playinPending(s.playin).some(p => p.x === x || (p.x.id === x.id && p.c === c));
-                    const mineGame = x.a != null && (isMine(x.a) || isMine(x.b));
-                    return (
-                      <div key={x.id} style={{ border: '1px solid ' + (mineGame ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{x.label}{x.done ? ' · Final' : next ? ' · Next' : ''}</div>
-                        <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.done ? x.hp : ''} won={x.done && x.w === x.a} lost={x.done && x.w !== x.a} placeholder="Loser of 7 v 8" />
-                        <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.done ? x.ap : ''} won={x.done && x.w === x.b} lost={x.done && x.w !== x.b} placeholder="Winner of 9 v 10" />
-                        {next && mineGame && <button className="btn btn-primary" onClick={() => gm.setState({ screen: 'game' })} style={{ fontSize: '12px', padding: '3px 10px', marginTop: '2px' }}>Watch</button>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {s.playin && <PlayinBracket vm={vm} />}
 
       <section style={{ marginBottom: '26px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
@@ -125,14 +131,14 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
 
       {s.lotto && (
         <section style={{ marginBottom: '26px' }}>
-          <h4 style={h4Style}>Draft lottery</h4>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}><h4 style={h4Style}>Draft lottery</h4><Link onClick={() => gm.setState({ screen: 'lottery' })}>Odds and full results →</Link></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '0 28px' }}>
-            {s.lotto.slice(0, 14).map(x => (
+            {s.lotto.filter(x => x.t != null).map(x => (
               <div key={x.n} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--color-divider)', color: isMine(x.t) ? 'var(--color-accent-700)' : 'var(--color-text)' }}>
                 <span style={{ width: '22px', textAlign: 'right', color: 'var(--color-neutral-600)' }}>{x.n}</span>
                 {logo(x.t, 16)}
                 <span style={{ flex: 1 }}><Link onClick={() => openTeam(x.t)}>{T[x.t].region} {T[x.t].name}</Link></span>
-                <span style={{ fontSize: '12px', color: x.from > x.n ? 'var(--gm-good)' : x.from < x.n ? 'var(--gm-bad)' : 'var(--color-neutral-700)' }}>{x.from > x.n ? '▲ from ' + x.from : x.from < x.n ? '▼ from ' + x.from : '—'}</span>
+                {x.exp != null ? <span style={{ fontSize: '12px', color: x.n < x.exp - 0.5 ? 'var(--gm-good)' : x.n > x.exp + 0.5 ? 'var(--gm-bad)' : 'var(--color-neutral-700)' }}>{x.balls} ball{x.balls === 1 ? '' : 's'} · expected {x.exp}</span> : <span style={{ fontSize: '12px', color: x.from > x.n ? 'var(--gm-good)' : x.from < x.n ? 'var(--gm-bad)' : 'var(--color-neutral-700)' }}>{x.from > x.n ? '▲ from ' + x.from : x.from < x.n ? '▼ from ' + x.from : '—'}</span>}
               </div>
             ))}
           </div>
