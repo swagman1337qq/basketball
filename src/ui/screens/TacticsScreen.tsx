@@ -21,7 +21,7 @@ const PRESETS: Record<string, any> = {
   'Feed the star': { clutch: 'Isolate the star', off: 'Balanced' },
 };
 const nameOf = (x: any) => Object.keys(PRESETS).find(k => JSON.stringify(PRESETS[k]) === JSON.stringify(x || null)) || 'Custom';
-const LB: Record<string, string> = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb' };
+const LB: Record<string, string> = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
 
 export function TacticsScreen({ vm }: { vm: VM }) {
   const { gm, s, open } = vm.ctx, P = gm.db.P, ids: number[] = s.rosters[s.me];
@@ -76,10 +76,10 @@ export function TacticsScreen({ vm }: { vm: VM }) {
           </div>
           {trainee && (() => { const pv = gm.growthPreview(s, s.me, trainee, focus) as { monthly: number; per: Record<string, number> }, mx = Math.max(0.05, ...Object.values(pv.per).map(v => Math.abs(v))); return (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15,minmax(0,1fr))', gap: '3px', alignItems: 'end', height: '90px', borderBottom: '1px solid var(--color-divider)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(' + Object.keys(pv.per).length + ',minmax(0,1fr))', gap: '3px', alignItems: 'end', height: '90px', borderBottom: '1px solid var(--color-divider)' }}>
                 {Object.entries(pv.per).map(([k, v]) => <div key={k} title={LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2) + ' per month'} style={{ height: Math.max(2, (Math.abs(v) / mx) * 86) + 'px', background: v >= 0 ? (Game.FOCUS[focus].includes(k) ? 'var(--gm-elite)' : 'var(--gm-good)') : 'var(--gm-bad)', opacity: 0.85 }} />)}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15,minmax(0,1fr))', gap: '3px', fontSize: '9.5px', textAlign: 'center', ...muted }}>{Object.keys(pv.per).map(k => <span key={k}>{LB[k]}</span>)}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(' + Object.keys(pv.per).length + ',minmax(0,1fr))', gap: '3px', fontSize: '9.5px', textAlign: 'center', ...muted }}>{Object.keys(pv.per).map(k => <span key={k}>{LB[k]}</span>)}</div>
               <p style={{ fontSize: '12px', ...muted, margin: '6px 0 0' }}>Expected {pv.monthly >= 0 ? '+' : ''}{pv.monthly.toFixed(2)} overall per month before the random swing (±40%). Focus attributes grow 2.2× and the rest 0.45×; the Coaching budget, minutes, the dev league and injuries scale it.</p>
             </>
           ); })()}

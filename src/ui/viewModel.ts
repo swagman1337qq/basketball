@@ -382,7 +382,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const REG = regions();
   if (status === 'pro' || status === 'abroad') {
     const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), iF = intelF(s, pp.id), margin = s.god ? 0 : Math.round((yo * 5 + 3) * scoutF * fac / iF * (s.easy?.scouting ? 0.35 : 1));
-    const LBR = { hgt: 'size', stre: 'strength', spd: 'speed', jmp: 'leaping', endu: 'motor', ins: 'post game', dnk: 'finishing', ft: 'free throws', fg: 'mid-range', tp: 'three-point shooting', oiq: 'feel for the game', diq: 'defensive instincts', drb: 'handle', pss: 'passing', reb: 'rebounding' };
+    const LBR = { hgt: 'size', stre: 'strength', spd: 'speed', acc: 'first step', lay: 'touch around the rim', box: 'boxing out', jmp: 'leaping', endu: 'motor', ins: 'post game', dnk: 'finishing', ft: 'free throws', fg: 'mid-range', tp: 'three-point shooting', oiq: 'feel for the game', diq: 'defensive instincts', drb: 'handle', pss: 'passing', reb: 'rebounding' };
     const relK = Object.keys(pp.r).sort((x, y) => pp.r[y] - pp.r[x]);
     let comp = null, best = 1e9; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => { const q = P[id]; let dd = 0; Object.keys(q.r).forEach(k => dd += Math.pow((q.r[k] - q.ovr) - (pp.r[k] - pp.ovr), 2)); if (dd < best) { best = dd; comp = q; } }));
     const sc = s.scouts.filter(x => x.assign === gm.regionKey((pp.from && pp.from.country) || pp.raised));

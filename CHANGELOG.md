@@ -35,6 +35,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
 
 ### Fixed
+- Monthly development reports said "undefined" instead of Acc (acceleration); Layups and Box out were also missing from report and tactics labels. Old reports are corrected when the league loads.
+- Tactics → training growth chart: all 18 ratings now fit on one row with their labels lined up.
 - Scores from games played before box scores existed now say so on hover instead of looking clickable.
 - Create your GM: the name-order choices use your own name (which part is the family name, and what the owner will call you) instead of a fixed Vietnamese example.
 - Saved leagues show your own team's name and record (they showed the first team in the league).

@@ -119,6 +119,8 @@ export class Game {
       if (p.r.acc == null) p.r.acc = c(p.r.spd + (p.grp === 'G' ? 2 : p.grp === 'B' ? -3 : 0) + h(131) * 14);
       if (p.r.box == null) p.r.box = c(p.r.reb * 0.45 + p.r.stre * 0.35 + p.r.hgt * 0.2 + h(173) * 20);
       if (p.wing == null) { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), hIn = m ? +m[1] * 12 + +m[2] : 78; p.wing = hIn + Math.round(Math.max(-6, Math.min(12, (h(211) + h(223) + h(227)) * 6 + 3.8))); } });
+    // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
+    { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
     // Saves from before wingspan counted toward the overall.
     Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.wOvr) { const w = Math.round(wngBonus(p)); p.ovr = Math.max(1, Math.min(100, p.ovr + w)); p.pot = Math.max(p.ovr, Math.min(100, p.pot + w)); p.wOvr = 1; } });
     // Saves from before the Team player trait: hand it out the same way new players get it.
@@ -1068,7 +1070,7 @@ export class Game {
   devTick(s, rosters, day) {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
-    const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb' };
+    const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
       const annual = this.devRate(p), wk = p.pers?.work ?? 50;
       // Few minutes slow a young player down, unless he works at it (G League minutes count too).
