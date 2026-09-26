@@ -89,6 +89,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <h4 style={{ margin: "0 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
                     Extension
                   </h4>
+                  {!!vm.ctx.s.extMsg && <p style={{ margin: "8px 0", color: "var(--color-accent-800)", fontWeight: 600 }}>{vm.ctx.s.extMsg}</p>}
                   <p style={{ margin: "8px 0", color: "var(--color-neutral-700)" }}>
                     {vm.pl.extWhy}
                   </p>

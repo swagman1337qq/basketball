@@ -2,7 +2,7 @@
 // what kind (restricted with a qualifying offer, or unrestricted), the Bird rights you'll hold,
 // player and team options, extension windows, estimated cap holds, and live offer sheets.
 import type { VM } from '../vm';
-import { BIRD_LABEL, capHold, describeContract, qoFor, yosOf } from '../../engine/cba';
+import { BIRD_LABEL, capHold, describeContract, extWindow, qoFor, yosOf } from '../../engine/cba';
 import { decisionsFor } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { Link, muted, ratingTier, ruleH4 } from '../kit';
@@ -16,8 +16,8 @@ const NO_BIRD = ['tenDay', 'hardship', 'ex10'];
 export function ContractsScreen({ vm }: { vm: VM }) {
   const { gm, s, T, open } = vm.ctx, P = gm.db.P, tid = s.me, Y = gm.Y, lbl = (y: number) => (y - 1) + '–' + String(y).slice(2);
   const ids: number[] = s.rosters[tid] || [];
-  const offseason = ['draft', 'fa'].includes(s.phase), opening = s.phase === 'preseason' || (s.phase === 'regular' && s.day === 0);
-  // Once this season is over, this summer's free agents have already left the roster.
+  const offseason = s.phase === 'fa';
+  // Once free agency opens, this summer's free agents have already left the roster.
   const first = offseason ? Y + 1 : Y, summers = [first, first + 1, first + 2, first + 3];
   const endOf = (p: any) => p.exp + (p.ext?.yrs || 0);
 
@@ -30,10 +30,11 @@ export function ContractsScreen({ vm }: { vm: VM }) {
     const hold = noBird ? 0 : capHold(gm, s, { ...p, birdTid: tid, yrsWith: yrs, prevAmt: sal, amt: sal, rfa: rfa ? { qo } : undefined });
     return { rfa, qo, bird, hold, sal, yos };
   };
-  const extNow = (p: any) => !p.ext && ((!!p.rookieScale && ((p.exp === Y + 1 && offseason) || (p.exp === Y && opening)))
-    || (!p.rookieScale && (p.signed?.season != null ? Y - p.signed.season >= 2 : (p.yrsWith || 0) >= 2) && p.exp <= Y + 1 && !['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype)));
-  const extNote = (p: any) => extNow(p) ? 'Eligible now' : p.ext ? 'Extended through ' + lbl(endOf(p)) : p.rookieScale ? 'Rookie extension: summer ' + (p.exp - 1) : p.exp > Y + 1 ? 'Veteran extension: summer ' + (p.exp - 1) : '';
+  const extNow = (p: any) => extWindow(gm, s, p).ok;
+  const extNote = (p: any) => p.ext ? 'Extended through ' + lbl(endOf(p)) : extWindow(gm, s, p).why;
 
+  const extend = (id: number) => { open(id); gm.setState({ ptab: 'contract' }); };
+  const extBtn = (p: any) => <button className="btn btn-primary" style={{ fontSize: '11.5px', padding: '2px 10px' }} onClick={() => extend(p.id)} title={extWindow(gm, s, p).why}>Extend…</button>;
   const who = (p: any) => (
     <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span></td>);
   const rat = (p: any) => <td style={tdr}><b style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</b> <span style={muted}>/</span> <span style={{ color: ratingTier(p.pot).color }}>{p.pot}</span></td>;
@@ -89,6 +90,18 @@ export function ContractsScreen({ vm }: { vm: VM }) {
         </section>
       )}
 
+      {extNowL.length > 0 && (
+        <section style={{ marginBottom: 18 }}>
+          <h4 style={ruleH4}>Eligible for an extension now</h4>
+          <table className="table" style={{ fontSize: '12.5px' }}>
+            <thead><tr><th style={th}>Player</th><th style={{ ...th, textAlign: 'right' }}>Ovr / Pot</th><th style={th}>Contract</th><th style={{ ...th, textAlign: 'right' }}>Salary</th><th style={th}>Deal ends</th><th style={th}>Window</th><th style={th}></th></tr></thead>
+            <tbody>{extNowL.map(p => (
+              <tr key={p.id}>{who(p)}{rat(p)}<td style={tdc}>{describeContract(gm, p).split(' · ')[0]}</td><td style={tdr}>{fmtMoney(p.amt)}</td><td style={tdc}>Summer {p.exp}</td>
+                <td style={{ ...tdc, ...muted, fontSize: '11.5px', maxWidth: 360 }}>{extWindow(gm, s, p).why}</td><td style={tdc}>{extBtn(p)}</td></tr>))}</tbody>
+          </table>
+        </section>
+      )}
+
       {decs.length > 0 && (
         <p style={{ fontSize: 13, margin: '0 0 16px', padding: '8px 12px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)' }}>
           <b>{decs.length} decision{decs.length === 1 ? '' : 's'} due when free agency opens:</b> {decs.map(d => P[d.pid].name + ' (' + (d.kind === 'qo' ? 'qualifying offer ' : 'team option ') + fmtMoney(d.amt) + ')').join(', ')}. <Link onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Decide on the Cap sheet ›</Link>
@@ -105,12 +118,12 @@ export function ContractsScreen({ vm }: { vm: VM }) {
                 {g.opts.map(p => { const o = outlook(p, g.y), player = p.opt.kind === 'player', nxt = gm.salAt(p, g.y + 1); return (
                   <tr key={'o' + p.id}>{who(p)}{rat(p)}<td style={tdc}>{describeContract(gm, p).split(' · ')[0]}</td><td style={tdr}>{fmtMoney(o.sal)}</td>
                     <td style={tdc}>{tag(player ? 'Player option' : 'Team option', C_OPT)}<span style={muted}>{fmtMoney(nxt)} for {lbl(g.y + 1)}: {player ? 'he decides' : 'you decide'}. If {player ? 'he opts out' : 'declined'}: unrestricted</span></td>
-                    <td style={tdc}>{o.bird ? BIRD_LABEL[o.bird as 'full'] : 'None'}</td><td style={tdr}>{o.hold ? fmtMoney(o.hold) : '—'}</td><td style={{ ...tdc, fontSize: '11.5px' }}>{extNow(p) ? tag('Eligible now', C_EXT) : <span style={muted}>{extNote(p)}</span>}</td>
+                    <td style={tdc}>{o.bird ? BIRD_LABEL[o.bird as 'full'] : 'None'}</td><td style={tdr}>{o.hold ? fmtMoney(o.hold) : '—'}</td><td style={{ ...tdc, fontSize: '11.5px' }}>{extNow(p) ? extBtn(p) : <span style={muted}>{extNote(p)}</span>}</td>
                   </tr>); })}
                 {g.ending.map(p => { const o = outlook(p, g.y); return (
                   <tr key={p.id}>{who(p)}{rat(p)}<td style={tdc}>{describeContract(gm, p).split(' · ')[0]}{p.ext ? <span style={muted}> + extension</span> : null}</td><td style={tdr}>{fmtMoney(o.sal)}</td>
                     <td style={tdc}>{o.rfa ? <>{tag('Restricted', C_RFA)}<span style={muted}>QO ≈ {fmtMoney(o.qo)}</span></> : tag('Unrestricted', C_UFA)}{NO_BIRD.includes(p.ctype) && <span style={muted}> (short-term deal)</span>}</td>
-                    <td style={tdc}>{o.bird ? BIRD_LABEL[o.bird as 'full'] : 'None'}</td><td style={tdr}>{o.hold ? fmtMoney(o.hold) : '—'}</td><td style={{ ...tdc, fontSize: '11.5px' }}>{extNow(p) ? tag('Eligible now', C_EXT) : <span style={muted}>{extNote(p)}</span>}</td>
+                    <td style={tdc}>{o.bird ? BIRD_LABEL[o.bird as 'full'] : 'None'}</td><td style={tdr}>{o.hold ? fmtMoney(o.hold) : '—'}</td><td style={{ ...tdc, fontSize: '11.5px' }}>{extNow(p) ? extBtn(p) : <span style={muted}>{extNote(p)}</span>}</td>
                   </tr>); })}
               </tbody>
             </table>)}

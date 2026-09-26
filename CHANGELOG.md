@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Extend buttons.** Players eligible for an extension have an "Extend…" button on their profile header and on the Contracts tab (which also lists everyone eligible right now). It opens the extension offer on his Contract tab.
 - **Contracts tab** (Team): your upcoming free agents summer by summer for the next four summers. Each player is marked restricted (with his estimated qualifying offer) or unrestricted, with the Bird rights you'll hold, his estimated cap hold, player and team options (and what happens if they're declined), and when he can sign an extension. Also shows offer sheets, your own free agents during free agency, and decisions due on the Cap sheet.
 - **Scouting reports list:** click the "Plays like" player to open his profile.
 - **God Mode: edit height and wingspan in feet and inches**, next to the numbers (the height rating and the wingspan in inches). Change either one and the other follows; wingspan moves with height. **Position** is editable too (PG, SG, G, SF, GF, F, PF, FC, C) on the profile editor and the Edit player tab.
@@ -27,6 +28,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Extensions follow the NBA's rules.** Rookie-scale extensions: the summer before the final year of the rookie deal, from July 6 until the day before the regular season (miss it and he heads for restricted free agency). Veteran extensions: two years after he signed (three for a five-year deal); with more than one season left only between July 6 and opening night, and in the final season of his deal any time until June 30, including during the season. Up to five seasons including what's left of his deal (six for a supermax). No extensions during the July moratorium. If he isn't eligible, his Contract tab says why and when he will be.
+- **Extend-and-trade rule:** an extension with a raise of more than 5% means he can't be traded for six months.
 - **Revenue sharing works like the NBA's.** About $400M a year (at today's cap) goes to the roughly 18–20 teams below the league's average local revenue, up to about $45M for the smallest markets (it was about $5M). Half of the league's luxury-tax payments fund it and big-market teams pay the rest (they now see "Revenue sharing paid" on Finances). A receiving team that doesn't fill its arena gets up to 25% less.
 - **Overall and Potential rings are colour-coded** by where the rating ranks in the league, with the tier named underneath ("Starter", "All-Star ceiling"…): purple Superstar (70+), bright green All-Star (63+), green Starter (56+), white Rotation (48+), orange Bench (41+), red Fringe (below 41). Hover the tier name for the scale. Scouted Ovr/Pot in scouting reports use the same colours.
 - **Scouting reports show the scouted Ovr and Pot** (what your scouts see, within their margin) instead of a separate 40–99 grade that was easy to mistake for either. The list has Ovr and Pot columns.

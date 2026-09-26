@@ -5,7 +5,7 @@
 import type { Game } from './Game';
 
 // ── League calendar (82 game days spread from late October to mid-April) ────────────
-export const DAY = { PLAYOFF_WAIVE: 61, TRADE_DEADLINE: 50, TEN_DAY_START: 36, DPE_DEADLINE: 66, SIGNEE_TRADE: 26, INSEASON_SIGNEE_WAIT: 42, TEN_DAY_LEN: 5, TWO_WAY_GAMES: 50 };
+export const DAY = { EXT_TRADE: 40, PLAYOFF_WAIVE: 61, TRADE_DEADLINE: 50, TEN_DAY_START: 36, DPE_DEADLINE: 66, SIGNEE_TRADE: 26, INSEASON_SIGNEE_WAIT: 42, TEN_DAY_LEN: 5, TWO_WAY_GAMES: 50 };
 
 // Roster limits: 15 standard contracts in season (21 in the offseason and training camp),
 // plus up to 3 two-way players who don't count against the 15 or the cap. Minimum 14.
@@ -198,6 +198,10 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
     out.forEach(id => { const q = P[id], sg = q.signed; if (!sg) return;
       const wait = sg.season === g.Y && (sg.phase === 'fa' || sg.phase === 'draft' || sg.phase === 'preseason') ? (s.phase === 'regular' ? s.day < DAY.SIGNEE_TRADE : true) : sg.season === g.Y && sg.phase === 'regular' ? s.day - sg.day < DAY.INSEASON_SIGNEE_WAIT : false;
       if (wait && !s.god) errs.push(q.name + ' signed recently and can’t be traded until ' + (sg.phase === 'regular' ? g.fmtS(sg.day + DAY.INSEASON_SIGNEE_WAIT) : g.fmtS(DAY.SIGNEE_TRADE)) + '.'); });
+    // Extend-and-trade rule: an extension with a raise over 5% blocks trades for six months.
+    out.forEach(id => { const x = P[id].extNoTrade; if (!x || s.god) return; const inSeason = x.phase === 'regular' || x.phase === 'playin' || x.phase === 'playoffs';
+      const until = inSeason ? null : DAY.EXT_TRADE, blocked = inSeason ? x.season === g.Y : (x.season === g.Y && (s.phase !== 'regular' || s.day < (until as number))) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'regular' && s.day < (until as number) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'preseason';
+      if (blocked) errs.push(P[id].name + ' signed an extension with a raise over 5% and can’t be traded for six months' + (inSeason ? ' (not again this season).' : ' (until ' + g.fmtS(until as number) + ').')); });
     out.forEach(id => { if (P[id].ntc && !s.god) errs.push(P[id].name + ' has a no-trade clause and won’t waive it.'); });
     if (s.phase === 'regular' && s.day > DAY.TRADE_DEADLINE) errs.push('The trade deadline (' + g.fmtS(DAY.TRADE_DEADLINE) + ') has passed.');
     // TPE created when sending out more than taking back (over the cap, single-player out).
@@ -259,4 +263,34 @@ export const qoEligible = (g: Game, p: any) => !!p.rookieScale || yosOf(g, p) <=
 export function describeContract(g: Game, p: any) {
   const t = p.ctype === 'rookie' ? 'Rookie scale' : p.ctype === 'twoWay' ? 'Two-way' : p.ctype === 'ex10' ? 'Exhibit 10' : p.ctype === 'tenDay' ? '10-day' : p.ctype === 'hardship' ? 'Hardship' : p.ctype === 'max' ? 'Max' : p.ctype === 'min' ? 'Minimum' : 'Veteran';
   return t + (p.opt ? ' · ' + (p.opt.kind === 'player' ? 'player' : 'team') + ' option ' + (p.opt.season - 1) + '–' + String(p.opt.season).slice(2) : '') + (p.kicker ? ' · ' + Math.round(p.kicker * 100) + '% trade kicker' : '') + (p.ntc ? ' · no-trade clause' : '');
+}
+
+// ── Extensions (NBA rules) ──────────────────────────────────────────────────────
+// Rookie scale: the summer before the last year of his rookie deal, from July 6 until the day
+// before the regular season. Veteran: two years after he signed (three for a five-year deal);
+// with more than one season left only in the off-season window (July 6 to opening night), in
+// the final season any time until June 30. Up to five seasons including the current one (six
+// for a designated-veteran supermax); rookie-scale extensions add up to five new seasons.
+export function extWindow(g: Game, s: any, p: any): { ok: boolean; kind: 'rookie' | 'vet' | null; why: string; left: number } {
+  const Y = g.Y, ph = s.phase, fa = ph === 'fa', fd = fa ? g.faDayOf(s) : 0;
+  const offWin = (fa && fd >= 6) || ph === 'preseason' || (ph === 'regular' && s.day === 0);
+  const left = fa ? p.exp - Y : p.exp - Y + 1; // seasons left on the deal, counting the current one
+  const july = (y: number) => 'July 6, ' + y;
+  if (p.ext) return { ok: false, kind: null, why: 'Already extended through ' + (p.exp + p.ext.yrs - 1) + '–' + String(p.exp + p.ext.yrs).slice(2) + '.', left };
+  if (['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype)) return { ok: false, kind: null, why: 'Two-way, Exhibit 10, 10-day and hardship deals can’t be extended' + (p.ctype === 'twoWay' ? ' (convert him to a standard contract first).' : '.'), left };
+  if (left < 1) return { ok: false, kind: null, why: 'His contract has run out.', left };
+  if (fa && fd < 6) return { ok: false, kind: null, why: 'Extensions can’t be signed during the July moratorium: from ' + july(Y) + '.', left };
+  if (p.rookieScale) {
+    if (left === 1 && offWin) return { ok: true, kind: 'rookie', why: 'Rookie-scale extension window: until the day before the regular season.', left };
+    if (left === 1) return { ok: false, kind: 'rookie', why: 'His rookie-scale extension window closed on opening night. He can be a restricted free agent next summer (extend his qualifying offer).', left };
+    const y = p.exp - 1; return { ok: false, kind: 'rookie', why: 'Rookie-scale extension window: the summer before his final rookie year, ' + july(y) + ' until opening night.', left };
+  }
+  // Two-year anniversary of the signing (three for a five-year deal).
+  const sg = p.signed, len = sg?.season != null ? p.exp - sg.season + 1 : 0, need = len >= 5 ? 3 : 2;
+  const now = (fa || ph === 'draft') ? Y + (fa ? 0 : -0.1) : Y - 1 + 0.5, at = sg?.season != null ? sg.season - 1 + (sg.phase === 'regular' ? 0.5 : 0) : -Infinity;
+  const anniv = sg?.season != null ? now - at >= need - 0.01 : (p.yrsWith || 0) >= 2;
+  if (!anniv) { const y = sg?.season != null ? Math.ceil(at + need) : Math.ceil(now) + (2 - (p.yrsWith || 0)); return { ok: false, kind: 'vet', why: 'Veteran extensions need ' + need + ' years since he signed' + (need === 3 ? ' (it’s a five-year deal)' : '') + (y >= p.exp ? ', so he can’t be extended before his deal runs out: re-sign him in free agency instead (you’ll hold his Bird rights).' : ': eligible from summer ' + y + '.'), left }; }
+  if (left === 1) return { ok: true, kind: 'vet', why: 'Final season of his deal: he can extend any time until June 30.', left };
+  if (offWin) return { ok: true, kind: 'vet', why: 'Off-season extension window (July 6 to the day before the regular season).', left };
+  return { ok: false, kind: 'vet', why: 'With ' + left + ' seasons left he can only extend in the off-season window (July 6 to opening night), or any time once he’s in the final year of his deal.', left };
 }
