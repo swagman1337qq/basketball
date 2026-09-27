@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{o as t,p as n}from"./index-DrzfyGs0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{o as t,p as n}from"./index-CeYbOHYO.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-26
 
 ### Added
+- **Stop button.** While a multi-day sim runs (a week, a month, to the deadline, to the end of the season), the season bar shows ■ Stop: the day in progress finishes and the sim halts.
+- **CCP games setting** (Settings): Quick results (the default) work out each development-league game from the clubs' strength and players' ratings, so sims run much faster; Full engine plays every CCP game possession by possession like NBA games.
 - **The Continental Championship Pathway (CCP)**, the development league, with its own tab (Management → CCP) and a hammer-and-sickle crest. 31 clubs, one affiliate for every NBA team plus an independent, in the most remote places in the U.S. and Canada: the Utqiaġvik Polar Nights, Alert Sentinels (the northernmost settlement on Earth), Supai Mule Train (mail still arrives by mule), Monowi Ones (population 1), Fogo Island Flat Earthers, Whittier Tunnel Rats and more, each with a crest and the story of its town. It follows the G League's 2025–26 format: a 14-game Tip-Off Tournament in four regions, the Winter Showcase for the eight best, a 36-game regular season, and 16-team playoffs with a best-of-three Finals. Every game is played by the real game engine, so every player has real stats. Scroll through the clubs with ‹ ›, see each roster (CCP contracts, local tryouts, CCP draft picks, returning rights, affiliate players, your two-ways and anyone you send down) with full stats, the league-wide player list, standings, results, the schedule and past champions. Players on CCP contracts are free agents to the NBA: a Sign… button shows which deals you can offer (two-way, minimum, 10-day…). Clubs keep 10–12 players, signing new ones from the player pool when players are called up.
 - **Recommended position** (God Mode editors): under the Position menu the game suggests the position his body and skills fit, mostly from height, nudged by wingspan and whether his skills are a guard's or a big's (a 7-footer is a center; a 6′9″ playmaker is a wing). It updates as you edit him; press Use to apply it, or pick any position you like.
 - **Badges in the rotation** (Tactics): each player shows his top badges under his name, with the rest behind "+N". Hover a badge for what it does.
@@ -34,6 +36,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
 
 ### Changed
+- **Retired players who never played in the league are removed.** CCP-only players, undrafted prospects and anyone else who retires without a single NBA game is taken out of the database (only a name is kept, so old draft results and transactions still read correctly); they no longer appear in lists, searches or profiles. Anyone who played at least one game is kept. Saves stay much smaller over a long career.
 - **Much faster.** Simulating a season takes about half as long, a week in the browser about a quarter (the screen now redraws a few times a second during sims instead of after every day), free agency about a quarter, screens build 3–6x faster and a new league is created in a fraction of a second. Retired players who never reached the NBA are stored more compactly, so saves grow more slowly. Rarely used screens load when you first open them.
 - **Long lists come a page at a time**: free agency, the CCP, the draft board, transactions, stats, scouting reports, overseas, the shortlist, predictions, the Hall of Fame ballot, the press room, expansion cities and player lists (a country, a draft class, a college…). Each shows "Showing 1–25 of 300 players" with page numbers and a "Show more" button.
 - **Badges follow what you know.** Your own players and NBA veterans show all their badges; prospects, rookies, overseas and CCP players show only what your scouts have seen (a sharp read shows all of them, a rough one only the best, a stranger none). God Mode shows everything.
