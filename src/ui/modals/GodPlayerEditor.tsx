@@ -9,6 +9,7 @@ import { namePools } from '../../data/world';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
+import { syncOvr } from '../../engine/ratings';
 import { allPools, applyNativeMix, groupsOf, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -84,7 +85,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {inRow(<select className="input" value={vm.pl.ed.posV} onChange={vm.pl.ed.setPos} style={{ flex: 1, minWidth: 0 }}>{(vm.pl.ed.posOpts || []).map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}</select>, () => { const o = vm.pl.ed.posOpts || []; vm.pl.ed.setPos({ target: { value: o[Math.floor(Math.random() * o.length)].v } }); }, 'A random position')}
           <span style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--color-neutral-700)', margin: '-2px 0 4px' }} title={vm.pl.ed.posRec?.why}>Recommended: <b style={{ color: 'var(--color-accent-700)' }}>{vm.pl.ed.posRec?.label}</b> <span>({vm.pl.ed.posRec?.why})</span>{!vm.pl.ed.posRec?.same && <button className="btn btn-ghost" onClick={vm.pl.ed.posRec?.use} style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 6 }}>Use</button>}</span>
           {num('Height', hIn, 66, 91, v => mut(q => { const d = v - inchesOf(q.hgt); if (!d) return; q.hgt = fmtH(v); setRating(q, 'hgt', cl(q.r.hgt + d * 4, 4, 100)); if (q.wing != null) q.wing += d; }), fmtH, 'inches', () => (p.grp === 'G' ? 72 + Math.floor(Math.random() * 7) : p.grp === 'W' ? 76 + Math.floor(Math.random() * 6) : 80 + Math.floor(Math.random() * 7)))}
-          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); }), undefined, 'lb', () => Math.round(hIn * 2.9 - 5 + Math.random() * 25))}
+          {num('Weight', p.wt, 150, 320, v => mut(q => { const d = v - q.wt; q.wt = v; q.r.stre = cl(Math.round(q.r.stre + d / 4), 4, 100); q.r.spd = cl(Math.round(q.r.spd - d / 8), 4, 100); syncOvr(q, true); }), undefined, 'lb', () => Math.round(hIn * 2.9 - 5 + Math.random() * 25))}
           {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => setWing(q, v)), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height) · rating ' + wngOf(v, hIn), 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
           <span style={muted}>Hometown</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

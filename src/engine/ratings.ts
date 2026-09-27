@@ -72,10 +72,13 @@ export const BADGE_FLAVOR: Record<string, string> = {
   clutch: 'Wants the ball with the game on the line, and the last shot tends to fall.',
 };
 
+// Every badge's bar sits this much above its listed threshold, so badges mark real standouts: bench
+// players have none, starters one or two, All-Stars about five.
+export const BADGE_SHIFT = 4;
 export function badgesOf(p: any): Badge[] {
   if (!p?.r) return [];
   const out: (Badge & { m: number })[] = [];
-  DEFS.forEach(([key, name, desc, f, th = 72]) => { const v = f(p); if (v == null || v < th) return; const m = v - th, tier = Math.min(3, Math.floor(m / 6)); out.push({ key, name, desc, tier, tierName: TIERS[tier][0], color: TIERS[tier][1], m }); });
+    DEFS.forEach(([key, name, desc, f, th0 = 72]) => { const th = th0 + BADGE_SHIFT, v = f(p); if (v == null || v < th) return; const m = v - th, tier = Math.min(3, Math.floor(m / 6)); out.push({ key, name, desc, tier, tierName: TIERS[tier][0], color: TIERS[tier][1], m }); });
   return out.sort((a, b) => b.tier - a.tier || b.m - a.m).map(({ m, ...b }) => { void m; return b; });
 }
 export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }));
@@ -89,14 +92,36 @@ export const OVR_W: Record<string, Record<string, number>> = {
   B: { hgt: 1.8, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
 };
 export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
-// Move the overall by a change in its ratings (fractions carry over), and potential with it:
-// better skills today mean a higher ceiling too.
-export function nudgeOvr(p: any, d: number) {
-  if (p.ovrF == null || Math.round(p.ovrF) !== p.ovr) p.ovrF = p.ovr; // overall was set directly since
-  p.ovrF += d; const to = Math.max(1, Math.min(100, Math.round(p.ovrF))), dO = to - p.ovr;
-  if (dO) { p.ovr = to; p.pot = Math.max(p.ovr, Math.min(100, p.pot + dO)); }
+// The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
+// far more than a center's), plus his wingspan, on a scale shared by all positions. Bigs naturally
+// rate high in size skills and guards in speed and handle, so each position has a set adjustment
+// that keeps a typical 60 guard, wing and big all at 60. Hidden decimal progress (p.rx) counts.
+export const OVR_ADJ: Record<string, number> = { G: 2.7, W: 1.6, B: 4.1 };
+export function ovrExact(p: any): number {
+  const W = OVR_W[p.grp] || OVR_W.W; let a = 0, t = 0;
+  for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }
+  return Math.max(1, Math.min(100, (t ? a / t : 50) + wngBonus(p) - (OVR_ADJ[p.grp] ?? 2.5)));
 }
-export function setRating(p: any, k: string, v: number) { const d = v - p.r[k]; p.r[k] = v; if (d) nudgeOvr(p, d * ovrShare(p.grp, k)); }
+// Recompute the overall from the ratings (after any rating change). movePot: the ceiling moves by the
+// same amount (edits); growth toward the ceiling leaves it alone.
+export function syncOvr(p: any, movePot = false) {
+  if (!p?.r) return 0;
+  const e = ovrExact(p), o = Math.round(e), d = o - p.ovr;
+  p.ovr = o; p.ox = +(e - o).toFixed(3); p.ovrF = e;
+  if (movePot && d) p.pot = Math.min(100, p.pot + d);
+  if (p.pot < p.ovr) p.pot = p.ovr;
+  return d;
+}
+// Kept for older callers: the overall now follows the ratings exactly.
+export function nudgeOvr(p: any, _d: number) { syncOvr(p, true); }
+export function setRating(p: any, k: string, v: number) { p.r[k] = v; syncOvr(p, true); }
+// Set the overall directly (God Mode): every skill but height moves by the same amount until the
+// overall lands there (a few passes, since ratings stop at 1 and 100).
+export function setOverall(p: any, v: number) {
+  const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
+  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(100, Math.round(p.r[k] + d * f))); }); }
+  syncOvr(p, true);
+}
 
 // Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is
 // tall); every inch longer or shorter is 6 points. It counts toward the overall at a set rate per
@@ -107,7 +132,7 @@ export const WNG_W: Record<string, number> = { G: .04, W: .06, B: .08 };
 export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(100, 50 + (wing - hIn - 4) * 6)));
 export const wngRating = (p: any) => wngOf(p.wing ?? inchesOf(p.hgt) + 4, inchesOf(p.hgt));
 export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? .06);
-export function setWing(p: any, inches: number) { const a = wngRating(p); p.wing = inches; nudgeOvr(p, (wngRating(p) - a) * (WNG_W[p.grp] ?? .06)); }
+export function setWing(p: any, inches: number) { p.wing = inches; syncOvr(p, true); }
 
 // The position his body and skills point to: mostly height, nudged by wingspan (long arms play
 // bigger) and by whether his skills are a guard's (handling, passing, speed) or a big's

@@ -6,7 +6,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { ovrShare, setRating, teamRating, wngBonus } from './ratings';
+import { ovrShare, setRating, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -123,6 +123,8 @@ export class Game {
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
+    // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
+    if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
     // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
@@ -210,7 +212,7 @@ export class Game {
   face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
   resetFace(pid) { delete this.faceCache[pid]; }
   // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
-  randomRatings(p) { RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.ovr + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); }
+  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); syncOvr(p); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
@@ -233,7 +235,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -405,7 +407,7 @@ export class Game {
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
-    { const w = Math.round(wngBonus(p)); p.ovr = cl(p.ovr + w, 22, 100); p.pot = Math.max(p.ovr, p.pot + w); p.wOvr = 1; } // wingspan counts toward the overall
+    syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     P[p.id] = p; return p;
   }
@@ -877,7 +879,10 @@ export class Game {
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
         let x = rate * this.devMult(p, rate) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
         let potD = 0; if (a <= 24 && p.pot - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
-        const dlt = Math.round(x), from = p.ovr; p.ovr = this.cl(p.ovr + dlt, 25, 100);
+        // The year's change goes into his ratings (height aside), and the overall follows them.
+        const dlt = Math.round(x), from = p.ovr, hf = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
+        Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt * hf + (Math.random() - .5) * 4, 4, 100)); });
+        syncOvr(p);
         // His ceiling is re-estimated: hard work, a good season and his development factor raise it.
         // His ceiling is re-estimated from how the year actually went, and it can fall: a serious
         // injury, a rookie who couldn't adapt to the NBA, a young player who stalled.
@@ -897,7 +902,6 @@ export class Game {
         // A hidden gem's ceiling surfaces each summer too (intangibles.ts), prospects included.
         if (p.gem && p.gem.left > 0 && a <= 29) { const gx = Math.min(p.gem.left, p.gem.add * 0.3); p.gem.left = +(p.gem.left - gx).toFixed(3); p.pot += Math.round(gx); if (gx >= 1 && p.rh?.[this.Y]) p.rh[this.Y].why = [...(p.rh[this.Y].why || []), 'Outgrowing his projection']; }
         p.pot = this.cl(Math.max(p.pot, p.ovr), 25, 95);
-        Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); });
         // A late growth spurt: extremely rare, only for teenagers and 20–21-year-olds, one inch
         // (4 height points). Wingspan never changes.
         const spurt = a <= 19 ? .003 : a <= 21 ? .001 : 0; // about one player every two or three seasons, league-wide
@@ -1089,7 +1093,7 @@ export class Game {
       const risk = .0045 * (1 + Math.max(0, p.age - 27) * .05) * (1.45 - p.r.endu / 100) * (1.25 - p.r.stre / 200) * ((mins[id] || 0) / 30) * (p.pers.prone ? 1.8 : 1) * (1 + (p.fat || 0) / 80) * (p.inj ? 1.5 : 1);
       if (Math.random() >= risk) return;
       const x = Math.random(); let inj;
-      if (x < .03) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; ['spd', 'jmp', 'stre'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 4))); p.ovr = Math.max(25, p.ovr - 2); }
+      if (x < .03) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); }
       else if (x < .15) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain']), games: 8 + Math.floor(Math.random() * 14) };
       else { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Bruised knee', 'Back spasms', 'Sprained finger']), games: 1 + Math.floor(Math.random() * 6) }; p.minorCount = (p.minorCount || 0) + 1;
         // About a third of minor knocks are day-to-day: he plays through them at reduced effectiveness.
@@ -1187,7 +1191,7 @@ export class Game {
       // Intangibles grow slowly: composure with experience (to about 31), feel a little while young.
       { const it = ensureIntg(p); p.ix = p.ix || { f: 0, p: 0 }; if (a <= 31) p.ix.p += 0.1; if (a <= 27) p.ix.f += 0.03 * (0.7 + wk / 167);
         const wf = Math.trunc(p.ix.f), wq = Math.trunc(p.ix.p); if (wf) { it.feel = cl(it.feel + wf, 1, 99); p.ix.f -= wf; } if (wq) { it.poise = cl(it.poise + wq, 1, 99); p.ix.p -= wq; } }
-      p.ox = (p.ox || 0) + gainR; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; } if (p.pot < p.ovr) p.pot = p.ovr;
+      syncOvr(p); // the overall is the (new) ratings
       p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
@@ -1305,7 +1309,7 @@ export class Game {
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); ccpTopUp(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
-      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
+      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.osx = (q.osx || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.osx); if (w && q.ovr < q.pot + 2) { q.osx -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); syncOvr(q); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
     // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
     const ib = inboxTick(this, s, day, rosters), favBench = { ...(s.favBench || {}) }, mandateFails = { ...(s.mandateFails || {}) };

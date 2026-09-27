@@ -3,6 +3,7 @@
 // Thompson, Bronny James) and about 3% have a brother who also made it (the Currys,
 // Holidays, Antetokounmpos). A son takes his father's surname, heritage and often his
 // frame; brothers share a surname, country and background.
+import { syncOvr } from './ratings';
 import type { Game } from './Game';
 import { randomName } from '../data/heritage';
 
@@ -57,7 +58,7 @@ export function maybeSon(g: Game, p: any, rnd: () => number, force = false) {
   // Juniors: Western naming only, about one son in eight.
   if (!p.familyFirst && !NO_SURNAME.test(dad.heritage || '') && rnd() < 0.12 && !/ Jr\.$/.test(dad.name)) { p.first = dad.first ?? String(dad.name).split(' ')[0]; p.name = p.first + ' ' + p.last + ' Jr.'; }
   // Genes: height and frame drift toward the father's.
-  p.r.hgt = Math.round((p.r.hgt + dad.r.hgt) / 2); if (dad.hgt) p.hgt = rnd() < 0.5 ? dad.hgt : p.hgt;
+  p.r.hgt = Math.round((p.r.hgt + dad.r.hgt) / 2); if (dad.hgt) p.hgt = rnd() < 0.5 ? dad.hgt : p.hgt; syncOvr(p);
   relate(dad, 'father', p);
   return dad;
 }
