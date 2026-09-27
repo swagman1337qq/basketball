@@ -26,7 +26,7 @@ export function cardsOf(s: any): { id: string; card: any }[] {
 
 // Everyone in the league (rosters, free agents, overseas, prospects), for "New card from any player".
 let OPTS: { key: number; list: any[] } | null = null;
-const playerOpts = (gm: any, s: any) => {
+export const playerOpts = (gm: any, s: any) => {
   const key = (s.gv || 0) * 1000 + s.day;
   if (OPTS && OPTS.key === key) return OPTS.list;
   const tidOf: Record<number, string> = {}; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach((id: number) => (tidOf[id] = s.teams[+t].abbr)));
@@ -34,14 +34,15 @@ const playerOpts = (gm: any, s: any) => {
   OPTS = { key, list }; return list;
 };
 
-export function CardLibrary({ vm, p }: { vm: VM; p: any }) {
+export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
   const { gm, s } = vm.ctx, C = gm.db.C, lib = cardsOf(s);
   const [who, setWho] = useState(''), [sel, setSel] = useState(''), [draft, setDraft] = useState<any>(null), [msg, setMsg] = useState(''), [paste, setPaste] = useState('');
   const saveLib = (next: { id: string; card: any }[]) => gm.setState({ cards: next });
-  const undo = s.cardUndo && s.cardUndo.pid === p.id ? s.cardUndo : null;
+  const undo = p && s.cardUndo && s.cardUndo.pid === p.id ? s.cardUndo : null;
   const say = (m: string) => setMsg(m);
 
   const apply = (card: any, label: string) => {
+    if (!p) return say('✗ Pick a player to apply it to first.');
     const before = { ...exportCard(p), _gem: p.gem, _rx: p.rx, _px: p.px }, err = applyCard(p, card, C);
     if (err) return say('✗ ' + err);
     gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, cardUndo: { pid: p.id, prev: before } })); gm.enforceRetirement();
@@ -64,13 +65,12 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any }) {
   const rgrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '6px 12px' } as const;
 
   return (<>
-    <h4 style={ruleH4}>Player cards</h4>
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
       <select className="input" value={sel && lib.some(x => x.id === sel) ? sel : ''} onChange={e => { const x = lib.find(c => c.id === e.target.value); if (x) open(x.id, x.card); }} style={{ width: 'auto', maxWidth: 260 }}>
         <option value="">Your cards ({lib.length})…</option>{lib.map(x => <option key={x.id} value={x.id}>{x.card.label || x.card.name}</option>)}
       </select>
       <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => { open(newId(), clone(BLANK_CARD)); say('New blank card: fill it in, then Save or Apply.'); }}>New blank card</button>
-      <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => { open(newId(), { ...exportCard(p), label: p.name }); say('Filled a new card from ' + p.name + '. Edit it, then Save.'); }} title="A new card with this player’s current build">New card from this player</button>
+      {p && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => { open(newId(), { ...exportCard(p), label: p.name }); say('Filled a new card from ' + p.name + '. Edit it, then Save.'); }} title="A new card with this player’s current build">New card from {p.name}</button>}
       <Combo value={who} options={playerOpts(gm, s)} placeholder="New card from any player…" width={220} onChange={setWho}
         onPick={o => { const q = gm.db.P[(o as any).id]; setWho(''); if (q) { open(newId(), { ...exportCard(q), label: q.name }); say('Filled a new card from ' + q.name + '. Edit it, then Save or Apply.'); } }} />
       <label className="btn btn-ghost" style={{ fontSize: '12px', cursor: 'pointer' }}>Import file…<input type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) importText(await f.text(), f.name.replace(/\.json$/, '')); e.target.value = ''; }} /></label>
@@ -119,7 +119,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any }) {
       <div style={rgrid}>{TENDS.map(([k, l]) => <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>{l}</span><NumInput value={Math.round((draft.tend?.[k] ?? 1) * 100)} min={20} max={300} step={5} onValue={v => set(d => { d.tend = { ...(d.tend || {}), [k]: v / 100 }; if (v === 100) delete d.tend[k]; })} width={62} suffix="%" /></label>)}</div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" style={{ fontSize: '12px' }} onClick={() => apply(draft, '“' + (draft.label || draft.name || 'this card') + '”')}>Apply to {p.name}</button>
+        <button className="btn btn-primary" style={{ fontSize: '12px' }} disabled={!p} title={p ? '' : 'Pick a player above first'} onClick={() => apply(draft, '“' + (draft.label || draft.name || 'this card') + '”')}>{p ? 'Apply to ' + p.name : 'Pick a player to apply to'}</button>
         <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={saveDraft}>Save card</button>
         <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => { const id = newId(); saveLib([...lib, { id, card: { ...clone(draft), label: (draft.label || draft.name || 'Card') + ' (copy)' } }]); open(id, { ...draft, label: (draft.label || draft.name || 'Card') + ' (copy)' }); say('✓ Duplicated.'); }}>Duplicate</button>
         <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => download({ ...draft, card: 1 })}>Download</button>

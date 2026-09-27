@@ -8,7 +8,7 @@ import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '
 import { namePools, regionOf } from '../../data/world';
 import { US_STATES } from '../../data/usStates';
 import { hometownOf } from '../../data/hometown';
-import { CardLibrary } from './CardLibrary';
+import { GOD_PINK } from '../kit';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
@@ -191,7 +191,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         </div>
       </section>
       <section>
-        <CardLibrary vm={vm} p={p} />
+        <h4 style={ruleH4}>Player cards</h4>
+        <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }} onClick={() => vm.ctx.gm.setState({ screen: 'cards', cardTarget: p.id, modal: false, teamModal: null })}>Open Player cards for {p.name} →</button>
+        <p style={{ ...muted, fontSize: '11.5px' }}>Build, save and apply whole player builds in the Player cards tab (Management, God Mode only).</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Psychology</h4>
         <div style={grid}>
           {num('Work ethic', p.pers.work ?? 50, 0, 100, v => mut(q => (q.pers.work = v)))}
