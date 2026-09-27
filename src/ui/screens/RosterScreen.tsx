@@ -17,6 +17,7 @@ import { teamRating } from '../../engine/ratings';
 import { knownBadges } from '../../engine/scoutReport';
 import { nums, rosterMax, stdIds, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
 import { financesOf } from '../../engine/frontOffice';
+import { convertContract } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
@@ -76,6 +77,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
             {p.native && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>({p.native})</span>}
             {cur && bs.map(b => <BadgeChip key={b.key} b={b} small />)}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
+            {mine && tid === s.me && (p.ctype === 'twoWay' || p.ctype === 'ex10') && <button className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, p.ctype === 'twoWay' ? 'standard' : 'twoWay'); }}
+              title={p.ctype === 'twoWay' ? 'Give him a standard contract (the minimum for his years of service). Needs an open spot on the 15-man roster; he then counts against the cap and can play in the playoffs.' : 'Move him to a two-way contract (under 4 years of service, up to 3 per team).'}
+              style={{ fontSize: '11px', padding: '0 6px' }}>{p.ctype === 'twoWay' ? 'Make standard' : 'To two-way'}</button>}
             {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
             {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day' : 'Out ' + p.inj.games + 'g'} · {p.inj.name}</span>}
           </span>
@@ -166,10 +170,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of 15{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (21 allowed in the offseason, 15 by opening night)' : ''}</div>
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the 15-man roster and the cap; up to 50 NBA games; not playoff-eligible.</span></div>
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the 15-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
+          {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px' }}>{s.convMsg}</div>}
           {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{tw.map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>
-            <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Convert to two-way on the Cap sheet, keep, or waive by opening night.</span></div>
+            <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Press To two-way, keep him, or waive him by opening night.</span></div>
             <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{ex10.map((id, i) => Row({ id, i, list: ex10 }))}</tbody></table></div>
           </>}
         </>
