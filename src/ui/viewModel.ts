@@ -20,7 +20,7 @@ import { heritageLabel, randomName } from '../data/heritage';
 import { randomTeamIn } from '../data/randomTeam';
 import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
-import { linkNames } from './kit';
+import { alphaTeams, linkNames } from './kit';
 import type { VM } from './vm';
 
 export interface ViewExtras { saveId: string; saveName: string; onExit: () => void; onExport: () => void; onSwitch: (id: string) => void; saveStatus: string }
@@ -40,7 +40,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // opened from it returns to the list, with the page you opened the list from behind it.
   const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
   const open = id => e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
-  const go = k => () => gm.setState({ screen: k, q: '', modal: false, teamModal: null, pageStack: [] });
+  const go = k => () => gm.setState(st => ({ screen: k, q: '', modal: false, teamModal: null, pageStack: [], navTick: (st.navTick || 0) + 1 })); // clicking the tab you're on starts it fresh (your team, this season)
   const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
   const goBack = () => {
     const st0 = gm.state;
@@ -222,7 +222,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) } }; }),
     negotiate: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null, tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”' }); },
     close: () => gm.setState({ offers: null }) };
-  const teamOptions = T.filter(t => t.tid !== s.me).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
+  const teamOptions = alphaTeams(T.filter(t => t.tid !== s.me)).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
 
   const MOOD = { Eager: ['var(--color-accent-100)', 'var(--color-accent-800)'], Open: ['var(--color-neutral-100)', 'var(--color-neutral-800)'], Reluctant: ['transparent', 'var(--color-neutral-600)'] };
   const faCols = hdr('fa', [['name', 'Player', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age'], ['ovr', 'Ovr'], ['pot', 'Pot'], ['ask', 'Asking'], ['exp', 'Through'], ['mood', 'Mood', 'left'], ['mot', 'Wants', 'left']]);
@@ -370,7 +370,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         repOpts: Object.keys(C).filter(c => !C[c].repAs).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, from: pp.from }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
           // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).
           const cs = C[code]?.cities || []; if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)]; pp.born = code; pp.raised = code; if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y)); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); },
-        teamOpts: [{ v: '-1', label: 'Free agent' }, ...T.map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
+        teamOpts: [{ v: '-1', label: 'Free agent' }, ...alphaTeams(T).map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
         setTeam: e => { const to = +e.target.value; gm.setState(st => { const rosters = { ...st.rosters }; let fa = st.fa.filter(x => x !== pp.id); Object.keys(rosters).forEach(k => rosters[k] = rosters[k].filter(x => x !== pp.id)); if (to === -1) fa = [pp.id, ...fa]; else rosters[to] = [...rosters[to], pp.id]; return { rosters, fa, log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)) }; }); },
         traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),
         health: pp.inj ? pp.inj.name + ', ' + pp.inj.games + ' games left' : 'Healthy',

@@ -58,7 +58,8 @@ function CcpInner({ vm, c }: { vm: VM; c: any }) {
     .filter(r => (!onlySign || (r.x.sign && r.x.sign.length)) && (!q || r.p.name.toLowerCase().includes(q.toLowerCase())));
   const srt = useSort<any>(allRows, { name: r => byLast(r.p), team: r => r.t.abbr, pos: r => r.p.pos, age: r => r.p.age, ovr: r => r.p.ovr, pot: r => r.p.pot, gp: r => r.s?.gp ?? 0, pts: r => r.s?.pts ?? 0, reb: r => r.s?.reb ?? 0, ast: r => r.s?.ast ?? 0 }, ['pts', -1]);
   const cur = teams[Math.max(0, ti)] || teams[0], roster = cur ? ccpRoster(gm, s, cur).map(id => P[id]).sort((a, b) => (st(b)?.pts ?? 0) - (st(a)?.pts ?? 0) || b.ovr - a.ovr) : [];
-  const cycle = (d: number) => setTi(i => ((Math.max(0, i) + d) % teams.length + teams.length) % teams.length);
+  const AC = [...teams].sort((a, b) => tName(a).localeCompare(tName(b))), at = Math.max(0, AC.indexOf(cur)); // clubs in alphabetical order
+  const cycle = (d: number) => setTi(AC[(at + d + AC.length) % AC.length].id);
   const gRow = (x: CcpGame, i: number) => { const H = teams[x.h], A = teams[x.a], done = x.hs != null; return (
     <tr key={i}><td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtDn(Y, x.dn)}</td><td style={td}>{{ tip: 'Tip-Off', show: 'Showcase', reg: 'Season', po: x.rd === 4 ? 'Finals' : 'Playoffs' }[x.st]}</td>
       <td style={td}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TeamLogo team={crest(A) as any} size={16} />{A.city}</span> <span style={muted}>at</span> <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><TeamLogo team={crest(H) as any} size={16} />{H.city}</span></td>
@@ -79,10 +80,10 @@ function CcpInner({ vm, c }: { vm: VM; c: any }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <button className="btn btn-ghost" onClick={() => cycle(-1)} aria-label="Previous club" style={{ fontSize: 20, padding: '2px 10px' }}>‹</button>
           <select className="input" value={cur.id} onChange={e => setTi(+e.target.value)} style={{ minWidth: 0, flex: '0 1 380px', fontFamily: 'var(--font-heading)', fontSize: 16 }}>
-            {teams.map(t => <option key={t.id} value={t.id}>{tName(t)} · {t.where || 'Independent'}</option>)}
+            {AC.map(t => <option key={t.id} value={t.id}>{tName(t)} · {t.where || 'Independent'}</option>)}
           </select>
           <button className="btn btn-ghost" onClick={() => cycle(1)} aria-label="Next club" style={{ fontSize: 20, padding: '2px 10px' }}>›</button>
-          <span style={{ ...muted, fontSize: '12.5px' }}>{cur.id + 1} of {teams.length}</span>
+          <span style={{ ...muted, fontSize: '12.5px' }}>{at + 1} of {teams.length}</span>
         </div>
         <section style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', marginBottom: 14, borderLeft: '4px solid ' + cur.colors[0] }}>
           <TeamLogo team={crest(cur) as any} size={64} />

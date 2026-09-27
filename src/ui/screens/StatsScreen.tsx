@@ -7,7 +7,7 @@ import type { VM } from '../vm';
 import { seasonAdvanced } from '../../engine/advanced';
 import { computeAwards } from '../../engine/awards';
 import { LeagueStatsScreen } from './LeagueStatsScreen';
-import { Link, muted, ruleH4, Seg, usePaged } from '../kit';
+import { alphaTeams, Link, muted, ruleH4, Seg, usePaged } from '../kit';
 
 type Tab = 'players' | 'teams' | 'league' | 'history';
 const F = ['gp', 'min', 'pts', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'gs'];
@@ -72,7 +72,7 @@ function PlayerStats({ vm }: { vm: VM }) {
         <select className="input" style={{ width: 'auto' }} value={String(season)} onChange={e => setSeason(e.target.value === 'career' ? 'career' : +e.target.value)}><option value="career">Career (all seasons)</option>{seasons.map(y => <option key={y} value={y}>{lbl(y)}</option>)}</select>
         <Seg<string> value={po ? 'po' : 'rs'} options={[['rs', 'Regular season'], ['po', 'Playoffs']]} onChange={v => setPo(v === 'po')} />
         <Seg<any> value={mode} options={[['pg', 'Per game'], ['tot', 'Totals'], ['p36', 'Per 36'], ['shoot', 'Shooting'], ['adv', 'Advanced']]} onChange={setMode} />
-        <select className="input" style={{ width: 'auto' }} value={team} onChange={e => setTeam(+e.target.value)}><option value={-1}>All teams</option>{T.map(t => <option key={t.tid} value={t.tid}>{t.region} {t.name}</option>)}</select>
+        <select className="input" style={{ width: 'auto' }} value={team} onChange={e => setTeam(+e.target.value)}><option value={-1}>All teams</option>{alphaTeams(T).map(t => <option key={t.tid} value={t.tid}>{t.region} {t.name}</option>)}</select>
         <select className="input" style={{ width: 'auto' }} value={pos} onChange={e => setPos(e.target.value)}><option value="all">All positions</option><option value="G">Guards</option><option value="W">Wings</option><option value="B">Bigs</option></select>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Min games <input className="input" type="number" value={minG} min={0} onChange={e => setMinG(Math.max(0, +e.target.value || 0))} style={{ width: 64 }} /></label>
       </div>

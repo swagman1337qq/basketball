@@ -7,7 +7,7 @@ import type { VM } from '../vm';
 import { teamSalary } from '../../engine/cba';
 import { OWNER_ARCHETYPES } from '../../data/world';
 import { processImage } from '../upload';
-import { Link, muted, NumInput, ruleH4 } from '../kit';
+import { alphaTeams, Link, muted, NumInput, ruleH4 } from '../kit';
 
 const GLYPHS = ['Drama', 'Footprints', 'Glasses', 'Hand', 'Palette', 'Square', 'Tent', 'Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
 
@@ -36,7 +36,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
     <>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
         {logo(tid, 36)}
-        <select className="input" value={tid} onChange={e => { setTid(+e.target.value); setPa(''); setPb(''); setMsg(''); }} style={{ minWidth: '240px' }}>{T.map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{gm.isUser(s, x.tid) ? ' (yours)' : ''}</option>)}</select>
+        <select className="input" value={tid} onChange={e => { setTid(+e.target.value); setPa(''); setPb(''); setMsg(''); }} style={{ minWidth: '240px' }}>{alphaTeams(T).map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{gm.isUser(s, x.tid) ? ' (yours)' : ''}</option>)}</select>
         <span style={{ ...muted, fontSize: '12px' }}>Team ID #{tid} is permanent. Past seasons’ standings and stats are read-only.</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '30px', alignItems: 'start' }}>
@@ -93,7 +93,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>{logo(tid, 20)}<select className="input" value={pa} onChange={e => setPa(e.target.value === '' ? '' : +e.target.value)}><option value="">{t.abbr} player…</option>{s.rosters[tid].map(id => <option key={id} value={id}>{P[id].name} ({P[id].ovr})</option>)}</select></span>
           <span>for</span>
-          <select className="input" value={other} onChange={e => { setOther(+e.target.value); setPb(''); }}>{T.filter(x => x.tid !== tid).map(x => <option key={x.tid} value={x.tid}>{x.abbr}</option>)}</select>
+          <select className="input" value={other} onChange={e => { setOther(+e.target.value); setPb(''); }}>{alphaTeams(T.filter(x => x.tid !== tid)).map(x => <option key={x.tid} value={x.tid}>{x.abbr}</option>)}</select>
           <select className="input" value={pb} onChange={e => setPb(e.target.value === '' ? '' : +e.target.value)}><option value="">{T[other]?.abbr} player…</option>{(s.rosters[other] || []).map(id => <option key={id} value={id}>{P[id].name} ({P[id].ovr})</option>)}</select>
           <button className="btn btn-primary" disabled={pa === '' || pb === '' || other === tid} onClick={trade}>Force trade</button>
           {msg && <span style={{ color: 'var(--gm-good)', fontSize: '12px' }}>{msg}</span>}

@@ -1,5 +1,5 @@
 // Rarely visited screens load on demand (a smaller first download).
-import { lazy, Suspense } from 'react';
+import { Fragment, lazy, Suspense } from 'react';
 import { AlmanacSidebar } from './shell/AlmanacSidebar';
 import { DeskRail } from './shell/DeskRail';
 import { BroadsheetMasthead } from './shell/BroadsheetMasthead';
@@ -80,7 +80,7 @@ export function GMView({ vm }: { vm: VM }) {
               </span>
               <SimMenu actions={vm.ph.actions || []} />
             </div>
-            {vm.hasModal ? <PlayerModal vm={vm} /> : vm.hasTeamModal ? <TeamModal vm={vm} /> : (<>
+            {vm.hasModal ? <PlayerModal vm={vm} /> : vm.hasTeamModal ? <TeamModal vm={vm} /> : (<Fragment key={vm.ctx.s.navTick || 0}>
             <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "18px", paddingBottom: "10px", borderBottom: "1px solid var(--color-divider)" }}>
               <div style={{ flex: "1", minWidth: "0" }}>
                 <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
@@ -131,7 +131,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.contracts && <ContractsScreen vm={vm} />}
             {!!vm.is.ccp && <CcpScreen vm={vm} />}
             {!!vm.is.stats && <StatsScreen vm={vm} />}
-            </>)}
+            </Fragment>)}
             </Suspense>
           </main>
         </div>

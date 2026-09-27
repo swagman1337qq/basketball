@@ -199,3 +199,6 @@ export function usePaged<T>(rows: T[], noun = 'players', size = 25, resetKey?: u
     </div>);
   return { rows: rows.slice(start, end), pager, total, start };
 }
+
+// Teams in alphabetical order (city, then nickname) for menus and ‹ › arrows.
+export const alphaTeams = (ts: any[]): any[] => [...ts].sort((a, b) => (a.region + ' ' + a.name).localeCompare(b.region + ' ' + b.name));

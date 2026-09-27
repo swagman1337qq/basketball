@@ -20,7 +20,7 @@ import { financesOf } from '../../engine/frontOffice';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
-import { Link, muted, NumInput } from '../kit';
+import { alphaTeams, Link, muted, NumInput } from '../kit';
 
 const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
@@ -32,7 +32,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const [advice, setAdvice] = useState<Advice | null>(null);
   const tid = T[view.tid] ? view.tid : s.me, season = view.season, cur = season === gm.Y, mine = isMine(tid) && cur;
   const t = T[tid], first = gm.db.firstSeason || 2027, seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);
-  const setTid = (x: number) => { setView({ tid: (x + T.length) % T.length, season }); setAdvice(null); };
+  const AT = alphaTeams(T), step = (d: number) => { const i = AT.findIndex(x => x.tid === tid); setView({ tid: AT[(i + d + AT.length) % AT.length].tid, season }); setAdvice(null); };
   const club = gm.clubOf(s, tid), pti = club?.ptInj || { reg: 0, po: 4 };
   const setClub = (f: any) => gm.setState(st => gm.clubPatch(st, tid, f));
   // ── Header numbers ──
@@ -121,9 +121,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
-        <button className="btn btn-secondary" onClick={() => setTid(tid - 1)} style={{ padding: '3px 9px' }} aria-label="Previous team">‹</button>
-        <button className="btn btn-secondary" onClick={() => setTid(tid + 1)} style={{ padding: '3px 9px' }} aria-label="Next team">›</button>
-        <select className="input" value={tid} onChange={e => { setView({ tid: +e.target.value, season }); setAdvice(null); }} style={{ width: 'auto', minWidth: 220 }}>{T.map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{isMine(x.tid) ? ' (yours)' : ''}</option>)}</select>
+        <button className="btn btn-secondary" onClick={() => step(-1)} style={{ padding: '3px 9px' }} aria-label="Previous team">‹</button>
+        <button className="btn btn-secondary" onClick={() => step(1)} style={{ padding: '3px 9px' }} aria-label="Next team">›</button>
+        <select className="input" value={tid} onChange={e => { setView({ tid: +e.target.value, season }); setAdvice(null); }} style={{ width: 'auto', minWidth: 220 }}>{AT.map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{isMine(x.tid) ? ' (yours)' : ''}</option>)}</select>
         <button className="btn btn-secondary" onClick={() => setView({ tid, season: Math.max(first, season - 1) })} style={{ padding: '3px 9px' }} aria-label="Previous season">‹</button>
         <button className="btn btn-secondary" onClick={() => setView({ tid, season: Math.min(gm.Y, season + 1) })} style={{ padding: '3px 9px' }} aria-label="Next season">›</button>
         <select className="input" value={season} onChange={e => setView({ tid, season: +e.target.value })} style={{ width: 'auto' }}>{seasons.map(y => <option key={y} value={y}>{y - 1}–{String(y).slice(2)}</option>)}</select>
