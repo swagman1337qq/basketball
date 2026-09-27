@@ -10,13 +10,16 @@ import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
-import { allPools, applyNativeMix, groupsOf, NATIVE_MIX, randomName } from '../../data/heritage';
+import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
+// A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
+const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };
 
 export function GodPlayerEditor({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid];
@@ -65,6 +68,23 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             </select>
             <button className="btn btn-secondary" onClick={() => reroll(origin)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A real name from that country, with the native script where it has one">🎲 Generate</button>
             {undo && <button className="btn btn-ghost" onClick={doUndo} style={{ fontSize: '12px' }}>Undo ({undo.name})</button>}
+          </span>
+          <span style={muted}>Heritage</span>
+          <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <CountryPicker C={C} value={p.her || p.rep} onPick={c => mut(q => { const gs = groupsOf(c); q.her = c; delete q.mix; delete q.tribe2; if (gs.length) { const g0 = [...gs].sort((a, b) => b.w - a.w)[0]; q.heritage = g0.k; q.race = pickRace(g0.race); } else q.heritage = C[c]?.n || c; gm.resetFace(q.id); })} width={190} />
+            {groupsOf(p.her || p.rep).length > 0 && p.her !== 'XN'
+              ? <select className="input" value={p.heritage || ''} onChange={e => mut(q => { const g0 = groupsOf(q.her || q.rep).find(x => x.k === e.target.value); q.her = q.her || q.rep; q.heritage = e.target.value; if (g0) q.race = pickRace(g0.race); gm.resetFace(q.id); })} style={{ flex: 1, minWidth: '150px' }} title="Background within that heritage">
+                  {!groupsOf(p.her || p.rep).some(x => x.k === p.heritage) && <option value={p.heritage || ''}>{p.heritage || '—'}</option>}
+                  {groupsOf(p.her || p.rep).map(x => <option key={x.k} value={x.k}>{x.k}</option>)}
+                </select>
+              : p.her !== 'XN' && <input className="input" value={p.heritage || ''} onChange={e => mut(q => { q.her = q.her || q.rep; q.heritage = e.target.value; })} placeholder="Background (e.g. Yoruba, Irish)" style={{ flex: 1, minWidth: '150px' }} />}
+          </span>
+          <span style={muted}>Look</span>
+          <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <select className="input" value={p.race || 'brown'} onChange={e => mut(q => { q.race = e.target.value; gm.resetFace(q.id); })} style={{ width: 'auto' }} title="Skin tone and features of his headshot">
+              {LOOKS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <span style={{ ...muted, fontSize: '12px' }}>{heritageLabel(p, C) || 'No heritage set'}</span>
           </span>
           {p.her === 'XN' && <>
             <span style={muted}>Tribal nations</span>
