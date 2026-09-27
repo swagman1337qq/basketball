@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-o3bUEi3t.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index--bnN2oJS.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -52,6 +52,17 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **God Mode is pink.** Every God Mode control now shows in hot pink, and none of them appear when God Mode is off:
+  - the Player cards and League editor tabs;
+  - Edit player (tab and button);
+  - Take over, Force accept, and team renaming;
+  - national-team eligibility editing;
+  - the "God Mode" signing notes, and signing past the rules;
+  - the true-ratings notes.
+
+  A pink **God Mode** badge sits at the top of every page while it's on (click it to go to Settings).
+- **Player card ratings in three blocks:** Physical, Technical and Mental, with potential on its own line. Much easier to read.
+- **Back button in Player cards:** open it from a player's Edit player tab and "← Back to [player]" returns you there. After you apply a card, "open his profile →" takes you to him.
 - **Player cards now have their own tab**: Management → **Player cards**, shown in God Mode pink. It's there only while God Mode is on and disappears completely when you turn it off. Pick the player to apply cards to at the top (anyone: rosters, free agents, overseas, draft prospects). Edit player has a shortcut that opens the tab with that player already picked.
 - **The Birmingham Vulcans replace Pittsburgh** in new leagues. Birmingham is a cradle of the civil rights movement, majority Black, a blue city, and a small market with fiercely loyal fans and no big-four pro team. Their colors are rust and furnace orange, with a hammer crest for the Vulcan statue and the city's iron and steel past. Their minor-league affiliate is the Bessemer Marvels, named for the steel town next door. Birmingham plays in the Southeast and Nashville moves to the Central. Pittsburgh is still available as an expansion team. Leagues you've already started keep Pittsburgh (rename or relocate it in God Mode's League editor if you like).
 - **Assists and turnovers now spread like the NBA's.** The best passer on a team no longer grabs nearly every assist: league leaders now average about 8–12 a game (they used to reach 15+). Stars who have the ball all the time now turn it over like real ones (about 3 a game for 25-point scorers, up to 4 for the heaviest creators); a good handle still helps. Team totals are unchanged.
