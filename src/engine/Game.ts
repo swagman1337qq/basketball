@@ -240,11 +240,34 @@ export class Game {
     const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
     teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
     const rosters = {};
-    teams.forEach(t => {
-      const young = t.str < 50 ? 3 : 0;
+    // Team situations, like the real league: contenders built on veteran stars, good teams, capped-out
+    // teams paying above-average starters with no young stars and no room (think Sacramento), the
+    // middle, rebuilders with young high-ceiling prospects, and hopeless teams: bad, no young talent,
+    // bad contracts. Ages follow ratings: young stars are rare, most 20–22-year-olds are still raw.
+    const KIND: [string, number, number, number][] = [['contender', 5, 54, 56.5], ['good', 6, 51.5, 54], ['capped', 4, 50, 52.5], ['middling', 4, 48, 51], ['rebuild', 6, 45, 48], ['hopeless', 5, 45, 47.5]];
+    const kinds = KIND.flatMap(([k, n]) => Array(n).fill(k)); for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+    const ageFor = (kind: string, k: number, base: number) => {
+      const x = rnd(), star = base >= 58;
+      const pYoung = (kind === 'rebuild' ? (k < 5 ? 0.6 : 0.35) : kind === 'contender' ? 0.08 : kind === 'capped' ? 0.04 : kind === 'hopeless' ? 0.1 : kind === 'good' ? 0.15 : 0.2) * (star && kind !== 'rebuild' ? 0.3 : 1);
+      const pOld = kind === 'contender' || kind === 'capped' || kind === 'hopeless' ? (k < 6 ? 0.3 : 0.35) : 0.15;
+      if (x < pYoung) return 20 + Math.floor(rnd() * 3);
+      if (x < pYoung + pOld) return 31 + Math.floor(rnd() * 5);
+      return star ? 25 + Math.floor(rnd() * 6) : 23 + Math.floor(rnd() * 8);
+    };
+    teams.forEach((t, ti) => {
+      const kind = kinds[ti % kinds.length], K = KIND.find(x => x[0] === kind)!; t.kind = kind; t.str = K[2] + rnd() * (K[3] - K[2]);
       const slots = ['G', 'G', 'G', 'G', 'G', 'W', 'W', 'W', 'W', 'B', 'B', 'B', 'B', 'B'];
       for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
-      const ps = []; for (let k = 0; k < 14; k++) ps.push(mk(t.str + 12 - k * 2.2 + (rnd() - .5) * 6, 20 + Math.floor(rnd() * (14 - young)), W_NBA, 0, slots[k]));
+      const ps = []; for (let k = 0; k < 14; k++) {
+        let base = t.str + 12 - k * 2.2 + (rnd() - .5) * 6; const age = ageFor(kind, k, base);
+        if (age <= 22) base -= (23 - age) * 2.5; // still raw at 20–22
+        const p = mk(base, age, W_NBA, 0, slots[k]);
+        // Rebuilders' kids have real ceilings; the hopeless team's don't.
+        if (age <= 22) p.pot = Math.max(p.ovr, Math.round(kind === 'rebuild' ? p.ovr + 10 + rnd() * 16 : kind === 'hopeless' ? p.ovr + 3 + rnd() * 6 : p.pot));
+        // Capped-out teams overpaid their starters on long deals; hopeless teams carry a couple of bad contracts.
+        if ((kind === 'capped' && k < 6 && age >= 25) || (kind === 'hopeless' && age >= 28 && rnd() < 0.35)) { p.amt = Math.min(this.MAXC, p.amt * (1.35 + rnd() * 0.25) + 4); p.exp = Math.max(p.exp, 2029 + Math.floor(rnd() * 2)); }
+        ps.push(p);
+      }
       ps.sort((a, b) => b.ovr - a.ovr);
       rosters[t.tid] = ps.map(p => p.id);
     });

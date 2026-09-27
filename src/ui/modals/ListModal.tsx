@@ -3,12 +3,12 @@ import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 
 export function ListModal({ vm }: { vm: VM }) {
-  const srt = useSort<any>(vm.lm.rows || [], { name: byLast, team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, extra: r => r.extra });
+  const srt = useSort<any>(vm.lm.rows || [], { name: byLast, team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, extra: r => r.extra, pts: r => r.sPts ?? -1, reb: r => r.sReb ?? -1, ast: r => r.sAst ?? -1, stl: r => r.sStl ?? -1, blk: r => r.sBlk ?? -1, per: r => r.sPer ?? -99 });
   const pg = usePaged(srt.rows, 'players', 25, srt.sortKey);
   return (
     <>
       <div onClick={vm.closeList} style={{ position: "absolute", inset: "0", zIndex: "14", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
-        <div onClick={vm.stop} style={{ width: "min(980px,100%)", maxHeight: "100%", overflow: "auto", boxSizing: "border-box", background: "var(--color-bg)", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)", padding: "22px 26px 28px" }}>
+        <div onClick={vm.stop} style={{ width: "min(1180px,100%)", maxHeight: "100%", overflow: "auto", boxSizing: "border-box", background: "var(--color-bg)", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)", padding: "22px 26px 28px" }}>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "14px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "10px", marginBottom: "12px" }}>
             {!!vm.lm.hasFlag && (<>
               <img src={vm.lm.flag} alt="" style={{ width: "42px", height: "28px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
@@ -28,7 +28,7 @@ export function ListModal({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
-                {srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('extra', vm.lm.extraH)}
+                {srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('pts', 'PPG', 'right')}{srt.head('reb', 'RPG', 'right')}{srt.head('ast', 'APG', 'right')}{srt.head('stl', 'SPG', 'right')}{srt.head('blk', 'BPG', 'right')}{srt.head('per', 'PER', 'right')}{srt.head('extra', vm.lm.extraH)}
               </tr>
             </thead>
             <tbody>
@@ -62,6 +62,7 @@ export function ListModal({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
                     {p.pot}
                   </td>
+                  {['sPts', 'sReb', 'sAst', 'sStl', 'sBlk', 'sPer'].map(k => <td key={k} title={p.sGp ? p.sGp + ' games' + (p.sYr ? ' in ' + p.sYr : ' this season') : 'No NBA games yet'} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: p.sYr ? 'var(--color-neutral-600)' : undefined, fontVariantNumeric: 'tabular-nums' }}>{p.sGp ? p[k].toFixed(1) : '—'}</td>)}
                   <td style={{ padding: "4px 8px", color: "var(--color-neutral-700)" }}>
                     {p.extra}
                   </td>
@@ -69,6 +70,7 @@ export function ListModal({ vm }: { vm: VM }) {
               ))}
             </tbody>
           </table>
+          <p style={{ margin: '6px 0 0', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>Per game this regular season; in grey, his latest earlier season (hover for which). PER: player efficiency, 15 is average.</p>
           {pg.pager}
         </div>
       </div>

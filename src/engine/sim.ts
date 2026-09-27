@@ -291,7 +291,15 @@ export class GameSim {
     const fx: TacFx | null = this.teams[offK].tactics || this.teams[defK].tactics ? tacticEffects(tO, tD, onO, onD, p => C(p).use) : null;
     const fb = this.fastBreak; this.fastBreak = false;
     const cl2 = clutch ? this.clutchPick(onO, tO, offK) : null;
-    const use = (p: SimPlayer) => (fx && fx.useExp !== 1 ? Math.pow(C(p).use, fx.useExp) : C(p).use) * (fx?.use.get(p) ?? 1) * (p.selfish ? 1.3 : p.padder ? 1.1 : 1) * (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1) * (cl2 && cl2.includes(p) ? 2.2 : 1);
+    const useBase = (p: SimPlayer) => (fx && fx.useExp !== 1 ? Math.pow(C(p).use, fx.useExp) : C(p).use) * (fx?.use.get(p) ?? 1) * (p.selfish ? 1.3 : p.padder ? 1.1 : 1) * (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1) * (cl2 && cl2.includes(p) ? 2.2 : 1);
+    // Usage ceiling, from NBA history: Luka Dončić's heaviest season used 38% of his team's trips
+    // while he was on the floor; the record is Russell Westbrook's 41.7% (2016–17). A star is held
+    // to Luka's 38% on a normal roster; only when his teammates are far worse than him (a 75 among
+    // 20s) can he climb, to a hard 52% (a 75 among 20s scores about 39), so nobody averages 50. Clutch plays can break the rule.
+    const uw = onO.map(useBase), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
+    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.14 * cl((gapO - 20) / 30, 0, 1);
+    const uF = !clutch && uw[ui] / ut > USG_CAP ? (USG_CAP / (1 - USG_CAP)) * (ut - uw[ui]) / uw[ui] : 1;
+    const use = (p: SimPlayer) => useBase(p) * (p === onO[ui] ? uF : 1);
     const pTov = RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
