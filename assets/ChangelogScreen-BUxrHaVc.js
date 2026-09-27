@@ -1,0 +1,110 @@
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{o as t,p as n}from"./index-DrzfyGs0.js";var r=`# Changelog
+
+Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-09-26
+
+### Added
+- **The Continental Championship Pathway (CCP)**, the development league, with its own tab (Management → CCP) and a hammer-and-sickle crest. 31 clubs, one affiliate for every NBA team plus an independent, in the most remote places in the U.S. and Canada: the Utqiaġvik Polar Nights, Alert Sentinels (the northernmost settlement on Earth), Supai Mule Train (mail still arrives by mule), Monowi Ones (population 1), Fogo Island Flat Earthers, Whittier Tunnel Rats and more, each with a crest and the story of its town. It follows the G League's 2025–26 format: a 14-game Tip-Off Tournament in four regions, the Winter Showcase for the eight best, a 36-game regular season, and 16-team playoffs with a best-of-three Finals. Every game is played by the real game engine, so every player has real stats. Scroll through the clubs with ‹ ›, see each roster (CCP contracts, local tryouts, CCP draft picks, returning rights, affiliate players, your two-ways and anyone you send down) with full stats, the league-wide player list, standings, results, the schedule and past champions. Players on CCP contracts are free agents to the NBA: a Sign… button shows which deals you can offer (two-way, minimum, 10-day…). Clubs keep 10–12 players, signing new ones from the player pool when players are called up.
+- **Recommended position** (God Mode editors): under the Position menu the game suggests the position his body and skills fit, mostly from height, nudged by wingspan and whether his skills are a guard's or a big's (a 7-footer is a center; a 6′9″ playmaker is a wing). It updates as you edit him; press Use to apply it, or pick any position you like.
+- **Badges in the rotation** (Tactics): each player shows his top badges under his name, with the rest behind "+N". Hover a badge for what it does.
+- **Ask for trade offers.** On the Trade screen, select players or picks on your side and press **📣 Ask for offers**: every team that can put together a deal it likes (one that also passes the league office) calls with its best offer, from none to all 29. Or select the other team's players and press **📣 Ask what they want**: they name every package from your roster they'd take. Step through offers with ‹ ›, marked Strong, Fair or Lowball, then **Accept**, **Decline** (drops it from the list) or **Negotiate…** (loads it into the trade builder to change). When the salary or roster rules need it, a team may ask you to add a low-value player of yours, or add a small contract of theirs.
+- **Trade screen: ‹ › arrows** on either side of the other team's menu step through the league one team at a time.
+- **Let assistant coaches decide** (Development tab), for one player or everyone at once. The coaches pick his training focus (the costliest gaps for his position; conditioning for veterans 31 and up) and decide between the development league and the main roster (young players outside the top ten go down for game reps and come back once they earn a rotation spot). They re-check both every month and moves show in your log. Hover the coaches' tag to see why; "Take over" hands control back.
+- **Extend buttons.** Players eligible for an extension have an "Extend…" button on their profile header and on the Contracts tab (which also lists everyone eligible right now). It opens the extension offer on his Contract tab.
+- **Contracts tab** (Team): your upcoming free agents summer by summer for the next four summers. Each player is marked restricted (with his estimated qualifying offer) or unrestricted, with the Bird rights you'll hold, his estimated cap hold, player and team options (and what happens if they're declined), and when he can sign an extension. Also shows offer sheets, your own free agents during free agency, and decisions due on the Cap sheet.
+- **Scouting reports list:** click the "Plays like" player to open his profile.
+- **God Mode: edit height and wingspan in feet and inches**, next to the numbers (the height rating and the wingspan in inches). Change either one and the other follows; wingspan moves with height. **Position** is editable too (PG, SG, G, SF, GF, F, PF, FC, C) on the profile editor and the Edit player tab.
+- **Trade for players just drafted.** On draft night, a player an AI team has picked shows up in the trade screen as its "Draft rights" (and "Trade for player" on the draft board). As in the NBA, that team made the pick on your behalf: his record shows who drafted him, the rights are traded to you, and he signs his rookie deal with you.
+- **Sim one pick** on draft night (Draft screen and the season bar): the team on the clock makes its pick, and you watch the draft unfold one selection at a time.
+- **Scout any player you select.** Tick players (checkboxes, select all, or shift-click a range) on the Draft board, Free agency, Overseas or the Shortlist, then right-click (or use the bar above the table) to have one of your scouts follow them personally. Your read on them sharpens far faster than regional scouting alone, best in the scout's own region. Each scout can follow 8 players; a 👁 tag shows who's following whom.
+- **Player progress.** The Roster shows ▲/▼ under each player's Ovr and Pot: how much he's improved or declined over the past year (to one decimal, e.g. ▲6.9, ▼1.1). His profile shows the change beside every rating, and his Development tab has a year-by-year table: overall on opening night, change during the season, over the summer, the year's total, and his biggest gains and drops. Ratings are recorded on opening night and at the end of every season.
+- **Box score team names** open the team's page.
+- **Full scouting report button** on a player's Overview, next to the short report, jumps to his complete Scouting report tab.
+- **Box scores.** Click any score (Dashboard, Schedule, play-in games, and G1, G2… under each playoff series) to see the box score: quarter by quarter, and every player's minutes, points, rebounds, assists, steals, blocks, turnovers, shooting and +/−. Kept for the current season.
+- **A new world for every league.** New leagues start from a random seed, so players, rosters, owners and draft classes are different each time. Type a seed (or press 2027 for the reference world) to replay one exactly. More owner names.
+- **Leagues menu.** A "Leagues ▾" button at the top of the sidebar (also in the collapsed rail): back to the main menu, start a new league, export this one, or switch straight to another saved league. Your league is saved first.
+- **What's new.** This changelog, readable in the game (League → What's new) and kept up to date with every change.
+- **AI extensions.** AI teams now sign rookie-scale and veteran extensions for players worth keeping, in a July window and at the October deadline before opening night. Loyal players sign more readily, money-first players tend to test free agency, and owners won't go past their payroll limit.
+- **Roster notes.** Each roster row shows how the player joined the team ("#2 pick in 2027", "Signed as a free agent in 2027", "Traded from DAL in 2028") and his latest extension or re-signing. Blank for players who were already on the roster when the league began.
+- **Free agency on the NBA calendar.** Opens June 30, moratorium until July 6, Summer League in mid-July, a quiet August, camp invites until training camp on September 30. Most big names agree in the first days and the rest trickle in. Next day, Next week, To July 6, or Sim to training camp. A tracker shows the date, how many of the top 50 have signed, dated signings and the best still available.
+- **Predictions tab.** Seven parody outlets make preseason picks, each with its own biases: PEEN, The Donger, Bleacher Retort, The Athleisure, Sports Illiterated, Fox Spurts and the DraftQueens sportsbook. Projected standings, win totals and title odds, champion, Finals, MVP, DPOY and Rookie of the Year picks, and a top 100 players list from each outlet plus a consensus. Locked on opening night; results appear alongside as the season plays out.
+- **Mock drafts.** Draft tab → Mock drafts: every outlet's first round with a reason for each pick, and hits highlighted once the draft happens.
+- **Draft board trade buttons.** "Trade for pick" / "Trade pick" opens the trade screen with that pick selected; "Propose trade" opens it with the pick's owner.
+- **"Playing for" picker** (God Mode): pick a league (top tier first), then one of its teams, or type any league or team. Real leagues with full club lists for about 30 countries.
+
+### Changed
+- **Much faster.** Simulating a season takes about half as long, a week in the browser about a quarter (the screen now redraws a few times a second during sims instead of after every day), free agency about a quarter, screens build 3–6x faster and a new league is created in a fraction of a second. Retired players who never reached the NBA are stored more compactly, so saves grow more slowly. Rarely used screens load when you first open them.
+- **Long lists come a page at a time**: free agency, the CCP, the draft board, transactions, stats, scouting reports, overseas, the shortlist, predictions, the Hall of Fame ballot, the press room, expansion cities and player lists (a country, a draft class, a college…). Each shows "Showing 1–25 of 300 players" with page numbers and a "Show more" button.
+- **Badges follow what you know.** Your own players and NBA veterans show all their badges; prospects, rookies, overseas and CCP players show only what your scouts have seen (a sharp read shows all of them, a rough one only the best, a stranger none). God Mode shows everything.
+- The G League is now called the CCP everywhere (free agency tags, the Development tab, the tutorial).
+- **The five biggest U.S. cities are in the league.** New leagues now have the New York Empires, Philadelphia Bells, Chicago Gales, Los Angeles Marquees and Houston Orbit (Phoenix was already in), with big-market revenue to match. They replace five of the smallest markets: the Hartford Underwriters, Providence Jewelers, Columbus Explorers, Sacramento Prospectors and Kansas City Pitmasters, which are now expansion franchises (Settings → League expansion) with their colors, crests and G League affiliates. St. Louis moves to the Northwest. The **Richmond Liberty** (for Patrick Henry's "Give me liberty, or give me death!" speech, given in Richmond in 1775) replace the Raleigh Oaks, the league's smallest metro; Raleigh is an expansion franchise too. Leagues you already started keep their teams.
+- **Trades in God Mode work like normal trades.** The other team judges your offer and the league office checks the salary and roster rules as usual. A new **⚡ Force accept** button (God Mode only) makes them accept and skips the rules.
+- **Extensions follow the NBA's rules.** Rookie-scale extensions: the summer before the final year of the rookie deal, from July 6 until the day before the regular season (miss it and he heads for restricted free agency). Veteran extensions: two years after he signed (three for a five-year deal); with more than one season left only between July 6 and opening night, and in the final season of his deal any time until June 30, including during the season. Up to five seasons including what's left of his deal (six for a supermax). No extensions during the July moratorium. If he isn't eligible, his Contract tab says why and when he will be.
+- **Extend-and-trade rule:** an extension with a raise of more than 5% means he can't be traded for six months.
+- **Revenue sharing works like the NBA's.** About $400M a year (at today's cap) goes to the roughly 18–20 teams below the league's average local revenue, up to about $45M for the smallest markets (it was about $5M). Half of the league's luxury-tax payments fund it and big-market teams pay the rest (they now see "Revenue sharing paid" on Finances). A receiving team that doesn't fill its arena gets up to 25% less.
+- **Overall and Potential rings are colour-coded** by where the rating ranks in the league, with the tier named underneath ("Starter", "All-Star ceiling"…): purple Superstar (70+), bright green All-Star (63+), green Starter (56+), white Rotation (48+), orange Bench (41+), red Fringe (below 41). Hover the tier name for the scale. Scouted Ovr/Pot in scouting reports use the same colours.
+- **Scouting reports show the scouted Ovr and Pot** (what your scouts see, within their margin) instead of a separate 40–99 grade that was easy to mistake for either. The list has Ovr and Pot columns.
+- **Scouting report labels match this league.** "Quality starter", "rotation player", "end-of-bench" and the rest now follow where a rating really ranks: 56+ is a starter (about the top five on an average team), 48+ a rotation player, 63+ an All-Star, 70+ a franchise player. A 56 overall was being called end-of-bench.
+- **Player header:** height, weight and wingspan sit under the age, the season count under the draft slot, and points, rebounds, assists and PER are one line.
+- **Development isn't a straight line.** Every player now has a hidden development year: most are normal, some are breakouts, and some go nowhere or backwards. About a quarter to a third of young players don't improve in a given season. Potential can fall too: a serious injury, a rookie who can't adapt to NBA strength or pace, a young player who stalls, or a year well below expectations. The reason appears in the Development tab's year-by-year table.
+- **Scouting reports end with "The bottom line":** what he does well, what he can become, what has to develop, and where he stands in his class ("Byrd has the size, rebounding instincts and scoring punch to become a high-level NBA big. If his shooting and explosiveness continue to develop, he has legitimate star upside and is one of the elite prospects in the 2027 NBA Draft."). NBA and overseas players get one in the same style. Each part is written several different ways, so reports don't all read alike. This replaces the old "depends on development: above all, …" line.
+- **Scouting reports:** "with more upside" appears only when a prospect's ceiling is clearly above his comparison's. Comparisons are closer to his projected level. Size is judged from real height and wingspan for his position, and is never named as what his development depends on.
+- **Height and wingspan in development:** wingspan never changes. Height changes only with an extremely rare late growth spurt: one inch, for teenagers and 20–21-year-olds, about one player every two or three seasons league-wide, announced in Transactions. Before, the height rating crept up on its own (including in the G League and overseas).
+- **Season bar:** the sim buttons are one split button. The main part runs your usual choice; ▾ lists every option (a day, a week, a month, to the trade deadline, to the end of the season…) and remembers what you picked.
+- **Sidebar:** Team (Dashboard, Roster, Depth chart…) is at the top, then Management, then League, with clear dividers and gold section names between them.
+- **Draft board:** your picks stand out much more (thick gold border, gold background, a YOUR PICK tag).
+- **Draft advice** judges what a prospect projects into at his ceiling, not relative to his own ratings: a raw 19-year-old with a weak shot is no longer called a floor spacer, and "3-and-D wing" needs wing size.
+- **Min target** (Roster) is a bigger box with large − / + buttons. It's greyed out while minutes are automatic; press Manual to set them yourself, Auto to hand them back. The column is centered.
+- **Roster notes** are bigger and easier to read.
+- **Development.** Yearly growth now depends on potential (players grow toward their ceiling), work ethic (hard workers improve even without minutes), minutes, G League time, coaching, training focus, the locker room, mentors, traits, a hidden development factor (late bloomers and players who peak early), the season he had, and luck. Potential is re-estimated every offseason.
+- **Aging.** Decline speeds up every year after 29: about −1 a year at 31, −2 at 33, −3 at 35, −5 at 38 and −7 at 40. Athleticism goes first; shooting and basketball IQ last longer.
+- **Wingspan is a rating.** 50 is a normal wingspan for a player's height; each inch longer or shorter is 6 points. It counts toward the overall (up to about ±4 for bigs, ±3 for wings, ±2 for guards).
+- **Rating edits move the overall** (God Mode) by how much that skill matters for the position, and potential moves with it. "−1 all / +1 all" moves potential too.
+- **Height shows feet and inches** next to the rating; changing the height rating changes his height (4 points an inch), and wingspan follows. Wingspan is editable in the ratings editor.
+- **One draft order everywhere.** The draft board, the trade screen and AI pick values use the same projection, so a pick's projected slot always agrees.
+- **East Asian faces** look natural: dark hair (no red or blond), mostly clean-shaven, fitting hairstyles and eyes.
+
+### Fixed
+- Trade screen: the column headings (Age, Ovr, Pot, Contract) line up with their numbers again, and the team menu no longer cuts off the team's name.
+- Other GMs turning down a trade now speak for themselves ("I want young, high-upside players, and I'm not giving up our picks easily") instead of describing their own team as "they". Several ways to say it for each kind of team.
+- The player header's season count includes seasons before this league began (a 2022 draftee is in season 5, not his "rookie season").
+- Monthly development reports said "undefined" instead of Acc (acceleration); Layups and Box out were also missing from report and tactics labels. Old reports are corrected when the league loads.
+- Tactics → training growth chart: all 18 ratings now fit on one row with their labels lined up.
+- Scores from games played before box scores existed now say so on hover instead of looking clickable.
+- Create your GM: the name-order choices use your own name (which part is the family name, and what the owner will call you) instead of a fixed Vietnamese example.
+- Saved leagues show your own team's name and record (they showed the first team in the league).
+- The name fields in Identity and Biography (God Mode) stay in sync both ways.
+- The Represents 🎲 picks from every country; changing Represents moves hometown and "Playing for" to that country but leaves eligibility alone.
+- Back from the Edit player tab returns to the profile you were on, not the top of the draft.
+
+## Earlier on 2026-09-26
+
+### Added
+- Clickable season bar with "if the season ended today" play-in, playoffs and lottery views; the 2027 NBA 3-2-1 draft lottery with pick protections and a live lottery night.
+- Create your GM (name, nationality, experience, race, headshot) and GM contracts with owner-driven extensions.
+- An in-depth tutorial covering every tab.
+- Dallas; the Basketball Manager name; one-team picker by default.
+- Personality traits with scouting reads and a Selfish trait; a locker room with mentoring and hidden malleability; sortable lists everywhere.
+- Player transaction history with trade trees; AI teams trade draft picks.
+- Owners address family-name-first GMs by their given name; award voting details (100 media voters).
+- Wingspan, layups, acceleration and box out ratings; editable hometown.
+- More hometowns for every country; all 20 CBA clubs; God Mode randomizers on every field; far more face variety.
+- Vietnamese names with three or four parts.
+- Formula awards with advanced stats, a name generator, typed number fields, rating cap of 100, retirement age, families, Hall of Fame, the owner's year-end letter.
+- Team rating, worst-roster start, badges, profile redesign; richer team crests.
+- Full NBA CBA contracts and a 500-season salary cap outlook.
+- About 210 countries with flags, bigger name pools, scouting reports, the stats hub, the G League, easy mode.
+- Published on GitHub Pages.
+
+## 2026-09-25
+
+### Added
+- The first version: a browser basketball GM with real simulated games, any team to pick, team crests.
+- Engine realism: 2026 league baselines, bell-curve ratings, usage.
+- Multi-team control, play-in and an NBA-style bracket, awards.
+- Front office: owner reviews and firing, job market, press room, incentives, mandates.
+- Scouting, overseas players and development.
+- Player profile tabs, tactics, league stats, God Mode editors, uploads and expansion teams.
+`,i=e(),a=e=>e.split(/(\*\*[^*]+\*\*)/).map((e,t)=>e.startsWith(`**`)?(0,i.jsx)(`b`,{children:e.slice(2,-2)},t):e),o={Added:`var(--gm-good)`,Changed:`#4a9fd8`,Fixed:`var(--gm-elite)`};function s(){let e=[],s=``;return r.split(`
+`).forEach(t=>{if(t.startsWith(`## `))e.push({date:t.slice(3).trim(),secs:[]});else if(t.startsWith(`### `))e[e.length-1]?.secs.push({name:t.slice(4).trim(),items:[]});else if(t.startsWith(`- `)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r&&r.items.push(t.slice(2))}else!e.length&&t.trim()&&!t.startsWith(`#`)&&(s=t.trim())}),(0,i.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:22,maxWidth:900},children:[s&&(0,i.jsx)(`p`,{style:{...n,margin:0,fontSize:`13px`},children:a(s.replace(` The game shows this page under **What's new**.`,``))}),e.map((e,n)=>(0,i.jsxs)(`section`,{children:[(0,i.jsx)(`h3`,{style:{margin:`0 0 8px`,fontSize:`19px`,borderBottom:`1px solid var(--color-divider)`,paddingBottom:4},children:e.date}),e.secs.map((e,n)=>(0,i.jsxs)(`div`,{style:{marginBottom:10},children:[(0,i.jsx)(t,{children:(0,i.jsx)(`span`,{style:{color:o[e.name]},children:e.name})}),(0,i.jsx)(`ul`,{style:{margin:`4px 0 0`,paddingLeft:20,display:`flex`,flexDirection:`column`,gap:5,fontSize:`13.5px`,lineHeight:1.5},children:e.items.map((e,t)=>(0,i.jsx)(`li`,{children:a(e)},t))})]},n))]},n))]})}export{s as ChangelogScreen};
