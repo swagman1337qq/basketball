@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-CEi-p3Hp.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-Bz7Q28o4.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Free agency filters:** set a range for age, overall and potential (e.g. age up to 21, overall under 60, potential 60 and up), a maximum asking price, and a position (guards, wings, bigs or one spot). **Players you can sign now** hides everyone you can't sign today (no cap room or exception that fits, roster full, hard cap, two-way limit); **Show every player in free agency** brings them back; **Reset all filters** clears everything. Your filters stay set when you leave the screen.
+- **Roster count on Free agency**, by NBA rules: up to 21 standard contracts in the offseason (Exhibit 10 camp deals included), cut to 15 by opening night, plus 3 two-way players. The header shows your open spots correctly (it used to always count against 15 and included two-way players).
 - **Convert contracts from the Roster screen, the player's Contract tab and the Cap sheet.** Every conversion the NBA allows is there:
   - **Two-way → standard:** the minimum for his years of service (or his current salary, if higher). He needs an open spot on the 15-man roster; he then counts against the cap, can play in the playoffs and can be extended.
   - **10-day or hardship → rest of the season:** a standard minimum deal through the end of this season, so he no longer runs out.
