@@ -310,7 +310,10 @@ export class GameSim {
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
     // the last two minutes of a quarter, when that earns a free throw and the ball).
     const hackT = tD.foul === 'Hack-a-Shaq' && !putback && this[defK].fouls > 4 && this.t > 120 ? onO.reduce((a: SimPlayer | null, p) => (this.ftPct(p) < 0.62 && (!a || this.ftPct(p) < this.ftPct(a)) ? p : a), null) : null;
-    const handler = wpick(onO, p => use(p) * (1.3 - (p.r.drb + p.r.pss) / 200));
+    // Who coughs it up: whoever has the ball, so usage first. Creators handle it most and throw the
+    // riskiest passes (star playmakers lead the NBA in turnovers: about 4 a game); a good handle
+    // only trims that a little.
+    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220));
     const r = Math.random();
     const kind = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
 
@@ -382,7 +385,7 @@ export class GameSim {
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate, 0.2, 0.97)) {
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 5) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 25) * (p.roles?.includes('Primary creator') ? 1.3 : 1) * (p.selfish ? 0.35 : 1));
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
