@@ -27,8 +27,15 @@ const MIN_PCT = [0.00823, 0.01325, 0.01485, 0.01538, 0.01592, 0.01725, 0.01859, 
 // Rookie scale, year 1 at 100% of scale, by pick (share of cap). Teams sign at 120%.
 const ROOKIE_PCT = [7.45, 6.66, 5.98, 5.39, 4.88, 4.43, 4.04, 3.69, 3.37, 3.21, 3.04, 2.89, 2.75, 2.61, 2.48, 2.35, 2.26, 2.16, 2.07, 1.99, 1.91, 1.83, 1.76, 1.69, 1.63, 1.58, 1.54, 1.49, 1.47, 1.45].map(x => x / 100);
 
-export function nums(g: Game) {
-  const C = g.db.caps, CAP = C.CAP;
+// Cached per cap table (rebuilt if any of its numbers change): called thousands of times a day.
+const NUMS_CACHE = new WeakMap<object, { key: string; v: any }>();
+export function nums(g: Game): ReturnType<typeof numsOf> {
+  const C = g.db.caps, key = C.CAP + '|' + C.TAX + '|' + C.AP1 + '|' + C.AP2 + '|' + C.MINP, hit = NUMS_CACHE.get(C);
+  if (hit && hit.key === key) return hit.v;
+  const v = numsOf(C); NUMS_CACHE.set(C, { key, v }); return v;
+}
+function numsOf(C: any) {
+  const CAP = C.CAP;
   return {
     CAP, TAX: C.TAX, AP1: C.AP1, AP2: C.AP2, FLOOR: C.MINP,
     NTMLE: +(CAP * PCT.NTMLE).toFixed(2), TPMLE: +(CAP * PCT.TPMLE).toFixed(2), ROOM: +(CAP * PCT.ROOM).toFixed(2), BAE: +(CAP * PCT.BAE).toFixed(2),
@@ -82,10 +89,10 @@ export function avgSalary(g: Game, s: any) {
 }
 
 // Cap hold of an unsigned free agent the team still has rights to.
-export function capHold(g: Game, s: any, p: any) {
+export function capHold(g: Game, s: any, p: any, avg?: number) {
   const N = nums(g), prev = p.prevAmt || p.amt || N.min(0), lvl = birdOf(p, p.birdTid);
   if (p.rfa) return Math.max(p.rfa.qo, p.rookieScale ? prev * 2.5 : prev * 1.2);
-  const r = lvl === 'full' ? (prev >= avgSalary(g, s) ? 1.9 : 1.5) : lvl === 'early' ? 1.3 : 1.2;
+  const r = lvl === 'full' ? (prev >= (avg ?? avgSalary(g, s)) ? 1.9 : 1.5) : lvl === 'early' ? 1.3 : 1.2;
   return +Math.min(maxFor(g, s, p, p.birdTid).amt, Math.max(N.min(yosOf(g, p)), prev * r)).toFixed(2);
 }
 
@@ -103,7 +110,7 @@ export function teamSalary(g: Game, s: any, tid: number, opts: { holds?: boolean
   const P = g.db.P, N = nums(g), T = s.teams[tid], ids = s.rosters[tid] || [];
   let sal = ids.reduce((a, id) => a + g.capHit(P[id]), 0) + deadThis(g, s, tid) + (T?.capAdj || 0);
   if (opts.holds) {
-    const cs = capState(s, tid), holds = (s.fa || []).filter(id => P[id].birdTid === tid && !cs.renounced.includes(id)).map(id => capHold(g, s, P[id]));
+    const cs = capState(s, tid), own = (s.fa || []).filter(id => P[id].birdTid === tid && !cs.renounced.includes(id)), avg = own.length ? avgSalary(g, s) : 0, holds = own.map(id => capHold(g, s, P[id], avg));
     sal += holds.reduce((a, b) => a + b, 0);
     const n = ids.length + holds.length; if (n < 12) sal += (12 - n) * N.min(0); // incomplete-roster charge
   }

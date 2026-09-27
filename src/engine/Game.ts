@@ -19,6 +19,7 @@ import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from '.
 import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
+import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
@@ -170,10 +171,15 @@ export class Game {
       this.state = { ...this.state, ...patch };
       if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch); this._rosterRef = patch.rosters; }
       this.version++;
-      this.listeners.forEach(l => l());
+      // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
+      const now = Date.now();
+      if (this.quiet && now - this.lastEmit < 250) this.pendingEmit = true;
+      else { this.lastEmit = now; this.pendingEmit = false; this.listeners.forEach(l => l()); }
     }
     if (cb) cb();
   }
+  private quiet = false; private lastEmit = 0; private pendingEmit = false;
+  private flushEmit() { this.quiet = false; if (this.pendingEmit) { this.pendingEmit = false; this.lastEmit = Date.now(); this.listeners.forEach(l => l()); } }
 
   get CAP() { return this.db.caps.CAP; }
   get MINP() { return this.db.caps.MINP; }
@@ -350,7 +356,7 @@ export class Game {
   }
   rng(seed) { return mulberry32(seed); }
   cl(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  regionKey(code) { const R0 = regions(); return Object.keys(R0).find(k => R0[k].c.includes(code)) || 'NA'; }
+  regionKey(code) { return regionOfCountry(code); }
   regFactorK(k, s) { const sc = (s.scouts || []).filter(x => x.assign === k); return sc.length ? Math.min(...sc.map(x => (x.spec === k ? .45 : .75) * (1.2 - x.skill * .08))) : 1.25; }
   regFactor(p, s) { return this.regFactorK(this.regionKey((p.from && p.from.country) || p.raised), s); }
   tacFit(ids, t) {
@@ -1189,7 +1195,7 @@ export class Game {
   async sim(n, forced?: GameResult) {
     if (this.busy || this.state.phase !== 'regular') return;
     if (this.state.inbox?.some(x => x.block)) return;
-    this.busy = true;
+    this.busy = true; this.quiet = n > 1;
     try {
       for (let i = 0; i < n; i++) {
         const v = this.version;
@@ -1198,7 +1204,7 @@ export class Game {
         if (i < n - 1) await new Promise(r => setTimeout(r, 0));
       }
     } finally {
-      this.busy = false;
+      this.busy = false; this.flushEmit();
       if (this.state.simming) this.setState({ simming: null });
     }
   }

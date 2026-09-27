@@ -222,7 +222,8 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
     const pool = box.fa.filter(id => !P[id].retired).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 10); if (!pool.length) break;
     const id = pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa };
     // His own team (Bird rights) first, then the teams with the most cap room, then everyone else.
-    const room = (t: number) => N.CAP - teamSalary(g, st, t, { holds: true });
+    // Each team's room, worked out once per move (nothing changes until someone signs).
+    const roomOf = new Map<number, number>(T.filter(t => !g.isUser(s, t.tid)).map(t => [t.tid, N.CAP - teamSalary(g, st, t.tid, { holds: true })])), room = (t: number) => roomOf.get(t) ?? 0;
     const teams = shuffle(T.map(t => t.tid).filter(t => !g.isUser(s, t))).sort((a, b) => (b === p.birdTid ? 1 : 0) - (a === p.birdTid ? 1 : 0) || Math.max(0, room(b)) - Math.max(0, room(a)));
     for (const t of teams) {
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;

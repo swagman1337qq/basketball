@@ -69,9 +69,12 @@ export function intelF(s: any, pid: number) { const v = (s.intel || {})[pid] || 
 export function scoutTick(g: Game, s: any, overseas: number[]) {
   const P = g.db.P, intel = { ...(s.intel || {}) }, budget = s.budget?.Scouting ?? 4, bF = 0.6 + budget / 10;
   const pros = [g.Y, g.Y + 1, g.Y + 2].flatMap(y => g.db.cls[y] || []).concat(overseas || []);
-  pros.forEach(id => { const p = P[id], reg = g.regionKey((p.from && p.from.country) || p.raised);
+  // Each prospect's region, and how many prospects share it (computed once, not per prospect).
+  const regOf = new Map<number, string>(), perReg: Record<string, number> = {};
+  pros.forEach(id => { const p = P[id], reg = g.regionKey((p.from && p.from.country) || p.raised); regOf.set(id, reg); perReg[reg] = (perReg[reg] || 0) + 1; });
+  pros.forEach(id => { const reg = regOf.get(id)!;
     const sc = (s.scouts || []).filter(x => x.assign === reg); if (!sc.length) return;
-    const gain = sc.reduce((a, x) => a + (x.spec === reg ? 1 : 0.6) * (0.5 + x.skill * 0.15), 0) * bF * ((s.scoutFocus || []).includes(id) ? 3 : 1) / Math.max(1, pros.filter(q => g.regionKey((P[q].from && P[q].from.country) || P[q].raised) === reg).length / 8);
+    const gain = sc.reduce((a, x) => a + (x.spec === reg ? 1 : 0.6) * (0.5 + x.skill * 0.15), 0) * bF * ((s.scoutFocus || []).includes(id) ? 3 : 1) / Math.max(1, perReg[reg] / 8);
     intel[id] = +Math.min(12, (intel[id] || 0) + gain).toFixed(2); });
   // Players a scout follows personally (right-click → assign on the draft board): much faster than
   // regional coverage, split between everyone he follows, better in his own region.
