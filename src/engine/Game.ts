@@ -8,6 +8,7 @@ import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup
 import { voteHof } from './hof';
 import { ovrShare, setRating, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
+import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { snapEnd, snapOpening } from './progress';
@@ -419,7 +420,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -1272,10 +1273,11 @@ export class Game {
     const cbaLog: Record<number, string[]> = {};
     seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj);
     let clubs = { ...(s.clubs || {}) }, patch: any = {};
+    // Monthly club upkeep: scouting intel, scouts with a brief picking their own players (scoutBrief.ts), dev reports, mentoring.
     const addClub = (tid, f) => { const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs); if (pt.clubs) clubs = pt.clubs; else patch = { ...patch, ...pt }; };
     if (this.dateOf(day).getMonth() !== this.dateOf(day - 1).getMonth()) {
       const reps = this.devTick(s, rosters, day), mnt = mentorTick(this, s, rosters);
-      s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}), ...(mnt[t] ? { log: [...mnt[t].map(text => ({ date: this.fmtS(day), day, text: 'Mentoring: ' + text })), ...(c.log || [])] } : {}) })));
+      s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...runBriefs(this, s, c), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}), ...(mnt[t] ? { log: [...mnt[t].map(text => ({ date: this.fmtS(day), day, text: 'Mentoring: ' + text })), ...(c.log || [])] } : {}) })));
       Object.entries(mnt).forEach(([t, xs]) => xs.forEach(text => lgLog.unshift({ day, type: 'Team', teams: s.teams[+t].abbr, text })));
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); ccpTopUp(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));

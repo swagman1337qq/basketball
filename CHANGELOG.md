@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-27
 
 ### Added
+- **Scouting briefs** (Scouting screen): tick "Let him find players himself" on any scout and tell him what to look for (shooters, playmakers, slashers, rim protectors, 3-and-D wings, perimeter defenders, rebounders, stretch bigs, athletes, size and length, upside, ready now, best available, or intangibles for hidden gems), where (next draft class, all three classes, overseas, free agents, other NBA teams, everywhere), which position and what age. Every month he fills his 8 personal slots with the best fits by his own read, and shows why he picked each one (e.g. "3PT ~58 → ~63"). A better scout picks better players; players you assigned him by hand stay. Scouts can also skip region coverage and scout only personally.
 - **A full playbook of tactics** (Tactics screen), researched from how real teams play, each explained in plain words:
   - **Pace:** Slow, Balanced, Fast, Seven seconds or less.
   - **Offense:** Motion, Pick and roll, Isolation, Post-up, Triangle, Princeton, Flex, Dribble drive, Five-out, Moreyball.

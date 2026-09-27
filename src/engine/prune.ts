@@ -28,7 +28,7 @@ export function removeUnplayed(g: Game, s: any) {
   if (!gone.size) return 0;
   const keep = (ids: any) => (Array.isArray(ids) ? ids.filter((id: number) => !gone.has(id)) : ids);
   const dropKeys = (o: any) => { if (!o) return o; const x = { ...o }; gone.forEach(id => delete x[id]); return x; };
-  const clean = (c: any) => { if (!c) return; c.scoutList = keep(c.scoutList); c.scoutFocus = keep(c.scoutFocus); c.intel = dropKeys(c.intel); c.scoutAssign = dropKeys(c.scoutAssign); c.coachAuto = dropKeys(c.coachAuto); };
+  const clean = (c: any) => { if (!c) return; c.scoutList = keep(c.scoutList); c.scoutFocus = keep(c.scoutFocus); c.intel = dropKeys(c.intel); c.scoutAssign = dropKeys(c.scoutAssign); c.briefPicks = dropKeys(c.briefPicks); c.coachAuto = dropKeys(c.coachAuto); };
   s.fa = keep(s.fa); s.overseas = keep(s.overseas); clean(s); Object.values(s.clubs || {}).forEach(clean);
   return gone.size;
 }
