@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-09-27
+
+### Changed
+- **New team names.** Every team is now a thing, a group of people, a word or an animal its city is not known for at all: the Baltimore Camels, New York Yaks, Brooklyn Armadillos, Newark Toucans, Philadelphia Koalas, Cleveland Iguanas, Detroit Oxcarts, Chicago Sloths, Pittsburgh Lemurs, Cincinnati Narwhals, Charlotte Tortoises, Atlanta Walruses, Tampa Sleds, Richmond Samurai, Nashville Librarians, Seattle Scorpions, Portland Sultans, Vancouver Hyenas, St. Louis Puffins, Denver Stingrays, San Diego Moose, Oakland Barons, Las Vegas Monks, Los Angeles Beavers, San Jose Typewriters, Austin Hush, San Antonio Frost, Phoenix Chill, Dallas Axolotls and Houston Caribou, each with a new crest. The expansion teams are now the Hartford Anteaters, Providence Emus, Columbus Ibex, Kansas City Manatees, Sacramento Wombats and Raleigh Gondolas. Leagues you already started switch over too, except teams you renamed yourself.
+
 ## 2026-09-26
 
 ### Added

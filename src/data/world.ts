@@ -200,7 +200,7 @@ export function roleDefs(): any[] {
 export const COLLEGES = ['Kentucky', 'Gonzaga', 'Duke', 'Villanova', 'Baylor', 'Arizona', 'UCLA', 'Kansas', 'Michigan State', 'Houston', 'Creighton', 'Purdue', 'Tennessee', 'Iowa State', 'Marquette', 'Alabama', 'UConn', 'North Carolina', 'Texas', 'Auburn', 'Saint Mary’s', 'Florida', 'Arkansas', 'Indiana', 'USC', 'Oregon', 'Virginia', 'Memphis'];
 
 // [region, nickname, abbreviation, conference, division]. The user runs index 0.
-export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 'Cacti', 'BAL', 'East', 'Atlantic'], ['New York', 'Nappers', 'NY', 'East', 'Atlantic'], ['Brooklyn', 'Ranchers', 'BKN', 'East', 'Atlantic'], ['Newark', 'Tourists', 'NWK', 'East', 'Atlantic'], ['Philadelphia', 'Gentlemen', 'PHI', 'East', 'Atlantic'], ['Cleveland', 'Tropics', 'CLE', 'East', 'Central'], ['Detroit', 'Pedal Pushers', 'DET', 'East', 'Central'], ['Chicago', 'Doldrums', 'CHI', 'East', 'Central'], ['Pittsburgh', 'Flatlanders', 'PIT', 'East', 'Central'], ['Cincinnati', 'Surfers', 'CIN', 'East', 'Central'], ['Charlotte', 'Speed Bumps', 'CHA', 'East', 'Southeast'], ['Atlanta', 'Open Roads', 'ATL', 'East', 'Southeast'], ['Tampa', 'Mountaineers', 'TPA', 'East', 'Southeast'], ['Richmond', 'Monarchists', 'RIC', 'East', 'Southeast'], ['Nashville', 'Mimes', 'NSH', 'East', 'Southeast'], ['Seattle', 'Sunburn', 'SEA', 'West', 'Northwest'], ['Portland', 'Normies', 'POR', 'West', 'Northwest'], ['Vancouver', 'Bargains', 'VAN', 'West', 'Northwest'], ['St. Louis', 'Igloos', 'STL', 'West', 'Northwest'], ['Denver', 'Submarines', 'DEN', 'West', 'Northwest'], ['San Diego', 'Monsoons', 'SD', 'West', 'Pacific'], ['Oakland', 'Lifers', 'OAK', 'West', 'Pacific'], ['Las Vegas', 'Early Birds', 'LV', 'West', 'Pacific'], ['Los Angeles', 'Unknowns', 'LA', 'West', 'Pacific'], ['San Jose', 'Luddites', 'SJ', 'West', 'Pacific'], ['Austin', 'Vegetarians', 'AUS', 'West', 'Southwest'], ['San Antonio', 'Amnesiacs', 'SA', 'West', 'Southwest'], ['Phoenix', 'Icebergs', 'PHX', 'West', 'Southwest'], ['Dallas', 'Minimalists', 'DAL', 'West', 'Southwest'], ['Houston', 'Dry Heat', 'HOU', 'West', 'Southwest']];
+export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 'Camels', 'BAL', 'East', 'Atlantic'], ['New York', 'Yaks', 'NY', 'East', 'Atlantic'], ['Brooklyn', 'Armadillos', 'BKN', 'East', 'Atlantic'], ['Newark', 'Toucans', 'NWK', 'East', 'Atlantic'], ['Philadelphia', 'Koalas', 'PHI', 'East', 'Atlantic'], ['Cleveland', 'Iguanas', 'CLE', 'East', 'Central'], ['Detroit', 'Oxcarts', 'DET', 'East', 'Central'], ['Chicago', 'Sloths', 'CHI', 'East', 'Central'], ['Pittsburgh', 'Lemurs', 'PIT', 'East', 'Central'], ['Cincinnati', 'Narwhals', 'CIN', 'East', 'Central'], ['Charlotte', 'Tortoises', 'CHA', 'East', 'Southeast'], ['Atlanta', 'Walruses', 'ATL', 'East', 'Southeast'], ['Tampa', 'Sleds', 'TPA', 'East', 'Southeast'], ['Richmond', 'Samurai', 'RIC', 'East', 'Southeast'], ['Nashville', 'Librarians', 'NSH', 'East', 'Southeast'], ['Seattle', 'Scorpions', 'SEA', 'West', 'Northwest'], ['Portland', 'Sultans', 'POR', 'West', 'Northwest'], ['Vancouver', 'Hyenas', 'VAN', 'West', 'Northwest'], ['St. Louis', 'Puffins', 'STL', 'West', 'Northwest'], ['Denver', 'Stingrays', 'DEN', 'West', 'Northwest'], ['San Diego', 'Moose', 'SD', 'West', 'Pacific'], ['Oakland', 'Barons', 'OAK', 'West', 'Pacific'], ['Las Vegas', 'Monks', 'LV', 'West', 'Pacific'], ['Los Angeles', 'Beavers', 'LA', 'West', 'Pacific'], ['San Jose', 'Typewriters', 'SJ', 'West', 'Pacific'], ['Austin', 'Hush', 'AUS', 'West', 'Southwest'], ['San Antonio', 'Frost', 'SA', 'West', 'Southwest'], ['Phoenix', 'Chill', 'PHX', 'West', 'Southwest'], ['Dallas', 'Axolotls', 'DAL', 'West', 'Southwest'], ['Houston', 'Caribou', 'HOU', 'West', 'Southwest']];
 // New York, Philadelphia, Chicago, Los Angeles and Houston (the biggest U.S. metros) replaced
 // Hartford, Providence, Columbus, Sacramento and Kansas City; St. Louis moved to the Northwest to
 // keep divisions at five. The five are expansion franchises in data/franchises.ts. Richmond
@@ -211,7 +211,7 @@ export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 
 // Nicknames before the 2026 rename, for migrating saves whose teams kept the defaults.
 // Earlier default nicknames (the 2026 originals and the pre-2026-09 names), so saves that kept a
 // default follow the renames.
-export const OLD_NICKNAMES: Record<string, string[]> = {"BAL": ["Tides", "Crabs"], "NY": ["Empires"], "BKN": ["Ironworks", "Trolleys"], "NWK": ["Comets", "Bricks"], "PHI": ["Bells"], "CLE": ["Forge", "Amps"], "DET": ["Motors"], "CHI": ["Gales"], "PIT": ["Rivermen", "Inclines"], "CIN": ["Barons", "Riverboats"], "CHA": ["Monarchs", "Racers"], "ATL": ["Firebirds"], "TPA": ["Herons", "Corsairs"], "RIC": ["Liberty"], "NSH": ["Sound"], "SEA": ["Squall", "Roasters"], "POR": ["Lumberjacks"], "VAN": ["Orcas"], "STL": ["Arches"], "DEN": ["Altitude"], "SD": ["Surf"], "OAK": ["Redwoods"], "LV": ["Jacks", "High Rollers"], "LA": ["Marquees"], "SJ": ["Circuits"], "AUS": ["Outlaws", "Bats"], "SA": ["Vaqueros"], "PHX": ["Scorch", "Saguaros"], "DAL": ["Wildcatters"], "HOU": ["Orbit"], "HFD": ["Kestrels", "Underwriters"], "PRV": ["Anchors", "Jewelers"], "CBS": ["Owls", "Explorers"], "KC": ["Scouts", "Pitmasters"], "SAC": ["Gold", "Prospectors"], "RAL": ["Oaks"]};
+export const OLD_NICKNAMES: Record<string, string[]> = {"BAL": ["Tides", "Crabs", "Cacti"], "NY": ["Empires", "Nappers"], "BKN": ["Ironworks", "Trolleys", "Ranchers"], "NWK": ["Comets", "Bricks", "Tourists"], "PHI": ["Bells", "Gentlemen"], "CLE": ["Forge", "Amps", "Tropics"], "DET": ["Motors", "Pedal Pushers"], "CHI": ["Gales", "Doldrums"], "PIT": ["Rivermen", "Inclines", "Flatlanders"], "CIN": ["Barons", "Riverboats", "Surfers"], "CHA": ["Monarchs", "Racers", "Speed Bumps"], "ATL": ["Firebirds", "Open Roads"], "TPA": ["Herons", "Corsairs", "Mountaineers"], "RIC": ["Liberty", "Monarchists"], "NSH": ["Sound", "Mimes"], "SEA": ["Squall", "Roasters", "Sunburn"], "POR": ["Lumberjacks", "Normies"], "VAN": ["Orcas", "Bargains"], "STL": ["Arches", "Igloos"], "DEN": ["Altitude", "Submarines"], "SD": ["Surf", "Monsoons"], "OAK": ["Redwoods", "Lifers"], "LV": ["Jacks", "High Rollers", "Early Birds"], "LA": ["Marquees", "Unknowns"], "SJ": ["Circuits", "Luddites"], "AUS": ["Outlaws", "Bats", "Vegetarians"], "SA": ["Vaqueros", "Amnesiacs"], "PHX": ["Scorch", "Saguaros", "Icebergs"], "DAL": ["Wildcatters", "Minimalists"], "HOU": ["Orbit", "Dry Heat"], "HFD": ["Kestrels", "Underwriters", "Risk Takers"], "PRV": ["Anchors", "Jewelers", "Skyscrapers"], "CBS": ["Owls", "Explorers", "Homebodies"], "KC": ["Scouts", "Pitmasters", "Tofu"], "SAC": ["Gold", "Prospectors", "Paupers"], "RAL": ["Oaks", "Clear-Cutters"]};
 export const MARKETS = [1.0, 1.55, 1.45, 1.2, 1.2, .85, 1.05, 1.35, .9, .85, .95, 1.15, 1.0, .8, .9, 1.15, .9, 1.05, .9, 1.05, 1.1, 1.25, .95, 1.5, 1.1, 1.0, .95, 1.15, 1.25, 1.25];
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway', 'Thornbury', 'Delacroix', 'Mancuso', 'Radcliffe', 'Oyelaran', 'Sterling', 'Halvorsen', 'Fairbanks', 'Montague', 'Kowalczyk', 'Abernathy', 'Villanueva', 'Carrington', 'Nakashima', 'Blackwood', 'Esposito', 'Harrowgate', 'Lindqvist', 'Mbeki', 'Rosenthal', 'Pritchard', 'Castellanos', 'Wexford', 'Adebayo', 'Kingsley', 'Duquesne', 'Hollister', 'Szabo'];
@@ -225,44 +225,44 @@ export const EXPANSION: [string, string, string, string, string, number][] = [['
 // Original marks for fictional clubs; the crest is drawn by ui/TeamLogo.tsx.
 export const TEAM_STYLE: Record<string, { colors: [string, string]; icon: string }> = {
   BAL: { colors: ['#1d3557', '#a8dadc'], icon: 'Sun' },
-  NY: { colors: ['#1c2541', '#c9a227'], icon: 'Moon' },
-  PHI: { colors: ['#3b2a1a', '#d9a441'], icon: 'Award' },
-  CHI: { colors: ['#16324f', '#9bc0e3'], icon: 'Sailboat' },
-  LA: { colors: ['#2b1a4f', '#f4c542'], icon: 'Star' },
-  HOU: { colors: ['#141d3b', '#f26b21'], icon: 'Droplets' },
-  HFD: { colors: ['#8e3b1f', '#f1e3c8'], icon: 'Dice5' },
-  BKN: { colors: ['#2b2b2b', '#c9894f'], icon: 'Wheat' },
-  NWK: { colors: ['#22254a', '#e7c46a'], icon: 'Camera' },
-  PRV: { colors: ['#1f5f63', '#e9efe8'], icon: 'Building2' },
+  NY: { colors: ['#1c2541', '#c9a227'], icon: 'MountainSnow' },
+  PHI: { colors: ['#3b2a1a', '#d9a441'], icon: 'TreeDeciduous' },
+  CHI: { colors: ['#16324f', '#9bc0e3'], icon: 'TreePine' },
+  LA: { colors: ['#2b1a4f', '#f4c542'], icon: 'Axe' },
+  HOU: { colors: ['#141d3b', '#f26b21'], icon: 'Compass' },
+  HFD: { colors: ['#8e3b1f', '#f1e3c8'], icon: 'Spade' },
+  BKN: { colors: ['#2b2b2b', '#c9894f'], icon: 'Shell' },
+  NWK: { colors: ['#22254a', '#e7c46a'], icon: 'Bird' },
+  PRV: { colors: ['#1f5f63', '#e9efe8'], icon: 'Award' },
   CLE: { colors: ['#6b1d1d', '#f2a541'], icon: 'TreePalm' },
-  DET: { colors: ['#2f4a6b', '#d5d9de'], icon: 'Cog' },
-  CBS: { colors: ['#2d4a36', '#d8c29a'], icon: 'Coffee' },
-  PIT: { colors: ['#1b1b1b', '#f0b429'], icon: 'Sunset' },
-  CIN: { colors: ['#5e1f35', '#e0c07a'], icon: 'Waves' },
-  CHA: { colors: ['#4b2a6b', '#e6c36a'], icon: 'BrickWall' },
-  ATL: { colors: ['#a3222b', '#f6c453'], icon: 'Compass' },
-  TPA: { colors: ['#1e6f5c', '#e8f3ec'], icon: 'MountainSnow' },
-  RAL: { colors: ['#35573a', '#e8dcc0'], icon: 'Axe' },
-  RIC: { colors: ['#2a2f5c', '#c8a24a'], icon: 'Crown' },
+  DET: { colors: ['#2f4a6b', '#d5d9de'], icon: 'Wheat' },
+  CBS: { colors: ['#2d4a36', '#d8c29a'], icon: 'Anvil' },
+  PIT: { colors: ['#1b1b1b', '#f0b429'], icon: 'Moon' },
+  CIN: { colors: ['#5e1f35', '#e0c07a'], icon: 'Fish' },
+  CHA: { colors: ['#4b2a6b', '#e6c36a'], icon: 'Circle' },
+  ATL: { colors: ['#a3222b', '#f6c453'], icon: 'Snowflake' },
+  TPA: { colors: ['#1e6f5c', '#e8f3ec'], icon: 'Wind' },
+  RAL: { colors: ['#35573a', '#e8dcc0'], icon: 'Ship' },
+  RIC: { colors: ['#2a2f5c', '#c8a24a'], icon: 'Flag' },
   NSH: { colors: ['#2e3a78', '#f2a07b'], icon: 'Feather' },
   SEA: { colors: ['#36475a', '#bfe3d0'], icon: 'Flame' },
-  POR: { colors: ['#8f2d25', '#f4e6cf'], icon: 'Armchair' },
-  VAN: { colors: ['#15191e', '#d3e6ef'], icon: 'Gem' },
+  POR: { colors: ['#8f2d25', '#f4e6cf'], icon: 'Crown' },
+  VAN: { colors: ['#15191e', '#d3e6ef'], icon: 'Star' },
   SLC: { colors: ['#1f3b63', '#eef2f5'], icon: 'Bird' },
-  DAL: { colors: ['#0f2a44', '#c8a24a'], icon: 'Circle' },
-  DEN: { colors: ['#2c5d8a', '#f2c14e'], icon: 'Ship' },
-  SD: { colors: ['#0f6e8c', '#f3dfb3'], icon: 'CloudRainWind' },
-  OAK: { colors: ['#7a3325', '#c9d6b5'], icon: 'Anchor' },
-  LV: { colors: ['#1c1a1a', '#d4af37'], icon: 'Bird' },
-  SAC: { colors: ['#3a2f5b', '#d9a93a'], icon: 'Spade' },
-  SJ: { colors: ['#0b3d4f', '#7fd1c7'], icon: 'Anvil' },
+  DAL: { colors: ['#0f2a44', '#c8a24a'], icon: 'Rainbow' },
+  DEN: { colors: ['#2c5d8a', '#f2c14e'], icon: 'Waves' },
+  SD: { colors: ['#0f6e8c', '#f3dfb3'], icon: 'Mountain' },
+  OAK: { colors: ['#7a3325', '#c9d6b5'], icon: 'Castle' },
+  LV: { colors: ['#1c1a1a', '#d4af37'], icon: 'Bell' },
+  SAC: { colors: ['#3a2f5b', '#d9a93a'], icon: 'Coffee' },
+  SJ: { colors: ['#0b3d4f', '#7fd1c7'], icon: 'Cog' },
   HNL: { colors: ['#127a7a', '#f7c8a3'], icon: 'TreePalm' },
-  AUS: { colors: ['#a4521b', '#f3ece2'], icon: 'Citrus' },
-  SA: { colors: ['#5a2a1a', '#e8c07a'], icon: 'CloudFog' },
+  AUS: { colors: ['#a4521b', '#f3ece2'], icon: 'Origami' },
+  SA: { colors: ['#5a2a1a', '#e8c07a'], icon: 'Sparkles' },
   ABQ: { colors: ['#2a8c8c', '#f0d9b5'], icon: 'Wind' },
-  PHX: { colors: ['#c1461d', '#fbe3c1'], icon: 'Snowflake' },
-  KC: { colors: ['#1f2f4d', '#e4b363'], icon: 'Grape' },
-  STL: { colors: ['#24457a', '#f08a74'], icon: 'Castle' },
+  PHX: { colors: ['#c1461d', '#fbe3c1'], icon: 'Droplets' },
+  KC: { colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat' },
+  STL: { colors: ['#24457a', '#f08a74'], icon: 'Anchor' },
   LOU: { colors: ['#4a1a2c', '#e9b7c1'], icon: 'Award' },
   MEX: { colors: ['#1f5e3a', '#f0e6d2'], icon: 'Feather' },
 };
