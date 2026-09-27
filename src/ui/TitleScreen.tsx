@@ -119,7 +119,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
         <section style={{ marginTop: '40px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--color-text)', paddingBottom: '6px', marginBottom: '4px' }}>
             <h3 style={{ margin: 0, fontSize: '25px' }}>{multi ? 'Select your teams' : 'Select your team'}</h3>
-            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>{multi ? 'Click as many clubs as you like (up to all 30); the first one you picked is where you start.' : 'Click a club to run it.'} Ranked by team rating (the roster weighted by rotation minutes); the season starts 0–0.</span>
+            <span style={{ color: 'var(--color-neutral-700)', flex: 1 }}>{multi ? 'Click as many clubs as you like (up to all 30); the first one you picked is where you start.' : 'Click a club to run it.'} Listed A to Z; the # is each team's rank by team rating (the roster weighted by rotation minutes). The season starts 0–0.</span>
             {multi && <button className="btn btn-ghost" onClick={() => setSel(teams.map(t => t.tid))} style={{ fontSize: '12px' }}>Select all</button>}
             <button className="btn btn-ghost" onClick={() => { if (multi) setSel([sel[0]]); setMulti(!multi); }} style={{ fontSize: '12px' }}>{multi ? 'Back to one team' : 'Multiple teams'}</button>
           </div>
