@@ -46,7 +46,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
     // Championships and Finals trips.
     const titles: Row[] = [];
     (s.history || []).forEach((h: any) => { const t = tidIn(h.year, true) ?? tidIn(h.year); if (t == null) return; // hurt all playoffs still gets the ring
-      if (h.champ === t) titles.push({ season: h.year, key: 'CH', tid: t, label: 'NBA Champion' });
+      if (h.champ === t) titles.push({ season: h.year, key: 'CH', tid: t, label: 'League Champion' });
       else if (h.runner === t) titles.push({ season: h.year, key: 'RU', tid: t, label: 'Reached the Finals' }); });
     // League leader in a counting stat (per game, at least 58 games), in seasons the awards were voted.
     const leads: Row[] = [];
@@ -67,7 +67,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
   // The summary chips: counts, biggest honors first.
   const count = (rows: Row[]) => { const m = new Map<string, { label: string; n: number; years: number[] }>(); rows.forEach(r => { const e = m.get(r.label) || { label: r.label, n: 0, years: [] }; e.n++; e.years.push(r.season); m.set(r.label, e); }); return [...m.values()]; };
   const champs = titles.filter(t => t.key === 'CH');
-  const chips = [...(champs.length ? [{ label: 'NBA Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(series), ...count(teams), ...count(leads)];
+  const chips = [...(champs.length ? [{ label: 'League Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(series), ...count(teams), ...count(leads)];
 
   const Team = ({ tid }: { tid?: number }) => tid != null && T[tid] ? <Link onClick={() => gm.setState({ teamModal: tid, modal: false })}>{T[tid].abbr}</Link> : <span style={muted}>—</span>;
   const Table = ({ title, rows, note }: { title: string; rows: Row[]; note?: ReactNode }) => rows.length ? (
