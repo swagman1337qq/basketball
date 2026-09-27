@@ -1,5 +1,6 @@
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
+import { godBtn } from '../kit';
 
 export function TradeScreen({ vm }: { vm: VM }) {
   // ‹ › step through the other teams in the menu's order.
@@ -197,7 +198,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
           <button className="btn btn-primary" onClick={vm.propose} disabled={vm.tr.cantPropose} style={{ width: "100%", marginTop: "4px" }}>
             Propose trade
           </button>
-          {!!vm.tr.god && <button className="btn btn-secondary" onClick={vm.forceAccept} disabled={vm.tr.cantForce} title="God Mode: they accept and the league office approves, whatever the rules say" style={{ width: "100%", borderColor: "var(--color-accent)", color: "var(--color-accent-700)" }}>
+          {!!vm.tr.god && <button className="btn btn-secondary" onClick={vm.forceAccept} disabled={vm.tr.cantForce} title="God Mode: they accept and the league office approves, whatever the rules say" style={{ ...godBtn,  width: "100%", borderColor: "var(--color-accent)", color: "var(--color-accent-700)" }}>
             ⚡ Force accept
           </button>}
           <div style={{ display: "flex", gap: "6px" }}>

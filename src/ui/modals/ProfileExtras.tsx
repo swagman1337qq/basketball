@@ -7,7 +7,7 @@ import { fmtChange, RNAME, yearByYear } from '../../engine/progress';
 import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
-import { Bar, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
+import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
 const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
 // Attribute thresholds that unlock each on-court role (mirrors roleDefs in data/world).
@@ -155,7 +155,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
       <section>
         <h4 style={ruleH4}>Ratings & scouting confidence</h4>
-        <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} />
+        <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} c={s.god && !(tid >= 0 && gm.isUser(s, tid)) ? GOD_PINK : undefined} />
         <Row k="Potential" v={mine ? p.pot : Math.max(p.ovr, p.pot - margin * 2) + '–' + (p.pot + margin * 2)} />
         <Row k="Confidence" v={mine ? (conf >= 70 ? 'Brimming' : conf >= 55 ? 'Assured' : conf >= 40 ? 'Steady' : conf >= 25 ? 'Shaken' : 'Fragile') : 'Hidden'} c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined} />
         {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}

@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { GOD_PINK } from '../kit';
 import { CountryPicker } from '../kit';
 import { EasyToggles } from '../Tour';
 import { ExpansionPicker } from './ExpansionPicker';
@@ -69,7 +70,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", color: vm.god.on ? GOD_PINK : undefined }}>
             God Mode
           </div>
           <div>
@@ -80,7 +81,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
               Edit any player or team, see every player’s true ratings, move players anywhere, and make trades and signings without cap or salary-matching rules. You can’t be fired. IDs, engine formulas and past-season stats stay locked.
             </div>
           </div>
-          <button className="btn btn-secondary" onClick={vm.god.toggle} style={{ whiteSpace: "nowrap" }}>
+          <button className="btn btn-secondary" onClick={vm.god.toggle} style={{ whiteSpace: "nowrap", ...(vm.god.on ? { color: GOD_PINK, borderColor: GOD_PINK } : {}) }}>
             {vm.god.btn}
           </button>
         </div>

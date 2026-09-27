@@ -7,7 +7,7 @@ import type { VM } from '../vm';
 import { teamSalary } from '../../engine/cba';
 import { OWNER_ARCHETYPES } from '../../data/world';
 import { processImage } from '../upload';
-import { alphaTeams, Link, muted, NumInput, ruleH4 } from '../kit';
+import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
 
 const GLYPHS = ['Drama', 'Footprints', 'Glasses', 'Hand', 'Palette', 'Square', 'Tent', 'Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
 
@@ -15,7 +15,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, money } = vm.ctx, P = gm.db.P;
   const [tid, setTid] = useState<number>(s.me), [other, setOther] = useState<number>(T.find(t => t.tid !== s.me)?.tid ?? 0);
   const [pa, setPa] = useState<number | ''>(''), [pb, setPb] = useState<number | ''>(''), [err, setErr] = useState(''), [msg, setMsg] = useState('');
-  if (!s.god) return <p style={{ ...muted, fontStyle: 'italic' }}>Turn on God Mode in Settings to edit teams and the league.</p>;
+  if (!s.god) return null; // God Mode only (the tab isn't shown without it)
   const t = T[tid];
   const setT = (f: Record<string, any>) => gm.setState(st => { Object.assign(gm.db.teams[tid] || {}, f); return { teams: st.teams.map(x => (x.tid === tid ? { ...x, ...f } : x)) }; });
   const log = (text: string) => gm.setState(st => ({ lgLog: [{ day: st.day, type: 'Trade', teams: 'God Mode', text }, ...st.lgLog] }));
@@ -34,6 +34,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
   const pay = teamSalary(gm, s, tid);
   return (
     <>
+      <div style={{ padding: '8px 12px', marginBottom: 12, borderLeft: '3px solid ' + GOD_PINK, background: 'color-mix(in srgb, ' + GOD_PINK + ' 8%, transparent)', fontSize: '12.5px' }}><b style={{ color: GOD_PINK }}>God Mode</b> · Edit any team, its roster and the league. No rules apply here.</div>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
         {logo(tid, 36)}
         <select className="input" value={tid} onChange={e => { setTid(+e.target.value); setPa(''); setPb(''); setMsg(''); }} style={{ minWidth: '240px' }}>{alphaTeams(T).map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{gm.isUser(s, x.tid) ? ' (yours)' : ''}</option>)}</select>

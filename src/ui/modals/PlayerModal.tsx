@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
-import { Dice } from '../kit';
+import { Dice, godBtn, godText } from '../kit';
 import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, FtInInput, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
@@ -25,7 +25,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </button>
             ))}
             <span style={{ flex: "1" }}></span>
-            {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-primary" onClick={() => vm.goTab('edit')} style={{ fontSize: "13px" }}>✎ Edit player</button>}
+            {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-secondary" onClick={() => vm.goTab('edit')} style={{ fontSize: "13px", ...godBtn }}>✎ Edit player</button>}
 
           </div>
           {!!vm.pl.tabOverview && <ProfileOverview vm={vm} />}
@@ -107,6 +107,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
           {vm.ctx.s.ptab === 'stats' && <PlayerStatsTab vm={vm} />}
           {vm.ctx.s.ptab === 'accolades' && <AccoladesTab vm={vm} />}
           {!!vm.pl.tabEdit && (<>
+            <div style={{ ...godText, fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600, margin: '-8px 0 10px' }}>God Mode · editing {vm.pl.name || 'this player'}</div>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>
                 <h4 style={{ margin: "0 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>

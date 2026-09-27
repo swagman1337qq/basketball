@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { GOD_PINK } from '../kit';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { Seg, usePaged } from '../kit';
@@ -22,7 +23,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </button>
           ))}
         </div>
-        <div style={{ flex: "1", color: "var(--color-neutral-700)", fontSize: "12px" }}>
+        <div style={{ flex: "1", color: vm.ctx.s.god ? GOD_PINK : "var(--color-neutral-700)", fontSize: "12px" }}>
           {vm.dr.classNote}
         </div>
         {!!vm.dr.isCurrent && (<>

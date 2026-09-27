@@ -7,7 +7,7 @@ import { BADGE_FLAVOR, TIERS } from '../../engine/ratings';
 import { knownBadges } from '../../engine/scoutReport';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
-import { CountryPicker, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
+import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 
@@ -236,12 +236,12 @@ function EligEditor({ vm, p }: { vm: VM; p: any }) {
           <button className="hv4" onClick={() => gm.setState({ listModal: { type: 'country', code: e.c } })} style={{ all: 'unset', cursor: 'pointer', fontWeight: p.rep === e.c ? 600 : 400 }}>{C[e.c].n}</button>
           {p.rep === e.c && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: '999px', border: '1px solid var(--color-accent)', color: 'var(--color-accent-700)' }}>represents</span>}
           {god ? <select value={e.why} onChange={ev => setReason(e.c, ev.target.value)} style={{ fontSize: '11px', padding: '0 4px', width: 'auto', minHeight: 0 }}>{[...new Set([...WHY, e.why])].map(w => <option key={w} value={w}>{w}</option>)}</select> : <span style={{ ...muted, fontSize: '11px' }}>{e.why}</span>}
-          {god && p.rep !== e.c && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '0 6px' }} onClick={() => represent(e.c)}>Represent</button>}
+          {god && p.rep !== e.c && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '0 6px', ...godText }} onClick={() => represent(e.c)}>Represent</button>}
           {god && elig.length > 1 && <button className="btn btn-ghost" title="Remove this eligibility" style={{ fontSize: '14px', lineHeight: 1, padding: '2px 7px', color: 'var(--gm-bad)', border: '1px solid var(--color-divider)' }} onClick={() => remove(e.c)}>✕</button>}
         </span>
       ))}
       {god && (
-        <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+        <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px', padding: '4px 6px', ...godBox }}>
           <CountryPicker C={C} onPick={add} exclude={elig.map(e => e.c)} placeholder="+ Add a country…" width={180} />
           <select value={why} onChange={ev => setWhy(ev.target.value)} style={{ fontSize: '11.5px', width: 'auto' }}>{WHY.map(w => <option key={w} value={w}>{w}</option>)}</select>
         </span>

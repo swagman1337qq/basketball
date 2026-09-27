@@ -7,6 +7,7 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
+import { godText } from '../kit';
 import { rosterMax, stdIds, twoWayIds } from '../../engine/cba';
 import { faAdvice, type FaAdvice } from '../../engine/assistants';
 
@@ -190,7 +191,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "4px 8px", fontSize: "12px" }}>
                 {p.mot}
               </td>
-              <td style={{ padding: "4px 8px", fontSize: "12px", color: "var(--color-neutral-700)" }}>
+              <td style={{ padding: "4px 8px", fontSize: "12px", color: "var(--color-neutral-700)" , ...(p.how === 'God Mode' ? godText : {})}}>
                 {p.how}
               </td>
               <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>

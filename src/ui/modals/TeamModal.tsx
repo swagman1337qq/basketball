@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
+import { godBox, godBtn, godText } from '../kit';
 
 export function TeamModal({ vm }: { vm: VM }) {
   useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.teamModal]);
@@ -44,7 +45,7 @@ export function TeamModal({ vm }: { vm: VM }) {
                 </button>
               </>)}
               {!!vm.tm.canSwitch && <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: "nowrap" }}>Switch to this team</button>}
-              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap" }}>Take over (God Mode)</button>}
+              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap", ...godBtn }}>Take over</button>}
               {!!vm.tm.canResign && <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Resign · hand to AI</button>}
             </div>
           </div>
@@ -60,8 +61,8 @@ export function TeamModal({ vm }: { vm: VM }) {
             </span>
           </div>
           {!!vm.isGod && (<>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "12px", padding: "8px 10px", border: "1px dashed var(--color-accent)", borderRadius: "var(--radius-md)" }}>
-              <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "12px", padding: "8px 10px", ...godBox }}>
+              <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600, ...godText }}>
                 God Mode
               </span>
               <input className="input" value={vm.tm.region} onChange={vm.tm.setRegion} style={{ maxWidth: "170px", minHeight: "30px", fontSize: "13px" }} />

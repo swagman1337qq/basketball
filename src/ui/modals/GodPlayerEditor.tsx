@@ -192,7 +192,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
       </section>
       <section>
         <h4 style={ruleH4}>Player cards</h4>
-        <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }} onClick={() => vm.ctx.gm.setState({ screen: 'cards', cardTarget: p.id, modal: false, teamModal: null })}>Open Player cards for {p.name} →</button>
+        <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }} onClick={() => vm.ctx.gm.setState(st => ({ cardFrom: { pid: p.id, screen: st.screen, ptab: st.ptab || 'edit', name: p.name }, screen: 'cards', cardTarget: p.id, modal: false, teamModal: null }))}>Open Player cards for {p.name} →</button>
         <p style={{ ...muted, fontSize: '11.5px' }}>Build, save and apply whole player builds in the Player cards tab (Management, God Mode only).</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Psychology</h4>
         <div style={grid}>

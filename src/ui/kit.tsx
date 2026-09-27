@@ -8,6 +8,11 @@ export const h4Style: CSSProperties = { margin: '0 0 4px', fontSize: '19px' };
 export const ruleH4: CSSProperties = { margin: '0 0 6px', fontSize: '18px', borderBottom: '1px solid var(--color-text)', paddingBottom: '4px' };
 export const muted: CSSProperties = { color: 'var(--color-neutral-700)' };
 export const GOD_PINK = '#ff3fa4'; // God Mode's own color: its tools stand out, and you always know you're in it
+// God Mode styling, shared by every God-Mode-only control (they aren't rendered at all when it's off).
+export const godBtn: CSSProperties = { color: GOD_PINK, borderColor: GOD_PINK };
+export const godFill: CSSProperties = { color: '#fff', background: GOD_PINK, borderColor: GOD_PINK };
+export const godBox: CSSProperties = { border: '1px dashed ' + GOD_PINK, background: 'color-mix(in srgb, ' + GOD_PINK + ' 7%, transparent)', borderRadius: 'var(--radius-md)' };
+export const godText: CSSProperties = { color: GOD_PINK };
 // Right-aligned cells hold numbers and records (60–22): never wrap them.
 export const th = (align: 'left' | 'right' = 'left'): CSSProperties => ({ padding: '6px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}) });
 export const td = (align: 'left' | 'right' = 'left', extra?: CSSProperties): CSSProperties => ({ padding: '5px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}), ...extra });

@@ -6,10 +6,14 @@ import type { VM } from '../vm';
 import { Combo, CountryPicker, FtInInput, muted, NumInput, ruleH4 } from '../kit';
 import { applyCard, BLANK_CARD, exportCard, PRESET_CARDS } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
-import { RNAME } from '../../engine/progress';
 import { TRAITS } from '../../engine/traits';
 
-const RKEYS = Object.keys(RNAME);
+// The card's ratings in three blocks, like a scouting sheet.
+const BLOCKS: [string, [string, string][]][] = [
+  ['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]],
+  ['Technical', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]],
+  ['Mental', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['feel', 'Feel'], ['poise', 'Poise'], ['work', 'Work ethic']]],
+];
 const POS = ['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
 const GRP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 const MOTS = ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'];
@@ -78,7 +82,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
     </div>
     <textarea className="input" value={paste} onChange={e => setPaste(e.target.value)} placeholder="…or paste a card’s JSON here" rows={paste ? 5 : 1} style={{ width: '100%', marginTop: 6, fontFamily: 'monospace', fontSize: '11.5px' }} />
     {paste.trim() && <button className="btn btn-secondary" style={{ fontSize: '12px', marginTop: 4 }} onClick={() => { importText(paste, 'Pasted card'); setPaste(''); }}>Open pasted card</button>}
-    {msg && <div style={{ fontSize: '12px', marginTop: 4, color: msg.startsWith('✗') ? 'var(--gm-bad)' : msg.startsWith('✓') ? 'var(--gm-good)' : undefined }}>{msg}</div>}
+    {msg && <div style={{ fontSize: '12px', marginTop: 4, color: msg.startsWith('✗') ? 'var(--gm-bad)' : msg.startsWith('✓') ? 'var(--gm-good)' : undefined }}>{msg}{p && msg.startsWith('✓ Applied') && s.screen === 'cards' && <> · <button className="hv4" onClick={() => vm.ctx.open(p.id)} style={{ all: 'unset', cursor: 'pointer', color: 'var(--color-accent-700)' }}>open his profile →</button></>}</div>}
 
     {draft && prev && <div className="card" style={{ padding: '10px 12px', marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -100,13 +104,15 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><CountryPicker C={C} value={draft.rep || 'US'} onPick={c => set(d => { d.rep = c; d.born = c; d.raised = c; d.her = c; delete d.heritage; if (c !== 'US') delete d.state; })} width={170} /><input className="input" value={draft.city ?? ''} placeholder="City" onChange={e => set(d => { d.city = e.target.value; })} style={{ flex: 1, minWidth: 100 }} /></span>
       </div>
 
-      <div style={{ fontWeight: 600, fontSize: '12.5px' }}>Ratings</div>
-      <div style={rgrid}>{RKEYS.map(k => <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>{RNAME[k]}</span><NumInput value={draft.r?.[k] ?? 50} min={1} max={100} onValue={v => set(d => { d.r = { ...(d.r || {}), [k]: v }; })} width={62} /></label>)}</div>
-      <div style={rgrid}>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>Potential</span><NumInput value={draft.pot ?? 60} min={1} max={100} onValue={v => set(d => { d.pot = v; })} width={62} /></label>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>Feel</span><NumInput value={draft.intg?.feel ?? 50} min={1} max={99} onValue={v => set(d => { d.intg = { ...(d.intg || {}), feel: v }; })} width={62} /></label>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>Poise</span><NumInput value={draft.intg?.poise ?? 50} min={1} max={99} onValue={v => set(d => { d.intg = { ...(d.intg || {}), poise: v }; })} width={62} /></label>
-        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>Work ethic</span><NumInput value={draft.pers?.work ?? 50} min={0} max={100} onValue={v => set(d => { d.pers = { ...(d.pers || {}), work: v }; })} width={62} /></label>
+      <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '13px' }}><b>Potential</b><NumInput value={draft.pot ?? 60} min={1} max={100} onValue={v => set(d => { d.pot = v; })} width={66} /><span style={{ ...muted, fontSize: '12px' }}>his ceiling (the game can raise it as he develops)</span></label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 12 }}>
+        {BLOCKS.map(([title, rows]) => (
+          <div key={title} style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 10px' }}>
+            <div style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--color-accent-700)' }}>{title}</div>
+            {rows.map(([k, label]) => { const v = k === 'feel' || k === 'poise' ? draft.intg?.[k] ?? 50 : k === 'work' ? draft.pers?.work ?? 50 : draft.r?.[k] ?? 50;
+              const setV = (x: number) => set(d => { if (k === 'feel' || k === 'poise') d.intg = { ...(d.intg || {}), [k]: x }; else if (k === 'work') d.pers = { ...(d.pers || {}), work: x }; else d.r = { ...(d.r || {}), [k]: x }; });
+              return <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: '13px', padding: '2px 0' }}><span>{label}</span><NumInput value={v} min={1} max={k === 'feel' || k === 'poise' ? 99 : 100} onValue={setV} width={66} /></label>; })}
+          </div>))}
       </div>
 
       <div style={{ fontWeight: 600, fontSize: '12.5px' }}>Personality</div>

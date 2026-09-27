@@ -1,4 +1,5 @@
 // Multi-team dashboard: every franchise you run at a glance, with alerts, and switching.
+import { godBtn, godText } from '../kit';
 import type { VM } from '../vm';
 import { teamSalary, rosterMax, stdIds } from '../../engine/cba';
 import { h4Style, Kicker, Link, muted } from '../kit';
@@ -56,15 +57,15 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
         })}
       </div>
       <section>
-        <h4 style={h4Style}>Take over another franchise</h4>
+        <h4 style={{ ...h4Style, ...(s.god ? godText : {}) }}>Take over another franchise</h4>
         {s.god ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {others.map(t => (
-              <button key={t.tid} className="btn btn-secondary" onClick={() => gm.takeOver(t.tid)} style={{ fontSize: '12px', padding: '4px 10px', gap: '6px' }}>{logo(t.tid, 16)}{t.abbr}</button>
+              <button key={t.tid} className="btn btn-secondary" onClick={() => gm.takeOver(t.tid)} style={{ fontSize: '12px', padding: '4px 10px', gap: '6px', ...godBtn }}>{logo(t.tid, 16)}{t.abbr}</button>
             ))}
           </div>
         ) : (
-          <p style={{ ...muted, margin: 0 }}>Turn on God Mode in Settings to take over any team mid-season, or find a new job through the Career screen.</p>
+          <p style={{ ...muted, margin: 0 }}>Find a new job through the Career screen.</p>
         )}
       </section>
     </>

@@ -1,4 +1,5 @@
 // Rarely visited screens load on demand (a smaller first download).
+import { godFill } from './kit';
 import { Fragment, lazy, Suspense } from 'react';
 import { AlmanacSidebar } from './shell/AlmanacSidebar';
 import { DeskRail } from './shell/DeskRail';
@@ -86,6 +87,7 @@ export function GMView({ vm }: { vm: VM }) {
               <div style={{ flex: "1", minWidth: "0" }}>
                 <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
                   {vm.page.kicker}
+                  {!!vm.ctx.s.god && <button onClick={() => vm.ctx.gm.setState({ screen: 'settings', modal: false, teamModal: null })} title="God Mode is on (Settings to turn it off). Everything pink is a God Mode tool." style={{ all: 'unset', cursor: 'pointer', marginLeft: 10, padding: '1px 8px', borderRadius: 999, fontWeight: 700, ...godFill }}>God Mode</button>}
                 </div>
                 <h2 style={{ margin: "2px 0 0", fontSize: "32px", fontWeight: "400" }}>
                   {vm.page.title}

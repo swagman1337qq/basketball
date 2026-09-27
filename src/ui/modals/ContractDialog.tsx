@@ -8,7 +8,7 @@ import { acceptance, validateSigning } from '../../engine/contracts';
 import { buyoutWilling, defaultTerms } from '../../engine/cbaFlow';
 import { incentiveOptions } from '../../engine/frontOffice';
 import { fmtMoney } from '../../engine/capModel';
-import { muted, NumInput, Seg } from '../kit';
+import { muted, NumInput, Seg, godFill, godText } from '../kit';
 
 const lab: React.CSSProperties = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)', margin: '10px 0 4px' };
 const row: React.CSSProperties = { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' };
@@ -104,7 +104,8 @@ function Sign({ vm }: { vm: VM }) {
       </div>
       <div className="dialog-actions">
         <button className="btn btn-secondary" onClick={vm.closeDialog}>Cancel</button>
-        <button className="btn btn-primary" disabled={!s.god && (!v.ok || !acc.ok)} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
+        {s.god && (!v.ok || !acc.ok) && <span style={{ ...godText, fontSize: '12px', alignSelf: 'center', marginRight: 'auto' }}>God Mode: signing anyway, rules off</span>}
+        <button className="btn btn-primary" disabled={!s.god && (!v.ok || !acc.ok)} style={s.god && (!v.ok || !acc.ok) ? godFill : undefined} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
       </div>
     </>
   );
