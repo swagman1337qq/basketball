@@ -14,6 +14,7 @@ import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
+import { slimRetired } from './prune';
 import { ccpNewSeason, ccpPlay, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
@@ -40,6 +41,7 @@ const BIAS = { G: { spd: 8, acc: 9, drb: 10, pss: 10, tp: 8, lay: 4, hgt: -14, i
 const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 'HR', 'RS', 'BS'];
 
 // UI-only keys that should not survive a reload.
+const SHORT_DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }), MONTH_YR = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' });
 const TRANSIENT = { tour: null, tourMode: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null };
 
 export interface SaveData { db: any; state: any }
@@ -118,6 +120,7 @@ export class Game {
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
+    slimRetired(g); // older saves: trim retired players' leftover working data
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.
@@ -209,7 +212,10 @@ export class Game {
     return undo;
   }
   // Jersey in the team's colors; free agents and prospects wear grey.
-  faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid]; return faceSvg(this.face(pid), t && t.colors ? t.colors : undefined); }
+  // Faces are drawn once per look (face + team colors) and reused: drawing them is slow.
+  private faceElCache = new WeakMap<object, Map<string, any>>(); // per face (replaced when the face changes) and team colors
+  faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid], f = this.face(pid), cols = t && t.colors ? t.colors : undefined, key = cols ? cols.join() : '';
+    let m = this.faceElCache.get(f); if (!m) { m = new Map(); this.faceElCache.set(f, m); } let el = m.get(key); if (!el) { el = faceSvg(f, cols); m.set(key, el); } return el; }
   downloadFaces() {
     const out = (Object.values(this.db.P) as any[]).map((p: any) => ({ id: p.id, name: p.name, heritage: this.db.C[p.her].n, face: this.face(p.id) }));
     const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
@@ -949,6 +955,7 @@ export class Game {
         Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
+      slimRetired(this); // this summer's retirees: keep the save small
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {
@@ -960,7 +967,9 @@ export class Game {
       this.rollDevYear(this.state);
     }
   }
-  fmtS(off) { return this.dateOf(off).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+  // "Oct 21": one shared formatter and a per-season cache (formatting dates is slow).
+  private fmtCache: { k: string; m: Map<number, string> } = { k: '', m: new Map() };
+  fmtS(off) { const k = this.Y + '|' + (this.db.midStart ? 1 : 0); if (this.fmtCache.k !== k) this.fmtCache = { k, m: new Map() }; let v = this.fmtCache.m.get(off); if (v == null) { v = SHORT_DATE.format(this.dateOf(off)); this.fmtCache.m.set(off, v); } return v; }
   logEntry(st, text) { return [{ date: this.fmtS(st.day), day: st.day, text }, ...st.log]; }
   flag(code) { return 'flags/' + this.db.C[code].iso + '.svg'; }
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
@@ -1130,7 +1139,7 @@ export class Game {
       Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
       p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
-      p.feed = [{ m: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
+      p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
         const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'CCP reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';

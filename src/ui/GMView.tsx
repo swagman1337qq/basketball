@@ -1,3 +1,5 @@
+// Rarely visited screens load on demand (a smaller first download).
+import { lazy, Suspense } from 'react';
 import { AlmanacSidebar } from './shell/AlmanacSidebar';
 import { DeskRail } from './shell/DeskRail';
 import { BroadsheetMasthead } from './shell/BroadsheetMasthead';
@@ -16,7 +18,7 @@ import { ShortlistScreen } from './screens/ShortlistScreen';
 import { PlayoffsScreen } from './screens/PlayoffsScreen';
 import { PlayinScreen } from './screens/PlayinScreen';
 import { LotteryScreen } from './screens/LotteryScreen';
-import { AwardsScreen } from './screens/AwardsScreen';
+const AwardsScreen = lazy(() => import('./screens/AwardsScreen').then(m => ({ default: m.AwardsScreen })));
 import { MyTeamsScreen } from './screens/MyTeamsScreen';
 import { TacticsScreen } from './screens/TacticsScreen';
 import { ScoutingScreen } from './screens/ScoutingScreen';
@@ -25,14 +27,14 @@ import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { FinancesScreen } from './screens/FinancesScreen';
-import { CareerScreen } from './screens/CareerScreen';
-import { PressScreen } from './screens/PressScreen';
-import { LeagueStatsScreen } from './screens/LeagueStatsScreen';
-import { LeagueEditorScreen } from './screens/LeagueEditorScreen';
-import { HallOfFameScreen } from './screens/HallOfFameScreen';
-import { PredictionsScreen } from './screens/PredictionsScreen';
-import { ChangelogScreen } from './screens/ChangelogScreen';
-import { CapOutlookScreen } from './screens/CapOutlookScreen';
+const CareerScreen = lazy(() => import('./screens/CareerScreen').then(m => ({ default: m.CareerScreen })));
+const PressScreen = lazy(() => import('./screens/PressScreen').then(m => ({ default: m.PressScreen })));
+const LeagueStatsScreen = lazy(() => import('./screens/LeagueStatsScreen').then(m => ({ default: m.LeagueStatsScreen })));
+const LeagueEditorScreen = lazy(() => import('./screens/LeagueEditorScreen').then(m => ({ default: m.LeagueEditorScreen })));
+const HallOfFameScreen = lazy(() => import('./screens/HallOfFameScreen').then(m => ({ default: m.HallOfFameScreen })));
+const PredictionsScreen = lazy(() => import('./screens/PredictionsScreen').then(m => ({ default: m.PredictionsScreen })));
+const ChangelogScreen = lazy(() => import('./screens/ChangelogScreen').then(m => ({ default: m.ChangelogScreen })));
+const CapOutlookScreen = lazy(() => import('./screens/CapOutlookScreen').then(m => ({ default: m.CapOutlookScreen })));
 import { CapSheetScreen } from './screens/CapSheetScreen';
 import { ContractsScreen } from './screens/ContractsScreen';
 import { CcpScreen } from './screens/CcpScreen';
@@ -45,7 +47,7 @@ import { PlayerModal } from './modals/PlayerModal';
 import { ConfirmDialog } from './modals/ConfirmDialog';
 import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
-import { TourOverlay } from './Tour';
+const TourOverlay = lazy(() => import('./Tour').then(m => ({ default: m.TourOverlay })));
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
 import { BoxScoreModal } from './modals/BoxScoreModal';
 import { SimMenu } from './SimMenu';
@@ -62,6 +64,7 @@ export function GMView({ vm }: { vm: VM }) {
           {!!vm.isB && <BroadsheetMasthead vm={vm} />}
           {!!vm.isC && <DeskTopbar vm={vm} />}
           <main style={{ flex: "1", overflow: "auto", padding: "22px 28px 40px" }}>
+            <Suspense fallback={<p style={{ opacity: 0.6 }}>Loading…</p>}>
             <div className="team-stripe" />
             <div data-tour="phase" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
               <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
@@ -129,6 +132,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.ccp && <CcpScreen vm={vm} />}
             {!!vm.is.stats && <StatsScreen vm={vm} />}
             </>)}
+            </Suspense>
           </main>
         </div>
         {!!vm.isC && <DeskPanel vm={vm} />}
@@ -137,7 +141,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
         {!!vm.ctx.s.boxId && <BoxScoreModal vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
-        {vm.ctx.s.tour != null && <TourOverlay vm={vm} />}
+        {vm.ctx.s.tour != null && <Suspense fallback={null}><TourOverlay vm={vm} /></Suspense>}
       </div>
     </>
   );
