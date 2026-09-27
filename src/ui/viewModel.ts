@@ -21,6 +21,7 @@ import { randomTeamIn } from '../data/randomTeam';
 import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
 import { alphaTeams, linkNames } from './kit';
+import { groupFilter, groupTitle, searchAll } from './search';
 import type { VM } from './vm';
 
 export interface ViewExtras { saveId: string; saveName: string; onExit: () => void; onExport: () => void; onSwitch: (id: string) => void; saveStatus: string }
@@ -310,12 +311,13 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   if (LMs) {
     const act = (Object.values(P) as any[]).filter(p => !p.gone && (tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || ((LMs.type === 'class' || LMs.type === 'from') && (p.retired || p.dr || p.cls))));
     const reads = LMs.type === 'trait' ? new Map(act.map(p => [p.id, traitRead(gm, s, p)])) : null;
-    let ps = LMs.type === 'from' ? act.filter(p => p.from?.team === LMs.team).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'trait' ? act.filter(p => reads.get(p.id).keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
+    let ps = LMs.type === 'from' ? act.filter(p => p.from?.team === LMs.team).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'trait' ? act.filter(p => reads.get(p.id).keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'group' ? act.filter(groupFilter(LMs.q, C)).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
     if (LMs.type === 'class') ps.sort((x, y) => (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) - (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99));
     const TL = LMs.type === 'trait' ? TRAIT[LMs.k] : null;
     const FR = LMs.type === 'from';
-    lm = { title: FR ? LMs.team : TL ? TL.label : LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' ? gm.flag(LMs.code) : '', hasFlag: LMs.type === 'country', sub: FR ? (LMs.lg ? LMs.lg + ' · ' : '') + ps.length + ' players came from here' : TL ? TL.desc + ' ' + ps.length + ' players.' : ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: FR ? 'Draft' : TL ? 'Pos' : LMs.type === 'country' ? 'Born' : 'Pick',
-      rows: ps.map(p => ({ ...pBase(p.id), team: teamOf(p.id), openT: openTeam(tidOf[p.id] ?? -1), extra: FR ? (p.cls ? 'Class of ' + p.cls : p.dr ? p.draft + ' · Rd ' + p.dr.rd + ', #' + p.dr.pick : 'Undrafted') : TL ? p.pos : LMs.type === 'country' ? C[p.born].n : p.cls ? 'Board #' + d.rank[p.id] : p.dr ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)' : 'Undrafted' })) };
+    const GR = LMs.type === 'group';
+    lm = { title: FR ? LMs.team : TL ? TL.label : GR ? groupTitle(LMs.q, C) : LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' || (GR && LMs.q.kind === 'country') ? gm.flag(LMs.code || LMs.q.code) : '', hasFlag: LMs.type === 'country' || (GR && LMs.q.kind === 'country'), sub: GR ? ps.length + ' players' + (LMs.q.kind === 'country' ? ' represent ' + C[LMs.q.code].n + ', were born there or have roots there' : '') : FR ? (LMs.lg ? LMs.lg + ' · ' : '') + ps.length + ' players came from here' : TL ? TL.desc + ' ' + ps.length + ' players.' : ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: GR ? 'Heritage' : FR ? 'Draft' : TL ? 'Pos' : LMs.type === 'country' ? 'Born' : 'Pick',
+      rows: ps.map(p => ({ ...pBase(p.id), team: teamOf(p.id), openT: openTeam(tidOf[p.id] ?? -1), extra: GR ? (heritageLabel(p, C) || C[p.her]?.n || '') : FR ? (p.cls ? 'Class of ' + p.cls : p.dr ? p.draft + ' · Rd ' + p.dr.rd + ', #' + p.dr.pick : 'Undrafted') : TL ? p.pos : LMs.type === 'country' ? C[p.born].n : p.cls ? 'Board #' + d.rank[p.id] : p.dr ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)' : 'Undrafted' })) };
   }
   const togList = (lid, pid) => () => gm.setState(st => ({ lists: st.lists.map(l => l.id !== lid ? l : { ...l, ids: l.ids.includes(pid) ? l.ids.filter(x => x !== pid) : [...l.ids, pid] }) }));
   pl.lists = s.lists.map(l => { const on = l.ids.includes(pp.id); return { name: l.name, mark: on ? '✓ ' : '+ ', toggle: togList(l.id, pp.id), color: on ? 'var(--color-accent-800)' : 'var(--color-text)', bg: on ? 'var(--color-accent-100)' : 'transparent', border: on ? 'var(--color-accent)' : 'var(--color-divider)' }; });
@@ -496,7 +498,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
 
   const qq = s.q.trim().toLowerCase();
   const fold = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), fq = fold(qq);
-  const matches = qq.length < 2 ? [] : (Object.values(P) as any[]).filter(p => !p.gone && fold(p.name).includes(fq) || (p.native || '').includes(qq)).sort((a, b) => (fold(b.name).startsWith(fq) ? 1 : 0) - (fold(a.name).startsWith(fq) ? 1 : 0) || (b.retired ? 0 : 1) - (a.retired ? 0 : 1) || b.ovr - a.ovr).slice(0, 10).map(p => { const t = tidOf[p.id]; return { name: p.name, flag: gm.flag(p.rep), meta: p.pos + ' · ' + (p.retired ? 'Retired' : t >= 0 ? T[t].abbr : t === -1 ? 'FA' : t === -2 ? 'Overseas' : p.cls ? 'Class of ' + p.cls : '—') + ' · ' + p.ovr, open: open(p.id) }; });
+  const matches = searchAll({ q: s.q, P, C, T, tidOf, nav, Y: gm.Y, flag: c => gm.flag(c), open, openTeam, openList: l => () => gm.setState({ listModal: l, q: '' }), teamLogo: tid => logo(tid, 16) });
 
   const dg = s.dialog, dp = dg && P[dg.pid];
   const dlg = !dg || dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };
