@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-ZfVZ61u0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-CCFj4nOh.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Convert contracts from the Roster screen:** a **Make standard** button next to each two-way player gives him a standard contract (the minimum for his years of service). He needs an open spot on the 15-man roster; he then counts against the cap and can play in the playoffs. Exhibit 10 players get a **To two-way** button. The Cap sheet buttons still work too.
 - **Stats tab on every player profile** (next to Overview), like Basketball Reference: regular season or playoffs; per game, per 36 minutes or totals. Traditional stats by season with a career line, shooting (true shooting, effective FG%, three-point and free-throw rates) and FG% from all five zones against the league average, advanced stats (PER, usage, assist, turnover, rebound, steal and block rates, offensive and defensive rating, win shares, box plus-minus, VORP, on/off) for the regular season and the playoffs, and this season's home, road and last-five splits.
 - **Stats in list pop-ups** (draft classes, countries, heritage, colleges, traits…): points, rebounds, assists, steals, blocks and PER per game for this season (or his latest season, in grey). Sortable.
 - **Scouting briefs** (Scouting screen): tick "Let him find players himself" on any scout and tell him what to look for (shooters, playmakers, slashers, rim protectors, 3-and-D wings, perimeter defenders, rebounders, stretch bigs, athletes, size and length, upside, ready now, best available, or intangibles for hidden gems), where (next draft class, all three classes, overseas, free agents, other NBA teams, everywhere), which position and what age. Every month he fills his 8 personal slots with the best fits by his own read, and shows why he picked each one (e.g. "3PT ~58 → ~63"). A better scout picks better players; you can still assign players by hand (right-click on the Draft board, Free agency, Overseas or the Shortlist): they always come first and bump his own picks, even when his 8 slots are full. Scouts can also skip region coverage and scout only personally.
