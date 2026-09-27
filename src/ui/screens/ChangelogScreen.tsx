@@ -8,12 +8,13 @@ const inline = (t: string): ReactNode[] => t.split(/(\*\*[^*]+\*\*)/).map((x, i)
 const TONE: Record<string, string> = { Added: 'var(--gm-good)', Changed: '#4a9fd8', Fixed: 'var(--gm-elite)' };
 
 export function ChangelogScreen() {
-  const blocks: { date: string; secs: { name: string; items: string[] }[] }[] = [];
+  const blocks: { date: string; secs: { name: string; items: string[]; subs: string[][] }[] }[] = [];
   let intro = '';
   md.split('\n').forEach(line => {
     if (line.startsWith('## ')) blocks.push({ date: line.slice(3).trim(), secs: [] });
-    else if (line.startsWith('### ')) blocks[blocks.length - 1]?.secs.push({ name: line.slice(4).trim(), items: [] });
-    else if (line.startsWith('- ')) { const b = blocks[blocks.length - 1], sec = b?.secs[b.secs.length - 1]; if (sec) sec.items.push(line.slice(2)); }
+    else if (line.startsWith('### ')) blocks[blocks.length - 1]?.secs.push({ name: line.slice(4).trim(), items: [], subs: [] });
+    else if (line.startsWith('- ')) { const b = blocks[blocks.length - 1], sec = b?.secs[b.secs.length - 1]; if (sec) { sec.items.push(line.slice(2)); sec.subs.push([]); } }
+    else if (/^\s+- /.test(line)) { const b = blocks[blocks.length - 1], sec = b?.secs[b.secs.length - 1]; if (sec?.subs.length) sec.subs[sec.subs.length - 1].push(line.trim().slice(2)); } // indented sub-bullet
     else if (!blocks.length && line.trim() && !line.startsWith('#')) intro = line.trim();
   });
   return (
@@ -26,7 +27,7 @@ export function ChangelogScreen() {
             <div key={j} style={{ marginBottom: 10 }}>
               <Kicker><span style={{ color: TONE[sec.name] }}>{sec.name}</span></Kicker>
               <ul style={{ margin: '4px 0 0', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 5, fontSize: '13.5px', lineHeight: 1.5 }}>
-                {sec.items.map((it, k) => <li key={k}>{inline(it)}</li>)}
+                {sec.items.map((it, k) => <li key={k}>{inline(it)}{sec.subs[k]?.length > 0 && <ul style={{ margin: '3px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>{sec.subs[k].map((x, m) => <li key={m}>{inline(x)}</li>)}</ul>}</li>)}
               </ul>
             </div>))}
         </section>))}

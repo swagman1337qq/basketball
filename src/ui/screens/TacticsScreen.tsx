@@ -8,20 +8,17 @@ import { Kicker, muted, NumInput, ruleH4 } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
 import { badgesOf } from '../../engine/ratings';
+import { bestTacticsFor, optLabel, PLAYBOOKS, repAffinity, TAC_DEFAULT, TACTIC_GROUPS, tacticFitParts, tacticReps, type Tactics } from '../../engine/tactics';
 
-const TAC: [string, string, string[], string][] = [
-  ['pace', 'Pace', ['Slow', 'Balanced', 'Fast'], 'Faster pace means more possessions and rewards speed and endurance.'],
-  ['off', 'Offense', ['Inside', 'Balanced', 'Perimeter', 'Pace and space'], 'Shifts your shot mix between the rim, mid-range and threes.'],
-  ['def', 'Defense', ['Drop', 'Switch', 'Aggressive'], 'Aggressive forces turnovers but fouls more; Switch takes away threes; Drop protects the rim.'],
-  ['clutch', 'Clutch play', ['Motion', 'Isolate the star'], 'In the last 5 minutes of a close game, who takes the shots.'],
-];
 const PRESETS: Record<string, any> = {
   None: null,
-  'Milk the clock': { pace: 'Slow', off: 'Inside' },
+  'Milk the clock': { pace: 'Slow', off: 'Post-up', reb: 'Get back' },
   'Protect the paint': { pace: 'Slow', def: 'Drop' },
-  'Press and push': { pace: 'Fast', def: 'Aggressive' },
-  'Bombs away': { pace: 'Fast', off: 'Pace and space' },
-  'Feed the star': { clutch: 'Isolate the star', off: 'Balanced' },
+  'Press and push': { pace: 'Fast', def: 'Aggressive', press: 'Full-court man' },
+  'Bombs away': { pace: 'Seven seconds or less', off: 'Moreyball' },
+  'Feed the star': { clutch: 'Isolate the star', off: 'Isolation' },
+  'Zone change-up': { def: '2-3 zone' },
+  'Hack-a-Shaq': { foul: 'Hack-a-Shaq' },
 };
 const nameOf = (x: any) => Object.keys(PRESETS).find(k => JSON.stringify(PRESETS[k]) === JSON.stringify(x || null)) || 'Custom';
 const LB: Record<string, string> = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
@@ -35,29 +32,59 @@ export function TacticsScreen({ vm }: { vm: VM }) {
   const move = (from: number, to: number) => { if (from === to) return; gm.setState(st => { const r = st.rosters[st.me].slice(), i = r.indexOf(from), j = r.indexOf(to); r.splice(i, 1); r.splice(j, 0, from); return { rosters: { ...st.rosters, [st.me]: r } }; }); };
   const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = id => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
   const total = ids.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0);
-  const fit = gm.tacFit(ids, tac);
+  const fit = gm.tacFit(ids, tac), top8 = ids.slice(0, 8).map(id => P[id]).filter(Boolean), parts = tacticFitParts(top8, tac);
+  const setTac = (t: Tactics) => gm.setState({ tactics: { ...t } });
+  const sameAs = (t: Tactics) => Object.entries(t).every(([k, v]) => (tac as any)[k] === v);
   const setSitu = (k: 'lead' | 'trail', name: string) => gm.setState(st => ({ situ: { ...(st.situ || {}), [k]: PRESETS[name] } }));
   const focus = (s.train || {})[trainee?.id] || 'Balanced';
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.05fr)', gap: '36px', alignItems: 'start' }}>
         <section>
-          <h4 style={ruleH4}>Tactical identity</h4>
-          {TAC.map(([k, label, opts, desc]) => (
-            <div key={k} style={{ padding: '10px 0', borderBottom: '1px solid var(--color-divider)' }}>
+          <h4 style={ruleH4}>Playbooks</h4>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>One click sets a famous team's style; change anything after. Or let your staff pick what suits your roster.</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+            <button className="btn btn-primary" style={{ fontSize: '12px' }} onClick={() => setTac(bestTacticsFor(top8, tac))} title="The staff picks the option in each setting that best fits your top eight players">Let the staff choose</button>
+            {PLAYBOOKS.map(b => <button key={b.name} className="btn btn-secondary" style={{ fontSize: '12px', boxShadow: sameAs(b.t) ? 'inset 0 0 0 1px var(--color-accent)' : undefined }} onClick={() => setTac({ ...tac, ...b.t })} title={b.era + ': ' + Object.values(b.t).join(' · ')}>{b.name} <span style={{ ...muted, fontSize: '11px' }}>{b.era}</span></button>)}
+          </div>
+
+          <h4 style={{ ...ruleH4, marginTop: '18px' }}>Tactical identity</h4>
+          {TACTIC_GROUPS.map(gr => { const cur = (tac as any)[gr.k] ?? (TAC_DEFAULT as any)[gr.k], o = gr.opts.find(x => x.v === cur) || gr.opts[0], f = parts[gr.k], u = unl[cur], hows = [...new Set(gr.opts.map(x => x.how).filter(Boolean))] as string[];
+            const reps = Object.entries(tacticReps({ [gr.k]: cur } as Tactics)).sort((a, b) => b[1] - a[1]);
+            return (
+            <div key={gr.k} style={{ padding: '10px 0', borderBottom: '1px solid var(--color-divider)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <span style={{ width: '90px', fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600 }}>{label}</span>
-                <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                  {opts.map(o => { const u = unl[o], locked = u && !u[0] && !s.god, on = tac[k] === o; return (
-                    <button key={o} disabled={locked && !on} title={u ? (u[0] ? 'Unlocked by ' + u[1] : 'Needs ' + u[1]) : ''} onClick={() => gm.setState(st => ({ tactics: { ...st.tactics, [k]: o } }))} style={{ all: 'unset', cursor: locked ? 'not-allowed' : 'pointer', padding: '5px 12px', fontSize: '13px', whiteSpace: 'nowrap', opacity: locked && !on ? 0.4 : 1, color: on ? 'var(--color-accent-700)' : 'var(--color-text)', boxShadow: on ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }}>{locked ? '🔒 ' : ''}{o}</button>
-                  ); })}
-                </div>
+                <span style={{ width: '120px', fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600 }} title={gr.desc}>{gr.label}</span>
+                <select className="input" value={cur} onChange={e => setTac({ ...tac, [gr.k]: e.target.value })} style={{ flex: 1, minWidth: 180, maxWidth: 280 }}>
+                  {hows.length ? hows.map(h => <optgroup key={h} label={h}>{gr.opts.filter(x => x.how === h).map(x => <option key={x.v} value={x.v}>{x.label || x.v}</option>)}</optgroup>) : gr.opts.map(x => <option key={x.v} value={x.v}>{x.label || x.v}</option>)}
+                </select>
+                {f != null && Math.abs(f) >= 0.05 && <span style={{ fontSize: '12px', fontWeight: 600, color: f >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }} title="How well this suits your top eight players">{f >= 0 ? 'Suits your roster' : 'Poor fit'} ({(f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1)})</span>}
               </div>
-              <div style={{ fontSize: '12px', ...muted, marginTop: '4px' }}>{desc}</div>
-              {opts.filter(o => unl[o]).map(o => <div key={o} style={{ fontSize: '11.5px', color: unl[o][0] ? 'var(--gm-good)' : 'var(--color-neutral-600)' }}>{o}: {unl[o][0] ? 'unlocked by ' : 'needs '}{unl[o][1]}{!unl[o][0] && tac[k] === o ? ' (running it anyway costs fit)' : ''}</div>)}
+              <div style={{ fontSize: '12.5px', marginTop: '5px' }}>{o.desc}</div>
+              {u && <div style={{ fontSize: '11.5px', marginTop: '3px', color: u[0] && !(f != null && f < -0.05) ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{u[0] ? (f != null && f < -0.05 ? 'You have ' + u[1] + ', but the rest of your top eight doesn\u2019t suit it.' : 'You have what it needs: ' + u[1] + '.') : 'Works best with ' + u[1] + ', which you don\u2019t have: expect it to cost you games.'}</div>}
+              {reps.length > 0 && <div style={{ fontSize: '11.5px', ...muted, marginTop: '3px' }}>Practice reps: {reps.map(([k, v]) => { const who = top8.filter(p => repAffinity(p, k) >= 0.6).length; return LB[k] + ' +' + Math.round(v * 100) + '%' + (who < 3 ? ' (few players have the feel for it)' : ''); }).join(' · ')}</div>}
             </div>
-          ))}
+          ); })}
           <p style={{ margin: '12px 0 0', fontWeight: 600, color: fit >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{(fit >= 0 ? '+' : '−') + Math.abs(fit).toFixed(1)} roster fit: how well these settings suit your players</p>
+          <p style={{ ...muted, fontSize: '12px', margin: '4px 0 0' }}>Nothing is locked: run anything you like. A poor fit loses games, but your players still get the reps: young players who play in a system grow a little faster in the skills it uses, as far as their natural feel for them allows.</p>
+
+          <details style={{ marginTop: '18px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 12px' }}>
+            <summary style={{ cursor: 'pointer', fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600 }}>📖 Tactics guide: what every option means</summary>
+            <p style={{ ...muted, fontSize: '12px', margin: '6px 0 10px' }}>Basketball terms in plain words. "Works best with" is what a roster needs to make it pay off; "Practice reps" is what players who play in it get better at.</p>
+            {TACTIC_GROUPS.map(gr => (
+              <div key={gr.k} style={{ marginBottom: '12px' }}>
+                <div style={{ fontWeight: 700, fontSize: '14px', borderBottom: '1px solid var(--color-divider)', paddingBottom: 2 }}>{gr.label} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>{gr.desc}</span></div>
+                {gr.opts.map(o => { const u = unl[o.v], rp = Object.entries(tacticReps({ [gr.k]: o.v } as Tactics)); return (
+                  <div key={o.v} style={{ padding: '5px 0 5px 10px', fontSize: '12.5px', borderBottom: '1px dashed color-mix(in srgb, var(--color-divider) 60%, transparent)' }}>
+                    <b>{o.label || o.v}</b>{o.how ? <span style={{ ...muted, fontSize: '11px' }}> · {o.how}</span> : null}: {o.desc}
+                    {(u || rp.length > 0) && <div style={{ ...muted, fontSize: '11.5px', marginTop: 2 }}>{u ? 'Works best with ' + u[1] + '. ' : ''}{rp.length ? 'Practice reps: ' + rp.map(([k, v]) => LB[k] + ' +' + Math.round(v * 100) + '%').join(', ') + '.' : ''}</div>}
+                  </div>
+                ); })}
+              </div>
+            ))}
+            <div style={{ fontWeight: 700, fontSize: '14px', borderBottom: '1px solid var(--color-divider)', paddingBottom: 2 }}>Playbooks</div>
+            {PLAYBOOKS.map(b => <div key={b.name} style={{ padding: '4px 0 4px 10px', fontSize: '12.5px' }}><b>{b.name}</b> <span style={{ ...muted }}>({b.era})</span>: {Object.entries(b.t).map(([k, v]) => optLabel(k as keyof Tactics, v as string)).join(' · ')}</div>)}
+          </details>
 
           <h4 style={{ ...ruleH4, marginTop: '24px' }}>Situational presets</h4>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>Take over automatically in the last 5 minutes of the 4th quarter and overtime.</p>
@@ -68,7 +95,7 @@ export function TacticsScreen({ vm }: { vm: VM }) {
                 {Object.keys(PRESETS).map(n => <option key={n} value={n}>{n}</option>)}
                 {nameOf(s.situ?.[k]) === 'Custom' && <option value="Custom">Custom</option>}
               </select>
-              <span style={{ fontSize: '11.5px', ...muted, width: '150px' }}>{s.situ?.[k] ? Object.values(s.situ[k]).join(' · ') : 'Base tactics'}</span>
+              <span style={{ fontSize: '11.5px', ...muted, width: '150px' }}>{s.situ?.[k] ? Object.values(s.situ[k]).join(' · ') : 'Your normal tactics'}</span>
             </div>
           ))}
 

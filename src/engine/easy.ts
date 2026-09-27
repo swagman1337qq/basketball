@@ -9,6 +9,7 @@
 //   fire      the owner can't fire you
 //   scouting  scouting reports and draft boards are much more accurate
 //   injuries  injured players always sit (no playing through pain)
+import { bestTacticsFor } from './tactics';
 import type { Game } from './Game';
 import { lineupAdvice } from './assistants';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
@@ -37,12 +38,7 @@ export function easyLineups(g: Game, s: any, rosters: Record<number, number[]>, 
 }
 
 // The best-fitting tactics for a roster.
-export function bestTactics(g: Game, ids: number[], cur: any) {
-  let best = cur, top = -1e9;
-  for (const pace of ['Slow', 'Balanced', 'Fast']) for (const off of ['Inside', 'Balanced', 'Perimeter', 'Pace and space']) for (const def of ['Drop', 'Switch', 'Aggressive']) {
-    const t = { ...cur, pace, off, def }, f = g.tacFit(ids, t); if (f > top + 0.01) { top = f; best = t; } }
-  return best;
-}
+export function bestTactics(g: Game, ids: number[], cur: any) { return bestTacticsFor(ids.slice(0, 8).map(id => g.db.P[id]).filter(Boolean), cur); }
 
 // Free agency for a managed team on easy mode: fill to 14 with the best affordable players.
 export function easyFreeAgency(g: Game, s: any, box: any, lgLog: any[]) {

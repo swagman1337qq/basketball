@@ -3,9 +3,12 @@
 // model built from this state (see ui/viewModel.ts).
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
+import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { setRating, teamRating, wngBonus } from './ratings';
+import { ovrShare, setRating, teamRating, wngBonus } from './ratings';
+import { ensureIntg, gemTick, rollGem } from './intangibles';
+import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
@@ -119,6 +122,10 @@ export class Game {
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
+    // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
+    (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
+    // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
+    [g.state, ...Object.values(g.state.clubs || {})].forEach((c: any) => { migrateTactics(c?.tactics); migrateTactics(c?.situ?.lead); migrateTactics(c?.situ?.trail); });
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
     ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
@@ -375,6 +382,7 @@ export class Game {
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
     { const w = Math.round(wngBonus(p)); p.ovr = cl(p.ovr + w, 22, 100); p.pot = Math.max(p.ovr, p.pot + w); p.wOvr = 1; } // wingspan counts toward the overall
+    ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     P[p.id] = p; return p;
   }
   rng(seed) { return mulberry32(seed); }
@@ -382,15 +390,7 @@ export class Game {
   regionKey(code) { return regionOfCountry(code); }
   regFactorK(k, s) { const sc = (s.scouts || []).filter(x => x.assign === k); return sc.length ? Math.min(...sc.map(x => (x.spec === k ? .45 : .75) * (1.2 - x.skill * .08))) : 1.25; }
   regFactor(p, s) { return this.regFactorK(this.regionKey((p.from && p.from.country) || p.raised), s); }
-  tacFit(ids, t) {
-    const P = this.db.P, top = ids.slice(0, 8).map(id => P[id]); if (!top.length || !t) return 0;
-    const av = k => top.reduce((a, p) => a + p.r[k], 0) / top.length; let f = 0;
-    if (t.off === 'Perimeter' || t.off === 'Pace and space') f += (av('tp') - 55) / 10 * (t.off === 'Pace and space' ? .8 : .6);
-    if (t.off === 'Inside') f += ((av('ins') + av('dnk')) / 2 - 55) / 10 * .6;
-    if (t.pace === 'Fast') f += ((av('spd') + av('endu')) / 2 - 55) / 10 * .4; if (t.pace === 'Slow') f += (55 - av('spd')) / 10 * .3;
-    if (t.def === 'Aggressive') f += (av('diq') - 55) / 10 * .5; if (t.def === 'Switch') f += (av('spd') - 55) / 10 * .3; if (t.def === 'Drop') f += (av('hgt') - 58) / 10 * .3;
-    return this.cl(f, -1.5, 1.5);
-  }
+  tacFit(ids, t) { const P = this.db.P; return tacticFit(ids.slice(0, 8).map(id => P[id]).filter(Boolean), t); }
   initState(tids: number[] = [0]) {
     const d = this.db, rosters0 = { ...d.rosters }, fa0 = d.fa.slice(), lg0 = [], me = tids[0];
     const base: any = { managed: tids.slice(), me, clubs: {} };
@@ -426,7 +426,7 @@ export class Game {
     const SC = [['Dale Whitcombe', 'NA', 4], ['Inés Morales', 'WEU', 3], ['Goran Vuković', 'BAL', 4], ['Kwame Asante', 'AFR', 2]];
     const NP = namePools(), R = Object.keys(regions()), pick = a => a[Math.floor(Math.random() * a.length)];
     const scouts = i === 0 ? SC.map(([name, spec, skill]) => ({ name, spec, skill, assign: spec })) : R.slice(0, 4).map(k => { const k2 = pick(R); return { name: pick(NP.us.f) + ' ' + pick(NP.us.l), spec: k2, skill: 2 + Math.floor(Math.random() * 3), assign: k2 }; });
-    return { tactics: { pace: 'Balanced', off: 'Balanced', def: 'Switch', clutch: 'Motion' }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
+    return { tactics: { ...TAC_DEFAULT }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
   }
   // A patch that writes club fields for any managed team (top level if it's on screen).
   clubPatch(s, tid, fields, clubs?) {
@@ -491,7 +491,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -870,6 +870,8 @@ export class Game {
           if (why.length && p.rh?.[this.Y]) p.rh[this.Y].why = why;
         }
         else p.pot = Math.max(p.ovr, p.pot - 2);
+        // A hidden gem's ceiling surfaces each summer too (intangibles.ts), prospects included.
+        if (p.gem && p.gem.left > 0 && a <= 29) { const gx = Math.min(p.gem.left, p.gem.add * 0.3); p.gem.left = +(p.gem.left - gx).toFixed(3); p.pot += Math.round(gx); if (gx >= 1 && p.rh?.[this.Y]) p.rh[this.Y].why = [...(p.rh[this.Y].why || []), 'Outgrowing his projection']; }
         p.pot = this.cl(Math.max(p.pot, p.ovr), 25, 95);
         Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt + (Math.random() - .5) * 4, 4, 100)); });
         // A late growth spurt: extremely rare, only for teenagers and 20–21-year-olds, one inch
@@ -1080,20 +1082,12 @@ export class Game {
     const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
     const minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1, stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
     const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt * (0.85 + (p.pers.work ?? 50) / 333) : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
-    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
+    const tReps = monthly > 0 ? tacticReps(club?.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
+    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (tReps?.[r]) w *= 1 + tReps[r] * repF * repAffinity(p, r); if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
     return { monthly, per: out };
   }
   // Tactics a roster can run: some options need players with the right roles.
-  tacticUnlocks(ids) {
-    const R = ids.map(id => this.rolesOf(this.db.P[id])), n = (role) => R.filter(r => r.includes(role)).length;
-    return {
-      'Pace and space': [n('Floor spacer') + n('Stretch big') >= 3, '3+ floor spacers or stretch bigs'],
-      'Isolate the star': [n('Primary creator') >= 1, 'a primary creator'],
-      Aggressive: [n('Point-of-attack defender') >= 2, '2+ point-of-attack defenders'],
-      Fast: [n('Slasher') + n('Primary creator') >= 2, '2+ slashers or creators'],
-      Drop: [n('Rim protector') >= 1, 'a rim protector'],
-    } as Record<string, [boolean, string]>;
-  }
+  tacticUnlocks(ids) { const R = ids.map(id => this.rolesOf(this.db.P[id])); return tacticUnlocks(role => R.filter(r => r.includes(role)).length); }
   // Development: how a player's overall moves is an accumulation of things, not just his age.
   //  - Potential: young players grow toward their ceiling, faster the further below it they are
   //    (on course to reach it around 27); one already at his ceiling barely moves.
@@ -1153,13 +1147,27 @@ export class Game {
       const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? ((club.coachAuto || {})[id] ? coachFocus(p).focus : club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
-      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
+      // Practice reps in your system (tactics.ts): a little extra growth in the skills it uses.
+      // Natural affinity caps it: reps help a skill he has some feel for, barely one he doesn't (a
+      // center with no touch shooting a thousand threes won't become a shooter).
+      const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
+      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (tReps?.[r]) w *= 1 + tReps[r] * repF * repAffinity(p, r); if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
         const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
-      p.ox = (p.ox || 0) + monthly; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; if (p.pot < p.ovr) p.pot = p.ovr; }
+      // His overall grows by what the new skills are worth at his position (a point guard's handle
+      // counts far more than a center's), and his ceiling moves with it: growth in the skills his
+      // position needs raises his potential, growth spent elsewhere lowers it a little. A hidden
+      // gem's extra ceiling surfaces too (intangibles.ts).
+      const gainR = monthly > 0 ? Object.keys(dl).reduce((x, r) => x + dl[r] * ovrShare(p.grp, r), 0) / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt')) : monthly;
+      const gemUp = gemTick(p);
+      p.px = (p.px || 0) + (monthly > 0 ? (gainR - monthly) * 0.9 : 0) + gemUp; const wp = Math.trunc(p.px); if (wp) { p.pot = cl(p.pot + wp, 25, 100); p.px -= wp; }
+      // Intangibles grow slowly: composure with experience (to about 31), feel a little while young.
+      { const it = ensureIntg(p); p.ix = p.ix || { f: 0, p: 0 }; if (a <= 31) p.ix.p += 0.1; if (a <= 27) p.ix.f += 0.03 * (0.7 + wk / 167);
+        const wf = Math.trunc(p.ix.f), wq = Math.trunc(p.ix.p); if (wf) { it.feel = cl(it.feel + wf, 1, 99); p.ix.f -= wf; } if (wq) { it.poise = cl(it.poise + wq, 1, 99); p.ix.p -= wq; } }
+      p.ox = (p.ox || 0) + gainR; const wo = Math.trunc(p.ox); if (wo) { p.ovr = cl(p.ovr + wo, 25, 100); p.ox -= wo; } if (p.pot < p.ovr) p.pot = p.ovr;
       p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
-        const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'CCP reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
+        const note = gemUp > 0 && wp > 0 ? 'Outgrowing his scouting report: the staff sees more in him every month (potential ' + p.pot + ')' : unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'CCP reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
         (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
     }));
     const label = this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), out: Record<number, any> = {};

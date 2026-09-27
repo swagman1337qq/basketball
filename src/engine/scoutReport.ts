@@ -2,6 +2,7 @@
 // everyone else in the league. What the scouts see is the truth plus noise: the margin
 // shrinks with scout skill, specialty, the scouting budget and time spent watching (intel),
 // and your own players are seen every day. Text is written from the observed ratings.
+import { ensureIntg, feelWord } from './intangibles';
 import type { Game } from './Game';
 import { regions } from '../data/world';
 import { intelF } from './overseas';
@@ -115,10 +116,13 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
     'NBA ready': lin(perNow, 8, 26), 'Strength': lin(per36((T.orb || 0) + (T.drb || 0)) * (grp === 'G' ? 1.6 : grp === 'W' ? 1.2 : 1), 4, 13),
   };
   const w = Math.min(0.6, gp / 80);
+  // Intangibles (Feel, Poise) are twice as hard to read as skills; the staff sees them daily.
+  const itT = ensureIntg(p), ir = mulberry32(p.id * 131 + 7), im = rd.kind === 'mine' || s.god ? 0 : Math.max(3, rd.margin * 2);
+  const intRead = { feel: cl(Math.round(itT.feel + (ir() * 2 - 1) * im), 1, 99), poise: cl(Math.round(itT.poise + (ir() * 2 - 1) * im), 1, 99) };
   const eye: [string, number][] = [
     ['Athleticism', g10((R.spd + R.jmp + R.endu) / 3 + 4)], ['Size', sizeG], ['Defense', g10(R.diq * 0.6 + (grp === 'B' ? R.hgt : R.spd) * 0.4)], ['Strength', g10(R.stre)],
     ['Quickness', g10((R.spd + (R.acc ?? R.spd)) / 2)], ['Leadership', g10(R.oiq * 0.6 + (p.age - 18) * 2 + (p.pers?.alpha ? 8 : 0) + (p.pers?.pro ? 8 : 0))], ['Jump shot', g10((R.tp + R.fg) / 2 + 3)], ['NBA ready', g10(o.ovr + 12)],
-    ['Ball handling', g10(R.drb + (grp === 'B' ? 6 : 0))], ['Potential', g10(o.pot + 6)], ['Passing', g10(R.pss + (grp === 'B' ? 6 : 0))], ['Intangibles', g10(55 + (p.pers?.pro ? 12 : 0) + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 14 : 0) + ((p.pers?.work ?? 50) - 50) / 3)],
+    ['Ball handling', g10(R.drb + (grp === 'B' ? 6 : 0))], ['Potential', g10(o.pot + 6)], ['Passing', g10(R.pss + (grp === 'B' ? 6 : 0))], ['Intangibles', g10(intRead.feel * 0.5 + intRead.poise * 0.3 + 12 + ((p.pers?.work ?? 50) - 50) / 4)],
   ];
   const grades: [string, number, number, number | null, string][] = eye.map(([k, e]) => { const st = statG[k] ?? null, v = st == null ? e : Math.round((e * (1 - w) + st * w) * 2) / 2; return [k, v, e, st == null ? null : Math.round(st * 2) / 2, st == null ? 'Scouts’ eye' : 'Eye ' + e + ' · production ' + (Math.round(st * 2) / 2) + ' (' + gp + ' games)']; });
   const overall = Math.round(cl(o.pot * 0.55 + o.ovr * 0.45 + 18, 40, 99));
@@ -220,6 +224,9 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const persKnown = rd.margin <= 5;
   if (persKnown) { const tr = [p.pers?.pro && 'consummate professional', p.pers?.alpha && 'wants to be the guy', p.pers?.volatile && 'can be volatile', p.pers?.clutch && 'wants the ball late', p.pers?.padder && 'has been accused of chasing stats', (p.pers?.work ?? 50) >= 70 && 'gym rat', (p.pers?.work ?? 50) <= 30 && 'work ethic questioned'].filter(Boolean); notes.push('Character: ' + (tr.length ? tr.join(', ') : 'even-keeled, no red flags') + '. Motivated by ' + String(p.pers?.mot || 'winning').toLowerCase() + '.'); }
   else notes.push('Character: our scouts haven’t spent enough time around him to say.');
+  notes.push('Intangibles: ' + feelWord(intRead.feel).toLowerCase() + ' feel for the game (' + intRead.feel + '), ' + feelWord(intRead.poise).toLowerCase() + ' poise (' + intRead.poise + ')' + (im ? ', a rough read.' : '.'));
+  // A sharp scout who knows him well sometimes senses a hidden gem before his numbers show it.
+  if (p.gem && p.gem.left > 2 && (rd.kind === 'mine' || rd.margin <= 3) && mulberry32(p.id * 17 + g.Y)() < (rd.kind === 'mine' ? 0.7 : 0.4)) notes.push('Gut feeling: ' + (rd.kind === 'mine' ? 'the staff' : 'our scout') + ' thinks he\u2019s better than his numbers say. Players like him tend to outgrow their projections.');
   const inj = p.injHist || []; if (inj.length) notes.push('Medical: ' + inj.slice(-3).map((x: any) => x.name + ' (' + x.season + ')').join(', ') + (p.pers?.prone && persKnown ? '. Durability is a concern.' : '.')); else notes.push('Medical: no significant injury history.');
   if (p.gp) notes.push('This season: ' + p.gp + ' games, ' + (p.min || 0).toFixed(1) + ' min, ' + (p.pts || 0).toFixed(1) + ' pts, ' + (p.reb || 0).toFixed(1) + ' reb, ' + (p.ast || 0).toFixed(1) + ' ast, ' + (p.per || 0).toFixed(1) + ' PER.');
   if (p.abroad) notes.push('Abroad: ' + p.abroad.pts + ' pts · ' + p.abroad.reb + ' reb · ' + p.abroad.ast + ' ast. Contract: ' + p.abroad.clause + (p.abroad.fee ? ' (' + p.abroad.fee.toFixed(2) + 'M)' : '') + '.');
