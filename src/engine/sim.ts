@@ -95,7 +95,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number }
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number }
 export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend }, n: Norms, mult?: Partial<Record<Zone, number>>) {
   const sk = zoneSkill(p.r), roles = p.roles || [];
   const w = {} as Record<Zone, number>;
@@ -401,7 +401,7 @@ export class GameSim {
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) + 0.02 * connectors;
-        if (!putback && Math.random() < cl(aRate, 0.2, 0.97)) {
+        if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1), 0.05, 0.97)) { // a self-creator's makes come off his own dribble
           passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }

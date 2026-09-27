@@ -1,6 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
+import { PRESET_CARDS } from './playerCard';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
@@ -128,6 +129,8 @@ export class Game {
     // Older saves: free agents' asks above their max, or not discounted for age (askOf).
     // Luka's ready-made card: a road villain and fearless, not crowd-fed (saved libraries included).
     (g.state.cards || []).forEach((c: any) => { const p = c.card?.pers; if (c.id === 'preset0' && p && p.crowd && p.villain === undefined) Object.assign(p, { crowd: false, villain: true, fearless: true }); });
+    // ...and retuned to his real 2018–19 shooting splits: an unedited saved copy takes the new build.
+    (g.state.cards || []).forEach((c: any) => { if (c.id === 'preset0' && c.card?.r?.fg === 45 && c.card?.r?.tp === 56 && c.card?.r?.oiq === 82) { const nw = PRESET_CARDS[0].card; c.card = { ...c.card, r: { ...nw.r }, tend: { ...nw.tend }, intg: { ...nw.intg } }; } });
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });

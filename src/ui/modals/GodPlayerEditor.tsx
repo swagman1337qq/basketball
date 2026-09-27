@@ -57,7 +57,7 @@ const fillUS = (all: Record<string, string>, q: any, from: 'city' | 'state' = 'c
   if (st && m.some(o => o.v.toLowerCase() === city.toLowerCase())) return; // already a real town in his state
   const o = rnd(m); q.city = o.v; q.state = o.sub;
 };
-const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers']];
+const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers'], ['ast', 'Assisted on his makes']];
 const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
 // A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
 const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };

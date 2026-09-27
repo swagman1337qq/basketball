@@ -17,7 +17,7 @@ const BLOCKS: [string, [string, string][]][] = [
 const POS = ['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
 const GRP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 const MOTS = ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'];
-const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers']];
+const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers'], ['ast', 'Assisted on his makes']];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const clone = (x: any) => JSON.parse(JSON.stringify(x));
