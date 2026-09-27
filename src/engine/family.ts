@@ -43,7 +43,7 @@ function inherit(g: Game, p: any, rel: any, rnd: () => number) {
 export function maybeSon(g: Game, p: any, rnd: () => number, force = false) {
   if (!force && rnd() >= SON_RATE) return null;
   const P = g.db.P;
-  const dads = (Object.values(P) as any[]).filter(q => q.id !== p.id && q.age - p.age >= 20 && q.age - p.age <= 40 && !(q.family || []).some(f => f.rel === 'son' && P[f.pid]?.age === p.age));
+  const dads = (Object.values(P) as any[]).filter(q => !q.gone && q.id !== p.id && q.age - p.age >= 20 && q.age - p.age <= 40 && !(q.family || []).some(f => f.rel === 'son' && P[f.pid]?.age === p.age));
   if (!dads.length) return null;
   const dad = dads.sort((a, b) => (b.retired ? 1 : 0) - (a.retired ? 1 : 0))[Math.floor(rnd() * Math.min(dads.length, Math.max(8, dads.filter(d => d.retired).length)))];
   inherit(g, p, dad, rnd);

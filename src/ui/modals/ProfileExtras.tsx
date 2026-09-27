@@ -217,7 +217,7 @@ export function CompareTab({ vm }: { vm: VM }) {
   const { gm, s, open } = vm.ctx, { p } = useP(vm), P = gm.db.P;
   const [q, setQ] = useState('');
   if (!p) return null;
-  const pool = (Object.values(P) as any[]).filter(x => x.id !== p.id);
+  const pool = (Object.values(P) as any[]).filter(x => x.id !== p.id && !x.gone);
   const other = P[s.cmpId] && s.cmpId !== p.id ? P[s.cmpId] : pool.filter(x => x.grp === p.grp).sort((x, y) => y.ovr - x.ovr)[0];
   if (!other) return null;
   const hits = q.trim().length >= 2 ? pool.filter(x => x.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6) : [];

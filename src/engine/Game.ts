@@ -14,7 +14,7 @@ import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
-import { slimRetired } from './prune';
+import { removeUnplayed, slimRetired } from './prune';
 import { ccpNewSeason, ccpPlay, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
@@ -120,7 +120,7 @@ export class Game {
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
-    slimRetired(g); // older saves: trim retired players' leftover working data
+    removeUnplayed(g, g.state); slimRetired(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.
@@ -182,6 +182,8 @@ export class Game {
     if (cb) cb();
   }
   private quiet = false; private lastEmit = 0; private pendingEmit = false;
+  private stopReq = false;
+  stopSim() { this.stopReq = true; }
   private flushEmit() { this.quiet = false; if (this.pendingEmit) { this.pendingEmit = false; this.lastEmit = Date.now(); this.listeners.forEach(l => l()); } }
 
   get CAP() { return this.db.caps.CAP; }
@@ -955,7 +957,7 @@ export class Game {
         Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
-      slimRetired(this); // this summer's retirees: keep the save small
+      removeUnplayed(this, s); slimRetired(this); // this summer's retirees: remove those who never played here, trim the rest
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {
@@ -1204,9 +1206,10 @@ export class Game {
   async sim(n, forced?: GameResult) {
     if (this.busy || this.state.phase !== 'regular') return;
     if (this.state.inbox?.some(x => x.block)) return;
-    this.busy = true; this.quiet = n > 1;
+    this.busy = true; this.quiet = n > 1; this.stopReq = false;
     try {
       for (let i = 0; i < n; i++) {
+        if (this.stopReq) break; // Stop pressed: finish the day in progress and halt
         const v = this.version;
         this.setState(s => this.simDay(s, i === 0 ? forced : undefined, n - i - 1));
         if (this.version === v) break;

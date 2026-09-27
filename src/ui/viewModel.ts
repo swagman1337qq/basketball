@@ -39,7 +39,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // A popup list (a country, a draft class) is part of the history too: Back from a player you
   // opened from it returns to the list, with the page you opened the list from behind it.
   const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
-  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
+  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
   const go = k => () => gm.setState({ screen: k, q: '', modal: false, teamModal: null, pageStack: [] });
   const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
   const goBack = () => {
@@ -308,7 +308,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   pl.elig = pl.elig.map((e, i) => ({ ...e, open: openC(pp.elig[i].c) }));
   const LMs = s.listModal; let lm = {};
   if (LMs) {
-    const act = (Object.values(P) as any[]).filter(p => tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || ((LMs.type === 'class' || LMs.type === 'from') && (p.retired || p.dr || p.cls)));
+    const act = (Object.values(P) as any[]).filter(p => !p.gone && (tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || ((LMs.type === 'class' || LMs.type === 'from') && (p.retired || p.dr || p.cls))));
     const reads = LMs.type === 'trait' ? new Map(act.map(p => [p.id, traitRead(gm, s, p)])) : null;
     let ps = LMs.type === 'from' ? act.filter(p => p.from?.team === LMs.team).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'trait' ? act.filter(p => reads.get(p.id).keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
     if (LMs.type === 'class') ps.sort((x, y) => (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) - (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99));
@@ -471,7 +471,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   if (s.gmOffer && !s.unemployed && ['lottery', 'draft'].includes(s.phase)) ph.note += ' · ' + T[s.gmOffer.tid].owner + ' has offered you a contract (Career)';
   if (s.unemployed) { ph.note = 'You’re out of a job. Accept an offer on the Career screen to continue.'; ph.actions = [act('Go to Career', go('career'), true)]; }
   if (s.simming) ph.note = 'Simulating… ' + s.simming.left + ' day' + (s.simming.left === 1 ? '' : 's') + ' to go';
-  ph.actions = ph.actions.map(a => ({ ...a, dis: !!a.dis || !!s.simming }));
+  ph.actions = s.simming ? [{ label: '■ Stop', go: () => gm.stopSim(), cls: 'btn-secondary' }] : ph.actions;
   { const prim = ph.actions.find(a => a.cls === 'btn-primary' && !a.dis), NEXT = { regular: 'playin', playin: 'playoffs', playoffs: s.po && s.po.champ != null ? 'lottery' : null, lottery: 'draft', draft: 'fa', fa: 'preseason', preseason: 'regular' }[s.phase], VIEW = { regular: 'dash', playin: 'playoffs', playoffs: 'playoffs', lottery: 'playoffs', draft: 'draft', fa: 'fa', preseason: 'dash' };
     if (s.phase === 'regular' && gp < 82) ph.note += ' · the play-in unlocks after game 82';
     const SHOW = { regular: 'standings', playin: 'playin', playoffs: 'playoffs', lottery: 'lottery', draft: 'draft', fa: 'fa', preseason: 'roster' }, done0 = PH.findIndex(([k]) => k === phK);
@@ -496,7 +496,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
 
   const qq = s.q.trim().toLowerCase();
   const fold = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), fq = fold(qq);
-  const matches = qq.length < 2 ? [] : (Object.values(P) as any[]).filter(p => fold(p.name).includes(fq) || (p.native || '').includes(qq)).sort((a, b) => (fold(b.name).startsWith(fq) ? 1 : 0) - (fold(a.name).startsWith(fq) ? 1 : 0) || (b.retired ? 0 : 1) - (a.retired ? 0 : 1) || b.ovr - a.ovr).slice(0, 10).map(p => { const t = tidOf[p.id]; return { name: p.name, flag: gm.flag(p.rep), meta: p.pos + ' · ' + (p.retired ? 'Retired' : t >= 0 ? T[t].abbr : t === -1 ? 'FA' : t === -2 ? 'Overseas' : p.cls ? 'Class of ' + p.cls : '—') + ' · ' + p.ovr, open: open(p.id) }; });
+  const matches = qq.length < 2 ? [] : (Object.values(P) as any[]).filter(p => !p.gone && fold(p.name).includes(fq) || (p.native || '').includes(qq)).sort((a, b) => (fold(b.name).startsWith(fq) ? 1 : 0) - (fold(a.name).startsWith(fq) ? 1 : 0) || (b.retired ? 0 : 1) - (a.retired ? 0 : 1) || b.ovr - a.ovr).slice(0, 10).map(p => { const t = tidOf[p.id]; return { name: p.name, flag: gm.flag(p.rep), meta: p.pos + ' · ' + (p.retired ? 'Retired' : t >= 0 ? T[t].abbr : t === -1 ? 'FA' : t === -2 ? 'Overseas' : p.cls ? 'Class of ' + p.cls : '—') + ' · ' + p.ovr, open: open(p.id) }; });
 
   const dg = s.dialog, dp = dg && P[dg.pid];
   const dlg = !dg || dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };

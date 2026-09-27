@@ -61,7 +61,7 @@ export const tone = (v: number) => (v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(
 let idxCache: { n: number; P: any; re: RegExp | null; byName: Record<string, number> } | null = null;
 const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function nameIndex(P: Record<number, any>) {
-  const list = Object.values(P) as any[];
+  const list = (Object.values(P) as any[]).filter(p => !p.gone);
   if (idxCache && idxCache.P === P && idxCache.n === list.length) return idxCache;
   const byName: Record<string, number> = {};
   list.forEach(p => { if (p.name && p.name.length > 4) byName[p.name] = p.id; });

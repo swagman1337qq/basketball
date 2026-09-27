@@ -97,10 +97,33 @@ function simTeamOf(g: Game, s: any, t: CcpTeam) {
   return { tid: t.id, name: t.city + ' ' + t.name, abbr: t.abbr, rec: '', players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 }, roles: g.rolesOf(p), alpha: p.pers?.alpha, touches: p.pers?.touches, target: ROT[i] ?? 0 }; }) };
 }
 
+// Quick results (the default): a score from each club's strength and plausible box-score lines
+// from each player's ratings and minutes, about 20x cheaper than the full engine. Settings can
+// switch CCP games to the full engine.
+function quickGame(g: Game, hT: any, aT: any) {
+  const R = Math.random, gauss = () => (R() + R() + R() + R() - 2) * 1.2;
+  const str = (t: any) => { const ps = t.players.filter((p: any) => p.target > 0); const m = ps.reduce((a: number, p: any) => a + p.target, 0) || 1; return ps.reduce((a: number, p: any) => a + p.ovr * p.target, 0) / m; };
+  const margin = (str(hT) - str(aT)) * 1.3 + 2.2 + gauss() * 10, total = 222 + gauss() * 16;
+  let hs = Math.round((total + margin) / 2), as = Math.round((total - margin) / 2), ot = 0; if (hs === as) { ot = 1; hs += R() < 0.5 ? 3 : 0; as += hs === as ? 3 : 0; }
+  const side = (t: any, pts: number) => {
+    const ps = t.players.filter((p: any) => p.target > 0), tot = ps.reduce((a: number, p: any) => a + p.target, 0) || 1, box: Record<number, any> = {};
+    const use = ps.map((p: any) => Math.pow(Math.max(5, p.ovr - 28), 1.6) * p.target), U = use.reduce((a: number, v: number) => a + v, 0) || 1;
+    ps.forEach((p: any, i: number) => { const r = p.r, min = +(p.target * 240 / tot * (0.85 + R() * 0.3)).toFixed(1), share = use[i] / U, pp = Math.max(0, Math.round(pts * share * (0.75 + R() * 0.5)));
+      const tpa = Math.round(pp * (r.tp / 100) * 0.55 * (0.6 + R() * 0.8)), tpm = Math.round(tpa * (0.26 + r.tp / 900)), fta = Math.round(pp * 0.22 * (0.5 + R())), ftm = Math.round(fta * (0.55 + r.ft / 400));
+      const fgm = Math.max(tpm, Math.round((pp - ftm - tpm) / 2)), fga = Math.max(fgm, Math.round(fgm / (0.38 + (r.fg + r.ins) / 1000)) );
+      const reb = Math.round(min / 48 * (4 + (r.reb - 40) / 6 + (p.grp === 'B' ? 4 : p.grp === 'W' ? 1.5 : 0)) * (0.6 + R() * 0.8)), orb = Math.round(reb * 0.25);
+      box[p.id] = { min, pts: fgm * 2 + tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb: reb - orb, ast: Math.round(min / 48 * (2 + (r.pss - 40) / 7 + (p.grp === 'G' ? 3 : 0)) * (0.6 + R() * 0.8)), stl: Math.round(min / 48 * (0.8 + r.diq / 80) * R() * 2), blk: Math.round(min / 48 * (p.grp === 'B' ? 1.6 : 0.4) * R() * 2), tov: Math.round(min / 48 * 2.2 * R() * 2), pf: Math.round(min / 48 * 3.5 * R() * 1.5), pm: 0, gs: i < 5 ? 1 : 0 };
+    });
+    return box;
+  };
+  const hb = side(hT, hs), ab = side(aT, as), sum = (b: any) => Object.values(b).reduce((a: number, l: any) => a + l.pts, 0) as number;
+  return { home: { pts: sum(hb), box: hb }, away: { pts: sum(ab) === sum(hb) ? sum(ab) + 1 : sum(ab), box: ab }, ot };
+}
+
 function play(g: Game, s: any, x: CcpGame) {
   const c = s.ccp, P = g.db.P, H = c.teams[x.h], A = c.teams[x.a], hT = simTeamOf(g, s, H), aT = simTeamOf(g, s, A);
   if (hT.players.length < 5 || aT.players.length < 5) { x.hs = hT.players.length >= aT.players.length ? 1 : 0; x.as = 1 - x.hs; return; } // forfeit (shouldn't happen)
-  const r = new GameSim(hT as any, aT as any, { norms: g.db.norms }).run();
+  const r: any = s.ccpFull ? new GameSim(hT as any, aT as any, { norms: g.db.norms }).run() : quickGame(g, hT, aT);
   x.hs = r.home.pts; x.as = r.away.pts; if (r.ot) x.ot = r.ot;
   const topOf = (box: any) => { let best = 0, bp = -1; Object.entries(box).forEach(([id, b]: any) => { if (b.pts > bp) { bp = b.pts; best = +id; } }); return [best, bp]; };
   const th = topOf(r.home.box), ta = topOf(r.away.box); x.top = [th[0], th[1], ta[0], ta[1]];

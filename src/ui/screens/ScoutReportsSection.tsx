@@ -14,7 +14,7 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
   const [f, setF] = useState<'all' | ReportKind>('all'), [sel, setSel] = useState<number | null>(null), [q, setQ] = useState('');
   const ids = scoutedIds(gm, s), reps = ids.filter(id => f === 'all' || kindOf(gm, s, P[id]) === f).map(id => scoutReport(gm, s, id)).sort((a, b) => b.seen.pot - a.seen.pot || b.seen.ovr - a.seen.ovr);
   const fold = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const hits = q.trim().length >= 2 ? (Object.values(P) as any[]).filter(p => !p.retired && fold(p.name).includes(fold(q.trim()))).slice(0, 8) : [];
+  const hits = q.trim().length >= 2 ? (Object.values(P) as any[]).filter(p => !p.gone && !p.retired && fold(p.name).includes(fold(q.trim()))).slice(0, 8) : [];
   const add = (id: number) => { gm.setState(st => ({ scoutList: [...new Set([...(st.scoutList || []), id])].slice(-20) })); setSel(id); setQ(''); };
   const kinds = ids.map(id => kindOf(gm, s, P[id])), counts = (k: string) => kinds.filter(x => x === k).length;
   const [tk, setTk] = useState(''), CONF: Record<string, number> = { 'Very high': 5, High: 4, Medium: 3, Low: 2, 'Very low': 1 };

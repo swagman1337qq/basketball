@@ -51,7 +51,7 @@ export function honorsLine(c: ReturnType<typeof careerOf>) {
 // Vote in a class at the end of a season. Returns the inductees (added to s.hof by the caller).
 export function voteHof(g: Game, s: any) {
   const P = g.db.P, Y = g.Y, inHof = new Set((s.hof || []).map(h => h.pid));
-  const elig = (Object.values(P) as any[]).filter(p => p.retired && !inHof.has(p.id) && p.retired.season + WAIT <= Y);
+  const elig = (Object.values(P) as any[]).filter(p => p.retired && !p.gone && !inHof.has(p.id) && p.retired.season + WAIT <= Y);
   const scored = elig.map(p => ({ p, ...hofScore(g, s, p) })).filter(x => x.score >= HOF_BAR && x.c.seasons >= MIN_SEASONS).sort((a, b) => b.score - a.score).slice(0, CLASS_MAX);
   return scored.map(x => ({ pid: x.p.id, year: Y, score: +x.score.toFixed(1), firstBallot: x.p.retired.season + WAIT === Y && x.score >= FIRST_BALLOT, line: careerLine(x.c), honors: honorsLine(x.c), tids: x.c.tids, legacy: !!x.p.legacy }));
 }

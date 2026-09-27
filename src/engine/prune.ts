@@ -14,3 +14,21 @@ export function slimRetired(g: Game) {
   });
   return n;
 }
+
+// Retired players who never played a game in the league (CCP-only players, undrafted prospects,
+// overseas lifers) are removed. A name-only record stays so old draft results, mock drafts, news
+// and transactions still read correctly; they're hidden from every list, search and profile.
+export function removeUnplayed(g: Game, s: any) {
+  const P = g.db.P, gone = new Set<number>();
+  (Object.values(P) as any[]).forEach(p => {
+    if (!p.retired || p.gone || (p.stats || []).length) return;
+    P[p.id] = { id: p.id, name: p.name, native: p.native, pos: p.pos, grp: p.grp, age: p.age, ovr: p.ovr, pot: p.pot, rep: p.rep, retired: p.retired, gone: 1, stats: [] };
+    gone.add(p.id);
+  });
+  if (!gone.size) return 0;
+  const keep = (ids: any) => (Array.isArray(ids) ? ids.filter((id: number) => !gone.has(id)) : ids);
+  const dropKeys = (o: any) => { if (!o) return o; const x = { ...o }; gone.forEach(id => delete x[id]); return x; };
+  const clean = (c: any) => { if (!c) return; c.scoutList = keep(c.scoutList); c.scoutFocus = keep(c.scoutFocus); c.intel = dropKeys(c.intel); c.scoutAssign = dropKeys(c.scoutAssign); c.coachAuto = dropKeys(c.coachAuto); };
+  s.fa = keep(s.fa); s.overseas = keep(s.overseas); clean(s); Object.values(s.clubs || {}).forEach(clean);
+  return gone.size;
+}

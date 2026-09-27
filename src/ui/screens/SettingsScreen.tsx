@@ -37,6 +37,18 @@ export function SettingsScreen({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
+            CCP games
+          </div>
+          <div style={{ color: "var(--color-neutral-700)" }}>
+            Quick results work out each development-league game from the clubs’ strength and each player’s ratings (sims run much faster). The full engine plays every CCP game possession by possession, like NBA games.
+          </div>
+          <div style={{ display: "inline-flex", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+            {([[false, 'Quick results'], [true, 'Full engine']] as [boolean, string][]).map(([v, l]) => { const on = !!vm.ctx.s.ccpFull === v; return (
+              <button key={l} onClick={() => vm.ctx.gm.setState({ ccpFull: v })} style={{ all: "unset", cursor: "pointer", padding: "6px 14px", fontSize: "13px", whiteSpace: "nowrap", color: on ? "var(--color-accent-700)" : "var(--color-text)", boxShadow: on ? "inset 0 0 0 1px var(--color-accent)" : "none" }}>{l}</button>); })}
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Save file
           </div>
           <div>

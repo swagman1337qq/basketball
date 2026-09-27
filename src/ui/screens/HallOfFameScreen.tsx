@@ -11,7 +11,7 @@ export function HallOfFameScreen({ vm }: { vm: VM }) {
   const hof = (s.hof || []).slice().sort((a, b) => b.year - a.year || b.score - a.score);
   const years = [...new Set(hof.map(h => h.year))] as number[];
   const inHof = new Set(hof.map(h => h.pid));
-  const retired = (Object.values(P) as any[]).filter(p => p.retired && !inHof.has(p.id));
+  const retired = (Object.values(P) as any[]).filter(p => p.retired && !p.gone && !inHof.has(p.id));
   const ballot = retired.map(p => ({ p, ...hofScore(gm, s, p) })).filter(x => x.score >= HOF_BAR * 0.6).sort((a, b) => b.score - a.score).slice(0, 30);
   const active = [...Object.values(s.rosters).flat(), ...s.fa] as number[];
   const track = active.map(id => ({ p: P[id], ...hofScore(gm, s, P[id]) })).filter(x => x.score >= HOF_BAR * 0.45).sort((a, b) => b.score - a.score).slice(0, 25);
