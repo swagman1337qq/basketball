@@ -10,6 +10,7 @@ import { addTx } from '../engine/txlog';
 import { intelF } from '../engine/overseas';
 import { badgesOf, setRating, setWing, teamRating, wngOf } from '../engine/ratings';
 import { askOffers, shopOffers } from '../engine/tradeOffers';
+import { recommendPos } from '../engine/ratings';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, extWindow, maxFor, nums, qoEligible, qoFor, rosterMax, signingMethods, stdIds, teamSalary, twoWayIds, yosOf } from '../engine/cba';
 import { financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
@@ -362,7 +363,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         randTraits: () => mut(p => { const R = () => Math.random(); Object.assign(p.pers, { alpha: R() < .2, touches: R() < .3, pro: R() < .35, volatile: R() < .15, crowd: R() < .15, clutch: R() < .1, prone: R() < .08, padder: R() < .08, legacy: R() < .12 }); p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && R() < .3; }),
         randMot: () => mut(p => { p.pers.mot = ['Winning', 'Winning', 'Money', 'Money', 'Fame', 'Loyalty', 'Playing time', 'Playing time'][Math.floor(Math.random() * 8)]; }),
         randRep: () => { const opts = Object.keys(C).filter(c => c !== pp.rep); pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } }); },
-        posOpts: ['PG', 'SG', 'G', 'SF', 'GF', 'F', 'PF', 'FC', 'C'].map(x => ({ v: x, label: x + ' · ' + POS_NAME[x] })), posV: pp.pos, setPos: e => mut(p => { p.pos = e.target.value; p.grp = POS_GRP[p.pos] || p.grp; }),
+        posOpts: ['PG', 'SG', 'G', 'SF', 'GF', 'F', 'PF', 'FC', 'C'].map(x => ({ v: x, label: x + ' · ' + POS_NAME[x] })), posRec: (() => { const x = recommendPos(pp); return { pos: x.pos, label: x.pos + ' · ' + POS_NAME[x.pos], why: x.why, same: x.pos === pp.pos, use: () => mut(p => { p.pos = x.pos; p.grp = POS_GRP[x.pos] || p.grp; }) }; })(), posV: pp.pos, setPos: e => mut(p => { p.pos = e.target.value; p.grp = POS_GRP[p.pos] || p.grp; }),
         motOpts: ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'].map(x => ({ v: x, label: x })), motV: pp.pers.mot, setMot: e => mut(p => p.pers.mot = e.target.value),
         repOpts: Object.keys(C).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, from: pp.from }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
           // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).

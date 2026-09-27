@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-26
 
 ### Added
+- **Recommended position** (God Mode editors): under the Position menu the game suggests the position his body and skills fit, mostly from height, nudged by wingspan and whether his skills are a guard's or a big's (a 7-footer is a center; a 6′9″ playmaker is a wing). It updates as you edit him; press Use to apply it, or pick any position you like.
 - **Badges in the rotation** (Tactics): each player shows his top badges under his name, with the rest behind "+N". Hover a badge for what it does.
 - **Ask for trade offers.** On the Trade screen, select players or picks on your side and press **📣 Ask for offers**: every team that can put together a deal it likes (one that also passes the league office) calls with its best offer, from none to all 29. Or select the other team's players and press **📣 Ask what they want**: they name every package from your roster they'd take. Step through offers with ‹ ›, marked Strong, Fair or Lowball, then **Accept**, **Decline** (drops it from the list) or **Negotiate…** (loads it into the trade builder to change). When the salary or roster rules need it, a team may ask you to add a low-value player of yours, or add a small contract of theirs.
 - **Trade screen: ‹ › arrows** on either side of the other team's menu step through the league one team at a time.
