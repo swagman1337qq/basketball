@@ -69,9 +69,9 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         </div>
       )}
       <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
-        <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + (vm.faRows || []).length], ['gl', 'In the G League ' + nGl], ['home', 'Unsigned ' + ((vm.faRows || []).length - nGl)]]} onChange={setF} />
+        <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + (vm.faRows || []).length], ['gl', 'In the CCP ' + nGl], ['home', 'Unsigned ' + ((vm.faRows || []).length - nGl)]]} onChange={setF} />
         <TraitFilter value={tk} onChange={setTk} />
-        <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>G League players are on standard G League deals: any NBA team can call them up by signing them.</span>
+        <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>CCP players are on standard CCP deals: any NBA team can call them up by signing them.</span>
       </div>
       {sc.bar()}{sc.Menu()}
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
@@ -102,7 +102,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                   {sc.tag(p.id)}
                   {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
                   {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
-                  {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>G League · {p.glT}</span>}
+                  {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>CCP · {p.glT}</span>}
                 </span>
               </td>
               <td style={{ padding: "4px 8px" }}>

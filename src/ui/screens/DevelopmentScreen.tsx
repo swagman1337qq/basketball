@@ -7,10 +7,10 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
   return (
     <>
       <p style={{ margin: "0 0 12px", color: "var(--color-neutral-700)" }}>
-        Set a training focus for each player: focused ratings grow about twice as fast, the rest more slowly. Young players need minutes to grow, so sending one down to the development league gives him game reps. Ratings carry hidden decimals, so small monthly gains add up.
+        Set a training focus for each player: focused ratings grow about twice as fast, the rest more slowly. Young players need minutes to grow, so sending one down to the CCP gives him game reps. Ratings carry hidden decimals, so small monthly gains add up.
       </p>
       <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
-        {!vm.coachV?.all && <button className="btn btn-primary" onClick={vm.coachV?.allOn} style={{ fontSize: "12.5px" }} title="Your assistant coaches set every player's training focus and development-league assignment, and re-check them every month">🧑‍🏫 Let assistant coaches decide for everyone</button>}
+        {!vm.coachV?.all && <button className="btn btn-primary" onClick={vm.coachV?.allOn} style={{ fontSize: "12.5px" }} title="Your assistant coaches set every player's training focus and CCP assignment, and re-check them every month">🧑‍🏫 Let assistant coaches decide for everyone</button>}
         {!!vm.coachV?.any && <button className="btn btn-secondary" onClick={vm.coachV?.allOff} style={{ fontSize: "12.5px" }}>Take over everyone</button>}
         <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Coaches work on each player's costliest gaps for his position (conditioning for veterans 31+), send young players outside the top ten down for game reps, and recall them once they earn a rotation spot.</span>
       </div>
@@ -56,7 +56,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                       </option>
                     ))}
                   </select>
-                  <button className="btn btn-ghost" onClick={p.coachOn} style={{ fontSize: "11.5px", padding: "2px 6px" }} title="Your assistant coaches pick his training focus and development-league assignment, and re-check them every month">Let assistant coaches decide</button>
+                  <button className="btn btn-ghost" onClick={p.coachOn} style={{ fontSize: "11.5px", padding: "2px 6px" }} title="Your assistant coaches pick his training focus and CCP assignment, and re-check them every month">Let assistant coaches decide</button>
                 </>)}
               </td>
               <td style={{ padding: "3px 8px", whiteSpace: "nowrap" }}>
@@ -90,7 +90,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
             {rp.label}
           </div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
-        {!vm.coachV?.all && <button className="btn btn-primary" onClick={vm.coachV?.allOn} style={{ fontSize: "12.5px" }} title="Your assistant coaches set every player's training focus and development-league assignment, and re-check them every month">🧑‍🏫 Let assistant coaches decide for everyone</button>}
+        {!vm.coachV?.all && <button className="btn btn-primary" onClick={vm.coachV?.allOn} style={{ fontSize: "12.5px" }} title="Your assistant coaches set every player's training focus and CCP assignment, and re-check them every month">🧑‍🏫 Let assistant coaches decide for everyone</button>}
         {!!vm.coachV?.any && <button className="btn btn-secondary" onClick={vm.coachV?.allOff} style={{ fontSize: "12.5px" }}>Take over everyone</button>}
         <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Coaches work on each player's costliest gaps for his position (conditioning for veterans 31+), send young players outside the top ten down for game reps, and recall them once they earn a rotation spot.</span>
       </div>
@@ -104,7 +104,7 @@ export function DevelopmentScreen({ vm }: { vm: VM }) {
                     </button>
                   </td>
                   <td style={{ padding: "4px 8px", color: "var(--color-neutral-700)" }}>
-                    {x.focus}{x.dev ? <span style={{ color: "var(--gm-good)" }}> · Dev league</span> : null}
+                    {x.focus}{x.dev ? <span style={{ color: "var(--gm-good)" }}> · CCP</span> : null}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: x.color, fontWeight: "600" }}>
                     {x.d} ovr

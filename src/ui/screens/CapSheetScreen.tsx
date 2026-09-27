@@ -139,7 +139,7 @@ function CbaReference({ vm }: { vm: VM }) {
     ['Bi-annual exception', M(N.BAE) + ', up to 2 years; not in consecutive seasons; hard cap at the 1st apron; not for teams above it.'],
     ['Disabled player exception', 'For a season-ending injury (before ' + gm.fmtS(DAY.DPE_DEADLINE) + '): half his salary or the non-taxpayer MLE, whichever is less, to sign or trade for one player on a one-year deal.'],
     ['Two-way contracts', 'Up to 3 per team for players with fewer than 4 years of service; ' + M(N.TWO_WAY) + ', off the 15-man roster and the cap; up to ' + DAY.TWO_WAY_GAMES + ' NBA games; not playoff-eligible. Can be converted to a standard contract.'],
-    ['Exhibit 10', 'One-year, non-guaranteed minimum deals for training camp (21-man offseason limit). Convert to a two-way before opening night, keep (becomes standard) or waive at no cap cost; a waived Exhibit 10 who joins your G League team earns up to ' + M(N.E10_BONUS) + '.'],
+    ['Exhibit 10', 'One-year, non-guaranteed minimum deals for training camp (21-man offseason limit). Convert to a two-way before opening night, keep (becomes standard) or waive at no cap cost; a waived Exhibit 10 who joins your CCP team earns up to ' + M(N.E10_BONUS) + '.'],
     ['10-day contracts', 'From ' + gm.fmtS(DAY.TEN_DAY_START) + ': prorated minimum for 10 days, at most two with the same team; after that it’s the rest of the season.'],
     ['Hardship exception', 'With 4+ players out, a 16th player on a non-guaranteed minimum deal until the roster is healthy.'],
     ['Roster', '15 standard contracts in season (21 in the offseason), at least 14; plus up to 3 two-ways.'],

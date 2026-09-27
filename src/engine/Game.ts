@@ -14,6 +14,7 @@ import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
+import { ccpNewSeason, ccpPlay, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
@@ -58,7 +59,8 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
-    placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the G League
+    placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
+    ccpNewSeason(g, g.state); ccpTopUp(g, g.state, g.state.fa); // the CCP (development league) season
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
     g.rollDevYear(g.state);
@@ -115,6 +117,8 @@ export class Game {
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
+    // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
+    if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.
     Object.values(g.db.P).forEach((p: any) => { if (!p.r) return; const h = (x: number) => (((p.id * x + 7) >>> 0) % 1000 / 1000 - 0.5), c = (v: number) => Math.round(Math.max(4, Math.min(100, v)));
       if (p.r.lay == null) p.r.lay = c((p.r.dnk + p.r.ins) / 2 + (p.grp === 'G' ? 4 : 0) + h(97) * 16);
@@ -222,7 +226,7 @@ export class Game {
       ps.sort((a, b) => b.ovr - a.ovr);
       rosters[t.tid] = ps.map(p => p.id);
     });
-    // About 90 unsigned players at any time in season, like the NBA's pool of veterans, G League
+    // About 90 unsigned players at any time in season, like the NBA's pool of veterans, CCP
     // call-up candidates and undrafted players: a few useful vets, the rest end-of-bench types.
     const fa = []; for (let k = 0; k < 90; k++) fa.push(mk(k < 5 ? 54 + rnd() * 6 : k < 25 ? 47 + rnd() * 8 : 38 + rnd() * 12, 22 + Math.floor(rnd() * 13), W_NBA, 0).id);
     const os = []; for (let k = 0; k < 22; k++) { const p = mk(44 + rnd() * 12, 22 + Math.floor(rnd() * 8), W_NBA, 0); const cc0 = CLUBS[p.raised] ? p.raised : pick(['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT']), k2 = pick(CLUBS[cc0]), out = rnd() < .45;
@@ -612,6 +616,7 @@ export class Game {
   startPlayin() {
     this.setState(s => {
       if (s.phase !== 'regular' || this.gamesPlayed(s) < 82) return null;
+      ccpPlay(this, s, 999); // the CCP finishes its season (playoffs in early April)
       const seeds: any = {}, playin: any = {};
       ['East', 'West'].forEach(c => {
         const sd = this.seeds(s, c); seeds[c] = sd;
@@ -850,7 +855,7 @@ export class Game {
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
       Object.keys(rosters).forEach(k => { const user = this.isUser(s, +k), out = rosters[k].filter(id => retire(id) && (!user || P[id].ovr < 55 || P[id].age >= 38)); out.forEach(id => { P[id].retired = { season: this.Y, age: P[id].age, tid: +k, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', tid: +k, text: 'Retired at ' + P[id].age }); }); if (out.length) { rosters[k] = rosters[k].filter(id => !out.includes(id)); out.forEach(id => lgLog = [{ day: s.day, type: 'Release', teams: teams[k].abbr, text: P[id].name + ' retired at ' + P[id].age }, ...lgLog]); } });
       // About 100 prospects declare each year and 60 are drafted; the best ~45 undrafted players
-      // sign as free agents (Exhibit 10s, two-ways, the G League). The rest go overseas or back to school.
+      // sign as free agents (Exhibit 10s, two-ways, the CCP). The rest go overseas or back to school.
       const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 45);
       left.forEach(id => { Object.assign(P[id], { undrafted: this.Y, cls: 0, dr: null, draft: this.Y, amt: nums(this).min(0), ask: nums(this).min(0), exp: Y + 1, yrsWith: 0, yos0: 0 }); fa.push(id); });
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: ['Kentucky', 'Duke', 'Kansas', 'UCLA', 'Gonzaga', 'Arizona', 'UConn', 'Houston'][id % 8], lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
@@ -882,7 +887,7 @@ export class Game {
       // Unsigned free agents with no NBA future leave the league (or retire when they're old).
       box.fa = box.fa.filter(id => { const p = P[id]; if (p.rfa || p.age < 24 || (p.ovr >= 43 && p.age < 31) || (p.ovr >= 48 && p.age < 34) || p.ovr >= 55) return true; p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' }; return false; });
       // The market holds about 90 players into the season (the NBA's in-season pool of unsigned
-      // veterans and G League hopefuls); the rest sign abroad or move on.
+      // veterans and CCP hopefuls); the rest sign abroad or move on.
       if (box.fa.length > 90) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 90));
         box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; addTx(this, s, P[id], { k: 'retire', text: P[id].retired.why + ' at ' + P[id].age }); return false; }); }
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
@@ -933,10 +938,11 @@ export class Game {
         if (!this.isUser(s, t)) trimRoster(this, s, box, t, lgLog);
         const signed = fillRoster(this, s, box, t, lgLog); if (signed.length && this.isUser(s, t)) by[t] = ['League minimum of ' + ROSTER_MIN + ' players: signed ' + signed.join(', ') + ' to minimum deals']; });
       // The league always has about 90 unsigned players on opening night: journeymen back from
-      // overseas, G League veterans and late bloomers join the pool if it has run low.
+      // overseas, CCP veterans and late bloomers join the pool if it has run low.
       for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
         Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
       placeInGLeague(this, s, box.fa);
+      ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
       return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {
@@ -1061,7 +1067,7 @@ export class Game {
   //    (on course to reach it around 27); one already at his ceiling barely moves.
   //  - Work ethic: hard workers grow faster and age slower, and keep improving without minutes
   //    (the rookie buried on the bench who lives in the gym).
-  //  - Playing time, the G League, the coaching budget, training focus, the locker room, mentors.
+  //  - Playing time, the CCP, the coaching budget, training focus, the locker room, mentors.
   //  - Traits: legacy-driven and professional players push themselves; volatile ones don't.
   //  - A hidden development factor, fixed for each player: some keep getting better for years,
   //    some peak early and never improve (the great rookie season that turns out to be his best).
@@ -1101,11 +1107,11 @@ export class Game {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
-    // Assistant coaches re-check the development-league assignments they're in charge of.
+    // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
-      // Few minutes slow a young player down, unless he works at it (G League minutes count too).
+      // Few minutes slow a young player down, unless he works at it (CCP minutes count too).
       let minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1; if (minF < 1) minF += (1 - minF) * this.cl((wk - 55) / 45, 0, 1) * .8;
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
@@ -1121,7 +1127,7 @@ export class Game {
       p.feed = [{ m: this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
-        const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'Dev league reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
+        const note = unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'CCP reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
         (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
     }));
     const label = this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), out: Record<number, any> = {};
@@ -1231,7 +1237,7 @@ export class Game {
       s.managed.forEach(t => addClub(t, c => ({ intel: scoutTick(this, c, s.overseas), ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}), ...(mnt[t] ? { log: [...mnt[t].map(text => ({ date: this.fmtS(day), day, text: 'Mentoring: ' + text })), ...(c.log || [])] } : {}) })));
       Object.entries(mnt).forEach(([t, xs]) => xs.forEach(text => lgLog.unshift({ day, type: 'Team', teams: s.teams[+t].abbr, text })));
       confidenceTick(this, s, rosters);
-      placeInGLeague(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
+      placeInGLeague(this, s, box.fa); ccpTopUp(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
       (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.ox = (q.ox || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.ox); if (w) { q.ovr = Math.min(q.pot + 2, q.ovr + w); q.ox -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
@@ -1256,6 +1262,7 @@ export class Game {
     });
     s.managed.forEach(t => { const mine = [...inj.filter(x => x.mine && x.tid === t).reverse().map(x => x.text), ...(cbaLog[t] || [])]; if (mine.length) addClub(t, c => ({ log: [...mine.map(text => ({ date: this.fmtS(day), day, text })), ...(c.log || [])] })); });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
+    ccpPlay(this, { ...s, fa: box.fa, rosters: box.rosters }, dnOf(this.Y, this.dateOf(day))); // today's CCP games
     return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 

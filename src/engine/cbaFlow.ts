@@ -197,8 +197,8 @@ export function openFreeAgency(g: Game, s: any) {
         const keep = (rank < 9 || p.age <= 24 && p.pot >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.ownerCeiling(s.teams[t].arch), N.CAP);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
       p.rookie = false; box.fa.push(id); return false; }); });
-  // G League contracts run for the season: last season's players become free again, and their
-  // G League teams keep returning rights.
+  // CCP contracts run for the season: last season's players become free again, and their
+  // CCP teams keep returning rights.
   box.fa.forEach(id => { const p = P[id]; if (p?.gl?.tid != null) { p.glHist = [...(p.glHist || []), { season: Y, team: affiliateOf(s, p.gl.tid), pts: p.gl.pts, reb: p.gl.reb, ast: p.gl.ast }]; p.gl = { last: p.gl.tid }; } });
   // A new league year: fresh exceptions, no hard cap until one is triggered, holds restored,
   // expired traded player exceptions and dead money cleared.

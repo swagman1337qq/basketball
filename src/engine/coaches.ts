@@ -1,5 +1,5 @@
 // Assistant coaches: when you hand a player over to them, they pick his training focus and
-// decide whether he plays in the development league or stays with the team. They re-check
+// decide whether he plays in the CCP or stays with the team. They re-check
 // both every month.
 import type { Game } from './Game';
 import { OVR_W } from './ratings';
@@ -28,7 +28,7 @@ export function coachFocus(p: any): { focus: string; why: string } {
 // anyone who has worked his way into the rotation (or is hurt) stays up.
 export function coachAssign(g: Game, ids: number[], p: any): { dev: boolean; why: string } {
   const P = g.db.P, eligible = p.age <= 25 && p.ovr < 58;
-  if (!eligible) return { dev: false, why: 'Too established for the development league.' };
+  if (!eligible) return { dev: false, why: 'Too established for the CCP.' };
   if (p.inj) return { dev: false, why: 'Rehabbing with the team.' };
   const rank = ids.filter(id => P[id].ovr > p.ovr).length + 1;
   if (rank > 10 && p.age <= 23) return { dev: true, why: 'Outside the rotation (' + rank + 'th on the roster): he needs game reps.' };
@@ -39,6 +39,6 @@ export function coachAssign(g: Game, ids: number[], p: any): { dev: boolean; why
 export function applyCoachPlans(g: Game, s: any, club: any, ids: number[]): string[] {
   const auto = club?.coachAuto || {}, P = g.db.P, out: string[] = [];
   ids.forEach(id => { if (!auto[id]) return; const p = P[id], a = coachAssign(g, ids, p);
-    if (!!p.dev !== a.dev) { p.dev = a.dev; out.push('Coaches ' + (a.dev ? 'sent ' + p.name + ' to the development league' : 'recalled ' + p.name + ' from the development league') + ' (' + a.why.replace(/\.$/, '').toLowerCase() + ')'); } });
+    if (!!p.dev !== a.dev) { p.dev = a.dev; out.push('Coaches ' + (a.dev ? 'sent ' + p.name + ' to the CCP' : 'recalled ' + p.name + ' from the CCP') + ' (' + a.why.replace(/\.$/, '').toLowerCase() + ')'); } });
   return out;
 }

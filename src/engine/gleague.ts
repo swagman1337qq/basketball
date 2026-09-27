@@ -16,7 +16,7 @@ const AFFIL: Record<string, string> = {
 };
 export const glSalary = (g: Game) => +(0.0405 * (g.CAP / 154.647)).toFixed(3); // $40,500 in 2025-26, growing with the cap
 export const GL_ROSTER = 12, AFFIL_MAX = 5;
-export function affiliateOf(s: any, tid: number) { const t = s.teams[tid]; return t ? AFFIL[t.abbr] || t.region + ' Select' : 'G League'; }
+export function affiliateOf(s: any, tid: number) { const c = (s.ccp?.teams || []).find((x: any) => (tid === -1 ? x.aff == null : x.aff === tid)); if (c) return c.city + ' ' + c.name; const t = s.teams[tid]; return t ? AFFIL[t.abbr] || t.region + ' Select' : 'the CCP'; }
 
 // A season line in the G League, from his rating (a lower level: stars put up big numbers).
 function line(p: any, gp: number) {
@@ -39,8 +39,8 @@ export function placeInGLeague(g: Game, s: any, fa: number[], rnd: () => number 
     let tid: number | null = null, kind = 'standard';
     const w = p.waived?.tid ?? p.lastTid;
     if (w != null && T[w] && room(w) && (aff[w] || 0) < AFFIL_MAX && p.age <= 28) { tid = w; kind = 'affiliate'; aff[w] = (aff[w] || 0) + 1; }
-    else if (p.gl?.last != null && T[p.gl.last] && room(p.gl.last)) { tid = p.gl.last; kind = 'returning'; }
-    else { const opts = T.map((t: any) => t.tid).filter(room); if (!opts.length) return; tid = opts[Math.floor(rnd() * opts.length)]; }
+    else if (p.gl?.last != null && (T[p.gl.last] || p.gl.last === -1) && room(p.gl.last)) { tid = p.gl.last; kind = 'returning'; }
+    else { const opts = [...T.map((t: any) => t.tid), -1].filter(room); if (!opts.length) return; tid = opts[Math.floor(rnd() * opts.length)]; } // -1: the independent club
     count[tid!] = (count[tid!] || 0) + 1;
     p.gl = { tid, kind, since: g.Y, ...line(p, 0), e10: p.ctype === 'ex10' || p.wasEx10 ? true : undefined };
     p.ask = Math.min(p.ask || 99, g.fair(p.ovr));
@@ -52,7 +52,7 @@ export function gLeagueTick(g: Game, fa: number[], gamesSoFar: number) {
   const P = g.db.P;
   fa.forEach(id => { const p = P[id]; if (!p?.gl || p.gl.tid == null) return;
     if (p.age <= 25) { p.glx = (p.glx || 0) + (p.age <= 22 ? 0.3 : 0.18); const w = Math.trunc(p.glx); if (w && p.ovr < p.pot) { p.ovr = Math.min(p.pot, p.ovr + w); p.glx -= w; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.min(100, p.r[k] + w); }); } }
-    Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6))); });
+    if (!p.ccpS) Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6))); }); // CCP games replace the estimate once he plays
 }
 
 // Called up (signed by an NBA team): the G League stint ends.
