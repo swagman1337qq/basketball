@@ -8,6 +8,7 @@ import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
 import { rosterMax, stdIds, twoWayIds } from '../../engine/cba';
+import { faAdvice, type FaAdvice } from '../../engine/assistants';
 
 // The free agency clock: where we are on the NBA calendar, how much of the market has signed,
 // what happened since you last advanced, and the best players still out there.
@@ -77,6 +78,10 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const active = f !== 'all' || !!tk || Object.entries(F).some(([k, v]) => v != null && v !== false && !(k === 'pos' && v === 'any'));
   const reset = () => { setF('all'); setTk(''); gm.setState({ faF: {} }); };
   const ids = s.rosters[s.me] || [], lim = rosterMax(s), std = stdIds(gm, ids).length, tw = twoWayIds(gm, ids).length, inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase);
+  // The assistant GM: press to highlight his picks (the rest dim); press again to turn it off.
+  // The picks stay put while you page, sort or filter, until you turn him off.
+  const adv: FaAdvice | null = s.faAsk || null, advPick = new Map((adv?.picks || []).map(x => [x.pid, x]));
+  const toggleAsk = () => gm.setState(st => ({ faAsk: st.faAsk ? null : faAdvice(gm, st, st.me) }));
   const sc = useScoutSelect(vm, rows.map((p: any) => p.id));
   const pg = usePaged(rows, 'free agents', 25);
   return (
@@ -97,6 +102,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           <button className={F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: true })} title="Hide players you can’t sign right now: no cap room or exception that fits, roster full, hard cap, two-way limit…">Players you can sign now · {nCan}</button>
           <button className={!F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: false })}>Show every player in free agency · {all.length}</button>
           <span style={{ flex: 1 }} />
+          <button className={adv ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px', background: adv ? 'color-mix(in srgb, var(--color-accent) 22%, transparent)' : undefined }} onClick={toggleAsk} aria-pressed={!!adv} title={adv ? 'Turn off the assistant GM’s picks' : 'Ask your assistant GM who to sign for the season'}>{adv ? '✓ Assistant GM’s picks · turn off' : 'Ask the assistant GM'}</button>
           <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} disabled={!active} onClick={reset}>Reset all filters</button>
         </div>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -113,6 +119,18 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         </div>
         {active && <div style={{ ...muted, fontSize: '12px' }}>Showing {rows.length} of {all.length} free agents.</div>}
       </div>
+      {adv && <div className="card" style={{ padding: '10px 12px', margin: '0 0 10px', borderLeft: '3px solid var(--color-accent)' }}>
+        <div style={{ fontSize: '12.5px' }}><b>{adv.by.name}</b> <span style={muted}>· {adv.by.role}</span></div>
+        <div style={{ fontSize: '12.5px', margin: '2px 0 6px' }}>“{adv.summary}”</div>
+        {adv.picks.map(x => { const p = P[x.pid], gone = !(s.fa || []).includes(x.pid); return (
+          <div key={x.pid} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '12.5px', padding: '3px 0', borderTop: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)', opacity: gone ? 0.5 : 1 }}>
+            <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span>
+            <span style={{ whiteSpace: 'nowrap' }}><Link onClick={() => vm.ctx.open(x.pid)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span>{x.kind === 'twoWay' && <span style={{ fontSize: '10.5px', marginLeft: 6, padding: '0 6px', borderRadius: 999, border: '1px solid #6b8fd6', color: '#6b8fd6' }}>two-way</span>}</span>
+            <span style={{ flex: 1 }}>{gone ? 'Signed elsewhere or with you.' : x.why}</span>
+            {!gone && <button className="btn btn-primary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => gm.setState({ dialog: { type: 'sign', pid: x.pid } })}>Sign</button>}
+          </div>); })}
+        <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>His picks are highlighted in the list below; everyone else is dimmed. Press the button again to turn this off.</div>
+      </div>}
       {sc.bar()}{sc.Menu()}
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
         <thead>
@@ -131,7 +149,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         </thead>
         <tbody>
           {pg.rows.map((p: any, i: number) => (
-            <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+            <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) || advPick.has(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined, boxShadow: advPick.has(p.id) ? 'inset 3px 0 0 var(--color-accent)' : undefined, opacity: adv && !advPick.has(p.id) ? 0.35 : 1, transition: 'opacity .15s' }}>
               {sc.cell(p.id)}
               <td style={{ padding: "4px 8px" }}>
                 <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
@@ -142,6 +160,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                   {sc.tag(p.id)}
                   {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
                   {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
+                  {advPick.has(p.id) && <span title={advPick.get(p.id)!.why} style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--color-accent)', whiteSpace: 'nowrap', fontWeight: 600 }}>{advPick.get(p.id)!.kind === 'twoWay' ? 'Assistant: two-way' : 'Assistant pick'}</span>}
                   {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>CCP · {p.glT}</span>}
                 </span>
               </td>

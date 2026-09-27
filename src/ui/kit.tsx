@@ -185,15 +185,20 @@ export function usePaged<T>(rows: T[], noun = 'players', size = 25, resetKey?: u
   useEffect(() => { setV({ start: 0, count: size }); }, [rows.length, resetKey, size]);
   const total = rows.length, start = Math.min(v.start, Math.max(0, total - 1)), end = Math.min(total, start + v.count);
   const pages = Math.ceil(total / size), cur = Math.floor(start / size);
-  const pageBtn = (i: number) => <button key={i} className={'btn ' + (i === cur && v.count === size ? 'btn-primary' : 'btn-ghost')} onClick={() => setV({ start: i * size, count: size })} style={{ minWidth: 30, padding: '2px 8px', fontSize: '12px' }} aria-label={'Page ' + (i + 1)}>{i + 1}</button>;
-  const nums: (number | '…')[] = pages <= 9 ? Array.from({ length: pages }, (_, i) => i) : [0, ...(cur > 3 ? ['…' as const] : []), ...Array.from({ length: 5 }, (_, k) => cur - 2 + k).filter(i => i > 0 && i < pages - 1), ...(cur < pages - 4 ? ['…' as const] : []), pages - 1];
+  // Every control keeps its place: the arrows sit first, page buttons have one width, and the
+  // list always has the same number of slots, so fast clicking never lands on the wrong button.
+  const W = 34, pageBtn = (i: number) => <button key={i} className={'btn ' + (i === cur && v.count === size ? 'btn-primary' : 'btn-ghost')} onClick={() => setV({ start: i * size, count: size })} style={{ width: W, padding: '2px 0', fontSize: '12px', fontVariantNumeric: 'tabular-nums' }} aria-label={'Page ' + (i + 1)}>{i + 1}</button>;
+  const nums: (number | '…')[] = pages <= 9 ? Array.from({ length: pages }, (_, i) => i)
+    : cur <= 4 ? [0, 1, 2, 3, 4, 5, 6, '…', pages - 1]
+    : cur >= pages - 5 ? [0, '…', ...Array.from({ length: 7 }, (_, k) => pages - 7 + k)]
+    : [0, '…', cur - 2, cur - 1, cur, cur + 1, cur + 2, '…', pages - 1];
+  const arrow = (dir: -1 | 1) => <button className="btn btn-ghost" disabled={dir < 0 ? cur === 0 : end >= total} onClick={() => setV({ start: (cur + dir) * size, count: size })} style={{ width: W, padding: '2px 0', fontSize: '13px' }} aria-label={dir < 0 ? 'Previous page' : 'Next page'}>{dir < 0 ? '‹' : '›'}</button>;
   const pager = total === 0 ? null : (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0 4px', fontSize: '12.5px' }}>
-      <span style={{ ...muted, marginRight: 6 }}>Showing {start + 1}–{end} of {total} {noun}</span>
+      {pages > 1 && <>{arrow(-1)}{arrow(1)}</>}
+      <span style={{ ...muted, margin: '0 6px', minWidth: (16 + noun.length + 3 * String(total).length) + 'ch', fontVariantNumeric: 'tabular-nums' }}>Showing {start + 1}–{end} of {total} {noun}</span>
       {pages > 1 && (<>
-        <button className="btn btn-ghost" disabled={cur === 0} onClick={() => setV({ start: (cur - 1) * size, count: size })} style={{ padding: '2px 8px', fontSize: '12px' }} aria-label="Previous page">‹</button>
-        {nums.map((n, i) => n === '…' ? <span key={'e' + i} style={muted}>…</span> : pageBtn(n))}
-        <button className="btn btn-ghost" disabled={end >= total} onClick={() => setV({ start: (cur + 1) * size, count: size })} style={{ padding: '2px 8px', fontSize: '12px' }} aria-label="Next page">›</button>
+        {nums.map((n, i) => n === '…' ? <span key={'e' + i} style={{ ...muted, width: W, textAlign: 'center' }}>…</span> : pageBtn(n))}
         {end < total && <button className="btn btn-secondary" onClick={() => setV(x => ({ ...x, count: x.count + size }))} style={{ padding: '2px 10px', fontSize: '12px', marginLeft: 6 }}>Show {Math.min(size, total - end)} more</button>}
       </>)}
     </div>);
