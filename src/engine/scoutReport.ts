@@ -50,9 +50,9 @@ function observed(p: any, margin: number) {
   return { r: out, ovr: cl(Math.round(p.ovr + (r() * 2 - 1) * margin), 1, 100), pot: cl(Math.round(p.pot + (p.nz?.[1] ?? r() * 2 - 1) * margin * 1.4), 1, 100) };
 }
 
-// Where a rating sits in this league: 70+ is a franchise player, 63+ an All-Star, 56+ a starter
+// Where a rating sits in this league: 75+ is a superstar, 66+ an All-Star, 56+ a starter
 // (about the top five on an average team), 48+ a rotation player, 41+ end of the bench.
-const TIER = [70, 63, 56, 48, 41];
+const TIER = [75, 66, 56, 48, 41];
 const tierOf = (v: number) => { const i = TIER.findIndex(t => v >= t); return i < 0 ? 5 : i; };
 
 const pickOf = (seed: number) => { const r = mulberry32(seed); return <T,>(a: T[]) => a[Math.floor(r() * a.length)]; };
@@ -136,7 +136,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const comp: any = near(Math.max(o.ovr, o.pot - 4)), bestC: any = o.pot - o.ovr >= 3 ? near(o.pot + 2, comp ? [comp.id] : []) : null, worstC: any = near(Math.max(40, (rd.kind === 'prospect' || rd.kind === 'overseas' ? o.ovr + 2 : o.ovr - 5)), [comp?.id, bestC?.id].filter(x => x != null));
   // Projection.
   const board = g.db.rank?.[pid], yo = Math.max(0, (p.cls || g.Y) - g.Y);
-  const ceilOf = (v: number) => ['franchise player', 'All-Star', 'quality starter', 'rotation player', 'end-of-bench / two-way player', 'G League player'][tierOf(v)], an = (w: string) => (/^[AEIOU]/i.test(w) ? 'an ' : 'a ') + w;
+  const ceilOf = (v: number) => ['superstar', 'All-Star', 'quality starter', 'rotation player', 'end-of-bench / two-way player', 'G League player'][tierOf(v)], an = (w: string) => (/^[AEIOU]/i.test(w) ? 'an ' : 'a ') + w;
   const projection = rd.kind === 'prospect' ? (board ? (board <= 5 ? 'Top-5 pick' : board <= 14 ? 'Lottery pick' : board <= 30 ? 'First-round pick' : board <= 60 ? 'Second-round pick' : 'Undrafted free agent') : 'Unranked') + (yo ? ' in ' + p.cls + ' (' + yo + ' year' + (yo > 1 ? 's' : '') + ' away)' : ' this June')
     : rd.kind === 'overseas' ? (o.ovr >= TIER[3] ? 'Ready to contribute in the NBA now' : o.pot >= TIER[2] ? 'NBA prospect: one or two more seasons abroad' : 'Long shot for the NBA')
     : 'Currently ' + an(ceilOf(o.ovr));

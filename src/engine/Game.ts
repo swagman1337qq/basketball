@@ -261,7 +261,11 @@ export class Game {
       const slots = ['G', 'G', 'G', 'G', 'G', 'W', 'W', 'W', 'W', 'B', 'B', 'B', 'B', 'B'];
       for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
       const ps = []; for (let k = 0; k < 14; k++) {
-        let base = t.str + 12 - k * 2.2 + (rnd() - .5) * 6; const age = ageFor(kind, k, base);
+        let base = t.str + 12 - k * 2.2 + (rnd() - .5) * 6;
+        // Real superstars (75+): contenders and good teams build around one; capped-out and hopeless teams don't have one.
+        if (k === 0) base += ({ contender: 9, good: 7, middling: 5, rebuild: 3, capped: 2, hopeless: 0 } as any)[kind] + rnd() * 5;
+        if (k === 1 && (kind === 'contender' || kind === 'good')) base += 2 + rnd() * 3;
+        const age = ageFor(kind, k, base);
         if (age <= 22) base -= (23 - age) * 2.5; // still raw at 20–22
         const p = mk(base, age, W_NBA, 0, slots[k]);
         // Rebuilders' kids have real ceilings; the hopeless team's don't.
@@ -279,9 +283,9 @@ export class Game {
     const os = []; for (let k = 0; k < 22; k++) { const p = mk(44 + rnd() * 12, 22 + Math.floor(rnd() * 8), W_NBA, 0); const cc0 = CLUBS[p.raised] ? p.raised : pick(['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT']), k2 = pick(CLUBS[cc0]), out = rnd() < .45;
       p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: +(8 + (p.ovr - 44) * 1.1 + rnd() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + rnd() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + rnd() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? .3 + rnd() * .7 : 1.5 + rnd() * 3.5).toFixed(1) }; os.push(p.id); }
     const cls = { 2027: [], 2028: [], 2029: [] };
-    for (let k = 0; k < 105; k++) { const p = mk(29 + rnd() * 14, 19 + Math.floor(rnd() * 3), W_NBA, 2027); p.pot = Math.round(cl(p.ovr + 8 + rnd() * 22, 45, 79)); cls[2027].push(p.id); }
-    for (let k = 0; k < 100; k++) { const p = mk(24 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = Math.round(cl(p.ovr + 16 + rnd() * 26, 45, 82)); cls[2028].push(p.id); }
-    for (let k = 0; k < 100; k++) { const p = mk(21 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = Math.round(cl(p.ovr + 20 + rnd() * 28, 45, 84)); cls[2029].push(p.id); }
+    for (let k = 0; k < 105; k++) { const p = mk(29 + rnd() * 14, 19 + Math.floor(rnd() * 3), W_NBA, 2027); p.pot = this.prospectPot(p, rnd); cls[2027].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = mk(24 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = this.prospectPot(p, rnd); cls[2028].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = mk(21 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = this.prospectPot(p, rnd); cls[2029].push(p.id); }
     (Object.values(P) as any[]).filter(p => p.cls).forEach(p => { p.exp = p.cls + 3; });
     // Real draft slots for today's players: each past class gets unique picks 1–60
     // (best prospects first, with some noise); the rest went undrafted.
@@ -391,13 +395,13 @@ export class Game {
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)], wpick = o => this.wpick(o);
     const P = this.db.P, b = this.bio(Wt);
     const [pos, grp] = forceGrp ? pick(POS.filter(x => x[1] === forceGrp)) : pick(POS);
-    const ovr = Math.round(cl(base, 22, 76));
+    const ovr = Math.round(cl(base, 22, 92));
     const pot = Math.round(age < 23 ? ovr + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? ovr + rnd() * 5 : ovr);
     const r: any = {}; RATING_KEYS.forEach(k => r[k] = Math.round(cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 100)));
     const hIn = grp === 'G' ? 73 + Math.floor(rnd() * 5) : grp === 'W' ? 77 + Math.floor(rnd() * 4) : 81 + Math.floor(rnd() * 5);
     // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
     const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
-    const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 84), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
+    const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 95), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
       amt: Math.min(this.MAXC, 2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08 };
@@ -410,6 +414,15 @@ export class Game {
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     P[p.id] = p; return p;
+  }
+  // A draft prospect's ceiling: his likely career peak, drawn like the real league's. Per class of about
+  // 100: roughly 15–20 future starters (56+), 3–4 All-Stars (63+) and about one franchise player (70+),
+  // plus a rare generational talent; hidden gems add to it later. (Ceilings set as "today plus a big
+  // gap" made a third of every class a future star, and the league inflated for a decade.)
+  prospectPot(p, rnd: () => number = Math.random) {
+    const z = (rnd() + rnd() + rnd() + rnd() - 2) * 1.732, gen = rnd() < 0.01 ? 7 : 0;
+    // The top of the scale stretches: a one-in-a-hundred prospect becomes a 75+ superstar.
+    return Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + 6), 40, 95));
   }
   rng(seed) { return mulberry32(seed); }
   cl(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -878,6 +891,9 @@ export class Game {
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
         let x = rate * this.devMult(p, rate) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
+        // Luck can carry him past his ceiling, but only partly: most of an overshoot is given back
+        // (otherwise good luck raises the ceiling for good while bad luck is grown back: a ratchet).
+        { const over = p.ovr + x - (p.pot + 1); if (over > 0) x -= over * 0.65; }
         let potD = 0; if (a <= 24 && p.pot - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
         // The year's change goes into his ratings (height aside), and the overall follows them.
         const dlt = Math.round(x), from = p.ovr, hf = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
@@ -918,7 +934,7 @@ export class Game {
       const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 45);
       left.forEach(id => { Object.assign(P[id], { undrafted: this.Y, cls: 0, dr: null, draft: this.Y, amt: nums(this).min(0), ask: nums(this).min(0), exp: Y + 1, yrsWith: 0, yos0: 0 }); fa.push(id); });
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: ['Kentucky', 'Duke', 'Kansas', 'UCLA', 'Gonzaga', 'Arizona', 'UConn', 'Houston'][id % 8], lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
-      d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = Math.round(this.cl(p.ovr + 20 + Math.random() * 28, 45, 84)); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
+      d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = this.prospectPot(p, Math.random); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
       d.cls[Y + 2].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       teams.forEach(t => [1, 2].forEach(rd => assets.push({ id: (Y + 2) + '-' + rd + '-' + t.tid, yr: Y + 2, rd, orig: t.tid, owner: t.tid })));
       // Expansion: any even number of new franchises (chosen from the franchise database or
@@ -933,7 +949,7 @@ export class Game {
         // Expansion draft: each existing AI club loses one player outside its top eight.
         for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; addTx(this, s, P[id], { k: 'expansion', from: t, to: nt }); }
         newT.forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
-        for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = Math.round(this.cl(p.ovr + 14 + Math.random() * 24, 45, 80)); d.cls[Y + 1].push(p.id); }
+        for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = this.prospectPot(p, Math.random); d.cls[Y + 1].push(p.id); }
         expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
         lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to ' + teams.length + ' teams: ' + NEW.map(n => n.region + ' ' + n.name).join(', ') + '.' }, ...lgLog];
       }
@@ -988,6 +1004,8 @@ export class Game {
   // Opening night: at most 15 standard contracts and 3 two-ways, at least 14. Exhibit 10
   // players still on the roster become standard contracts; short clubs sign minimum deals.
   startSeason() {
+    // Safety net: every overall matches its ratings on opening night (ratings.ts).
+    (Object.values(this.db.P) as any[]).forEach(p => { if (p.r && !p.retired && !p.gone) syncOvr(p); });
     this.setState(s => {
       if (s.phase !== 'preseason' || s.unemployed) return null;
       const P = this.db.P, box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), by: Record<number, string[]> = {};
@@ -1138,9 +1156,13 @@ export class Game {
   // Expected yearly change in overall before personality, minutes and luck.
   devRate(p, age = p.age) {
     const ageBase = age <= 22 ? 4 : age <= 25 ? 2.5 : age <= 28 ? .8 : Game.ageDecline(age);
-    if (ageBase <= 0 || age >= 28) return ageBase;
-    const need = Math.max(0, p.pot - p.ovr) / Math.max(1.5, 27 - age);
-    return 0.35 * ageBase + 0.8 * need;
+    if (ageBase <= 0) return ageBase;
+    // Potential is a ceiling: the natural growth of youth fades as he closes in on it, and stops there
+    // (otherwise every player drifts a few points past his ceiling and the league inflates year after year).
+    const room = Math.max(0, p.pot - p.ovr), fade = Math.min(1, room / 4);
+    if (age >= 28) return ageBase * fade;
+    const need = room / Math.max(1.5, 27 - age);
+    return 0.35 * ageBase * fade + 0.8 * need;
   }
   // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
   // 35, −5 at 38, −7 at 40, −11 at 44 for a typical player; work ethic and the hidden factor

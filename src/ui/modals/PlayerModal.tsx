@@ -7,6 +7,7 @@ import { GodPlayerEditor } from './GodPlayerEditor';
 import { ScoutReportView } from '../ScoutReportView';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './ProfileExtras';
 import { ProfileHeader, ProfileOverview } from './ProfileMain';
+import { PlayerStatsTab } from './PlayerStatsTab';
 
 export function PlayerModal({ vm }: { vm: VM }) {
   useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.pid]);
@@ -102,6 +103,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
           {!!vm.pl.tabCompare && <CompareTab vm={vm} />}
           {vm.ctx.s.ptab === 'scout' && <div style={{ marginTop: 20 }}><ScoutReportView vm={vm} pid={vm.ctx.s.pid} /></div>}
           {vm.ctx.s.ptab === 'tx' && <TransactionsTab vm={vm} />}
+          {vm.ctx.s.ptab === 'stats' && <PlayerStatsTab vm={vm} />}
           {!!vm.pl.tabEdit && (<>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "36px", alignItems: "start" }}>
               <section>

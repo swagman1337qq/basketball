@@ -20,11 +20,18 @@ function avgTeam(gp = 82): StatLine {
 
 export interface SeasonAdvanced { byPid: Record<number, StatLine>; teams: Record<number, StatLine> }
 
-export function seasonAdvanced(g: Game, s: any, season: number): SeasonAdvanced {
+// po: playoff advanced stats. Team playoff totals aren't kept, so each team's context is its regular
+// season scaled to the playoff games it played (its rates hold; its volume matches the playoffs).
+export function seasonAdvanced(g: Game, s: any, season: number, po = false): SeasonAdvanced {
   const P = g.db.P, cur = season === g.Y;
   const tsrc: Record<number, StatLine> = cur ? s.tstats || {} : (s.tstatsHist || {})[season] || {};
   const teams: Record<number, StatLine> = {};
   s.teams.forEach(t => { const x = tsrc[t.tid]; teams[t.tid] = x && x.gp ? { ...x } : avgTeam(); });
+  if (po) {
+    const poGp: Record<number, number> = {};
+    (Object.values(P) as any[]).forEach(p => (p.stats || []).forEach((r: any) => { if (r.season === season && r.po) poGp[r.tid] = Math.max(poGp[r.tid] || 0, r.gp); }));
+    Object.keys(teams).forEach(k => { const t = teams[+k], n = poGp[+k] || 0, f = t.gp ? n / t.gp : 0; Object.keys(t).forEach(f2 => { if (f2 !== 'gp') t[f2] *= f; }); t.gp = n; if (!n) Object.assign(t, avgTeam(1)); });
+  }
   // Team records for win%.
   const recOf = (tid: number) => { if (cur) { const t = s.teams[tid]; return t.w + t.l ? t.w / (t.w + t.l) : 0.5; } const h = ((s.teamHist || {})[tid] || []).find(x => x.season === season); return h ? h.w / Math.max(1, h.w + h.l) : 0.5; };
 
@@ -37,7 +44,7 @@ export function seasonAdvanced(g: Game, s: any, season: number): SeasonAdvanced 
   // Player season totals (regular season), attributed to the team he played most minutes for.
   const rows: { p: any; t: StatLine; tid: number }[] = [];
   (Object.values(P) as any[]).forEach(p => {
-    const rs = (p.stats || []).filter(r => r.season === season && !r.po); if (!rs.length) return;
+    const rs = (p.stats || []).filter(r => r.season === season && !!r.po === po); if (!rs.length) return;
     const t: StatLine = {}; rs.forEach(r => Object.keys(r).forEach(k => { if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k]; }));
     if (!t.gp || !t.min) return;
     const tid = rs.slice().sort((a, b) => b.min - a.min)[0].tid;

@@ -48,7 +48,9 @@ const CURVE: Record<string, { mid: number; up: number; down: number }> = {
   jumper: { mid: 55, up: 0.0022, down: 0.0035 },
   ft: { mid: 60, up: 0.0035, down: 0.006 },
 };
-export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return d >= 0 ? d * c.up : d * c.down; };
+// Above average, each extra point is worth a little less (an elite finisher makes ~75–80% at the rim,
+// not 90%), so superstars' efficiency stays in the range of the NBA's best.
+export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return d >= 0 ? (d * c.up) / (1 + d / 40) : d * c.down; };
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
 // A player's skill for each tier (0–99 scale).
@@ -60,10 +62,10 @@ export function zoneSkill(r: any): Record<Zone, number> {
 // comes from usage and minutes, efficiency from shooting ratings, so a pure shooter with
 // low usage can't put up star numbers (points ≈ possessions × USG% × TS%).
 export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: boolean; roles?: string[] }) {
-  let u = Math.exp(0.045 * (p.ovr - 50) + 0.015 * (p.r.oiq - 50) + 0.01 * (p.r.drb - 50));
-  if (p.alpha) u *= 1.1;
+  let u = Math.exp(0.022 * (p.ovr - 50) + 0.004 * (p.r.oiq - 50) + 0.003 * (p.r.drb - 50));
+  if (p.alpha) u *= 1.05;
   if (p.touches) u *= 1.06;
-  if (p.roles?.includes('Primary creator')) u *= 1.12;
+  if (p.roles?.includes('Primary creator')) u *= 1.05;
   return u;
 }
 export const mental = (r: any) => (r.oiq + r.diq) / 2;
@@ -295,10 +297,12 @@ export class GameSim {
     // Usage ceiling, from NBA history: Luka Dončić's heaviest season used 38% of his team's trips
     // while he was on the floor; the record is Russell Westbrook's 41.7% (2016–17). A star is held
     // to Luka's 38% on a normal roster; only when his teammates are far worse than him (a 75 among
-    // 20s) can he climb, to a hard 52% (a 75 among 20s scores about 39), so nobody averages 50. Clutch plays can break the rule.
+    // 20s) can he climb, to a hard 58% (a 75 among 20s scores about 38), so nobody averages 50. Clutch plays can break the rule.
     const uw = onO.map(useBase), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
-    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.14 * cl((gapO - 20) / 30, 0, 1);
-    const uF = !clutch && uw[ui] / ut > USG_CAP ? (USG_CAP / (1 - USG_CAP)) * (ut - uw[ui]) / uw[ui] : 1;
+    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.2 * cl((gapO - 28) / 27, 0, 1);
+    // A star far better than everyone around him has to take over: his share grows with the gap (up to the ceiling).
+    const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
+    const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * (p === onO[ui] ? uF : 1);
     const pTov = RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
@@ -364,7 +368,10 @@ export class GameSim {
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
       const tacD = fx ? fx.pct[z] + (fx.pctP.get(sh) ?? 0) - (forced > 0 ? forced * (0.07 + 0.0025 * Math.max(0, n.skill[z] - sk)) : 0.02 * forced) : 0; // a poor shooter forced into shots suffers most
       const fbD = fb && z === 'rim' ? 0.06 : 0;
-      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      // Usage vs efficiency: the more of the offense runs through him, the more the defense keys on
+      // him, so a heavy-usage star's shots get a little harder (the NBA's well-known trade-off).
+      const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 : 0;
+      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

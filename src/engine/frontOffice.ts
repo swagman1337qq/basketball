@@ -346,7 +346,7 @@ export function resolveInbox(g: Game, id: string, choice: string) {
 export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[]) {
   const P = g.db.P, T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), sold: string[] = [];
   let guard = 0;
-  while (teamSalary(g, { ...s, rosters }, tid) > ceil && rosters[tid].length > 8 && guard++ < 6) {
+  while (teamSalary(g, { ...s, rosters }, tid) > ceil && rosters[tid].length > 13 && guard++ < 6) { // never below the league's 13-man minimum
     const worst = rosters[tid].slice().sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)))[0];
     const to = s.teams.filter(t => !g.isUser(s, t.tid) && rosters[t.tid].length < 15).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
     rosters[tid] = rosters[tid].filter(x => x !== worst);

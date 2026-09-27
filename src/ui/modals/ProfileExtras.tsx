@@ -28,7 +28,7 @@ export function fiveZones(t: any) {
   const ra = Math.round((t.ra || 0) * 0.74), rm = Math.min(ra, Math.round((t.rm || 0) * 0.84));
   return [['Restricted area', rm, ra], ['In the paint (non-RA)', (t.rm || 0) - rm, (t.ra || 0) - ra], ['Mid-range', t.mm || 0, t.ma || 0], ['Corner 3', t.cm || 0, t.ca || 0], ['Above the break 3', t.bm || 0, t.ba || 0]] as [string, number, number][];
 }
-const LEAGUE_ZONE = [0.696, 0.44, 0.415, 0.388, 0.352];
+export const LEAGUE_ZONE = [0.696, 0.44, 0.415, 0.388, 0.352];
 
 export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
   const { gm, s, open } = vm.ctx, { p, tid } = useP(vm);
