@@ -3,7 +3,7 @@
 // model built from this state (see ui/viewModel.ts).
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
-import { allPools, nameFromGroup, pickGroup, randomName } from '../data/heritage';
+import { allPools, nameFromGroup, pickGroup, randomName, TRIBE_TOWNS } from '../data/heritage';
 import { voteHof } from './hof';
 import { setRating, teamRating, wngBonus } from './ratings';
 import { mediaPreds } from './media';
@@ -208,7 +208,7 @@ export class Game {
     const C = this.db.C; if (!C[code]) return null;
     const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, heritage: p.heritage, familyFirst: p.familyFirst, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
     // Eligibility isn't touched: you manage it yourself on the player's profile.
-    p.rep = code;
+    p.rep = C[code].repAs || code; // tribal nations: heritage and name change, he still represents the U.S.
     p.her = code; const nm = randomName(code); p.race = nm.race; p.heritage = nm.heritage; this.resetFace(p.id);
     if (withName) { const { race, heritage, ...name } = nm; void race; void heritage; Object.assign(p, name); }
     return undo;
@@ -311,6 +311,8 @@ export class Game {
     if (born === her) add(born, 'citizen by birth'); else if (C[born].soli) add(born, 'born there');
     if (her !== born) add(her, 'through parents');
     if (raised !== born && raised !== her) add(raised, 'naturalized');
+    // Native American: born in a tribal nation, a U.S. citizen, and eligible only for the United States.
+    if (her === 'XN') { elig.length = 0; add('US', 'U.S. citizen (tribal nation)'); }
     let rep = elig[0].c;
     if (elig.length > 1) rep = her === 'SS' ? 'SS' : (born === 'US' || born === 'CA') ? (rnd() < .6 ? her : born) : pick(elig).c;
     const NM = nativeMaps(); let native = '', disp = np.lf ? l + ' ' + f : f + ' ' + l;
@@ -325,7 +327,8 @@ export class Game {
     if (nm && amer) { const AP = allPools(), ps = AP[race === 'black' ? 'usb' : 'usw']; amerFirst = pick(ps.f); disp = amerFirst + ' ' + nm.last; native = ''; }
     else if (nm) { disp = nm.name; native = nm.native; }
     const nmx = nm && amer ? { first: amerFirst, last: nm.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } : nm ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };
-    return { her, born, raised, race, name: disp, native, heritage: nm?.heritage, ...nmx, elig, rep, city: pick(C[born].cities) };
+    const towns = born === 'XN' && nm?.heritage ? TRIBE_TOWNS[nm.heritage] : null;
+    return { her, born, raised, race, name: disp, native, heritage: nm?.heritage, ...nmx, elig, rep, city: pick(towns && towns.length ? towns : C[born].cities) };
   }
   pipe(raised, cls) {
     const rnd = () => this.rnd(), pick = a => a[Math.floor(rnd() * a.length)];

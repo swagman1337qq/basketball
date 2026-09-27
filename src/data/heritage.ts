@@ -10,6 +10,8 @@
 // the United States and Canada use the mix of their NBA players (about 74% African
 // American, 13.5% white, 10.5% multiracial, 1.6% Hispanic and 0.4% Asian American among
 // U.S.-born players), not the census. Every other country and territory is in nations.ts.
+// Native American tribes are their own "country" (XN) of birth and heritage: tribal members are
+// U.S. citizens and can only represent the United States.
 import { cyr, namePools, nativeMaps } from './world';
 import { MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
@@ -17,11 +19,14 @@ import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
-const W: Race = { white: 1 }, B: Race = { black: 1 }, A: Race = { asian: 1 }, Br: Race = { brown: 1 };
+const W: Race = { white: 1 }, B: Race = { black: 1 }, A: Race = { asian: 1 }, Br: Race = { brown: 1 }, NA: Race = { brown: .85, white: .1, black: .05 };
 const g = (k: string, w: number, f: string | string[], l: string | string[], race: Race): Group => ({ k, w, f, l, race });
 
 // Extra name pools used by the groups (common, real given names and surnames).
 export const EXTRA_POOLS: Record<string, { f: string[]; l: string[]; lf?: number }> = {
+  // Native American: mostly the same given names as other Americans, with surnames common in
+  // tribal nations (Navajo, Muscogee, Lumbee, Lakota, Cherokee, Osage and others).
+  nan: { f: ['Tyler', 'Dakota', 'Shane', 'Cody', 'Jonah', 'Travis', 'Darren', 'Kyle', 'Justin', 'Wyatt', 'Lindy', 'Brandon', 'Derrick', 'Tristan', 'Jordan', 'Isaiah', 'Elijah', 'Nathan', 'Caleb', 'Kobe'], l: ['Begay', 'Yazzie', 'Tsosie', 'Benally', 'Nez', 'Etsitty', 'Harjo', 'Locklear', 'Chavis', 'Oxendine', 'Sixkiller', 'Tallchief', 'Red Cloud', 'Two Bulls', 'Many Horses', 'Whitehorse', 'Blackhorse', 'Littlejohn', 'Silversmith', 'Bigman', 'Attakai', 'Deschenie', 'Manuelito', 'Tohee', 'Waters', 'Youngbird', 'Fourkiller', 'Goodvoice', 'Walkingstick', 'Bearpaw'] },
   gb: { f: ['Harry', 'Oliver', 'Jack', 'George', 'Charlie', 'Thomas', 'James', 'William', 'Joshua', 'Callum', 'Jamie', 'Ben'], l: ['Smith', 'Jones', 'Taylor', 'Brown', 'Williams', 'Wilson', 'Johnson', 'Davies', 'Evans', 'Thomas', 'Roberts', 'Walker', 'Wright', 'Hughes'] },
   rp: { f: ['Facundo', 'Nicolás', 'Santiago', 'Gonzalo', 'Leandro', 'Mateo', 'Agustín', 'Luciano', 'Tomás', 'Lautaro', 'Federico', 'Juan Pablo'], l: ['González', 'Rodríguez', 'Fernández', 'López', 'Martínez', 'Pérez', 'Gómez', 'Sosa', 'Álvarez', 'Romero', 'Benítez', 'Acosta'] },
   qc: { f: ['Olivier', 'Samuel', 'Félix', 'Mathieu', 'Alexandre', 'Gabriel', 'Étienne', 'Louis-Philippe', 'Maxime', 'Jérémie'], l: ['Tremblay', 'Gagnon', 'Roy', 'Côté', 'Bouchard', 'Gauthier', 'Morin', 'Lavoie', 'Fortin', 'Pelletier'] },
@@ -77,6 +82,9 @@ export const EXTRA_NATIVE: Record<string, Record<string, string>> = {
 const AFR = ['yo', 'ig', 'ha', 'cm', 'cd', 'sn', 'ml', 'ak', 'mn'];
 // Population groups per country (weights are population shares; they needn't sum to 1).
 export const GROUPS: Record<string, Group[]> = {
+  // Native American (a separate "country" of birth; tribal members are U.S. citizens and represent
+  // the United States). Shares follow the Census 2020 counts of the largest tribal nations.
+  XN: [g('Navajo', .17, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cherokee', .15, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lakota & Dakota', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Ojibwe', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Choctaw', .07, ['nan', 'usw'], ['nan', 'usw'], NA), g('Apache', .05, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lumbee', .05, ['nan', 'usw', 'usb'], ['nan', 'usw'], { brown: .6, white: .2, black: .2 }), g('Muscogee', .04, ['nan', 'usw'], ['nan', 'usw'], NA), g('Blackfeet', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Haudenosaunee', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Pueblo', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Comanche', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cheyenne', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g("Tohono O'odham", .012, ['nan', 'usw'], ['nan', 'usw'], NA), g('Kiowa', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Osage', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Seminole', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Hopi', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Crow', .008, ['nan', 'usw'], ['nan', 'usw'], NA)],
   US: [g('African American', .74, 'usb', 'usb', B), g('White', .135, 'usw', 'usw', W), g('Multiracial', .105, ['usb', 'usw'], ['usb', 'usw'], { black: .55, white: .3, brown: .15 }), g('Hispanic', .016, 'hus', 'hus', { brown: .8, white: .2 }), g('Asian American', .004, ['cnC', 'usw'], ['cnC', 'vn', 'fch', 'kr'], A)],
   CA: [g('Black Canadian', .50, ['usb', 'jm'], ['jm', 'usb', 'ht', 'so', 'yo', 'ig'], B), g('English Canadian', .30, 'usw', ['usw', 'gb'], W), g('French Canadian', .10, 'qc', 'qc', W), g('South Asian', .04, ['in', 'pa'], ['in', 'pa'], Br), g('Asian', .03, 'cnC', 'cnC', A), g('Filipino', .015, ['ph', 'usw'], 'ph', { brown: .6, asian: .4 }), g('Indigenous', .015, 'usw', ['usw', 'qc'], Br)],
   BS: [g('Bahamian', .90, 'us', ['bah', 'us'], B), g('White Bahamian', .05, 'us', ['bah', 'us'], W), g('Haitian', .05, 'ht', 'ht', B)],
@@ -194,3 +202,10 @@ export function randomName(country: string, rnd: () => number = Math.random, gro
   const grp = (groupKey && groupsOf(country).find(x => x.k === groupKey)) || pickGroup(country, rnd) || g('Default', 1, 'us', 'us', B);
   return nameFromGroup(country, grp, rnd);
 }
+
+// Hometowns for each tribal nation (tribal capitals and reservation towns).
+export const TRIBE_TOWNS: Record<string, string[]> = {
+  Navajo: ['Window Rock', 'Shiprock', 'Tuba City', 'Chinle'], Cherokee: ['Tahlequah'], 'Lakota & Dakota': ['Pine Ridge', 'Rosebud'], Ojibwe: ['Red Lake'], Choctaw: ['Durant'],
+  Apache: ['Whiteriver'], Lumbee: ['Pembroke'], Muscogee: ['Okmulgee'], Blackfeet: ['Browning'], Haudenosaunee: ['Salamanca'], Pueblo: ['Laguna'], Comanche: ['Lawton'],
+  Cheyenne: ['Lame Deer'], "Tohono O'odham": ['Sells'], Kiowa: ['Anadarko'], Osage: ['Pawhuska'], Seminole: ['Okmulgee'], Hopi: ['Kykotsmovi'], Crow: ['Crow Agency'],
+};

@@ -90,6 +90,7 @@ export const EXTRA_CITIES: Record<string, string[]> = {
 
 // State / province for "City, State" labels.
 export const EXTRA_REGIONS: Record<string, string> = {
+  Tahlequah: 'Oklahoma', 'Window Rock': 'Arizona', Shiprock: 'New Mexico', 'Tuba City': 'Arizona', Chinle: 'Arizona', 'Pine Ridge': 'South Dakota', Rosebud: 'South Dakota', Anadarko: 'Oklahoma', Durant: 'Oklahoma', Browning: 'Montana', 'Red Lake': 'Minnesota', Okmulgee: 'Oklahoma', Pembroke: 'North Carolina', Kykotsmovi: 'Arizona', Pawhuska: 'Oklahoma', Lawton: 'Oklahoma', Sells: 'Arizona', 'Crow Agency': 'Montana', 'Lame Deer': 'Montana', Whiteriver: 'Arizona', Salamanca: 'New York', Laguna: 'New Mexico',
   'New York': 'New York', Brooklyn: 'New York', 'The Bronx': 'New York', Buffalo: 'New York', Newark: 'New Jersey', Camden: 'New Jersey', Paterson: 'New Jersey', Boston: 'Massachusetts', Washington: 'D.C.', Richmond: 'Virginia', Norfolk: 'Virginia',
   Charlotte: 'North Carolina', Raleigh: 'North Carolina', Durham: 'North Carolina', Greensboro: 'North Carolina', Columbia: 'South Carolina', Jacksonville: 'Florida', Miami: 'Florida', Orlando: 'Florida', Tampa: 'Florida',
   Birmingham: 'Alabama', 'New Orleans': 'Louisiana', 'Baton Rouge': 'Louisiana', Jackson: 'Mississippi', 'Little Rock': 'Arkansas', Nashville: 'Tennessee', Louisville: 'Kentucky', Lexington: 'Kentucky',
