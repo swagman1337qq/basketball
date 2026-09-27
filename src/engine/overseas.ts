@@ -94,13 +94,19 @@ export function scoutTick(g: Game, s: any, overseas: number[]) {
 export const PERSONAL_MAX = 8;
 export function assignScout(g: Game, name: string, ids: number[]): string {
   let msg = '';
-  g.setState((st: any) => { const asg = { ...(st.scoutAssign || {}) }, mine = Object.keys(asg).filter(k => asg[k] === name).length;
-    const add = ids.filter(id => asg[id] !== name), room = Math.max(0, PERSONAL_MAX - mine), take = add.slice(0, room);
-    take.forEach(id => (asg[id] = name));
-    msg = take.length ? name + ' will follow ' + take.length + ' player' + (take.length === 1 ? '' : 's') + ' personally' + (add.length > take.length ? '; ' + (add.length - take.length) + ' not added (a scout can follow ' + PERSONAL_MAX + ' at a time)' : '') + '.' : name + ' is already following ' + PERSONAL_MAX + ' players. Free him up first.';
-    return { scoutAssign: asg }; });
+  g.setState((st: any) => {
+    // Players you assign by hand always win: they bump the scout's own brief picks (scoutBrief.ts)
+    // and only your hand-picked players count against his limit.
+    const asg = { ...(st.scoutAssign || {}) }, picks = { ...(st.briefPicks || {}) };
+    const manual = () => Object.keys(asg).filter(k => asg[+k] === name && !picks[+k]).length;
+    const add = ids.filter(id => asg[id] !== name || picks[id]), room = Math.max(0, PERSONAL_MAX - manual()), take = add.slice(0, room);
+    take.forEach(id => { asg[id] = name; delete picks[id]; });
+    const auto = Object.keys(picks).filter(k => picks[+k].by === name);
+    while (Object.values(asg).filter(n => n === name).length > PERSONAL_MAX && auto.length) { const k = +auto.pop()!; delete picks[k]; delete asg[k]; }
+    msg = take.length ? name + ' will follow ' + take.length + ' player' + (take.length === 1 ? '' : 's') + ' personally' + (add.length > take.length ? '; ' + (add.length - take.length) + ' not added (a scout can follow ' + PERSONAL_MAX + ' you picked at a time)' : '') + '.' : name + ' is already following ' + PERSONAL_MAX + ' players you picked. Free him up first.';
+    return { scoutAssign: asg, briefPicks: picks }; });
   return msg;
 }
 export function unassignScout(g: Game, ids: number[]) {
-  g.setState((st: any) => { const asg = { ...(st.scoutAssign || {}) }; ids.forEach(id => delete asg[id]); return { scoutAssign: asg }; });
+  g.setState((st: any) => { const asg = { ...(st.scoutAssign || {}) }, picks = { ...(st.briefPicks || {}) }; ids.forEach(id => { delete asg[id]; delete picks[id]; }); return { scoutAssign: asg, briefPicks: picks }; });
 }
