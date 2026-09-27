@@ -127,7 +127,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
             {['West', 'East'].map(conf => (
               <div key={conf}>
                 <h4 style={{ margin: '14px 0 4px', fontSize: '19px' }}>{conf}ern Conference</h4>
-                {teams.filter(t => t.conf === conf).sort((a, b) => a.rank - b.rank).map(t => {
+                {teams.filter(t => t.conf === conf).sort((a, b) => (a.region + ' ' + a.name).localeCompare(b.region + ' ' + b.name)).map(t => {
                   const on = sel.includes(t.tid), first = sel[0] === t.tid;
                   return (
                     <button key={t.tid} onClick={() => toggle(t.tid)} role={multi ? 'checkbox' : 'radio'} aria-checked={on} className={on ? '' : 'hv3'}

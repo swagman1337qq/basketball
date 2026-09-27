@@ -20,7 +20,8 @@ export interface Badge { key: string; name: string; desc: string; tier: number; 
 export const TIERS: [string, string][] = [['Bronze', '#c08a55'], ['Silver', '#b9c3cf'], ['Gold', 'oklch(0.86 0.14 85)'], ['Hall of Fame', '#b99cff']];
 
 type Def = [string, string, string, (p: any) => number | null, number?];
-// [key, name, what it means, value (null = not eligible), threshold]
+// [key, name, what it means, value (null = not eligible), threshold]. Every badge comes from ratings (or
+// wingspan): cosmetic, it never changes a game, and a player only shows it if his ratings earn it.
 const DEFS: Def[] = [
   ['sniper', 'Sniper', 'Knocks down threes at a high clip', p => p.r.tp, 64],
   ['stretch', 'Stretch Big', 'A big who pulls centers out to the three-point line', p => (p.grp === 'B' ? p.r.tp + 10 : null), 64],
@@ -43,7 +44,7 @@ const DEFS: Def[] = [
   ['ft', 'Free Throw Ace', 'Automatic at the line', p => p.r.ft, 74],
   ['iron', 'Iron Man', 'Never tires; plays heavy minutes night after night', p => p.r.endu, 72],
   ['iq', 'Basketball Genius', 'Always in the right spot on both ends', p => (p.r.oiq + p.r.diq) / 2, 66],
-  ['clutch', 'Clutch Gene', 'Wants the last shot, and makes it', p => (p.pers?.clutch ? 64 + Math.max(0, p.ovr - 50) * 0.6 : null), 64],
+  ['clutch', 'Clutch Gene', 'Wants the last shot, and has the poise and touch to make it', p => (p.pers?.clutch ? (p.intg?.poise ?? 50) * 0.45 + ((p.r.fg + p.r.ft) / 2) * 0.35 + p.r.oiq * 0.2 : null), 64],
 ];
 
 // A line of flavor for each badge: what it looks like on the floor.
