@@ -121,7 +121,8 @@ export interface SimPlayer {
   conf?: number; // hidden confidence 0–100 (50 neutral): a small shooting nudge either way
   roles?: string[];
   feel?: number; poise?: number; // intangibles (intangibles.ts): vision and anticipation; composure
-  flashy?: boolean; heat?: boolean; volatile?: boolean; // playing style: showtime passes; heat checks when hot; forced shots when frustrated
+  flashy?: boolean; heat?: boolean; volatile?: boolean; villain?: boolean; fearless?: boolean; // villain: hostile road crowds fire him up; fearless: wants the ball when it matters, pressure doesn't touch him
+  // playing style: showtime passes; heat checks when hot; forced shots when frustrated
   tend?: Tend; // shot tendencies: how often he takes each shot and draws fouls (1 = what his skills suggest)
   target: number; // minutes per 48 the coach wants him to play
 }
@@ -285,7 +286,7 @@ export class GameSim {
 
     // Venue: away role players lose efficiency, ball security and defense; stars don't.
     const awayOff = offK === 'away', awayDef = defK === 'away';
-    const roadPen = (p: SimPlayer) => (awayOff && C(p).role && !C(p).star ? (p.crowd ? 0.05 : 0.025) * cl(1 - ((p.poise ?? POISE_MID) - POISE_MID) / 60, 0.3, 1.6) : 0); // poise steadies him on the road
+    const roadPen = (p: SimPlayer) => (awayOff && !p.villain && C(p).role && !C(p).star ? (p.crowd ? 0.05 : 0.025) * cl(1 - ((p.poise ?? POISE_MID) - POISE_MID) / 60, 0.3, 1.6) : 0); // poise steadies him on the road
     const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.004 : 0;
     const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
 
@@ -310,7 +311,7 @@ export class GameSim {
     // Moods: a heat-check player who's hit two straight wants the ball and pulls up from deep; a
     // volatile one who's missed three straight (or just missed with his team down 18+) forces bad shots.
     const trail = O.pts - D.pts <= -18, mood = (p: SimPlayer) => { const k = this.streak.get(p.id) || 0; return clutch ? '' : p.heat && k >= 2 ? 'heat' : p.volatile && (k <= -3 || (trail && k < 0)) ? 'tilt' : ''; };
-    const useMood = (p: SimPlayer) => { const m = mood(p); return m === 'heat' ? 1.45 : m === 'tilt' ? 1.3 : 1; };
+    const useMood = (p: SimPlayer) => { const m = mood(p); return (m === 'heat' ? 1.45 : m === 'tilt' ? 1.3 : 1) * (awayOff && p.villain ? 1.08 : 1) * (clutch && p.fearless ? 1.6 : 1); };
     const uw = onO.map(p => useBase(p) * useMood(p)), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
     const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.2 * cl((gapO - 28) / 27, 0, 1);
     // A star far better than everyone around him has to take over: his share grows with the gap (up to the ceiling).
@@ -390,7 +391,7 @@ export class GameSim {
       // him, so a heavy-usage star's shots get a little harder (the NBA's well-known trade-off).
       const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 : 0;
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
-      const pct = moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

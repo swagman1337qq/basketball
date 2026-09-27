@@ -94,7 +94,7 @@ export function ccpStandings(s: any, st: 'tip' | 'reg') {
 function simTeamOf(g: Game, s: any, t: CcpTeam) {
   const P = g.db.P, ids = ccpRoster(g, s, t).filter(id => !P[id].inj).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 12);
   const ROT = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0];
-  return { tid: t.id, name: t.city + ' ' + t.name, abbr: t.abbr, rec: '', players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 }, roles: g.rolesOf(p), alpha: p.pers?.alpha, touches: p.pers?.touches, tend: p.tend, flashy: !!p.pers?.flashy, heat: !!p.pers?.heat, volatile: !!p.pers?.volatile, target: ROT[i] ?? 0 }; }) };
+  return { tid: t.id, name: t.city + ' ' + t.name, abbr: t.abbr, rec: '', players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 }, roles: g.rolesOf(p), alpha: p.pers?.alpha, touches: p.pers?.touches, tend: p.tend, flashy: !!p.pers?.flashy, heat: !!p.pers?.heat, volatile: !!p.pers?.volatile, villain: !!p.pers?.villain, fearless: !!p.pers?.fearless, target: ROT[i] ?? 0 }; }) };
 }
 
 // Quick results (the default): a score from each club's strength and plausible box-score lines

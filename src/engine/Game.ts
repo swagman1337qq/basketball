@@ -126,6 +126,8 @@ export class Game {
     // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
     if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }
     // Older saves: free agents' asks above their max, or not discounted for age (askOf).
+    // Luka's ready-made card: a road villain and fearless, not crowd-fed (saved libraries included).
+    (g.state.cards || []).forEach((c: any) => { const p = c.card?.pers; if (c.id === 'preset0' && p && p.crowd && p.villain === undefined) Object.assign(p, { crowd: false, villain: true, fearless: true }); });
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
@@ -406,7 +408,7 @@ export class Game {
     const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 95), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
       amt: Math.min(this.MAXC, 2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
-    p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08, flashy: rnd() < .08, heat: rnd() < .1 };
+    p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08, flashy: rnd() < .08, heat: rnd() < .1, villain: rnd() < .05, fearless: rnd() < .07 };
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
     p.pers.legacy = rnd() < .12; // legacy-driven
     p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (rnd() + rnd() + rnd() - 1.5) * 45))); // hidden: how open he is to change
@@ -532,7 +534,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, villain: !!p.pers.villain, fearless: !!p.pers.fearless, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
