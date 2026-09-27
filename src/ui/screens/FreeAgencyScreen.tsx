@@ -7,6 +7,7 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
+import { rosterMax, stdIds, twoWayIds } from '../../engine/cba';
 
 // The free agency clock: where we are on the NBA calendar, how much of the market has signed,
 // what happened since you last advanced, and the best players still out there.
@@ -53,10 +54,29 @@ function FATracker({ vm }: { vm: VM }) {
   );
 }
 
+// The filter bar: who you can sign right now, and ranges for age, overall, potential and asking
+// price. Kept in the save (s.faF) so it survives leaving the screen; Reset clears everything.
+type FaF = { can?: boolean; pos?: string; ageMin?: number; ageMax?: number; ovrMin?: number; ovrMax?: number; potMin?: number; potMax?: number; askMax?: number };
+const POS_F: [string, string][] = [['any', 'Any position'], ['G', 'Guards'], ['W', 'Wings'], ['B', 'Bigs'], ['PG', 'PG'], ['SG', 'SG'], ['SF', 'SF'], ['PF', 'PF'], ['C', 'C']];
+function Range({ label, lo, hi, onLo, onHi, step = 1, width = 54, loPh = 'min', hiPh = 'max' }: { label: string; lo?: number; hi?: number; onLo?: (v?: number) => void; onHi: (v?: number) => void; step?: number; width?: number; loPh?: string; hiPh?: string }) {
+  const num = (v: string) => (v.trim() === '' || !isFinite(+v) ? undefined : +v);
+  const box = (v: number | undefined, ph: string, set: (v?: number) => void) => <input className="input" type="number" step={step} value={v ?? ''} placeholder={ph} onChange={e => set(num(e.target.value))} style={{ width, padding: '3px 6px', fontSize: '12.5px' }} />;
+  return <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', fontSize: '12.5px' }}>{label}{onLo && box(lo, loPh, onLo)}{onLo && <span style={muted}>to</span>}{box(hi, hiPh, onHi)}</label>;
+}
+
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
+  const { gm, s } = vm.ctx, P = gm.db.P;
   const [f, setF] = useState<'all' | 'gl' | 'home'>('all'), [tk, setTk] = useState('');
-  const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk));
-  const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
+  const F: FaF = s.faF || {}, setFF = (x: Partial<FaF>) => gm.setState(st => ({ faF: { ...(st.faF || {}), ...x } }));
+  const inR = (v: number, lo?: number, hi?: number) => (lo == null || v >= lo) && (hi == null || v <= hi);
+  const posOk = (p: any) => !F.pos || F.pos === 'any' || (F.pos.length === 1 ? P[p.id]?.grp === F.pos : p.pos === F.pos || ({ GF: ['SG', 'SF'], FC: ['PF', 'C'], G: ['PG', 'SG'], F: ['SF', 'PF'] } as Record<string, string[]>)[p.pos]?.includes(F.pos));
+  const all = vm.faRows || [];
+  const rows = all.filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk))
+    .filter((p: any) => (!F.can || !p.cant) && posOk(p) && inR(p.age, F.ageMin, F.ageMax) && inR(p.ovr, F.ovrMin, F.ovrMax) && inR(p.pot, F.potMin, F.potMax) && (F.askMax == null || (p.ask ?? 0) <= F.askMax + 1e-9));
+  const nGl = all.filter((p: any) => p.glT).length, nCan = all.filter((p: any) => !p.cant).length;
+  const active = f !== 'all' || !!tk || Object.entries(F).some(([k, v]) => v != null && v !== false && !(k === 'pos' && v === 'any'));
+  const reset = () => { setF('all'); setTk(''); gm.setState({ faF: {} }); };
+  const ids = s.rosters[s.me] || [], lim = rosterMax(s), std = stdIds(gm, ids).length, tw = twoWayIds(gm, ids).length, inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase);
   const sc = useScoutSelect(vm, rows.map((p: any) => p.id));
   const pg = usePaged(rows, 'free agents', 25);
   return (
@@ -69,10 +89,29 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           <button className="btn btn-primary" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Open the cap sheet</button>
         </div>
       )}
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", margin: "0 0 10px" }}>
-        <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + (vm.faRows || []).length], ['gl', 'In the CCP ' + nGl], ['home', 'Unsigned ' + ((vm.faRows || []).length - nGl)]]} onChange={setF} />
-        <TraitFilter value={tk} onChange={setTk} />
-        <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>CCP players are on standard CCP deals: any NBA team can call them up by signing them.</span>
+      <div style={{ fontSize: '12.5px', margin: '0 0 8px', color: std > (inSeason ? 15 : 21) ? 'var(--gm-bad)' : undefined }}>
+        <b>Your roster:</b> {std} of {lim} standard contracts{lim > 15 ? <span style={muted}> (up to 21 in the offseason, including Exhibit 10 camp deals; cut to 15 by opening night{std > 15 ? ': ' + (std - 15) + ' to go' : ''})</span> : <span style={muted}> (15 in season; a hardship exception can add a 16th when 4+ players are out)</span>} · {tw} of 3 two-way
+      </div>
+      <div className="card" style={{ padding: '10px 12px', margin: '0 0 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className={F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: true })} title="Hide players you can’t sign right now: no cap room or exception that fits, roster full, hard cap, two-way limit…">Players you can sign now · {nCan}</button>
+          <button className={!F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: false })}>Show every player in free agency · {all.length}</button>
+          <span style={{ flex: 1 }} />
+          <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} disabled={!active} onClick={reset}>Reset all filters</button>
+        </div>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Range label="Age" lo={F.ageMin} hi={F.ageMax} onLo={v => setFF({ ageMin: v })} onHi={v => setFF({ ageMax: v })} />
+          <Range label="Overall" lo={F.ovrMin} hi={F.ovrMax} onLo={v => setFF({ ovrMin: v })} onHi={v => setFF({ ovrMax: v })} />
+          <Range label="Potential" lo={F.potMin} hi={F.potMax} onLo={v => setFF({ potMin: v })} onHi={v => setFF({ potMax: v })} />
+          <Range label="Asking up to $" hi={F.askMax} onHi={v => setFF({ askMax: v })} step={0.5} width={64} hiPh="M" />
+          <select className="input" value={F.pos || 'any'} onChange={e => setFF({ pos: e.target.value })} style={{ padding: '3px 6px', fontSize: '12.5px', width: 'auto' }}>{POS_F.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+        </div>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+          <Seg<'all' | 'gl' | 'home'> value={f} options={[['all', 'All ' + all.length], ['gl', 'In the CCP ' + nGl], ['home', 'Unsigned ' + (all.length - nGl)]]} onChange={setF} />
+          <TraitFilter value={tk} onChange={setTk} />
+          <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Ranges include both ends (Age 19 to 21 means 19, 20 and 21). CCP players are on standard CCP deals: any NBA team can call them up by signing them.</span>
+        </div>
+        {active && <div style={{ ...muted, fontSize: '12px' }}>Showing {rows.length} of {all.length} free agents.</div>}
       </div>
       {sc.bar()}{sc.Menu()}
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
