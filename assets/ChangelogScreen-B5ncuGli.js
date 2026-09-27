@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CaD3aj_9.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DzIYvL6p.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -56,6 +56,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **Luka Dončić rookie card retuned to his real shot chart** (2018–19 shooting splits: at the rim, 3 ft to the arc, threes). Simmed over 8 leagues his rookie year now comes out at about 21.6 points on 17 shots, 42.9% from the field, 3.4 shots a game at the rim (65%), 6.6 from 3 feet to the arc (42%), 7 threes (33.5%), 6.5 free throws (72%), 7.3 rebounds, 6.2 assists, 3.5 turnovers, a 19.2 PER and 54% true shooting, within a few percent of the real line. An unedited copy in your saved library updates too.
+- **New shot tendency: "Assisted on his makes."** Self-creators like rookie Luka (only 27% of his makes were assisted) create their own shots, so teammates don't pick up assists they didn't earn. Set it in God Mode's Tendencies or on any player card.
 - **God Mode is pink.** Every God Mode control now shows in hot pink, and none of them appear when God Mode is off:
   - the Player cards and League editor tabs;
   - Edit player (tab and button);
