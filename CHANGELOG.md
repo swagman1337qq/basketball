@@ -5,6 +5,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-27
 
 ### Added
+- **Player cards** (God Mode → any player, draft prospects included → Edit player → Player cards): a card is a whole player build: name, bio, ratings, potential, intangibles, personality traits and shot tendencies.
+  - **Start one** from a blank template, from the player you're editing, from any player in the league (search by name), or from a card file or pasted JSON.
+  - **Edit every field**, with the overall and badges updating live.
+  - **Save** it to your card library (kept in your save), duplicate it, download it or copy its JSON.
+  - **Apply** it to the player: he keeps his team, contract, stats and history (a draft prospect stays in his class), and "Undo last apply" puts him back.
+  - Comes with a ready-made **Luka Dončić – Rookie year (2018–19)** card, tuned so a simmed rookie season lands close to his real one (about 21–22 points, 7 assists, 3 turnovers, 33% from three). Like every card, you can edit it.
 - **Two new personality traits that change how a player plays:**
   - **Flashy:** no-look and behind-the-back passes. A few more assists, a lot more turnovers.
   - **Heat checker:** hit two in a row and he wants the ball every trip, pulling up from deep. Hot streaks get hotter, but the heat checks don't always fall.

@@ -8,6 +8,7 @@ import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '
 import { namePools, regionOf } from '../../data/world';
 import { US_STATES } from '../../data/usStates';
 import { hometownOf } from '../../data/hometown';
+import { CardLibrary } from './CardLibrary';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
@@ -190,7 +191,8 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         </div>
       </section>
       <section>
-        <h4 style={ruleH4}>Psychology</h4>
+        <CardLibrary vm={vm} p={p} />
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Psychology</h4>
         <div style={grid}>
           {num('Work ethic', p.pers.work ?? 50, 0, 100, v => mut(q => (q.pers.work = v)))}
           {num('Loyalty', p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45), 0, 100, v => mut(q => (q.pers.loyalty = v)))}
