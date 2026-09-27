@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-jXEn_t4i.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-CRKAU5k5.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Edit contracts in God Mode** (player profile → Edit player → Contract): contract type (veteran, minimum, max, rookie scale, two-way, Exhibit 10, 10-day, hardship), this season's salary, how many seasons it runs, annual raise, player or team option, trade kicker, no-trade clause, cap hit, any extension, and his asking price for free agency. A strip shows his salary for every season of the deal. No CBA limits in God Mode.
 - **Ask the assistant GM** (Free agency): press the button and your assistant GM picks who to sign for the season, with a short reason for each (where he'd rank on your roster, last season's numbers, what he's asking and how you'd pay for it). A contender gets players who help now, a rebuilding team gets youth and upside, and everyone gets the thin position filled; he only picks players you can actually afford, and he suggests up to two two-way prospects. His picks are highlighted and everyone else is dimmed, and it stays that way while you page, sort and filter until you press the button again.
 - **Free agency filters:** set a range for age, overall and potential (e.g. age up to 21, overall under 60, potential 60 and up), a maximum asking price, and a position (guards, wings, bigs or one spot). **Players you can sign now** hides everyone you can't sign today (no cap room or exception that fits, roster full, hard cap, two-way limit); **Show every player in free agency** brings them back; **Reset all filters** clears everything. Your filters stay set when you leave the screen.
 - **Roster count on Free agency**, by NBA rules: up to 21 standard contracts in the offseason (Exhibit 10 camp deals included), cut to 15 by opening night, plus 3 two-way players. The header shows your open spots correctly (it used to always count against 15 and included two-way players).
