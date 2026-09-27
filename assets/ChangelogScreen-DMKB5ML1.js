@@ -1,10 +1,16 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-D80jXpAn.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-CXBvTVn-.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Two new personality traits that change how a player plays:**
+  - **Flashy:** no-look and behind-the-back passes. A few more assists, a lot more turnovers.
+  - **Heat checker:** hit two in a row and he wants the ball every trip, pulling up from deep. Hot streaks get hotter, but the heat checks don't always fall.
+  - **Volatile** players now also show it on the floor: after three straight misses (or a miss while down big) they force bad, contested shots out of frustration.
+  - Some generated players have them; toggle any trait in God Mode.
+- **Shot tendencies in God Mode** (Edit player → Tendencies): how often he shoots at the rim, from mid-range, from the corners and above the break, how often he draws shooting fouls and how loose he is with the ball, on top of what his ratings suggest. Build real players' shot diets, like rookie Luka Dončić's many threes and free throws.
 - **U.S. hometowns with the state** (God Mode → Edit player → Hometown): for American players, one City field searches about 16,000 U.S. cities and towns across all 50 states and D.C., each shown with its state, next to a searchable State field. The two narrow each other: type Plano and the states are Illinois, Kentucky and Texas; pick Texas and the city list is every Texas town, still searchable. Leave one blank and it's filled in at random: Plano alone picks one of its states, Texas alone picks a Texas town, and a partial name like "Mars" in Texas becomes Marshall. Profiles and scouting reports now show the full hometown, e.g. "Marshall, Texas, United States".
 - **Edit heritage in God Mode** (Edit player → Biography): pick his heritage country and his background within it (e.g. African American, Hispanic, Multiracial, Yoruba, Han; or type your own), and his look for the headshot. Picking a background gives him a matching look, which you can still change. Native American players keep their tribal-nation and mixed-race options. Heritage searches and lists follow your edits; the country he represents stays separate (edit that on the profile). Names don't change: use Generate for a new one.
 - **Accolades tab on every player profile**, built from the season awards (your award formulas in Settings): a row of badges up top with the seasons each was won (e.g. "2× Most Valuable Player (2026–27, 2027–28)", "League Champion (2027–28)"), then championships (every player on the title team, even if he was hurt for the playoffs) and Finals trips, every award won with that season's stat line, Finals and conference finals MVPs, All-League / All-Defensive / All-Rookie teams, stat titles (led the league in points, rebounds, assists, steals or blocks per game, 58+ games), award voting finishes without winning ("3rd in MVP voting, 41.2% share"), the Hall of Fame, No. 1 overall pick, and the joke awards in their own "Dubious honors" box.
