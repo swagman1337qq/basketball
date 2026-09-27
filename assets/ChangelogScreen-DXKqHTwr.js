@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-Beg4Hu0G.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{m as t,o as n}from"./index-BZbpiLht.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Stats in list pop-ups** (draft classes, countries, heritage, colleges, traits…): points, rebounds, assists, steals, blocks and PER per game for this season (or his latest season, in grey). Sortable.
 - **Scouting briefs** (Scouting screen): tick "Let him find players himself" on any scout and tell him what to look for (shooters, playmakers, slashers, rim protectors, 3-and-D wings, perimeter defenders, rebounders, stretch bigs, athletes, size and length, upside, ready now, best available, or intangibles for hidden gems), where (next draft class, all three classes, overseas, free agents, other NBA teams, everywhere), which position and what age. Every month he fills his 8 personal slots with the best fits by his own read, and shows why he picked each one (e.g. "3PT ~58 → ~63"). A better scout picks better players; you can still assign players by hand (right-click on the Draft board, Free agency, Overseas or the Shortlist): they always come first and bump his own picks, even when his 8 slots are full. Scouts can also skip region coverage and scout only personally.
 - **A full playbook of tactics** (Tactics screen), researched from how real teams play, each explained in plain words:
   - **Pace:** Slow, Balanced, Fast, Seven seconds or less.
@@ -26,6 +27,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **New leagues look like the real NBA.** Teams start in real situations: contenders built on veteran stars, good teams, capped-out teams paying above-average starters with no young stars and no cap room, the middle, rebuilders with young high-ceiling prospects, and hopeless teams with no young talent and bad contracts. Ages now follow ratings: young stars are rare and most 20–22-year-olds are still raw, so rookie classes top out around the mid-50s and the best rookie scores about 18–20 a game (not 30).
+- **Usage has an NBA-history ceiling.** A star uses at most about 38% of his team's plays while he's on the floor (Luka Dončić's heaviest season; the record is Russell Westbrook's 41.7%). Only a star far better than everyone around him can go higher, up to about 52%: a 75 among 20s averages about 40, and nobody averages 50. League-wide, two to five players average 30.
 - **Potential moves with real growth.** A player's overall now grows by what his new skills are worth at his position (a point guard's dribbling counts far more than a center's), and his potential follows: growth in the skills his position needs raises his ceiling; growth spent elsewhere lowers it a little.
 - **Team menus are alphabetical** (Roster, Trade, Stats, the league editor, a player's team in God Mode, and the CCP clubs), and the ‹ › arrows step through teams in that order.
 - **Click a tab you're already on to start it fresh.** On Roster that takes you back to your own team and this season, after looking at other teams.
