@@ -139,6 +139,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; })}>Heal now</button>}
           </span>
         </div>
+        <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Locked</h4>
         <div style={{ fontSize: '12px', ...muted }}>
           <div>Player ID #{p.id}: permanent, so saves can’t be corrupted.</div>
@@ -148,4 +149,62 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
       </section>
     </div>
   );
+}
+
+// God Mode contract editor: type, salary, length, raises, option, trade kicker, no-trade
+// clause, extension and asking price. No CBA checks: God Mode can write any deal.
+const CTYPES: [string, string][] = [['standard', 'Veteran (standard)'], ['min', 'Minimum'], ['max', 'Max'], ['rookie', 'Rookie scale'], ['twoWay', 'Two-way'], ['ex10', 'Exhibit 10'], ['tenDay', '10-day'], ['hardship', 'Hardship']];
+function ContractEditor({ vm, p, mut, grid }: { vm: VM; p: any; mut: (f: (p: any) => void) => void; grid: any }) {
+  const { gm, s } = vm.ctx, Y = gm.Y, lbl = (y: number) => y - 1 + '–' + String(y).slice(2);
+  const tid = Object.keys(s.rosters).map(Number).find(t => (s.rosters[t] || []).includes(p.id)), fa = (s.fa || []).includes(p.id);
+  const ctype = p.ctype === 'rookie' || p.rookieScale ? 'rookie' : CTYPES.some(c => c[0] === p.ctype) ? p.ctype : 'standard';
+  const setType = (v: string) => mut(q => {
+    const was = q.ctype; q.ctype = v;
+    if (v === 'rookie') q.rookieScale = true; else delete q.rookieScale;
+    if (v === 'twoWay') { q.capOverride = 0; q.twoWay = { tid: tid ?? q.twoWay?.tid ?? -1, games: q.twoWay?.games || 0 }; } else { delete q.twoWay; if (was === 'twoWay') delete q.capOverride; }
+    if (v === 'tenDay' || v === 'hardship') q.tenDay = { tid: tid ?? -1, start: s.day || 0 }; else delete q.tenDay;
+  });
+  const years: number[] = []; for (let y = Y; y <= Math.max(p.exp || Y, Y) + (p.ext ? p.ext.yrs : 0); y++) years.push(y);
+  return (<>
+    <h4 style={{ ...ruleH4, marginTop: '18px' }}>Contract</h4>
+    <div style={grid}>
+      <span style={muted}>Status</span>
+      <span style={{ fontSize: '12.5px' }}>{tid != null && tid >= 0 ? 'Under contract with ' + s.teams[tid].region + ' ' + s.teams[tid].name : fa ? 'Free agent' : p.abroad ? 'Playing overseas' : p.cls ? 'Draft prospect' : 'Unsigned'}</span>
+      <span style={muted}>Type</span>
+      <select className="input" value={ctype} onChange={e => setType(e.target.value)} style={{ width: 'auto', justifySelf: 'start' }}>{CTYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <span style={muted}>Salary {lbl(Y)}</span>
+      <NumInput value={+(p.amt || 0)} min={0} max={150} step={0.01} width={90} onValue={v => mut(q => { q.amt = v; })} suffix="$M" />
+      <span style={muted}>Runs through</span>
+      <select className="input" value={Math.max(p.exp || Y, Y)} onChange={e => mut(q => { q.exp = +e.target.value; if (q.opt) q.opt = { ...q.opt, season: q.exp }; })} style={{ width: 'auto', justifySelf: 'start' }}>
+        {Array.from({ length: 7 }, (_, k) => Y + k).map(y => <option key={y} value={y}>{lbl(y)} ({y - Y + 1} season{y === Y ? '' : 's'})</option>)}
+      </select>
+      <span style={muted}>Annual raise</span>
+      <NumInput value={Math.round((p.raise || 0) * 1000) / 10} min={0} max={10} step={0.5} width={70} onValue={v => mut(q => { q.raise = v / 100; })} suffix="%" />
+      <span style={muted}>Option</span>
+      <select className="input" value={p.opt?.kind || 'none'} disabled={(p.exp || Y) <= Y} onChange={e => mut(q => { if (e.target.value === 'none') delete q.opt; else q.opt = { kind: e.target.value, season: q.exp }; })} style={{ width: 'auto', justifySelf: 'start' }}>
+        <option value="none">None</option><option value="player">Player option (final season)</option><option value="team">Team option (final season)</option>
+      </select>
+      <span style={muted}>Trade kicker</span>
+      <NumInput value={Math.round((p.kicker || 0) * 100)} min={0} max={15} step={1} width={70} onValue={v => mut(q => { q.kicker = v / 100; })} suffix="%" />
+      <span style={muted}>No-trade clause</span>
+      <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '12.5px' }}><input type="checkbox" checked={!!p.ntc} onChange={e => mut(q => { q.ntc = e.target.checked; })} /> He must approve any trade</label>
+      <span style={muted}>Cap hit</span>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px' }}>
+        <NumInput value={p.capOverride ?? +(gm.capHit(p) - (p.inc || []).filter((x: any) => x.likely).reduce((a: number, x: any) => a + x.amt, 0)).toFixed(2)} min={0} max={150} step={0.01} width={90} onValue={v => mut(q => { q.capOverride = v; })} suffix="$M" />
+        {p.capOverride != null && ctype !== 'twoWay' && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 6px' }} onClick={() => mut(q => { delete q.capOverride; })} title="Count his salary again">Use salary</button>}
+      </span>
+      {p.ext && <><span style={muted}>Extension</span>
+        <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px' }}>
+          <NumInput value={p.ext.amt} min={0} max={150} step={0.01} width={90} onValue={v => mut(q => { q.ext = { ...q.ext, amt: v }; })} suffix="$M" />
+          <NumInput value={p.ext.yrs} min={1} max={5} step={1} width={60} onValue={v => mut(q => { q.ext = { ...q.ext, yrs: v }; })} suffix="yrs" />
+          <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 6px' }} onClick={() => mut(q => { delete q.ext; })}>Remove</button>
+        </span></>}
+      <span style={muted}>Asking price</span>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px' }}><NumInput value={+(p.ask || 0)} min={0} max={150} step={0.01} width={90} onValue={v => mut(q => { q.ask = v; })} suffix="$M" /><span style={muted}>{fa ? 'what he wants per year as a free agent' : 'his price when he next hits free agency'}</span></span>
+    </div>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px', marginTop: 8 }}>
+      {years.map(y => { const v = gm.salAt(p, y); return <span key={y} style={{ padding: '2px 8px', border: '1px solid var(--color-divider)', borderRadius: 6, color: p.opt?.season === y ? 'var(--color-accent-700)' : undefined }} title={p.opt?.season === y ? (p.opt.kind === 'player' ? 'Player' : 'Team') + ' option' : y > p.exp ? 'Extension' : ''}>{lbl(y)} · ${v.toFixed(2)}M{p.opt?.season === y ? ' (' + (p.opt.kind === 'player' ? 'PO' : 'TO') + ')' : ''}</span>; })}
+    </div>
+    <p style={{ ...muted, fontSize: '11.5px' }}>God Mode skips the CBA: any salary, length or clause is allowed. Changes count right away on the cap sheet, in trades and in payroll.</p>
+  </>);
 }
