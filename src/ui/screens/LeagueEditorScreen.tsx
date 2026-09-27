@@ -9,7 +9,7 @@ import { OWNER_ARCHETYPES } from '../../data/world';
 import { processImage } from '../upload';
 import { Link, muted, NumInput, ruleH4 } from '../kit';
 
-const GLYPHS = ['Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
+const GLYPHS = ['Drama', 'Footprints', 'Glasses', 'Hand', 'Palette', 'Square', 'Tent', 'Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
 
 export function LeagueEditorScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, money } = vm.ctx, P = gm.db.P;

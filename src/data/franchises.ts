@@ -6,7 +6,7 @@ export interface Franchise { region: string; name: string; abbr: string; conf: '
 
 export const FRANCHISES: Franchise[] = [
   // ── East ──
-  { region: 'New York', name: 'Yaks', abbr: 'NY', conf: 'East', div: 'Atlantic', colors: ['#1c2541', '#c9a227'], icon: 'MountainSnow', pop: 19.5, known: 'The Empire State and the skyline', mkt: 1.55 },
+  { region: 'New York', name: 'Hermits', abbr: 'NY', conf: 'East', div: 'Atlantic', colors: ['#1c2541', '#c9a227'], icon: 'Tent', pop: 19.5, known: 'The Empire State and the skyline', mkt: 1.55 },
   { region: 'Philadelphia', name: 'Koalas', abbr: 'PHI', conf: 'East', div: 'Atlantic', colors: ['#3b2a1a', '#d9a441'], icon: 'TreeDeciduous', pop: 6.2, known: 'The Liberty Bell', mkt: 1.2 },
   { region: 'Washington', name: 'Monuments', abbr: 'WAS', conf: 'East', div: 'Southeast', colors: ['#1d2f55', '#e5e1d8'], icon: 'Landmark', pop: 6.3, known: 'The monuments on the National Mall' },
   { region: 'Boston', name: 'Colonials', abbr: 'BOS', conf: 'East', div: 'Atlantic', colors: ['#6b1e27', '#f0e2c4'], icon: 'Flag', pop: 4.9, known: 'Colonial history and the Freedom Trail' },
@@ -34,14 +34,14 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Berlin', name: 'Gatekeepers', abbr: 'BER', conf: 'East', div: 'Central', colors: ['#222222', '#d4af37'], icon: 'Landmark', pop: 6.2, known: 'The Brandenburg Gate' },
   { region: 'New Orleans', name: 'Second Liners', abbr: 'NOL', conf: 'East', div: 'Southeast', colors: ['#4b2e83', '#d4af37'], icon: 'Music', pop: 0.96, known: 'Jazz funerals and second-line parades' },
   // Original teams, now expansion franchises (New York, Philadelphia and Chicago took their places).
-  { region: 'Hartford', name: 'Anteaters', abbr: 'HFD', conf: 'East', div: 'Atlantic', colors: ['#8e3b1f', '#f1e3c8'], icon: 'Spade', pop: 1.15, known: 'The Insurance Capital of the World', mkt: 0.75 },
+  { region: 'Hartford', name: 'Jesters', abbr: 'HFD', conf: 'East', div: 'Atlantic', colors: ['#8e3b1f', '#f1e3c8'], icon: 'Drama', pop: 1.15, known: 'The Insurance Capital of the World', mkt: 0.75 },
   { region: 'Providence', name: 'Emus', abbr: 'PRV', conf: 'East', div: 'Atlantic', colors: ['#1f5f63', '#e9efe8'], icon: 'Award', pop: 1.68, known: 'Its jewelry-making heritage', mkt: 0.75 },
   { region: 'Columbus', name: 'Ibex', abbr: 'CBS', conf: 'East', div: 'Central', colors: ['#2d4a36', '#d8c29a'], icon: 'Anvil', pop: 2.2, known: 'The explorer it’s named after', mkt: 0.85 },
   // ── West ──
   // Original teams, now expansion franchises (Los Angeles and Houston took their places).
   { region: 'Sacramento', name: 'Wombats', abbr: 'SAC', conf: 'West', div: 'Pacific', colors: ['#3a2f5b', '#d9a93a'], icon: 'Coffee', pop: 2.4, known: 'The 1849 Gold Rush', mkt: 0.85 },
-  { region: 'Kansas City', name: 'Manatees', abbr: 'KC', conf: 'West', div: 'Northwest', colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat', pop: 2.25, known: 'Kansas City barbecue', mkt: 0.85 },
-  { region: 'Los Angeles', name: 'Beavers', abbr: 'LA', conf: 'West', div: 'Pacific', colors: ['#2b1a4f', '#f4c542'], icon: 'Axe', pop: 12.8, known: 'Hollywood premieres', mkt: 1.5 },
+  { region: 'Kansas City', name: 'Sailors', abbr: 'KC', conf: 'West', div: 'Northwest', colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat', pop: 2.25, known: 'Kansas City barbecue', mkt: 0.85 },
+  { region: 'Los Angeles', name: 'Strollers', abbr: 'LA', conf: 'West', div: 'Pacific', colors: ['#2b1a4f', '#f4c542'], icon: 'Footprints', pop: 12.8, known: 'Hollywood premieres', mkt: 1.5 },
   { region: 'Inland Empire', name: 'Groves', abbr: 'IE', conf: 'West', div: 'Pacific', colors: ['#2e6b30', '#f39a1e'], icon: 'Citrus', pop: 4.7, known: 'The citrus groves of Riverside' },
   { region: 'San Francisco', name: 'Fog', abbr: 'SF', conf: 'West', div: 'Pacific', colors: ['#8b2a1f', '#cfd8dc'], icon: 'CloudFog', pop: 4.6, known: 'Karl the Fog and the Golden Gate' },
   { region: 'Salt Lake', name: 'Gulls', abbr: 'SLC', conf: 'West', div: 'Northwest', colors: ['#1f3b63', '#eef2f5'], icon: 'Bird', pop: 1.3, known: 'The California gulls of the Great Salt Lake', mkt: .8 },
