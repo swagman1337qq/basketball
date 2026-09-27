@@ -84,7 +84,7 @@ const AFR = ['yo', 'ig', 'ha', 'cm', 'cd', 'sn', 'ml', 'ak', 'mn'];
 export const GROUPS: Record<string, Group[]> = {
   // Native American (a separate "country" of birth; tribal members are U.S. citizens and represent
   // the United States). Shares follow the Census 2020 counts of the largest tribal nations.
-  XN: [g('Navajo', .17, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cherokee', .15, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lakota & Dakota', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Ojibwe', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Choctaw', .07, ['nan', 'usw'], ['nan', 'usw'], NA), g('Apache', .05, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lumbee', .05, ['nan', 'usw', 'usb'], ['nan', 'usw'], { brown: .6, white: .2, black: .2 }), g('Muscogee', .04, ['nan', 'usw'], ['nan', 'usw'], NA), g('Blackfeet', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Haudenosaunee', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Pueblo', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Comanche', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cheyenne', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g("Tohono O'odham", .012, ['nan', 'usw'], ['nan', 'usw'], NA), g('Kiowa', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Osage', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Seminole', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Hopi', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Crow', .008, ['nan', 'usw'], ['nan', 'usw'], NA)],
+  XN: [g('Navajo', .17, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cherokee', .15, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lakota & Dakota', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Ojibwe', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Choctaw', .07, ['nan', 'usw'], ['nan', 'usw'], NA), g('Apache', .05, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lumbee', .05, ['nan', 'usw', 'usb'], ['nan', 'usw'], { brown: .6, white: .2, black: .2 }), g('Muscogee', .04, ['nan', 'usw'], ['nan', 'usw'], NA), g('Blackfeet', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Haudenosaunee', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Pueblo', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Comanche', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cheyenne', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g("Tohono O'odham", .012, ['nan', 'usw'], ['nan', 'usw'], NA), g('Kiowa', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Osage', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Seminole', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Hopi', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Crow', .008, ['nan', 'usw'], ['nan', 'usw'], NA), g('Penobscot', .003, ['nan', 'usw'], ['nan', 'usw'], NA), g('Passamaquoddy', .003, ['nan', 'usw'], ['nan', 'usw'], NA)],
   US: [g('African American', .74, 'usb', 'usb', B), g('White', .135, 'usw', 'usw', W), g('Multiracial', .105, ['usb', 'usw'], ['usb', 'usw'], { black: .55, white: .3, brown: .15 }), g('Hispanic', .016, 'hus', 'hus', { brown: .8, white: .2 }), g('Asian American', .004, ['cnC', 'usw'], ['cnC', 'vn', 'fch', 'kr'], A)],
   CA: [g('Black Canadian', .50, ['usb', 'jm'], ['jm', 'usb', 'ht', 'so', 'yo', 'ig'], B), g('English Canadian', .30, 'usw', ['usw', 'gb'], W), g('French Canadian', .10, 'qc', 'qc', W), g('South Asian', .04, ['in', 'pa'], ['in', 'pa'], Br), g('Asian', .03, 'cnC', 'cnC', A), g('Filipino', .015, ['ph', 'usw'], 'ph', { brown: .6, asian: .4 }), g('Indigenous', .015, 'usw', ['usw', 'qc'], Br)],
   BS: [g('Bahamian', .90, 'us', ['bah', 'us'], B), g('White Bahamian', .05, 'us', ['bah', 'us'], W), g('Haitian', .05, 'ht', 'ht', B)],
@@ -208,4 +208,46 @@ export const TRIBE_TOWNS: Record<string, string[]> = {
   Navajo: ['Window Rock', 'Shiprock', 'Tuba City', 'Chinle'], Cherokee: ['Tahlequah'], 'Lakota & Dakota': ['Pine Ridge', 'Rosebud'], Ojibwe: ['Red Lake'], Choctaw: ['Durant'],
   Apache: ['Whiteriver'], Lumbee: ['Pembroke'], Muscogee: ['Okmulgee'], Blackfeet: ['Browning'], Haudenosaunee: ['Salamanca'], Pueblo: ['Laguna'], Comanche: ['Lawton'],
   Cheyenne: ['Lame Deer'], "Tohono O'odham": ['Sells'], Kiowa: ['Anadarko'], Osage: ['Pawhuska'], Seminole: ['Okmulgee'], Hopi: ['Kykotsmovi'], Crow: ['Crow Agency'],
+  Penobscot: ['Indian Island'], Passamaquoddy: ['Sipayik'],
 };
+
+// Cities near each tribal nation, where many members grow up off the reservation.
+export const TRIBE_CITIES: Record<string, string[]> = {
+  Navajo: ['Farmington', 'Gallup', 'Flagstaff'], Cherokee: ['Tulsa', 'Muskogee'], 'Lakota & Dakota': ['Rapid City', 'Sioux Falls'], Ojibwe: ['Minneapolis', 'Duluth'], Choctaw: ['Oklahoma City', 'Ada'],
+  Apache: ['Phoenix', 'Tucson'], Lumbee: ['Fayetteville', 'Lumberton'], Muscogee: ['Tulsa', 'Okmulgee'], Blackfeet: ['Great Falls', 'Missoula'], Haudenosaunee: ['Buffalo', 'Syracuse'], Pueblo: ['Albuquerque', 'Santa Fe'],
+  Comanche: ['Lawton', 'Oklahoma City'], Cheyenne: ['Billings', 'Oklahoma City'], "Tohono O'odham": ['Tucson'], Kiowa: ['Norman', 'Oklahoma City'], Osage: ['Tulsa'], Seminole: ['Oklahoma City', 'Hollywood'],
+  Hopi: ['Flagstaff', 'Phoenix'], Crow: ['Billings'], Penobscot: ['Bangor', 'Old Town'], Passamaquoddy: ['Bangor', 'Calais'],
+};
+
+// Native Americans of mixed race: one parent Native, the other African American, white or Hispanic.
+// Most grew up off the reservation. Shares follow the Census 2020 "American Indian in combination"
+// counts, leaning toward the NBA's player mix.
+export const NATIVE_MIX: Record<string, { w: number; pool: string; race: Race }> = {
+  'African American': { w: .55, pool: 'usb', race: { black: .55, brown: .45 } },
+  White: { w: .3, pool: 'usw', race: { brown: .55, white: .45 } },
+  Hispanic: { w: .15, pool: 'hus', race: { brown: 1 } },
+};
+export const MIXED_NATIVE_SHARE = .45, TWO_TRIBES_SHARE = .2;
+
+// "Kiowa & Cherokee · Native American", or "Penobscot · African American · Mixed race (Native)".
+export function heritageLabel(p: any, C: any): string {
+  if (!p.heritage || !C[p.her]) return '';
+  if (p.her !== 'XN') return p.heritage + ' · ' + C[p.her].n;
+  const tribes = p.heritage + (p.tribe2 && p.tribe2 !== p.heritage ? ' & ' + p.tribe2 : '');
+  return p.mix ? tribes + ' · ' + p.mix + ' · Mixed race (Native)' : tribes + ' · Native American';
+}
+
+// Make a Native American player mixed race (or undo it with mix = ''): his look, and a name from
+// either side of the family.
+export function applyNativeMix(p: any, mix: string, rnd: () => number = Math.random, rename = true) {
+  const pick = (a: string[]) => a[Math.floor(rnd() * a.length)];
+  if (!mix || !NATIVE_MIX[mix]) { delete p.mix; return; }
+  const m = NATIVE_MIX[mix]; p.mix = mix;
+  const ks = Object.keys(m.race); let r = rnd() * ks.reduce((a, k) => a + m.race[k], 0); p.race = ks[0];
+  for (const k of ks) { if ((r -= m.race[k]) < 0) { p.race = k; break; } }
+  if (!rename) return;
+  const AP = allPools(), other = AP[m.pool], nan = AP.nan;
+  if (!other || !nan) return;
+  p.first = pick(rnd() < .75 ? other.f : nan.f); p.last = pick(rnd() < .5 ? nan.l : other.l);
+  Object.assign(p, { name: p.first + ' ' + p.last, native: '', nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' });
+}

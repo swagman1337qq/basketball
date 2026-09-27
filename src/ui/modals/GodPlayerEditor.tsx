@@ -9,7 +9,7 @@ import { namePools } from '../../data/world';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
-import { allPools, groupsOf, randomName } from '../../data/heritage';
+import { allPools, applyNativeMix, groupsOf, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
@@ -31,7 +31,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const parts = String(p.name).split(' '), first = p.first ?? (lf ? parts.slice(1).join(' ') : parts[0]), last = p.last ?? (lf ? parts[0] : parts.slice(1).join(' '));
   const origin = originSel ?? p.rep;
   const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
-  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, her: p.her, born: p.born, raised: p.raised, city: p.city, elig: p.elig }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code });
+  const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, mix: p.mix, tribe2: p.tribe2, her: p.her, born: p.born, raised: p.raised, city: p.city, elig: p.elig }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code }); delete p.mix; delete p.tribe2;
     // His hometown moves with him (eligibility is left alone: edit it on the profile).
     const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
   const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
@@ -65,6 +65,15 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <button className="btn btn-secondary" onClick={() => reroll(origin)} style={{ fontSize: '12px', whiteSpace: 'nowrap' }} title="A real name from that country, with the native script where it has one">🎲 Generate</button>
             {undo && <button className="btn btn-ghost" onClick={doUndo} style={{ fontSize: '12px' }}>Undo ({undo.name})</button>}
           </span>
+          {p.her === 'XN' && <>
+            <span style={muted}>Tribal nations</span>
+            <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <select className="input" value={p.heritage || ''} onChange={e => mut(q => { q.heritage = e.target.value; if (q.tribe2 === q.heritage) delete q.tribe2; })} style={{ flex: 1, minWidth: '130px' }} title="His tribal nation">{groupsOf('XN').map(x => <option key={x.k} value={x.k}>{x.k}</option>)}</select>
+              <select className="input" value={p.tribe2 || ''} onChange={e => mut(q => { if (e.target.value) q.tribe2 = e.target.value; else delete q.tribe2; })} style={{ flex: 1, minWidth: '130px' }} title="A second tribal nation (one from each parent)"><option value="">No second nation</option>{groupsOf('XN').filter(x => x.k !== p.heritage).map(x => <option key={x.k} value={x.k}>& {x.k}</option>)}</select>
+            </span>
+            <span style={muted}>Mixed race</span>
+            <select className="input" value={p.mix || ''} onChange={e => mut(q => { const v = e.target.value; applyNativeMix(q, v, Math.random, false); if (!v) q.race = 'brown'; gm.resetFace(q.id); })} title="One parent Native American, the other…"><option value="">No: Native American</option>{Object.keys(NATIVE_MIX).map(k => <option key={k} value={k}>Native American & {k}</option>)}</select>
+          </>}
           <span style={muted}>First name</span>{inRow(<input className="input" value={first} onChange={e => setNames(e.target.value, last, nFirst, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => { const r = RN(); setNames(r.first, last, r.nativeFirst || nFirst, nLast); }, 'A random first name from the country above')}
           <span style={muted}>Last name</span>{inRow(<input className="input" value={last} onChange={e => setNames(first, e.target.value, nFirst, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => { const r = RN(); setNames(first, r.last, nFirst, r.nativeLast || nLast); }, 'A random last name from the country above')}
           <span style={muted}>Native first</span>{inRow(<input className="input" value={nFirst} placeholder="e.g. 伟 or Никола" onChange={e => setNames(first, last, e.target.value, nLast)} style={{ flex: 1, minWidth: 0 }} />, () => setNames(first, last, RN().nativeFirst || '', nLast), 'A random native-script first name (countries with their own script)')}

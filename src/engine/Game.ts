@@ -3,7 +3,7 @@
 // model built from this state (see ui/viewModel.ts).
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
-import { allPools, nameFromGroup, pickGroup, randomName, TRIBE_TOWNS } from '../data/heritage';
+import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { setRating, teamRating, wngBonus } from './ratings';
 import { mediaPreds } from './media';
@@ -206,10 +206,10 @@ export class Game {
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
-    const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, heritage: p.heritage, familyFirst: p.familyFirst, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
+    const undo = { pid: p.id, rep: p.rep, her: p.her, race: p.race, heritage: p.heritage, mix: p.mix, tribe2: p.tribe2, familyFirst: p.familyFirst, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast };
     // Eligibility isn't touched: you manage it yourself on the player's profile.
     p.rep = C[code].repAs || code; // tribal nations: heritage and name change, he still represents the U.S.
-    p.her = code; const nm = randomName(code); p.race = nm.race; p.heritage = nm.heritage; this.resetFace(p.id);
+    p.her = code; const nm = randomName(code); p.race = nm.race; p.heritage = nm.heritage; delete p.mix; delete p.tribe2; this.resetFace(p.id);
     if (withName) { const { race, heritage, ...name } = nm; void race; void heritage; Object.assign(p, name); }
     return undo;
   }
@@ -304,7 +304,7 @@ export class Game {
     else if (her === 'CA' && x < .15) { raised = 'US'; }
     // Heritage group by the country's population shares: it sets the name and the look.
     const grp = pickGroup(her, rnd), nm = grp ? nameFromGroup(her, grp, rnd) : null;
-    const race = nm ? nm.race : wpick(C[her].race);
+    let race = nm ? nm.race : wpick(C[her].race);
     const amer = (born === 'US' || born === 'CA') && born !== her && rnd() < .35, pk = amer ? 'us' : C[her].pool, np = NP[pk] || NP.us;
     const f = pick(np.f), l = pick(np.l);
     const elig = [], add = (c, why) => { if (!elig.find(e => e.c === c)) elig.push({ c, why }); };
@@ -327,8 +327,20 @@ export class Game {
     if (nm && amer) { const AP = allPools(), ps = AP[race === 'black' ? 'usb' : 'usw']; amerFirst = pick(ps.f); disp = amerFirst + ' ' + nm.last; native = ''; }
     else if (nm) { disp = nm.name; native = nm.native; }
     const nmx = nm && amer ? { first: amerFirst, last: nm.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } : nm ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };
-    const towns = born === 'XN' && nm?.heritage ? TRIBE_TOWNS[nm.heritage] : null;
-    return { her, born, raised, race, name: disp, native, heritage: nm?.heritage, ...nmx, elig, rep, city: pick(towns && towns.length ? towns : C[born].cities) };
+    // Native American: some belong to two tribal nations (like Kiowa and Cherokee), and many are
+    // mixed race, often born and raised off the reservation anywhere in the U.S.
+    const extra: any = {}; let who: any = { disp, native, nmx };
+    if (her === 'XN' && nm) {
+      if (rnd() < TWO_TRIBES_SHARE) { const t = pickGroup('XN', rnd); if (t && t.k !== nm.heritage) extra.tribe2 = t.k; }
+      if (rnd() < MIXED_NATIVE_SHARE) {
+        const q: any = { ...nmx }; applyNativeMix(q, wpick(Object.fromEntries(Object.entries(NATIVE_MIX).map(([k, v]) => [k, v.w]))), rnd);
+        extra.mix = q.mix; race = q.race; if (rnd() < .7) { born = 'US'; raised = 'US'; }
+        who = { disp: q.name, native: '', nmx: { first: q.first, last: q.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } };
+      }
+    }
+    const towns = born === 'XN' && nm?.heritage ? [...(TRIBE_TOWNS[nm.heritage] || []), ...(extra.tribe2 ? TRIBE_TOWNS[extra.tribe2] || [] : [])] : null;
+    const near = extra.mix && born === 'US' && nm && rnd() < .6 ? [...(TRIBE_CITIES[nm.heritage] || []), ...(extra.tribe2 ? TRIBE_CITIES[extra.tribe2] || [] : [])] : null;
+    return { her, born, raised, race, name: who.disp, native: who.native, heritage: nm?.heritage, ...extra, ...who.nmx, elig, rep, city: pick(towns && towns.length ? towns : near && near.length ? near : C[born].cities) };
   }
   pipe(raised, cls) {
     const rnd = () => this.rnd(), pick = a => a[Math.floor(rnd() * a.length)];

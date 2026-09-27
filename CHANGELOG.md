@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-09-27
 
+### Added
+- **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
+
 ### Changed
 - **New team names.** Every team is now a thing, a group of people, a word or an animal its city is not known for at all: the Baltimore Camels, New York Yaks, Brooklyn Armadillos, Newark Toucans, Philadelphia Koalas, Cleveland Iguanas, Detroit Oxcarts, Chicago Sloths, Pittsburgh Lemurs, Cincinnati Narwhals, Charlotte Tortoises, Atlanta Walruses, Tampa Sleds, Richmond Samurai, Nashville Librarians, Seattle Scorpions, Portland Sultans, Vancouver Hyenas, St. Louis Puffins, Denver Stingrays, San Diego Moose, Oakland Barons, Las Vegas Monks, Los Angeles Beavers, San Jose Typewriters, Austin Hush, San Antonio Frost, Phoenix Chill, Dallas Axolotls and Houston Caribou, each with a new crest. The expansion teams are now the Hartford Anteaters, Providence Emus, Columbus Ibex, Kansas City Manatees, Sacramento Wombats and Raleigh Gondolas. Leagues you already started switch over too, except teams you renamed yourself.
 

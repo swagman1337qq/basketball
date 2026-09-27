@@ -33,10 +33,12 @@ export function setSurname(p: any, last: string, nativeLast: string) {
 function inherit(g: Game, p: any, rel: any, rnd: () => number) {
   const nm = randomName(rel.her, rnd, rel.heritage);
   Object.assign(p, { her: rel.her, rep: rel.rep, heritage: rel.heritage, race: rnd() < 0.8 ? rel.race : p.race, first: nm.first, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep, nativeFirst: nm.nativeFirst });
+  // Tribal nations and mixed race run in the family too.
+  delete p.tribe2; delete p.mix; if (rel.tribe2) p.tribe2 = rel.tribe2; if (rel.mix) { p.mix = rel.mix; p.first = randomName('US', rnd).first; }
   if (!p.elig?.some(e => e.c === rel.rep)) p.elig = [...(p.elig || []), { c: rel.rep, why: 'through parents' }];
   // Tribal nations: a relative's family decides where he grew up too (tribal members are U.S. citizens
   // and can only represent the United States).
-  if (rel.her === 'XN' || p.born === 'XN') { const C = g.db.C, home = rel.her === 'XN' ? 'XN' : 'US', towns = (C[home]?.cities || []) as string[];
+  if (rel.her === 'XN' || p.born === 'XN') { const C = g.db.C, home = rel.her === 'XN' ? (rel.mix && rel.born === 'US' ? 'US' : 'XN') : 'US', towns = (C[home]?.cities || []) as string[];
     p.born = home; p.raised = home; if (towns.length) p.city = towns[Math.floor(rnd() * towns.length)];
     if (rel.her === 'XN') { p.rep = 'US'; p.elig = [{ c: 'US', why: 'U.S. citizen (tribal nation)' }]; } }
   if (NO_SURNAME.test(rel.heritage || '')) { p.name = nm.name; p.native = nm.native; p.last = nm.last; }
