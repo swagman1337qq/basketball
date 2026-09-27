@@ -52,12 +52,13 @@ export const CCP_CLUBS: CcpClub[] = [
   { key: 'ter', city: 'Terlingua', where: 'Texas', name: 'Chili Heads', abbr: 'TER', icon: 'Flame', colors: ['#b71c1c', '#ffcc80'], note: 'A Big Bend ghost town that hosts a world chili championship.' },
   { key: 'cen', city: 'Centralia', where: 'Pennsylvania', name: 'Smolder', abbr: 'CEN', icon: 'CloudFog', colors: ['#424242', '#ff7043'], note: 'A ghost town with a coal-seam fire that has burned underground since 1962.' },
   { key: 'dvl', city: 'Death Valley', where: 'California', name: 'Scorchers', abbr: 'DVL', icon: 'Sun', colors: ['#e65100', '#fff3e0'], note: 'The hottest place on Earth (134°F) and 282 feet below sea level.' },
+  { key: 'bes', city: 'Bessemer', where: 'Alabama', name: 'Marvels', abbr: 'BES', icon: 'Flame', colors: ['#8d3b1f', '#ffcc80'], note: 'The “Marvel City”: an iron and steel town founded in 1887 next to Birmingham and named for Henry Bessemer’s steelmaking process.' },
   { key: 'jar', city: 'Jarbidge', where: 'Nevada', name: 'Stagecoach Robbers', abbr: 'JAR', icon: 'Spade', colors: ['#6d4c41', '#b0bec5'], note: 'Gold-rush town and site of the last stagecoach robbery in the U.S., 1916.' },
 ];
 
 // Which club is each NBA team's affiliate (by NBA abbreviation). Teams not listed get a spare.
 export const CCP_AFFIL: Record<string, string> = {
-  BAL: 'tan', NY: 'iqa', BKN: 'chu', NWK: 'esl', PHI: 'cen', CLE: 'yng', DET: 'fli', CHI: 'gar', PIT: 'brd', CIN: 'wel',
+  BAL: 'tan', NY: 'iqa', BKN: 'chu', NWK: 'esl', PHI: 'cen', CLE: 'yng', DET: 'fli', CHI: 'gar', PIT: 'brd', BHM: 'bes', CIN: 'wel',
   CHA: 'ocr', ATL: 'har', TPA: 'cai', RIC: 'mat', NSH: 'haz',
   SEA: 'ptr', POR: 'bro', VAN: 'daw', STL: 'pic', DEN: 'prd', SD: 'nwa', OAK: 'adk', LV: 'jar', LA: 'dvl', SJ: 'wht',
   AUS: 'mon', SA: 'chk', PHX: 'wrk', DAL: 'nom', HOU: 'utq',

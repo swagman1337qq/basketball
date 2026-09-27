@@ -12,7 +12,7 @@ export const LOGO_STYLES = ['shield', 'roundel', 'script', 'badge'] as const;
 const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   RIC: 'shield', NY: 'badge', PHI: 'shield', CHI: 'roundel', LA: 'script', HOU: 'badge',
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',
-  BKN: 'roundel', NWK: 'roundel', DET: 'roundel', PIT: 'roundel', SEA: 'roundel', VAN: 'roundel', SAC: 'roundel', KC: 'roundel', STL: 'roundel', MEX: 'roundel',
+  BKN: 'roundel', NWK: 'roundel', DET: 'roundel', PIT: 'roundel', BHM: 'shield', SEA: 'roundel', VAN: 'roundel', SAC: 'roundel', KC: 'roundel', STL: 'roundel', MEX: 'roundel',
   ATL: 'script', NSH: 'script', LV: 'script', SD: 'script', HNL: 'script', SA: 'script', PHX: 'script', AUS: 'script', CHA: 'script',
   CLE: 'badge', SLC: 'badge', DAL: 'shield', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
 };

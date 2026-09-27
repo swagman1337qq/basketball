@@ -11,7 +11,7 @@ import type { Game } from './Game';
 const AFFIL: Record<string, string> = {
   RIC: 'James River Bateaux', NY: 'Hudson Valley Knights', PHI: 'Delaware Valley Minutemen', CHI: 'Lakefront Blizzard', LA: 'Long Beach Breakers', HOU: 'Bayou City Boosters',
   BAL: 'Chesapeake Watermen', HFD: 'Connecticut Ironsides', BKN: 'Coney Island Barkers', NWK: 'Jersey Shore Tides', PRV: 'Pawtucket Mill Cats', CLE: 'Lake Erie Riffs', DET: 'Motor City Spark Plugs', CBS: 'Scioto Valley Scouts',
-  PIT: 'Allegheny Miners', CIN: 'Queen City Paddlers', CHA: 'Piedmont Pit Crew', ATL: 'Peachtree Embers', TPA: 'Ybor City Rollers', RAL: 'Triangle Techs', NSH: 'Music Row Pickers', SEA: 'Puget Sound Ferries',
+  PIT: 'Allegheny Miners', BHM: 'Bessemer Marvels', CIN: 'Queen City Paddlers', CHA: 'Piedmont Pit Crew', ATL: 'Peachtree Embers', TPA: 'Ybor City Rollers', RAL: 'Triangle Techs', NSH: 'Music Row Pickers', SEA: 'Puget Sound Ferries',
   POR: 'Willamette Loggers', VAN: 'Fraser Valley Salmon', SLC: 'Wasatch Powder', DAL: 'Trinity River Roughnecks', DEN: 'Front Range Prospectors', SD: 'La Jolla Swells', OAK: 'East Bay Timber', LV: 'Henderson Dealers', SAC: 'Sierra Gold Panners',
   SJ: 'Santa Clara Coders', AUS: 'Hill Country Hounds', SA: 'Rio Grande Riders', PHX: 'Sonoran Scorpions', KC: 'Missouri River Smokers', STL: 'Gateway Ferrymen', HNL: 'Oahu Outriggers', ABQ: 'Sandia Sidewinders',
 };

@@ -23,6 +23,7 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Raleigh', name: 'Gondolas', abbr: 'RAL', conf: 'East', div: 'Southeast', colors: ['#35573a', '#e8dcc0'], icon: 'Ship', pop: 1.59, known: 'The City of Oaks', mkt: 0.8 },
   { region: 'Norfolk', name: 'Shipwrights', abbr: 'NOR', conf: 'East', div: 'Southeast', colors: ['#0d2c4a', '#c5a15a'], icon: 'ShipWheel', pop: 1.79, known: 'Shipbuilding and the world’s largest naval base' },
   { region: 'Birmingham', name: 'Vulcans', abbr: 'BHM', conf: 'East', div: 'Southeast', colors: ['#7a2e14', '#f0a13a'], icon: 'Hammer', pop: 1.18, known: 'Steel, the Magic City and its Vulcan statue' },
+  { region: 'Pittsburgh', name: 'Ballerinas', abbr: 'PIT', conf: 'East', div: 'Central', colors: ['#1b1b1b', '#f0b429'], icon: 'Music', pop: 2.43, known: 'Three rivers, steel and the inclines' },
   { region: 'Memphis', name: 'Blues', abbr: 'MEM', conf: 'East', div: 'Southeast', colors: ['#1b3a6b', '#79a7d8'], icon: 'Music', pop: 1.33, known: 'Beale Street and the blues' },
   { region: 'Toronto', name: 'Towers', abbr: 'TOR', conf: 'East', div: 'Atlantic', colors: ['#24292e', '#d6452b'], icon: 'TowerControl', pop: 6.7, known: 'The CN Tower' },
   { region: 'Montreal', name: 'Voyageurs', abbr: 'MTL', conf: 'East', div: 'Atlantic', colors: ['#20306b', '#d73b3e'], icon: 'Compass', pop: 4.3, known: 'The fur-trade canoeists who opened the continent' },
