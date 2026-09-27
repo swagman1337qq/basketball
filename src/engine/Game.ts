@@ -15,7 +15,7 @@ import { capGrowthFor } from './capModel';
 import { assignNumbers } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
 import { removeUnplayed, slimRetired } from './prune';
-import { ccpNewSeason, ccpPlay, ccpTopUp, dnOf } from './ccp';
+import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
@@ -116,11 +116,11 @@ export class Game {
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};
     // Teams renamed in 2026 to fit their cities: saves that kept the old default nicknames update.
-    const fix = (t: any) => { if (t && OLD_NICKNAMES[t.abbr] === t.name) { const nt = TEAMS.find(x => x[2] === t.abbr); if (nt) { t.name = nt[1]; Object.assign(t, { icon: teamStyle(t.abbr).icon }); } } };
+    const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
-    removeUnplayed(g, g.state); slimRetired(g); // older saves: remove retirees who never played here, trim the rest
+    ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.

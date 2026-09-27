@@ -216,3 +216,11 @@ export function ccpTopUp(g: Game, s: any, fa: number[]) {
 }
 export const CCP_KIND: Record<string, string> = { standard: 'CCP contract', pool: 'CCP contract (player pool)', draft: 'CCP draft pick', tryout: 'Local tryout', affiliate: 'Affiliate player', returning: 'Returning rights' };
 export const allCcpClubs = CCP_CLUBS;
+
+// Club identities follow the current club list (saves made before a change pick up the new towns;
+// ids, records and games stay the same).
+export function ccpRefreshClubs(s: any) {
+  if (!s.ccp) return;
+  const fresh = buildTeams(s);
+  s.ccp.teams.forEach((t: CcpTeam) => { const f = fresh.find(x => x.aff === t.aff); if (f) Object.assign(t, { key: f.key, city: f.city, where: f.where, name: f.name, abbr: f.abbr, icon: f.icon, colors: f.colors, note: f.note }); });
+}
