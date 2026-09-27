@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { BIRD_LABEL, birdOf, capHold, capState, DAY, describeContract, exceptionsOf, nums, qoFor, rosterMax, stdIds, taxBill, teamSalary, twoWayIds, yosOf } from '../../engine/cba';
-import { answerOfferSheet, convertContract, decisionsFor, renounce } from '../../engine/cbaFlow';
+import { answerOfferSheet, convertContract, convOptions, decisionsFor, renounce } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { Link, muted, ruleH4 } from '../kit';
 
@@ -98,8 +98,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
                   {years.map(y => { const v = sal(p, y); return <td key={y} style={{ ...tdr, color: p.opt?.season === y ? 'var(--color-accent-700)' : v ? undefined : 'var(--color-neutral-500)' }}>{v ? fmtMoney(v) + mark(p, y) : y === p.exp + 1 && qoFor && qoOk(gm, p) ? 'RFA' : y === p.exp + 1 ? 'UFA' : ''}</td>; })}
                   <td style={{ ...tdc, fontSize: '11.5px' }}>{(p.yrsWith || 0) >= 3 ? 'Full' : p.yrsWith === 2 ? 'Early' : 'Non'}</td>
                   <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
-                    {p.ctype === 'ex10' && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} onClick={() => convertContract(gm, id, 'twoWay')}>To two-way</button>}
-                    {p.ctype === 'twoWay' && <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} onClick={() => convertContract(gm, id, 'standard')}>To standard</button>}
+                    {convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} title={o.label + ': ' + o.why} onClick={() => convertContract(gm, id, o.to)}>{o.short}</button>)}
                     <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} onClick={() => gm.setState({ dialog: { type: 'release', pid: id } })}>Release</button>
                   </td>
                 </tr>); })}

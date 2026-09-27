@@ -6,6 +6,7 @@ import type { VM } from '../vm';
 import { fmtChange, RNAME, yearByYear } from '../../engine/progress';
 import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
+import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { Bar, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
 const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
@@ -80,7 +81,16 @@ export function ContractExtras({ vm }: { vm: VM }) {
   const inc = p.inc || [], hit = gm.capHit(p);
   const tv = (st: string) => Math.round(gm.pVal(p, st));
   const idx = Math.max(0, Math.min(100, Math.round(100 * (1 - Math.exp(-Math.max(0, tv('middle')) / 45)))));
-  return (
+  const conv = tid === s.me ? convOptions(p) : [], CT: Record<string, string> = { twoWay: 'Two-way contract', ex10: 'Exhibit 10 (training camp)', tenDay: '10-day contract', hardship: 'Hardship contract' };
+  return (<>
+    {conv.length > 0 && <section style={{ marginTop: '26px', padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 8 }}>
+      <h4 style={{ ...ruleH4, marginTop: 0 }}>{CT[p.ctype]}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + ' of 50 NBA games, not playoff-eligible' : ''}</h4>
+      {conv.map(o => <div key={o.to} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '4px 0' }}>
+        <button className="btn btn-primary" style={{ fontSize: '12.5px', whiteSpace: 'nowrap' }} onClick={() => convertContract(gm, p.id, o.to)}>{o.label}</button>
+        <span style={{ ...muted, fontSize: '12.5px' }}>{o.why}</span>
+      </div>)}
+      {s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', marginTop: 6 }}>{s.convMsg}</div>}
+    </section>}
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', marginTop: '26px' }}>
       <section>
         <h4 style={ruleH4}>Bonus checklist</h4>
@@ -107,7 +117,7 @@ export function ContractExtras({ vm }: { vm: VM }) {
         <Row k="Contract" v={p.amt > gm.fair(p.ovr) * 1.15 ? 'Overpaid: a negative in trades' : p.amt < gm.fair(p.ovr) * 0.8 ? 'Bargain: a plus in trades' : 'Fair value'} c={p.amt > gm.fair(p.ovr) * 1.15 ? bad : p.amt < gm.fair(p.ovr) * 0.8 ? good : undefined} />
       </section>
     </div>
-  );
+  </>);
 }
 
 export function DevelopmentTab({ vm }: { vm: VM }) {

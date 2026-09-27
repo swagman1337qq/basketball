@@ -112,22 +112,43 @@ export function userRelease(g: Game) {
   });
 }
 
-// Convert an Exhibit 10 or two-way player: 'twoWay' (Exhibit 10 → two-way) or 'standard'.
-export function convertContract(g: Game, pid: number, to: 'twoWay' | 'standard') {
+// Contract conversions your own players can take, as the NBA allows them:
+//   two-way  → standard (minimum for his service, or his salary if higher; needs a roster spot)
+//   Exhibit 10 → two-way (under 4 years of service, 3 per team) or standard now (guaranteed)
+//   10-day / hardship → rest of the season (standard minimum through this season)
+export type ConvTo = 'twoWay' | 'standard';
+export function convOptions(p: any): { to: ConvTo; label: string; short: string; why: string }[] {
+  if (p.ctype === 'twoWay') return [{ to: 'standard', label: 'Convert to a standard contract', short: 'Make standard', why: 'Pays him the minimum for his years of service (or his current salary, if higher) through the end of his deal; puts him on the 15-man roster and against the cap, makes him playoff-eligible and lets you extend him later. Needs an open roster spot.' }];
+  if (p.ctype === 'ex10') return [
+    { to: 'twoWay', label: 'Convert to a two-way contract', short: 'To two-way', why: 'Off the 15-man roster and the cap; up to 50 NBA games. Under 4 years of service; up to 3 per team.' },
+    { to: 'standard', label: 'Keep him: guarantee a standard contract now', short: 'Make standard', why: 'Guarantees his minimum deal today instead of waiting for opening night. Needs a spot on the 15-man roster once the season starts.' }];
+  if (p.ctype === 'tenDay' || p.ctype === 'hardship') return [{ to: 'standard', label: 'Sign him for the rest of the season', short: 'Rest of season', why: 'A standard minimum contract through the end of this season, so he no longer runs out' + (p.ctype === 'hardship' ? ' when your injured players return' : ' after 10 days') + '. He must fit on the 15-man roster.' }];
+  return [];
+}
+
+export function convertContract(g: Game, pid: number, to: ConvTo) {
   g.setState(s => {
     const P = g.db.P, p = P[pid], tid = s.me, N = nums(g), ids = s.rosters[tid] || [];
-    if (!ids.includes(pid)) return null;
+    if (!ids.includes(pid) || !convOptions(p).some(o => o.to === to)) return null;
+    const from = p.ctype, what = from === 'tenDay' ? '10-day' : from === 'hardship' ? 'hardship' : from === 'ex10' ? 'Exhibit 10' : 'two-way';
     if (to === 'twoWay') {
       if (yosOf(g, p) > 3) return { convMsg: p.name + ' has 4+ years of service: not two-way eligible.' };
       if (twoWayIds(g, ids).length >= TWO_WAY_MAX) return { convMsg: 'You already have ' + TWO_WAY_MAX + ' two-way players.' };
       Object.assign(p, { ctype: 'twoWay', amt: N.TWO_WAY, capOverride: 0, twoWay: { tid, games: 0 }, raise: 0 }); if (p.exp < g.Y) p.exp = g.Y;
     } else {
-      if (!s.god && stdIds(g, ids).length >= rosterMax(s) && p.ctype === 'twoWay') return { convMsg: 'No standard roster spot open (' + rosterMax(s) + ').' };
-      const minS = N.min(yosOf(g, p));
-      if (!s.god && p.ctype === 'twoWay' && teamSalary(g, s, tid) + minS > (capState(s, tid).hardCap === 'AP1' ? N.AP1 : capState(s, tid).hardCap === 'AP2' ? N.AP2 : Infinity)) return { convMsg: 'Converting would break your hard cap.' };
-      Object.assign(p, { ctype: 'min', amt: Math.max(p.amt, minS), raise: 0 }); delete p.capOverride; delete p.twoWay;
+      const inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase), std = stdIds(g, ids).length;
+      // A two-way player takes a new spot; a hardship signing sits in a 16th spot that has to go.
+      if (!s.god && ((from === 'twoWay' && std >= rosterMax(s)) || (from === 'hardship' && std > rosterMax(s)) || (from === 'ex10' && inSeason && std > rosterMax(s))))
+        return { convMsg: 'No standard roster spot open (' + rosterMax(s) + '). Waive or trade someone first.' };
+      const minS = N.min(yosOf(g, p)), newAmt = from === 'twoWay' ? Math.max(p.amt, minS) : minS, cap = capState(s, tid).hardCap;
+      const extra = newAmt - (from === 'twoWay' ? 0 : g.capHit(p));
+      if (!s.god && extra > 0 && teamSalary(g, s, tid) + extra > (cap === 'AP1' ? N.AP1 : cap === 'AP2' ? N.AP2 : Infinity)) return { convMsg: 'Converting would break your hard cap.' };
+      Object.assign(p, { ctype: 'min', amt: newAmt, raise: 0 }); delete p.capOverride; delete p.twoWay; delete p.tenDay;
+      if (from === 'tenDay' || from === 'hardship') p.exp = g.Y;
+      if (p.exp < g.Y) p.exp = g.Y;
     }
-    return { convMsg: null, gv: (s.gv || 0) + 1, log: g.logEntry(s, 'Converted ' + p.name + ' to a ' + (to === 'twoWay' ? 'two-way contract' : 'standard contract')) };
+    const txt = to === 'twoWay' ? 'Converted ' + p.name + ' to a two-way contract' : from === 'tenDay' || from === 'hardship' ? 'Signed ' + p.name + ' (' + what + ') for the rest of the season' : 'Converted ' + p.name + '’s ' + what + ' deal to a standard contract';
+    return { convMsg: null, gv: (s.gv || 0) + 1, log: g.logEntry(s, txt) };
   });
 }
 
