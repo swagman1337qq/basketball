@@ -1,7 +1,7 @@
 import type { VM } from '../vm';
 import { CapBar } from '../CapBar';
 import { useState } from 'react';
-import { Seg } from '../kit';
+import { Seg, usePaged } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { Link, muted } from '../kit';
@@ -58,6 +58,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const rows = (vm.faRows || []).filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk));
   const nGl = (vm.faRows || []).filter((p: any) => p.glT).length;
   const sc = useScoutSelect(vm, rows.map((p: any) => p.id));
+  const pg = usePaged(rows, 'free agents', 25);
   return (
     <>
       <FATracker vm={vm} />
@@ -90,7 +91,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((p: any, i: number) => (
+          {pg.rows.map((p: any, i: number) => (
             <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
               {sc.cell(p.id)}
               <td style={{ padding: "4px 8px" }}>
@@ -143,6 +144,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           ))}
         </tbody>
       </table>
+          {pg.pager}
       <p style={{ margin: "10px 0 0", color: "var(--color-neutral-700)", fontSize: "12px" }}>
         {vm.faNote}
       </p>

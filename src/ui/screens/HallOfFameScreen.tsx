@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { CLASS_MAX, FIRST_BALLOT, HOF_BAR, hofScore, MIN_SEASONS, WAIT } from '../../engine/hof';
-import { Bar, Kicker, Link, muted, ruleH4, Seg } from '../kit';
+import { Bar, Kicker, Link, muted, ruleH4, Seg, usePaged } from '../kit';
 
 export function HallOfFameScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open } = vm.ctx, P = gm.db.P;
@@ -38,6 +38,7 @@ export function HallOfFameScreen({ vm }: { vm: VM }) {
       <span><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span>{x.score.toFixed(0)}</span><span style={muted}>/ {HOF_BAR}</span></div><Bar value={x.score} max={HOF_BAR} color={x.score >= HOF_BAR ? 'var(--gm-elite)' : 'var(--color-accent)'} /></span>
     </div>
   );
+  const pgB = usePaged(ballot, 'players', 20), pgT = usePaged(track, 'players', 20);
   return (
     <>
       <div style={{ marginBottom: '16px' }}><Seg<'hall' | 'ballot' | 'track' | 'how'> value={tab} options={[['hall', 'Inductees'], ['ballot', 'On the ballot'], ['track', 'Active players on track'], ['how', 'How it works']]} onChange={setTab} /></div>
@@ -47,8 +48,8 @@ export function HallOfFameScreen({ vm }: { vm: VM }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '16px' }}>{hof.filter(h => h.year === y).map(h => <Plaque key={h.pid} h={h} />)}</div>
         </section>
       )))}
-      {tab === 'ballot' && (ballot.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No retired player is close to the bar yet.</p> : <><p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>Retired players within reach of the bar ({HOF_BAR}), best first. Those not yet eligible show when they will be.</p>{ballot.map((x, i) => <Row key={x.p.id} x={x} i={i} />)}</>)}
-      {tab === 'track' && (track.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No active player is on a Hall of Fame track yet.</p> : <><p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>Active players already halfway or more to the bar. Their score only grows while they play.</p>{track.map((x, i) => <Row key={x.p.id} x={x} i={i} />)}</>)}
+      {tab === 'ballot' && (ballot.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No retired player is close to the bar yet.</p> : <><p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>Retired players within reach of the bar ({HOF_BAR}), best first. Those not yet eligible show when they will be.</p>{pgB.rows.map((x, i) => <Row key={x.p.id} x={x} i={pgB.start + i} />)}{pgB.pager}</>)}
+      {tab === 'track' && (track.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No active player is on a Hall of Fame track yet.</p> : <><p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>Active players already halfway or more to the bar. Their score only grows while they play.</p>{pgT.rows.map((x, i) => <Row key={x.p.id} x={x} i={pgT.start + i} />)}{pgT.pager}</>)}
       {tab === 'how' && (
         <section style={{ maxWidth: '720px', fontSize: '13px' }}>
           <p>Players become eligible <b>{WAIT} seasons after they retire</b>. When each season’s playoffs end, every eligible player with a Hall score of <b>{HOF_BAR}</b> or more is inducted, best first, up to {CLASS_MAX} a year (the rest wait for next year). He must have played at least {MIN_SEASONS} seasons. A player inducted in his first eligible year with {FIRST_BALLOT}+ is a <b>first-ballot</b> Hall of Famer.</p>

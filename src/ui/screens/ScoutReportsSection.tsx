@@ -7,7 +7,7 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import type { VM } from '../vm';
 import { kindOf, scoutedIds, scoutReport, type ReportKind } from '../../engine/scoutReport';
 import { ScoutReportView } from '../ScoutReportView';
-import { Link, muted, ruleH4, Seg } from '../kit';
+import { Link, muted, ruleH4, Seg, usePaged } from '../kit';
 
 export function ScoutReportsSection({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, P = gm.db.P;
@@ -20,6 +20,7 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), CONF: Record<string, number> = { 'Very high': 5, High: 4, Medium: 3, Low: 2, 'Very low': 1 };
   const srt = useSort<any>(reps.filter(r => byTrait(vm, tk)({ id: r.pid })), { name: r => byLast(P[r.pid]), type: r => r.kindLabel, pos: r => P[r.pid].pos, age: r => P[r.pid].age, ovr: r => r.seen.ovr, pot: r => r.seen.pot, projection: r => r.projection, confidence: r => CONF[r.confidence] ?? 0, comp: r => r.comp?.name || null });
   const H: [string, string, 'left' | 'right'][] = [['name', 'Player', 'left'], ['type', 'Type', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age', 'right'], ['ovr', 'Ovr', 'right'], ['pot', 'Pot', 'right'], ['projection', 'Projection', 'left'], ['confidence', 'Confidence', 'left'], ['comp', 'Plays like', 'left']];
+  const pg = usePaged(srt.rows, 'reports', 25, srt.sortKey);
   return (
     <section style={{ marginBottom: 26 }}>
       <h4 style={ruleH4}>Scouting reports</h4>
@@ -37,7 +38,7 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
       <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)' }}>
         <table className="table" style={{ fontSize: '12.5px' }}>
           <thead><tr>{H.map(([k, h, al]) => srt.head(k, h, al, { padding: '5px 8px', position: 'sticky', top: 0, background: 'var(--color-bg)' }))}</tr></thead>
-          <tbody>{srt.rows.map(r => { const p = P[r.pid]; return (
+          <tbody>{pg.rows.map(r => { const p = P[r.pid]; return (
             <tr key={r.pid} onClick={() => setSel(r.pid)} style={{ cursor: 'pointer', background: sel === r.pid ? 'var(--color-accent-100)' : undefined }}>
               <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}><img src={gm.flag(p.rep)} alt="" style={{ width: 16, height: 11, marginRight: 6, verticalAlign: 'middle' }} />{p.name}{(s.scoutList || []).includes(r.pid) ? ' ★' : ''}</td>
               <td style={{ padding: '4px 8px' }}>{r.kindLabel}</td><td style={{ padding: '4px 8px' }}>{p.pos}</td><td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.age}</td>
@@ -47,6 +48,7 @@ export function ScoutReportsSection({ vm }: { vm: VM }) {
           </tbody>
         </table>
       </div>
+      {pg.pager}
       {sel != null && P[sel] && <div style={{ marginTop: 14, padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)' }}><ScoutReportView vm={vm} pid={sel} /></div>}
     </section>
   );

@@ -7,7 +7,7 @@ import type { VM } from '../vm';
 import { seasonAdvanced } from '../../engine/advanced';
 import { computeAwards } from '../../engine/awards';
 import { LeagueStatsScreen } from './LeagueStatsScreen';
-import { Link, muted, ruleH4, Seg } from '../kit';
+import { Link, muted, ruleH4, Seg, usePaged } from '../kit';
 
 type Tab = 'players' | 'teams' | 'league' | 'history';
 const F = ['gp', 'min', 'pts', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'gs'];
@@ -30,18 +30,19 @@ export function StatsScreen({ vm }: { vm: VM }) {
 function useSeasons(vm: VM) { const { gm } = vm.ctx, first = gm.db.firstSeason || 2027; return Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i); }
 const lbl = (y: number) => y - 1 + '–' + String(y).slice(2);
 
-function SortTable({ cols, rows, initial = 2, limit = 250 }: { cols: [string, string, (r: any) => any, number?][]; rows: any[]; initial?: number; limit?: number }) {
+function SortTable({ cols, rows, initial = 2, limit = 25, noun = 'players' }: { cols: [string, string, (r: any) => any, number?][]; rows: any[]; initial?: number; limit?: number; noun?: string }) {
   const [sort, setSort] = useState<[number, number]>([initial, -1]);
   // Name columns render links: sort players by last name, teams by name.
   const val = (r: any) => { const v = c[2](r); return v && typeof v === 'object' ? (r.p ? byLast(r.p) : r.t ? r.t.region + ' ' + r.t.name : '') : v; };
   const c = cols[sort[0]], srt = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y)) * sort[1] * -1; return ((y ?? -1e9) - (x ?? -1e9)) * (sort[1] === -1 ? 1 : -1); });
+  const pg = usePaged(srt, noun, limit, sort.join());
   return (
     <div style={{ overflowX: 'auto' }}>
       <table className="table" style={{ fontSize: '12.5px', minWidth: 900 }}>
         <thead><tr><th style={{ padding: '5px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>#</th>{cols.map(([h, tip], i) => <th key={h + i} title={tip} onClick={() => setSort([i, sort[0] === i ? -sort[1] : -1])} style={{ padding: '5px 6px', textAlign: i < 3 ? 'left' : 'right', cursor: 'pointer', whiteSpace: 'nowrap', color: sort[0] === i ? 'var(--color-accent-700)' : undefined }}>{h}{sort[0] === i ? (sort[1] === -1 ? ' ↓' : ' ↑') : ''}</th>)}</tr></thead>
-        <tbody>{srt.slice(0, limit).map((r, i) => <tr key={r.key ?? i}><td style={{ padding: '3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-600)' }}>{i + 1}</td>{cols.map(([h, , f, d], j) => { const v = f(r); return <td key={h + j} style={{ padding: '3px 6px', textAlign: j < 3 ? 'left' : 'right', whiteSpace: 'nowrap' }}>{v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? v.toFixed(d ?? 1) : v}</td>; })}</tr>)}</tbody>
+        <tbody>{pg.rows.map((r, i) => <tr key={r.key ?? i}><td style={{ padding: '3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-600)' }}>{pg.start + i + 1}</td>{cols.map(([h, , f, d], j) => { const v = f(r); return <td key={h + j} style={{ padding: '3px 6px', textAlign: j < 3 ? 'left' : 'right', whiteSpace: 'nowrap' }}>{v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? v.toFixed(d ?? 1) : v}</td>; })}</tr>)}</tbody>
       </table>
-      {srt.length > limit && <p style={{ ...muted, fontSize: '12px' }}>Showing the top {limit} of {srt.length}. Sort or filter to see others.</p>}
+      {pg.pager}
     </div>
   );
 }
@@ -100,7 +101,7 @@ function TeamStats({ vm }: { vm: VM }) {
         <select className="input" style={{ width: 'auto' }} value={season} onChange={e => setSeason(+e.target.value)}>{seasons.map(y => <option key={y} value={y}>{lbl(y)}</option>)}</select>
         <Seg<any> value={mode} options={[['pg', 'Per game'], ['opp', 'Opponents'], ['adv', 'Advanced & Four Factors']]} onChange={setMode} />
       </div>
-      {rows.length ? <SortTable cols={cols} rows={rows} initial={1} limit={40} /> : <p style={muted}>No team stats for this season{season < gm.Y ? ' (seasons before this save kept team totals aren’t available)' : ' yet'}.</p>}
+      {rows.length ? <SortTable cols={cols} rows={rows} initial={1} limit={40} noun="teams" /> : <p style={muted}>No team stats for this season{season < gm.Y ? ' (seasons before this save kept team totals aren’t available)' : ' yet'}.</p>}
     </>
   );
 }

@@ -6,6 +6,8 @@ import type { Game } from './Game';
 import { regions } from '../data/world';
 import { intelF } from './overseas';
 import { mulberry32 } from './rng';
+import { badgesOf, type Badge } from './ratings';
+import { yosOf } from './cba';
 
 export type ReportKind = 'prospect' | 'overseas' | 'mine' | 'league' | 'fa';
 export interface Report {
@@ -235,4 +237,16 @@ export function scoutedIds(g: Game, s: any) {
   const set = new Set<number>([...(s.scoutList || []), ...(s.scoutFocus || []), ...(s.rosters[s.me] || [])]);
   Object.entries(s.intel || {}).forEach(([id, v]: any) => { if (v > 0 && g.db.P[+id] && !g.db.P[+id].retired) set.add(+id); });
   return [...set].filter(id => g.db.P[id] && !g.db.P[id].retired);
+}
+
+// Which of a player's badges you know. God Mode, your own players and established NBA players
+// (you've seen them play): all of them. Everyone else depends on your scouts' read: a sharp read
+// shows them all, a fair one his top two, a rough one his best, and a stranger shows none.
+export function knownBadges(g: Game, s: any, p: any): { list: Badge[]; partial: boolean } {
+  const all = badgesOf(p);
+  if (s.god) return { list: all, partial: false };
+  const kind = kindOf(g, s, p);
+  if (kind === 'mine' || ((kind === 'league' || kind === 'fa') && ((p.stats || []).some((r: any) => !r.po) || yosOf(g, p) >= 1))) return { list: all, partial: false };
+  const m = scoutRead(g, s, p).margin, n = m <= 2.5 ? all.length : m <= 5 ? 2 : m <= 9 ? 1 : 0;
+  return { list: all.slice(0, n), partial: n < 99 && m > 2.5 };
 }

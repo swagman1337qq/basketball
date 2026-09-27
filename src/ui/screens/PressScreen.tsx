@@ -2,7 +2,7 @@
 // trades, signings, the draft, firings and hirings. Every name links through.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { Kicker, Link, linkNames, muted, Seg } from '../kit';
+import { Kicker, Link, linkNames, muted, Seg, usePaged } from '../kit';
 
 const KIND: Record<string, string> = { trade: 'Trade', sign: 'Signing', draft: 'Draft', fired: 'Firing', hired: 'Hiring', review: 'Owner review', offer: 'Job offer', interview: 'Interview', firesale: 'Fire sale', award: 'Awards', title: 'Champions', hof: 'Hall of Fame' };
 
@@ -11,12 +11,13 @@ export function PressScreen({ vm }: { vm: VM }) {
   const [f, setF] = useState<'all' | 'mine'>('all');
   const P = gm.db.P;
   const list = (s.news || []).filter(n => f === 'all' || gm.isUser(s, n.tid)).slice(0, 80);
+  const pg = usePaged(list as any[], 'stories', 24, f);
   return (
     <>
       <div style={{ marginBottom: '16px' }}><Seg<'all' | 'mine'> value={f} options={[['all', 'Whole league'], ['mine', 'My teams']]} onChange={setF} /></div>
       {list.length === 0 && <p style={{ ...muted, fontStyle: 'italic' }}>Nothing on the record yet. Quotes come in with trades, signings, the draft and the end-of-season reviews.</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: '16px' }}>
-        {list.map((n, i) => (
+        {pg.rows.map((n, i) => (
           <section key={i} className="card" style={{ padding: '12px 14px', gap: '6px' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {T[n.tid] ? logo(n.tid, 22) : null}
@@ -30,6 +31,7 @@ export function PressScreen({ vm }: { vm: VM }) {
           </section>
         ))}
       </div>
+      {pg.pager}
     </>
   );
 }

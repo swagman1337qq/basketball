@@ -7,7 +7,7 @@ import type { VM } from '../vm';
 import { FRANCHISES, marketOf, type Franchise } from '../../data/franchises';
 import { genExpansionTeam } from '../../data/world';
 import { GLYPH_NAMES, LOGO_STYLES, TeamLogo } from '../TeamLogo';
-import { muted, NumInput, Seg } from '../kit';
+import { muted, NumInput, Seg, usePaged } from '../kit';
 
 const DIVS: Record<string, string[]> = { East: ['Atlantic', 'Central', 'Southeast'], West: ['Northwest', 'Pacific', 'Southwest'] };
 const toTeam = (f: Franchise) => ({ region: f.region, name: f.name, abbr: f.abbr, conf: f.conf, div: f.div, mkt: marketOf(f), colors: f.colors, icon: f.icon, pop: f.pop });
@@ -25,6 +25,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
   const errs = [pend.length === 1 || pend.length % 2 ? 'Pick an even number of teams (the schedule needs an even league).' : '', pend.length && eastN !== westN ? 'Tip: an equal number per conference keeps the playoff races fair (' + eastN + ' East, ' + westN + ' West).' : ''].filter(Boolean);
   const dOk = draft.region.trim() && draft.name.trim() && /^[A-Z]{2,4}$/.test(draft.abbr) && !taken.has(draft.abbr);
   const set = (p: any) => setDraft((d: any) => ({ ...d, ...p }));
+  const pg = usePaged(list, 'cities', 24, conf + '|' + big + '|' + q);
   return (
     <div style={{ padding: '10px 0 16px', borderBottom: '1px solid var(--color-divider)' }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Joining next preseason ({pend.length || 'none picked: two default teams'})</div>
@@ -44,7 +45,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
             <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={big} onChange={e => setBig(e.target.checked)} /> Only metros of 1 million+</label>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 8, maxHeight: 420, overflowY: 'auto' }}>
-            {list.map(f => { const used = taken.has(f.abbr) || inLeague.has(f.region + '|' + f.name); return (
+            {pg.rows.map(f => { const used = taken.has(f.abbr) || inLeague.has(f.region + '|' + f.name); return (
               <div key={f.abbr} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)', opacity: used ? 0.5 : 1 }}>
                 <TeamLogo team={toTeam(f) as any} size={40} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: '12.5px' }}>
@@ -55,6 +56,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
                 <button className="btn btn-secondary" disabled={used} style={{ fontSize: '12px', padding: '3px 10px' }} onClick={() => setPend([...pend, toTeam(f)])}>{used ? (pend.some(p => p.abbr === f.abbr) ? 'Added' : 'In league') : 'Add'}</button>
               </div>); })}
           </div>
+          {pg.pager}
         </>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr)', gap: 18, alignItems: 'start' }}>

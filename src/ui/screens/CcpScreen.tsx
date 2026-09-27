@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
-import { Link, muted, ruleH4, Seg } from '../kit';
+import { Link, muted, ruleH4, Seg, usePaged } from '../kit';
 import { TeamLogo } from '../TeamLogo';
 import { signingMethods } from '../../engine/cba';
 import { CCP_KIND, ccpRoster, ccpStandings, fmtDn, type CcpGame, type CcpTeam } from '../../engine/ccp';
@@ -65,6 +65,7 @@ function CcpInner({ vm, c }: { vm: VM; c: any }) {
       <td style={tr}>{done ? <b>{x.as}–{x.hs}{x.ot ? ' OT' : ''}</b> : '—'}</td>
       <td style={{ ...td, ...muted, fontSize: '11.5px' }}>{done && x.top ? [[x.top[2], x.top[3]], [x.top[0], x.top[1]]].map(([id, pts]) => P[id] ? P[id].name.split(' ').slice(-1)[0] + ' ' + pts : '').join(' · ') : ''}</td></tr>); };
 
+  const pg = usePaged(srt.rows, 'players', 30, srt.sortKey);
   return (
     <>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
@@ -117,12 +118,13 @@ function CcpInner({ vm, c }: { vm: VM; c: any }) {
         <div style={{ maxHeight: 640, overflowY: 'auto', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)' }}>
           <table className="table" style={{ fontSize: '12.5px' }}>
             <thead><tr>{[['name', 'Player', 'left'], ['team', 'Club', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age', 'right'], ['ovr', 'Ovr', 'right'], ['pot', 'Pot', 'right'], ['gp', 'GP', 'right'], ['pts', 'PTS', 'right'], ['reb', 'REB', 'right'], ['ast', 'AST', 'right']].map(([k, l, al]) => srt.head(k, l, al as any, { position: 'sticky', top: 0, background: 'var(--color-bg)' }))}<th style={{ ...td, position: 'sticky', top: 0, background: 'var(--color-bg)' }}>Contract</th><th style={{ ...td, position: 'sticky', top: 0, background: 'var(--color-bg)' }}>Sign him</th></tr></thead>
-            <tbody>{srt.rows.map((r: any) => (
+            <tbody>{pg.rows.map((r: any) => (
               <tr key={r.id}><td style={td}><Link onClick={() => open(r.id)}>{r.p.name}</Link></td><td style={td}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer' }} onClick={() => { setTi(r.t.id); setTab('teams'); }}><TeamLogo team={crest(r.t) as any} size={16} />{r.t.abbr}</span></td><td style={td}>{r.p.pos}</td><td style={tr}>{r.p.age}</td><td style={{ ...tr, fontWeight: 600 }}>{r.p.ovr}</td><td style={tr}>{r.p.pot}</td>
                 <td style={tr}>{r.s?.gp ?? 0}</td><td style={{ ...tr, fontWeight: 600 }}>{r.s ? r.s.pts.toFixed(1) : '—'}</td><td style={tr}>{r.s ? r.s.reb.toFixed(1) : '—'}</td><td style={tr}>{r.s ? r.s.ast.toFixed(1) : '—'}</td>
                 <td style={{ ...td, fontSize: '11.5px' }}>{r.x.how}</td><td style={td}>{signBtn(r.p, r.x)}</td></tr>))}</tbody>
           </table>
         </div>
+        {pg.pager}
       </>)}
 
       {tab === 'standings' && (<>

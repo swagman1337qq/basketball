@@ -1,6 +1,6 @@
 // Small building blocks for hand-written screens, matching the Classical styling
 // used by the generated ones (inline styles, hairline rules, heading font).
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 export const kickerStyle: CSSProperties = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' };
 export const accentKicker: CSSProperties = { ...kickerStyle, color: 'var(--color-accent-700)' };
@@ -176,4 +176,26 @@ export function Combo({ value, options, onChange, onPick, placeholder, width = 1
 // A small "randomize this field" button (God Mode editor).
 export function Dice({ onClick, title = 'Randomize' }: { onClick: () => void; title?: string }) {
   return <button type="button" className="btn btn-ghost" onClick={onClick} title={title} aria-label={title} style={{ fontSize: '13px', padding: '2px 7px', flex: 'none' }}>🎲</button>;
+}
+
+// Long lists show a page at a time: page numbers, "Show more", and a total ("Showing 1–25 of
+// 300 players"). The view resets to the first page when the list's length or `resetKey` changes.
+export function usePaged<T>(rows: T[], noun = 'players', size = 25, resetKey?: unknown) {
+  const [v, setV] = useState({ start: 0, count: size });
+  useEffect(() => { setV({ start: 0, count: size }); }, [rows.length, resetKey, size]);
+  const total = rows.length, start = Math.min(v.start, Math.max(0, total - 1)), end = Math.min(total, start + v.count);
+  const pages = Math.ceil(total / size), cur = Math.floor(start / size);
+  const pageBtn = (i: number) => <button key={i} className={'btn ' + (i === cur && v.count === size ? 'btn-primary' : 'btn-ghost')} onClick={() => setV({ start: i * size, count: size })} style={{ minWidth: 30, padding: '2px 8px', fontSize: '12px' }} aria-label={'Page ' + (i + 1)}>{i + 1}</button>;
+  const nums: (number | '…')[] = pages <= 9 ? Array.from({ length: pages }, (_, i) => i) : [0, ...(cur > 3 ? ['…' as const] : []), ...Array.from({ length: 5 }, (_, k) => cur - 2 + k).filter(i => i > 0 && i < pages - 1), ...(cur < pages - 4 ? ['…' as const] : []), pages - 1];
+  const pager = total === 0 ? null : (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0 4px', fontSize: '12.5px' }}>
+      <span style={{ ...muted, marginRight: 6 }}>Showing {start + 1}–{end} of {total} {noun}</span>
+      {pages > 1 && (<>
+        <button className="btn btn-ghost" disabled={cur === 0} onClick={() => setV({ start: (cur - 1) * size, count: size })} style={{ padding: '2px 8px', fontSize: '12px' }} aria-label="Previous page">‹</button>
+        {nums.map((n, i) => n === '…' ? <span key={'e' + i} style={muted}>…</span> : pageBtn(n))}
+        <button className="btn btn-ghost" disabled={end >= total} onClick={() => setV({ start: (cur + 1) * size, count: size })} style={{ padding: '2px 8px', fontSize: '12px' }} aria-label="Next page">›</button>
+        {end < total && <button className="btn btn-secondary" onClick={() => setV(x => ({ ...x, count: x.count + size }))} style={{ padding: '2px 10px', fontSize: '12px', marginLeft: 6 }}>Show {Math.min(size, total - end)} more</button>}
+      </>)}
+    </div>);
+  return { rows: rows.slice(start, end), pager, total, start };
 }

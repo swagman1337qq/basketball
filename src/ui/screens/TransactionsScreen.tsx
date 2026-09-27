@@ -1,9 +1,11 @@
+import { usePaged } from '../kit';
 import type { VM } from '../vm';
 import { useSort } from '../sortable';
 
 export function TransactionsScreen({ vm }: { vm: VM }) {
   const rows0 = (vm.txRows || []).map((r: any, i: number) => ({ ...r, _i: i }));
   const srt = useSort<any>(rows0, { date: r => -r._i, type: r => r.type, teams: r => (r.teamLinks || []).map((k: any) => k.abbr).join(' '), text: r => r.text });
+  const pg = usePaged(srt.rows, 'transactions', 40, srt.sortKey);
   return (
     <>
       <div style={{ display: "flex", marginBottom: "14px" }}>
@@ -22,7 +24,7 @@ export function TransactionsScreen({ vm }: { vm: VM }) {
           </tr>
         </thead>
         <tbody>
-          {srt.rows.map((r: any, i: number) => (
+          {pg.rows.map((r: any, i: number) => (
             <tr key={i} style={{ background: r.bg }}>
               <td style={{ padding: "5px 8px", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>
                 {r.date}
@@ -46,6 +48,7 @@ export function TransactionsScreen({ vm }: { vm: VM }) {
           ))}
         </tbody>
       </table>
+          {pg.pager}
       <p style={{ margin: "10px 0 0", color: "var(--color-neutral-700)", fontSize: "12px" }}>
         Your moves are shaded. Click a column to sort (Date: newest or oldest first). Other teams sign, trade and waive players as days pass.
       </p>

@@ -13,7 +13,8 @@ import { howAcquired } from '../../engine/txlog';
 import { baseline, deltas, fmtChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
-import { badgesOf, teamRating } from '../../engine/ratings';
+import { teamRating } from '../../engine/ratings';
+import { knownBadges } from '../../engine/scoutReport';
 import { nums, rosterMax, stdIds, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
 import { financesOf } from '../../engine/frontOffice';
 import { fmtMoney } from '../../engine/capModel';
@@ -56,7 +57,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const startersSet = new Set(cur ? mainIds.slice(0, 5) : []);
   const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
-    const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id), bs = badgesOf(p).slice(0, 3);
+    const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id), bs = knownBadges(gm, s, p).list.slice(0, 3);
     const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
     return (
       <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDrag(id); }} onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== id) move(drag, id); setDrag(null); }}

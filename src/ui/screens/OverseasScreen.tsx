@@ -5,7 +5,7 @@ import type { VM } from '../vm';
 import { useScoutSelect } from '../ScoutSelect';
 import { byLast, useSort } from '../sortable';
 import { BUYOUT_EXEMPT, leagueStr, negotiateBuyout, translation } from '../../engine/overseas';
-import { Link, muted, NumInput, td, th } from '../kit';
+import { Link, muted, NumInput, td, th, usePaged } from '../kit';
 
 export function OverseasScreen({ vm }: { vm: VM }) {
   const { gm, s, open, money } = vm.ctx;
@@ -14,6 +14,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
   const srt = useSort<any>((vm.ovRows || []) as any[], { name: r => byLast(P[r.id] || r), club: r => r.club, age: r => r.age, pos: r => r.pos, trans: r => translation(gm, s, P[r.id]).pts, rating: r => { const t = translation(gm, s, P[r.id]); return (t.lo + t.hi) / 2; }, fee: r => P[r.id]?.abroad?.fee ?? 0, ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0 });
   const rows = srt.rows;
   const sc = useScoutSelect(vm, rows.map((r: any) => r.id));
+  const pg = usePaged(rows, 'players', 25);
   return (
     <>
       <p style={{ margin: '0 0 6px', ...muted }}>
@@ -28,7 +29,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
           <tr>{sc.head()}{srt.head('name', 'Player')}{srt.head('club', 'Club · league strength')}<th style={th()}>Abroad this season</th>{srt.head('trans', 'Projected NBA translation')}{srt.head('rating', 'Rating', 'right')}{srt.head('fee', 'Contract')}{srt.head('ask', 'Asking', 'right')}<th style={th()}></th></tr>
         </thead>
         <tbody>
-          {rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (
+          {pg.rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (
             <tr key={r.id} onContextMenu={sc.onContext(r.id)} style={{ background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
               {sc.cell(r.id)}
               <td style={td()}>
@@ -56,6 +57,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
           ); })}
         </tbody>
       </table>
+          {pg.pager}
       {neg && (() => { const p = P[neg.pid], a = p.abroad; if (!a) return null; return (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 45%, transparent)', zIndex: 20 }} onClick={() => setNeg(null)}>
           <div className="dialog" onClick={e => e.stopPropagation()}>

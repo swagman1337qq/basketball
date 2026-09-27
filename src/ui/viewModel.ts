@@ -11,6 +11,7 @@ import { intelF } from '../engine/overseas';
 import { badgesOf, setRating, setWing, teamRating, wngOf } from '../engine/ratings';
 import { askOffers, shopOffers } from '../engine/tradeOffers';
 import { recommendPos } from '../engine/ratings';
+import { knownBadges } from '../engine/scoutReport';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, extWindow, maxFor, nums, qoEligible, qoFor, rosterMax, signingMethods, stdIds, teamSalary, twoWayIds, yosOf } from '../engine/cba';
 import { financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
@@ -69,7 +70,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const lastKey = r => (String(r.last ?? (r.familyFirst ? String(r.name).split(' ')[0] : String(r.name).split(' ').slice(-1)[0])) + ' ' + r.name).toLowerCase();
   const sortBy = (arr, [k, dir]) => arr.slice().sort((a, b) => { const x = k === 'name' ? lastKey(a) : a[k], y = k === 'name' ? lastKey(b) : b[k]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
   const hdr = (tbl, cols) => cols.map(([k, label, al]) => { const [sk, sd] = s.sort[tbl]; return { label, align: al || 'right', arrow: sk === k ? (sd > 0 ? ' ↑' : ' ↓') : '', color: sk === k ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)', onClick: () => gm.setState(st => ({ sort: { ...st.sort, [tbl]: [k, st.sort[tbl][0] === k ? -st.sort[tbl][1] : (['rk', 'name', 'pos', 'rank', 'fromT', 'age', 'mood'].includes(k) ? 1 : -1)] } })) }; });
-  const pBase = id => { const p = P[id]; return { ...p, topBadges: badgesOf(p).slice(0, 3), native: p.native || '', injTag: p.inj ? 'Out ' + p.inj.games + 'g · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(p.pot), open: open(id) }; };
+  const pBase = id => { const p = P[id]; return { ...p, topBadges: knownBadges(gm, s, p).list.slice(0, 3), native: p.native || '', injTag: p.inj ? 'Out ' + p.inj.games + 'g · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(p.pot), open: open(id) }; };
   const strat = gm.strategies(T);
   const STRAT = { rebuild: ['Rebuilding', 'Prioritizing draft capital and young upside. Willing to absorb unfavorable contracts as the cost of acquiring picks.'], middle: ['On the rise', 'Building around a young core. Values high-upside players and is reluctant to move picks except for a priority target.'], contend: ['Contending', 'In win-now mode. Will part with draft picks for proven, immediate contributors.'] };
 

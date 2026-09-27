@@ -3,7 +3,8 @@
 import type { VM } from '../vm';
 import { fmtChange } from '../../engine/progress';
 import { yosOf } from '../../engine/cba';
-import { BADGE_FLAVOR, badgesOf, TIERS } from '../../engine/ratings';
+import { BADGE_FLAVOR, TIERS } from '../../engine/ratings';
+import { knownBadges } from '../../engine/scoutReport';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
 import { CountryPicker, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
@@ -44,7 +45,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
   const { gm, s, p, tid, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl;
   if (!p.id) return null;
   const t = gm.seasonTotals(p, gm.Y), gp = t?.gp || 0, f1 = (v: number) => v.toFixed(1);
-  const badges = badgesOf(p), T = s.teams;
+  const kb = knownBadges(gm, s, p), badges = kb.list, T = s.teams;
   // His NBA season: years of service (including before this league began) plus this one once he has played.
   const yrs = yosOf(gm, p) + ((p.stats || []).some(r => !r.po && r.season === gm.Y) ? 1 : 0);
   const tc = tid >= 0 ? T[tid].colors?.[0] : undefined;
@@ -78,8 +79,10 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
               {badges.slice(0, 7).map(b => <BadgeChip key={b.key} b={b} />)}
               {badges.length > 7 && <span style={{ ...chip, ...muted }}>+{badges.length - 7}</span>}
+              {kb.partial && <span style={{ ...chip, ...muted }} title="Your scouts haven’t seen enough of him to know all his badges">More unknown · scout him</span>}
             </div>
           )}
+          {badges.length === 0 && kb.partial && <div style={{ marginTop: '8px', fontSize: '12px', ...muted }}>Badges unknown: your scouts haven’t seen enough of him.</div>}
           <div style={{ marginTop: '8px', fontSize: '13px' }}>{pl.contractLine}</div>
         </div>
         <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
@@ -109,9 +112,9 @@ export function ProfileHeader({ vm }: { vm: VM }) {
 }
 
 export function ProfileOverview({ vm }: { vm: VM }) {
-  const { gm, p, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl, open = vm.ctx.open;
+  const { gm, s, p, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl, open = vm.ctx.open;
   if (!p.id) return null;
-  const P = gm.db.P, badges = badgesOf(p);
+  const P = gm.db.P, kb = knownBadges(gm, s, p), badges = kb.list;
   const bio = (pl.bgRows || []).filter(r => !['Father', 'Son', 'Brother', 'Draft class'].includes(r.k));
   const Row = ({ k, children }: { k: string; children: any }) => <div style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--color-divider)', alignItems: 'center' }}><span style={muted}>{k}</span><span style={{ minWidth: 0 }}>{children}</span></div>;
   return (
@@ -199,7 +202,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           ))}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', margin: '-4px 0 8px' }}>{RTIERS.map(([n, c, lo]) => <span key={n} style={{ color: c }}>■ {n} {lo}+</span>)}<span style={muted}>· the line marks the league average</span></div>
           <h4 style={{ ...ruleH4, marginTop: '14px' }}>Badges</h4>
-          {badges.length === 0 ? <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic' }}>No badges yet. They’re earned by reaching rating thresholds.</p> : badges.map(b => (
+          {badges.length === 0 ? <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic' }}>{kb.partial ? 'Unknown: your scouts haven’t seen enough of him to tell. Put him on the scouting list or have a scout follow him.' : 'No badges yet. They’re earned by reaching rating thresholds.'}</p> : badges.map(b => (
             <div key={b.key} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) auto', gap: '8px', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>
               <span style={{ color: b.color }}>◆</span>
               <span><b style={{ color: b.color }}>{b.name}</b><span style={{ ...muted, fontSize: '11.5px', display: 'block' }}>{b.desc}. <i>{BADGE_FLAVOR[b.key]}</i></span></span>

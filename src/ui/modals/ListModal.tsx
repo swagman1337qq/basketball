@@ -1,8 +1,10 @@
+import { usePaged } from '../kit';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 
 export function ListModal({ vm }: { vm: VM }) {
   const srt = useSort<any>(vm.lm.rows || [], { name: byLast, team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, pot: r => r.pot, extra: r => r.extra });
+  const pg = usePaged(srt.rows, 'players', 25, srt.sortKey);
   return (
     <>
       <div onClick={vm.closeList} style={{ position: "absolute", inset: "0", zIndex: "14", display: "grid", placeItems: "center", padding: "26px", background: "rgba(0,0,0,.55)" }}>
@@ -30,7 +32,7 @@ export function ListModal({ vm }: { vm: VM }) {
               </tr>
             </thead>
             <tbody>
-              {srt.rows.map((p: any, i: number) => (
+              {pg.rows.map((p: any, i: number) => (
                 <tr key={i} onClick={p.open} style={{ cursor: "pointer" }}>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
@@ -67,6 +69,7 @@ export function ListModal({ vm }: { vm: VM }) {
               ))}
             </tbody>
           </table>
+          {pg.pager}
         </div>
       </div>
     </>

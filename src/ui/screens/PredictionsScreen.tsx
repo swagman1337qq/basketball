@@ -2,7 +2,7 @@
 // award picks, and its top 100 players, with the results next to them once they're in.
 import { useMemo, useState } from 'react';
 import type { VM } from '../vm';
-import { Kicker, Link, muted, ruleH4, Seg } from '../kit';
+import { Kicker, Link, muted, ruleH4, Seg, usePaged } from '../kit';
 import { byLast, useSort } from '../sortable';
 import { consensus, fmtOdds, mediaPreds, OUTLETS, PANEL, pastPreds, type SeasonPreds } from '../../engine/media';
 
@@ -104,6 +104,7 @@ function Top100({ vm, sp, tk, setTk }: { vm: VM; sp: SeasonPreds; tk: string; se
   const ids = tk === 'cons' ? cons.map(c => c.pid) : sp.outlets[tk].top100;
   const rows = ids.filter(id => P[id]).map((id, i) => { const p = P[id], c = cons.find(x => x.pid === id); return { id, rk: i + 1, name: p.name, p, tid: tidOf[id], team: T[tidOf[id]]?.abbr || 'FA', pos: p.pos, age: p.age, ovr: p.ovr, cr: crank[id] ?? 101, range: c ? c.hi + (c.hi !== c.lo ? '–' + (c.lo > 100 ? 'NR' : c.lo) : '') : '—', ly: prevRank[id] ?? null }; });
   const srt = useSort<any>(rows, { rk: r => r.rk, name: r => byLast(r.p), team: r => r.team, pos: r => r.pos, age: r => r.age, ovr: r => r.ovr, cr: r => r.cr, ly: r => r.ly });
+  const pg = usePaged(srt.rows, 'players', 25, srt.sortKey);
   return (
     <section>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -112,7 +113,7 @@ function Top100({ vm, sp, tk, setTk }: { vm: VM; sp: SeasonPreds; tk: string; se
       <p style={{ ...muted, fontSize: '12.5px', margin: '0 0 8px' }}>{tk === 'cons' ? 'Average rank across the six outlets’ lists (left off a list counts as 101). Range: best and worst rank he got.' : PANEL.find(o => o.k === tk)!.style}</p>
       <table className="table" style={{ fontSize: '13px' }}>
         <thead><tr>{srt.head('rk', 'Rank', 'right')}{srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{tk === 'cons' ? <th style={{ padding: '6px 8px', textAlign: 'right' }}>Range</th> : srt.head('cr', 'Consensus', 'right')}{prev && srt.head('ly', 'Last year', 'right')}</tr></thead>
-        <tbody>{srt.rows.map((r: any) => { const d = tk === 'cons' ? 0 : r.cr - r.rk; return (
+        <tbody>{pg.rows.map((r: any) => { const d = tk === 'cons' ? 0 : r.cr - r.rk; return (
           <tr key={r.id}>
             <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.rk}</td>
             <td style={{ padding: '4px 8px' }}><Link onClick={() => open(r.id)}>{r.name}</Link></td>
@@ -124,6 +125,7 @@ function Top100({ vm, sp, tk, setTk }: { vm: VM; sp: SeasonPreds; tk: string; se
             {prev && <td style={{ padding: '4px 8px', textAlign: 'right' }}>{r.ly ?? 'NR'}</td>}
           </tr>); })}</tbody>
       </table>
+          {pg.pager}
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import type { VM } from '../vm';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
-import { Seg } from '../kit';
+import { Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
 
@@ -11,6 +11,7 @@ const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight
 export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
   const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
+  const pg = usePaged(boardRows, 'prospects', 30);
   return (
     <>
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" }}>
@@ -159,7 +160,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
               </tr>
             </thead>
             <tbody>
-              {boardRows.map((p: any, i: number) => (
+              {pg.rows.map((p: any, i: number) => (
                 <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
                   {sc.cell(p.id)}
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
@@ -206,6 +207,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
               ))}
             </tbody>
           </table>
+          {pg.pager}
           </>)}
         </section>
       </div>
