@@ -1,10 +1,14 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index--bnN2oJS.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CaD3aj_9.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-27
 
 ### Added
+- **Two more personality traits:**
+  - **Road villain:** feeds off hostile crowds; the boos and mocking on the road fire him up. He shoots better and wants the ball more away from home, with none of the usual road slump. It's the opposite of Crowd-fed.
+  - **Fearless:** superstar mentality. He demands the ball in crunch time and pressure never rattles him.
+  - A few generated players have them; toggle them in God Mode or on a player card. The Luka Dončić rookie card is now a Road villain and Fearless (no longer Crowd-fed), in saved card libraries too.
 - **Player cards** (God Mode → any player, draft prospects included → Edit player → Player cards): a card is a whole player build: name, bio, ratings, potential, intangibles, personality traits and shot tendencies.
   - **Start one** from a blank template, from the player you're editing, from any player in the league (search by name), or from a card file or pasted JSON.
   - **Edit every field**, with the overall and badges updating live.
