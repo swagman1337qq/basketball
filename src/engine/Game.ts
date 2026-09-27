@@ -125,6 +125,8 @@ export class Game {
     if (!g.state.managed) g.migrateV2();
     // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
     if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }
+    // Older saves: free agents' asks above their max, or not discounted for age (askOf).
+    if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
     // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
@@ -235,7 +237,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -1430,7 +1432,8 @@ export class Game {
     if (m === 'Money') x *= p.age >= 30 ? 1.2 : 1.1;
     if (m === 'Winning') x *= top ? (p.age >= 30 ? .8 : .9) : (p.age >= 30 ? 1.15 : 1);
     if (m === 'Fame') x *= 1 - (me.mkt - 1) * .4;
-    return +Math.max(nums(this).min(yosOf(this, p)), x || 0).toFixed(2);
+    const N = nums(this), yos = yosOf(this, p);
+    return +Math.max(N.min(yos), Math.min(N.max(yos), x || 0)).toFixed(2); // never above his max
   }
   moodOf(p, idx, s, tid = s.me, noRoom = false) {
     const me = s.teams[tid], wp = this.pct(me), m = p.pers.mot, w = k => m === k ? 2 : 1, P = this.db.P;

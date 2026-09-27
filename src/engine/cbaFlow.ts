@@ -23,9 +23,13 @@ export function clubLogs(g: Game, s: any, by: Record<number, string[]>, day = s.
 }
 
 // What a free agent asks for: market value, his motivation, and never below his minimum.
+// A free agent's asking price: what his overall is worth, less as he ages past 30 (teams pay
+// for the years ahead, not the ones behind), nudged by his mood, and never above the max his
+// years of service allow (25% / 30% / 35% of the cap) or below his minimum.
+export const ageAskF = (age: number) => (age <= 30 ? 1 : Math.max(0.5, 1 - 0.07 * (age - 30))); // 32: 0.86 · 34: 0.72 · 36: 0.58
 export function askOf(g: Game, p: any) {
-  const minS = nums(g).min(yosOf(g, p));
-  return +Math.max(minS, g.fair(p.ovr) * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.2 : 1)).toFixed(2);
+  const N = nums(g), yos = yosOf(g, p), minS = N.min(yos);
+  return +Math.max(minS, Math.min(N.max(yos), g.fair(p.ovr) * ageAskF(p.age ?? 27) * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1))).toFixed(2);
 }
 
 // Default terms for the signing dialog: the first method that works, his asking price (within
