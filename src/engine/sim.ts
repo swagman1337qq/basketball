@@ -91,7 +91,12 @@ export interface Norms {
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55 };
 
 // Shot profile: the league tier shares tilted by the player's relative skill, roles and tactics.
-export function shotProfile(p: { r: any; roles?: string[] }, n: Norms, mult?: Partial<Record<Zone, number>>) {
+// Shot tendencies: real players' shot diets aren't only their skills (rookie Luka Dončić took 43% of
+// his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
+// fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
+// roles suggest. Set per player in God Mode.
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number }
+export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend }, n: Norms, mult?: Partial<Record<Zone, number>>) {
   const sk = zoneSkill(p.r), roles = p.roles || [];
   const w = {} as Record<Zone, number>;
   let tot = 0;
@@ -101,6 +106,7 @@ export function shotProfile(p: { r: any; roles?: string[] }, n: Norms, mult?: Pa
     if ((z === 'c3' || z === 'atb') && roles.includes('Floor spacer')) x *= 1.25;
     if (z === 'c3' && roles.includes('3-and-D wing')) x *= 1.4;
     if ((z === 'c3' || z === 'atb') && roles.includes('Stretch big')) x *= 1.5;
+    if (p.tend?.[z]) x *= p.tend[z]!;
     if (mult?.[z]) x *= mult[z]!;
     w[z] = x; tot += x;
   }
@@ -115,6 +121,8 @@ export interface SimPlayer {
   conf?: number; // hidden confidence 0–100 (50 neutral): a small shooting nudge either way
   roles?: string[];
   feel?: number; poise?: number; // intangibles (intangibles.ts): vision and anticipation; composure
+  flashy?: boolean; heat?: boolean; volatile?: boolean; // playing style: showtime passes; heat checks when hot; forced shots when frustrated
+  tend?: Tend; // shot tendencies: how often he takes each shot and draws fouls (1 = what his skills suggest)
   target: number; // minutes per 48 the coach wants him to play
 }
 export interface FourFactors { efg: number; tov: number; orb: number; ftr: number }
@@ -174,6 +182,7 @@ export class GameSim {
   norms: Norms;
   private cache = new Map<SimPlayer, PlayerCache>();
   private afterOrb = false;
+  private streak = new Map<number, number>(); // makes (+) or misses (−) in a row tonight, for heat checks and frustration
   private fastBreak = false; // the defense crashed the glass and lost the rebound: this trip is a run-out
 
   constructor(home: SimTeam, away: SimTeam, public opts: SimOpts = {}) {
@@ -298,13 +307,17 @@ export class GameSim {
     // while he was on the floor; the record is Russell Westbrook's 41.7% (2016–17). A star is held
     // to Luka's 38% on a normal roster; only when his teammates are far worse than him (a 75 among
     // 20s) can he climb, to a hard 58% (a 75 among 20s scores about 38), so nobody averages 50. Clutch plays can break the rule.
-    const uw = onO.map(useBase), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
+    // Moods: a heat-check player who's hit two straight wants the ball and pulls up from deep; a
+    // volatile one who's missed three straight (or just missed with his team down 18+) forces bad shots.
+    const trail = O.pts - D.pts <= -18, mood = (p: SimPlayer) => { const k = this.streak.get(p.id) || 0; return clutch ? '' : p.heat && k >= 2 ? 'heat' : p.volatile && (k <= -3 || (trail && k < 0)) ? 'tilt' : ''; };
+    const useMood = (p: SimPlayer) => { const m = mood(p); return m === 'heat' ? 1.45 : m === 'tilt' ? 1.3 : 1; };
+    const uw = onO.map(p => useBase(p) * useMood(p)), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
     const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.2 * cl((gapO - 28) / 27, 0, 1);
     // A star far better than everyone around him has to take over: his share grows with the gap (up to the ceiling).
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
-    const use = (p: SimPlayer) => useBase(p) * (p === onO[ui] ? uF : 1);
-    const pTov = RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
+    const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
+    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
@@ -313,7 +326,7 @@ export class GameSim {
     // Who coughs it up: whoever has the ball, so usage first. Creators handle it most and throw the
     // riskiest passes (star playmakers lead the NBA in turnovers: about 4 a game); a good handle
     // only trims that a little.
-    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220));
+    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
     const r = Math.random();
     const kind = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
 
@@ -354,12 +367,14 @@ export class GameSim {
       } else ev([handler.id], () => handler.name + (Math.random() < 0.5 ? ' loses the ball out of bounds' : ' throws it away'), () => '(' + O.box[handler.id].tov + ' TOV)');
     } else if (kind === 'trip') {
       // Fouled on a missed shot: two free throws (three on a three).
-      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * (p.roles?.includes('Slasher') ? 1.2 : 1));
+      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * (p.roles?.includes('Slasher') ? 1.2 : 1) * (p.tend?.draw ?? 1));
       keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
       const sh = wpick(onO, p => use(p));
-      const prof = this.profile(sh, tO, fx, fb);
+      const prof0 = this.profile(sh, tO, fx, fb), md = mood(sh);
+      // A heat check is a deep pull-up; a frustrated shot is a contested jumper, rarely a drive.
+      const prof = md === 'heat' ? { ...prof0, atb: prof0.atb * 2, c3: prof0.c3 * 0.6 } : md === 'tilt' ? { ...prof0, mid: prof0.mid * 1.5, atb: prof0.atb * 1.4, rim: prof0.rim * 0.6 } : prof0;
       const z = wpick(ZONES, k => prof[k]);
       const sk = C(sh).skill[z];
       const bigs = onD.slice().sort((a, b) => b.r.hgt - a.r.hgt).slice(0, 2);
@@ -374,23 +389,25 @@ export class GameSim {
       // Usage vs efficiency: the more of the offense runs through him, the more the defense keys on
       // him, so a heavy-usage star's shots get a little harder (the NBA's well-known trade-off).
       const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 : 0;
-      const pct = BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
+      const pct = moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
       if (Math.random() < cl(pct, 0.1, 0.9)) {
-        b.fgm++; b[mk]++; if (three) b.tpm++;
+        b.fgm++; b[mk]++; if (three) b.tpm++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate, 0.2, 0.97)) {
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
         if (Math.random() < RATE.andOne) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, foul(), 'and1', cAdv);
       } else {
+        this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
         const blkP = BLOCK_ON_MISS[z] * Math.exp((intD - n.interiorD) / 25) * (rimPro ? 1.3 : 1);
         if (Math.random() < blkP) {
           const bl = wpick(onD, p => Math.pow(Math.max(1, p.r.hgt * 1.2 + p.r.jmp * 0.6 + p.r.diq * 0.4 + ape(p.r) * 3), 2) * (p.roles?.includes('Rim protector') ? 1.6 : 1));

@@ -56,6 +56,7 @@ const fillUS = (all: Record<string, string>, q: any, from: 'city' | 'state' = 'c
   if (st && m.some(o => o.v.toLowerCase() === city.toLowerCase())) return; // already a real town in his state
   const o = rnd(m); q.city = o.v; q.state = o.sub;
 };
+const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers']];
 const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
 // A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
 const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };
@@ -209,6 +210,11 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; })}>Heal now</button>}
           </span>
         </div>
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Tendencies</h4>
+        <div style={grid}>
+          {TENDS.map(([k, label]) => num(label, Math.round(((p.tend || {})[k] ?? 1) * 100), 20, 300, v => mut(q => { q.tend = { ...(q.tend || {}), [k]: v / 100 }; if (v === 100) delete q.tend[k]; if (!Object.keys(q.tend).length) delete q.tend; }), undefined, '%'))}
+        </div>
+        <p style={{ ...muted, fontSize: '11.5px' }}>How often he takes each shot, draws shooting fouls and coughs up the ball, on top of what his ratings suggest (100% = normal). His ratings still decide whether the shots go in: rookie Luka Dončić took lots of threes (about 130%) and drew fouls at a very high rate while making only a third of his threes.</p>
         <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Locked</h4>
         <div style={{ fontSize: '12px', ...muted }}>
