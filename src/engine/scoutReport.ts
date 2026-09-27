@@ -2,6 +2,7 @@
 // everyone else in the league. What the scouts see is the truth plus noise: the margin
 // shrinks with scout skill, specialty, the scouting budget and time spent watching (intel),
 // and your own players are seen every day. Text is written from the observed ratings.
+import { hometownOf } from '../data/hometown';
 import { ensureIntg, feelWord } from './intangibles';
 import type { Game } from './Game';
 import { regions } from '../data/world';
@@ -129,7 +130,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   // Measurements.
   const hIn = (() => { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; })(), wing = p.wing ?? hIn + 3 + (p.id % 4);
   const team = (() => { for (const k of Object.keys(s.rosters)) if (s.rosters[k].includes(pid)) return s.teams[+k].region + ' ' + s.teams[+k].name; return p.abroad ? p.abroad.club + ' (' + p.abroad.lg + ')' : p.cls ? p.from.team + ' (' + p.from.lg + ')' : 'Free agent'; })();
-  const measure: [string, string][] = [['Position', p.pos], ['Age', String(p.age)], ['Height', p.hgt], ['Weight', p.wt + ' lb'], ['Wingspan', Math.floor(wing / 12) + '′' + (wing % 12) + '″ (' + (wing - hIn >= 0 ? '+' : '') + (wing - hIn) + ')'], ['Hand', p.id % 9 === 0 ? 'Left' : 'Right'], ['Team', team], ['Hometown', (p.city ? p.city + ', ' : '') + (C[p.born]?.n || '')], ['Represents', C[p.rep]?.n || '']];
+  const measure: [string, string][] = [['Position', p.pos], ['Age', String(p.age)], ['Height', p.hgt], ['Weight', p.wt + ' lb'], ['Wingspan', Math.floor(wing / 12) + '′' + (wing % 12) + '″ (' + (wing - hIn >= 0 ? '+' : '') + (wing - hIn) + ')'], ['Hand', p.id % 9 === 0 ? 'Left' : 'Right'], ['Team', team], ['Hometown', hometownOf(p, C)], ['Represents', C[p.rep]?.n || '']];
   // Comparisons: active players whose rating profile is closest (shape), at his current level,
   // at his ceiling (best case) and below it (worst case).
   const near = (level: number, skip: number[] = []) => { let c: any = null, b = 1e9; Object.values(s.rosters).flat().forEach((id: any) => { if (id === pid || skip.includes(id)) return; const q = P[id]; let d = q.grp === grp ? 0 : 400; Object.keys(q.r).forEach(k => (d += Math.pow(q.r[k] - q.ovr - (R[k] - o.ovr), 2))); d += Math.pow(q.ovr - level, 2) * 12; if (d < b) { b = d; c = q; } }); return c; };

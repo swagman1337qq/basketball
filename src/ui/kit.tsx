@@ -147,7 +147,7 @@ export function CountryPicker({ C, value, onPick, placeholder = 'Type a country�
 
 // A text box with a drop-down of suggestions: pick one, or type anything. The list shows
 // everything when opened and narrows as you type. Options can carry a small note (sub).
-export function Combo({ value, options, onChange, onPick, placeholder, width = 180 }: { value: string; options: { v: string; sub?: string }[]; onChange: (v: string) => void; onPick?: (o: { v: string; sub?: string }) => void; placeholder?: string; width?: number | string }) {
+export function Combo({ value, options, onChange, onPick, onCommit, placeholder, width = 180 }: { value: string; options: { v: string; sub?: string }[]; onChange: (v: string) => void; onPick?: (o: { v: string; sub?: string }) => void; onCommit?: () => void; placeholder?: string; width?: number | string }) {
   const [open, setOpen] = useState(false), [typed, setTyped] = useState(false), [hi, setHi] = useState(0);
   const norm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const nq = typed ? norm(value.trim()) : '';
@@ -156,7 +156,7 @@ export function Combo({ value, options, onChange, onPick, placeholder, width = 1
   return (
     <span style={{ position: 'relative', display: 'inline-flex', width }}>
       <input className="input" value={value} placeholder={placeholder} style={{ width: '100%', paddingRight: options.length ? 22 : undefined }}
-        onFocus={() => { setOpen(true); setTyped(false); setHi(-1); }} onBlur={() => setTimeout(() => setOpen(false), 150)} onChange={e => { onChange(e.target.value); setTyped(true); setOpen(true); setHi(0); }}
+        onFocus={() => { setOpen(true); setTyped(false); setHi(-1); }} onBlur={() => { setTimeout(() => setOpen(false), 150); if (typed) onCommit?.(); setTyped(false); }} onChange={e => { onChange(e.target.value); setTyped(true); setOpen(true); setHi(0); }}
         onKeyDown={e => { if (e.key === 'ArrowDown') { setOpen(true); setHi(h => Math.min(list.length - 1, h + 1)); e.preventDefault(); } else if (e.key === 'ArrowUp') { setHi(h => Math.max(0, h - 1)); e.preventDefault(); } else if (e.key === 'Enter') { if (open && list[hi]) pick(list[hi]); else setOpen(false); e.preventDefault(); } else if (e.key === 'Escape') { setOpen(false); e.stopPropagation(); } }} />
       {options.length > 0 && <span aria-hidden style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--color-neutral-600)', pointerEvents: 'none' }}>▾</span>}
       {open && options.length > 0 && (

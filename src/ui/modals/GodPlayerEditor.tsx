@@ -1,11 +1,13 @@
 // God Mode player editor, part two: bio (first/last names in Romanized and native
 // script, date of birth, height, weight, wingspan), psychology, fatigue, specific
 // injuries and a custom headshot. The player's ID and past-season stats stay locked.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
 import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '../kit';
-import { namePools } from '../../data/world';
+import { namePools, regionOf } from '../../data/world';
+import { US_STATES } from '../../data/usStates';
+import { hometownOf } from '../../data/hometown';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
@@ -17,6 +19,43 @@ const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, tr
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+// U.S. hometowns: the City and State fields filter each other. A state narrows the city list to
+// its towns (still searchable); a known town narrows the state list to the states that have one
+// (Plano → Illinois, Texas; New York → New York). No state, or an unknown town: everything.
+let US_ALL: { v: string; sub: string }[] | null = null, US_IDX: Map<string, string[]> | null = null;
+const usAll = (all: Record<string, string>) => {
+  if (!US_ALL) { US_ALL = US_STATES.flatMap(([k, n]) => (all[k] || '').split('|').filter(Boolean).map(v => ({ v, sub: n })));
+    US_IDX = new Map(); US_ALL.forEach(o => { const k = o.v.toLowerCase(); US_IDX!.set(k, [...(US_IDX!.get(k) || []), o.sub]); }); }
+  return US_ALL;
+};
+const validState = (st?: string) => US_STATES.find(s => s[1].toLowerCase() === String(st || '').trim().toLowerCase())?.[1];
+const usCityOpts = (all: Record<string, string> | null, state?: string) => { if (!all) return []; const A = usAll(all), st = validState(state); return st ? A.filter(o => o.sub === st) : A; };
+// Towns matching what was typed: exact names first, else names starting with it, else containing it.
+const matchTowns = (all: Record<string, string>, text: string, state?: string) => {
+  const A = usAll(all).filter(o => !state || o.sub === state), x = text.trim().toLowerCase(); if (!x) return [];
+  const ex = A.filter(o => o.v.toLowerCase() === x); if (ex.length) return ex;
+  const pre = A.filter(o => o.v.toLowerCase().startsWith(x)); return pre.length ? pre : A.filter(o => o.v.toLowerCase().includes(x));
+};
+const usStateOpts = (all: Record<string, string> | null, city?: string) => {
+  const names = US_STATES.map(s => s[1]); if (!all || !city?.trim()) return names.map(v => ({ v }));
+  const m = matchTowns(all, city); if (!m.length) return names.map(v => ({ v }));
+  const exact = m[0].v.toLowerCase() === city.trim().toLowerCase(), cnt = new Map<string, number>(); m.forEach(o => cnt.set(o.sub, (cnt.get(o.sub) || 0) + 1));
+  return names.filter(n => cnt.has(n)).map(v => ({ v, sub: exact ? 'has a ' + m[0].v : cnt.get(v) + ' town' + (cnt.get(v) === 1 ? '' : 's') + ' like “' + city.trim() + '”' }));
+};
+// Fill in the blank half at random. A town with no state: one of the states that has it (Plano →
+// Illinois, Kentucky or Texas); a partial name ("Plan") becomes a real town that matches. A state
+// with no town: a random town there; with a partial town, a matching town in that state.
+const fillUS = (all: Record<string, string>, q: any, from: 'city' | 'state' = 'city') => {
+  const city = String(q.city || '').trim(), st = validState(q.state), rnd = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  if (st) q.state = st;
+  if (!city) { if (st) { const code = US_STATES.find(s => s[1] === st)![0], list = (all[code] || '').split('|').filter(Boolean); if (list.length) q.city = rnd(list); } return; }
+  const m = matchTowns(all, city, st);
+  if (!m.length) { // not a town we know there: keep a typed town, but a new state gets one of its own towns
+    if (from === 'state' && st && matchTowns(all, city).length) { const code = US_STATES.find(s => s[1] === st)![0], list = (all[code] || '').split('|').filter(Boolean); if (list.length) q.city = rnd(list); }
+    return; }
+  if (st && m.some(o => o.v.toLowerCase() === city.toLowerCase())) return; // already a real town in his state
+  const o = rnd(m); q.city = o.v; q.state = o.sub;
+};
 const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
 // A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
 const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };
@@ -25,6 +64,8 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid];
   const [err, setErr] = useState('');
   const [originSel, setOrigin] = useState<string | null>(null), [bg, setBg] = useState('');
+  const [usCities, setUsCities] = useState<Record<string, string> | null>(null);
+  useEffect(() => { if (p?.born === 'US' && !usCities) import('../../data/usCities').then(m => setUsCities(m.US_CITIES)); }, [p?.born, usCities]);
   if (!p) return null;
   const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
@@ -109,10 +150,19 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {num('Wingspan', wing, hIn - 8, hIn + 14, v => mut(q => setWing(q, v)), v => fmtH(v) + ' (' + (v - hIn >= 0 ? '+' : '−') + Math.abs(v - hIn) + '″ vs height) · rating ' + wngOf(v, hIn), 'inches', () => hIn + Math.round(Math.max(-6, Math.min(12, (Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8))))}
           <span style={muted}>Hometown</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />
-            <CountryPicker C={C} value={p.born} onPick={c => mut(q => { q.born = c; })} width={170} />
-            <button className="btn btn-ghost" title="A random city in that country" onClick={() => mut(q => { const cs = C[q.born]?.cities || []; if (cs.length) q.city = cs[Math.floor(Math.random() * cs.length)]; })} style={{ fontSize: '12px' }}>🎲</button>
+            {p.born === 'US'
+              ? <Combo value={p.city || ''} options={usCityOpts(usCities, p.state ?? regionOf(p.city))} placeholder={usCities ? 'City (type to search every U.S. town)' : 'City (loading U.S. towns…)'} width={230}
+                  onChange={v => mut(q => { q.city = v; })} onPick={o => mut(q => { q.city = o.v; if (o.sub) q.state = o.sub; })} onCommit={() => usCities && mut(q => fillUS(usCities, q))} />
+              : <input className="input" value={p.city || ''} onChange={e => mut(q => { q.city = e.target.value; })} placeholder="City" style={{ flex: 1, minWidth: 120 }} />}
+            {p.born === 'US' && <Combo value={p.state ?? regionOf(p.city) ?? ''} options={usStateOpts(usCities, p.city)} placeholder="State" width={160}
+              onChange={v => mut(q => { const ok = validState(v); if (!v.trim()) delete q.state; else q.state = ok || v; })} onPick={o => mut(q => { q.state = o.v; if (usCities) fillUS(usCities, q, 'state'); })} onCommit={() => usCities && mut(q => fillUS(usCities, q, 'state'))} />}
+            {p.born === 'US' && validState(p.state) && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 6px' }} title="Search towns in every state again" onClick={() => mut(q => { delete q.state; })}>Any state</button>}
+            <CountryPicker C={C} value={p.born} onPick={c => mut(q => { q.born = c; if (c !== 'US') delete q.state; })} width={170} />
+            <button className="btn btn-ghost" title={p.born === 'US' ? 'A random town (in the state picked, or anywhere)' : 'A random city in that country'} onClick={() => mut(q => {
+              if (q.born === 'US' && usCities) { const st = US_STATES.find(s => s[1] === q.state), code = st ? st[0] : US_STATES[Math.floor(Math.random() * US_STATES.length)][0], list = usCities[code].split('|'); q.city = list[Math.floor(Math.random() * list.length)]; q.state = US_STATES.find(s => s[0] === code)![1]; return; }
+              const cs = C[q.born]?.cities || []; if (cs.length) { q.city = cs[Math.floor(Math.random() * cs.length)]; if (q.born === 'US') q.state = regionOf(q.city) || undefined; } })} style={{ fontSize: '12px' }}>🎲</button>
           </span>
+          <span style={{ gridColumn: '2', ...muted, fontSize: '12px', marginTop: -4 }}>Shows as: {hometownOf(p, C)}</span>
           {p.from && <><span style={muted}>{p.cls ? 'Playing for' : 'Came from'}</span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { team: '', lg: '', country: c }; })} width={150} />

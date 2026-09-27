@@ -3,7 +3,8 @@
 import { createElement, type RefObject } from 'react';
 import { fmtMoney } from '../engine/capModel';
 import { glLabel } from '../engine/gleague';
-import { natDefault, regionOf, regions, roleDefs } from '../data/world';
+import { natDefault, regions, roleDefs } from '../data/world';
+import { hometownOf } from '../data/hometown';
 import { Game } from '../engine/Game';
 import { baseline, deltas } from '../engine/progress';
 import { addTx } from '../engine/txlog';
@@ -171,7 +172,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     teamLogo: ptid >= 0 ? logo(ptid, 16) : null, teamLabel: ptid === -2 ? 'Overseas · ' + pp.abroad.club + ' (' + pp.abroad.lg + ')' : ptid >= 0 ? T[ptid].region + ' ' + T[ptid].name : ptid === -1 ? (glLabel(s, pp) ? 'CCP · ' + glLabel(s, pp) : 'Free agent') : pk ? 'Drafted #' + pk.n + ' by ' + T[gm.owner2027(pk.orig, s.assets, pk.rd)].abbr : 'Class of ' + pp.cls + ' prospect',
     bio: 'Age ' + pp.age + ' · ' + pp.hgt + ' · ' + pp.wt + ' lb · ' + (() => { const fr = pp.from.lg === 'NCAA' || pp.from.lg === 'High school' ? pp.from.team + ' (' + pp.from.lg + ')' : pp.from.team + ', ' + C[pp.from.country].n; if (status === 'pro' && !pk) return 'Playing for ' + fr; const dd = pk ? { rd: 1, pick: pk.n } : pp.dr; return dd ? 'Drafted ' + pp.draft + ' in round ' + dd.rd + ', pick #' + dd.pick + ', overall #' + ((dd.rd - 1) * 30 + dd.pick) + ' – out of ' + fr : 'Undrafted in ' + pp.draft + ' – out of ' + fr; })(),
     contractLine: status === 'retired' ? ((s.hof || []).some(h => h.pid === pp.id) ? 'Hall of Famer · ' : '') + 'Retired after the ' + (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) + ' season, at ' + pp.retired.age : status === 'fa' ? 'Asking ' + money(gm.askFor(pp, s)) + ' per year through ' + pp.exp + ' · ' + pp.mood.toLowerCase() + ' to sign' : status === 'pro' ? 'Projected #' + d.rank[pp.id] + ' on the ' + pp.cls + ' big board' : money(pp.amt) + ' per year through ' + pp.exp,
-    bgRows: [{ k: 'Health', hasFlag: false, flag: '', v: pp.inj ? pp.inj.name + ', out about ' + pp.inj.games + ' games' : 'Healthy' + ((pp.injHist || []).length ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record' : '') }, { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: pp.city + (regionOf(pp.city) ? ', ' + regionOf(pp.city) : '') + ', ' + C[pp.born].n }, { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' }],
+    bgRows: [{ k: 'Health', hasFlag: false, flag: '', v: pp.inj ? pp.inj.name + ', out about ' + pp.inj.games + ' games' : 'Healthy' + ((pp.injHist || []).length ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record' : '') }, { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) }, { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' }],
     elig: pp.elig.map(e => ({ flag: gm.flag(e.c), name: C[e.c].n, why: e.why })),
     career, hasCareer: career.length > 0, noCareer: career.length === 0, ask: money(gm.askFor(pp, s)),
     isMine: status === 'mine', isOther: status === 'other', isFA: status === 'fa' || status === 'abroad', abroadBtn: status === 'mine', toAbroad: () => gm.setState({ dialog: { type: 'abroad', pid: pp.id } }),
