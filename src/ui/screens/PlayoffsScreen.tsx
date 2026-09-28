@@ -1,3 +1,4 @@
+import { Children } from 'react';
 // Postseason: play-in games, then an NBA-style bracket with the West on the left, the
 // East on the right and the Finals in the middle. Past seasons and the lottery below.
 import type { ReactNode } from 'react';
@@ -40,11 +41,14 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
   );
 }
 
+// A round of the bracket: its name sits right on top of its first series (every series keeps the
+// same header space, invisible below the first, so the rounds still line up).
 function Column({ label, children }: { label: string; children: ReactNode }) {
+  const items = Children.toArray(children);
+  const head = (show: boolean) => <div aria-hidden={!show} style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-neutral-700)', borderBottom: '1px solid var(--color-text)', paddingBottom: '3px', marginBottom: '6px', textAlign: 'center', visibility: show ? 'visible' : 'hidden' }}>{label}</div>;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-neutral-700)', borderBottom: '1px solid var(--color-text)', paddingBottom: '3px', marginBottom: '8px', textAlign: 'center' }}>{label}</div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', gap: '10px', minHeight: '330px' }}>{children}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', gap: '10px', minWidth: 0, minHeight: '360px' }}>
+      {items.map((c, i) => <div key={i}>{head(i === 0)}{c}</div>)}
     </div>
   );
 }
