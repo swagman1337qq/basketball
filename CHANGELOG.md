@@ -4,9 +4,15 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-09-28
 
+### Added
+- **Negotiate your own GM contract** (Career screen): when your owner offers a new deal or an extension, you can accept it, decline it, or send a counter-offer with the number of years (up to 5) and the salary you want.
+  - If your ask is within what he'll do, he signs it on the spot. If not, he comes back with his best offer, or only part of the way if you ask for far too much.
+  - Owners give more when they're happy with you (job security) and when your reputation is high. A win-now spender pays up, a frugal owner barely moves, an asset hoarder likes long deals and a micromanager short ones. A longer deal can cost a little a year.
+  - You get two counters, then his offer is final. Overreach twice on an early extension and he may pull it off the table (an expiring deal always stays on the table).
+
 ### Changed
 - **Owners are more patient before firing you.** You can't be fired after your first season with a team, and every firing condition is gentler:
-  - Job security has to drop below 10 (was higher), and it falls more slowly after a losing season or a missed demand.
+  - Job security has to drop below 10 (was 15), and it falls more slowly after a losing season or a missed demand.
   - Win-Now owners fire you after missing the playoffs three seasons in a row (was two).
   - Frugal owners fire you after losing more than $5M three seasons in a row (was two seasons without a profit), or for paying the luxury tax two seasons running or a single tax bill over $25M (was any tax at all).
   - Hype owners only fire you when attendance stays under 70% for a whole season; Meddling owners when you bench their favorite for 35+ games; Asset Hoarders when you hold no first-round picks at all.

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { acceptJob, applyForJob, reputation } from '../../engine/frontOffice';
-import { EXPERIENCE, GENEROSITY, answerOffer, askExtension, contractOf, givenName, isFamilyFirst } from '../../engine/gmCareer';
+import { EXPERIENCE, GENEROSITY, MAX_COUNTERS, answerOffer, askExtension, contractOf, counterOffer, givenName, isFamilyFirst } from '../../engine/gmCareer';
 import { Headshot } from '../modals/GMSetupModal';
 import { h4Style, Kicker, Link, muted, ruleH4, Stat, td, th } from '../kit';
 
@@ -11,6 +11,7 @@ export function CareerScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, openTeam, money } = vm.ctx;
   const c = s.career || { seasons: [] }, rep = reputation(s), jobs = s.jobs;
   const [opt, setOpt] = useState<Record<string, number>>({});
+  const [ask, setAsk] = useState<{ y?: number; sal?: string }>({}); // your counter-offer (blank = the owner's current terms)
   const seasons = (c.seasons || []).slice().reverse();
   const titles = (c.seasons || []).filter(x => x.fin === 'Won the title').length;
   const w = (c.seasons || []).reduce((a, x) => a + x.w, 0), l = (c.seasons || []).reduce((a, x) => a + x.l, 0);
@@ -34,17 +35,37 @@ export function CareerScreen({ vm }: { vm: VM }) {
               <div style={{ fontSize: '20px', fontWeight: 600, margin: '2px 0' }}>{s.unemployed ? 'No contract' : '$' + k.salary.toFixed(2) + 'M a season with the ' + kt.name + ', through ' + yr(k.thru)}</div>
               {s.gm && <div style={{ fontSize: '12px', margin: '2px 0 4px', display: 'flex', gap: 6, alignItems: 'center' }}><span style={muted}>Name order</span><select className="input" value={isFamilyFirst(s.gm) ? 'f' : 'g'} onChange={e => gm.setState(st => ({ gm: { ...st.gm, familyFirst: e.target.value === 'f' } }))} style={{ width: 'auto', minHeight: 26, fontSize: '12px', padding: '1px 6px' }}><option value="g">Given name first</option><option value="f">Family name first</option></select><span style={muted}>· the owner calls you {givenName(s.gm)}</span></div>}
               {!s.unemployed && <div style={{ ...muted, fontSize: '12.5px' }}>{left > 0 ? left + ' more season' + (left === 1 ? '' : 's') + ' after this one.' : 'This is the final season of your deal.'} {kt.owner} is a {kt.arch} and {G.note}.{k.assumed ? ' (Terms estimated for a league started before GM contracts.)' : ''}</div>}
+              {!o && s.gmNegot?.season === gm.Y && <div style={{ marginTop: 8, fontSize: '13px', fontWeight: 600 }}>{s.gmNegot.text}</div>}
               {o && (
                 <div style={{ marginTop: 10, padding: '10px 12px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontWeight: 600 }}>{T[o.tid].owner} offers {o.kind === 'expiring' ? 'a new deal' : 'an extension'}: {o.years} year{o.years === 1 ? '' : 's'} at ${o.salary.toFixed(2)}M a season</div>
                   <div style={{ ...muted, fontSize: '12.5px', margin: '2px 0 8px' }}>“{o.quote}”{o.kind === 'expiring' ? ' Your deal is up: decline and you leave the team. Answer before free agency opens.' : ' Decline and your current deal stays as it is.'}</div>
                   <div style={{ display: 'flex', gap: 8 }}><button className="btn btn-primary" onClick={() => answerOffer(gm, true)}>Accept</button><button className="btn btn-secondary" onClick={() => answerOffer(gm, false)}>{o.kind === 'expiring' ? 'Decline and leave' : 'Decline'}</button></div>
+                  {(() => {
+                    const y = ask.y ?? o.years, salS = ask.sal ?? o.salary.toFixed(2), sal = parseFloat(salS), left2 = MAX_COUNTERS - (o.counters || 0), bad = !(sal > 0);
+                    if (o.final) return <div style={{ ...muted, fontSize: '12px', marginTop: 10 }}>This is {T[o.tid].owner}’s final offer: accept it or decline.</div>;
+                    return (
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--color-divider)' }}>
+                        <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: 6 }}>Counter-offer</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '13px' }}>
+                          <select className="input" value={y} onChange={e => setAsk({ ...ask, y: +e.target.value })} style={{ width: 'auto', minHeight: 30 }}>{[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} year{n === 1 ? '' : 's'}</option>)}</select>
+                          <span>at $</span>
+                          <input className="input" type="number" min={0.1} step={0.05} value={salS} onChange={e => setAsk({ ...ask, sal: e.target.value })} style={{ width: 90, minHeight: 30 }} />
+                          <span>M a season</span>
+                          <button className="btn btn-secondary" disabled={bad} onClick={() => { counterOffer(gm, y, sal); setAsk({}); }} style={{ fontSize: '12.5px' }}>Propose</button>
+                          <span style={{ ...muted, fontSize: '12px' }}>{left2} counter{left2 === 1 ? '' : 's'} left</span>
+                        </div>
+                        {o.base && <div style={{ ...muted, fontSize: '12px', marginTop: 6 }}>His opening offer was {o.base.years} year{o.base.years === 1 ? '' : 's'} at ${o.base.salary.toFixed(2)}M.</div>}
+                        <div style={{ ...muted, fontSize: '11.5px', marginTop: 6, lineHeight: 1.5 }}>Ask for up to 5 years and the pay you want. If it’s within what he’ll do, he signs it on the spot; if not, he comes back with his best. Owners bend more when they’re happy with you (job security) and when your reputation is high: a win-now spender pays up, a frugal owner barely moves, an asset hoarder likes long deals, a micromanager short ones. Longer deals can cost a little a year. After {MAX_COUNTERS} counters his offer is final, and ask for far too much on an early extension and he may pull it.</div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {!o && !s.unemployed && (
                 <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <button className="btn btn-secondary" disabled={s.gmAsk === gm.Y} onClick={() => askExtension(gm)} style={{ fontSize: '12.5px' }}>Ask {kt.owner} for an extension</button>
-                  <span style={{ ...muted, fontSize: '12px' }}>{s.gmAsk === gm.Y ? (s.gmReply ? '“' + s.gmReply + '”' : 'You’ve asked this season.') : 'Once a season. The owner says yes only when he’s happy (job security 60+) and your deal has 2 or fewer seasons left.'}</span>
+                  <span style={{ ...muted, fontSize: '12px' }}>{s.gmAsk === gm.Y ? (s.gmReply ? '“' + s.gmReply + '”' : 'You’ve asked this season.') : 'Once a season. The owner says yes only when he’s happy (job security 60+) and your deal has 2 or fewer seasons left. When he offers, you can counter with more years or more pay.'}</span>
                 </div>
               )}
             </div>

@@ -47,7 +47,7 @@ export function contractOf(g: Game, s: any) {
   return { ...startingContract(g, s, s.me, s.gm?.exp ?? 2), from: g.Y - 1, thru: g.Y + 1, assumed: true };
 }
 
-export interface GMOffer { tid: number; years: number; salary: number; kind: 'expiring' | 'early'; season: number; quote: string }
+export interface GMOffer { tid: number; years: number; salary: number; kind: 'expiring' | 'early'; season: number; quote: string; base?: { years: number; salary: number }; counters?: number; final?: boolean; reply?: string }
 
 // What the owner does about your contract at season's end (deterministic, so the letter and
 // the review agree): offer an extension, or let it run out.
@@ -101,6 +101,43 @@ export function answerOffer(g: Game, yes: boolean) {
     if (o.kind === 'early') return { gmOffer: null, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You turned down an extension from ' + T.owner }, ...s.lgLog] };
     // Walking away from an expiring deal: you're on the market.
     return { gmOffer: null, unemployed: s.managed.length <= 1 ? true : s.unemployed, walkedFrom: o.tid, screen: 'career', lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You turned down ' + T.owner + '’s offer and will leave the ' + T.region + ' ' + T.name }, ...s.lgLog] };
+  });
+}
+
+// ── Negotiating: counter the owner's offer with the years and pay you want ────────────
+// How far he'll go past his opening offer: happier owners (job security) and a bigger
+// reputation buy more; each kind of owner bends differently (a win-now spender pays, a frugal
+// one barely moves and keeps his cap, an asset hoarder likes long deals, a micromanager short ones).
+export function ownerLimits(g: Game, s: any, o: GMOffer) {
+  const T = s.teams[o.tid], arch = T.arch, G = gen(arch), sec = ownerReview(g, s, o.tid).sec, rep = reputation(s), b = o.base || { years: o.years, salary: o.salary };
+  const lean = arch === 'Asset Hoarder' ? 1 : arch === 'Meddling Micromanager' || arch === 'Frugal Profit-Seeker' ? -1 : 0;
+  const maxYears = Math.max(b.years, Math.min(5, b.years + (sec >= 80 ? 2 : sec >= 60 ? 1 : 0) + (rep >= 70 ? 1 : 0) + lean));
+  const room = sec < 50 ? 0 : Math.min(0.4, Math.max(0, (sec - 45) / 250 + (rep - 50) / 300) * (G.raise - 1) / 0.3);
+  // Past his opening length he wants a little off the yearly pay (not an asset hoarder, who wants the long deal).
+  const maxSal = (years: number) => { let v = b.salary * (1 + room) * (years > b.years && arch !== 'Asset Hoarder' ? 1 - 0.03 * (years - b.years) : 1); if (G.cap != null) v = Math.min(v, Math.max(G.cap, b.salary)); return r2(Math.max(v, years <= b.years ? b.salary : 0)); };
+  return { maxYears, maxSal, sec, rep, room };
+}
+export const MAX_COUNTERS = 2;
+
+// Your counter-offer. Inside his limits he signs it on the spot; otherwise he comes back with his
+// best (or, if you ask for far too much, only part of the way). After two counters his offer is
+// final, and an early extension can be pulled off the table if you keep overreaching.
+export function counterOffer(g: Game, years: number, salary: number) {
+  g.setState(s => {
+    const o: GMOffer = s.gmOffer; if (!o || o.final) return null;
+    years = Math.max(1, Math.min(5, Math.round(years))); salary = r2(Math.max(0.1, salary));
+    const T = s.teams[o.tid], arch = T.arch, L = ownerLimits(g, s, o), b = o.base || { years: o.years, salary: o.salary };
+    const deal = (y: number, sal: number) => { const c = contractOf(g, s), start = o.kind === 'expiring' ? g.Y + 1 : c.thru + 1, contract = { tid: o.tid, years: y, salary: sal, from: start, thru: start + y - 1, signed: g.Y };
+      return { gmOffer: null, gmNegot: { season: g.Y, text: T.owner + ' agreed: ' + y + ' year' + (y === 1 ? '' : 's') + ' at $' + sal.toFixed(2) + 'M a season. “Deal. Now let’s get back to work.”' }, career: { ...(s.career || {}), contract }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You negotiated a ' + y + '-year ' + (o.kind === 'expiring' ? 'deal' : 'extension') + ' with the ' + T.region + ' ' + T.name + ' ($' + sal.toFixed(2) + 'M a season, through ' + (contract.thru - 1) + '–' + String(contract.thru).slice(2) + ')' }, ...s.lgLog] }; };
+    if (years <= L.maxYears && salary <= L.maxSal(years) + 0.005) return deal(years, salary);
+    const n = (o.counters || 0) + 1, cap = L.maxSal(Math.min(years, L.maxYears)), greedy = salary > cap * 1.3 || years > L.maxYears + 2;
+    // Overreach twice on an extension he didn't have to offer, and he walks away from the table.
+    if (greedy && n >= MAX_COUNTERS && o.kind === 'early') return { gmOffer: null, gmNegot: { season: g.Y, text: T.owner + ' pulled the offer: “Forget it. You’re under contract; we’ll revisit this another time.”' }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: T.owner + ' pulled his extension offer after your counter' }, ...s.lgLog] };
+    const y2 = Math.min(years, L.maxYears), sal2 = greedy ? r2(b.salary + (L.maxSal(y2) - b.salary) / 2) : Math.min(salary, L.maxSal(y2)), final = n >= MAX_COUNTERS;
+    const why = years > L.maxYears && salary > L.maxSal(y2) ? 'That’s too long and too much.' : years > L.maxYears ? (y2 === 1 ? 'One year is as far as I go.' : y2 + ' years is as long as I’ll go.') : 'I can’t pay that.';
+    const tone = greedy ? (arch === 'Frugal Profit-Seeker' ? 'You know how I run this club. ' : 'Let’s be serious. ') : '';
+    const moved = sal2 < salary, reply = tone + why + ' ' + (!moved ? 'Your number works for me, over ' + y2 + ' year' + (y2 === 1 ? '' : 's') + '.' : L.room === 0 && sal2 <= b.salary ? 'The money doesn’t move until the results do.' : arch === 'Win-Now Spender' && !greedy ? 'But I pay winners, so here’s my best.' : 'Here’s where I can be.') + (final ? ' That’s my final offer.' : '');
+    return { gmOffer: { ...o, base: b, years: y2, salary: sal2, counters: n, final, reply, quote: reply }, news: [{ day: s.day, season: g.Y, kind: 'review', tid: o.tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: reply }, ...(s.news || [])] };
   });
 }
 
