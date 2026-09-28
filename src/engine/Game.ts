@@ -800,7 +800,7 @@ export class Game {
         out.news = [{ day, season: this.Y, kind: 'title', tid: po.champ, who: T[po.champ].owner, role: 'Owner, ' + T[po.champ].abbr, quote: 'This city deserved this. I promised a champion and ' + T[po.champ].gm + ' and this group delivered one.' }, ...(s.news || [])];
         // The owner's year-end letter for each franchise you run.
         out.letters = { ...(s.letters || {}), [this.Y]: s.managed.map(t => yearEndLetter(this, { ...s, ...out }, t, finOf(t))) };
-        out.letterOpen = this.Y;
+        out.letterUnread = this.Y; // not opened on its own: the sim button offers "Next: Owner letter"
         // Hall of Fame class of this year.
         const hofClass = voteHof(this, { ...s, awards: out.awards, history: out.history });
         if (hofClass.length) {
