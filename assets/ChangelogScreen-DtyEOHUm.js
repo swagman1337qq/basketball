@@ -1,6 +1,16 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DuMTbk40.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CkEKr851.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-09-28
+
+### Changed
+- **Owners are more patient before firing you.** You can't be fired after your first season with a team, and every firing condition is gentler:
+  - Job security has to drop below 10 (was higher), and it falls more slowly after a losing season or a missed demand.
+  - Win-Now owners fire you after missing the playoffs three seasons in a row (was two).
+  - Frugal owners fire you after losing more than $5M three seasons in a row (was two seasons without a profit), or for paying the luxury tax two seasons running or a single tax bill over $25M (was any tax at all).
+  - Hype owners only fire you when attendance stays under 70% for a whole season; Meddling owners when you bench their favorite for 35+ games; Asset Hoarders when you hold no first-round picks at all.
+  - The owner's page lists the new conditions.
 
 ## 2026-09-27
 
