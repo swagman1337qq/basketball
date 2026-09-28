@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-hewkvZXE.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-C-SxfZve.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -56,6 +56,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **Playoff bracket round names sit right on top of their series** (West · R1, West · Semis, Finals…) instead of in a row across the top.
 - **Sim buttons no longer move you to another screen.** Play next game, Play a day and the rest play in the background and leave you where you are (Watch your game is still in the sim menu if you want to watch it live). Starting the play-in, the playoffs, the lottery or free agency also keeps you where you are. To jump to a phase, click its name in the season bar at the top (Play-in, Playoffs, Lottery, Draft, Free agency, Preseason).
 - **After the lottery the main button reads "Go to draft"**, with Sim one pick and the rest in the menu. Once you're on the draft board it goes back to the pick options.
 - **Your team's row is highlighted in the lottery**, in both the draw and the results (a full-width band with an accent edge), so you can spot your pick at a glance.
