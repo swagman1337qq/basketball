@@ -27,7 +27,7 @@ function LotteryNight({ vm }: { vm: VM }) {
   const shown = L.slice(n - rev).slice().reverse(), next = n - rev;
   const reveal = (k: number) => gm.setState(st => ({ lotReveal: Math.min(n, (st.lotReveal ?? n) + k) }));
   const row = (x: any, extra: any) => { const ow = owner(x.t); return (
-    <div key={x.t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderBottom: '1px solid var(--color-divider)', color: isMine(x.t) || isMine(ow) ? 'var(--color-accent-700)' : undefined, fontWeight: isMine(ow) ? 600 : 400 }}>
+    <div key={x.t} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderBottom: '1px solid var(--color-divider)', color: isMine(x.t) || isMine(ow) ? 'var(--color-accent-700)' : undefined, fontWeight: isMine(ow) ? 600 : 400 , ...(isMine(x.t) || isMine(ow) ? MINE_ROW : {})}}>
       {logo(x.t, 22)}<span style={{ flex: 1, minWidth: 0 }}><Link onClick={() => openTeam(x.t)}>{T[x.t].region} {T[x.t].name}</Link>{ow !== x.t && <span style={{ fontSize: '11px', ...muted }}> · pick owned by {T[ow].abbr}</span>}<br /><span style={{ fontSize: '11px', color: TIER_COLOR[x.tier as Tier] }}>{TIER_SHORT[x.tier as Tier]} · <Balls n={x.balls} color={TIER_COLOR[x.tier as Tier]} /></span></span>{extra}
     </div>); };
   return (
@@ -55,6 +55,9 @@ function LotteryNight({ vm }: { vm: VM }) {
     </>
   );
 }
+
+// Your team's row: a full-width band so you can find it at a glance.
+const MINE_ROW = { background: 'color-mix(in srgb, var(--color-accent) 20%, transparent)', boxShadow: 'inset 4px 0 0 var(--color-accent)' };
 
 export function LotteryScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
@@ -135,7 +138,7 @@ export function LotteryScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: '13px' }}>
             <thead><tr style={{ whiteSpace: 'nowrap' }}><th style={th('right')}>Pick</th><th style={th()}>Team</th><th style={th()}>Group</th><th style={th('right')}>Balls</th><th style={th('right')}>Had for No. 1</th><th style={th('right')}>Expected</th><th style={th()}>Luck</th></tr></thead>
             <tbody>{s.lotto.map((x: any) => { const d = x.exp - x.n, ow = owner(x.t); return (
-              <tr key={x.n} style={{ color: isMine(x.t) || isMine(ow) ? 'var(--color-accent-700)' : undefined, fontWeight: isMine(ow) ? 600 : 400 }}>
+              <tr key={x.n} style={{ color: isMine(x.t) || isMine(ow) ? 'var(--color-accent-700)' : undefined, fontWeight: isMine(ow) ? 600 : 400, ...(isMine(x.t) || isMine(ow) ? MINE_ROW : {}) }}>
                 <td style={td('right')}>{x.n}</td>
                 <td style={td()}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>{logo(x.t, 16)}<Link onClick={() => openTeam(x.t)}>{T[x.t].region} {T[x.t].name}</Link>{ow !== x.t && <span style={{ fontSize: '11px', ...muted }}>to {T[ow].abbr}</span>}</span></td>
                 <td style={td()}><span style={{ color: TIER_COLOR[x.tier as Tier] }}>{TIER_SHORT[x.tier as Tier]}</span></td>
@@ -160,7 +163,7 @@ export function LotteryScreen({ vm }: { vm: VM }) {
             </tr></thead>
             <tbody>
               {rows.map(({ x, i, o, exp, best, worst, top4 }) => (
-                <tr key={i} style={{ color: mineRow(x) ? 'var(--color-accent-700)' : undefined, fontWeight: mineRow(x) ? 600 : 400, borderTop: i > 0 && rows[i - 1].x.tier !== x.tier ? '2px solid var(--color-divider)' : undefined }}>
+                <tr key={i} style={{ color: mineRow(x) ? 'var(--color-accent-700)' : undefined, fontWeight: mineRow(x) ? 600 : 400, ...(mineRow(x) ? MINE_ROW : {}), borderTop: i > 0 && rows[i - 1].x.tier !== x.tier ? '2px solid var(--color-divider)' : undefined }}>
                   <td style={td()}>{teamCell(x)}</td>
                   <td style={td('right', { whiteSpace: 'nowrap' })}>{x.tid != null ? T[x.tid].w + '–' + T[x.tid].l : ''}</td>
                   <td style={td()} title={TIER_LABEL[x.tier]}><span style={{ color: TIER_COLOR[x.tier], whiteSpace: 'nowrap' }}>{TIER_SHORT[x.tier]}</span></td>

@@ -3,15 +3,15 @@
 // the default next time. With one or two actions they stay plain buttons.
 import { useEffect, useRef, useState } from 'react';
 
-type Act = { label: string; go: () => void; cls?: string; dis?: boolean };
+type Act = { label: string; go: () => void; cls?: string; dis?: boolean; lead?: boolean }; // lead: always the main button (e.g. Go to draft), never remembered as your default
 export function SimMenu({ actions }: { actions: Act[] }) {
   const [open, setOpen] = useState(false), [pick, setPick] = useState<string | null>(() => { try { return localStorage.getItem('simPick'); } catch { return null; } }), ref = useRef<HTMLDivElement>(null);
   useEffect(() => { if (!open) return; const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, [open]);
   if (actions.length <= 2) return <>{actions.map((a, i) => <button key={i} className={'btn ' + (a.cls || 'btn-secondary')} onClick={a.go} disabled={a.dis} style={{ whiteSpace: 'nowrap', fontSize: '13px', padding: '5px 12px' }}>{a.label}</button>)}</>;
   // The default: your last pick if it's on offer now, else the first (the smallest step), never a
   // big jump like 'Sim to training camp' by surprise.
-  const main = actions.find(a => a.label === pick && !a.dis) || actions.find(a => !a.dis) || actions[0];
-  const run = (a: Act) => { setOpen(false); if (a.dis) return; setPick(a.label); try { localStorage.setItem('simPick', a.label); } catch { /* private mode */ } a.go(); };
+  const main = actions.find(a => a.lead && !a.dis) || actions.find(a => a.label === pick && !a.dis) || actions.find(a => !a.dis) || actions[0];
+  const run = (a: Act) => { setOpen(false); if (a.dis) return; if (!a.lead) { setPick(a.label); try { localStorage.setItem('simPick', a.label); } catch { /* private mode */ } } a.go(); };
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
       <button className="btn btn-primary" onClick={() => run(main)} disabled={main.dis} style={{ whiteSpace: 'nowrap', fontSize: '13px', padding: '5px 12px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}>▶ {main.label}</button>

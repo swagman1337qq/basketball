@@ -31,8 +31,10 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.wb ?? ''} won={done && x.wb === 4} lost={done && x.wb < 4} placeholder={x.pb} />
       {(x.g || []).length > 0 && <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
         {(x.g || []).map((g: any, i: number) => { const box = g.bid && (vm.ctx.gm.db as any).boxes?.[g.bid], w = g.hp > g.ap ? g.h : (g.h === x.a ? x.b : x.a);
+          // Your series: games you won are green, games you lost red.
+          const mine = vm.ctx.isMine(x.a) || vm.ctx.isMine(x.b), res = mine ? (vm.ctx.isMine(w) ? 'var(--gm-good)' : 'var(--gm-bad)') : null;
           return <button key={i} className="hv4" disabled={!box} onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })} title={'Game ' + (i + 1) + ': ' + vm.ctx.T[w].abbr + ' won ' + Math.max(g.hp, g.ap) + '–' + Math.min(g.hp, g.ap) + (box ? ' · click for the box score' : ' · no box score (played before box scores were added)')}
-            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid var(--color-divider)', opacity: box ? 1 : .5, textDecoration: box ? 'underline dotted' : 'none', color: vm.ctx.isMine(w) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
+            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid ' + (res || 'var(--color-divider)'), background: res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined, fontWeight: res ? 700 : undefined, opacity: box ? 1 : .5, textDecoration: box ? 'underline dotted' : 'none', color: res || 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
       </div>}
     </div>
   );

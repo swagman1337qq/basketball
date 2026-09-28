@@ -706,7 +706,7 @@ export class Game {
       // The luxury tax is assessed on the last day of the regular season.
       const cap = { ...(s.cap || {}) };
       T.forEach(t => { const pay = teamSalary(this, s, t.tid), c = { ...(cap[t.tid] || {}) }; c.taxHist = [...(c.taxHist || []), pay > this.TAX]; c.ap2Hist = [...(c.ap2Hist || []), pay > this.AP2]; cap[t.tid] = c; });
-      return { phase: 'playin', seeds, playin, cap, awards: { ...(s.awards || {}), [this.Y]: aw }, screen: 'playoffs', lgLog, news };
+      return { phase: 'playin', seeds, playin, cap, awards: { ...(s.awards || {}), [this.Y]: aw }, lgLog, news };
     });
   }
   playinPending(pi) {
@@ -748,7 +748,7 @@ export class Game {
         const sd = s.seeds[c], [A, , C] = s.playin[c], top = [...sd.slice(0, 6), A.w, C.w];
         [[0, 7], [3, 4], [2, 5], [1, 6]].forEach(([i, j]) => rounds[0].push({ a: top[i], sa: i + 1, b: top[j], sb: j + 1, wa: 0, wb: 0, conf: c, g: [] }));
       });
-      return { phase: 'playoffs', po: { rounds, champ: null, finals: {} }, screen: 'playoffs' };
+      return { phase: 'playoffs', po: { rounds, champ: null, finals: {} } };
     });
   }
   simPo(mode, forced?: GameResult) {
@@ -838,7 +838,7 @@ export class Game {
       const picks = [...first.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...second.map((orig, i) => ({ n: first.length + i + 1, rd: 2, orig, pid: null }))];
       if (demoted.length) lgLog0.push(...demoted.map(t => ({ day: s.day, type: 'Draft', teams: s.teams[t].abbr, text: s.teams[t].region + '’s first-round pick moved to the end of the round: above the 2nd apron in 3 of the last 5 seasons' })));
       const jump = lotto.filter(x => x.n < x.exp - 0.5), lotHist = { ...(s.lotHist || {}), [this.Y]: Object.fromEntries(first.map((t, i) => [t, i + 1])) };
-      return { phase: 'draft', picks, pi: 0, lotto, lotHist, lotReveal: 0, screen: 'lottery', dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
+      return { phase: 'draft', picks, pi: 0, lotto, lotHist, lotReveal: 0, dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
   startFA() {
@@ -853,7 +853,7 @@ export class Game {
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
       const out = openFreeAgency(this, s);
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
-      return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', screen: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
+      return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
   }
   // Free agency runs on the NBA calendar: negotiations open June 30 (day 0), the moratorium ends
