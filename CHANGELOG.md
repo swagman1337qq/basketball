@@ -56,6 +56,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **"Sim to next game"** is the first option in the regular-season sim menu (it replaces "Play a day"). Like every sim it leaves you on your screen, and the Schedule calendar **turns the page with the sim**: when your games move into a new month, the calendar follows so you can watch the results fill in.
 - **The Schedule is a calendar now,** one month at a time (‹ › to change months, Today to jump back).
   - Each game day shows the opponent, home or away.
   - Played games show the result in green or red; click it for the box score.

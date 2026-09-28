@@ -2,7 +2,7 @@
 // (green win, red loss; click it for the box score) or, for games still to come, their record.
 // Your next game is highlighted with Watch and Quick sim. Play-in and playoff games are listed
 // below; the plain list view is one click away.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { muted, Seg } from '../kit';
 
@@ -21,6 +21,8 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
   const months = [...new Set(days.map(x => key(x.date)))];
   const curKey = key(days[Math.min(81, today)].date);
   const [mk, setMk] = useState<number>(months.includes(curKey) ? curKey : months[0]);
+  // The calendar follows the season: when a sim carries your next game into a new month, turn the page.
+  useEffect(() => { if (months.includes(curKey)) setMk(curKey); }, [curKey]);
   const mi = months.indexOf(mk), y = Math.floor(mk / 100), m = mk % 100;
   const first = new Date(y, m, 1), nDays = new Date(y, m + 1, 0).getDate(), lead = first.getDay();
   const byDate = new Map<number, typeof days[number]>(days.filter(x => key(x.date) === mk).map(x => [x.date.getDate(), x]));
