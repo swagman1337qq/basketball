@@ -65,16 +65,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
             </thead>
             <tbody>
               {srtM.rows.map((p: any, i: number) => (
-                <tr key={i} onClick={p.toggle} style={{ cursor: "pointer", background: p.bg }}>
-                  <td style={{ padding: "4px 8px" }}>
-                    <span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>
+                <tr key={i} style={{ background: p.bg }}>
+                  <td onClick={p.toggle} title="Add to the trade / remove" style={{ padding: "4px 8px", cursor: "pointer" }}>
+                    <span role="checkbox" aria-checked={!!p.mark} style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>
                       {p.mark}
                     </span>
                   </td>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      {p.name}{" "}
+                      <button className="hv4" onClick={p.open} title="Open his profile" style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>{p.name}</button>{" "}
                       <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
                         {p.pos}
                       </span>
@@ -243,16 +243,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
             </thead>
             <tbody>
               {srtT.rows.map((p: any, i: number) => (
-                <tr key={i} onClick={p.toggle} style={{ cursor: "pointer", background: p.bg }}>
-                  <td style={{ padding: "4px 8px" }}>
-                    <span style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>
+                <tr key={i} style={{ background: p.bg }}>
+                  <td onClick={p.toggle} title="Add to the trade / remove" style={{ padding: "4px 8px", cursor: "pointer" }}>
+                    <span role="checkbox" aria-checked={!!p.mark} style={{ display: "grid", placeItems: "center", width: "14px", height: "14px", border: "1px solid var(--color-accent)", borderRadius: "2px", background: p.box, color: "var(--color-bg)", fontSize: "10px", lineHeight: "1" }}>
                       {p.mark}
                     </span>
                   </td>
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      {p.name}{" "}
+                      <button className="hv4" onClick={p.open} title="Open his profile" style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>{p.name}</button>{" "}
                       <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
                         {p.pos}
                       </span>

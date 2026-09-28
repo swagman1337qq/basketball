@@ -75,7 +75,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
               {vm.next.line}
             </div>
             <div style={{ display: "flex", gap: "6px" }}>
-              <button className="btn btn-primary" onClick={vm.play1} style={{ flex: "1" }}>
+              <button className="btn btn-primary" onClick={vm.watch1} style={{ flex: "1" }}>
                 Watch game
               </button>
               <button className="btn btn-secondary" onClick={vm.quick1} style={{ whiteSpace: "nowrap", flex: "none" }}>
