@@ -68,12 +68,13 @@ export const OWNER_DESC: Record<string, string> = {
   'Hype Focus': 'Cares about buzz: a full arena and a marquee star.',
   'Meddling Micromanager': 'Second-guesses moves and insists his favorite player starts.',
 };
+// Firing conditions: real, but not hair-trigger. Nobody is fired after their first season with a club.
 export const OWNER_FIRE: Record<string, string[]> = {
-  'Win-Now Spender': ['Missing the playoffs two seasons in a row', 'Job security below 15'],
-  'Frugal Profit-Seeker': ['Losing money two seasons in a row', 'Paying the luxury tax', 'Job security below 15'],
-  'Asset Hoarder': ['Holding fewer than 2 first-round picks at season’s end', 'Job security below 15'],
-  'Hype Focus': ['Attendance under 80% for a full season', 'Job security below 15'],
-  'Meddling Micromanager': ['Benching his favorite player for 20+ games', 'Job security below 15'],
+  'Win-Now Spender': ['Missing the playoffs three seasons in a row', 'Job security below 10'],
+  'Frugal Profit-Seeker': ['Losing more than $5M three seasons in a row', 'Paying the luxury tax two seasons in a row, or a tax bill over $25M', 'Job security below 10'],
+  'Asset Hoarder': ['Holding no first-round picks at all at season’s end', 'Job security below 10'],
+  'Hype Focus': ['Attendance under 70% for a full season', 'Job security below 10'],
+  'Meddling Micromanager': ['Benching his favorite player for 35+ games', 'Job security below 10'],
 };
 
 export function ownerFavorite(g: Game, s: any, tid: number) {
@@ -111,20 +112,25 @@ export function ownerReview(g: Game, s: any, tid: number) {
     'Hype Focus': ['Payroll ceiling: ' + money(ceiling), 'Ticket price may not drop below $90'],
     'Meddling Micromanager': ['Payroll ceiling: ' + money(ceiling), 'Signs off on every trade'],
   };
-  const sec = Math.round(cl(60 + (g.pct(me) - 0.5) * 80 + demands.reduce((a, d) => a + (d[2] === 'Met' ? 6 : d[2] === 'At risk' ? -6 : -15), 0) - fails * 10, 0, 100));
+  const sec = Math.round(cl(62 + (g.pct(me) - 0.5) * 80 + demands.reduce((a, d) => a + (d[2] === 'Met' ? 6 : d[2] === 'At risk' ? -4 : -10), 0) - fails * 8, 0, 100));
   return { owner: me.owner, arch: me.arch, desc: OWNER_DESC[me.arch], sec, demands, limits: LIM[me.arch], fire: OWNER_FIRE[me.arch], fin, firsts, favBench, ceiling, label: sec >= 70 ? 'Secure' : sec >= 40 ? 'Stable' : sec >= 20 ? 'Warm seat' : 'Hot seat' };
 }
 
 // End-of-season firing check against the owner's written conditions.
 export function fireReasons(g: Game, s: any, tid: number, rv: ReturnType<typeof ownerReview>, finThis: string) {
-  const out: string[] = [], hist = (s.teamHist || {})[tid] || [], last = hist[hist.length - 1];
+  const out: string[] = [], hist = (s.teamHist || {})[tid] || [], last = hist[hist.length - 1], prev2 = hist.slice(-2);
+  // A honeymoon: your first season running this club never ends in a firing.
+  if (!(s.career?.seasons || []).some((x: any) => x.tid === tid)) return out;
   const missed = f => f === 'Missed the playoffs' || f === 'Lost in the play-in';
-  if (rv.sec < 15) out.push('Job security fell to ' + rv.sec);
-  if (rv.arch === 'Win-Now Spender' && missed(finThis) && last && missed(last.fin)) out.push('Missed the playoffs two seasons in a row');
-  if (rv.arch === 'Frugal Profit-Seeker') { if (rv.fin.net < 0 && last && last.net < 0) out.push('Lost money two seasons in a row'); if (rv.fin.taxBill > 0) out.push('Paid the luxury tax'); }
-  if (rv.arch === 'Asset Hoarder' && rv.firsts < 2) out.push('Held fewer than 2 first-round picks');
-  if (rv.arch === 'Hype Focus' && rv.fin.full < 0.8) out.push('Attendance under 80% for the season');
-  if (rv.arch === 'Meddling Micromanager' && rv.favBench >= 20) out.push('Benched the owner’s favorite for ' + rv.favBench + ' games');
+  if (rv.sec < 10) out.push('Job security fell to ' + rv.sec);
+  if (rv.arch === 'Win-Now Spender' && missed(finThis) && prev2.length === 2 && prev2.every(x => missed(x.fin))) out.push('Missed the playoffs three seasons in a row');
+  if (rv.arch === 'Frugal Profit-Seeker') {
+    if (rv.fin.net < -5 && prev2.length === 2 && prev2.every(x => x.net < -5)) out.push('Lost money three seasons in a row');
+    if (rv.fin.taxBill > 25) out.push('Paid a luxury tax bill of ' + money(rv.fin.taxBill)); else if (rv.fin.taxBill > 0 && (last?.tax || 0) > 0) out.push('Paid the luxury tax two seasons in a row');
+  }
+  if (rv.arch === 'Asset Hoarder' && rv.firsts < 1) out.push('Held no first-round picks');
+  if (rv.arch === 'Hype Focus' && rv.fin.full < 0.7) out.push('Attendance under 70% for the season');
+  if (rv.arch === 'Meddling Micromanager' && rv.favBench >= 35) out.push('Benched the owner’s favorite for ' + rv.favBench + ' games');
   return out;
 }
 
@@ -191,7 +197,7 @@ export function seasonReview(g: Game) {
         lgLog.unshift({ day: s.day, type: 'Career', teams: T[s.me].abbr, text: T[s.me].owner + ' let your contract with the ' + T[s.me].region + ' ' + T[s.me].name + ' expire' });
       }
     }
-    T.forEach(t => { const rv = financesOf(g, s, t.tid); teamHist[t.tid] = [...(teamHist[t.tid] || []), { season: Y, w: t.w, l: t.l, fin: finOf(t.tid), net: +rv.net.toFixed(1), payroll: +rv.payroll.toFixed(1), att: rv.att }]; });
+    T.forEach(t => { const rv = financesOf(g, s, t.tid); teamHist[t.tid] = [...(teamHist[t.tid] || []), { season: Y, w: t.w, l: t.l, fin: finOf(t.tid), net: +rv.net.toFixed(1), payroll: +rv.payroll.toFixed(1), att: rv.att, tax: +(rv.taxBill || 0).toFixed(1) }]; });
 
     // 3. Job market: AI owners fire their GMs; good reputations draw offers.
     const rep = reputation({ career });
