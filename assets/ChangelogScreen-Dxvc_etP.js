@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-D4K6fut6.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CYzPDMBv.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -56,6 +56,13 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Mixed-race Native American players.** About half of Native American players now have one Native parent and one African American, white or Hispanic parent. Most of them were born off the reservation, anywhere in the U.S. or in a city near their tribe (Bangor, Tulsa, Flagstaff, Rapid City…). Their heritage reads like "Penobscot · African American · Mixed race (Native)". Some players belong to two tribal nations, one from each parent ("Kiowa & Cherokee · Native American"). Two new nations from Maine: Penobscot and Passamaquoddy. Sons and brothers carry the family's tribes and mix. In God Mode, a Native American player's editor has pickers for his tribal nation, a second nation and mixed race.
 
 ### Changed
+- **The Schedule is a calendar now,** one month at a time (‹ › to change months, Today to jump back).
+  - Each game day shows the opponent, home or away.
+  - Played games show the result in green or red; click it for the box score.
+  - Upcoming games show the opponent's record.
+  - Your next game is highlighted with Watch and Sim buttons.
+  - Play-in and playoff games are listed below the calendar, and the old list view is still one click away.
+- **Trade screen: click a player's name to open his profile;** the checkbox adds him to the trade (or takes him out).
 - **Box scores open as a full page** instead of a pop-up. **← Back** takes you back to where you were, at the same spot on the page. **‹ Previous / Next ›** (or the ← → keys) step through that team's games in order, regular season then play-in and playoffs, with "Game 14 · 14 of 82" showing where you are.
 - **Traditional, Advanced or Both in box scores.** Advanced covers true shooting %, eFG%, three-point and free-throw rates, offensive, defensive and total rebound %, assist, steal, block and turnover %, usage %, Game Score and +/−, all from that game alone. Your choice is remembered.
 - **Playoff bracket round names sit right on top of their series** (West · R1, West · Semis, Finals…) instead of in a row across the top.
@@ -93,6 +100,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New team names.** Every team is now named for something its city is not known for at all: an object, a group of people, a word or (for a few) an animal. The Baltimore Camels, New York Hermits, Brooklyn Squares, Newark Monocles, Philadelphia Koalas, Cleveland Parasols, Detroit Oxcarts, Chicago Sloths, Pittsburgh Ballerinas, Cincinnati Narwhals, Charlotte Bohemians, Atlanta Snowplows, Tampa Sleds, Richmond Samurai, Nashville Librarians, Seattle Scorpions, Portland Sultans, Vancouver Drought, St. Louis Puffins, Denver Deep, San Diego Mittens, Oakland Barons, Las Vegas Monks, Los Angeles Strollers, San Jose Typewriters, Austin Hush, San Antonio Frost, Phoenix Chill, Dallas Axolotls and Houston Caribou, each with a new crest. The expansion teams are now the Hartford Jesters, Providence Emus, Columbus Ibex, Kansas City Sailors, Sacramento Wombats and Raleigh Gondolas. Leagues you already started switch over too, except teams you renamed yourself.
 
 ### Fixed
+- The **Watch game** buttons (Dashboard, Schedule) open the live game again instead of quick-simming it.
 - **"Play a month" at the start of the season now plays a full month.** It used to stop at the end of the calendar month, which on opening night (October 21) meant only 5 games. It now plays up to the same date next month (about 15 games).
 - **The Schedule, Transactions and Shortlist pages were empty after the last update.** Fixed.
 - The scouting report's opening line now includes the U.S. state in a player's hometown ("from Marshall, Texas, United States"), like the profile.
