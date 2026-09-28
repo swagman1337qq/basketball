@@ -84,7 +84,7 @@ const unbox = (b: Box) => ({ rosters: b.rosters, fa: b.fa, overseas: b.overseas,
 
 // Would an AI team match an offer sheet for its restricted free agent?
 function aiMatches(g: Game, s: any, tid: number, p: any, t: Terms) {
-  const N = nums(g), after = teamSalary(g, s, tid) + t.amt, ceil = g.ownerCeiling(s.teams[tid].arch);
+  const N = nums(g), after = teamSalary(g, s, tid) + t.amt, ceil = g.teamCeiling(s.teams[tid]);
   const worth = g.fair(p.ovr) * (p.age <= 24 ? 1.25 : 1) >= t.amt * 0.9;
   return worth && after <= Math.max(ceil, N.TAX) + (p.ovr >= 60 ? 15 : 0) && after <= N.AP2 && Math.random() < 0.85;
 }
@@ -219,7 +219,7 @@ export function openFreeAgency(g: Game, s: any) {
       if (wantQo) { p.rfa = { tid: t, qo }; note(t, 'Extended a ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' (restricted free agent)'); }
       // AI teams keep some of their own free agents before the market opens (Bird rights).
       if (!user && p.birdTid === t) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
-        const keep = (rank < 9 || p.age <= 24 && p.pot >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.ownerCeiling(s.teams[t].arch), N.CAP);
+        const keep = (rank < 9 || p.age <= 24 && p.pot >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
       p.rookie = false; box.fa.push(id); return false; }); });
   // CCP contracts run for the season: last season's players become free again, and their
@@ -254,7 +254,7 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
       if (std >= 15 || (std >= 13 && !spare && p.ovr <= (depth[12] ?? 0) + 1 && p.birdTid !== t)) continue;
       const terms = aiTerms(g, st, t, p); if (!terms) continue;
-      if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.ownerCeiling(T[t].arch) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP)) continue;
+      if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP)) continue;
       if (p.rfa && p.rfa.tid !== t) { // offer sheet
         const orig = p.rfa.tid, sheet = { ...terms, method: terms.method };
         if (g.isUser(s, orig)) { offerSheets.push({ id: 'os' + id + '-' + s.day + '-' + k, pid: id, from: t, to: orig, terms: sheet, day: s.day }); box.fa.splice(box.fa.indexOf(id), 1); lgLog.unshift({ day: s.day, type: 'Signing', teams: T[t].abbr + ' · ' + T[orig].abbr, pids: [id], text: T[t].region + ' ' + T[t].name + ' signed restricted free agent ' + p.name + ' to an offer sheet ($' + terms.amt.toFixed(2) + 'M × ' + terms.years + '). ' + T[orig].abbr + ' can match.' }); break; }
@@ -364,7 +364,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
       const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, g.fair(proj) * (mot === 'Money' ? 1.1 : 1))).toFixed(2);
-      if (payroll - p.amt + amt > g.ownerCeiling(s.teams[t].arch) + 6) return; // the owner won't pay it
+      if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 30 ? 3 : 2;
       p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;
       const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1.08, i)).reduce((a, x) => a + x, 0), T = s.teams[t];

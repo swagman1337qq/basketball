@@ -7,6 +7,7 @@ import { fmtMoney } from './capModel';
 import { capState, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
+import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -100,7 +101,7 @@ export function ownerReview(g: Game, s: any, tid: number) {
     'Hype Focus': [['Fill 90% of the arena', Math.round(fin.full * 100) + '%', st3(fin.full >= 0.9, fin.full >= 0.8)], ['Roster a star rated 65+', String(bestOvr), st3(bestOvr >= 65, bestOvr >= 62)]],
     'Meddling Micromanager': [['Start ' + (P[fav]?.name || 'his favorite'), (ids.indexOf(fav) < 5 ? 'Starting' : 'Bench') + ' · benched ' + favBench + ' games', st3(ids.indexOf(fav) < 5 && favBench < 10, favBench < 20)], ['Win at least half your games', pctS(me), st3(g.pct(me) >= 0.5, g.pct(me) >= 0.45)]],
   };
-  const ceiling = g.ownerCeiling(me.arch) + (me.ceilAdj || 0);
+  const ceiling = g.teamCeiling(me);
   const demands = DEM[me.arch].slice();
   const mandate = (g.clubOf(s, tid)?.inbox || []).find(x => x.kind === 'mandate' && !x.resolved);
   if (payroll > ceiling) demands.push(['Owner mandate: get payroll under ' + money(ceiling) + (mandate ? ' by ' + g.fmtS(mandate.deadline) : ''), money(payroll), 'Failing']);
@@ -121,6 +122,8 @@ export function fireReasons(g: Game, s: any, tid: number, rv: ReturnType<typeof 
   const out: string[] = [], hist = (s.teamHist || {})[tid] || [], last = hist[hist.length - 1], prev2 = hist.slice(-2);
   // A honeymoon: your first season running this club never ends in a firing.
   if (!(s.career?.seasons || []).some((x: any) => x.tid === tid)) return out;
+  // ...and a new owner gives you his first full season before judging you.
+  if (s.teams[tid].ownerSince === g.Y) return out;
   const missed = f => f === 'Missed the playoffs' || f === 'Lost in the play-in';
   if (rv.sec < 10) out.push('Job security fell to ' + rv.sec);
   if (rv.arch === 'Win-Now Spender' && missed(finThis) && prev2.length === 2 && prev2.every(x => missed(x.fin))) out.push('Missed the playoffs three seasons in a row');
@@ -219,6 +222,62 @@ export function seasonReview(g: Game) {
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
   (s.firedFrom || []).forEach(t => { if (g.state.managed.length > 1) g.handToAI(t, 'Fired from'); });
+}
+
+// ── Team sales: owners sell the club (or most of it) ──────────────────────────────
+// How often, from the real NBA: RotoWire counts 20 change-of-control sales from 2010 to 2023
+// (4.8% of teams a season) and Front Office Sports 25 through 2026 (about 5.1%), so each club
+// has about a 5% chance a year, one or two sales a league-year. Sold teams were usually losing
+// ones (.452 the season before, on average), so bad teams sell more often; and 60% improved the
+// next season (+.039 on average), so a new owner spends a little more his first year.
+// Sales close when free agency opens (the new league year).
+export const SALE_RATES: Record<string, number> = { off: 0, real: 0.05, often: 0.15 };
+const BUYERS = ['a private-equity investor', 'a tech founder', 'a hedge-fund manager', 'a real-estate developer', 'an energy executive', 'a sports-and-entertainment investment group', 'a logistics magnate', 'a media executive', 'a family investment office', 'a former minority partner'];
+const NEW_ARCH: [string, number][] = [['Win-Now Spender', 30], ['Hype Focus', 20], ['Asset Hoarder', 20], ['Meddling Micromanager', 16], ['Frugal Profit-Seeker', 14]];
+// What a club is worth ($M): about $3B for the smallest market up to $10B+ for the biggest (2025
+// prices: Blazers $4.25B, Celtics $6.1B, Lakers $10B), growing with league revenue (the cap).
+export function teamValue(g: Game, s: any, tid: number) {
+  const t = s.teams[tid], mk = t.mkt || 1, lf = g.CAP / 165;
+  return Math.round((3000 + 12000 * Math.pow(Math.max(0, mk - 0.75), 2)) * lf * (0.92 + 0.16 * g.pct(t)));
+}
+export const fmtBillions = (m: number) => m >= 1000 ? '$' + (m / 1000).toFixed(2).replace(/0$/, '') + 'B' : '$' + Math.round(m) + 'M';
+export function teamSales(g: Game) {
+  g.setState(s => {
+    const rate = SALE_RATES[s.teamSales ?? 'real'] ?? 0.05, Y = g.Y;
+    if (!rate || s.salesDone === Y) return null;
+    const NP = namePools(), pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    const wpick = (o: [string, number][]) => { let r = Math.random() * o.reduce((a, x) => a + x[1], 0); for (const [k, w] of o) if ((r -= w) < 0) return k; return o[0][0]; };
+    const used = new Set(s.teams.map((t: any) => String(t.owner).split(' ').slice(-1)[0]));
+    const teams = s.teams.slice(), news = (s.news || []).slice(), lgLog = s.lgLog.slice(), label = (Y) + '–' + String(Y + 1).slice(2);
+    let clubs = { ...(s.clubs || {}) }, top: any = {};
+    teams.forEach((t: any, i: number) => {
+      let p = rate * Math.max(0.3, 1 + 1.5 * (0.5 - g.pct(t)));
+      if (t.ownerSince != null && t.ownerSince > Y - 4) p *= 0.2; // a new owner rarely flips the team right away
+      if (Math.random() >= p) return;
+      const sur = pick(OWNER_SURNAMES.filter(x => !used.has(x))) || pick(OWNER_SURNAMES); used.add(sur);
+      const owner = pick(NP.us.f) + ' ' + sur, arch = wpick(NEW_ARCH), stake = Math.random() < 0.55 ? 100 : 5 * Math.floor(11 + Math.random() * 8);
+      const value = Math.round(teamValue(g, s, i) * (0.95 + Math.random() * 0.25)), price = Math.round(value * stake / 100), who = pick(BUYERS);
+      const mine = g.isUser(s, i), newGm = !mine && Math.random() < 0.5 ? pick(NP.us.f) + ' ' + pick(NP.us.l) : null;
+      const sale = { season: Y + 1, from: t.owner, fromArch: t.arch, to: owner, arch, stake, price, value, who, gm: newGm ? { out: t.gm, in: newGm } : null };
+      teams[i] = { ...t, owner, arch, ownerSince: Y + 1, splash: { thru: Y + 1, amt: arch === 'Frugal Profit-Seeker' ? 6 : arch === 'Win-Now Spender' || arch === 'Hype Focus' ? 20 : 12 }, sales: [...(t.sales || []), sale], ...(newGm ? { gm: newGm } : {}) };
+      const what = stake === 100 ? 'the ' + t.region + ' ' + t.name : 'a ' + stake + '% controlling stake in the ' + t.region + ' ' + t.name;
+      const text = t.owner + ' sold ' + what + ' to ' + owner + ', ' + who + ', for ' + fmtBillions(price) + (stake < 100 ? ' (valuing the club at ' + fmtBillions(value) + '; ' + t.owner + ' keeps ' + (100 - stake) + '% as a minority partner)' : '') + '. New owner type: ' + arch + '.';
+      lgLog.unshift({ day: s.day, type: 'Ownership', teams: t.abbr, text });
+      if (newGm) lgLog.unshift({ day: s.day, type: 'Ownership', teams: t.abbr, text: owner + ' replaced GM ' + t.gm + ' with ' + newGm });
+      news.unshift({ day: s.day, season: Y, kind: 'sale', tid: i, who: owner, role: 'New owner, ' + t.abbr, quote: mine
+        ? 'I’ve watched what this front office has built. They keep the job, and they’ll get a full season to show me where this is going. The expectations are mine now.'
+        : newGm ? 'New ownership, new direction. We’re bringing in ' + newGm + ' to run basketball operations. This city is going to be proud of this team.' : pick(['This franchise has a proud history and a big future. We’re going to invest to win.', 'I didn’t buy this team to stand still. Expect us to be aggressive.', 'Our fans deserve a winner, and they’re going to get an owner who shows up.']) });
+      if (mine) {
+        const club = g.clubOf({ ...s, ...top, clubs }, i) || {};
+        const item = { id: 'sale' + Y + '-' + i, tid: i, day: s.day, season: Y, kind: 'sale', done: false, title: 'The ' + t.name + ' have been sold', text: text + ' Your contract stands and ' + owner + ' won’t judge you until the end of his first full season. His demands, budget and firing conditions are on the Owner screen.', options: [{ k: 'ok', label: 'Meet the new owner' }] };
+        const pt = g.clubPatch({ ...s, ...top, clubs }, i, { inbox: [item, ...(club.inbox || [])], log: [{ date: g.fmtS(s.day), day: s.day, text: 'Team sold to ' + owner + ' (' + arch + ')' }, ...(club.log || [])] }, clubs);
+        if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt };
+        // The old owner's pending extension offer goes with him.
+        if (s.gmOffer?.tid === i && s.gmOffer.kind === 'early') top.gmOffer = null;
+      }
+    });
+    return { ...top, clubs, teams, news, lgLog, salesDone: Y };
+  });
 }
 
 function incentiveMet(x: any, p: any, t: any, tid: number, made: Set<number>, aw: any, T: any[]) {
@@ -326,7 +385,7 @@ export function inboxTick(g: Game, s: any, day: number, rosters: any) {
       }
     });
     // Owner mandate: over the payroll ceiling → get under it by the trade deadline (day 50).
-    const T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), pay = teamSalary(g, { ...s, rosters }, tid);
+    const T = s.teams[tid], ceil = g.teamCeiling(T), pay = teamSalary(g, { ...s, rosters }, tid);
     const club = g.clubOf(s, tid), open = (club?.inbox || []).find(x => x.kind === 'mandate' && !x.resolved);
     if (pay > ceil && !open && day < 45 && day % 5 === 0) push(tid, { pid: null, kind: 'mandate', deadline: 50, target: ceil, title: T.owner + ': cut payroll', text: 'Owner ' + T.owner + ' (' + T.arch + ') orders payroll under ' + money(ceil) + ' by the trade deadline (' + g.fmtS(50) + '). Otherwise he will order a fire sale of your worst contracts.', options: [{ k: 'ok', label: 'Understood' }] });
   });
@@ -344,13 +403,13 @@ export function resolveInbox(g: Game, id: string, choice: string) {
       if (x.kind === 'padder') { if (choice === 'yes') p.padding = true; else { p.padding = false; p.moodAdj = (p.moodAdj || 0) - 5; } }
     }
     const inbox = c.inbox.map(y => (y.id === id ? { ...y, done: true, choice } : y));
-    return { inbox, log: [{ date: g.fmtS(s.day), day: s.day, text: x.title + ': ' + (x.options.find(o => o.k === choice)?.label || choice) }, ...(s.log || [])] };
+    return { inbox, ...(x.kind === 'sale' ? { screen: 'owner' } : {}), log: [{ date: g.fmtS(s.day), day: s.day, text: x.title + ': ' + (x.options.find(o => o.k === choice)?.label || choice) }, ...(s.log || [])] };
   });
 }
 
 // At the trade deadline: an unmet mandate becomes a fire sale of the worst contracts.
 export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[]) {
-  const P = g.db.P, T = s.teams[tid], ceil = g.ownerCeiling(T.arch) + (T.ceilAdj || 0), sold: string[] = [];
+  const P = g.db.P, T = s.teams[tid], ceil = g.teamCeiling(T), sold: string[] = [];
   let guard = 0;
   while (teamSalary(g, { ...s, rosters }, tid) > ceil && rosters[tid].length > 13 && guard++ < 6) { // never below the league's 13-man minimum
     const worst = rosters[tid].slice().sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)))[0];

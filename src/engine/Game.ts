@@ -32,7 +32,7 @@ import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
-import { fireSale, inboxTick, ownerFavorite } from './frontOffice';
+import { fireSale, inboxTick, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, recordTrade } from './txlog';
@@ -855,6 +855,7 @@ export class Game {
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
       return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
+    if (this.state.phase === 'fa') teamSales(this); // team sales close with the new league year
   }
   // Free agency runs on the NBA calendar: negotiations open June 30 (day 0), the moratorium ends
   // July 6, Summer League is mid-July, then the market thins out until training camps open
@@ -1232,6 +1233,8 @@ export class Game {
     return out;
   }
   // Payroll ceiling each owner archetype tolerates (shown on the Owner screen, used by the AI).
+  // The payroll an owner allows: his type's line, any God Mode adjustment, and a new owner's first-year splash.
+  teamCeiling(t) { return this.ownerCeiling(t.arch) + (t.ceilAdj || 0) + (t.splash && this.Y <= t.splash.thru ? t.splash.amt : 0); }
   ownerCeiling(arch) { return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': this.AP1, 'Hype Focus': this.AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
   payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
   // Cap hit: salary (or the 2-year minimum for a one-year veteran minimum deal) plus likely bonuses.
@@ -1247,7 +1250,7 @@ export class Game {
     const st = { ...s, day, rosters: box.rosters, fa: box.fa, cap: box.cap };
     if (r < .4) { const t = tid(); if (stdIds(this, box.rosters[t]).length >= 15 || !box.fa.length) return null; const c = box.fa.slice().filter(x => !P[x].rfa).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)]; if (id == null) return null;
       const p = P[id], terms = aiTerms(this, st, t, p); if (!terms || (s.day >= DAY.TEN_DAY_START && p.ovr < 45)) return null;
-      if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.ownerCeiling(T[t].arch)) return null;
+      if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.teamCeiling(T[t])) return null;
       if (p.waived?.season === this.Y && p.waived.prevAmt > nums(this).NTMLE && teamSalary(this, st, t) > this.AP1) return null;
       return { day, type: 'Signing', teams: T[t].abbr, pids: [id], text: applySigning(this, st, box, t, p, terms) }; }
     // A contender buys: a player plus its own first-round pick for a better veteran from a rebuilding club.
@@ -1348,7 +1351,7 @@ export class Game {
       let inbox = (c0?.inbox || []), changed = false;
       const open = inbox.find(x => x.kind === 'mandate' && !x.resolved);
       if (open) {
-        const ceil = this.ownerCeiling(Tm.arch) + (Tm.ceilAdj || 0), pay = teamSalary(this, { ...s, rosters }, t);
+        const ceil = this.teamCeiling(Tm), pay = teamSalary(this, { ...s, rosters }, t);
         if (pay <= ceil) { inbox = inbox.map(x => x === open ? { ...x, resolved: 'met', done: true } : x); changed = true; }
         else if (day >= open.deadline) {
           const sold = fireSale(this, s, t, rosters, lgLog);

@@ -103,6 +103,24 @@ export function SettingsScreen({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
+            Team sales
+          </div>
+          <div>
+            <div>
+              {vm.salesSet.v === 'off' ? 'Off: owners never sell' : vm.salesSet.v === 'often' ? 'Frequent: about 15% of teams a year' : 'Realistic: about 5% of teams a year, like the NBA since 2010'}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
+              When free agency opens, an owner may sell the team or a controlling stake. The new owner can be a different type, with new demands and budget. Losing teams sell more often. Real rate: 20–25 change-of-control sales since 2010 (RotoWire, Front Office Sports).
+            </div>
+          </div>
+          <select className="input" value={vm.salesSet.v} onChange={e => vm.salesSet.set(e.target.value)} style={{ width: "auto" }}>
+            <option value="off">Off</option>
+            <option value="real">Realistic</option>
+            <option value="often">Frequent</option>
+          </select>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             League expansion
           </div>
           <div>

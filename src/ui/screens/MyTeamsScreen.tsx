@@ -16,7 +16,7 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '18px', marginBottom: '28px' }}>
         {s.managed.map(tid => {
-          const t = T[tid], club = gm.clubOf(s, tid), ids = s.rosters[tid], pay = teamSalary(gm, s, tid), ceil = gm.ownerCeiling(t.arch);
+          const t = T[tid], club = gm.clubOf(s, tid), ids = s.rosters[tid], pay = teamSalary(gm, s, tid), ceil = gm.teamCeiling(t);
           const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w), seed = conf.indexOf(t) + 1;
           const post = gm.nextPostGame(s, tid), g = post ? { opp: post.home === tid ? post.away : post.home, home: post.home === tid } : s.phase === 'regular' ? gm.userGame(s.day, tid) : null;
           const inj = ids.filter(id => P[id].inj), inbox = (club?.inbox || []).filter(x => !x.done).length;

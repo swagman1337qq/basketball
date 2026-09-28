@@ -5,6 +5,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-28
 
 ### Added
+- **Teams get sold.** When free agency opens, an owner may sell the team or a controlling stake. The odds match the real NBA:
+  - Each team has about a 5% chance a year, one or two sales a league-year. The NBA has had 20–25 change-of-control sales since 2010 (RotoWire, Front Office Sports).
+  - Losing teams sell more often, and a new owner spends a little more in his first year. In test leagues, sold teams won about .033 more of their games the next season, and about 60% improved, close to the real NBA (+.039, 60%).
+  - The new owner can be a different type, with new demands, a new budget and new firing conditions. Prices run from about $3B for small markets to $10B+ for the biggest, rising with league revenue.
+  - AI teams' new owners often bring in their own GM.
+  - If your team is sold, you get a message in your front-office inbox. Your contract stands, and the new owner gives you his first full season before judging you. The Owner screen shows when he bought the team, what he paid, and every past ownership change.
+  - Sales also show up in the Press room and the league log.
+  - Settings → Team sales: Off, Realistic (default) or Frequent (about 15% a year).
 - **Negotiate your own GM contract** (Career screen): when your owner offers a new deal or an extension, you can accept it, decline it, or send a counter-offer with the number of years (up to 5) and the salary you want.
   - If your ask is within what he'll do, he signs it on the spot. If not, he comes back with his best offer, or only part of the way if you ask for far too much.
   - Owners give more when they're happy with you (job security) and when your reputation is high. A win-now spender pays up, a frugal owner barely moves, an asset hoarder likes long deals and a micromanager short ones. A longer deal can cost a little a year.

@@ -1,4 +1,5 @@
 import type { VM } from '../vm';
+import { fmtBillions } from '../../engine/frontOffice';
 
 export function OwnerScreen({ vm }: { vm: VM }) {
   return (
@@ -17,6 +18,12 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           <p style={{ margin: "6px 0 18px", color: "var(--color-neutral-700)" }}>
             {vm.own.desc}
           </p>
+          {vm.own.sales?.[0] && (() => { const x = vm.own.sales[0]; return (
+            <p style={{ margin: "-10px 0 18px", fontSize: "13px" }}>
+              {vm.own.newOwner && <b style={{ color: "var(--color-accent-700)" }}>New owner. </b>}
+              Bought {x.stake === 100 ? 'the team' : 'a ' + x.stake + '% controlling stake'} from {x.from} for {fmtBillions(x.price)} before the {x.season - 1}–{String(x.season).slice(2)} season.
+              {vm.own.newOwner && ' He gives you his first full season before he judges you, and spends a little more than his type usually would this year.'}
+            </p>); })()}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)" }}>
               Job security
@@ -44,6 +51,16 @@ export function OwnerScreen({ vm }: { vm: VM }) {
               {t}
             </div>
           ))}
+          {vm.own.sales?.length > 0 && <>
+            <h4 style={{ margin: "18px 0 4px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
+              Ownership changes
+            </h4>
+            {vm.own.sales.map((x: any, i: number) => (
+              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "13px" }}>
+                <b>{x.season - 1}–{String(x.season).slice(2)}</b>: {x.from} ({x.fromArch}) sold {x.stake === 100 ? 'the team' : x.stake + '%'} to {x.to} ({x.arch}), {x.who}, for {fmtBillions(x.price)}{x.stake < 100 ? ' (club valued at ' + fmtBillions(x.value) + ')' : ''}.
+              </div>
+            ))}
+          </>}
         </section>
         <section>
           <h4 style={{ margin: "0 0 4px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" }}>
