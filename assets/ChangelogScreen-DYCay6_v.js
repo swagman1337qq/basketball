@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DKVvlIwO.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-6iotd9P6.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -25,6 +25,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - Frugal owners fire you after losing more than $5M three seasons in a row (was two seasons without a profit), or for paying the luxury tax two seasons running or a single tax bill over $25M (was any tax at all).
   - Hype owners only fire you when attendance stays under 70% for a whole season; Meddling owners when you bench their favorite for 35+ games; Asset Hoarders when you hold no first-round picks at all.
   - The owner's page lists the new conditions.
+
+### Fixed
+- **Free agency navigation:** "Next day", "Next week" and "To July 6" now take you to the Free agency screen. From any other page (a profile or box score included), the sim button reads "Go to free agency". The phase names in the top bar and the menu now also close an open box score (it used to stay on screen), and "Go to draft" also shows when a profile is open over the draft.
 
 ## 2026-09-27
 
