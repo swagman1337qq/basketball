@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-xlOOPpvf.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DD8cwuWE.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -27,6 +27,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Cut players from the Roster and Contracts screens:** a red "Cut" button opens the same waive / stretch / buyout dialog as the Cap sheet.
 
 ### Changed
+- **Injuries happen as often as in the real NBA.** Rates now follow the NBA's own injury database (Mack et al., *Sports Health* 2024, seasons 2013-14 to 2018-19): about 35 injuries per 1,000 player-games and 6.2 game-missing injuries per 10,000 player-minutes. Before this, the game had about a tenth of that.
+  - A team now gets about 30–35 injuries a season. Roughly a third cost games (about 12–13), and teams lose about 100–120 player-games a season to injury.
+  - Most are day-to-day knocks he plays through at reduced strength. Some are short absences (1–8 games), a few are multi-week (sprained MCLs, stress fractures, torn meniscus, 8–25 games), and ACL / Achilles tears happen about six times a season across the league.
+  - Minutes, age, fatigue, low endurance or strength, and the injury-prone trait still raise the risk. Young players now need four missed-game injuries in a season (was three) before it dents their potential.
 - **New York's owner is now Tanner Matthews**, with his full biography: a president's son-in-law who used the connection to make a fortune from wars and famine, and bought the team purely as an investment. Leagues that had Kared Jushner switch to Tanner Matthews.
 - **Playoff rotations shorten, like the real NBA:** in the playoffs coaches play about eight guys and ride their starters (38–41 minutes); in an elimination game, seven. The 2023 Nuggets won the title with an eight-man rotation. In test seasons, teams went from 9.3 players with 10+ minutes a night to 8.2, and top players from 32 to 37.5 minutes.
 - **Rating labels are relative to the league:** Elite now means the top 3% of NBA players at that skill, Great the top 12%, Good the top 30%, Average the middle 40%, Below avg the next 20% and Poor the bottom 10%. The line on each bar marks the league median, and hovering a rating shows "better than X% of NBA players". A 60 in dunking and a 60 in passing no longer mean the same thing.
