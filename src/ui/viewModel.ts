@@ -1,6 +1,7 @@
 // View model: turns the league state into the flat values the screens render.
 // Ported from the prototype's renderVals(); every handler calls back into Game.
 import { tradeAdvice } from '../engine/tradeAdvice';
+import { PROT_OPTIONS } from '../engine/pickRules';
 import { createElement, type RefObject } from 'react';
 import { fmtMoney } from '../engine/capModel';
 import { glLabel } from '../engine/gleague';
@@ -191,7 +192,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const tRow = key => id => ({ ...pBase(id), contract: money(P[id].amt), ...box(s[key].includes(id)), toggle: tog(key, id) });
   const usedPick = a => a.yr === gm.Y && s.picks.some(x => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid);
   const projTxt = a => { if (a.rd === 2) return 'Second round'; const sl = Math.round(gm.projSlot(a, T)); return a.yr === gm.Y ? 'Proj. #' + sl : sl <= 14 ? 'Proj. lottery' : sl <= 22 ? 'Proj. mid first' : 'Proj. late first'; };
-  const kRow = key => a => ({ label: gm.pickLabel(a, T), proj: gm.draftRights(a, s) ? (() => { const q = P[gm.draftRights(a, s).pid]; return q.age + ' · ' + est(q, 0) + '/' + est(q, 1); })() : projTxt(a), ...box(s[key].includes(a.id)), toggle: tog(key, a.id) });
+  // A first you're trading can carry a protection for the team giving it (not one that already has one).
+  const protSel = (key, a) => { if (!s[key].includes(a.id) || a.rd !== 1 || a.prot || gm.draftRights(a, s)) return null; return { v: (s.tProt || {})[a.id] || 0, set: e => { const v = +e.target.value; gm.setState(st => ({ tProt: { ...(st.tProt || {}), [a.id]: v } })); } }; };
+  // Swap rights for the years both teams' firsts are still to come (this year's until the lottery).
+  const swapYears = [gm.Y, gm.Y + 1, gm.Y + 2, gm.Y + 3].filter(yr => (yr > gm.Y || ['regular', 'playin', 'playoffs'].includes(s.phase)) && [s.me, s.tTid].every(t => s.assets.some(a => a.yr === yr && a.rd === 1 && a.orig === t)) && !(s.swaps || []).some(w => w.yr === yr && [w.from, w.to].includes(s.me) && [w.from, w.to].includes(s.tTid)));
+  const sRow = (key, mineSide) => yr => { const id = 'swap:' + yr; return { label: yr + ' first-round swap', proj: mineSide ? 'They may swap their 1st for yours' : 'You may swap your 1st for theirs', swap: true, ...box(s[key].includes(id)), toggle: tog(key, id) }; };
+  const kRow = key => a => ({ prot: protSel(key, a), label: gm.pickLabel(a, T), proj: gm.draftRights(a, s) ? (() => { const q = P[gm.draftRights(a, s).pid]; return q.age + ' · ' + est(q, 0) + '/' + est(q, 1); })() : projTxt(a), ...box(s[key].includes(a.id)), toggle: tog(key, a.id) });
   // Used picks drop off, except on draft night: an AI team's pick that hasn't signed is his draft rights.
   const myAssets = s.assets.filter(a => a.owner === s.me && (!usedPick(a) || gm.draftRights(a, s))), theirAssets = s.assets.filter(a => a.owner === s.tTid && (!usedPick(a) || gm.draftRights(a, s)));
   const send = s.tMine.map(id => P[id]), get = s.tTheirs.map(id => P[id]);
@@ -207,7 +213,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     delta: inc - out, afterNum: after, advice: any && s.tAdvice && s.screen === 'trade' ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal') : null, askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })) };
   // Offers on request: shop your selected players/picks around the league, or ask the other team
   // what it wants for its selected players/picks. Step through them, then accept, decline or negotiate.
-  const assetName = id => { const a = s.assets.find(x => x.id === id); return a ? gm.pickLabel(a, T) : ''; };
+  const assetName = id => gm.tradeItemLabel(s, id, T);
   const pLine = id => { const q = P[id]; return { name: q.name, sub: q.pos + ' · ' + q.age + ' · ' + q.ovr + '/' + q.pot + ' · ' + money(q.amt) + (q.exp > gm.Y ? ' thru ' + q.exp : ''), ovr: q.ovr, open: open(id) }; };
   const kLine = id => ({ name: assetName(id), sub: (() => { const a = s.assets.find(x => x.id === id); return a ? projTxt(a) : ''; })(), open: null });
   const offerAsk = kind => () => {
@@ -423,7 +429,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     return { rating: trOf(tid), ratingRank: ord(trRank(tid)) + ' of ' + T.length, logo: logo(tid, 58), abbr: tmT.abbr, name: tmT.region + ' ' + tmT.name, line: ord(cs.indexOf(tmT) + 1) + ' in the ' + tmT.conf + ' · ' + tmT.div + ' Division', rec: tmT.w + '–' + tmT.l + ' · ' + strk(tmT) + ' · ' + l10(tmT) + ' last 10', market: (tmT.mkt >= 1.15 ? 'Large' : tmT.mkt >= .95 ? 'Mid-large' : tmT.mkt >= .85 ? 'Mid-size' : 'Small') + ' market',
       strat: tid === s.me ? 'Your team' : mine2(tid) ? 'Also yours' : STRAT[strat[tid]][0], stratDesc: mine2(tid) ? '' : STRAT[strat[tid]][1], payroll: money(pay), cap: pay > gm.TAX ? money(pay - gm.TAX) + ' over the tax' : pay > gm.CAP ? money(pay - gm.CAP) + ' over the cap' : money(gm.CAP - pay) + ' in cap space',
       staff: 'Owner ' + tmT.owner + ' (' + tmT.arch + ') · GM ' + tmT.gm, region: tmT.region, nm: tmT.name, setRegion: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, region: v } : t) })); }, setName: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, name: v } : t) })); }, setAbbr: e => { const v = e.target.value.toUpperCase().slice(0, 4); gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, abbr: v } : t) })); },
-      rows: ids.map(id => ({ ...pBase(id), contract: money(P[id].amt) })), picks: ks.length ? ks.map(a => gm.pickLabel(a, T) + ' (' + projTxt(a).replace('Proj. ', '') + ')').join(' · ') : 'None', isOther: tid !== s.me,
+      rows: ids.map(id => ({ ...pBase(id), contract: money(P[id].amt) })), picks: (ks.length ? ks.map(a => gm.pickLabel(a, T) + ' (' + projTxt(a).replace('Proj. ', '') + ')').join(' · ') : 'None') + (s.swaps || []).filter(w => w.to === tid || w.from === tid).map(w => ' · ' + w.yr + ' swap ' + (w.to === tid ? 'rights with ' + T[w.from].abbr : 'owed to ' + T[w.to].abbr)).join(''), isOther: tid !== s.me,
       trade: () => gm.setState({ teamModal: null, modal: false, screen: 'trade', tTid: tid, tTheirs: [], tkTheirs: [], tMsg: null }),
       canSwitch: mine2(tid) && tid !== s.me, switchTo: () => gm.switchTeam(tid), canTake: !!s.god && !mine2(tid), takeOver: () => { gm.setState({ teamModal: null }); gm.takeOver(tid); }, canResign: mine2(tid) && s.managed.length > 1, resign: () => { gm.setState({ teamModal: null }); gm.handToAI(tid, 'Resigned from'); } }; })();
   const dark = (s.theme ?? 'dark') === 'dark';
@@ -544,7 +550,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     autoLineup: () => gm.setState(st => ({ rosters: { ...st.rosters, [st.me]: st.rosters[st.me].slice().sort((x, y) => P[y].ovr - P[x].ovr) }, sort: { ...st.sort, roster: ['rk', 1] } })),
     comp, depth, roles, pl, showJson: s.showJson, toggleJson: () => gm.setState(st => ({ showJson: !st.showJson })), downloadFaces: () => gm.downloadFaces(),
     standGroups, standSegs, standConf: conf,
-    tMine: mine.map(tRow('tMine')), tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')), tMinePicks: myAssets.map(kRow('tkMine')), tTheirPicks: theirAssets.map(kRow('tkTheirs')), tr, teamOptions, tTid: s.tTid,
+    tMine: mine.map(tRow('tMine')), tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')), tMinePicks: [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))], tTheirPicks: [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))], protOpts: PROT_OPTIONS, tr, teamOptions, tTid: s.tTid,
     pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), forceAccept: () => gm.propose(true), shopOffers: offerAsk('shop'), askOffers: offerAsk('ask'), canShop: s.tMine.length + s.tkMine.length > 0, canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid), offersV, balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
     faCols, faRows, faNote, dr, dClasses, draftCols, draftRows, simToMine: () => gm.aiDraft(true), simOne: () => gm.aiDraft(true, 1), simAll: () => gm.aiDraft(false),
     askScouts: () => gm.setState(st => ({ adv: { ...st.adv, scouts: true } })), askAgm: () => gm.setState(st => ({ adv: { ...st.adv, agm: true } })),

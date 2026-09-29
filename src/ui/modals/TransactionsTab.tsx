@@ -14,6 +14,7 @@ export function TransactionsTab({ vm }: { vm: VM }) {
   const player = (pid: number) => { const q = P[pid]; return q ? <span style={{ whiteSpace: 'nowrap' }}><Link onClick={() => open(pid)} style={{ color: 'var(--color-accent-700)' }}>{q.name}</Link> <span style={{ ...muted, fontSize: '11.5px' }}>{q.pos} · {q.ovr}</span></span> : <span>Unknown player</span>; };
   // A pick: its label, where it went next, and what it became.
   const pick = (id: string, after?: Trade) => {
+    if (id.startsWith('swap:')) return <span><b style={{ fontWeight: 600 }}>{id.slice(5)} first-round swap rights</b></span>;
     const [yr, rd, orig] = id.split('-').map(Number), used = pickUsed(gm, id);
     const later = pickTrades(gm, id).filter(t => !after || t.id > after.id);
     const lab = yr + ' ' + (rd === 1 ? '1st' : '2nd') + '-round pick (' + (T[orig]?.abbr || '?') + ')';

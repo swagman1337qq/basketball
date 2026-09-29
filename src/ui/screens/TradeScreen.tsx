@@ -124,7 +124,8 @@ export function TradeScreen({ vm }: { vm: VM }) {
                     </span>
                   </td>
                   <td style={{ padding: "4px 8px" }}>
-                    {k.label}
+                    <span style={{ fontStyle: k.swap ? 'italic' : undefined }}>{k.label}</span>
+                    {k.prot && <select className="input" value={k.prot.v} onClick={e => e.stopPropagation()} onChange={k.prot.set} title="Protection: if the pick lands inside it, the team giving it keeps it and it rolls over to next year (twice, then unprotected)" style={{ width: 'auto', minHeight: 24, fontSize: '11.5px', padding: '0 4px', marginLeft: 8 }}>{(vm.protOpts || []).map(([n, l]: any) => <option key={n} value={n}>{l}</option>)}</select>}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {k.proj}
@@ -312,7 +313,8 @@ export function TradeScreen({ vm }: { vm: VM }) {
                     </span>
                   </td>
                   <td style={{ padding: "4px 8px" }}>
-                    {k.label}
+                    <span style={{ fontStyle: k.swap ? 'italic' : undefined }}>{k.label}</span>
+                    {k.prot && <select className="input" value={k.prot.v} onClick={e => e.stopPropagation()} onChange={k.prot.set} title="Protection: if the pick lands inside it, the team giving it keeps it and it rolls over to next year (twice, then unprotected)" style={{ width: 'auto', minHeight: 24, fontSize: '11.5px', padding: '0 4px', marginLeft: 8 }}>{(vm.protOpts || []).map(([n, l]: any) => <option key={n} value={n}>{l}</option>)}</select>}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {k.proj}

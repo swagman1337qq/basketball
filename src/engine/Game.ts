@@ -4,6 +4,7 @@
 import { PRESET_CARDS } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners } from './owners';
+import { protFactor, protLabel, settlePickRules } from './pickRules';
 import { LOUD_COLORS, PALETTE_V } from '../data/palette';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -871,8 +872,9 @@ export class Game {
       const first = [...r1.filter(t => !demoted.includes(t)), ...demoted], second = s.teams.map(t => t.tid).sort((a, b) => byW(a, b) || a - b);
       const picks = [...first.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...second.map((orig, i) => ({ n: first.length + i + 1, rd: 2, orig, pid: null }))];
       if (demoted.length) lgLog0.push(...demoted.map(t => ({ day: s.day, type: 'Draft', teams: s.teams[t].abbr, text: s.teams[t].region + '’s first-round pick moved to the end of the round: above the 2nd apron in 3 of the last 5 seasons' })));
+      const pr = settlePickRules(this, s, picks); lgLog0.push(...pr.log); // pick protections and swaps
       const jump = lotto.filter(x => x.n < x.exp - 0.5), lotHist = { ...(s.lotHist || {}), [this.Y]: Object.fromEntries(first.map((t, i) => [t, i + 1])) };
-      return { phase: 'draft', picks, pi: 0, lotto, lotHist, lotReveal: 0, dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
+      return { phase: 'draft', picks, pi: 0, lotto, lotHist, assets: pr.assets, swaps: pr.swaps, lotReveal: 0, dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
   startFA() {
@@ -1130,14 +1132,22 @@ export class Game {
     // Draft rights are worth the player (on his rookie deal), not the slot.
     const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return Math.max(2, this.pVal({ ...p, amt: (r.rd || 1) === 1 ? this.rookieAmt(r.n) : nums(this).min(0), exp: this.Y + 4 }, st)); }
     const slot = this.projSlot(k, T);
-    let v = k.rd === 1 ? 4 + 34 * Math.pow((31 - slot) / 30, 1.6) : 2.5;
+    let v = k.rd === 1 ? (4 + 34 * Math.pow((31 - slot) / 30, 1.6)) * protFactor(slot, k.prot) : 2.5;
     v *= k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.92 : 0.85;
     return v * ({ rebuild: [1.6, 1.6], middle: [1.05, 1.45], contend: [0.7, 0.75] }[st][giving ? 1 : 0]);
   }
+  // A pick in a trade, with any protection you're attaching to it (s.tProt).
+  tradeAsset(s, id) { const a = s.assets.find(x => x.id === id); if (!a) return null; const pr = (s.tProt || {})[id]; return pr && !a.prot && a.rd === 1 ? { ...a, prot: pr } : a; }
+  // Swap rights ("swap:2028"): the holder may trade its own first for the grantor's that year if the
+  // grantor's lands higher. Worth the expected gain (bigger when the grantor looks worse) plus a little.
+  swapVal(yr, holder, grantor, st, T) { const pk = (orig: number) => ({ yr, rd: 1, orig, owner: orig, id: 'x' }); const d = this.kVal(pk(grantor), st, false, T) - this.kVal(pk(holder), st, false, T); return 1 + Math.max(0, d) * 0.7 + Math.max(-2, d) * 0.1; }
+  static isSwap = (id: any) => typeof id === 'string' && id.startsWith('swap:');
+  tradeItemVal(s, id, st, giving, holder, grantor) { if (Game.isSwap(id)) return this.swapVal(+id.slice(5), holder, grantor, st, s.teams); const a = this.tradeAsset(s, id); return a ? this.kVal(a, st, giving, s.teams) : 0; }
+  tradeItemLabel(s, id, T) { if (Game.isSwap(id)) return id.slice(5) + ' first-round swap rights'; const a = this.tradeAsset(s, id); return a ? this.pickLabel(a, T) : ''; }
   evalTrade(s, mine, theirs, kMine, kTheirs) {
-    const P = this.db.P, st = this.strategies(s.teams)[s.tTid], A = id => s.assets.find(a => a.id === id);
-    const recv = mine.reduce((a, id) => a + this.pVal(P[id], st), 0) + kMine.reduce((a, id) => a + this.kVal(A(id), st, false, s.teams), 0);
-    const give = theirs.reduce((a, id) => a + this.pVal(P[id], st), 0) + kTheirs.reduce((a, id) => a + this.kVal(A(id), st, true, s.teams), 0);
+    const P = this.db.P, st = this.strategies(s.teams)[s.tTid];
+    const recv = mine.reduce((a, id) => a + this.pVal(P[id], st), 0) + kMine.reduce((a, id) => a + this.tradeItemVal(s, id, st, false, s.tTid, s.me), 0);
+    const give = theirs.reduce((a, id) => a + this.pVal(P[id], st), 0) + kTheirs.reduce((a, id) => a + this.tradeItemVal(s, id, st, true, s.me, s.tTid), 0);
     const thr = Math.max(1, Math.abs(give) * 0.06);
     return { st, recv, give, diff: recv - give - thr, ok: recv - give >= thr };
   }
@@ -1526,7 +1536,7 @@ export class Game {
     const onRoster = Object.values(s.rosters).some((ids: any) => ids.includes(pk.pid)); return onRoster ? null : pk;
   }
   pickLabel(k, T) { const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return 'Draft rights: ' + p.name + ' (#' + r.n + ', ' + p.pos + ')'; }
-    return k.yr + ' ' + (k.rd === 1 ? '1st' : '2nd') + (k.orig === k.owner ? '' : ' (via ' + T[k.orig].abbr + ')'); }
+    return k.yr + ' ' + (k.rd === 1 ? '1st' : '2nd') + (k.orig === k.owner ? '' : ' (via ' + T[k.orig].abbr + ')') + (k.prot ? ' · ' + protLabel(k.prot) : ''); }
   // force (God Mode only): the other team accepts and the league office approves no matter what.
   propose(force = false) {
     this.setState(s => {
@@ -1540,7 +1550,10 @@ export class Game {
       const say = (st: string) => { const a = WANT[st] || WANT.middle; return a[(s.tTid * 7 + s.day + (s.tTheirs.length + s.tMine.length) * 3) % a.length]; };
       if (!force) { const chk = checkTrade(this, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs); if (!chk.ok) return { tMsg: 'League office: ' + chk.errs.join(' ') }; }
       if (!ev.ok && !force && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + say(ev.st) + '\u201d' };
-      const assets = s.assets.map(a => s.tkMine.includes(a.id) ? { ...a, owner: s.tTid } : s.tkTheirs.includes(a.id) ? { ...a, owner: s.me } : a);
+      // Picks change hands (with any protection you attached); swap rights are recorded.
+      const withProt = a => { const pr = (s.tProt || {})[a.id]; return pr && !a.prot && a.rd === 1 ? { ...a, prot: pr, rolls: 0 } : a; };
+      const assets = s.assets.map(a => s.tkMine.includes(a.id) ? withProt({ ...a, owner: s.tTid }) : s.tkTheirs.includes(a.id) ? withProt({ ...a, owner: s.me }) : a);
+      const swaps = [...(s.swaps || []), ...s.tkMine.filter(Game.isSwap).map(id => ({ id: id + ':' + s.me + '>' + s.tTid, yr: +id.slice(5), from: s.me, to: s.tTid })), ...s.tkTheirs.filter(Game.isSwap).map(id => ({ id: id + ':' + s.tTid + '>' + s.me, yr: +id.slice(5), from: s.tTid, to: s.me }))];
       const rosters = { ...s.rosters, [s.me]: [...s.rosters[s.me].filter(id => !s.tMine.includes(id)), ...s.tTheirs], [s.tTid]: [...s.rosters[s.tTid].filter(id => !s.tTheirs.includes(id)), ...s.tMine] };
       // Draft rights you receive: he signs his rookie deal with you right away (like your own picks).
       const signed: string[] = [];
@@ -1554,9 +1567,9 @@ export class Game {
       const cap = { ...(s.cap || {}) }, capNotes = tradeCap(this, s, cap, s.me, s.tTid, s.tMine, s.tTheirs);
       const tradeId = recordTrade(this, s, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
       rightsIn.forEach(id => addTx(this, s, P[id], { k: 'trade', from: s.tTid, to: s.me, trade: tradeId, text: 'Draft rights traded' }));
-      const A = id => this.pickLabel(s.assets.find(a => a.id === id), T);
+      const A = id => this.tradeItemLabel(s, id, T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
-      return { rosters, assets, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : '') + (signed.length ? ' ' + T[s.tTid].abbr + ' made the pick on your behalf; ' + signed.join(' and ') + (signed.length === 1 ? ' signs his' : ' sign their') + ' rookie deal with you.' : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
+      return { rosters, assets, swaps, tProt: {}, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : '') + (signed.length ? ' ' + T[s.tTid].abbr + ' made the pick on your behalf; ' + signed.join(' and ') + (signed.length === 1 ? ' signs his' : ' sign their') + ' rookie deal with you.' : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
   // Draft board shortcuts. Someone else's pick: trade with the team that owns it ("Trade for
