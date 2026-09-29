@@ -12,7 +12,8 @@ export function AwardsScreen({ vm }: { vm: VM }) {
   const seasons = Object.keys(s.awards || {}).map(Number).sort((a, b) => b - a);
   const [pick, setPick] = useState<number | null>(null);
   const [openV, setOpenV] = useState<Record<string, boolean>>({});
-  const yr = pick && seasons.includes(pick) ? pick : seasons[0];
+  const want = pick ?? s.awardsYear ?? null; // a season picked here, or one you jumped to from a player's awards
+  const yr = want && seasons.includes(want) ? want : seasons[0];
   // This season's All-Stars (mid-season), before the season's awards are voted.
   const asNow = (s.allStars || {})[gm.Y] && !(s.awards || {})[gm.Y] ? <AllStarBox vm={vm} y={gm.Y} /> : null;
   if (!yr) return <>{asNow}<p style={{ ...muted, fontStyle: 'italic' }}>Awards are voted when the regular season ends. Finish the {gm.seasonLbl()} regular season to see the first winners.</p></>;
@@ -84,7 +85,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
-        <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => setPick(v)} />
+        <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => { setPick(v); gm.setState({ awardsYear: null }); }} />
         <span style={{ ...muted, fontSize: '12px' }}>{a.list ? 'Voted by formula (hover a title to see it; edit them in Settings → Award formulas). Most awards need 65 games.' : 'Individual awards and All-League teams need 58 of 82 games played.'}</span>
       </div>
       {asNow}

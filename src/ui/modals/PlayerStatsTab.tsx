@@ -76,7 +76,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     const b = !!L && L[k] != null && isFinite(v) && roundStat(k, v, mode === 'tot' ? 'tot' : 'pg') === L[k];
     return <td key={k} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: b ? 800 : undefined, color: grey ? 'var(--color-neutral-600)' : undefined }} title={b ? 'Led the league' : undefined}>{txt}</td>;
   };
-  const Aw = ({ y }: { y: number }) => { if (ccp) return <td />; const tags = awardTags(s, p.id, y, po); return <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontSize: '11.5px' }}>{tags.map((a, i) => <span key={a.tag} title={a.name}>{i ? ', ' : ''}<span style={{ fontWeight: a.won ? 800 : undefined, color: 'var(--color-accent-700)' }}>{a.tag}</span></span>)}</td>; };
+  const Aw = ({ y }: { y: number }) => { if (ccp) return <td />; const tags = awardTags(s, p.id, y, po); return <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontSize: '11.5px' }}>{tags.map((a, i) => <span key={a.tag}>{i ? ', ' : ''}<button className="hv4" title={a.name + ': see the ' + (y - 1) + '–' + String(y).slice(2) + ' awards'} onClick={() => gm.setState({ screen: 'awards', awardsYear: y, modal: false, teamModal: null, boxId: null })} style={{ all: 'unset', cursor: 'pointer', fontWeight: a.won ? 800 : undefined, color: 'var(--color-accent-700)', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 }}>{a.tag}</button></span>)}</td>; };
   const lgName = ccp ? 'CCP' : 'NBA', allStar = (y: number) => !ccp && !po && allStarsOf(s, y).includes(p.id);
   const bbRow = (key: string, first: ReactNode, age: ReactNode, team: string, t: any, y: number | null, opts: { grey?: boolean; bold?: boolean; top?: boolean } = {}) => (
     <tr key={key} style={{ borderTop: opts.top ? '2px solid var(--color-text)' : undefined, background: opts.bold ? 'var(--color-neutral-100)' : undefined }}>
@@ -98,7 +98,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
         <thead><tr><TH l>Season</TH><TH>Age</TH><TH l>Team</TH><TH l>Lg</TH><TH l>Pos</TH>{COLS.map(([k, h, t]) => <TH key={k} t={t}>{h}</TH>)}<TH l>Awards</TH></tr></thead>
         <tbody>
           {lines.map(({ y, t, teams, parts }) => <Fragment key={y}>
-            {bbRow('s' + y, <>{lbl(y)}{allStar(y) && <span title="All-Star" style={{ color: 'var(--gm-elite, var(--color-accent))', marginLeft: 3 }}>★</span>}</>, ageIn(y), teams, t, y)}
+            {bbRow('s' + y, <>{lbl(y)}{allStar(y) && <span title="All-Star" style={{ color: 'var(--color-neutral-500)', marginLeft: 4, fontSize: '11px' }}>★</span>}</>, ageIn(y), teams, t, y)}
             {parts.map(x => bbRow('s' + y + x.team, lbl(y), ageIn(y), x.team, x.t, y, { grey: true }))}
           </Fragment>)}
           {nYrs > 1 && bbRow('car', nYrs + ' Yr' + (nYrs === 1 ? '' : 's'), '', '', career, null, { bold: true, top: true })}

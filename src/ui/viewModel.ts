@@ -49,7 +49,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // opened from it returns to the list, with the page you opened the list from behind it.
   const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
   const open = id => e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
-  const go = k => () => gm.setState(st => ({ screen: k, q: '', modal: false, teamModal: null, boxId: null, pageStack: [], navTick: (st.navTick || 0) + 1 })); // clicking the tab you're on starts it fresh (your team, this season)
+  const go = k => () => gm.setState(st => ({ screen: k, q: '', modal: false, teamModal: null, boxId: null, awardsYear: null, pageStack: [], navTick: (st.navTick || 0) + 1 })); // clicking the tab you're on starts it fresh (your team, this season)
   const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
   const goBack = () => {
     const st0 = gm.state;
