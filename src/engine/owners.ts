@@ -27,6 +27,34 @@ const pickH = <T,>(a: T[], seed: number, salt: number) => a[(seed >>> (salt % 24
 const bil = (x: number) => (x >= 100 ? Math.round(x) : x >= 10 ? x.toFixed(0) : x.toFixed(1)).toString().replace(/\.0$/, '');
 const money = (m: number) => (m >= 1000 ? '$' + (m / 1000).toFixed(2).replace(/0$/, '').replace(/\.0$/, '') + ' billion' : '$' + Math.round(m) + ' million');
 
+// Where an owner grew up, from the roots of the surname (every generated owner has an American
+// first name, so they're Americans, raised where those communities live), and what the business
+// was, matching how the sale was announced.
+const HOMES: Record<string, string[]> = {
+  anglo: ['a small town in Ohio', 'suburban Dallas', 'Greenwich, Connecticut', 'Charlotte, North Carolina', 'Omaha, Nebraska', 'a farm in Iowa', 'Scottsdale, Arizona', 'Nashville, Tennessee', 'Boise, Idaho', 'Richmond, Virginia'],
+  southern: ['rural Georgia', 'Birmingham, Alabama', 'Memphis, Tennessee', 'Jackson, Mississippi', 'Greenville, South Carolina'],
+  jewish: ['Brooklyn, New York', 'Shaker Heights, Ohio', 'Skokie, Illinois', 'the Upper West Side of Manhattan', 'Great Neck, New York', 'Squirrel Hill in Pittsburgh'],
+  german: ['Milwaukee, Wisconsin', 'Cincinnati, Ohio', 'Fredericksburg, Texas', 'St. Louis, Missouri'],
+  nordic: ['Minneapolis, Minnesota', 'a farm in North Dakota', 'the Ballard neighborhood of Seattle', 'Duluth, Minnesota', 'Madison, Wisconsin'],
+  italian: ['South Philadelphia', 'Staten Island, New York', 'the North End of Boston', 'Providence, Rhode Island', 'Newark, New Jersey', 'The Hill in St. Louis'],
+  hispanic: ['East Los Angeles', 'San Antonio, Texas', 'El Paso, Texas', 'Miami, Florida', 'Albuquerque, New Mexico', 'Phoenix, Arizona', 'the Bronx, New York'],
+  filipino: ['Daly City, California', 'Honolulu, Hawaii', 'San Diego, California', 'Jersey City, New Jersey'],
+  nigerian: ['Houston, Texas, in a Nigerian immigrant family', 'Silver Spring, Maryland, in a Nigerian immigrant family', 'Atlanta, Georgia, in a Nigerian immigrant family', 'Dallas, Texas, in a Nigerian immigrant family'],
+  japanese: ['Honolulu, Hawaii', 'Torrance, California', 'Seattle, Washington', 'San Jose, California', 'Sacramento, California'],
+  southafrican: ['Atlanta, Georgia, in a South African immigrant family', 'Washington, D.C., in a family of South African exiles', 'Houston, Texas, in a South African immigrant family'],
+  french: ['New Orleans, Louisiana', 'Lafayette, Louisiana', 'Baton Rouge, Louisiana', 'Lowell, Massachusetts'],
+  polish: ['the Avondale neighborhood of Chicago', 'Hamtramck, Michigan', 'Buffalo, New York', 'Milwaukee, Wisconsin'],
+  hungarian: ['Cleveland, Ohio', 'New Brunswick, New Jersey', 'Toledo, Ohio'],
+  irish: ['South Boston', 'Scranton, Pennsylvania', 'Queens, New York', 'Chicago’s South Side'],
+};
+const ROOTS: Record<string, string> = {
+  Kessler: 'jewish', Rosenthal: 'jewish', Brandt: 'german', Lindgren: 'nordic', Lindqvist: 'nordic', Halvorsen: 'nordic',
+  Castellano: 'italian', Mancuso: 'italian', Esposito: 'italian', Vasquez: 'hispanic', Castellanos: 'hispanic', Villanueva: 'filipino',
+  Okoro: 'nigerian', Oyelaran: 'nigerian', Adebayo: 'nigerian', Nakashima: 'japanese', Mbeki: 'southafrican', Delacroix: 'french', Duquesne: 'french',
+  Kowalczyk: 'polish', Szabo: 'hungarian', Abernathy: 'southern', Hollister: 'southern', Wexford: 'irish', Galloway: 'irish',
+};
+const WHO_SRC: Record<string, string> = { 'a private-equity investor': 'private equity', 'a tech founder': 'cloud software', 'a hedge-fund manager': 'a hedge fund', 'a real-estate developer': 'commercial real estate', 'an energy executive': 'oil, gas and renewables', 'a sports-and-entertainment investment group': 'sports and entertainment investments', 'a logistics magnate': 'logistics and shipping', 'a media executive': 'media and streaming', 'a family investment office': 'a family fortune in manufacturing', 'a former minority partner': 'commercial real estate' };
+
 export interface OwnerProfile { name: string; kind: OwnerKind; kindLabel: string; kindDesc: string; worth: number; worthLabel: string; year: number; price: number; priceLabel: string; bio: string }
 
 export function ownerProfile(g: Game, s: any, tid: number): OwnerProfile {
@@ -38,8 +66,8 @@ export function ownerProfile(g: Game, s: any, tid: number): OwnerProfile {
   const year = sale ? sale.season - 1 : 2008 + (h % 16), price = sale ? sale.price : Math.round(teamValue(g, s, tid) * Math.pow(1.17, year - g.Y) / 10) * 10;
   const worth = named ? named.worth : kind === 'fan' ? 40 + (h % 70) : kind === 'profit' ? 8 + (h % 30) : 4 + (h % 14) + (price / 1000) * 0.8;
   const P = money(price), yr = String(year);
-  const src = pickH(['renewable energy', 'cloud software', 'logistics and shipping', 'semiconductors', 'a chain of grocery stores', 'commercial real estate', 'medical devices', 'a streaming platform', 'private credit', 'consumer electronics', 'pharmaceuticals', 'a trucking empire'], h, 3);
-  const home = pickH(['a small town in Ohio', 'Queens, New York', 'Monterrey, Mexico', 'rural Georgia', 'Lagos, Nigeria', 'the outskirts of Manila', 'Detroit', 'a farm in Iowa', 'São Paulo', 'East Oakland', 'Busan, South Korea', 'Warsaw'], h, 7);
+  const src = sale && WHO_SRC[sale.who] ? WHO_SRC[sale.who] : pickH(['renewable energy', 'cloud software', 'logistics and shipping', 'semiconductors', 'a chain of grocery stores', 'commercial real estate', 'medical devices', 'a streaming platform', 'private credit', 'consumer electronics', 'pharmaceuticals', 'a trucking empire'], h, 3);
+  const home = pickH(HOMES[ROOTS[last] || 'anglo'], h, 7); // where someone with his name plausibly grew up
   let bio = '';
   if (named?.key === 'mac') bio = `${name} made his first fortune with his fists, in a legendary boxing career that took him from nothing to world titles in eight weight classes. When he hung up the gloves he turned to business, investing across industries and continents and building a vast portfolio. His best bet by far was MADtv: by 2026 it had grown into a global entertainment powerhouse behind almost every major show and film in the world, and it made him about $5 billion on its own. Today he's worth an estimated $${bil(worth)} billion. A basketball fanatic his whole life, Macquiao finally lived out his dream in ${yr}, buying the ${team} for ${P}. He's back in professional sports, not as a fighter but as an owner, and he wants a show: a full arena and a star to sell it.`;
   else if (named?.key === 'mao') bio = `${name} grew up in Nanping, China, in a family that struggled to make ends meet: his father worked as a laborer and his mother as a maid, and neither had much chance at an education. Mao fell in love with basketball early, but at 6′0″ and with his family counting every coin, he chose college over chasing the game. He went on to build a $${bil(worth)} billion fortune in renewable energy, becoming one of the most successful entrepreneurs in the world, and he has put billions back into the community that raised him. The love of the game never left. When he bought the ${team} for ${P} in ${yr}, he promised more than a profitable franchise: he pledged to invest in the city, look after his employees and players, listen to the fans, and build a place where people come before profits and everyone is proud to wear the jersey.`;
@@ -50,7 +78,7 @@ export function ownerProfile(g: Game, s: any, tid: number): OwnerProfile {
     `${name} is one of the richest people on the planet, worth about $${bil(worth)} billion from ${src}, and one of the most devoted fans in the league. ${first} bought the ${team} in ${yr} for ${P} and runs them like a public trust: cheap seats in every section, new courts in every neighborhood, and a payroll as high as it takes to win. Money is not the point; winning, and doing right by the city, is.`,
   ], h, 11);
   else if (kind === 'passionate') bio = pickH([
-    `${name} came from ${home} and made a fortune, about $${bil(worth)} billion, in ${src}. That is a lot of money, but not a lot by the standards of this league, and buying the ${team} in ${yr} for ${P} took most of it. ${first} did it anyway: a lifelong fan, ${last} sits courtside most nights, takes every loss personally and expects the same from the front office.`,
+    `${name} grew up in ${home} and made a fortune, about $${bil(worth)} billion, in ${src}. That is a lot of money, but not a lot by the standards of this league, and buying the ${team} in ${yr} for ${P} took most of it. ${first} did it anyway: a lifelong fan, ${last} sits courtside most nights, takes every loss personally and expects the same from the front office.`,
     `${name} built ${src} into a $${bil(worth)} billion fortune the hard way, and never stopped being a fan. When the ${team} came up for sale in ${yr}, ${first} stretched to pay ${P} and hasn't looked back. ${last} is loud, emotional and involved: expect calls after bad losses, and a lot of opinions.`,
   ], h, 13);
   else bio = pickH([
