@@ -21,7 +21,7 @@ import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
-import { alphaTeams, Link, muted, NumInput } from '../kit';
+import { alphaTeams, godBtn, Link, muted, NumInput } from '../kit';
 
 const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
@@ -164,6 +164,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}><input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto sorted (re-sorts before every game)</label>
         </div>}
       </div>
+      {s.god && cur && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
+        <button className="btn btn-secondary" style={{ fontSize: '12.5px', ...godBtn }} title="God Mode: every player on this roster at 90 happiness (Thrilled). Adjust or reset one in Edit player." onClick={() => { ids.forEach(id => (P[id].hapGod = 90)); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Make everyone happy</button>
+        {ids.some(id => P[id].hapGod != null) && <button className="btn btn-ghost" style={{ fontSize: '12.5px', ...godBtn }} onClick={() => { ids.forEach(id => delete P[id].hapGod); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Happiness back to normal</button>}
+      </div>}
       {cur && <CapBar gm={gm} s={s} tid={tid} />}
       <div style={{ marginBottom: 12 }}>
         {!noteOpen && <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} onClick={() => setNoteOpen(true)}>{note ? '✎ Team note: ' + (note.length > 80 ? note.slice(0, 80) + '…' : note) : '+ Add team note'}</button>}

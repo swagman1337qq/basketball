@@ -2,6 +2,7 @@
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
 import { PRESET_CARDS } from './playerCard';
+import { allStarDay, runAllStar } from './allStar';
 import { LOUD_COLORS, PALETTE_V } from '../data/palette';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -467,6 +468,15 @@ export class Game {
 
   // Default minutes per 48 by rotation slot (sums to 240). The user can override per player on Tactics.
   static ROTATION = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0, 0, 0, 0];
+  // The playoffs: coaches shorten the bench to about eight and ride their starters (38–41 minutes,
+  // as NBA stars do in the postseason); in an elimination game, seven (and a spot-up cameo).
+  static PO_ROTATION = [39, 38, 37, 35, 32, 24, 18, 12, 5, 0, 0, 0, 0, 0, 0];
+  static PO_ELIM_ROTATION = [41, 40, 38, 36, 34, 27, 21, 3, 0, 0, 0, 0, 0, 0, 0];
+  rotationFor(s, tid) {
+    if (s.phase !== 'playoffs' || !s.po) return Game.ROTATION;
+    const ser = (s.po.rounds || []).flat().find((x: any) => (x.a === tid || x.b === tid) && x.wa < 4 && x.wb < 4);
+    return ser && (ser.wa === 3 || ser.wb === 3) ? Game.PO_ELIM_ROTATION : Game.PO_ROTATION;
+  }
 
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
@@ -541,13 +551,27 @@ export class Game {
     let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
     if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
+    const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, villain: !!p.pers.villain, fearless: !!p.pers.fearless, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, Game.ROTATION[i] ?? 0) : Game.ROTATION[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
     return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms }).run();
+  }
+  // God Mode: a game whose winner you picked. Played for real until that team wins (a few tries);
+  // if it keeps losing, its best scorer gets the free throws that swing it, in the last quarter.
+  playFixed(s, home, away, winner: number): GameResult {
+    let res: GameResult = this.playGame(s, home, away);
+    for (let i = 0; i < 30 && (res.home.pts > res.away.pts ? home : away) !== winner; i++) res = this.playGame(s, home, away);
+    const W = res.home.tid === winner ? res.home : res.away, L = W === res.home ? res.away : res.home;
+    if (W.pts <= L.pts) {
+      const d = L.pts - W.pts + 1 + Math.floor(Math.random() * 4), top = Object.entries(W.box).sort((x: any, y: any) => y[1].pts - x[1].pts)[0];
+      if (top) { const b: any = top[1]; b.pts += d; b.ftm += d; b.fta += d; }
+      W.pts += d; W.qs[W.qs.length - 1] += d;
+    }
+    return res;
   }
 
   // League normalization from the current rosters (expected minutes by rotation slot).
@@ -901,7 +925,7 @@ export class Game {
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
       Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
-      const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+      const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 3) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
         let x = rate * this.devMult(p, rate) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
@@ -1119,13 +1143,13 @@ export class Game {
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
       if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { let lost = '';
           // A major injury can also cost skill once he's back (rust, lost feel).
-          if (p.inj.major && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
+          if (p.inj.major && !p.frozen && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
           if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); delete p.inj; }
         if (!p.inj || !p.inj.dtd || !mins[id]) return; }
       const risk = .0045 * (1 + Math.max(0, p.age - 27) * .05) * (1.45 - p.r.endu / 100) * (1.25 - p.r.stre / 200) * ((mins[id] || 0) / 30) * (p.pers.prone ? 1.8 : 1) * (1 + (p.fat || 0) / 80) * (p.inj ? 1.5 : 1);
       if (Math.random() >= risk) return;
       const x = Math.random(); let inj;
-      if (x < .03) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); }
+      if (x < .03) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; if (!p.frozen) { ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); } }
       else if (x < .15) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain']), games: 8 + Math.floor(Math.random() * 14) };
       else { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Bruised knee', 'Back spasms', 'Sprained finger']), games: 1 + Math.floor(Math.random() * 6) }; p.minorCount = (p.minorCount || 0) + 1;
         // About a third of minor knocks are day-to-day: he plays through them at reduced effectiveness.
@@ -1200,6 +1224,7 @@ export class Game {
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
+      if (p.frozen) return; // God Mode: attributes frozen
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
       // Few minutes slow a young player down, unless he works at it (CCP minutes count too).
       let minF = p.dev ? 1.4 : a <= 24 ? (p.min < 10 ? .55 : p.min < 20 ? .85 : 1.1) : 1; if (minF < 1) minF += (1 - minF) * this.cl((wk - 55) / 45, 0, 1) * .8;
@@ -1302,6 +1327,7 @@ export class Game {
         const v = this.version;
         this.setState(s => this.simDay(s, i === 0 ? forced : undefined, n - i - 1));
         if (this.version === v) break;
+        if (!(this.state.allStars || {})[this.Y] && this.state.day >= allStarDay(this)) runAllStar(this); // All-Star Weekend
         if (i < n - 1) await new Promise(r => setTimeout(r, 0));
       }
     } finally {
@@ -1325,7 +1351,8 @@ export class Game {
     Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
     for (const [h, a] of games) {
-      const res = forced && forced.home.tid === h && forced.away.tid === a ? forced : this.playGame(cur, h, a);
+      const pick = (s.godWin || {})[this.Y + ':' + day + ':' + h + ':' + a];
+      const res = forced && forced.home.tid === h && forced.away.tid === a ? forced : pick != null ? this.playFixed(cur, h, a, pick) : this.playGame(cur, h, a);
       this.addBox(res, false, touched, mins, cur); const bid = this.keepBox(res, day);
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true); rec(teams[a], !homeWon, false);
@@ -1470,7 +1497,8 @@ export class Game {
     if (!noRoom) { const rm = lockerRoom(this, s, tid); const v = Math.round((rm.score - 50) / 10); if (v) f.push(['Locker room', v]); }
     const k = p.pers.volatile ? 1.4 : p.pers.pro ? .7 : 1;
     const fs = f.map(([n, v]) => [n, Math.round(v * k)]); if (p.pers.pro) fs.push(['Consummate professional', 5]);
-    const out = fs.filter(x => x[1] !== 0), hap = Math.round(this.cl(55 + out.reduce((a, x) => a + x[1], 0), 0, 100));
+    const out = fs.filter(x => x[1] !== 0); let hap = Math.round(this.cl(55 + out.reduce((a, x) => a + x[1], 0), 0, 100));
+    if (p.hapGod != null) { out.push(['Set in God Mode (' + p.hapGod + ')', p.hapGod - hap]); hap = p.hapGod; } // God Mode: happiness fixed at a value
     return { hap, hapLabel: hap >= 80 ? 'Thrilled' : hap >= 62 ? 'Content' : hap >= 45 ? 'Neutral' : hap >= 30 ? 'Frustrated' : 'Wants out', hapColor: hap >= 62 ? 'var(--gm-good)' : hap < 45 ? 'var(--gm-bad)' : 'var(--color-text)', factors: out };
   }
   // Salary in a future season: this season's salary with the contract's annual raises.

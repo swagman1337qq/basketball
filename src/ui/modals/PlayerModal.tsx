@@ -78,9 +78,12 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <p style={{ margin: "0 0 10px" }}>
                     {vm.ext.askLine}
                   </p>
-                  <button className="btn btn-primary" onClick={vm.ext.offer}>
-                    Offer extension
-                  </button>
+                  <span style={{ display: 'inline-flex', gap: 8 }}>
+                    <button className="btn btn-primary" onClick={vm.ext.offer}>
+                      Offer extension
+                    </button>
+                    {!!vm.ctx.s.god && <button className="btn btn-secondary" onClick={vm.ext.force} style={godBtn} title="God Mode: he signs these terms no matter his mood, his ask or the CBA limits">Force extension</button>}
+                  </span>
                   {!!vm.ext.hasMsg && (<>
                     <p style={{ margin: "10px 0 0", color: "var(--color-accent-800)" }}>
                       {vm.ext.msg}

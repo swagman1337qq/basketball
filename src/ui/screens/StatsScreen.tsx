@@ -4,6 +4,8 @@
 import { useMemo, useState } from 'react';
 import { byLast } from '../sortable';
 import type { VM } from '../vm';
+import { roundStat, seasonLeaders, statVal } from '../../engine/leaders';
+import { awardTags } from '../awardTags';
 import { seasonAdvanced } from '../../engine/advanced';
 import { computeAwards } from '../../engine/awards';
 import { LeagueStatsScreen } from './LeagueStatsScreen';
@@ -30,7 +32,10 @@ export function StatsScreen({ vm }: { vm: VM }) {
 function useSeasons(vm: VM) { const { gm } = vm.ctx, first = gm.db.firstSeason || 2027; return Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i); }
 const lbl = (y: number) => y - 1 + '–' + String(y).slice(2);
 
-function SortTable({ cols, rows, initial = 2, limit = 25, noun = 'players' }: { cols: [string, string, (r: any) => any, number?][]; rows: any[]; initial?: number; limit?: number; noun?: string }) {
+const BB: [string, string, string?][] = [['gp', 'G'], ['gs', 'GS'], ['min', 'MP'], ['fgm', 'FG'], ['fga', 'FGA'], ['fgp', 'FG%'], ['tpm', '3P'], ['tpa', '3PA'], ['tpp', '3P%'], ['twm', '2P'], ['twa', '2PA'], ['twp', '2P%'], ['efg', 'eFG%', 'Effective FG%'], ['ftm', 'FT'], ['fta', 'FTA'], ['ftp', 'FT%'], ['orb', 'ORB'], ['drb', 'DRB'], ['trb', 'TRB'], ['ast', 'AST'], ['stl', 'STL'], ['blk', 'BLK'], ['tov', 'TOV'], ['pf', 'PF'], ['pts', 'PTS']];
+const PCTK = new Set(['fgp', 'tpp', 'twp', 'efg', 'ftp']);
+const awardCell = (s: any, pid: number, y: number, po: boolean) => { const tags = awardTags(s, pid, y, po); return tags.length ? <span style={{ fontSize: '11.5px' }}>{tags.map((a, i) => <span key={a.tag} title={a.name}>{i ? ', ' : ''}<span style={{ fontWeight: a.won ? 800 : undefined, color: 'var(--color-accent-700)' }}>{a.tag}</span></span>)}</span> : ''; };
+function SortTable({ cols, rows, initial = 2, limit = 25, noun = 'players', leaders, lmode = 'pg' }: { cols: [string, string, (r: any) => any, number?, string?][]; rows: any[]; initial?: number; limit?: number; noun?: string; leaders?: Record<string, number> | null; lmode?: 'pg' | 'tot' }) {
   const [sort, setSort] = useState<[number, number]>([initial, -1]);
   // Name columns render links: sort players by last name, teams by name.
   const val = (r: any) => { const v = c[2](r); return v && typeof v === 'object' ? (r.p ? byLast(r.p) : r.t ? r.t.region + ' ' + r.t.name : '') : v; };
@@ -40,7 +45,7 @@ function SortTable({ cols, rows, initial = 2, limit = 25, noun = 'players' }: { 
     <div style={{ overflowX: 'auto' }}>
       <table className="table" style={{ fontSize: '12.5px', minWidth: 900 }}>
         <thead><tr><th style={{ padding: '5px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>#</th>{cols.map(([h, tip], i) => <th key={h + i} title={tip} onClick={() => setSort([i, sort[0] === i ? -sort[1] : -1])} style={{ padding: '5px 6px', textAlign: i < 3 ? 'left' : 'right', cursor: 'pointer', whiteSpace: 'nowrap', color: sort[0] === i ? 'var(--color-accent-700)' : undefined }}>{h}{sort[0] === i ? (sort[1] === -1 ? ' ↓' : ' ↑') : ''}</th>)}</tr></thead>
-        <tbody>{pg.rows.map((r, i) => <tr key={r.key ?? i}><td style={{ padding: '3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-600)' }}>{pg.start + i + 1}</td>{cols.map(([h, , f, d], j) => { const v = f(r); return <td key={h + j} style={{ padding: '3px 6px', textAlign: j < 3 ? 'left' : 'right', whiteSpace: 'nowrap' }}>{v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? v.toFixed(d ?? 1) : v}</td>; })}</tr>)}</tbody>
+        <tbody>{pg.rows.map((r, i) => <tr key={r.key ?? i}><td style={{ padding: '3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-600)' }}>{pg.start + i + 1}</td>{cols.map(([h, , f, d, lk], j) => { const v = f(r), b = !!leaders && !!lk && typeof v === 'number' && isFinite(v) && leaders[lk] != null && roundStat(lk, v, lmode) === leaders[lk]; return <td key={h + j} title={b ? 'Led the league' : undefined} style={{ padding: '3px 6px', textAlign: j < 3 ? 'left' : 'right', whiteSpace: 'nowrap', fontWeight: b ? 800 : undefined }}>{v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? (d === 3 && Math.abs(v) < 1 ? v.toFixed(3).replace(/^0/, '') : v.toFixed(d ?? 1)) : v}</td>; })}</tr>)}</tbody>
       </table>
       {pg.pager}
     </div>
@@ -64,7 +69,7 @@ function PlayerStats({ vm }: { vm: VM }) {
   const f = mode === 'tot' ? tot : mode === 'p36' ? p36 : pg;
   const cols: any[] = mode === 'shoot' ? [...base, ['FGM', '', pg('fgm')], ['FGA', '', pg('fga')], ['FG%', '', (r: any) => pct(r.t.fgm, r.t.fga)], ['3PM', '', pg('tpm')], ['3PA', '', pg('tpa')], ['3P%', '', (r: any) => pct(r.t.tpm, r.t.tpa)], ['FTM', '', pg('ftm')], ['FTA', '', pg('fta')], ['FT%', '', (r: any) => pct(r.t.ftm, r.t.fta)], ['eFG%', 'Effective field goal %', (r: any) => pct(r.t.fgm + 0.5 * r.t.tpm, r.t.fga)], ['TS%', 'True shooting %', (r: any) => pct(r.t.pts, 2 * (r.t.fga + 0.44 * r.t.fta))], ['3PAr', '3-point attempt rate', (r: any) => (r.t.fga ? r.t.tpa / r.t.fga : null), 3], ['FTr', 'Free throw rate', (r: any) => (r.t.fga ? r.t.fta / r.t.fga : null), 3]]
     : mode === 'adv' ? [...base, ['Min', '', pg('min')], ['PER', 'Player efficiency rating', (r: any) => r.a?.per ?? gm.perOf(r.t, season === 'career' ? gm.Y : season)], ['TS%', '', (r: any) => r.a?.tsp ?? pct(r.t.pts, 2 * (r.t.fga + 0.44 * r.t.fta))], ['USG%', 'Usage rate', (r: any) => r.a?.usgp], ['AST%', '', (r: any) => r.a?.astp], ['TRB%', '', (r: any) => r.a?.trbp], ['STL%', '', (r: any) => r.a?.stlp], ['BLK%', '', (r: any) => r.a?.blkp], ['TOV%', '', (r: any) => r.a?.tovp], ['ORtg', 'Offensive rating', (r: any) => r.a?.ortg, 0], ['DRtg', 'Defensive rating', (r: any) => r.a?.drtg, 0], ['OWS', '', (r: any) => r.a?.ows], ['DWS', '', (r: any) => r.a?.dws], ['WS', 'Win shares', (r: any) => r.a?.ws], ['WS/48', '', (r: any) => r.a?.ws48, 3], ['OBPM', '', (r: any) => r.a?.obpm], ['DBPM', '', (r: any) => r.a?.dbpm], ['BPM', 'Box plus-minus', (r: any) => r.a?.bpm], ['VORP', '', (r: any) => r.a?.vorp], ['+/-', 'Plus-minus per 100 possessions', (r: any) => r.a?.pm100]]
-    : [...base, ['GS', 'Games started', (r: any) => r.t.gs, 0], ['Min', '', f('min'), mode === 'tot' ? 0 : 1], ['Pts', '', f('pts'), mode === 'tot' ? 0 : 1], ['Reb', '', (r: any) => f('orb')(r) + f('drb')(r), mode === 'tot' ? 0 : 1], ['Orb', '', f('orb'), mode === 'tot' ? 0 : 1], ['Drb', '', f('drb'), mode === 'tot' ? 0 : 1], ['Ast', '', f('ast'), mode === 'tot' ? 0 : 1], ['Stl', '', f('stl'), mode === 'tot' ? 0 : 1], ['Blk', '', f('blk'), mode === 'tot' ? 0 : 1], ['TOV', '', f('tov'), mode === 'tot' ? 0 : 1], ['PF', '', f('pf'), mode === 'tot' ? 0 : 1], ['FG%', '', (r: any) => pct(r.t.fgm, r.t.fga)], ['3P%', '', (r: any) => pct(r.t.tpm, r.t.tpa)], ['FT%', '', (r: any) => pct(r.t.ftm, r.t.fta)]];
+    : [...base.filter(c => c[0] !== 'G'), ...BB.map(([k, h, tip]) => [h, tip || '', (r: any) => { const v = statVal(r.t, k, mode as any); return PCTK.has(k) ? (isFinite(v) ? v : null) : v; }, PCTK.has(k) ? 3 : k === 'gp' || k === 'gs' || mode === 'tot' ? 0 : 1, k]), ...(season !== 'career' ? [['Awards', 'Voting finishes and honors (winners in bold)', (r: any) => awardCell(s, r.p.id, season as number, po)]] : [])];
   const noAdv = mode === 'adv' && (season === 'career' || po);
   return (
     <>
@@ -77,7 +82,8 @@ function PlayerStats({ vm }: { vm: VM }) {
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Min games <input className="input" type="number" value={minG} min={0} onChange={e => setMinG(Math.max(0, +e.target.value || 0))} style={{ width: 64 }} /></label>
       </div>
       {noAdv && <p style={{ ...muted, fontSize: '12px' }}>Advanced stats are computed for single regular seasons; pick a season.</p>}
-      {rows.length ? <SortTable cols={cols} rows={rows} initial={mode === 'adv' ? (season === 'career' ? 7 : 6) : mode === 'shoot' ? 6 : season === 'career' ? 9 : 8} /> : <p style={muted}>No stats for this selection yet.</p>}
+      {rows.length ? <SortTable cols={cols} rows={rows} initial={mode === 'adv' ? (season === 'career' ? 7 : 6) : mode === 'shoot' ? 6 : cols.findIndex((c: any) => c[4] === 'pts')} leaders={(mode === 'pg' || mode === 'tot') && season !== 'career' && !po && team < 0 ? seasonLeaders(gm, s, season as number, mode) : null} lmode={mode === 'tot' ? 'tot' : 'pg'} /> : <p style={muted}>No stats for this selection yet.</p>}
+      {(mode === 'pg' || mode === 'tot') && season !== 'career' && !po && <p style={{ ...muted, fontSize: '11px' }}>Bold: led the league (per game with 70% of the games; percentages with enough makes).</p>}
     </>
   );
 }

@@ -5,6 +5,16 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-29
 
 ### Added
+- **All-Stars:** at the break in mid-February each conference names 12 All-Stars: five starters (two guards, three frontcourt: the fan vote, where fame and market count) and seven reserves (the coaches: production and winning). Then East plays West, with an All-Star Game MVP. You'll find them on the Awards screen, in the league log and the Press room, on the Accolades tab ("3× All-Star"), with a ★ by the season in a player's stats, and they count toward the Hall of Fame.
+- **Stats laid out like Basketball-Reference** (player profile → Stats, and Stats → Players):
+  - Season, Age, Team, Lg, Pos, G, GS, MP, FG, FGA, FG%, 3P, 3PA, 3P%, 2P, 2PA, 2P%, eFG%, FT, FTA, FT%, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS and an **Awards** column ("MVP-4, AS, NBA1": voting finishes, All-Star, All-League / All-Defensive / All-Rookie teams; winners in bold).
+  - League leaders are in **bold**, per game or in totals. Traded seasons show a "2TM" line plus one line per team, with a career line and career lines with each team below.
+- **CCP stats tab:** players who've played in the CCP get an NBA / CCP switch on their Stats tab, with the same per-game, totals, shooting and advanced tables. It's greyed out for players who never played there.
+- **Box scores:** starters' names in bold, each stat's game high in bold (the number, not the player), and every player's flag.
+- **God Mode · Daily schedule** (League menu, in pink): browse the schedule day by day and click a team to make it win, your own games included. Picked games are still played out with a real box score; the picked team just ends up on top.
+- **God Mode · happiness:** a "Make happy" button on each profile, "Make everyone happy" on the Roster, and a happiness slider (0–100) in Edit player, with "Back to normal".
+- **God Mode · freeze attributes** (Edit player → Status): a frozen player never improves or declines (no monthly growth, yearly aging changes or injury losses); he still ages.
+- **God Mode · Force extension** (profile → Contract): he signs the terms you entered, whatever his mood, his ask or the CBA limits.
 - **Trade screen cap bar:** a salary bar above the trade that moves as you add or remove players, with a tick where your payroll is now. Under "Payroll after", a **Cap space left** box says how much room is left until the cap, the luxury tax, the 1st apron and the 2nd apron (or how far over you'd be), and flags your hard cap if you have one.
 - **Ask for advice (Trade):** your assistant GM gives his read on the deal you're building ("Fair deal. They'll say yes.", "Way too unrealistic. They'll ghost you.", "They'd accept in a heartbeat. We're the ones getting ripped off.") and on offers from other teams ("Take it. This is a steal.", "We're getting ripped off. Hang up the phone."), with the reasons: best player each way, the age swing, picks and payroll. It updates as you change the deal.
 - **Cap easy mode** (Settings): no 1st or 2nd apron and none of their rules. You keep the soft cap and its exceptions, Bird rights, the luxury tax and repeater tax, and one hard cap (at the old 2nd apron) that no team can go over. The cap bars show Cap, Tax and Hard cap.
@@ -12,11 +22,17 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Cut players from the Roster and Contracts screens:** a red "Cut" button opens the same waive / stretch / buyout dialog as the Cap sheet.
 
 ### Changed
+- **Playoff rotations shorten, like the real NBA:** in the playoffs coaches play about eight guys and ride their starters (38–41 minutes); in an elimination game, seven. The 2023 Nuggets won the title with an eight-man rotation. In test seasons, teams went from 9.3 players with 10+ minutes a night to 8.2, and top players from 32 to 37.5 minutes.
+- **Rating labels are relative to the league:** Elite now means the top 3% of NBA players at that skill, Great the top 12%, Good the top 30%, Average the middle 40%, Below avg the next 20% and Poor the bottom 10%. The line on each bar marks the league median, and hovering a rating shows "better than X% of NBA players". A 60 in dunking and a 60 in passing no longer mean the same thing.
+- **Every player has shot tendencies now**, from his skills and personality, not just cards: a big with no range almost never shoots threes, a spot-up shooter who can't dribble takes his threes from the corners and rarely drives, a poor mid-range shooter avoids it, and heat checkers, alphas and ball-stoppers take more of their own jumpers, while team-first players take more catch-and-shoot threes. Tendencies set in God Mode or on a card still win. League averages barely move (about 112 points a game).
 - **Louder team colors.** 15 teams wear loud colors (hot pink on black in Las Vegas, purple and neon green in Charlotte, highlighter yellow in Brooklyn, axolotl pink and turquoise in Dallas...). Three are ugly on purpose: Cincinnati wears Pantone 448 C, "the world's ugliest color" (the drab brown on plain cigarette packs), with mustard; St. Louis wears puce and chartreuse; Richmond wears olive drab and dusty mauve. The rest are brighter takes on classic sports colors. Existing leagues update too, unless you changed a team's colors yourself.
 - **Media outlets renamed:** Bleacher Retort is now **Oohay! Sports**, Sports Illiterated is the **Plymouth Times (PYT)**, and Fox Spurts is **Waystar RoyCo. Sports (WAYA Sports)**.
 - **Preseason roster count** now reads like "21/15 standard contracts · you can carry up to 21 until opening night", with "You'll need to cut 6 players when the regular season starts". The number goes down as you cut.
 - **The draft marks your turn:** when your team is on the clock, the banner and your pick get a thick green border and read "You're on the clock", so they stand out from other teams' picks.
 - **Phase buttons open their screen:** Start the play-in, Start the playoffs, Run the lottery, Open free agency and Open training camp take you to that screen.
+
+### Fixed
+- **National-team eligibility follows edits:** changing where a player was born or raised, or his heritage (e.g. from the U.S. to Mexico), now redoes the countries he can play for. Countries you added by hand stay.
 
 ## 2026-09-28
 

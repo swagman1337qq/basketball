@@ -59,13 +59,18 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
       }; };
     const TEAM = (k: string) => sum(k);
     type Col = [string, (g: (k: string) => number, a: any, isTeam: boolean) => any, any?];
-    const TRAD: Col[] = [['PTS', g => g('pts'), { fontWeight: 700 }], ['REB', g => g('orb') + g('drb')], ['AST', g => g('ast')], ['STL', g => g('stl')], ['BLK', g => g('blk')], ['TO', g => g('tov')],
+    const TRAD: Col[] = [['PTS', g => g('pts')], ['REB', g => g('orb') + g('drb')], ['AST', g => g('ast')], ['STL', g => g('stl')], ['BLK', g => g('blk')], ['TO', g => g('tov')],
       ['FG', g => g('fgm') + '-' + g('fga')], ['3P', g => g('tpm') + '-' + g('tpa')], ['FT', g => g('ftm') + '-' + g('fta')], ['OREB', g => g('orb')], ['PF', g => g('pf')]];
     const ADV: Col[] = [['TS%', (g, a) => pc(a.ts)], ['eFG%', (g, a) => pc(a.efg)], ['3PAr', (g, a) => pc(a.tpar)], ['FTr', (g, a) => pc(a.ftr)], ['ORB%', (g, a) => pc(a.orb)], ['DRB%', (g, a) => pc(a.drb)], ['TRB%', (g, a) => pc(a.trb)],
       ['AST%', (g, a) => pc(a.ast)], ['STL%', (g, a) => pc(a.stl)], ['BLK%', (g, a) => pc(a.blk)], ['TOV%', (g, a) => pc(a.tov)], ['USG%', (g, a, tm) => (tm ? '' : pc(a.usg))], ['GmSc', (g, a) => p1(a.gmsc), { fontWeight: 600 }]];
-    const cols: Col[] = [['MIN', (g, a, tm) => (tm ? '' : g('min').toFixed(0))], ...(mode !== 'adv' ? TRAD : [['PTS', (g: any) => g('pts'), { fontWeight: 700 }] as Col]), ...(mode !== 'trad' ? ADV : []),
+    const cols: Col[] = [['MIN', (g, a, tm) => (tm ? '' : g('min').toFixed(0))], ...(mode !== 'adv' ? TRAD : [['PTS', (g: any) => g('pts')] as Col]), ...(mode !== 'trad' ? ADV : []),
       ['+/−', (g, a, tm) => (tm ? '' : (g('pm') > 0 ? '+' : '') + g('pm')), undefined]];
     const pmColor = (v: number) => ({ color: v > 0 ? 'var(--gm-good)' : v < 0 ? 'var(--gm-bad)' : undefined });
+    // The game leader in each stat (both teams) is in bold: the number, not the player.
+    const LEADK: Record<string, (g: (k: string) => number) => number> = { MIN: g => g('min'), PTS: g => g('pts'), REB: g => g('orb') + g('drb'), AST: g => g('ast'), STL: g => g('stl'), BLK: g => g('blk'), TO: g => g('tov'), PF: g => g('pf'), OREB: g => g('orb'), FG: g => g('fgm'), '3P': g => g('tpm'), FT: g => g('ftm'), '+/−': g => g('pm') };
+    const allLines = [...bx.home.lines, ...bx.away.lines], gameMax: Record<string, number> = {};
+    Object.entries(LEADK).forEach(([k, f]) => (gameMax[k] = Math.max(...allLines.map((l: number[]) => f(x => at(l, x))))));
+    const isLead = (c: string, g: (k: string) => number) => !!LEADK[c] && gameMax[c] > 0 && LEADK[c](g) === gameMax[c];
     return (
       <section key={sd.tid} style={{ overflowX: 'auto' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0 6px' }}>{logo(sd.tid, 24)}<Link onClick={() => { close(); openTeam(sd.tid); }} style={{ fontWeight: 600, fontSize: '15px' }}>{T[sd.tid].region} {T[sd.tid].name}</Link><span style={{ ...muted }}>{sd.pts}</span></div>
@@ -74,8 +79,8 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           <tbody>
             {lines.map((l: number[], i: number) => { const p = P[l[0]], starter = at(l, 'gs') > 0, g = (k: string) => at(l, k), a = adv(g); return (
               <tr key={l[0]} style={{ borderTop: i > 0 && starter !== (at(lines[i - 1], 'gs') > 0) ? '2px solid var(--color-divider)' : undefined }}>
-                <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{p ? <Link onClick={() => { close(); open(l[0]); }}>{p.name}</Link> : 'Unknown'} <span style={{ ...muted, fontSize: '11px' }}>{p?.pos}</span></td>
-                {cols.map(c => <td key={c[0]} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', ...(c[2] || {}), ...(c[0] === '+/−' ? pmColor(g('pm')) : {}) }}>{c[1](g, a, false)}</td>)}
+                <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{p && <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)', marginRight: 6, verticalAlign: 'middle' }} />}{p ? <Link onClick={() => { close(); open(l[0]); }} style={{ fontWeight: starter ? 700 : 400 }}>{p.name}</Link> : 'Unknown'} <span style={{ ...muted, fontSize: '11px' }}>{p?.pos}</span></td>
+                {cols.map(c => <td key={c[0]} title={isLead(c[0], g) ? 'Game high' : undefined} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', ...(c[2] || {}), ...(c[0] === '+/−' ? pmColor(g('pm')) : {}), ...(isLead(c[0], g) ? { fontWeight: 800 } : {}) }}>{c[1](g, a, false)}</td>)}
               </tr>); })}
             {(() => { const a = adv(TEAM); return (<>
               <tr style={{ borderTop: '2px solid var(--color-text)', fontWeight: 600 }}>

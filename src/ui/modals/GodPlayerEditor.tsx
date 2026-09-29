@@ -8,11 +8,12 @@ import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '
 import { namePools, regionOf } from '../../data/world';
 import { US_STATES } from '../../data/usStates';
 import { hometownOf } from '../../data/hometown';
-import { GOD_PINK } from '../kit';
+import { GOD_PINK, godText } from '../kit';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
+import { refreshElig } from '../../engine/eligibility';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -69,7 +70,8 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const [usCities, setUsCities] = useState<Record<string, string> | null>(null);
   useEffect(() => { if (p?.born === 'US' && !usCities) import('../../data/usCities').then(m => setUsCities(m.US_CITIES)); }, [p?.born, usCities]);
   if (!p) return null;
-  const mut = (f: (p: any) => void) => { f(p); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
+  // Changing where he was born or raised, or his heritage, redoes his national-team eligibility.
+  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
   // league, or every team in the country when the league is blank or typed by hand.
   const lgs = p.from ? leaguesIn(p.from.country || p.raised || p.born) : [], curL = lgs.find(x => x.lg === p.from?.lg);
@@ -80,7 +82,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const undo = s.nameUndo && s.nameUndo.pid === p.id ? s.nameUndo : null;
   const reroll = (code: string) => { const prev = { pid: p.id, name: p.name, native: p.native, first: p.first, last: p.last, nativeFirst: p.nativeFirst, nativeLast: p.nativeLast, familyFirst: p.familyFirst, race: p.race, heritage: p.heritage, mix: p.mix, tribe2: p.tribe2, her: p.her, born: p.born, raised: p.raised, city: p.city, elig: p.elig }; const { race, heritage, ...nm } = randomName(code, Math.random, bg || undefined); Object.assign(p, nm, { race, heritage, her: code }); delete p.mix; delete p.tribe2;
     // His hometown moves with him (eligibility is left alone: edit it on the profile).
-    const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
+    const cities = C[code]?.cities || []; if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)]; p.born = code; p.raised = code; refreshElig(p, C); gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: prev })); };
   const doUndo = () => { if (!undo) return; const { pid, ...rest } = undo; Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k]))); if (rest.her) gm.resetFace(pid); gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 }); };
   const nat = p.native || '', cjk = CJK.test(nat);
   const nFirst = p.nativeFirst ?? (cjk ? nat.slice(1) : nat.split(' ')[0] || ''), nLast = p.nativeLast ?? (cjk ? nat.slice(0, 1) : nat.split(' ').slice(1).join(' '));
@@ -203,9 +205,21 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {num('Confidence', Math.round(p.conf ?? 50), 5, 95, v => mut(q => (q.conf = v)))}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Work ethic scales monthly growth (±15%); loyalty vs ambition decides draft-night heists; morale shifts happiness; confidence nudges shooting and the adjustment period.</p>
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Happiness</h4>
+        {(() => { const tid = Number(Object.keys(s.rosters).find(k => s.rosters[k].includes(p.id))), has = !isNaN(tid) && s.teams[tid];
+          const cur = has ? gm.moodOf(p, s.rosters[tid].indexOf(p.id), s, tid).hap : null;
+          return (<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '13px' }}>
+            <input type="range" min={0} max={100} value={p.hapGod ?? cur ?? 55} onChange={e => mut(q => (q.hapGod = +e.target.value))} style={{ width: 200, accentColor: GOD_PINK }} />
+            <b style={{ minWidth: 34 }}>{p.hapGod ?? cur ?? '—'}</b>
+            <button className="btn btn-ghost" style={{ fontSize: '12px', ...godText }} onClick={() => mut(q => (q.hapGod = 90))}>Make happy</button>
+            {p.hapGod != null && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.hapGod; })}>Back to normal</button>}
+            <span style={{ ...muted, fontSize: '11.5px', flexBasis: '100%' }}>{p.hapGod != null ? 'Fixed at ' + p.hapGod + ' until you set it back to normal (it ignores role, winning and pay).' : 'Now ' + (cur ?? '—') + ', worked out from his role, winning, pay and personality. Move the slider to fix it at a value.'} 80+ thrilled · 62+ content · 45+ neutral · 30+ frustrated · below 30 wants out.</span>
+          </div>); })()}
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Status</h4>
         <div style={grid}>
           {num('Fatigue', Math.round(p.fat || 0), 0, 100, v => mut(q => (q.fat = v)))}
+          <span style={muted}>Attributes</span>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', ...godText }} title="Frozen: no monthly growth, no yearly aging changes and no ratings lost to injuries. His age still goes up."><input type="checkbox" checked={!!p.frozen} onChange={e => mut(q => { if (e.target.checked) q.frozen = true; else delete q.frozen; })} /> Freeze (never improves or declines)</label>
           <span style={muted}>Injury</span>
           <span style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <select className="input" value="" onChange={e => { const x = INJ.find(i => i[0] === e.target.value); if (x) mut(q => { q.inj = { name: x[0], games: x[1], major: x[2] || undefined, dtd: x[3] || undefined }; (q.injHist = q.injHist || []).push({ name: x[0], games: x[1], season: gm.seasonLbl(), god: true }); }); }}>

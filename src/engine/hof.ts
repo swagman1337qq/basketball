@@ -22,7 +22,8 @@ export function careerOf(g: Game, s: any, p: any) {
   const titles = (s.history || []).filter(h => (p.stats || []).some(r => r.po && r.season === h.year && r.tid === h.champ)).length;
   const L = p.legacy;
   if (L) { const gp = L.seasons * 70; Object.assign(t, { gp, pts: L.pts * gp, orb: L.reb * gp * 0.25, drb: L.reb * gp * 0.75, ast: L.ast * gp, stl: gp * 0.9, blk: gp * 0.5 }); }
-  return { t, seasons: L ? L.seasons : seasons, peakPer, A, titles, allStar: L?.allStar || 0, tids: [...new Set<number>(rs.map(r => r.tid))] };
+  const asIn = Object.values(s.allStars || {}).filter((a: any) => [...a.East.starters, ...a.East.reserves, ...a.West.starters, ...a.West.reserves].includes(p.id)).length;
+  return { t, seasons: L ? L.seasons : seasons, peakPer, A, titles, allStar: (L?.allStar || 0) + asIn, tids: [...new Set<number>(rs.map(r => r.tid))] };
 }
 
 export function hofScore(g: Game, s: any, p: any) {
@@ -31,7 +32,7 @@ export function hofScore(g: Game, s: any, p: any) {
     ['Points', (t.pts / 1000) * 2], ['Rebounds', ((t.orb + t.drb) / 1000) * 1.2], ['Assists', (t.ast / 1000) * 1.6], ['Steals & blocks', (t.stl + t.blk) / 250],
     ['MVPs', A.MVP * 20], ['Finals MVPs', A.FMVP * 10], ['Defensive POY', A.DPOY * 8], ['ROY, 6MOY, MIP', A.ROY * 2 + A.SMOY * 2 + A.MIP],
     ['All-League teams', A.ALL1 * 7 + A.ALL2 * 4 + A.ALL3 * 2.5], ['All-Defensive teams', A.DEF1 * 2.5 + A.DEF2 * 1.2], ['Championships', c.titles * 3],
-    ['Peak level (PER over 18)', Math.min(10, Math.max(0, c.peakPer - 18) * 0.6)], ['Longevity', c.seasons * 0.5], ['All-Star selections (pre-league)', c.allStar * 5],
+    ['Peak level (PER over 18)', Math.min(10, Math.max(0, c.peakPer - 18) * 0.6)], ['Longevity', c.seasons * 0.5], ['All-Star selections', c.allStar * 5],
   ];
   const score = parts.reduce((a, x) => a + x[1], 0);
   return { score, parts: parts.filter(x => x[1] > 0.05), c };

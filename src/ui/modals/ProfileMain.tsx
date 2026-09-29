@@ -10,6 +10,7 @@ import { HoverCard } from '../HoverCard';
 import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
+import { PCT_TIERS, pctTier, ratingMedian, ratingPct } from '../../engine/ratingDist';
 
 const chip = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: '999px', border: '1px solid var(--color-divider)', fontSize: '12px', whiteSpace: 'nowrap' as const };
 
@@ -172,7 +173,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
               <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.label}</div><div style={{ fontSize: '12.5px' }}>{t.desc}</div>{t.open && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>Click to see every player with this trait.</div>}
             </HoverCard>))}</div>
           {pl.mal != null && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }} title="Hidden: how open he is to changing his personality (mentoring, locker room). Only God Mode shows it.">Malleability {pl.mal}/100 · {pl.mal >= 70 ? 'impressionable' : pl.mal >= 40 ? 'open to change' : pl.mal >= 20 ? 'set in his ways' : 'fiercely independent'}</div>}
-          <h4 style={{ ...ruleH4, marginTop: '18px', display: 'flex', justifyContent: 'space-between' }}><span>Happiness</span><span style={{ color: pl.hapColor, fontSize: '15px' }}>{pl.hapLabel}</span></h4>
+          <h4 style={{ ...ruleH4, marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Happiness</span>{s.god && pl.hasMood && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto', ...godText, border: '1px solid currentColor' }} title="God Mode: set his happiness to 90 (Thrilled). Adjust it in Edit player." onClick={() => { p.hapGod = 90; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Make happy</button>}<span style={{ color: pl.hapColor, fontSize: '15px' }}>{pl.hapLabel}</span></h4>
           {pl.hasMood ? (
             <>
               <div style={{ height: 4, background: 'var(--color-neutral-300)', margin: '6px 0 8px' }}><div style={{ height: 4, width: pl.hapW, background: pl.hapColor }} /></div>
@@ -186,12 +187,12 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           {(pl.groups || []).map((g: any, gi: number) => (
             <div key={gi} style={{ marginBottom: '12px' }}>
               <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '6px 0 2px' }}>{g.label}</div>
-              {(g.items || []).map((r: any, i: number) => { const t = rtier(r.v); return (
-                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')'} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 80px 44px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
+              {(g.items || []).map((r: any, i: number) => { const rk = r.k || (r.name === 'Feel' ? 'feel' : r.name === 'Poise' ? 'poise' : null), pc = rk ? ratingPct(gm, s, rk, r.v) : null, med = rk ? ratingMedian(gm, s, rk) : null, t = pc != null ? pctTier(pc) : rtier(r.v); return (
+                <div key={i} title={r.hint || r.name + ': ' + r.v + ' (' + t[0] + ')' + (pc != null ? ': better than ' + Math.round(pc) + '% of NBA players (league median ' + med + ')' : '')} style={{ display: 'grid', gridTemplateColumns: '118px minmax(0,1fr) 80px 44px 72px', gap: '10px', alignItems: 'center', padding: '3px 0', fontSize: '13.5px', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
                   <span>{r.name}</span>
                   <div style={{ position: 'relative', height: 9, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)', borderRadius: 5 }}>
                     <div style={{ height: 9, width: r.w, background: t[1], borderRadius: 5 }} />
-                    <div title="League average (50)" style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }} />
+                    <div title={'League median (' + (med ?? 50) + ')'} style={{ position: 'absolute', left: (med ?? 50) + '%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }} />
                   </div>
                   <span style={{ textAlign: 'right', color: t[1], fontWeight: 700, fontSize: r.text ? '13.5px' : '16px', whiteSpace: 'nowrap' }}>{r.text || r.v}</span>
                   <span title={r.d ? (r.d > 0 ? 'Up ' : 'Down ') + Math.abs(r.d).toFixed(1) + ' since ' + pl.progLabel : ''} style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: r.d > 0 ? 'var(--gm-good)' : r.d < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{r.d == null || Math.abs(r.d) < 0.05 ? '' : fmtChange(r.d)}</span>
@@ -200,7 +201,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
               ); })}
             </div>
           ))}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', margin: '-4px 0 8px' }}>{RTIERS.map(([n, c, lo]) => <span key={n} style={{ color: c }}>■ {n} {lo}+</span>)}<span style={muted}>· the line marks the league average</span></div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', margin: '-4px 0 8px' }}>{PCT_TIERS.map(([n, c, , w]) => <span key={n} style={{ color: c }}>■ {n} ({w})</span>)}<span style={muted}>· compared with every NBA player at that skill; the line marks the league median</span></div>
           <h4 style={{ ...ruleH4, marginTop: '14px' }}>Badges</h4>
           {badges.length === 0 ? <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic' }}>{kb.partial ? 'Unknown: your scouts haven’t seen enough of him to tell. Put him on the scouting list or have a scout follow him.' : 'No badges yet. They’re earned by reaching rating thresholds.'}</p> : badges.map(b => (
             <div key={b.key} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) auto', gap: '8px', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>
@@ -226,8 +227,8 @@ function EligEditor({ vm, p }: { vm: VM; p: any }) {
   const elig: any[] = p.elig || [];
   const remove = (c: string) => { if (elig.length <= 1) return; p.elig = elig.filter(e => e.c !== c); if (p.rep === c) p.rep = p.elig[0].c; bump(); };
   const represent = (c: string) => { p.rep = c; bump(); };
-  const add = (c: string) => { if (!elig.some(e => e.c === c)) p.elig = [...elig, { c, why }]; bump(); };
-  const setReason = (c: string, w: string) => { p.elig = elig.map(e => (e.c === c ? { ...e, why: w } : e)); bump(); };
+  const add = (c: string) => { if (!elig.some(e => e.c === c)) p.elig = [...elig, { c, why, manual: true }]; bump(); };
+  const setReason = (c: string, w: string) => { p.elig = elig.map(e => (e.c === c ? { ...e, why: w, manual: true } : e)); bump(); };
   return (
     <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       {elig.filter(e => C[e.c]).map(e => (

@@ -35,12 +35,6 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
   // Team records for win%.
   const recOf = (tid: number) => { if (cur) { const t = s.teams[tid]; return t.w + t.l ? t.w / (t.w + t.l) : 0.5; } const h = ((s.teamHist || {})[tid] || []).find(x => x.season === season); return h ? h.w / Math.max(1, h.w + h.l) : 0.5; };
 
-  // League context.
-  const lg: StatLine = {}; Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
-  const possT = (t: StatLine) => g.possOf(t);
-  const lgPoss = possT(lg), lgPPP = lg.pts / lgPoss, lgPPG = lg.pts / lg.gp, lgPace = lgPoss / lg.gp, lgORtg = 100 * lgPPP;
-  Object.values(teams).forEach(t => { t.poss = possT(t); t.min = t.gp * 240; t.ortg = (100 * t.pts) / t.poss; t.drtg = (100 * t.oPts) / t.poss; t.pace = t.poss / t.gp; t.orbPct = t.orb / Math.max(1, t.orb + t.oDrb); });
-
   // Player season totals (regular season), attributed to the team he played most minutes for.
   const rows: { p: any; t: StatLine; tid: number }[] = [];
   (Object.values(P) as any[]).forEach(p => {
@@ -50,6 +44,18 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
     const tid = rs.slice().sort((a, b) => b.min - a.min)[0].tid;
     rows.push({ p, t, tid });
   });
+  const wins = cur ? s.teams.reduce((a, t) => a + t.w, 0) : s.teams.reduce((a, t) => a + (((s.teamHist || {})[t.tid] || []).find(h => h.season === season)?.w ?? 41), 0);
+  return computeAdvanced(g, season, teams, rows, recOf, s.teams.map((t: any) => t.tid), wins);
+}
+
+type Row = { p: any; t: StatLine; tid: number };
+function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number): SeasonAdvanced {
+  // League context.
+  const lg: StatLine = {}; Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
+  const possT = (t: StatLine) => g.possOf(t);
+  const lgPoss = possT(lg), lgPPP = lg.pts / lgPoss, lgPPG = lg.pts / lg.gp, lgPace = lgPoss / lg.gp, lgORtg = 100 * lgPPP;
+  Object.values(teams).forEach(t => { t.poss = possT(t); t.min = t.gp * 240; t.ortg = (100 * t.pts) / t.poss; t.drtg = (100 * t.oPts) / t.poss; t.pace = t.poss / t.gp; t.orbPct = t.orb / Math.max(1, t.orb + t.oDrb); });
+
 
   const out: Record<number, StatLine> = {};
   // Pass 1: rate stats, points produced and raw box scores.
@@ -90,7 +96,7 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
   const stopMean = wmean('_stops');
   // Team BPM adjustments so each team's minute-weighted BPM matches its ratings.
   const adj: Record<number, { o: number; d: number }> = {};
-  s.teams.forEach(tm => { const T = teams[tm.tid]; let o = 0, d = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tm.tid) return; o += out[p.id]._obpm * t.min; d += out[p.id]._dbpm * t.min; w += t.min; });
+  tids.forEach(tm0 => { const tm = { tid: tm0 }, T = teams[tm.tid]; let o = 0, d = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tm.tid) return; o += out[p.id]._obpm * t.min; d += out[p.id]._dbpm * t.min; w += t.min; });
     adj[tm.tid] = { o: (T.ortg - lgORtg) / 5 - (w ? o / w : 0), d: (lgORtg - T.drtg) / 5 - (w ? d / w : 0) }; });
 
   rows.forEach(({ p, t, tid }) => {
@@ -121,7 +127,6 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
     Object.keys(x).forEach(f => { if (f.startsWith('_')) delete x[f]; });
   });
   // Win shares sum to the league's wins (as on Basketball-Reference).
-  const wins = cur ? s.teams.reduce((a, t) => a + t.w, 0) : s.teams.reduce((a, t) => a + (((s.teamHist || {})[t.tid] || []).find(h => h.season === season)?.w ?? 41), 0);
   const wsSum = rows.reduce((a, { p }) => a + out[p.id].ws, 0);
   if (wsSum > 0 && wins > 0) { const f = wins / wsSum; rows.forEach(({ p, t }) => { const x = out[p.id]; x.ows *= f; x.dws *= f; x.ws = x.ows + x.dws; x.ws48 = (x.ws * 48) / t.min; }); }
   // Team win shares, for "share of the team's WS".
@@ -129,6 +134,21 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
   rows.forEach(({ p, tid }) => (teamWs[tid] = (teamWs[tid] || 0) + out[p.id].ws));
   rows.forEach(({ p, tid }) => (out[p.id].teamWs = teamWs[tid] || 0));
   return { byPid: out, teams };
+}
+
+// CCP (development league) advanced stats, from players' CCP lines (p.ccpS). Team totals are the
+// sum of their players; opponents are taken as a league-average team (CCP box scores keep no
+// opponent totals), and records as .500 for win shares.
+export function ccpAdvanced(g: Game, s: any, season: number, po = false): SeasonAdvanced {
+  const P = g.db.P, key = season + (po ? 'p' : ''), ab: Record<string, number> = {}, rows: Row[] = [];
+  (Object.values(P) as any[]).forEach(p => { const t = p.ccpS?.[key]; if (!t || !t.gp || !t.min) return; if (ab[t.team] == null) ab[t.team] = Object.keys(ab).length; rows.push({ p, t: { ...t }, tid: ab[t.team] }); });
+  const teams: Record<number, StatLine> = {};
+  rows.forEach(({ t, tid }) => { const T = (teams[tid] = teams[tid] || { gp: 0 }); ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0))); T.gp = Math.max(T.gp, t.gp); });
+  const tids = Object.keys(teams).map(Number), n = tids.length || 1, avgPg: StatLine = {};
+  ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (avgPg[k] = tids.reduce((a, id) => a + teams[id][k] / Math.max(1, teams[id].gp), 0) / n));
+  tids.forEach(id => { const T = teams[id]; ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (T['o' + k[0].toUpperCase() + k.slice(1)] = avgPg[k] * T.gp)); });
+  const wins = tids.reduce((a, id) => a + teams[id].gp / 2, 0);
+  return computeAdvanced(g, season, teams, rows, () => 0.5, tids, wins);
 }
 
 // Playoff series stats (Finals / conference finals) for series-MVP formulas.

@@ -28,7 +28,7 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
   const vol = (e: (typeof E)[number]) => e.min * e.use;
   for (const z of ZONES) n.skill[z] = wmean(E.map(e => ({ v: e.sk[z], w: vol(e) })));
   for (let it = 0; it < 4; it++) {
-    const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: e.p.tend }, n));
+    const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: e.p.tend, pers: e.p.pers, grp: e.p.grp }, n));
     const tot = E.reduce((a, e) => a + vol(e), 0);
     for (const z of ZONES) {
       const share = E.reduce((a, e, i) => a + vol(e) * prof[i][z], 0) / tot;
@@ -36,7 +36,7 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
       n.skill[z] = wmean(E.map((e, i) => ({ v: e.sk[z], w: vol(e) * prof[i][z] })));
     }
   }
-  const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: e.p.tend }, n));
+  const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: e.p.tend, pers: e.p.pers, grp: e.p.grp }, n));
   for (const z of ZONES) n.offset[z] = Math.max(-0.08, Math.min(0.08, -wmean(E.map((e, i) => ({ v: curve(CURVE_OF[z as Zone], e.sk[z]), w: vol(e) * prof[i][z] })))));
   n.ftOffset = Math.max(-0.08, Math.min(0.08, -wmean(E.map(e => ({ v: curve('ft', e.p.r.ft), w: vol(e) * (e.p.r.ins + e.p.r.dnk + e.p.r.stre / 2) })))));
   return n;

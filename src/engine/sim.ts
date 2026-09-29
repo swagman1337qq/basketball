@@ -96,8 +96,30 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
 export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number }
-export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend }, n: Norms, mult?: Partial<Record<Zone, number>>) {
-  const sk = zoneSkill(p.r), roles = p.roles || [];
+// Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
+// replaces it). A non-shooter barely takes threes (a big with no range lives at the rim); pull-up
+// threes need a handle, so a spot-up shooter who can't dribble takes his threes from the corners and
+// rarely drives; bad mid-range shooters avoid it. Heat checkers pull up, alphas and ball-stoppers
+// take more of their own jumpers, team-first players more catch-and-shoot threes.
+export function autoTend(p: any): Record<Zone, number> {
+  const r = p.r || {}, f = p.pers || p, big = p.grp === 'B', cl2 = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+  const gate = (v: number, lo: number, hi: number) => { const x = cl2(((v ?? 50) - lo) / (hi - lo), 0, 1); return 0.03 + 0.97 * x * x; };
+  const three = gate(r.tp, 18, 42), creator = ((r.drb ?? 50) + (r.acc ?? r.spd ?? 50)) / 2;
+  const t: Record<Zone, number> = { rim: 1, mid: gate(r.fg, 15, 38), c3: three, atb: three };
+  t.atb *= cl2(0.6 + (creator - 45) / 60, 0.5, 1.4);
+  t.c3 *= cl2(1.35 - (creator - 45) / 80, 0.8, 1.5);
+  if (!big) t.rim *= cl2((creator - 20) / 35, 0.45, 1.35);
+  if (f.heat) t.atb *= 1.15;
+  if (f.alpha) { t.mid *= 1.1; t.atb *= 1.08; }
+  if (f.touches) t.mid *= 1.08;
+  if (f.flashy) t.atb *= 1.08;
+  if (f.volatile) t.mid *= 1.08;
+  if (f.team) { t.c3 *= 1.1; t.atb *= 0.93; t.mid *= 0.93; }
+  if (f.pro) t.c3 *= 1.05;
+  return t;
+}
+export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend; pers?: any; grp?: string }, n: Norms, mult?: Partial<Record<Zone, number>>) {
+  const sk = zoneSkill(p.r), roles = p.roles || [], auto = autoTend(p);
   const w = {} as Record<Zone, number>;
   let tot = 0;
   for (const z of ZONES) {
@@ -106,7 +128,7 @@ export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend }, n: Nor
     if ((z === 'c3' || z === 'atb') && roles.includes('Floor spacer')) x *= 1.25;
     if (z === 'c3' && roles.includes('3-and-D wing')) x *= 1.4;
     if ((z === 'c3' || z === 'atb') && roles.includes('Stretch big')) x *= 1.5;
-    if (p.tend?.[z]) x *= p.tend[z]!;
+    x *= p.tend?.[z] ?? auto[z];
     if (mult?.[z]) x *= mult[z]!;
     w[z] = x; tot += x;
   }

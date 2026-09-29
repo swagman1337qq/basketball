@@ -27,6 +27,7 @@ import { ScoutingScreen } from './screens/ScoutingScreen';
 import { OverseasScreen } from './screens/OverseasScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import { OwnerScreen } from './screens/OwnerScreen';
+import { DailyScheduleScreen } from './screens/DailyScheduleScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { FinancesScreen } from './screens/FinancesScreen';
 const CareerScreen = lazy(() => import('./screens/CareerScreen').then(m => ({ default: m.CareerScreen })));
@@ -106,6 +107,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.trade && <TradeScreen vm={vm} />}
             {!!vm.is.fa && <FreeAgencyScreen vm={vm} />}
             {!!vm.is.cards && <CardsScreen vm={vm} />}
+            {!!vm.is.daily && <DailyScheduleScreen vm={vm} />}
             {!!vm.is.draft && <DraftScreen vm={vm} />}
             {!!vm.is.game && <LiveGameScreen vm={vm} />}
             {!!vm.is.schedule && <ScheduleScreen vm={vm} />}

@@ -13,7 +13,9 @@ export function AwardsScreen({ vm }: { vm: VM }) {
   const [pick, setPick] = useState<number | null>(null);
   const [openV, setOpenV] = useState<Record<string, boolean>>({});
   const yr = pick && seasons.includes(pick) ? pick : seasons[0];
-  if (!yr) return <p style={{ ...muted, fontStyle: 'italic' }}>Awards are voted when the regular season ends. Finish the {gm.seasonLbl()} regular season to see the first winners.</p>;
+  // This season's All-Stars (mid-season), before the season's awards are voted.
+  const asNow = (s.allStars || {})[gm.Y] && !(s.awards || {})[gm.Y] ? <AllStarBox vm={vm} y={gm.Y} /> : null;
+  if (!yr) return <>{asNow}<p style={{ ...muted, fontStyle: 'italic' }}>Awards are voted when the regular season ends. Finish the {gm.seasonLbl()} regular season to see the first winners.</p></>;
   const a = s.awards[yr], defs = awardDefs(s);
   const lbl = y => y - 1 + '–' + String(y).slice(2);
   // The full vote: first-place votes, points and share (older seasons are re-voted from their stored scores).
@@ -85,6 +87,8 @@ export function AwardsScreen({ vm }: { vm: VM }) {
         <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => setPick(v)} />
         <span style={{ ...muted, fontSize: '12px' }}>{a.list ? 'Voted by formula (hover a title to see it; edit them in Settings → Award formulas). Most awards need 65 games.' : 'Individual awards and All-League teams need 58 of 82 games played.'}</span>
       </div>
+      {asNow}
+      {(s.allStars || {})[yr] && <AllStarBox vm={vm} y={yr} />}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '18px', marginBottom: '26px' }}>
         {a.list ? (a.defs || []).filter(d => !d.numTeams && !d.statRange).map(d => <Card key={d.shortName} k={d.shortName} title={d.name} entries={a.list[d.shortName]} hint={defs.find(x => x.shortName === d.shortName)?.formula} />) : INDIV.map(([k, t]) => <Card key={k} k={k} title={t} />)}
         <section className="card" style={{ padding: '14px 16px', gap: '8px' }}>
@@ -127,4 +131,30 @@ export function AwardsScreen({ vm }: { vm: VM }) {
       </div>
     </>
   );
+}
+
+// All-Star Weekend: both rosters (starters first) and the game.
+function AllStarBox({ vm, y }: { vm: VM; y: number }) {
+  const { gm, s, T, logo, open } = vm.ctx, a = (s.allStars || {})[y], P = gm.db.P;
+  if (!a) return null;
+  const tidOf = (pid: number) => (P[pid]?.stats || []).filter((r: any) => r.season === y && !r.po).slice(-1)[0]?.tid;
+  const g = a.game;
+  return (
+    <section style={{ marginBottom: 24 }}>
+      <h4 style={h4Style}>All-Stars · {(y - 1) + '–' + String(y).slice(2)}</h4>
+      {g && <p style={{ margin: '0 0 10px', fontSize: '13px' }}><b>{g.winner}</b> won the All-Star Game {Math.max(g.East, g.West)}–{Math.min(g.East, g.West)}. MVP: <Link onClick={() => open(g.mvp)}>{P[g.mvp]?.name}</Link> ({g.mvpLine}).</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24 }}>
+        {(['West', 'East'] as const).map(c => (
+          <div key={c}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', borderBottom: '1px solid var(--color-text)', paddingBottom: 2, marginBottom: 4 }}>{c}{g?.winner === c ? ' · won' : ''}</div>
+            {[...a[c].starters.map((id: number) => [id, true]), ...a[c].reserves.map((id: number) => [id, false])].map(([id, st]: any) => (
+              <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0', borderBottom: '1px solid var(--color-divider)' }}>
+                <span style={{ width: 22, fontSize: '11px', color: 'var(--color-neutral-600)' }}>{P[id]?.pos}</span>
+                {tidOf(id) != null && logo(tidOf(id), 16)}
+                <Link onClick={() => open(id)} style={{ fontWeight: st ? 600 : 400 }}>{P[id]?.name}</Link>
+                <span style={{ ...muted, fontSize: '11px', marginLeft: 'auto' }}>{st ? 'Starter' : 'Reserve'}{tidOf(id) != null ? ' · ' + T[tidOf(id)]?.abbr : ''}</span>
+              </div>))}
+          </div>))}
+      </div>
+    </section>);
 }

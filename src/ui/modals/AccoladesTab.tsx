@@ -23,7 +23,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
 
   const data = useMemo(() => {
     const won: Row[] = [], teams: Row[] = [], votes: Row[] = [], dub: Row[] = [], series: Row[] = [];
-    if (!p) return { won, teams, votes, dub, series, titles: [] as Row[], leads: [] as Row[] };
+    if (!p) return { won, teams, votes, dub, series, titles: [] as Row[], leads: [] as Row[], allStar: [] as Row[] };
     Object.values(s.awards || {}).sort((a: any, b: any) => a.season - b.season).forEach((a: any) => {
       const y = a.season;
       // Single-winner awards: a win, or a finish in the voting.
@@ -43,6 +43,10 @@ export function AccoladesTab({ vm }: { vm: VM }) {
       if (a.fmvp?.pid === p.id) series.push({ season: y, key: 'FMVP', tid: a.fmvp.tid, line: a.fmvp.line, label: 'Finals MVP' });
       Object.entries(a.sfmvp || {}).forEach(([c, e]: any) => { if (e?.pid === p.id) series.push({ season: y, key: 'SFMVP', tid: e.tid, line: e.line, label: c + ' Finals MVP' }); });
     });
+    // All-Star selections and All-Star Game MVPs.
+    const allStar: Row[] = [];
+    Object.entries(s.allStars || {}).forEach(([y, a]: any) => { (['East', 'West'] as const).forEach(c => { const st = a[c].starters.includes(p.id), rs = a[c].reserves.includes(p.id); if (st || rs) allStar.push({ season: +y, key: 'AS', tid: tidIn(+y), label: 'All-Star', line: c + (st ? ' starter' : ' reserve') }); });
+      if (a.game?.mvp === p.id) series.push({ season: +y, key: 'ASMVP', tid: a.game.mvpTid, line: a.game.mvpLine, label: 'All-Star Game MVP' }); });
     // Championships and Finals trips.
     const titles: Row[] = [];
     (s.history || []).forEach((h: any) => { const t = tidIn(h.year, true) ?? tidIn(h.year); if (t == null) return; // hurt all playoffs still gets the ring
@@ -57,17 +61,17 @@ export function AccoladesTab({ vm }: { vm: VM }) {
       const pool = all.filter(q => (q.stats || []).some((r: any) => r.season === y && !r.po)).map(q => ({ q, t: gm.seasonTotals(q, y) })).filter(x => x.t && x.t.gp >= MIN_GP);
       LEAD.forEach(([k, name, f]) => { const best = pool.reduce((b, x) => (f(x.t) / x.t.gp > f(b.t) / b.t.gp ? x : b), pool[0]); if (best?.q.id === p.id) leads.push({ season: y, key: 'LEAD' + k, tid: tidIn(y), label: 'Led the league in ' + name.toLowerCase(), line: (f(mine) / mine.gp).toFixed(1) + ' per game' }); });
     });
-    return { won, teams, votes, dub, series, titles, leads };
-  }, [p?.id, nAw, (s.history || []).length]);
+    return { won, teams, votes, dub, series, titles, leads, allStar };
+  }, [p?.id, nAw, (s.history || []).length, Object.keys(s.allStars || {}).length]);
 
   if (!p) return null;
-  const { won, teams, votes, dub, series, titles, leads } = data;
+  const { won, teams, votes, dub, series, titles, leads, allStar } = data;
   const hof = (s.hof || []).find((h: any) => h.pid === p.id), no1 = p.dr?.rd === 1 && p.dr?.pick === 1, L = p.legacy;
 
   // The summary chips: counts, biggest honors first.
   const count = (rows: Row[]) => { const m = new Map<string, { label: string; n: number; years: number[] }>(); rows.forEach(r => { const e = m.get(r.label) || { label: r.label, n: 0, years: [] }; e.n++; e.years.push(r.season); m.set(r.label, e); }); return [...m.values()]; };
   const champs = titles.filter(t => t.key === 'CH');
-  const chips = [...(champs.length ? [{ label: 'League Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(series), ...count(teams), ...count(leads)];
+  const chips = [...(champs.length ? [{ label: 'League Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(allStar), ...count(series), ...count(teams), ...count(leads)];
 
   const Team = ({ tid }: { tid?: number }) => tid != null && T[tid] ? <Link onClick={() => gm.setState({ teamModal: tid, modal: false })}>{T[tid].abbr}</Link> : <span style={muted}>—</span>;
   const Table = ({ title, rows, note }: { title: string; rows: Row[]; note?: ReactNode }) => rows.length ? (
@@ -82,7 +86,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
       {note && <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>{note}</p>}
     </section>) : null;
 
-  const nothing = !chips.length && !votes.length && !dub.length && !hof && !no1 && !L && !titles.length;
+  const nothing = !chips.length && !allStar.length && !votes.length && !dub.length && !hof && !no1 && !L && !titles.length;
   return (
     <div style={{ marginTop: 22 }}>
       {chips.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -98,7 +102,8 @@ export function AccoladesTab({ vm }: { vm: VM }) {
       </section>}
       <Table title="Championships" rows={titles} />
       <Table title="Awards" rows={won} />
-      <Table title="Playoff series MVPs" rows={series} />
+      <Table title="All-Star selections" rows={allStar} note="Twelve per conference at mid-season: five starters (the fan vote) and seven reserves (the coaches)." />
+      <Table title="Series and All-Star Game MVPs" rows={series} />
       <Table title="All-League teams" rows={teams} />
       <Table title="League leader" rows={leads} note={'Per game, among players with at least ' + MIN_GP + ' games (70% of the season), like the NBA’s stat titles.'} />
       <Table title="Award voting" rows={votes} note="Finishes in the media vote without winning (100 voters)." />
