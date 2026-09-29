@@ -78,6 +78,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
             {cur && bs.map(b => <BadgeChip key={b.key} b={b} small />)}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
             {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
+            {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}
             {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
             {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day' : 'Out ' + p.inj.games + 'g'} · {p.inj.name}</span>}
           </span>
@@ -140,7 +141,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
           {cur && <div>Team rating: <b>{tr}</b>/100 <span style={muted}>({trRank}{['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})</span></div>}
           <div>{mov != null && <>MOV: <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{mov >= 0 ? '+' : ''}{mov.toFixed(1)}</b> · </>}Average age {avgAge.toFixed(1)}</div>
           <div>Locker room: <LockerRoomChip vm={vm} tid={tid} /></div>
-          {cur && <div style={{ marginTop: 6 }}>{Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}</div>}
+          {cur && (lim > 15 ? (
+            // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
+            <div style={{ marginTop: 6 }}>
+              <b style={{ color: std.length > 15 ? 'var(--color-accent-700)' : undefined }}>{std.length}/15</b> standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+              <div style={{ fontSize: '12px', color: std.length > 15 ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>{std.length > 15 ? 'You’ll need to cut ' + (std.length - 15) + ' player' + (std.length - 15 === 1 ? '' : 's') + ' when the regular season starts (or convert Exhibit 10s to two-way deals).' : std.length === 15 ? 'Full for opening night.' : (15 - std.length) + ' open spot' + (15 - std.length === 1 ? '' : 's') + ' for opening night; ' + (lim - std.length) + ' more you can add before then.'}</div>
+            </div>
+          ) : <div style={{ marginTop: 6 }}>{Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}</div>)}
           {fin && <div>Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b></div>}
         </div>
         {mine && <div style={{ fontSize: '13px' }}>

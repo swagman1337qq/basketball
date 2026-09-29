@@ -1,3 +1,4 @@
+import { LOUD_COLORS } from './palette';
 // Ready-made franchises for expansion: each nods to what its city is known for, with
 // colors, a crest glyph and the metro-area population (millions; latest census estimates:
 // U.S. Census Bureau 2023 metro estimates, Statistics Canada, INEGI 2020, Eurostat).
@@ -62,6 +63,9 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Honolulu', name: 'Waves', abbr: 'HNL', conf: 'West', div: 'Pacific', colors: ['#127a7a', '#f7c8a3'], icon: 'TreePalm', pop: 0.99, known: 'Waikiki, the birthplace of modern surfing' },
   { region: 'Albuquerque', name: 'Roadrunners', abbr: 'ABQ', conf: 'West', div: 'Southwest', colors: ['#b5412a', '#f2d49b'], icon: 'Sun', pop: 0.92, known: 'New Mexico’s state bird and the high desert' },
 ];
+// The original palette (to spot saves still wearing it), then the 2026-09 loud repaint.
+export const CLASSIC_COLORS: Record<string, [string, string]> = Object.fromEntries(FRANCHISES.map(f => [f.abbr, f.colors]));
+FRANCHISES.forEach(f => { if (LOUD_COLORS[f.abbr]) f.colors = LOUD_COLORS[f.abbr]; });
 
 // Market size from metro population (a multiplier on revenue and free-agent appeal).
 export const marketOf = (f: Franchise) => f.mkt ?? +Math.max(0.65, Math.min(1.45, 0.65 + Math.log10(Math.max(1, f.pop)) * 0.55)).toFixed(2);

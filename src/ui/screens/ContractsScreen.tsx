@@ -36,7 +36,7 @@ export function ContractsScreen({ vm }: { vm: VM }) {
   const extend = (id: number) => { open(id); gm.setState({ ptab: 'contract' }); };
   const extBtn = (p: any) => <button className="btn btn-primary" style={{ fontSize: '11.5px', padding: '2px 10px' }} onClick={() => extend(p.id)} title={extWindow(gm, s, p).why}>Extend…</button>;
   const who = (p: any) => (
-    <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span></td>);
+    <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span>{tid === s.me && ids.includes(p.id) && <button className="btn btn-ghost hv4" onClick={() => gm.setState({ dialog: { type: 'release', pid: p.id } })} title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', marginLeft: 6, color: 'var(--gm-bad)' }}>Cut</button>}</td>);
   const rat = (p: any) => <td style={tdr}><b style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</b> <span style={muted}>/</span> <span style={{ color: ratingTier(p.pot).color }}>{p.pot}</span></td>;
 
   // Summer-by-summer groups: deals ending, and options to decide (the option year starts that fall).

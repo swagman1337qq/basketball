@@ -1,3 +1,4 @@
+import { LOUD_COLORS } from './palette';
 import { EXTRA_CITIES, EXTRA_REGIONS } from './cities';
 import { NATIONS } from './nations';
 // World data: countries, name pools, clubs, scouting regions and roster roles.
@@ -270,7 +271,7 @@ export const TEAM_STYLE: Record<string, { colors: [string, string]; icon: string
   LOU: { colors: ['#4a1a2c', '#e9b7c1'], icon: 'Award' },
   MEX: { colors: ['#1f5e3a', '#f0e6d2'], icon: 'Feather' },
 };
-export const teamStyle = (abbr: string) => TEAM_STYLE[abbr] || { colors: ['#605d5d', '#eae7e7'] as [string, string], icon: 'Circle' };
+export const teamStyle = (abbr: string) => { const t = TEAM_STYLE[abbr] || { colors: ['#605d5d', '#eae7e7'] as [string, string], icon: 'Circle' }; return LOUD_COLORS[abbr] ? { ...t, colors: LOUD_COLORS[abbr] } : t; };
 
 // ── Procedural expansion franchises ─────────────────────────────────────────────
 // Candidate cities (not already in the league) with conference, division, market size

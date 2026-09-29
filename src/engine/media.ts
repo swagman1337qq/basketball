@@ -8,14 +8,14 @@
 import type { Game } from './Game';
 import { teamRating, wngRating } from './ratings';
 
-export interface Outlet { k: string; name: string; parody: string; color: string; analyst: string; draftAnalyst: string; style: string; listName: string; book?: boolean }
+export interface Outlet { k: string; name: string; short?: string; parody: string; color: string; analyst: string; draftAnalyst: string; style: string; listName: string; book?: boolean }
 export const OUTLETS: Outlet[] = [
   { k: 'peen', name: 'PEEN', parody: 'ESPN', color: '#c8102e', analyst: 'the PEEN Analytics desk', draftAnalyst: 'Jonah Givens', style: 'Model-driven. The PEEN Basketball Projection Index trusts roster strength and little else.', listName: 'PEENrank' },
   { k: 'donger', name: 'The Donger', parody: 'The Ringer', color: '#7b3fe4', analyst: 'Zach Harlowe', draftAnalyst: 'Kevin O’Callahan', style: 'Loves young teams, upside, shooting and anyone fun to watch. Swings big on potential.', listName: 'The Donger’s Top 100' },
-  { k: 'bleacher', name: 'Bleacher Retort', parody: 'Bleacher Report', color: '#3d3d3d', analyst: 'Dex Morrow', draftAnalyst: 'Jon Waterman', style: 'Star power first, big markets second. Every take is a headline.', listName: 'B/R 100' },
+  { k: 'bleacher', name: 'Oohay! Sports', parody: 'Yahoo Sports', color: '#6001d2', analyst: 'Dex Morrow', draftAnalyst: 'Jon Waterman', style: 'Star power first, big markets second. Every take is a headline.', listName: 'The Oohay! 100' },
   { k: 'athleisure', name: 'The Athleisure', parody: 'The Athletic', color: '#1f6f5c', analyst: 'Priya Okafor', draftAnalyst: 'Sam Venetti', style: 'Insider-driven. Trusts depth, defense and continuity; the best-sourced mock draft.', listName: 'The Athleisure 100' },
-  { k: 'illiterated', name: 'Sports Illiterated', parody: 'Sports Illustrated', color: '#b3001b', analyst: 'Colin Mayhew', draftAnalyst: 'Colin Mayhew', style: 'Old school. Proven veterans, last year’s results and résumés.', listName: 'SI Top 100' },
-  { k: 'fox', name: 'Fox Spurts', parody: 'FOX Sports', color: '#0a3d91', analyst: 'Chip Hollister', draftAnalyst: 'Chip Hollister', style: 'Hot takes. Somebody is always a fraud, and a long shot is always winning it all.', listName: 'Chip’s Top 100' },
+  { k: 'illiterated', name: 'Plymouth Times', short: 'PYT', parody: 'The New York Times', color: '#1a1a1a', analyst: 'Colin Mayhew', draftAnalyst: 'Colin Mayhew', style: 'The paper of record. Old school: proven veterans, last year’s results and résumés.', listName: 'The PYT 100' },
+  { k: 'fox', name: 'Waystar RoyCo. Sports', short: 'WAYA Sports', parody: 'FOX Sports', color: '#0a3d91', analyst: 'Chip Hollister', draftAnalyst: 'Chip Hollister', style: 'Hot takes. Somebody is always a fraud, and a long shot is always winning it all.', listName: 'WAYA Sports Top 100' },
   { k: 'dq', name: 'DraftQueens', parody: 'DraftKings', color: '#2e7d32', analyst: 'the DraftQueens sportsbook', draftAnalyst: '', style: 'Win totals and title odds, shaded toward where the public bets: big markets and stars.', listName: '', book: true },
 ];
 export const PANEL = OUTLETS.filter(o => !o.book); // the six that rank players and mock the draft

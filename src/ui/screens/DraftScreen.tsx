@@ -38,7 +38,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
         </>)}
       </div>
       {!!vm.dr.isCurrent && (<>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", padding: "10px 14px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", padding: "10px 14px", border: vm.dr.mineClock ? "3px solid var(--gm-good)" : "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", background: vm.dr.mineClock ? "color-mix(in srgb, var(--gm-good) 10%, transparent)" : undefined }}>
           <div style={{ flex: "1" }}>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "19px", fontWeight: "600" }}>
               {vm.dr.status}
@@ -94,7 +94,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "calc(100vh - 260px)", overflowY: "auto", paddingRight: "4px" }}>
               {(vm.dr.order || []).map((o: any, i: number) => (
-                <div key={i} ref={o.onClock ? (el => { const box = el?.parentElement; if (el && box && box.dataset.at !== String(o.n)) { box.dataset.at = String(o.n); box.scrollTop = el.offsetTop - box.offsetTop - 90; } }) : undefined} style={{ display: "grid", gridTemplateColumns: "30px 30px minmax(0,1fr)", gap: "10px", alignItems: "center", padding: "8px 10px", borderRadius: "var(--radius-md)", border: o.onClock ? "2px solid var(--color-accent)" : o.mine ? "2px solid var(--color-accent)" : "1px solid var(--color-divider)", borderLeft: o.mine ? "6px solid var(--color-accent)" : undefined, background: o.onClock ? "var(--color-accent-100)" : o.mine ? "color-mix(in srgb, var(--color-accent) 18%, transparent)" : "transparent", boxShadow: o.mine ? "0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent), 0 2px 10px color-mix(in srgb, var(--color-accent) 25%, transparent)" : undefined }}>
+                <div key={i} ref={o.onClock ? (el => { const box = el?.parentElement; if (el && box && box.dataset.at !== String(o.n)) { box.dataset.at = String(o.n); box.scrollTop = el.offsetTop - box.offsetTop - 90; } }) : undefined} style={{ display: "grid", gridTemplateColumns: "30px 30px minmax(0,1fr)", gap: "10px", alignItems: "center", padding: "8px 10px", borderRadius: "var(--radius-md)", border: o.onClock && o.mine ? "3px solid var(--gm-good)" : o.onClock ? "2px solid var(--color-accent)" : o.mine ? "2px solid var(--color-accent)" : "1px solid var(--color-divider)", borderLeft: o.onClock && o.mine ? "8px solid var(--gm-good)" : o.mine ? "6px solid var(--color-accent)" : undefined, background: o.onClock && o.mine ? "color-mix(in srgb, var(--gm-good) 16%, transparent)" : o.onClock ? "var(--color-accent-100)" : o.mine ? "color-mix(in srgb, var(--color-accent) 18%, transparent)" : "transparent", boxShadow: o.mine ? "0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent), 0 2px 10px color-mix(in srgb, var(--color-accent) 25%, transparent)" : undefined }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontSize: "20px", textAlign: "right", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.n}</span>
                   <button onClick={o.openT} title={o.team} style={{ all: "unset", cursor: "pointer" }}>{o.logoLg}</button>
                   <div style={{ minWidth: 0 }}>
@@ -109,7 +109,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                         <div style={{ fontSize: "11.5px", color: "var(--color-neutral-600)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.pmeta}</div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "12px", fontStyle: "italic", color: o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.onClock ? "On the clock" : "Pick " + o.n}</div>
+                      <div style={{ fontSize: "12px", fontStyle: "italic", fontWeight: o.onClock && o.mine ? 700 : undefined, color: o.onClock && o.mine ? "var(--gm-good)" : o.onClock ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>{o.onClock ? (o.mine ? "You’re on the clock" : "On the clock") : "Pick " + o.n}</div>
                     )}
                     {o.canTrade && (
                       <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>

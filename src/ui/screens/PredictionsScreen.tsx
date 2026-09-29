@@ -6,7 +6,7 @@ import { Kicker, Link, muted, ruleH4, Seg, usePaged } from '../kit';
 import { byLast, useSort } from '../sortable';
 import { consensus, fmtOdds, mediaPreds, OUTLETS, PANEL, pastPreds, type SeasonPreds } from '../../engine/media';
 
-const Badge = ({ k }: { k: string }) => { const o = OUTLETS.find(x => x.k === k)!; return <span title={o.style} style={{ display: 'inline-block', padding: '1px 7px', borderRadius: 4, background: o.color, color: '#fff', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{o.name}</span>; };
+const Badge = ({ k }: { k: string }) => { const o = OUTLETS.find(x => x.k === k)!; return <span title={o.name + ': ' + o.style} style={{ display: 'inline-block', padding: '1px 7px', borderRadius: 4, background: o.color, color: '#fff', fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>{o.short || o.name}</span>; };
 
 export function PredictionsScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeam } = vm.ctx, P = gm.db.P;
@@ -66,7 +66,7 @@ export function PredictionsScreen({ vm }: { vm: VM }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
             <h4 style={{ ...ruleH4, margin: 0, border: 'none' }}>Projected standings</h4>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {[['cons', 'Consensus'] as [string, string], ...OUTLETS.map(o => [o.k, o.name] as [string, string])].map(([k, n]) => <button key={k} className={'btn ' + (ok === k ? 'btn-primary' : 'btn-ghost')} onClick={() => setOk(k)} style={{ fontSize: '12px', padding: '3px 10px' }}>{n}</button>)}
+              {[['cons', 'Consensus'] as [string, string], ...OUTLETS.map(o => [o.k, o.short ? o.name + ' (' + o.short + ')' : o.name] as [string, string])].map(([k, n]) => <button key={k} className={'btn ' + (ok === k ? 'btn-primary' : 'btn-ghost')} onClick={() => setOk(k)} style={{ fontSize: '12px', padding: '3px 10px' }}>{n}</button>)}
             </div>
           </div>
           {ok !== 'cons' && <p style={{ ...muted, fontSize: '12.5px', margin: '0 0 8px' }}>{OUTLETS.find(o => o.k === ok)!.style}</p>}

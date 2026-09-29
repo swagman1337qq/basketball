@@ -29,10 +29,13 @@ const ROOKIE_PCT = [7.45, 6.66, 5.98, 5.39, 4.88, 4.43, 4.04, 3.69, 3.37, 3.21, 
 
 // Cached per cap table (rebuilt if any of its numbers change): called thousands of times a day.
 const NUMS_CACHE = new WeakMap<object, { key: string; v: any }>();
+// Cap easy mode (Settings): no aprons. The 1st apron folds into the 2nd, which becomes a hard cap
+// for every team; the soft cap, luxury tax and repeater tax stay.
+export const capEasy = (g: Game) => !!g.state?.capEasy;
 export function nums(g: Game): ReturnType<typeof numsOf> {
-  const C = g.db.caps, key = C.CAP + '|' + C.TAX + '|' + C.AP1 + '|' + C.AP2 + '|' + C.MINP, hit = NUMS_CACHE.get(C);
+  const C = g.db.caps, easy = capEasy(g), key = C.CAP + '|' + C.TAX + '|' + C.AP1 + '|' + C.AP2 + '|' + C.MINP + '|' + easy, hit = NUMS_CACHE.get(C);
   if (hit && hit.key === key) return hit.v;
-  const v = numsOf(C); NUMS_CACHE.set(C, { key, v }); return v;
+  const v = numsOf(easy ? { ...C, AP1: C.AP2 } : C); NUMS_CACHE.set(C, { key, v }); return v;
 }
 function numsOf(C: any) {
   const CAP = C.CAP;
@@ -99,7 +102,7 @@ export function capHold(g: Game, s: any, p: any, avg?: number) {
 // ── Team cap state (kept for every team in s.cap[tid]) ────────────────────────────
 export function capState(s: any, tid: number) {
   const c = (s.cap || {})[tid] || {};
-  return { dead: c.dead || [], tpe: c.tpe || [], twoWay: c.twoWay || [], exc: c.exc || null, hardCap: c.hardCap ?? null, baeLast: c.baeLast ?? null, renounced: c.renounced || [], frozen: !!c.frozen };
+  return { dead: c.dead || [], tpe: c.tpe || [], twoWay: c.twoWay || [], exc: c.exc || null, hardCap: s.capEasy ? 'AP2' : c.hardCap ?? null, baeLast: c.baeLast ?? null, renounced: c.renounced || [], frozen: !!c.frozen };
 }
 export function setCap(s: any, tid: number, patch: any) { return { ...(s.cap || {}), [tid]: { ...((s.cap || {})[tid] || {}), ...patch } }; }
 
@@ -137,7 +140,7 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
   const m = (key, label, maxFirst, maxYears, raise, note, ok = true, why?, hardCap?, minFirst?): Method => {
     const lim = Math.min(hard, hardCap === 'AP1' ? N.AP1 : hardCap === 'AP2' ? N.AP2 : Infinity), fit = key === 'twoWay' ? Infinity : lim - sal;
     const mf = +Math.min(max, maxFirst, fit).toFixed(2);
-    if (ok && fit < Math.min(maxFirst, minS) - 0.005) { ok = false; why = why || 'Would put you over the ' + (lim === N.AP1 ? '1st' : '2nd') + ' apron'; }
+    if (ok && fit < Math.min(maxFirst, minS) - 0.005) { ok = false; why = why || (capEasy(g) ? 'Would put you over the hard cap' : 'Would put you over the ' + (lim === N.AP1 ? '1st' : '2nd') + ' apron'); }
     return { key, label, maxFirst: Math.max(0, mf), maxYears: yearsCap(maxYears), raise, note, ok, why, hardCap, minFirst };
   };
   const out: Method[] = [];
@@ -198,8 +201,8 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
       else if (i > matchLimit(g, o, after) + 1e-6) errs.push(nm + ' takes back ' + i.toFixed(2) + 'M for ' + o.toFixed(2) + 'M out; over the cap it may take back at most ' + matchLimit(g, o, after).toFixed(2) + 'M' + (after > N.AP1 ? ' (100% above the 1st apron)' : '') + '.');
     }
     if (after > N.AP2 && out.length > 1 && i > 0) errs.push(nm + ' would be above the 2nd apron: it can’t aggregate salaries (' + out.length + ' players out).');
-    if (cs.hardCap === 'AP1' && after > N.AP1) errs.push(nm + ' is hard-capped at the 1st apron (' + N.AP1 + 'M) this season.');
-    if (cs.hardCap === 'AP2' && after > N.AP2) errs.push(nm + ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.');
+    if (cs.hardCap === 'AP1' && after > N.AP1 && !capEasy(g)) errs.push(nm + ' is hard-capped at the 1st apron (' + N.AP1 + 'M) this season.');
+    if (cs.hardCap === 'AP2' && after > N.AP2) errs.push(nm + (capEasy(g) ? ' would be over the hard cap (' + N.AP2 + 'M).' : ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.'));
     const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length, lim = rosterMax(s); if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
     // Newly signed players can't be traded yet.
     out.forEach(id => { const q = P[id], sg = q.signed; if (!sg) return;

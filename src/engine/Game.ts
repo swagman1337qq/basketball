@@ -2,6 +2,8 @@
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
 import { PRESET_CARDS } from './playerCard';
+import { LOUD_COLORS, PALETTE_V } from '../data/palette';
+import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
@@ -26,7 +28,7 @@ import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
-import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAMS, teamStyle } from '../data/world';
+import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
@@ -124,6 +126,10 @@ export class Game {
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
+    // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
+    if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
+      const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors))) t.colors = nw; };
+      g.db.teams.forEach(repaint); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; repaint(c); return c; }); g.db.paletteV = PALETTE_V; }
     // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
     if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }
     // Older saves: free agents' asks above their max, or not discounted for age (askOf).
@@ -206,7 +212,7 @@ export class Game {
   get CAP() { return this.db.caps.CAP; }
   get MINP() { return this.db.caps.MINP; }
   get TAX() { return this.db.caps.TAX; }
-  get AP1() { return this.db.caps.AP1; }
+  get AP1() { return this.state?.capEasy ? this.db.caps.AP2 : this.db.caps.AP1; } // cap easy mode: no 1st apron
   get AP2() { return this.db.caps.AP2; }
   get VMIN() { return this.db.caps.VMIN; }
   get MLE() { return this.db.caps.MLE; }
@@ -1235,7 +1241,7 @@ export class Game {
   // Payroll ceiling each owner archetype tolerates (shown on the Owner screen, used by the AI).
   // The payroll an owner allows: his type's line, any God Mode adjustment, and a new owner's first-year splash.
   teamCeiling(t) { return this.ownerCeiling(t.arch) + (t.ceilAdj || 0) + (t.splash && this.Y <= t.splash.thru ? t.splash.amt : 0); }
-  ownerCeiling(arch) { return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': this.AP1, 'Hype Focus': this.AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
+  ownerCeiling(arch) { const AP1 = this.db.caps.AP1; return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': AP1, 'Hype Focus': AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
   payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
   // Cap hit: salary (or the 2-year minimum for a one-year veteran minimum deal) plus likely bonuses.
   // In free agency (the new league year) a continuing contract counts at next season's salary.

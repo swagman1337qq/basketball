@@ -103,6 +103,22 @@ export function SettingsScreen({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
+            Cap easy mode
+          </div>
+          <div>
+            <div>
+              {vm.capEasySet.on ? 'On: a simpler cap with no aprons' : 'Off: the full NBA cap, with both aprons'}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
+              No 1st or 2nd apron and none of their rules (100% salary matching, lost exceptions, trade limits). What stays: the soft cap and its exceptions, Bird rights, the luxury tax and the repeater tax, and one hard cap (at the old 2nd apron line) that no team can go over. Owners keep their payroll limits. You can switch it any time.
+            </div>
+          </div>
+          <button className="btn btn-secondary" onClick={vm.capEasySet.toggle} style={{ whiteSpace: "nowrap" }}>
+            {vm.capEasySet.on ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Team sales
           </div>
           <div>

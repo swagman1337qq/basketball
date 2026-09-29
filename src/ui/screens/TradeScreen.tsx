@@ -1,6 +1,18 @@
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 import { godBtn } from '../kit';
+import { CapBar, CapLeft } from '../CapBar';
+
+const TONE: Record<string, string> = { good: 'var(--gm-good)', ok: 'var(--color-accent-700)', bad: 'var(--gm-bad)' };
+function AdviceBox({ a }: { a: any }) {
+  if (!a) return null;
+  return (
+    <div style={{ marginTop: 8, padding: '8px 10px', borderLeft: '3px solid ' + TONE[a.tone], background: 'color-mix(in srgb, ' + TONE[a.tone] + ' 7%, transparent)', borderRadius: 4 }}>
+      <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' }}>Assistant GM</div>
+      <div style={{ fontWeight: 600, color: TONE[a.tone], margin: '2px 0 4px' }}>“{a.head}”</div>
+      {a.lines.map((l: string, i: number) => <div key={i} style={{ fontSize: '12px', color: 'var(--color-neutral-800)' }}>· {l}</div>)}
+    </div>);
+}
 
 export function TradeScreen({ vm }: { vm: VM }) {
   // ‹ › step through the other teams in the menu's order.
@@ -44,10 +56,13 @@ export function TradeScreen({ vm }: { vm: VM }) {
               <button className="btn btn-primary" onClick={O.accept}>Accept</button>
               <button className="btn btn-secondary" onClick={O.decline}>Decline</button>
               <button className="btn btn-ghost" onClick={O.negotiate} title="Load this offer into the trade builder to change it">Negotiate…</button>
+              <button className="btn btn-ghost" onClick={O.askAdvice} title="Your assistant GM's take on this offer" style={{ marginLeft: 'auto' }}>🧠 {O.adviceOn ? 'Hide advice' : 'Ask for advice'}</button>
             </div>
+            <AdviceBox a={O.advice} />
           </>)}
         </section>
       )}
+      <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} delta={vm.tr.delta} />
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 260px minmax(0,1fr)", gap: "24px", alignItems: "start" }}>
         <section>
           <div style={{ display: "flex", alignItems: "center", height: "36px", marginBottom: "4px" }}>
@@ -147,6 +162,12 @@ export function TradeScreen({ vm }: { vm: VM }) {
               {vm.tr.after}
             </span>
           </div>
+          <div style={{ borderBottom: "1px solid var(--color-divider)", paddingBottom: "6px" }}>
+            <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)", marginBottom: 4 }}>
+              Cap space left
+            </div>
+            <CapLeft gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} pay={vm.tr.afterNum} />
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px" }}>
             <span style={{ color: "var(--color-neutral-700)" }}>
               Salary rule
@@ -195,6 +216,10 @@ export function TradeScreen({ vm }: { vm: VM }) {
               {vm.tr.verdict}
             </div>
           </div>
+          <button className="btn btn-secondary" onClick={vm.tr.askAdvice} disabled={vm.tr.cantBalance} title="Your assistant GM's take: good for us? will they bite?" style={{ width: "100%" }}>
+            🧠 {vm.ctx.s.tAdvice ? 'Hide advice' : 'Ask for advice'}
+          </button>
+          <AdviceBox a={vm.tr.advice} />
           <button className="btn btn-primary" onClick={vm.propose} disabled={vm.tr.cantPropose} style={{ width: "100%", marginTop: "4px" }}>
             Propose trade
           </button>

@@ -61,7 +61,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             <Link onClick={() => pl.openT(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{pl.teamLogo}{pl.teamLabel}</Link>
           </div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '42px', lineHeight: 1.04, letterSpacing: '-.01em', marginTop: '2px' }}>
-            {p.num != null && tid >= 0 && <span title="Jersey number" style={{ ...muted, marginRight: '12px', fontSize: '26px' }}>#{p.num}</span>}{p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
+            {p.num != null && tid >= 0 && <JerseyNum vm={vm} p={p} tid={tid} />}{p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
             {/* Age over his measurements; draft slot over his season count. */}
@@ -246,6 +246,32 @@ function EligEditor({ vm, p }: { vm: VM; p: any }) {
           <select value={why} onChange={ev => setWhy(ev.target.value)} style={{ fontSize: '11.5px', width: 'auto' }}>{WHY.map(w => <option key={w} value={w}>{w}</option>)}</select>
         </span>
       )}
+    </span>
+  );
+}
+
+// Jersey number: yours to change for your own players (anyone's in God Mode). Taking a
+// teammate's number swaps the two.
+function JerseyNum({ vm, p, tid }: { vm: VM; p: any; tid: number }) {
+  const { gm, s } = vm.ctx, [ed, setEd] = useState<string | null>(null), [msg, setMsg] = useState('');
+  const can = gm.isUser(s, tid) || !!s.god, pink = !gm.isUser(s, tid) && !!s.god;
+  if (!can) return <span title="Jersey number" style={{ ...muted, marginRight: '12px', fontSize: '26px' }}>#{p.num}</span>;
+  const mate = (n: string) => (s.rosters[tid] || []).map((id: number) => gm.db.P[id]).find((q: any) => q && q.id !== p.id && q.num === n);
+  const save = () => {
+    const n = String(ed ?? '').trim();
+    if (!/^(00|[0-9]|[1-9][0-9])$/.test(n)) { setMsg('Use 0–99 or 00.'); return; }
+    const other = mate(n), old = p.num;
+    Object.assign(p, { num: n, numFav: n, numTid: tid, numLocked: true }); if (other) Object.assign(other, { num: old, numTid: tid }); gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+    setMsg(other ? other.name + ' takes #' + old + '.' : ''); setEd(null);
+  };
+  if (ed == null) return <button onClick={() => { setEd(p.num); setMsg(''); }} title={'Jersey number: click to change' + (pink ? ' (God Mode)' : '')} className="hv4" style={{ all: 'unset', cursor: 'pointer', ...muted, marginRight: '12px', fontSize: '26px', ...(pink ? godText : {}), borderBottom: '1px dotted currentColor' }}>#{p.num}{msg && <span style={{ fontSize: '12px', marginLeft: 8 }}>{msg}</span>}</button>;
+  const other = mate(String(ed).trim());
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 12, fontSize: '14px', fontFamily: 'var(--font-body)', verticalAlign: 'middle', ...(pink ? { ...godBox, padding: '2px 6px' } : {}) }}>
+      #<input className="input" autoFocus value={ed} onChange={e => setEd(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEd(null); }} style={{ width: 52, minHeight: 28 }} />
+      <button className="btn btn-primary" onClick={save} style={{ fontSize: '12px', padding: '3px 10px' }}>{other ? 'Swap with ' + other.name.split(' ').slice(-1)[0] : 'Save'}</button>
+      <button className="btn btn-ghost" onClick={() => setEd(null)} style={{ fontSize: '12px', padding: '3px 8px' }}>Cancel</button>
+      {msg && <span style={{ color: 'var(--gm-bad)', fontSize: '12px' }}>{msg}</span>}
     </span>
   );
 }
