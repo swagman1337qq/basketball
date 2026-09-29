@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-C5WzuqDS.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-xlOOPpvf.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -38,6 +38,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Phase buttons open their screen:** Start the play-in, Start the playoffs, Run the lottery, Open free agency and Open training camp take you to that screen.
 
 ### Fixed
+- **Owner backgrounds make sense:** an owner's hometown now fits their name (a Rosenthal grows up in Brooklyn or Skokie, a Nakashima in Honolulu, an Okoro in a Nigerian immigrant family in Houston), not a random city anywhere in the world. Owners who bought a team in a sale made their money in the business the announcement described. Panny Macquiao, Mao Ying and Tanner Matthews keep their own stories.
 - **National-team eligibility follows edits:** changing where a player was born or raised, or his heritage (e.g. from the U.S. to Mexico), now redoes the countries he can play for. Countries you added by hand stay.
 
 ## 2026-09-28
