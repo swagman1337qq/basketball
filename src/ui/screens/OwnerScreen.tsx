@@ -1,4 +1,6 @@
+import { Fragment, useState } from 'react';
 import type { VM } from '../vm';
+import { KIND_LABEL, ownerProfile } from '../../engine/owners';
 import { fmtBillions } from '../../engine/frontOffice';
 
 export function OwnerScreen({ vm }: { vm: VM }) {
@@ -119,6 +121,47 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           )}
         </section>
       </div>
+      <OwnerDirectory vm={vm} />
+    </>
+  );
+}
+
+// Owner biography (yours first) and every owner in the league, searchable.
+function OwnerDirectory({ vm }: { vm: VM }) {
+  const { gm, s, T, logo, openTeam } = vm.ctx, [q, setQ] = useState(''), [openT, setOpenT] = useState<number | null>(null), [kind, setKind] = useState('all');
+  const mine = ownerProfile(gm, s, s.me);
+  const all = T.map((t: any) => ({ t, o: ownerProfile(gm, s, t.tid) }))
+    .filter(({ t, o }: any) => (kind === 'all' || o.kind === kind) && (!q || (o.name + ' ' + t.region + ' ' + t.name + ' ' + t.abbr).toLowerCase().includes(q.toLowerCase())))
+    .sort((a: any, b: any) => b.o.worth - a.o.worth);
+  const H4 = { margin: "26px 0 6px", fontSize: "18px", borderBottom: "1px solid var(--color-text)", paddingBottom: "4px" };
+  return (
+    <>
+      <h4 style={H4}>Owner biography</h4>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 6 }}>
+        <b style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{mine.name}</b>
+        <span style={{ fontSize: '12.5px', color: 'var(--color-neutral-700)' }}>{mine.kindLabel} · {mine.worthLabel} · bought the team in {mine.year} for {mine.priceLabel}</span>
+      </div>
+      <p style={{ margin: 0, lineHeight: 1.6, maxWidth: 900 }}>{mine.bio}</p>
+      <h4 style={H4}>Owners around the league</h4>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+        <input className="input" placeholder="Search an owner or a team…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 260 }} />
+        <select className="input" value={kind} onChange={e => setKind(e.target.value)} style={{ width: 'auto' }}><option value="all">Every kind of owner</option>{Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+        <span style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>Richest first · click an owner for the biography</span>
+      </div>
+      <table className="table" style={{ fontSize: '13px' }}>
+        <thead><tr><th style={{ padding: '5px 8px' }}>Owner</th><th style={{ padding: '5px 8px' }}>Team</th><th style={{ padding: '5px 8px' }}>Owner type</th><th style={{ padding: '5px 8px' }}>Kind</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Fortune</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Bought</th></tr></thead>
+        <tbody>{all.map(({ t, o }: any) => (<Fragment key={t.tid}>
+          <tr onClick={() => setOpenT(openT === t.tid ? null : t.tid)} style={{ cursor: 'pointer', background: openT === t.tid ? 'var(--color-neutral-100)' : undefined }}>
+            <td style={{ padding: '5px 8px', fontWeight: 600, color: 'var(--color-accent-700)' }}>{o.name}</td>
+            <td style={{ padding: '5px 8px' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{logo(t.tid, 16)}<button className="hv4" onClick={e => { e.stopPropagation(); openTeam(t.tid); }} style={{ all: 'unset', cursor: 'pointer' }}>{t.region} {t.name}</button></span></td>
+            <td style={{ padding: '5px 8px' }}>{t.arch}</td>
+            <td style={{ padding: '5px 8px' }} title={o.kindDesc}>{o.kindLabel}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{o.worthLabel.replace(' net worth', '').replace(' under management', ' AUM')}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{o.year} · {o.priceLabel}</td>
+          </tr>
+          {openT === t.tid && <tr><td colSpan={6} style={{ padding: '6px 8px 12px', lineHeight: 1.6, fontSize: '13px' }}>{o.bio}</td></tr>}
+        </Fragment>))}</tbody>
+      </table>
     </>
   );
 }

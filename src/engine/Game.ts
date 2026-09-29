@@ -3,6 +3,7 @@
 // model built from this state (see ui/viewModel.ts).
 import { PRESET_CARDS } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
+import { placeNamedOwners } from './owners';
 import { LOUD_COLORS, PALETTE_V } from '../data/palette';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -127,6 +128,8 @@ export class Game {
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
+    // 2026-09: the hand-written owners join older leagues (never on a team you run).
+    if (!g.db.ownersV) { const st = { ...g.state, teams: g.state.teams.map((t: any) => ({ ...t })) }; placeNamedOwners(st.teams, tid => g.isUser(g.state, tid)); g.state = { ...g.state, teams: st.teams }; g.db.ownersV = 1; }
     // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
     if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
       const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors))) t.colors = nw; };
@@ -255,6 +258,7 @@ export class Game {
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
     const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
     teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
+    placeNamedOwners(teams); // Panny Macquiao, Mao Ying, Kared Jushner and the Aurelian fund (owners.ts)
     const rosters = {};
     // Team situations, like the real league: contenders built on veteran stars, good teams, capped-out
     // teams paying above-average starters with no young stars and no room (think Sacramento), the
