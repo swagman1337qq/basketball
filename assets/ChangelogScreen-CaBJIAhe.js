@@ -1,6 +1,22 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-6iotd9P6.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-C2NfxB3H.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-09-29
+
+### Added
+- **Trade screen cap bar:** a salary bar above the trade that moves as you add or remove players, with a tick where your payroll is now. Under "Payroll after", a **Cap space left** box says how much room is left until the cap, the luxury tax, the 1st apron and the 2nd apron (or how far over you'd be), and flags your hard cap if you have one.
+- **Ask for advice (Trade):** your assistant GM gives his read on the deal you're building ("Fair deal. They'll say yes.", "Way too unrealistic. They'll ghost you.", "They'd accept in a heartbeat. We're the ones getting ripped off.") and on offers from other teams ("Take it. This is a steal.", "We're getting ripped off. Hang up the phone."), with the reasons: best player each way, the age swing, picks and payroll. It updates as you change the deal.
+- **Cap easy mode** (Settings): no 1st or 2nd apron and none of their rules. You keep the soft cap and its exceptions, Bird rights, the luxury tax and repeater tax, and one hard cap (at the old 2nd apron) that no team can go over. The cap bars show Cap, Tax and Hard cap.
+- **Change jersey numbers:** click the number on a player's profile. You can do it for your own players; in God Mode (in pink), for anyone. Taking a teammate's number swaps the two.
+- **Cut players from the Roster and Contracts screens:** a red "Cut" button opens the same waive / stretch / buyout dialog as the Cap sheet.
+
+### Changed
+- **Louder team colors.** 15 teams wear loud colors (hot pink on black in Las Vegas, purple and neon green in Charlotte, highlighter yellow in Brooklyn, axolotl pink and turquoise in Dallas...). Three are ugly on purpose: Cincinnati wears Pantone 448 C, "the world's ugliest color" (the drab brown on plain cigarette packs), with mustard; St. Louis wears puce and chartreuse; Richmond wears olive drab and dusty mauve. The rest are brighter takes on classic sports colors. Existing leagues update too, unless you changed a team's colors yourself.
+- **Media outlets renamed:** Bleacher Retort is now **Oohay! Sports**, Sports Illiterated is the **Plymouth Times (PYT)**, and Fox Spurts is **Waystar RoyCo. Sports (WAYA Sports)**.
+- **Preseason roster count** now reads like "21/15 standard contracts · you can carry up to 21 until opening night", with "You'll need to cut 6 players when the regular season starts". The number goes down as you cut.
+- **The draft marks your turn:** when your team is on the clock, the banner and your pick get a thick green border and read "You're on the clock", so they stand out from other teams' picks.
+- **Phase buttons open their screen:** Start the play-in, Start the playoffs, Run the lottery, Open free agency and Open training camp take you to that screen.
 
 ## 2026-09-28
 
