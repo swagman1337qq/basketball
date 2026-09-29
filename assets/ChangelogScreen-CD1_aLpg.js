@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DD8cwuWE.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BDezjIg0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -27,6 +27,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Cut players from the Roster and Contracts screens:** a red "Cut" button opens the same waive / stretch / buyout dialog as the Cap sheet.
 
 ### Changed
+- **Stats tables look even more like Basketball-Reference:** the All-Star star next to a season is now a small gray ★, and every award in the Awards column (MVP-4, AS, NBA1…) is a link to that season's Awards screen, from a player's profile and from Stats → Players.
 - **Injuries happen as often as in the real NBA.** Rates now follow the NBA's own injury database (Mack et al., *Sports Health* 2024, seasons 2013-14 to 2018-19): about 35 injuries per 1,000 player-games and 6.2 game-missing injuries per 10,000 player-minutes. Before this, the game had about a tenth of that.
   - A team now gets about 30–35 injuries a season. Roughly a third cost games (about 12–13), and teams lose about 100–120 player-games a season to injury.
   - Most are day-to-day knocks he plays through at reduced strength. Some are short absences (1–8 games), a few are multi-week (sprained MCLs, stress fractures, torn meniscus, 8–25 games), and ACL / Achilles tears happen about six times a season across the league.
