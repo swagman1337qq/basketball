@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { mulberry32 } from './rng';
 
 export function makeFace(p) {
-  const pid = p.id, rnd = mulberry32((p.faceSeed ?? pid) * 7919 + 13), pick = a => a[Math.floor(rnd() * a.length)], race = p.race;
+  const pid = p.id, rnd = mulberry32((p.faceSeed ?? pid) * 7919 + 13), pick = a => a[Math.floor(rnd() * a.length)], race = ['white', 'black', 'asian', 'brown'].includes(p.race) ? p.race : 'white'; // a missing look never breaks a page
   const SK = { white: ['#f6dcc8', '#f1d3bd', '#ecc8ae', '#e8c1a4', '#e2b594', '#dcae8e', '#d3a07e', '#f3d6c2'], black: ['#9a6a48', '#8a5a3d', '#7a4e35', '#6b4430', '#5a3825', '#4a2e1f', '#3d261a', '#a8744f', '#613f2b'], asian: ['#f3dcc0', '#f0d2b0', '#ebcaa4', '#e6c39d', '#dcb58c', '#d2a77c', '#c99d74'], brown: ['#d9ac84', '#d4a37a', '#c89468', '#be8a5e', '#b98256', '#a8734a', '#9a6843', '#8c5e3c'] };
   const HC = { asian: ['#16120f', '#211a14', '#1b1511', '#2a211a'], black: ['#15100d', '#1e1712', '#110d0b', '#2a1f18'], brown: ['#1f1712', '#2e2219', '#3b2a1e', '#171210', '#4a3526'], white: ['#2b1d14', '#4a3322', '#7a5a3a', '#a07a4f', '#c9a36a', '#1f1712', '#8a3f1f', '#b5572a', '#d8bb7c', '#5c4430'] };
   // Dyed hair: bleached blond for some Black players, a brown tint for some Asian players (never red).

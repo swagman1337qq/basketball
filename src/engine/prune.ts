@@ -22,7 +22,8 @@ export function removeUnplayed(g: Game, s: any) {
   const P = g.db.P, gone = new Set<number>();
   (Object.values(P) as any[]).forEach(p => {
     if (!p.retired || p.gone || (p.stats || []).length) return;
-    P[p.id] = { id: p.id, name: p.name, native: p.native, pos: p.pos, grp: p.grp, age: p.age, ovr: p.ovr, pot: p.pot, rep: p.rep, retired: p.retired, gone: 1, stats: [] };
+    if (p.legacy || p.retired.legacy || (p.family || []).length) return; // fathers and brothers stay whole: their families' pages show them
+    P[p.id] = { id: p.id, name: p.name, native: p.native, pos: p.pos, grp: p.grp, age: p.age, ovr: p.ovr, pot: p.pot, rep: p.rep, her: p.her, heritage: p.heritage, race: p.race, retired: p.retired, gone: 1, stats: [] };
     gone.add(p.id);
   });
   if (!gone.size) return 0;

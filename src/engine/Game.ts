@@ -129,6 +129,9 @@ export class Game {
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
     if (!g.state.managed) g.migrateV2();
+    // Relatives trimmed to a name-only record before families were exempt: they take their look
+    // and heritage back from a son or brother.
+    (Object.values(g.db.P) as any[]).forEach((q: any) => (q.family || []).forEach((f: any) => { const r = g.db.P[f.pid]; if (r && r.gone && !r.race && q.race) Object.assign(r, { race: q.race, her: r.her || q.her, heritage: r.heritage || q.heritage }); }));
     // Kared Jushner was renamed Tanner Matthews.
     if (g.state.teams.some((t: any) => t.owner === 'Kared Jushner')) g.state = { ...g.state, teams: g.state.teams.map((t: any) => t.owner === 'Kared Jushner' || (t.sales || []).some((x: any) => x.to === 'Kared Jushner' || x.from === 'Kared Jushner') ? { ...t, owner: t.owner === 'Kared Jushner' ? 'Tanner Matthews' : t.owner, sales: (t.sales || []).map((x: any) => ({ ...x, to: x.to === 'Kared Jushner' ? 'Tanner Matthews' : x.to, from: x.from === 'Kared Jushner' ? 'Tanner Matthews' : x.from })) } : t) };
     // 2026-09: the hand-written owners join older leagues (never on a team you run).
