@@ -1,5 +1,4 @@
 import type { VM } from '../vm';
-import { NumInput } from '../kit';
 
 export function FinancesScreen({ vm }: { vm: VM }) {
   return (
@@ -81,7 +80,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
             Budget
           </h4>
           {(vm.fin.budget || []).map((b: any, i: number) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 72px 40px", gap: "14px", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 84px 40px", gap: "14px", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
               <div>
                 <div style={{ fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: "600" }}>
                   {b.name}
@@ -90,22 +89,29 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                   {b.range}
                 </div>
               </div>
-              <div>
-                <NumInput value={b.v} min={b.min} max={b.max} step={b.step} onValue={v => b.set({ target: { value: v } })} suffix={b.name === "Ticket price" ? "$ per ticket" : "$M per season"} />
-                <div style={{ fontSize: "11px", color: "var(--color-neutral-700)" }}>
-                  {b.effect}
-                </div>
-              </div>
-              <div style={{ textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
-                {b.amt}
-              </div>
+              {(() => { // 0–100% of what's allowed (100% = the most you can spend), the dollars alongside
+                const span = b.max - b.min, pct = span ? Math.round(((b.v - b.min) / span) * 100) : 0;
+                const setPct = (x: number) => { const raw = b.min + (x / 100) * span, v = Math.min(b.max, Math.max(b.min, Math.round(raw / b.step) * b.step)); b.set({ target: { value: +v.toFixed(2) } }); };
+                return (<>
+                  <div>
+                    <input type="range" min={0} max={100} step={1} value={pct} onChange={e => setPct(+e.target.value)} aria-label={b.name + ' budget, percent of the maximum'} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
+                    <div style={{ fontSize: "11px", color: "var(--color-neutral-700)" }}>
+                      {b.effect}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: "var(--font-heading)", fontSize: "18px" }}>{pct}%</span>
+                    <div style={{ fontSize: "12px", color: "var(--color-neutral-600)" }}>{b.amt}{b.name === "Ticket price" ? " avg" : ""}</div>
+                  </div>
+                </>);
+              })()}
               <div style={{ textAlign: "right", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                 {b.rank}
               </div>
             </div>
           ))}
           <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--color-neutral-700)" }}>
-            Budgets are per season; the rank compares you with the other 29 teams.
+            Each budget runs from 0% (the least allowed) to 100% (the most); the dollar amount per season is in gray. The rank compares you with the other 29 teams.
           </p>
         </section>
       </div>

@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-09-30
 
 ### Changed
+- **Finances budgets are sliders from 0% to 100%.** 0% is the least you're allowed to spend and 100% the most. The dollar amount (or average ticket price) sits under the percentage in gray and moves as you slide.
 - **Owner payroll orders happen only in the offseason, and you get warned first.** No more fire sales in the middle of the season.
   - When free agency opens, an owner whose payroll ceiling you're over tells you in your inbox how far over you are and gives you until opening night to fix it. The top bar keeps reminding you through the summer and training camp.
   - You can trade or waive players to get under (waived salary still counts as dead money).
