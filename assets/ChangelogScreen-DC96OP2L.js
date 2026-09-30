@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DIG9dGs7.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CoaQJDhN.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-30
 
 ### Fixed
+- **Changing who a player represents now updates "Eligible for".** Picking a new country under Edit player → Identity → Represents (or applying a player card from another country) used to leave his old country as his only eligibility, so he represented a country he wasn't eligible for. His eligibility is now redone from his new birthplace and heritage (e.g. Mexico, citizen by birth); countries you added by hand stay, and Undo puts the old list back.
 - **Blank screen on some players' profiles** (e.g. sons of former players, like Brett Stroud Jr.): the season-end cleanup was trimming retired fathers from before the league began down to a name only, and drawing that father's headshot crashed the page. Fathers and brothers are no longer trimmed, fathers already trimmed in your league get their heritage and look back from their sons, and a headshot with missing details now draws with a default look instead of blanking the screen.
 
 ## 2026-09-29
