@@ -37,7 +37,7 @@ import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
-import { fireSale, inboxTick, ownerFavorite, teamSales } from './frontOffice';
+import { inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, recordTrade } from './txlog';
@@ -132,6 +132,10 @@ export class Game {
     // Relatives trimmed to a name-only record before families were exempt: they take their look
     // and heritage back from a son or brother.
     (Object.values(g.db.P) as any[]).forEach((q: any) => (q.family || []).forEach((f: any) => { const r = g.db.P[f.pid]; if (r && r.gone && !r.race && q.race) Object.assign(r, { race: q.race, her: r.her || q.her, heritage: r.heritage || q.heritage }); }));
+    // Players an old fire sale "waived" into nowhere (off every roster, not in free agency): back to free agency.
+    { const st = g.state, on = new Set<number>([...(Object.values(st.rosters || {}).flat() as number[]), ...(st.fa || []), ...(st.overseas || []), ...Object.values(g.db.cls || {}).flat() as number[], ...((st.picks || []).map((x: any) => x.pid).filter((x: any) => x != null))]);
+      const lost = (Object.values(g.db.P) as any[]).filter(p => p.r && !p.retired && !p.gone && p.cls == null && !on.has(p.id) && (p.tx || []).some((t: any) => /fire sale/i.test(t.text || '')));
+      if (lost.length) g.state = { ...g.state, fa: [...lost.map(p => p.id), ...(st.fa || [])] }; }
     // Kared Jushner was renamed Tanner Matthews.
     if (g.state.teams.some((t: any) => t.owner === 'Kared Jushner')) g.state = { ...g.state, teams: g.state.teams.map((t: any) => t.owner === 'Kared Jushner' || (t.sales || []).some((x: any) => x.to === 'Kared Jushner' || x.from === 'Kared Jushner') ? { ...t, owner: t.owner === 'Kared Jushner' ? 'Tanner Matthews' : t.owner, sales: (t.sales || []).map((x: any) => ({ ...x, to: x.to === 'Kared Jushner' ? 'Tanner Matthews' : x.to, from: x.from === 'Kared Jushner' ? 'Tanner Matthews' : x.from })) } : t) };
     // 2026-09: the hand-written owners join older leagues (never on a team you run).
@@ -896,7 +900,7 @@ export class Game {
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
       return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
-    if (this.state.phase === 'fa') teamSales(this); // team sales close with the new league year
+    if (this.state.phase === 'fa') { teamSales(this); offseasonMandates(this); } // team sales close with the new league year; owners' payroll orders
   }
   // Free agency runs on the NBA calendar: negotiations open June 30 (day 0), the moratorium ends
   // July 6, Summer League is mid-July, then the market thins out until training camps open
@@ -924,6 +928,7 @@ export class Game {
         lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[m ? o.to : o.from].abbr, pids: [o.pid], text: applySigning(this, { ...s, rosters: box.rosters }, box, m ? o.to : o.from, p, m ? { ...o.terms, method: 'bird' } : o.terms) + (m ? ' (matched the offer sheet, easy mode)' : ' (' + s.teams[o.to].abbr + ' declined to match, easy mode)') }); offerSheets.splice(offerSheets.indexOf(o), 1); }
       return { ...box, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, day: s.day + done, faPrev: s.day };
     });
+    offseasonMandates(this); // the owner's payroll order follows your payroll through the summer
   }
   startPreseason() {
     // Training camp: play out what's left of free agency first (stops if one of your restricted
@@ -1030,6 +1035,7 @@ export class Game {
       return { ...top, clubs, cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
+    offseasonMandates(this);
   }
   // Opening night: every club needs 13 players. Short-handed managed clubs sign the best
   // remaining free agents to minimum deals (logged), as the league would require.
@@ -1063,6 +1069,9 @@ export class Game {
       Object.keys(box.rosters).forEach(k => { const t = +k; box.rosters[t].forEach(id => { if (P[id].ctype === 'ex10') P[id].ctype = 'min'; });
         if (!this.isUser(s, t)) trimRoster(this, s, box, t, lgLog);
         const signed = fillRoster(this, s, box, t, lgLog); if (signed.length && this.isUser(s, t)) by[t] = ['League minimum of ' + ROSTER_MIN + ' players: signed ' + signed.join(', ') + ' to minimum deals']; });
+      // Opening night: an owner's payroll order still unmet → his fire sale, before the first game
+      // (after AI teams cut to 15, so the teams taking the contracts have room).
+      const fsPatch = openingNightFireSales(this, s, box.rosters, lgLog, box.fa); s = { ...s, ...fsPatch };
       // The league always has about 90 unsigned players on opening night: journeymen back from
       // overseas, CCP veterans and late bloomers join the pool if it has run low.
       for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
@@ -1070,7 +1079,7 @@ export class Game {
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
       removeUnplayed(this, s); slimRetired(this); // this summer's retirees: remove those who never played here, trim the rest
-      return { ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
+      return { ...fsPatch, ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {
       // Opening night: the extension deadline (AI teams finish their deals), and the media's
@@ -1406,17 +1415,9 @@ export class Game {
       const Tm = s.teams[t], c0 = this.clubOf({ ...s, ...patch, clubs }, t);
       if (Tm.arch === 'Meddling Micromanager' && rosters[t].indexOf(ownerFavorite(this, { ...s, rosters }, t)) >= 5) favBench[t] = (favBench[t] || 0) + 1;
       let inbox = (c0?.inbox || []), changed = false;
-      const open = inbox.find(x => x.kind === 'mandate' && !x.resolved);
-      if (open) {
-        const ceil = this.teamCeiling(Tm), pay = teamSalary(this, { ...s, rosters }, t);
-        if (pay <= ceil) { inbox = inbox.map(x => x === open ? { ...x, resolved: 'met', done: true } : x); changed = true; }
-        else if (day >= open.deadline) {
-          const sold = fireSale(this, s, t, rosters, lgLog);
-          mandateFails[t] = (mandateFails[t] || 0) + 1;
-          inbox = [{ id: 'fs' + this.Y + '-' + day + '-' + t, tid: t, day, season: this.Y, kind: 'firesale', done: true, title: Tm.owner + ' ordered a fire sale', text: 'You missed the payroll deadline. Gone: ' + (sold.join(', ') || 'nobody (roster too thin)') + '.', options: [] }, ...inbox.map(x => x === open ? { ...x, resolved: 'failed', done: true } : x)];
-          changed = true;
-        }
-      }
+      // Payroll orders and fire sales happen only in the offseason (offseasonMandates / openingNightFireSales).
+      const open = inbox.find(x => x.kind === 'mandate' && !x.resolved && x.deadline !== 'opening');
+      if (open) { inbox = inbox.map(x => x === open ? { ...x, resolved: 'expired', done: true } : x); changed = true; } // an old in-season order lapses
       if (ib[t] || changed) { const add = ib[t] || []; addClub(t, () => ({ inbox: [...add, ...inbox].slice(0, 40) })); }
     });
     s.managed.forEach(t => { const mine = [...inj.filter(x => x.mine && x.tid === t).reverse().map(x => x.text), ...(cbaLog[t] || [])]; if (mine.length) addClub(t, c => ({ log: [...mine.map(text => ({ date: this.fmtS(day), day, text })), ...(c.log || [])] })); });

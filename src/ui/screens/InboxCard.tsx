@@ -20,7 +20,7 @@ export function InboxCard({ vm }: { vm: VM }) {
               {x.options.map(o => <button key={o.k} className={o.k === 'yes' || o.k === 'ok' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => resolveInbox(gm, x.id, o.k)}>{o.label}</button>)}
             </div>
           )}
-          {x.kind === 'mandate' && x.done && <div style={{ fontSize: '12px', color: 'var(--color-accent-700)' }}>Deadline {gm.fmtS(x.deadline)} · payroll must be under ${x.target.toFixed(1)}M</div>}
+          {x.kind === 'mandate' && x.done && <div style={{ fontSize: '12px', color: 'var(--color-accent-700)' }}>Deadline {x.deadline === 'opening' ? 'opening night' : gm.fmtS(x.deadline)} · payroll must be under ${x.target.toFixed(1)}M</div>}
         </div>
       ))}
       {recent.map(x => <div key={x.id} style={{ fontSize: '12px', ...muted }}>✓ {x.title}{x.choice ? ' — ' + (x.options.find(o => o.k === x.choice)?.label || '') : ''}</div>)}

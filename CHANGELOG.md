@@ -4,7 +4,17 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-09-30
 
+### Changed
+- **Owner payroll orders happen only in the offseason, and you get warned first.** No more fire sales in the middle of the season.
+  - When free agency opens, an owner whose payroll ceiling you're over tells you in your inbox how far over you are and gives you until opening night to fix it. The top bar keeps reminding you through the summer and training camp.
+  - You can trade or waive players to get under (waived salary still counts as dead money).
+  - If you're still over on opening night, he orders the fire sale then, before the first game. The worst-value contracts are traded for nothing to teams with the room, and the other team waives a minimum-salary player if it needs the roster spot.
+  - Rookie-scale players and your two best players are never dumped. Nobody is ever cut into nowhere again.
+- **Transactions shows this season only.** That's everything since free agency opened (the NBA's league year), in order. Older moves are on each player's Transactions tab.
+- **Schedule moved to the Team section** of the menu.
+
 ### Fixed
+- **A player lost in a fire sale is back.** When no team could take a dumped contract, the old fire sale removed the player from your roster without sending him anywhere, so he vanished (and so did his record). Players lost that way return to free agency when you open your league, and it can't happen again.
 - **Changing who a player represents now updates "Eligible for".** Picking a new country under Edit player → Identity → Represents (or applying a player card from another country) used to leave his old country as his only eligibility, so he represented a country he wasn't eligible for. His eligibility is now redone from his new birthplace and heritage (e.g. Mexico, citizen by birth); countries you added by hand stay, and Undo puts the old list back.
 - **Blank screen on some players' profiles** (e.g. sons of former players, like Brett Stroud Jr.): the season-end cleanup was trimming retired fathers from before the league began down to a name only, and drawing that father's headshot crashed the page. Fathers and brothers are no longer trimmed, fathers already trimmed in your league get their heritage and look back from their sons, and a headshot with missing details now draws with a default look instead of blanking the screen.
 

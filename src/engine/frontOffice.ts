@@ -4,7 +4,7 @@
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
-import { capState, taxBill as cbaTax, teamSalary } from './cba';
+import { capState, stdIds, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
@@ -387,7 +387,7 @@ export function inboxTick(g: Game, s: any, day: number, rosters: any) {
     // Owner mandate: over the payroll ceiling → get under it by the trade deadline (day 50).
     const T = s.teams[tid], ceil = g.teamCeiling(T), pay = teamSalary(g, { ...s, rosters }, tid);
     const club = g.clubOf(s, tid), open = (club?.inbox || []).find(x => x.kind === 'mandate' && !x.resolved);
-    if (pay > ceil && !open && day < 45 && day % 5 === 0) push(tid, { pid: null, kind: 'mandate', deadline: 50, target: ceil, title: T.owner + ': cut payroll', text: 'Owner ' + T.owner + ' (' + T.arch + ') orders payroll under ' + money(ceil) + ' by the trade deadline (' + g.fmtS(50) + '). Otherwise he will order a fire sale of your worst contracts.', options: [{ k: 'ok', label: 'Understood' }] });
+    void pay; void ceil; void open; // payroll orders are offseason-only now (offseasonMandates)
   });
   return out;
 }
@@ -408,19 +408,65 @@ export function resolveInbox(g: Game, id: string, choice: string) {
 }
 
 // At the trade deadline: an unmet mandate becomes a fire sale of the worst contracts.
-export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[]) {
+export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[], fa: number[] = []) {
   const P = g.db.P, T = s.teams[tid], ceil = g.teamCeiling(T), sold: string[] = [];
   let guard = 0;
-  while (teamSalary(g, { ...s, rosters }, tid) > ceil && rosters[tid].length > 13 && guard++ < 6) { // never below the league's 13-man minimum
-    const worst = rosters[tid].slice().sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)))[0];
-    const to = s.teams.filter(t => !g.isUser(s, t.tid) && rosters[t.tid].length < 15).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
-    rosters[tid] = rosters[tid].filter(x => x !== worst);
-    if (to) rosters[to.tid] = [...rosters[to.tid], worst];
-    if (to) recordTrade(g, s, tid, to.tid, [worst], [], [], [], 'Fire sale on the owner’s orders'); else addTx(g, s, P[worst], { k: 'waive', tid, text: 'Waived in a fire sale on the owner’s orders' });
-    sold.push(P[worst].name + (to ? ' to ' + to.abbr : ' (waived)'));
-    lgLog.unshift({ day: s.day, type: 'Trade', teams: T.abbr + (to ? ' · ' + to.abbr : ''), pids: [worst], text: 'Fire sale: the ' + T.region + ' ' + T.name + ' dumped ' + P[worst].name + (to ? ' to ' + to.region + ' for nothing' : '') + ' on the owner’s orders' });
+  // Salary dumps are trades to teams with room (never a player cut into nowhere). Rookie-scale
+  // players and the team's two best players are never dumped; the worst-value contracts go first.
+  const best2 = rosters[tid].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 2);
+  const cands = rosters[tid].filter(id => !best2.includes(id) && !P[id].rookieScale && P[id].ctype !== 'rookie').sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)));
+  for (const worst of cands) {
+    if (teamSalary(g, { ...s, rosters }, tid) <= ceil || rosters[tid].length <= 13 || guard++ >= 6) break; // never below the 13-man minimum
+    // A team with the salary room takes him; if its roster is full it waives its last minimum-salary player.
+    const spare = (t: number) => stdIds(g, rosters[t]).filter((id: number) => ['min', 'ex10'].includes(P[id].ctype) || P[id].amt <= g.MINP / 60).sort((a: number, b: number) => P[a].ovr - P[b].ovr)[0];
+    const to = s.teams.filter(t => !g.isUser(s, t.tid) && (stdIds(g, rosters[t.tid]).length < 15 || spare(t.tid) != null) && teamSalary(g, { ...s, rosters }, t.tid) + P[worst].amt <= Math.max(g.CAP, g.teamCeiling(t))).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
+    if (!to) continue; // nobody can take him: he stays
+    if (stdIds(g, rosters[to.tid]).length >= 15) { const cut = spare(to.tid); rosters[to.tid] = rosters[to.tid].filter(x => x !== cut); fa.unshift(cut); addTx(g, s, P[cut], { k: 'waive', tid: to.tid, text: 'Waived to make room for ' + P[worst].name }); lgLog.unshift({ day: s.day, type: 'Release', teams: to.abbr, pids: [cut], text: 'Released ' + P[cut].name + ' (the ' + to.name + ' needed the roster spot)' }); }
+    rosters[tid] = rosters[tid].filter(x => x !== worst); rosters[to.tid] = [...rosters[to.tid], worst];
+    recordTrade(g, s, tid, to.tid, [worst], [], [], [], 'Fire sale on the owner’s orders');
+    sold.push(P[worst].name + ' to ' + to.abbr);
+    lgLog.unshift({ day: s.day, type: 'Trade', teams: T.abbr + ' · ' + to.abbr, pids: [worst], text: 'Traded ' + P[worst].name + ' to the ' + to.region + ' ' + to.name + ' for nothing: a fire sale on the ' + T.name + ' owner’s orders' });
   }
   return sold;
 }
 
 export { pick };
+
+// ── Payroll orders (offseason only) ───────────────────────────────────────────────
+// When free agency opens (and on every offseason day after), an owner whose team is over his
+// payroll ceiling tells you by how much and gives you until opening night to fix it: trade or
+// waive players (waived salary still counts as dead money). Still over when the season starts,
+// he orders a fire sale before the first game. Never during the season.
+export function offseasonMandates(g: Game) {
+  g.setState(s => {
+    if (!['fa', 'preseason'].includes(s.phase)) return null;
+    let clubs = { ...(s.clubs || {}) }, top: any = {}, changed = false;
+    s.managed.forEach((tid: number) => {
+      const T = s.teams[tid], ceil = g.teamCeiling(T), pay = teamSalary(g, s, tid), st = { ...s, ...top, clubs }, c = g.clubOf(st, tid) || {};
+      const inbox = c.inbox || [], open = inbox.find((x: any) => x.kind === 'mandate' && !x.resolved);
+      let next = inbox;
+      if (open && open.deadline !== 'opening') next = inbox.map((x: any) => x === open ? { ...x, resolved: 'expired', done: true } : x); // an old in-season order lapses
+      const cur = next.find((x: any) => x.kind === 'mandate' && !x.resolved);
+      if (pay > ceil + 0.05 && !cur) next = [{ id: 'm' + g.Y + '-' + tid, tid, day: s.day, season: g.Y, kind: 'mandate', deadline: 'opening', target: ceil, pid: null, done: true, options: [],
+        title: T.owner + ': cut payroll before opening night', text: 'Owner ' + T.owner + ' (' + T.arch + ') wants payroll under ' + money(ceil) + ' by opening night. You’re at ' + money(pay) + ', ' + money(pay - ceil) + ' over. Trade or waive players (waived salary still counts as dead money). If you’re still over when the season starts, he’ll order a fire sale of your worst contracts.' }, ...next];
+      else if (cur && pay <= ceil + 0.05) next = next.map((x: any) => x === cur ? { ...x, resolved: 'met', done: true } : x);
+      if (next !== inbox) { changed = true; const pt = g.clubPatch(st, tid, { inbox: next.slice(0, 40) }, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; }
+    });
+    return changed ? { ...top, clubs } : null;
+  });
+}
+// Opening night: an order still open and payroll still over → the fire sale (trades only).
+export function openingNightFireSales(g: Game, s: any, rosters: any, lgLog: any[], fa: number[] = []) {
+  let clubs = { ...(s.clubs || {}) }, top: any = {}; const fails = { ...(s.mandateFails || {}) };
+  s.managed.forEach((tid: number) => {
+    const st = { ...s, ...top, clubs, rosters }, c = g.clubOf(st, tid) || {}, inbox = c.inbox || [], open = inbox.find((x: any) => x.kind === 'mandate' && !x.resolved);
+    if (!open) return;
+    const T = s.teams[tid], ceil = g.teamCeiling(T);
+    let next;
+    if (teamSalary(g, st, tid) <= ceil + 0.05) next = inbox.map((x: any) => x === open ? { ...x, resolved: 'met', done: true } : x);
+    else { const sold = fireSale(g, st, tid, rosters, lgLog, fa); fails[tid] = (fails[tid] || 0) + 1;
+      next = [{ id: 'fs' + g.Y + '-' + tid, tid, day: s.day, season: g.Y, kind: 'firesale', done: true, options: [], title: T.owner + ' ordered a fire sale', text: 'Payroll was still over ' + money(ceil) + ' on opening night. Traded away for nothing: ' + (sold.join(', ') || 'nobody (no team could take the contracts)') + '.' }, ...inbox.map((x: any) => x === open ? { ...x, resolved: 'failed', done: true } : x)]; }
+    const pt = g.clubPatch(st, tid, { inbox: next.slice(0, 40) }, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt };
+  });
+  return { ...top, clubs, mandateFails: fails };
+}
