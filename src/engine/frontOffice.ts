@@ -19,10 +19,57 @@ export const money = fmtMoney;
 function localOf(g: Game, s: any, tid: number) {
   const T = s.teams[tid], club = g.clubOf(s, tid), b = club ? club.budget : DEFAULT_BUDGET;
   const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800, lf = g.CAP / 165; // league revenue grows with the cap
-  const att = cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
+  const att = attendanceAt(g, T, b);
   const tix = (b.Tickets * att * 41) / 1e6;
   const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
   return { b, att, cap, tix, lf, parts, total: parts.reduce((a, p) => a + p[1], 0) };
+}
+
+// Fans per game at a given ticket price and facilities budget.
+function attendanceAt(g: Game, T: any, b: any) {
+  const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800;
+  return cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
+}
+
+// Auto budget: what a sensible front office would set. Spending scales with the club's local
+// revenue against the rest of the league (the richest clubs spend about 1.45x the default, the
+// poorest 0.55x, the same spread as the AI teams), then the owner and the roster nudge it: a
+// frugal owner spends 20% less and a win-now owner 15% more, a hype-focused owner puts more in
+// facilities, a rebuilding team scouts more and a contender less, a young roster gets more
+// coaching. The ticket price is the one that brings in the most ticket money while keeping the
+// arena at least 80% full (below that the owner calls the empty seats a message; a hype-focused
+// owner wants 90%). If no price fills it that much, the one that makes the most money.
+export const BUDGET_KEYS = ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'];
+export function autoBudget(g: Game, s: any, tid: number, k: string, b: any = g.clubOf(s, tid)?.budget || DEFAULT_BUDGET): number {
+  const [mn, mx, df, stp] = g.db.BUD[k], T = s.teams[tid], arch = T.arch;
+  const snap = (v: number) => +cl(Math.round(v / stp) * stp, mn, mx).toFixed(2);
+  if (k === 'Tickets') {
+    const cap = T.arenaCap || 18800, floors = arch === 'Hype Focus' ? [0.9, 0.7, 0] : [0.8, 0];
+    for (const f of floors) {
+      let best = -1, bestRev = -1;
+      for (let p = mn; p <= mx; p += stp) { const att = attendanceAt(g, T, { ...b, Tickets: p }); if (att / cap >= f && p * att > bestRev) { bestRev = p * att; best = p; } }
+      if (best >= 0) return snap(best);
+    }
+    return mn;
+  }
+  const loc = s.teams.map((t: any) => localOf(g, s, t.tid).total), mine = loc[s.teams.findIndex((t: any) => t.tid === tid)];
+  const rank = loc.filter((v: number) => v > mine).length, n = Math.max(2, loc.length);
+  let f = 1.45 - 0.9 * rank / (n - 1);
+  if (arch === 'Frugal Profit-Seeker') f *= 0.8; else if (arch === 'Win-Now Spender') f *= 1.15;
+  if (k === 'Facilities' && arch === 'Hype Focus') f *= 1.2;
+  if (k === 'Scouting' || k === 'Coaching') {
+    const sc = (t: any) => g.pct(t) * 0.65 + (t.str - 45) / 12 * 0.35, place = s.teams.slice().sort((a: any, c: any) => sc(c) - sc(a)).findIndex((t: any) => t.tid === tid);
+    if (k === 'Scouting') f *= place >= 20 ? 1.3 : place < 9 ? 0.85 : 1;
+    const ids = s.rosters?.[tid] || [], age = ids.length ? ids.reduce((a: number, id: number) => a + (g.db.P[id]?.age || 27), 0) / ids.length : 27;
+    if (k === 'Coaching' && age < 25.5) f *= 1.1;
+  }
+  return snap(df * f);
+}
+// The club's budget with every category on auto set to its recommended value.
+export function applyAutoBudget(g: Game, s: any, tid: number, b: any, auto: Record<string, boolean> = {}) {
+  const out = { ...b };
+  [...BUDGET_KEYS.slice(1), 'Tickets'].forEach(k => { if (auto[k]) out[k] = autoBudget(g, s, tid, k, out); }); // tickets last: the price depends on facilities
+  return out;
 }
 
 // Revenue sharing, modeled on the NBA's: about $400M a year (at today's cap) goes to teams

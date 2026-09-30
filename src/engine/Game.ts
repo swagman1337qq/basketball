@@ -37,7 +37,7 @@ import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
-import { inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
+import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, recordTrade } from './txlog';
@@ -495,7 +495,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors'];
+  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
   defaultClub(i = 0) {
@@ -1409,6 +1409,8 @@ export class Game {
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
       (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.osx = (q.osx || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.osx); if (w && q.ovr < q.pot + 2) { q.osx -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); syncOvr(q); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
+    // Budget categories on Auto follow the recommendation as the record and revenue move.
+    s.managed.forEach(t => { const c = this.clubOf({ ...s, ...patch, clubs }, t), a = c?.budgetAuto; if (a && Object.values(a).some(Boolean)) addClub(t, c1 => ({ budget: applyAutoBudget(this, { ...s, rosters }, t, c1.budget, a) })); });
     // Front office: incentive dilemmas, the owner's favorite on the bench, payroll mandates.
     const ib = inboxTick(this, s, day, rosters), favBench = { ...(s.favBench || {}) }, mandateFails = { ...(s.mandateFails || {}) };
     s.managed.forEach(t => {

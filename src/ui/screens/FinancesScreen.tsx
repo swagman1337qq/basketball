@@ -76,11 +76,16 @@ export function FinancesScreen({ vm }: { vm: VM }) {
           </table>
         </section>
         <section>
-          <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>
-            Budget
-          </h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 4px" }}>
+            <h4 style={{ margin: "0", fontSize: "19px" }}>
+              Budget
+            </h4>
+            <button onClick={() => vm.fin.setAllAuto(!vm.fin.allAuto)} title={vm.fin.allAuto ? "Take every category off Auto" : "Put every category on Auto"} style={autoBtn(vm.fin.allAuto)}>
+              {vm.fin.allAuto ? "All on Auto ✓" : "Auto all"}
+            </button>
+          </div>
           {(vm.fin.budget || []).map((b: any, i: number) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 84px 40px", gap: "14px", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 84px 56px 40px", gap: "14px", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
               <div>
                 <div style={{ fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: "600" }}>
                   {b.name}
@@ -105,13 +110,16 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                   </div>
                 </>);
               })()}
+              <button onClick={b.toggleAuto} aria-pressed={b.auto} title={b.auto ? "On Auto: follows the recommendation (" + b.rec + ") as your record and revenue change. Click to set it yourself." : "Auto sets " + b.name.toLowerCase() + " to the recommendation (" + b.rec + " now) and keeps it there as your record and revenue change."} style={autoBtn(b.auto)}>
+                {b.auto ? "Auto ✓" : "Auto"}
+              </button>
               <div style={{ textAlign: "right", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                 {b.rank}
               </div>
             </div>
           ))}
           <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--color-neutral-700)" }}>
-            Each budget runs from 0% (the least allowed) to 100% (the most); the dollar amount per season is in gray. The rank compares you with the other 29 teams.
+            Each budget runs from 0% (the least allowed) to 100% (the most); the dollar amount per season is in gray. The rank compares you with the other 29 teams. Auto spends in line with your revenue and owner, and prices tickets for the most money while keeping the arena at least 90% full; moving a slider takes that category off Auto.
           </p>
         </section>
       </div>
@@ -163,3 +171,5 @@ export function FinancesScreen({ vm }: { vm: VM }) {
     </>
   );
 }
+
+const autoBtn = (on: boolean) => ({ cursor: "pointer", padding: "4px 8px", fontSize: "12px", fontWeight: 600, borderRadius: "6px", whiteSpace: "nowrap" as const, border: "1px solid " + (on ? "var(--color-accent)" : "var(--color-divider)"), background: on ? "var(--color-accent-100)" : "transparent", color: on ? "var(--color-accent-700)" : "var(--color-text)" });
