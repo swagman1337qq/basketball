@@ -1,8 +1,14 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-8XndJpKu.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BuS_9Gul.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-09-30
+
+### Added
+- **Auto button for each Finances budget.** Auto sets that category to a recommended level and keeps adjusting it as your record and revenue change. Hover it to see the recommendation.
+  - Spending follows your revenue compared with the rest of the league, then your owner (frugal owners spend less, win-now owners more, hype-focused owners more on facilities) and your roster (rebuilding teams scout more, young teams get more coaching).
+  - Ticket price is set to bring in the most ticket money while keeping the arena at least 80% full (90% for a hype-focused owner).
+  - **Auto all** puts every category on Auto at once. Moving a slider takes that category off Auto.
 
 ### Changed
 - **Finances budgets are sliders from 0% to 100%.** 0% is the least you're allowed to spend and 100% the most. The dollar amount (or average ticket price) sits under the percentage in gray and moves as you slide.
