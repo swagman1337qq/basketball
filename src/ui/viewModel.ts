@@ -1,6 +1,7 @@
 // View model: turns the league state into the flat values the screens render.
 // Ported from the prototype's renderVals(); every handler calls back into Game.
 import { tradeAdvice } from '../engine/tradeAdvice';
+import { refreshElig } from '../engine/eligibility';
 import { PROT_OPTIONS } from '../engine/pickRules';
 import { createElement, type RefObject } from 'react';
 import { fmtMoney } from '../engine/capModel';
@@ -394,9 +395,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         randRep: () => { const opts = Object.keys(C).filter(c => c !== pp.rep); pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } }); },
         posOpts: ['PG', 'SG', 'G', 'SF', 'GF', 'F', 'PF', 'FC', 'C'].map(x => ({ v: x, label: x + ' · ' + POS_NAME[x] })), posRec: (() => { const x = recommendPos(pp); return { pos: x.pos, label: x.pos + ' · ' + POS_NAME[x.pos], why: x.why, same: x.pos === pp.pos, use: () => mut(p => { p.pos = x.pos; p.grp = POS_GRP[x.pos] || p.grp; syncOvr(p, true); }) }; })(), posV: pp.pos, setPos: e => mut(p => { p.pos = e.target.value; p.grp = POS_GRP[p.pos] || p.grp; syncOvr(p, true); }),
         motOpts: ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'].map(x => ({ v: x, label: x })), motV: pp.pers.mot, setMot: e => mut(p => p.pers.mot = e.target.value),
-        repOpts: Object.keys(C).filter(c => !C[c].repAs).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, from: pp.from }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
+        repOpts: Object.keys(C).filter(c => !C[c].repAs).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, from: pp.from, elig: pp.elig }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
           // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).
-          const cs = C[code]?.cities || []; if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)]; pp.born = code; pp.raised = code; if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y)); gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); },
+          const cs = C[code]?.cities || []; if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)]; pp.born = code; pp.raised = code; if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y)); refreshElig(pp, C); if (!pp.elig.some((x: any) => x.c === pp.rep)) pp.elig = [{ c: pp.rep, why: 'citizen by birth' }, ...pp.elig]; gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); }, // eligibility follows the new country
         teamOpts: [{ v: '-1', label: 'Free agent' }, ...alphaTeams(T).map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
         setTeam: e => { const to = +e.target.value; gm.setState(st => { const rosters = { ...st.rosters }; let fa = st.fa.filter(x => x !== pp.id); Object.keys(rosters).forEach(k => rosters[k] = rosters[k].filter(x => x !== pp.id)); if (to === -1) fa = [pp.id, ...fa]; else rosters[to] = [...rosters[to], pp.id]; return { rosters, fa, log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)) }; }); },
         traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),

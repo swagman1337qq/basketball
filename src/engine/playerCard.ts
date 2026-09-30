@@ -3,6 +3,7 @@
 // who he is in this league: his ID, team, contract, stats and history.
 import { syncOvr } from './ratings';
 import { groupsOf } from '../data/heritage';
+import { refreshElig } from './eligibility';
 
 const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'tend'] as const;
 
@@ -33,6 +34,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
   if (card.tend) p.tend = { ...card.tend }; else delete p.tend;
   if (card.her && !card.heritage) { const gs = groupsOf(card.her); p.heritage = gs.length ? [...gs].sort((a, b) => b.w - a.w)[0].k : C[card.her]?.n; }
+  if (card.rep || card.born || card.raised || card.her) { refreshElig(p, C); if (card.rep && C[card.rep]) { if (!p.elig.some((e: any) => e.c === card.rep)) p.elig = [{ c: card.rep, why: 'citizen by birth' }, ...p.elig]; p.rep = card.rep; } } // eligibility follows the card's countries
   if (card.pos) p.grp = GRP[card.pos];
   if (card.age != null) p.age = cl(card.age, 15, 45);
   p.rx = card._rx ?? {}; p.px = card._px ?? 0; if (card._gem !== undefined) p.gem = card._gem; else delete p.gem; // a fresh build: no leftover hidden growth (undo restores it)
