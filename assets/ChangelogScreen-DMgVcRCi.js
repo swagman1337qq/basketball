@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BDezjIg0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DIG9dGs7.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-09-30
+
+### Fixed
+- **Blank screen on some players' profiles** (e.g. sons of former players, like Brett Stroud Jr.): the season-end cleanup was trimming retired fathers from before the league began down to a name only, and drawing that father's headshot crashed the page. Fathers and brothers are no longer trimmed, fathers already trimmed in your league get their heritage and look back from their sons, and a headshot with missing details now draws with a default look instead of blanking the screen.
 
 ## 2026-09-29
 
