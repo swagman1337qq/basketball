@@ -1,7 +1,7 @@
 // League normalization for the bell curve. Recomputed from the actual rosters at the
 // start of every season (and when a league is created or loaded), so the 2026
 // baselines stay the league mean even as ratings drift upward or downward over time.
-import { BASE, curve, CURVE_OF, DEFAULT_NORMS, interiorD, perimD, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type Norms, type Zone } from './sim';
+import { BASE, blockSkill, curve, CURVE_OF, DEFAULT_NORMS, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type Norms, type Zone } from './sim';
 
 export interface NormEntry { p: any; roles: string[]; min: number; tid: number }
 
@@ -23,6 +23,15 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
   const bigs: { v: number; w: number }[] = [];
   byTeam.forEach(list => list.filter(e => e.min >= 12).sort((a, b) => b.p.r.hgt - a.p.r.hgt).slice(0, 3).forEach(e => bigs.push({ v: interiorD(e.p.r), w: e.min })));
   n.interiorD = wmean(bigs) || DEFAULT_NORMS.interiorD;
+  n.diq = wmean(E.map(e => ({ v: e.p.r.diq, w: e.min })));
+  n.oiq = wmean(E.map(e => ({ v: e.p.r.oiq, w: e.min })));
+  n.stl = wmean(E.map(e => ({ v: stealSkill(e.p.r), w: e.min })));
+  n.gamB = wmean(E.map(e => ({ v: gambleB(e.p.r), w: e.min })));
+  n.gamS = wmean(E.map(e => ({ v: gambleS(e.p.r), w: e.min })));
+  // Shot-blocking, like the engine, on each team's two best shot-blockers in the rotation.
+  const blk: { v: number; w: number }[] = [];
+  byTeam.forEach(list => list.filter(e => e.min >= 12).sort((a, b) => blockSkill(b.p.r) - blockSkill(a.p.r)).slice(0, 2).forEach(e => blk.push({ v: blockSkill(e.p.r), w: e.min })));
+  n.blk = wmean(blk) || DEFAULT_NORMS.blk;
 
   // Shot volume = minutes × usage; iterate so the skill means and the share correction agree.
   const vol = (e: (typeof E)[number]) => e.min * e.use;

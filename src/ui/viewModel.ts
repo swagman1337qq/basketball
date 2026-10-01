@@ -150,7 +150,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // Height typed in feet and inches: the rating moves 4 points an inch, and wingspan follows.
   const setHgtIn = (p: any, n: number) => { const hIn = gm.inches(p.hgt), nIn = cl(n, 66, 91), d = nIn - hIn; if (!d) return; p.hgt = ftIn(nIn); setRating(p, 'hgt', cl(p.r.hgt + d * 4, 1, 100)); if (p.wing != null) p.wing += d; };
   const setHgt = (p: any, v: number) => { const d = Math.floor(v / 4) - Math.floor(p.r.hgt / 4), hIn = gm.inches(p.hgt), nIn = cl(hIn + d, 66, 91); setRating(p, 'hgt', v); if (nIn !== hIn) { p.hgt = ftIn(nIn); if (p.wing != null) p.wing += nIn - hIn; } };
-  const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]]];
+  const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['blk', 'Blocks'], ['stl', 'Steals'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]]];
   const career = [];
   if (status !== 'pro') {
     // Seasons before the league began are scouting estimates; seasons since are real totals ÷ games.

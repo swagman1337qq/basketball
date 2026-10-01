@@ -11,7 +11,7 @@ import { TRAITS } from '../../engine/traits';
 // The card's ratings in three blocks, like a scouting sheet.
 const BLOCKS: [string, [string, string][]][] = [
   ['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]],
-  ['Technical', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]],
+  ['Technical', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out'], ['blk', 'Blocks'], ['stl', 'Steals']]],
   ['Mental', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['feel', 'Feel'], ['poise', 'Poise'], ['work', 'Work ethic']]],
 ];
 const POS = ['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];

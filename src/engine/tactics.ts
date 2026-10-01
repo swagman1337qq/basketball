@@ -276,7 +276,7 @@ export function tacticFitParts(top: any[], t: Tactics): Record<string, number> {
     Hedge: (avIn(bigs, 'spd') - 52) / 10 * .3 + (diq - 55) / 10 * .1,
     Blitz: (diq - 57) / 10 * .3 + (av('spd') - 57) / 10 * .2,
     Ice: (diq - 55) / 10 * .3,
-    Aggressive: (diq - 57) / 10 * .5 + (ape - 4) / 4 * .2,
+    Aggressive: (diq - 57) / 10 * .3 + (av('stl') - 55) / 10 * .3 + (ape - 4) / 4 * .2, // gambling for steals: quick hands first
     'Pack line': (avIn(bigs, 'hgt') - 60) / 10 * .2 + (55 - perim) / 10 * .2,
     '2-3 zone': (hgt - 60) / 10 * .3 + (55 - perim) / 10 * .3 - .1,
     '3-2 zone': (perim - 57) / 10 * .3 - .1,
@@ -313,7 +313,7 @@ const REPS: Record<string, Record<string, number>> = {
   Motion: { pss: .25, oiq: .25 }, 'Pick and roll': { drb: .2, pss: .2, dnk: .15 }, Isolation: { drb: .3, fg: .2 }, 'Post-up': { ins: .35, stre: .15 },
   Triangle: { oiq: .25, fg: .25, pss: .15 }, Princeton: { oiq: .3, pss: .25, lay: .1 }, Flex: { ins: .15, fg: .15, oiq: .1 }, 'Dribble drive': { acc: .2, lay: .25, drb: .15 },
   'Pace and space': { tp: .35 }, Moreyball: { tp: .35, lay: .2, dnk: .1 },
-  Switch: { spd: .1, diq: .1 }, Drop: { diq: .15 }, Hedge: { spd: .1, diq: .1 }, Blitz: { diq: .15, acc: .15 }, Ice: { diq: .15 }, Aggressive: { diq: .2, acc: .15 },
+  Switch: { spd: .1, diq: .1 }, Drop: { diq: .15 }, Hedge: { spd: .1, diq: .1 }, Blitz: { diq: .15, acc: .15 }, Ice: { diq: .15 }, Aggressive: { stl: .2, diq: .1, acc: .15 },
   'Pack line': { diq: .2 }, '2-3 zone': { diq: .1, reb: .1 }, '3-2 zone': { diq: .1, spd: .05 }, '1-3-1 zone': { diq: .15, acc: .1 }, 'Matchup zone': { diq: .2 },
   '2-2-1 press': { spd: .1, endu: .1 }, '1-2-1-1 press': { spd: .15, endu: .25, acc: .1 }, 'Full-court man': { spd: .15, endu: .25, diq: .1 }, Wall: { diq: .15 },
   'Crash the glass': { reb: .25, box: .2 }, 'Get back': { spd: .1 }, 'Small ball': { spd: .1, tp: .1 }, 'Twin towers': { reb: .15, ins: .1 },

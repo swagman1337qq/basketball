@@ -34,8 +34,10 @@ const DEFS: Def[] = [
   ['finisher', 'Crafty Finisher', 'Scoops, floaters and reverses: finishes around the rim without dunking', p => p.r.lay ?? null, 68],
   ['general', 'Floor General', 'Runs the offense and finds the open man', p => (p.r.pss + p.r.oiq) / 2, 64],
   ['lockdown', 'Perimeter Lockdown', 'Smothers ball handlers and wings', p => (p.grp !== 'B' ? p.r.diq * 0.6 + p.r.spd * 0.4 : null), 62],
-  ['rim', 'Rim Protector', 'Walls off the paint and blocks shots', p => (p.grp !== 'G' ? p.r.hgt * 0.5 + p.r.diq * 0.3 + p.r.jmp * 0.2 : null), 62],
-  ['pickpocket', 'Pickpocket', 'Jumps passing lanes and strips ball handlers', p => (p.grp !== 'B' ? (p.r.diq + p.r.spd) / 2 : null), 64],
+  ['rim', 'Rim Protector', 'Walls off the paint and blocks shots', p => (p.grp !== 'G' ? (p.r.blk ?? p.r.hgt) * 0.5 + p.r.diq * 0.3 + p.r.hgt * 0.2 : null), 62],
+  ['swat', 'Shot Swatter', 'Sends shots into the stands', p => p.r.blk ?? null, 72],
+  ['pickpocket', 'Pickpocket', 'Jumps passing lanes and strips ball handlers', p => p.r.stl ?? null, 68],
+  ['anchor', 'Defensive Anchor', 'Always in the right spot: rotates on time, walls off drives, never gets caught out of position', p => p.r.diq, 70],
   ['wall', 'Brick Wall', 'Bone-rattling screens and an immovable post', p => p.r.stre, 70],
   ['glass', 'Glass Cleaner', 'Owns the boards at both ends', p => p.r.reb, 66],
   ['boxout', 'Box-Out Beast', 'Seals his man every possession so teammates grab the rebound', p => p.r.box ?? null, 70],
@@ -59,6 +61,8 @@ export const BADGE_FLAVOR: Record<string, string> = {
   general: 'Directs traffic, sees passes before they open and makes four teammates better.',
   lockdown: 'Picks up full court, fights through every screen and makes stars work for every touch.',
   rim: 'Anything at the rim is contested. Drivers change their minds halfway through the lane.',
+  swat: 'Times his jump perfectly. Drivers who see him coming float it early, and miss.',
+  anchor: 'Talks, points and rotates before the pass is even thrown. The defense around him just works.',
   pickpocket: 'Quick hands in the passing lanes; careless dribblers get stripped and he’s off the other way.',
   wall: 'Screens that stop guards cold and a post nobody can move. Contact is his friend.',
   firststep: 'One hard dribble and he’s past you. Help defense has to rotate before the play even starts.',
@@ -88,9 +92,9 @@ export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }))
 // B bigs): guards live on handle, passing and shooting; bigs on size, rebounding and rim
 // protection. Used when a rating is edited in God Mode, so the overall moves with it.
 export const OVR_W: Record<string, Record<string, number>> = {
-  G: { hgt: 1, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 1.1, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 1.8, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: { hgt: 1, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, blk: .2, stl: .6, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
+  W: { hgt: 1.1, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, blk: .4, stl: .6, drb: 1.1, pss: 1, reb: .8, box: .6 },
+  B: { hgt: 1.8, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, blk: 1, stl: .3, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
 };
 export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
 // The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
@@ -122,6 +126,26 @@ export function setOverall(p: any, v: number) {
   const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
   for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(100, Math.round(p.r[k] + d * f))); }); }
   syncOvr(p, true);
+}
+
+// Blocks and Steals are their own skills, apart from Defensive IQ (positioning, rotations, reading
+// the play). Shot-blocking leans on leaping, size and arm length; steals on quick hands and feet.
+// Both only partly follow Defensive IQ, so a leaper can swat everything and still be lost in
+// rotations (a Hassan Whiteside), and a guard can pile up steals without being a stopper (Luka).
+// `noise` is −0.5…0.5 (random for new players, a fixed hash for older saves).
+export function deriveDefense(p: any, noise: (k: number) => number) {
+  const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;
+  const c = (v: number) => Math.round(Math.max(4, Math.min(100, v)));
+  r.blk = c(r.jmp * 0.3 + r.hgt * 0.3 + base * 0.3 + r.diq * 0.1 + ape * 2.2 + (g === 'B' ? 4 : g === 'G' ? -9 : -2) + noise(1) * 24);
+  r.stl = c((r.acc ?? r.spd) * 0.25 + r.spd * 0.15 + base * 0.4 + r.diq * 0.1 + (r.pss ?? 50) * 0.1 + ape * 1.2 + (g === 'G' ? 4 : g === 'B' ? -6 : 1) + noise(2) * 24);
+}
+
+// For players who existed before Blocks and Steals: shift both by the same amount so his overall
+// stays exactly where it was (the shape, a shot-blocker vs a pickpocket, is kept).
+export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
+  const before = ovrExact(p); deriveDefense(p, noise);
+  const W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0), k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
+  for (let i = 0; i < 4; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.05) break; p.r.blk = Math.max(4, Math.min(100, Math.round(p.r.blk + d * k))); p.r.stl = Math.max(4, Math.min(100, Math.round(p.r.stl + d * k))); }
 }
 
 // Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is

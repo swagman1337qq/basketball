@@ -220,7 +220,7 @@ export const MARKETS = [1.0, 1.55, 1.45, 1.2, 1.2, .85, 1.05, 1.35, .75, .85, .9
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway', 'Thornbury', 'Delacroix', 'Mancuso', 'Radcliffe', 'Oyelaran', 'Sterling', 'Halvorsen', 'Fairbanks', 'Montague', 'Kowalczyk', 'Abernathy', 'Villanueva', 'Carrington', 'Nakashima', 'Blackwood', 'Esposito', 'Harrowgate', 'Lindqvist', 'Mbeki', 'Rosenthal', 'Pritchard', 'Castellanos', 'Wexford', 'Adebayo', 'Kingsley', 'Duquesne', 'Hollister', 'Szabo'];
 // lay (layups), acc (acceleration / first step) and box (boxing out) were added in 2026; older saves get them derived on load.
-export const RATING_KEYS = ['hgt', 'stre', 'spd', 'acc', 'jmp', 'endu', 'ins', 'dnk', 'lay', 'ft', 'fg', 'tp', 'oiq', 'diq', 'drb', 'pss', 'reb', 'box'];
+export const RATING_KEYS = ['hgt', 'stre', 'spd', 'acc', 'jmp', 'endu', 'ins', 'dnk', 'lay', 'ft', 'fg', 'tp', 'oiq', 'diq', 'blk', 'stl', 'drb', 'pss', 'reb', 'box'];
 
 // Expansion franchises join through Settings → League expansion. [region, nickname, abbr, conference, division, market]
 export const EXPANSION: [string, string, string, string, string, number][] = [['Louisville', 'Thoroughbreds', 'LOU', 'East', 'Central', .75], ['Mexico City', 'Águilas', 'MEX', 'West', 'Southwest', 1.3]];

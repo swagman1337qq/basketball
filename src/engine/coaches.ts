@@ -4,8 +4,8 @@
 import type { Game } from './Game';
 import { OVR_W } from './ratings';
 
-const FOCUS: Record<string, string[]> = { Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'acc', 'stre'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'] };
-const NAME: Record<string, string> = { tp: '3PT', fg: 'Mid', ft: 'FT', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', drb: 'Drb', pss: 'Pss', oiq: 'OIQ', diq: 'DIQ', acc: 'Acc', stre: 'Str', reb: 'Reb', box: 'Box', spd: 'Spd', jmp: 'Jmp' };
+const FOCUS: Record<string, string[]> = { Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'blk', 'stl'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'] };
+const NAME: Record<string, string> = { tp: '3PT', fg: 'Mid', ft: 'FT', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', drb: 'Drb', pss: 'Pss', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', acc: 'Acc', stre: 'Str', reb: 'Reb', box: 'Box', spd: 'Spd', jmp: 'Jmp' };
 const GRP_NAME: Record<string, string> = { G: 'guard', W: 'wing', B: 'big' };
 
 export const isCoached = (s: any, id: number) => !!(s.coachAuto || {})[id];

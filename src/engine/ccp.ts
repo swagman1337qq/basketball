@@ -112,7 +112,7 @@ function quickGame(g: Game, hT: any, aT: any) {
       const tpa = Math.round(pp * (r.tp / 100) * 0.55 * (0.6 + R() * 0.8)), tpm = Math.round(tpa * (0.26 + r.tp / 900)), fta = Math.round(pp * 0.22 * (0.5 + R())), ftm = Math.round(fta * (0.55 + r.ft / 400));
       const fgm = Math.max(tpm, Math.round((pp - ftm - tpm) / 2)), fga = Math.max(fgm, Math.round(fgm / (0.38 + (r.fg + r.ins) / 1000)) );
       const reb = Math.round(min / 48 * (4 + (r.reb - 40) / 6 + (p.grp === 'B' ? 4 : p.grp === 'W' ? 1.5 : 0)) * (0.6 + R() * 0.8)), orb = Math.round(reb * 0.25);
-      box[p.id] = { min, pts: fgm * 2 + tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb: reb - orb, ast: Math.round(min / 48 * (2 + (r.pss - 40) / 7 + (p.grp === 'G' ? 3 : 0)) * (0.6 + R() * 0.8)), stl: Math.round(min / 48 * (0.8 + r.diq / 80) * R() * 2), blk: Math.round(min / 48 * (p.grp === 'B' ? 1.6 : 0.4) * R() * 2), tov: Math.round(min / 48 * 2.2 * R() * 2), pf: Math.round(min / 48 * 3.5 * R() * 1.5), pm: 0, gs: i < 5 ? 1 : 0 };
+      box[p.id] = { min, pts: fgm * 2 + tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb: reb - orb, ast: Math.round(min / 48 * (2 + (r.pss - 40) / 7 + (p.grp === 'G' ? 3 : 0)) * (0.6 + R() * 0.8)), stl: Math.round(min / 48 * (0.8 + (r.stl ?? r.diq) / 80) * R() * 2), blk: Math.round(min / 48 * (p.grp === 'B' ? 1.2 : 0.3) * (0.4 + (r.blk ?? 50) / 80) * R() * 2), tov: Math.round(min / 48 * 2.2 * R() * 2), pf: Math.round(min / 48 * 3.5 * R() * 1.5), pm: 0, gs: i < 5 ? 1 : 0 };
     });
     return box;
   };

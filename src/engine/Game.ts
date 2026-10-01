@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { ovrShare, setRating, syncOvr, teamRating, wngBonus } from './ratings';
+import { deriveDefense, deriveDefenseKeepOvr, ovrShare, setRating, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -166,6 +166,8 @@ export class Game {
       if (p.r.lay == null) p.r.lay = c((p.r.dnk + p.r.ins) / 2 + (p.grp === 'G' ? 4 : 0) + h(97) * 16);
       if (p.r.acc == null) p.r.acc = c(p.r.spd + (p.grp === 'G' ? 2 : p.grp === 'B' ? -3 : 0) + h(131) * 14);
       if (p.r.box == null) p.r.box = c(p.r.reb * 0.45 + p.r.stre * 0.35 + p.r.hgt * 0.2 + h(173) * 20);
+      // Saves from before Blocks and Steals: derived from his body, quickness and length (the overall is re-synced below).
+      if (p.r.blk == null || p.r.stl == null) deriveDefenseKeepOvr(p, k => h(k === 1 ? 241 : 251));
       if (p.wing == null) { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), hIn = m ? +m[1] * 12 + +m[2] : 78; p.wing = hIn + Math.round(Math.max(-6, Math.min(12, (h(211) + h(223) + h(227)) * 6 + 3.8))); } });
     // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
     { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
@@ -240,7 +242,7 @@ export class Game {
   face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
   resetFace(pid) { delete this.faceCache[pid]; }
   // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
-  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); syncOvr(p); }
+  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
@@ -440,6 +442,7 @@ export class Game {
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
+    deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     P[p.id] = p; return p;
@@ -1210,7 +1213,7 @@ export class Game {
       out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, pid: id, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
   }
-  static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'acc', 'stre'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'], Conditioning: ['endu'] };
+  static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'blk', 'stl'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'], Conditioning: ['endu'] };
   // Expected monthly change per attribute for a player under a training focus (devTick without the dice).
   growthPreview(s, tid, p, focus) {
     const a = p.age, club = this.clubOf(s, tid), coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
@@ -1271,7 +1274,7 @@ export class Game {
   devTick(s, rosters, day) {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
-    const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
+    const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;

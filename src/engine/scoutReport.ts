@@ -74,8 +74,10 @@ const GOOD: Record<string, string[]> = {
   box: ['Elite box-out habits: his man rarely touches a rebound, even if he doesn’t grab it himself.', 'Seals and holds position on every shot.'],
   drb: ['Tight handle; creates separation with crossovers and hesitations.', 'Can bring the ball up against pressure and run pick-and-roll.'],
   pss: ['Sees the floor and delivers on time: skip passes, pocket passes, hit-aheads.', 'Unselfish playmaker who makes the easy play and the hard one.'],
-  oiq: ['High basketball IQ; always in the right spot and rarely forces anything.', 'Reads defenses quickly and plays within the offense.'],
-  diq: ['Smart team defender who rotates on time and talks.', 'Anticipates passing lanes and uses his hands well.'],
+  oiq: ['High basketball IQ: makes the right read, cuts at the right time and rarely forces anything.', 'Reads defenses quickly; knows when to pass out of a double team and when to shoot.'],
+  diq: ['Smart team defender: always in position, rotates on time and talks.', 'Reads the play a step early; rarely caught out of position.'],
+  blk: ['Natural shot-blocker with great timing; changes shots at the rim.', 'Swats shots from the weak side.'],
+  stl: ['Quick hands; pokes the ball loose and jumps passing lanes.', 'Turns live dribbles into run-outs.'],
   reb: ['Excellent rebounder who pursues the ball out of his area.', 'Crashes the offensive glass and creates extra possessions.'],
 };
 const BAD: Record<string, string[]> = {
@@ -94,8 +96,10 @@ const BAD: Record<string, string[]> = {
   box: ['Ball-watches on the glass instead of finding a body to box out.'],
   drb: ['Loose handle; turnover-prone when pressured.', 'Needs to tighten his handle before he can create for himself.'],
   pss: ['Tunnel vision at times; misses open teammates.', 'Not a natural passer.'],
-  oiq: ['Decision-making lags behind his tools; forces shots.', 'Still learning to read defenses.'],
-  diq: ['Loses his man off the ball and is late on rotations.', 'Gambles too much on defense.'],
+  oiq: ['Decision-making lags behind his tools: forces shots and misses his cuts.', 'Still learning to read defenses; holds the ball too long or passes up open shots.'],
+  diq: ['Out of position too often: late on rotations, loses his man off the ball.', 'Camps in the lane and struggles to read the play.'],
+  blk: ['Rarely blocks a shot; contests late.'],
+  stl: ['Not much of a disruptor; rarely forces turnovers.'],
   reb: ['Rebounds below his size; needs to box out more consistently.'],
 };
 
@@ -163,11 +167,11 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   // Outlook: where he fits and what it would take.
   // The take: what he does well, what he can become, what has to develop, and where he stands
   // (written like a draft analyst's paragraph).
-  const NOUN: Record<string, string> = { tp: 'shooting', fg: 'mid-range game', ft: 'free-throw shooting', drb: 'ball handling', pss: 'playmaking', oiq: 'feel for the game', diq: 'defense', ins: 'post game', dnk: 'finishing', lay: 'touch around the rim', reb: 'rebounding', box: 'rebounding', stre: 'strength', spd: 'speed', acc: 'first step', jmp: 'explosiveness', endu: 'conditioning' };
-  const CAT: Record<string, string> = { spd: 'the physical tools', acc: 'the physical tools', jmp: 'the physical tools', stre: 'the physical tools', endu: 'a relentless motor', tp: 'shooting touch', fg: 'shot-making', ft: 'shooting touch', ins: 'scoring punch', dnk: 'scoring punch', lay: 'scoring punch', diq: 'defensive impact', reb: 'rebounding instincts', box: 'rebounding instincts', pss: 'court vision', drb: 'shot creation', oiq: 'basketball IQ' };
+  const NOUN: Record<string, string> = { tp: 'shooting', fg: 'mid-range game', ft: 'free-throw shooting', drb: 'ball handling', pss: 'playmaking', oiq: 'feel for the game', diq: 'defensive positioning', blk: 'shot-blocking', stl: 'hands on defense', ins: 'post game', dnk: 'finishing', lay: 'touch around the rim', reb: 'rebounding', box: 'rebounding', stre: 'strength', spd: 'speed', acc: 'first step', jmp: 'explosiveness', endu: 'conditioning' };
+  const CAT: Record<string, string> = { spd: 'the physical tools', acc: 'the physical tools', jmp: 'the physical tools', stre: 'the physical tools', endu: 'a relentless motor', tp: 'shooting touch', fg: 'shot-making', ft: 'shooting touch', ins: 'scoring punch', dnk: 'scoring punch', lay: 'scoring punch', diq: 'defensive impact', blk: 'rim protection', stl: 'defensive playmaking', reb: 'rebounding instincts', box: 'rebounding instincts', pss: 'court vision', drb: 'shot creation', oiq: 'basketball IQ' };
   const topK = keys.slice(0, 4).filter(k => R[k] + (posAdj[k] || 0) >= 55), cats = [...new Set([...(sizeG >= 7.5 ? ['the size'] : []), ...topK.map(k => CAT[k])])].slice(0, 3);
   const list = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
-  const twoWay = topK.includes('diq') && topK.some(k => ['tp', 'fg', 'ins', 'dnk', 'lay', 'pss', 'drb'].includes(k));
+  const twoWay = (topK.includes('diq') || topK.includes('blk') || topK.includes('stl')) && topK.some(k => ['tp', 'fg', 'ins', 'dnk', 'lay', 'pss', 'drb'].includes(k));
   const posWord = p.pos === 'PG' ? 'point guard' : p.pos === 'C' ? 'center' : grp === 'G' ? 'guard' : grp === 'B' ? 'big' : 'wing';
   // Several ways to say each part, picked per player so reports don't all read alike.
   const tk = pickOf(pid * 7919 + g.Y * 13 + 5), tier = tierOf;

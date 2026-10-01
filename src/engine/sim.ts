@@ -72,8 +72,22 @@ export const mental = (r: any) => (r.oiq + r.diq) / 2;
 // `ape` is wingspan minus height in inches (the league averages about +4): long arms help
 // contests, blocks, rebounds and steals; short arms hurt them.
 const ape = (r: any) => (r.ape ?? 4) - 4;
+// Defensive IQ is positioning: staying in front, rotating on time, helping and recovering, reading
+// the play. It drives team defense (how hard every shot is), fouls and defensive three seconds.
+// Blocks and Steals are separate skills: they decide who gets the blocks and steals. A defender whose
+// shot-blocking or steals run well ahead of his Defensive IQ gambles: he racks up the numbers but
+// leaves his spot, so the shots he doesn't get to are easier (the Hassan Whiteside effect).
 export const perimD = (r: any) => r.diq * 0.6 + r.spd * 0.2 + (r.acc ?? r.spd) * 0.2 + ape(r) * 0.6;
-export const interiorD = (r: any) => r.hgt * 0.5 + r.diq * 0.3 + r.jmp * 0.2 + ape(r) * 1.2;
+export const interiorD = (r: any) => r.hgt * 0.4 + r.diq * 0.3 + (r.blk ?? r.hgt) * 0.15 + r.jmp * 0.15 + ape(r) * 1.2;
+// Piling up blocks takes everything at once: timing and leap (Blocks), height and length, the lift
+// to get up, the lateral quickness to rotate over in time, and the positioning (Defensive IQ) to be
+// there. A weighted geometric mean, so a weakness anywhere drags it down: a long, bouncy shot-blocker
+// who's slow or out of position still blocks some shots, just not a league-leading number.
+const g01 = (v: number) => Math.max(5, Math.min(100, v)) / 100;
+export const blockSkill = (r: any) => 100 * Math.pow(g01(r.blk ?? r.hgt), 0.32) * Math.pow(g01(r.hgt), 0.18) * Math.pow(g01(50 + ape(r) * 6), 0.12) * Math.pow(g01(r.jmp), 0.12) * Math.pow(g01((r.acc ?? r.spd) * 0.6 + r.spd * 0.4), 0.1) * Math.pow(g01(r.diq), 0.16);
+export const stealSkill = (r: any) => (r.stl ?? r.diq) * 0.7 + (r.acc ?? r.spd) * 0.15 + r.spd * 0.15 + ape(r) * 0.8;
+export const gambleB = (r: any) => Math.max(0, (r.blk ?? r.diq) - r.diq - 8);
+export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
 export const rebSkill = (r: any) => r.reb * 0.6 + r.hgt * 0.25 + r.jmp * 0.15 + ape(r) * 0.7;
 // Team rebounding also counts box-outs: a great boxer wins the glass for his team without
 // grabbing many rebounds himself.
@@ -87,8 +101,9 @@ export interface Norms {
   shareCorr: Record<Zone, number>; // keeps the league shot mix on the baseline shares
   ftOffset: number;
   perimD: number; interiorD: number; reb: number; pss: number; handle: number;
+  diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
 }
-export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55 };
+export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
 
 // Shot profile: the league tier shares tilted by the player's relative skill, roles and tactics.
 // Shot tendencies: real players' shot diets aren't only their skills (rookie Luka Dončić took 43% of
@@ -317,6 +332,10 @@ export class GameSim {
     // on defense); Poise keeps a team steady against pressure.
     const feelO = avg(onO, p => p.feel ?? FEEL_MID), feelD = avg(onD, p => p.feel ?? FEEL_MID), poiseO = avg(onO, p => p.poise ?? POISE_MID);
     const connectors = onO.filter(p => p.roles?.includes('Connector')).length, poa = onD.filter(p => p.roles?.includes('Point-of-attack defender')).length;
+    // Offensive IQ is decision-making (the read, the cut, when to pass, when to shoot); Defensive IQ is
+    // positioning and rotations; quick hands (Steals) force turnovers. All relative to the league.
+    const oiqO = avg(onO, p => p.r.oiq) - (n.oiq ?? 52), diqD = avg(onD, p => p.r.diq) - (n.diq ?? 52), handsD = avg(onD, p => stealSkill(p.r)) - (n.stl ?? 52);
+    const gamB = onD.reduce((a, p) => a + gambleB(p.r), 0) - 5 * (n.gamB ?? 2), gamS = onD.reduce((a, p) => a + gambleS(p.r), 0) - 5 * (n.gamS ?? 2);
     const star = onO.reduce((a, b) => (C(b).use > C(a).use ? b : a));
     // Usage decides who ends the trip (the gatekeeper); ball-handling decides turnovers.
     // Selfish players take far more shots (big numbers), stop the ball for everyone else and
@@ -340,7 +359,7 @@ export class GameSim {
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
-    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
+    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / 80 + handsD / 300) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
@@ -349,13 +368,16 @@ export class GameSim {
     // Who coughs it up: whoever has the ball, so usage first. Creators handle it most and throw the
     // riskiest passes (star playmakers lead the NBA in turnovers: about 4 a game); a good handle
     // only trims that a little.
-    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
+    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (1.35 - p.r.oiq / 150) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
     const r = Math.random();
-    const kind = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
+    const kind0 = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
+    // Defensive three seconds: bigs who don't read the play camp in the lane (about 0.4 a game).
+    const p3 = putback ? 0 : 0.0011 * onD.reduce((a, p) => a + (p.grp === 'B' ? Math.exp((52 - p.r.diq) / 12) : 0), 0);
+    const kind = kind0 === 'fga' && Math.random() < p3 ? 'd3' : kind0;
 
     // Clock: a whistle, a quick putback, or a normal trip at the offense's pace.
     const paceF = fx ? fx.dt : 1;
-    const dt = Math.min(this.t, kind === 'nsf' || kind === 'hack' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
+    const dt = Math.min(this.t, kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
     onO.forEach(p => (O.box[p.id].min += dt / 60));
     onD.forEach(p => (D.box[p.id].min += dt / 60));
     this.t -= dt;
@@ -372,6 +394,9 @@ export class GameSim {
     if (kind === 'hack' && hackT) {
       const f = foul();
       keep = this.freeThrows(O, D, onO, onD, hackT, 2, score, ev, f, 'hack', cAdv);
+    } else if (kind === 'd3') {
+      const v = onD.filter(p => p.grp === 'B').reduce((a: SimPlayer | null, p) => (!a || p.r.diq < a.r.diq ? p : a), null) || onD[0];
+      keep = this.freeThrows(O, D, onO, onD, onO.reduce((a, p) => (p.r.ft > a.r.ft ? p : a)), 1, score, ev, v, 'tech', cAdv);
     } else if (kind === 'nsf') {
       // Non-shooting foul: a side-out, or two free throws once the defense is in the bonus.
       const f = foul();
@@ -380,11 +405,12 @@ export class GameSim {
     } else if (kind === 'tov') {
       O.box[handler.id].tov++;
       const x = Math.random();
-      if (x < RATE.stealShare) {
-        const s2 = wpick(onD, p => Math.max(1, p.r.diq + (p.r.acc ?? p.r.spd) + ape(p.r) * 2 + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.6) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
+      const stealShare = cl(RATE.stealShare * Math.exp(handsD / 160), 0.35, 0.8);
+      if (x < stealShare) {
+        const s2 = wpick(onD, p => Math.pow(Math.max(1, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
         D.box[s2.id].stl++;
         ev([s2.id, handler.id], () => s2.name + ' steals the ball from ' + handler.name, () => '(' + D.box[s2.id].stl + ' STL)');
-      } else if (x < RATE.stealShare + RATE.offFoul) {
+      } else if (x < stealShare + RATE.offFoul) {
         O.box[handler.id].pf++;
         ev([handler.id], () => 'Offensive foul on ' + handler.name, () => '(' + O.box[handler.id].tov + ' TOV)');
       } else ev([handler.id], () => handler.name + (Math.random() < 0.5 ? ' loses the ball out of bounds' : ' throws it away'), () => '(' + O.box[handler.id].tov + ' TOV)');
@@ -403,7 +429,8 @@ export class GameSim {
       const bigs = onD.slice().sort((a, b) => b.r.hgt - a.r.hgt).slice(0, 2);
       const intD = avg(bigs, p => interiorD(p.r));
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
-      const defAdj = z === 'rim' ? 0.003 * (intD - n.interiorD) + (rimPro ? 0.01 : 0) : z === 'mid' ? 0.0015 * (pressD - n.perimD) : 0.0012 * (pressD - n.perimD);
+      // Rotations (the whole lineup's Defensive IQ) make every shot harder; gamblers leave easier ones.
+      const defAdj = (z === 'rim' ? 0.003 * (intD - n.interiorD) + (rimPro ? 0.01 : 0) - 0.0005 * gamB : z === 'mid' ? 0.0015 * (pressD - n.perimD) - 0.0003 * gamS : 0.0012 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0012 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -411,9 +438,13 @@ export class GameSim {
       const fbD = fb && z === 'rim' ? 0.06 : 0;
       // Usage vs efficiency: the more of the offense runs through him, the more the defense keys on
       // him, so a heavy-usage star's shots get a little harder (the NBA's well-known trade-off).
-      const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 : 0;
+      // A smart player keyed on by the defense makes the read and gets a better shot; an alpha (or a hot
+      // hand) chucks it over the double team anyway.
+      const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), oiqSh = sh.r.oiq - (n.oiq ?? 52);
+      const usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 60, 0.4, 1.5)) : 0;
+      const readD = oiqSh >= 0 ? 0.0005 * oiqSh : 0.0009 * oiqSh; // shot selection: knowing which shots to take
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
-      const pct = moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = readD + moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -422,18 +453,19 @@ export class GameSim {
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
-        const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) + 0.02 * connectors;
+        const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1), 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * Math.exp((p.r.oiq - 50) / 70) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
         if (Math.random() < RATE.andOne) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, foul(), 'and1', cAdv);
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
-        const blkP = BLOCK_ON_MISS[z] * Math.exp((intD - n.interiorD) / 25) * (rimPro ? 1.3 : 1);
+        const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
+        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1);
         if (Math.random() < blkP) {
-          const bl = wpick(onD, p => Math.pow(Math.max(1, p.r.hgt * 1.2 + p.r.jmp * 0.6 + p.r.diq * 0.4 + ape(p.r) * 3), 2) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
+          const bl = wpick(onD, p => Math.pow(Math.max(1, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
         } else ev([sh.id], () => sh.name + ' misses ' + LABEL[z](sh));
@@ -474,11 +506,12 @@ export class GameSim {
   }
 
   // Free throws. Returns true if the offense keeps the ball (offensive rebound off a live miss).
-  private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack', cAdv: number) {
+  private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack' | 'tech', cAdv: number) {
     const pct = cl(BASE.ft + CAL.ft + curve('ft', sh.r.ft) + this.norms.ftOffset - (sh.adj ? 0.02 : 0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.4, 0.95);
     let made = 0, last = false;
     for (let i = 0; i < n; i++) { O.box[sh.id].fta++; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; } }
     if (made) score(sh, made);
+    if (kind === 'tech') { ev([sh.id, fouler.id], () => 'Defensive three seconds on ' + fouler.name, () => sh.name + (made ? ' makes' : ' misses') + ' the technical free throw', !!made); return true; }
     ev([sh.id, fouler.id], () => (kind === 'and1' ? 'And one: ' + fouler.name + ' fouls ' + sh.name : fouler.name + ' fouls ' + sh.name + (kind === 'bonus' ? ' (bonus)' : kind === 'hack' ? ' on purpose (Hack-a-Shaq)' : ' on the shot')), () => sh.name + ' makes ' + made + ' of ' + n + ' free throw' + (n === 1 ? '' : 's'), made > 0);
     if (!last && Math.random() < RATE.liveFt) return this.rebound(O, D, onO, onD, cAdv, ev);
     return false;

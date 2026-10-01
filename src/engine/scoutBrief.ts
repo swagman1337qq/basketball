@@ -33,7 +33,7 @@ export const BRIEF_AGE: [string, string][] = [['any', 'Any age'], ['20', '20 and
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const hash = (t: string) => { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return Math.abs(h); };
-const LB: Record<string, string> = { tp: '3PT', fg: 'Mid', ft: 'FT', drb: 'Drb', pss: 'Pss', oiq: 'OIQ', diq: 'DIQ', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', dnk: 'Dnk', lay: 'Lay', hgt: 'Hgt', reb: 'Reb', box: 'Box', ins: 'Ins', wing: 'Wingspan', feel: 'Feel', poise: 'Poise' };
+const LB: Record<string, string> = { tp: '3PT', fg: 'Mid', ft: 'FT', drb: 'Drb', pss: 'Pss', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', dnk: 'Dnk', lay: 'Lay', hgt: 'Hgt', reb: 'Reb', box: 'Box', ins: 'Ins', wing: 'Wingspan', feel: 'Feel', poise: 'Poise' };
 
 function poolOf(g: Game, s: any, c: any, pool: string): number[] {
   const Y = g.Y, cls = (ys: number[]) => ys.flatMap(y => g.db.cls[y] || []);
@@ -63,7 +63,7 @@ export function briefFit(g: Game, c: any, p: any, scout: any, focus: string): { 
   const v = (k: string) => (['hgt', 'wing', 'feel', 'poise'].includes(k) ? R[k] : R[k] + young);
   const W: Record<string, Record<string, number>> = {
     shooter: { tp: .6, fg: .2, ft: .2 }, creator: { drb: .35, pss: .4, oiq: .25 }, slasher: { spd: .25, acc: .25, dnk: .25, lay: .25 },
-    rim: { hgt: .35, wing: .25, diq: .25, jmp: .15 }, wing3d: { tp: .45, diq: .35, spd: .2 }, defender: { diq: .5, wing: .15, spd: .2, acc: .15 },
+    rim: { blk: .35, hgt: .2, wing: .15, diq: .2, jmp: .1 }, wing3d: { tp: .45, diq: .35, spd: .2 }, defender: { diq: .5, wing: .15, spd: .2, acc: .15 },
     rebounder: { reb: .5, box: .3, hgt: .2 }, stretch: { tp: .6, hgt: .4 }, athlete: { spd: .25, acc: .25, jmp: .25, endu: .25 }, size: { hgt: .6, wing: .4 },
     intangibles: { feel: .6, poise: .4 },
   };

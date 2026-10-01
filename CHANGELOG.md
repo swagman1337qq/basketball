@@ -5,6 +5,23 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-01
 
 ### Added
+- **Two new ratings: Blocks and Steals.** They're shown under Skill on every profile, and you can edit them in God Mode.
+  - Blocks are timing and leap. Steals are quick hands. Neither is the same as Defensive IQ, so a player can rack up steals without being a good defender, like Luka.
+  - Existing players get theirs from their body, quickness and length, and their overall doesn't move.
+- **Racking up blocks takes everything at once.** That means the Blocks rating plus height, wingspan, jumping, lateral quickness and positioning (Defensive IQ). One weak spot holds the total down. Nothing is capped: block leaders land around 3 a game, like the NBA's best.
+- **Gamblers hurt the defense.** A player whose Blocks or Steals run well ahead of his Defensive IQ leaves his spot to go for the play. He gets the blocks and steals, but the shots he doesn't reach are easier (think Hassan Whiteside).
+- **Defensive three seconds.** Bigs who can't read the play get called for camping in the lane. The other team shoots a technical free throw and keeps the ball.
+- New badges: **Shot Swatter** (Blocks) and **Defensive Anchor** (Defensive IQ). **Pickpocket** now comes from Steals, and **Rim Protector** from Blocks and positioning.
+
+### Changed
+- **Defensive IQ now means positioning.** Rotations, help defense, staying in front, reading the play. A lineup's Defensive IQ makes every shot harder, and low Defensive IQ means more fouls.
+- **Offensive IQ now means decision-making.** It covers shot selection, cutting at the right time, knowing when to pass and when to shoot, and turnovers.
+  - A smart player the defense keys on makes the read and gets a better shot.
+  - An alpha (or a player on a heat check) shoots over the double team anyway, Kobe-style.
+  - High-IQ teammates also lead to more assisted baskets.
+- The Aggressive defense scheme now suits teams with quick hands (Steals), not just Defensive IQ.
+- Scouting reports describe the new ratings: shot-blocking, hands, positioning and decision-making.
+
 - **Pre-Free Agency, a new offseason step between the draft and free agency.** When the draft ends, click "Start Pre-Free Agency". The Pre-Free Agency screen shows:
   - **Player options:** whether each of your players opted in or out (the player decides).
   - **Team options:** Exercise or Decline.
@@ -15,7 +32,6 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - You also hear when your own free agents sign elsewhere, when another team gives one of your restricted free agents an offer sheet, and when your restricted free agents accept their qualifying offers.
   - When free agency opens, the popup lists every contract of yours that expired, the options decided, and whose rights you renounced.
 
-### Changed
 - **You can make any offer the league allows, even one the player's camp says no to.** The signing button now says "Make the offer anyway" instead of being greyed out, and a turned-down offer shows up as "Declined".
 
 ### Fixed
