@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BuS_9Gul.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-oNCQQkqV.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-01
+
+### Fixed
+- **Russia now has leagues in the player editor.** Pick Russia under "Playing for" / "Came from" and you get the VTB United League (CSKA Moscow, Zenit, UNICS Kazan and the rest) and Super League 1. Leagues were also added for Ukraine, Belarus, Kazakhstan, Poland, Czechia, Hungary, Romania, Bulgaria, North Macedonia, Austria, Estonia, Belgium, the Netherlands, Portugal, Denmark, Sweden, Venezuela, Uruguay, Lebanon, Iran, Taiwan, Egypt, Tunisia, Morocco, Nigeria, Senegal, Rwanda and Cameroon.
 
 ## 2026-09-30
 
