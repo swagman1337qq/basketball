@@ -105,7 +105,7 @@ function Sign({ vm }: { vm: VM }) {
       <div className="dialog-actions">
         <button className="btn btn-secondary" onClick={vm.closeDialog}>Cancel</button>
         {s.god && (!v.ok || !acc.ok) && <span style={{ ...godText, fontSize: '12px', alignSelf: 'center', marginRight: 'auto' }}>God Mode: signing anyway, rules off</span>}
-        <button className="btn btn-primary" disabled={!s.god && (!v.ok || !acc.ok)} style={s.god && (!v.ok || !acc.ok) ? godFill : undefined} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
+        <button className="btn btn-primary" disabled={!s.god && !v.ok} title={!s.god && v.ok && !acc.ok ? 'His camp has said no to these terms: he’ll most likely turn it down' : undefined} style={s.god && (!v.ok || !acc.ok) ? godFill : undefined} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{!s.god && !acc.ok ? 'Make the offer anyway' : m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
       </div>
     </>
   );

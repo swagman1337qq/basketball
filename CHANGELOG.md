@@ -4,6 +4,20 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-01
 
+### Added
+- **Pre-Free Agency, a new offseason step between the draft and free agency.** When the draft ends, click "Start Pre-Free Agency". The Pre-Free Agency screen shows:
+  - **Player options:** whether each of your players opted in or out (the player decides).
+  - **Team options:** Exercise or Decline.
+  - **Expiring contracts:** Re-sign now (opens his Contract tab to negotiate an extension), Re-sign in free agency (keep his Bird rights and cap hold), Qualifying offer (makes a young player restricted), or Don't re-sign (his rights are renounced and his cap hold comes off your books).
+  - **Extension candidates:** Extend or Don't extend. Extend gives you a reminder on July 6, when the window opens.
+  - Recommended choices are marked ★. Free agency won't open until every team option and expiring contract has a decision.
+- **You're told how every offer turns out.** A popup says whether the player signed with you or turned you down (and why), whether his team matched your offer sheet, and later if he signed somewhere else.
+  - You also hear when your own free agents sign elsewhere, when another team gives one of your restricted free agents an offer sheet, and when your restricted free agents accept their qualifying offers.
+  - When free agency opens, the popup lists every contract of yours that expired, the options decided, and whose rights you renounced.
+
+### Changed
+- **You can make any offer the league allows, even one the player's camp says no to.** The signing button now says "Make the offer anyway" instead of being greyed out, and a turned-down offer shows up as "Declined".
+
 ### Fixed
 - **Russia now has leagues in the player editor.** Pick Russia under "Playing for" / "Came from" and you get the VTB United League (CSKA Moscow, Zenit, UNICS Kazan and the rest) and Super League 1. Leagues were also added for Ukraine, Belarus, Kazakhstan, Poland, Czechia, Hungary, Romania, Bulgaria, North Macedonia, Austria, Estonia, Belgium, the Netherlands, Portugal, Denmark, Sweden, Venezuela, Uruguay, Lebanon, Iran, Taiwan, Egypt, Tunisia, Morocco, Nigeria, Senegal, Rwanda and Cameroon.
 

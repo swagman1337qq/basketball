@@ -21,7 +21,7 @@ import { snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
-import { capGrowthFor } from './capModel';
+import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
 import { removeUnplayed, slimRetired } from './prune';
@@ -37,6 +37,7 @@ import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
+import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
@@ -886,19 +887,24 @@ export class Game {
       return { phase: 'draft', picks, pi: 0, lotto, lotHist, assets: pr.assets, swaps: pr.swaps, lotReveal: 0, dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
+  startPreFA() { startPreFA(this); }
   startFA() {
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
       if (s.gmOffer?.kind === 'expiring' && !s.unemployed) return null; // answer the owner's contract offer first
+      if (!s.preFA || (!s.easy?.cap && preFAPending(this, s, s.me) > 0)) return null; // Pre-Free Agency first, with every decision made
       // A new league year starts when free agency opens: the cap follows the projected cap
       // outlook (at most +10% a year, as the CBA allows), and every number tied to it (tax,
       // aprons, exceptions, max and min salaries) moves with it.
       const d = this.db, Y = this.Y + 1, growth = capGrowthFor(Y), capsBefore = { ...d.caps };
       ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'VMIN', 'MLE', 'MAXC'].forEach(k => (d.caps[k] = +(d.caps[k] * growth).toFixed(1)));
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
-      const out = openFreeAgency(this, s);
+      const extPlan = Object.keys(s.decide || {}).filter(k => k.startsWith('ext') && s.decide[k]).map(k => +k.slice(3)), rePlan = Object.keys(s.decide || {}).filter(k => k.startsWith('re') && s.decide[k]).map(k => +k.slice(2));
+      const { faNotes, ...out } = openFreeAgency(this, s), Pp = this.db.P;
+      const reLine = rePlan.filter(id => out.fa.includes(id)).map(id => Pp[id].name);
+      const notices = addNotice(s, { tone: 'info', title: 'Free agency is open', lines: [...faNotes, ...(reLine.length ? ['You planned to re-sign ' + reLine.join(', ') + ': make your offer' + (reLine.length > 1 ? 's' : '') + ' on the Free agency screen. Other teams can bid now too.'] : [])].filter(Boolean), pids: [] });
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
-      return { ...out, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
+      return { ...out, notices: faNotes.length || reLine.length ? notices : s.notices, preFA: null, extPlan, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
     if (this.state.phase === 'fa') { teamSales(this); offseasonMandates(this); } // team sales close with the new league year; owners' payroll orders
   }
@@ -919,14 +925,25 @@ export class Game {
       const fd0 = this.faDayOf(s), n = Math.max(0, Math.min(days, Game.FA_END - fd0)); if (!n) return null;
       const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice(), sheets0 = offerSheets.length;
       let done = 0;
+      // Players you're watching: ones who turned down your offer, and your own free agents.
+      const P = this.db.P, watch = box.fa.filter(id => s.offered?.[id] || (P[id].birdTid != null && this.isUser(s, P[id].birdTid)));
       for (let d = 0; d < n; d++) { const fd = fd0 + d, pace = Game.faPace(fd), moves = Math.floor(pace) + (Math.random() < pace % 1 ? 1 : 0), st = { ...s, day: s.day + d };
         aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99); easyFreeAgency(this, st, box, lgLog); done++;
         if (fd === 10) lgLog.unshift(...aiExtensions(this, { ...st, rosters: box.rosters, cap: box.cap }, 0.45)); // July: the first extension window
         if (offerSheets.length > sheets0 && !s.easy?.cap) break; } // stop the clock: one of your restricted free agents got an offer sheet
       // Easy mode answers offer sheets for your restricted free agents.
+      const easyLines: string[] = [];
       if (s.easy?.cap) for (const o of offerSheets.slice()) { if (!this.isUser(s, o.to)) continue; const m = easyMatch(this, { ...s, rosters: box.rosters, cap: box.cap }, o), p = this.db.P[o.pid];
-        lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[m ? o.to : o.from].abbr, pids: [o.pid], text: applySigning(this, { ...s, rosters: box.rosters }, box, m ? o.to : o.from, p, m ? { ...o.terms, method: 'bird' } : o.terms) + (m ? ' (matched the offer sheet, easy mode)' : ' (' + s.teams[o.to].abbr + ' declined to match, easy mode)') }); offerSheets.splice(offerSheets.indexOf(o), 1); }
-      return { ...box, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, day: s.day + done, faPrev: s.day };
+        lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[m ? o.to : o.from].abbr, pids: [o.pid], text: applySigning(this, { ...s, rosters: box.rosters }, box, m ? o.to : o.from, p, m ? { ...o.terms, method: 'bird' } : o.terms) + (m ? ' (matched the offer sheet, easy mode)' : ' (' + s.teams[o.to].abbr + ' declined to match, easy mode)') }); offerSheets.splice(offerSheets.indexOf(o), 1);
+        if (o.to === s.me) easyLines.push(m ? 'Your assistant matched the ' + s.teams[o.from].abbr + ' offer sheet for ' + p.name + ' (' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + '): he stays.' : 'Your assistant declined to match the ' + s.teams[o.from].abbr + ' offer sheet for ' + p.name + ': he signed there (' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + ').'); }
+      let notices = s.notices; const T = s.teams, lines: string[] = [], pids: number[] = [];
+      watch.forEach(id => { if (box.fa.includes(id)) return; const t = this.tidOf(box.rosters, id); if (t < 0 || this.isUser(s, t)) return; const p = P[id], o = s.offered?.[id];
+        lines.push(p.name + (o ? ', who turned down your offer (' + fmtMoney(o.amt) + ' × ' + o.years + '),' : ', your free agent,') + ' signed with the ' + T[t].region + ' ' + T[t].name + ': ' + contractLine(this, p) + '.'); pids.push(id); });
+      if (easyLines.length) notices = addNotice({ notices }, { tone: 'info', title: 'Offer sheets answered (easy mode)', lines: easyLines });
+      if (lines.length) notices = addNotice({ notices }, { tone: 'bad', title: lines.length === 1 ? 'Signed elsewhere' : lines.length + ' players signed elsewhere', lines, pids });
+      offerSheets.slice(sheets0).forEach(o => { if (o.to !== s.me) return; const p = P[o.pid]; notices = addNotice({ notices }, { tone: 'info', title: 'Offer sheet for ' + p.name, lines: ['The ' + T[o.from].region + ' ' + T[o.from].name + ' signed your restricted free agent ' + p.name + ' to an offer sheet: ' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + '.', 'Match it to keep him, or decline and he goes there. Answer on the Cap sheet; free agency is paused until you do.'], pids: [o.pid] }); });
+      if (fd0 < 6 && fd0 + done >= 6 && (s.extPlan || []).length) { const xs = s.extPlan.filter(id => (box.rosters[s.me] || []).includes(id)).map(id => P[id]); if (xs.length) notices = addNotice({ notices }, { tone: 'info', title: 'The extension window is open', lines: ['It’s July 6: you planned to extend ' + xs.map(p => p.name).join(', ') + '. Open each player’s Contract tab to make an offer.'], pids: xs.map(p => p.id) }); }
+      return { ...box, notices, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, day: s.day + done, faPrev: s.day };
     });
     offseasonMandates(this); // the owner's payroll order follows your payroll through the summer
   }
@@ -1032,7 +1049,8 @@ export class Game {
       s.managed.forEach(t => { const f: any = { prog: progBy[t] || [] }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
       (this.db as any).boxes = {}; // last season's box scores go with its game log
-      return { ...top, clubs, cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      const qoMine = (byClub[s.me] || []).filter(x => /qualifying offer/.test(x));
+      return { ...top, ...(qoMine.length ? { notices: addNotice(s, { tone: 'info', title: 'Qualifying offers accepted', lines: qoMine.map(x => x + ' (one year; he’s under contract with you this season).') }) } : {}), clubs, offered: {}, extPlan: [], cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
     offseasonMandates(this);

@@ -52,6 +52,8 @@ import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
 const TourOverlay = lazy(() => import('./Tour').then(m => ({ default: m.TourOverlay })));
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
+import { NoticeModal } from './modals/NoticeModal';
+import { PreFAScreen } from './screens/PreFAScreen';
 import { BoxScoreModal } from './modals/BoxScoreModal';
 import { SimMenu } from './SimMenu';
 import { GMSetupModal } from './modals/GMSetupModal';
@@ -105,6 +107,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.depth && <DepthChartScreen vm={vm} />}
             {!!vm.is.standings && <StandingsScreen vm={vm} />}
             {!!vm.is.trade && <TradeScreen vm={vm} />}
+            {!!vm.is.prefa && <PreFAScreen vm={vm} />}
             {!!vm.is.fa && <FreeAgencyScreen vm={vm} />}
             {!!vm.is.cards && <CardsScreen vm={vm} />}
             {!!vm.is.daily && <DailyScheduleScreen vm={vm} />}
@@ -145,6 +148,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
+        {!vm.ctx.s.letterOpen && !vm.hasDialog && !!(vm.ctx.s.notices || []).length && !vm.ctx.s.simming && <NoticeModal vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
         {vm.ctx.s.tour != null && <Suspense fallback={null}><TourOverlay vm={vm} /></Suspense>}
       </div>
