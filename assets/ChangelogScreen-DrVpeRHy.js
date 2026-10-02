@@ -1,10 +1,25 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BzL2LMU5.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-Cto1icY3.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-02
 
 ### Added
+- **God Mode: Hidden gem** on a player's Development tab (under How he develops): whether he's a hidden gem, what kind (role player, starter or star), and how much extra potential is still to surface.
+- **AI teams call you with trade offers.** Every offer has a reason that fits the team's plans:
+  - A contender, or a team on the rise, after one of your players at the position it needs.
+  - A rebuilding team moving a veteran for your young players or picks.
+  - A team over the tax paying you to take a contract, when you have the room.
+  - You get a notice when an offer arrives. Under Trade → Offers to you, you can accept, negotiate or decline; an offer stands for about ten days, and the same offer isn't made twice.
+- **God Mode: how far ahead picks can be traded** (Settings → Trading picks). The default is four drafts ahead (the NBA allows seven), and it applies to every team, including the AI.
+- **Injuries show games and days,** for example "5 games / 12 days".
+  - Games count down as his team plays; days count down on the calendar.
+  - Over the summer the days keep running while the games wait for next season.
+  - Free agents heal on the calendar.
+- **Drafted by and current team** in a draft class list: click the draft line on a player's profile.
+  - The team that drafted him never changes.
+  - Current team shows where he is now: an NBA team, retired, free agent, his CCP club, his club abroad, or still a prospect.
+  - The profile's draft line shows both too.
 - **Every team judges potential through its own scouts.** In trades, re-signings and extensions, AI teams value other teams' players on their own read: the league's read plus their scouts' miss, which a bigger scouting budget shrinks. They know their own players best.
   - Your screens show your scouts' read of other teams' players, so your Scouting budget matters in trades too.
   - Your assistants' free-agent ideas use the same read.
@@ -73,6 +88,36 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **Undrafted players rarely become stars now.** Before, a team that signed enough undrafted players would find several starters a year. Now, for a league's undrafted players each year:
+  - The overwhelming majority never become NBA players.
+  - About three become bench players, and one in a season or two a real starter.
+  - A high-level player turns up every few years, and a star about once a decade (a Ben Wallace or an Austin Reaves).
+  - Undrafted isn't a ceiling. A late bloomer can still surprise everyone (a hidden gem, or a game that translates better than the scouts saw), and the youngest have the most room to climb.
+  - The league reads a CCP or tryout player's potential less precisely than a drafted prospect's: fewer scouts watch him.
+- **Players in the CCP and abroad develop on their own plan.** Before, they got the same flat bump every month. CCP reps and minutes abroad still help.
+- **The draft's best undrafted rookies stay around** as free agents and CCP players instead of disappearing in the summer cleanup.
+- **Draft picks are valued by where they'll really land.** A future pick's projected spot comes from each team's outlook, not just its record:
+  - Its current strength, its players' ages and contracts, who's likely to leave, and how it's playing.
+  - The further out a pick is, the more it's pulled toward the middle, with more uncertainty.
+  - A bad team's future firsts are worth much more than a good team's.
+- **Pick swaps are worth more:** the chance the other team's pick lands higher, times how much higher. Two future swaps with a 3-win team are now worth far more than a 50-win team's #19.
+- **Taking on a bad contract has a price.** The team absorbing an overpaid contract demands picks, swaps or young players for it. How much depends on:
+  - The salary and years left, how good and how old the player is.
+  - The receiving team's cap room and timeline: a team over the tax minds most, one with room least.
+  - A contender dumping salary has to pay to do it.
+- **AI-to-AI trades are more common, and each has a reason:** a contender filling a hole from a seller, a salary dump with a sweetener, or two teams swapping surplus for need. Both teams have to come out ahead by their own read, and AI teams trade in free agency too. The trade log says why each deal happened.
+- **AI teams are patient with their high draft picks.** Every cut, waiver and rookie team option now weighs the team's draft investment.
+  - A top pick gets years of patience, and real minutes to develop, from the team that drafted him. That fades as his rookie deal runs out.
+  - A #1 pick is almost never cut in his first seasons, and a lottery pick's third-year option is nearly always picked up.
+  - Being cut doesn't lower anyone's potential. If a pick doesn't develop, his ratings and play show it over time.
+- **Roster cuts are real basketball decisions.** AI teams, and your staff when it decides for you, keep the players worth most to the team, not just the highest overalls. They weigh:
+  - Ability now, plus upside (the team's own read, worth more the younger he is) and which way he's trending.
+  - Age against the team's timeline, his role, position depth, and any skill nobody else on the roster has.
+  - His contract: guaranteed money is paid either way, so cutting it saves nothing.
+- **"Make free agency and roster decisions for me"** (easy mode; it was "Fill my roster in free agency") now also trims your roster to 15 on opening night, with the same judgment.
+- **Player cards are shared by all your leagues.** A card you create, edit or delete in one league shows up in every league's library.
+  - Applying a card still changes only that one player in that league. Editing a card later never changes players it was already applied to.
+  - Each league's own cards join the shared library the first time you open it.
 - **The height rating now mostly follows listed height,** at about 4 points an inch. Some players still play bigger or smaller than their size. Existing players' overalls don't change.
 - **Facilities help development a little,** up to +6% for the best.
 - **Playing time counts through the same capped environment.** Sitting on the bench costs a young player at most about a quarter of his growth, and less for a hard worker. It used to cost nearly half.
@@ -94,6 +139,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The variants are rarer than the name they come from.
 
 ### Fixed
+- **A rookie who looks better than expected at his first camp no longer keeps growing extra fast because of it.** His jump at camp counted twice: once at camp and again in his development plan for years after. A rookie who looked worse also grew too slowly for the same reason.
+- **AI teams no longer trade after the trade deadline.**
+- **An injured player now comes back to his spot.** On a team you run, a player who's out drops to the end of the roster with no minutes. When he's healthy, he returns to his old spot and minutes. Before, a star hurt early in the season could sit in the last slot, with no minutes, for the rest of the season.
+- **Injuries now count down in the play-in and playoffs, and free agents heal.** Before, an unsigned player's injury never healed.
 - **Work ethic now counts.** It was missing for every generated player, so it never affected development. Hard workers now grow faster and age more slowly, and scouting reports call out gym rats and questionable work ethics.
 - A big Coaching budget made veterans decline faster during the season. It now slows their decline a little.
 - The training focus preview on the Tactics screen labels the Blocks and Steals bars.
