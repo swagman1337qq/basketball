@@ -4,11 +4,12 @@
 import type { Game } from './Game';
 import { checkTrade } from './cba';
 import { mulberry32 } from './rng';
+import { pickHorizon } from './tradeLogic';
 
 export interface Offer { tid: number; mine: number[]; theirs: number[]; kMine: string[]; kTheirs: string[]; value: number; note: string }
 
 const usedPick = (g: Game, s: any, a: any) => a.yr === g.Y && s.picks.some((x: any) => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid) && !g.draftRights(a, s);
-const assetsOf = (g: Game, s: any, tid: number) => s.assets.filter((a: any) => a.owner === tid && !usedPick(g, s, a));
+const assetsOf = (g: Game, s: any, tid: number) => s.assets.filter((a: any) => a.owner === tid && a.yr <= g.Y + pickHorizon(s) && !usedPick(g, s, a));
 
 // Every single, pair and trio from a roster, each alone or with a pick or two (plus picks alone).
 function combosOf(R: number[], picks: string[], seed: number) {

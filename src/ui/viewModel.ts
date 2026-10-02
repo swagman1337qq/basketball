@@ -33,6 +33,7 @@ import { kindOf, scoutRead } from '../engine/scoutReport';
 import { liftCeil, potView, refreshPot, scoutSd, setTruePot } from '../engine/potential';
 import { draftedBy, draftedLabel, nowLabel } from '../engine/godMove';
 import { cardLib } from '../db/cards';
+import { pickHorizon } from '../engine/tradeLogic';
 import { facEffect, teamBudget } from '../engine/environment';
 import { coachMult } from '../engine/development';
 import { mulberry32 } from '../engine/rng';
@@ -206,11 +207,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // A first you're trading can carry a protection for the team giving it (not one that already has one).
   const protSel = (key, a) => { if (!s[key].includes(a.id) || a.rd !== 1 || a.prot || gm.draftRights(a, s)) return null; return { v: (s.tProt || {})[a.id] || 0, set: e => { const v = +e.target.value; gm.setState(st => ({ tProt: { ...(st.tProt || {}), [a.id]: v } })); } }; };
   // Swap rights for the years both teams' firsts are still to come (this year's until the lottery).
-  const swapYears = [gm.Y, gm.Y + 1, gm.Y + 2, gm.Y + 3].filter(yr => (yr > gm.Y || ['regular', 'playin', 'playoffs'].includes(s.phase)) && [s.me, s.tTid].every(t => s.assets.some(a => a.yr === yr && a.rd === 1 && a.orig === t)) && !(s.swaps || []).some(w => w.yr === yr && [w.from, w.to].includes(s.me) && [w.from, w.to].includes(s.tTid)));
+  const swapYears = Array.from({ length: pickHorizon(s) + 1 }, (_, i) => gm.Y + i).filter(yr => (yr > gm.Y || ['regular', 'playin', 'playoffs'].includes(s.phase)) && [s.me, s.tTid].every(t => s.assets.some(a => a.yr === yr && a.rd === 1 && a.orig === t)) && !(s.swaps || []).some(w => w.yr === yr && [w.from, w.to].includes(s.me) && [w.from, w.to].includes(s.tTid)));
   const sRow = (key, mineSide) => yr => { const id = 'swap:' + yr; return { label: yr + ' first-round swap', proj: mineSide ? 'They may swap their 1st for yours' : 'You may swap your 1st for theirs', swap: true, ...box(s[key].includes(id)), toggle: tog(key, id) }; };
   const kRow = key => a => ({ prot: protSel(key, a), label: gm.pickLabel(a, T), proj: gm.draftRights(a, s) ? (() => { const q = P[gm.draftRights(a, s).pid]; return q.age + ' · ' + est(q, 0) + '/' + est(q, 1); })() : projTxt(a), ...box(s[key].includes(a.id)), toggle: tog(key, a.id) });
   // Used picks drop off, except on draft night: an AI team's pick that hasn't signed is his draft rights.
-  const myAssets = s.assets.filter(a => a.owner === s.me && (!usedPick(a) || gm.draftRights(a, s))), theirAssets = s.assets.filter(a => a.owner === s.tTid && (!usedPick(a) || gm.draftRights(a, s)));
+  const inH = a => a.yr <= gm.Y + pickHorizon(s); // the God Mode trading horizon (tradeLogic.ts)
+  const myAssets = s.assets.filter(a => a.owner === s.me && inH(a) && (!usedPick(a) || gm.draftRights(a, s))), theirAssets = s.assets.filter(a => a.owner === s.tTid && inH(a) && (!usedPick(a) || gm.draftRights(a, s)));
   const send = s.tMine.map(id => P[id]), get = s.tTheirs.map(id => P[id]);
   const out = send.reduce((a, p) => a + gm.capHit(p), 0), inc = get.reduce((a, p) => a + gm.capHit(p), 0), after = payroll - out + inc;
   const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs), salOk = chk.ok, rosOk = true;
@@ -237,7 +239,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const setOf = patch => gm.setState(st => ({ offers: st.offers ? { ...st.offers, ...patch } : null }));
   const load = o => ({ tTid: o.tid, tMine: o.mine, tTheirs: o.theirs, tkMine: o.kMine, tkTheirs: o.kTheirs });
   const offersV = !OF ? null : {
-    title: OF.kind === 'shop' ? 'Offers for ' + OF.what : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
+    title: OF.kind === 'incoming' ? 'Trade offers to you' : OF.kind === 'shop' ? 'Offers for ' + OF.what : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
     loading: !!OF.loading, count: OF.list.length, pos: OF.list.length ? OF.i + 1 : 0, empty: !OF.loading && OF.list.length === 0,
     emptyMsg: OF.kind === 'shop' ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' + (s.phase === 'regular' && s.day > DAY.TRADE_DEADLINE ? ' (the trade deadline has passed)' : '') + '.' : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
     ...(ofc ? { logo: logo(ofc.tid, 34), team: T[ofc.tid].region + ' ' + T[ofc.tid].name, strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0], note: ofc.note,
@@ -245,8 +247,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       gm: T[ofc.tid].gm, advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null } : {}),
     askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })), adviceOn: !!s.ofAdvice,
     prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }), next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
-    accept: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null }); gm.propose(); },
-    decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) } }; }),
+    accept: () => { if (!ofc) return; gm.setState(st => ({ ...load(ofc), offers: null, ...(OF.kind === 'incoming' ? { inOffers: (st.inOffers || []).filter(o => o.id !== ofc.id) } : {}) })); gm.propose(); },
+    decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const gone = o.list[o.i], list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) }, ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}) }; }),
     negotiate: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null, tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”' }); },
     close: () => gm.setState({ offers: null }) };
   const teamOptions = alphaTeams(T.filter(t => t.tid !== s.me)).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
@@ -507,6 +509,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const natRows = Object.keys(C).filter(c => s.natW[c] !== undefined).sort((x, y) => (s.natW[y] || 0) - (s.natW[x] || 0)).map(c => ({ flag: gm.flag(c), name: C[c].n, w: s.natW[c], share: ((s.natW[c] || 0) / natTot * 100).toFixed(1) + '%', set: e => { const v = Math.max(0, +e.target.value || 0); gm.setState(st => ({ natW: { ...st.natW, [c]: v } })); }, open: openC(c) }));
   const capEasySet = { on: !!s.capEasy, toggle: () => gm.setState(st => ({ capEasy: !st.capEasy })) };
   const salesSet = { v: s.teamSales ?? 'real', set: (v: string) => gm.setState({ teamSales: v }) };
+  // God Mode: how many drafts ahead picks can be traded (tradeLogic.ts; default 4).
+  const pickYearsSet = { v: pickHorizon(s), set: (n: number) => gm.setState(st => { const st2 = { ...st, pickYears: n }; return { pickYears: n, assets: gm.ensureAssets(st2) }; }) };
+  // Trade offers AI teams brought you (Trade → Offers to you).
+  const inOffersV = { count: (s.inOffers || []).length, open: () => gm.setState(st => ({ offers: { kind: 'incoming', what: '', list: (st.inOffers || []).map(o => ({ id: o.id, tid: o.a, mine: o.bP, theirs: o.aP, kMine: o.bK, kTheirs: o.aK, value: 0, note: o.why })), i: 0 } })) };
   const firing = { on: s.ownerFiring !== false && !s.god, label: s.god ? 'God Mode is on: you can’t be fired' : s.ownerFiring === false ? 'Off: owners review you but can’t fire you' : 'On: owners fire you if their written conditions are broken', btn: s.ownerFiring === false ? 'Turn on' : 'Turn off', toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })) };
   const god = { on: !!s.god, label: s.god ? 'On' : 'Off', btn: s.god ? 'Turn off' : 'Turn on', toggle: () => gm.setState(st => ({ god: !st.god, ...(st.god && st.screen === 'cards' ? { screen: 'dash' } : {}) })) };
   const gp = gm.gamesPlayed(s), PH = [['regular', 'Regular season'], ['playin', 'Play-in'], ['playoffs', 'Playoffs'], ['lottery', 'Lottery'], ['draft', 'Draft'], ['prefa', 'Pre-Free Agency'], ['fa', 'Free agency'], ['preseason', 'Preseason']];
@@ -582,6 +588,6 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     fin, q: s.q, onSearch: e => gm.setState({ q: e.target.value }), matches, hasMatches: matches.length > 0, searchIcon: icon('search'),
     books: [{ k: 'Payroll', v: money(payroll) }, { k: capRoom >= 0 ? 'Cap space' : 'Over the cap', v: money(Math.abs(capRoom)) }, { k: 'Room under tax', v: money(gm.TAX - payroll) }, { k: 'Mid-level', v: (() => { const e = exceptionsOf(gm, s, s.me); return e.used.includes('ntmle') || e.used.includes('tpmle') ? 'Used' : e.used.includes('cap') ? 'Room exc. ' + money(e.room) : money(e.ntmle); })() }, { k: 'Next pick', v: myNext ? '#' + myNext.n : '—' }],
     log: s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P }) })), noLog: s.log.length === 0,
-    lm, hasList: !!s.listModal, closeList: () => gm.setState({ listModal: null }), scoutRegions, scoutsV, promisesV, noPromises: promisesV.length === 0, repV, ovRows, tacV, natRows, resetNat: () => gm.setState({ natW: natDefault() }), devRows, coachV, reportsV, noReports: s.reports.length === 0, own, god, firing, salesSet, capEasySet, isGod: !!s.god, ph, pov, settings, hasProg, progRows, hasTeamModal: !!tmT, tm, closeTeam: goBack, viewTradeTeam: openTeam(s.tTid), themeLabel: dark ? 'Light mode' : 'Dark mode', toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }), rootRef, hasModal: !!s.modal, closeModal: goBack, goBack, ptabs, ext, goTab: (k: string) => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), hasDialog: !!dg, dlg, closeDialog: () => gm.setState({ dialog: null }), stop: e => e.stopPropagation()
+    pickYearsSet, inOffersV, lm, hasList: !!s.listModal, closeList: () => gm.setState({ listModal: null }), scoutRegions, scoutsV, promisesV, noPromises: promisesV.length === 0, repV, ovRows, tacV, natRows, resetNat: () => gm.setState({ natW: natDefault() }), devRows, coachV, reportsV, noReports: s.reports.length === 0, own, god, firing, salesSet, capEasySet, isGod: !!s.god, ph, pov, settings, hasProg, progRows, hasTeamModal: !!tmT, tm, closeTeam: goBack, viewTradeTeam: openTeam(s.tTid), themeLabel: dark ? 'Light mode' : 'Dark mode', toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }), rootRef, hasModal: !!s.modal, closeModal: goBack, goBack, ptabs, ext, goTab: (k: string) => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), hasDialog: !!dg, dlg, closeDialog: () => gm.setState({ dialog: null }), stop: e => e.stopPropagation()
   };
 }

@@ -35,6 +35,7 @@ import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SK
 import { fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, teamRead } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
+import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -81,6 +82,7 @@ export class Game {
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.db.ceilV = 1; // and every player with his own ceilings (potential.ts)
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
+    g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -158,6 +160,7 @@ export class Game {
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
     // ceilings are set so a typical career reaches it, and the league's read of it starts a little off.
     // 2026-10: the height rating mostly follows his listed height now (ratings.ts); his overall doesn't move.
+    g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon
     if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
@@ -969,6 +972,8 @@ export class Game {
       const P = this.db.P, watch = box.fa.filter(id => s.offered?.[id] || (P[id].birdTid != null && this.isUser(s, P[id].birdTid)));
       for (let d = 0; d < n; d++) { const fd = fd0 + d, pace = Game.faPace(fd), moves = Math.floor(pace) + (Math.random() < pace % 1 ? 1 : 0), st = { ...s, day: s.day + d };
         aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99); easyFreeAgency(this, st, box, lgLog); done++;
+        // The summer trade market (tradeLogic.ts): AI teams deal for a reason here too.
+        if (Math.random() < 0.3) { const bx: any = box; bx.assets = bx.assets || s.assets; const st3 = { ...st, rosters: box.rosters, cap: box.cap, assets: bx.assets }; for (let i = 0; i < 4; i++) { const x = aiTradeIdea(this, st3); if (x) { lgLog.unshift(this.execTrade(st3, bx, x, st.day)); break; } } }
         if (fd === 10) lgLog.unshift(...aiExtensions(this, { ...st, rosters: box.rosters, cap: box.cap }, 0.45)); // July: the first extension window
         if (offerSheets.length > sheets0 && !s.easy?.cap) break; } // stop the clock: one of your restricted free agents got an offer sheet
       // Easy mode answers offer sheets for your restricted free agents.
@@ -1130,6 +1135,7 @@ export class Game {
   // players still on the roster become standard contracts; short clubs sign minimum deals.
   startSeason() {
     this.healIdle(this.state);
+    this.setState(st => ({ assets: this.ensureAssets(st) })); // a new year of picks joins the trading horizon
     // Safety net: every overall matches its ratings on opening night (ratings.ts).
     (Object.values(this.db.P) as any[]).forEach(p => { if (p.r && !p.retired && !p.gone) syncOvr(p); });
     this.setState(s => {
@@ -1202,8 +1208,10 @@ export class Game {
   }
   // Expected slot under the 3-2-1 lottery (the worst records no longer mean the best odds).
   // This year's firsts use the draft board's order, so the two always agree.
-  projSlot(k, T) { if (k.yr === this.Y && (k.rd || 1) === 1) { const x = this.boardOrder().find(p => (p.rd || 1) === 1 && p.orig === k.orig); if (x) return x.n; }
-    const s = expectedByRank(T.length)[this.slotOf(k.orig, T)] ?? this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
+  // For future years: the team outlook (tradeLogic.ts): projected strength from the roster, ages and
+  // contracts, pulled toward the middle the further out it is.
+  projSlot(k, T) { if (k.yr === this.Y && (k.rd || 1) === 1) { const x = this.boardOrder().find(p => (p.rd || 1) === 1 && p.orig === k.orig); if (x && this.gamesPlayed(this.state) > 0) return x.n; }
+    void T; return slotDist(this, this.state, k.orig, k.yr).reduce((a, [sl, w]) => a + sl * w, 0); }
   // Team tid's read of a player's potential (potential.ts): its own staff's for its own players, its
   // scouts' (the league's read plus their miss; the budget buys accuracy) for everyone else. God Mode:
   // you see the truth.
@@ -1221,23 +1229,22 @@ export class Game {
     const M = { rebuild: [p.age >= 29 ? 0.55 : 0.9, 1.7, 0.35], middle: [0.9, 1.4, 1.0], contend: [1.35, 0.5, 0.75] }[st];
     let v = base * agePen * M[0] + youth * M[1];
     if (st === 'middle' && p.age <= 24 && pot >= 60) v += 8;
-    return v - (p.amt - this.fair(p.ovr)) * Math.max(1, p.exp - (this.Y - 1)) * 0.35 * M[2];
+    return v + contractValue(this, p, tid == null ? 0.35 * M[2] : contractK(this, this.state, tid, st)); // tradeLogic: a bad contract costs more near the tax, less with room
   }
   kVal(k, st, giving, T) {
     // Draft rights are worth the player (on his rookie deal), not the slot.
     const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return Math.max(2, this.pVal({ ...p, amt: (r.rd || 1) === 1 ? this.rookieAmt(r.n) : nums(this).min(0), exp: this.Y + 4 }, st)); }
-    const slot = this.projSlot(k, T);
-    let v = k.rd === 1 ? (4 + 34 * Math.pow((31 - slot) / 30, 1.6)) * protFactor(slot, k.prot) : 2.5;
-    v *= k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.92 : 0.85;
+    // Expected value over where it could land (tradeLogic.ts: the team outlook, uncertainty growing by year).
+    void T; const v = pickWorth(this, this.state, k);
     return v * ({ rebuild: [1.6, 1.6], middle: [1.05, 1.45], contend: [0.7, 0.75] }[st][giving ? 1 : 0]);
   }
   // A pick in a trade, with any protection you're attaching to it (s.tProt).
   tradeAsset(s, id) { const a = s.assets.find(x => x.id === id); if (!a) return null; const pr = (s.tProt || {})[id]; return pr && !a.prot && a.rd === 1 ? { ...a, prot: pr } : a; }
   // Swap rights ("swap:2028"): the holder may trade its own first for the grantor's that year if the
   // grantor's lands higher. Worth the expected gain (bigger when the grantor looks worse) plus a little.
-  swapVal(yr, holder, grantor, st, T) { const pk = (orig: number) => ({ yr, rd: 1, orig, owner: orig, id: 'x' }); const d = this.kVal(pk(grantor), st, false, T) - this.kVal(pk(holder), st, false, T); return 1 + Math.max(0, d) * 0.7 + Math.max(-2, d) * 0.1; }
+  swapVal(yr, holder, grantor, st, T, giving = false) { void T; return swapWorth(this, this.state, yr, holder, grantor) * ({ rebuild: [1.6, 1.6], middle: [1.05, 1.45], contend: [0.7, 0.75] } as any)[st || 'middle'][giving ? 1 : 0]; } // tradeLogic: expected gain under uncertainty
   static isSwap = (id: any) => typeof id === 'string' && id.startsWith('swap:');
-  tradeItemVal(s, id, st, giving, holder, grantor) { if (Game.isSwap(id)) return this.swapVal(+id.slice(5), holder, grantor, st, s.teams); const a = this.tradeAsset(s, id); return a ? this.kVal(a, st, giving, s.teams) : 0; }
+  tradeItemVal(s, id, st, giving, holder, grantor) { if (Game.isSwap(id)) return this.swapVal(+id.slice(5), holder, grantor, st, s.teams, giving); const a = this.tradeAsset(s, id); return a ? this.kVal(a, st, giving, s.teams) : 0; }
   tradeItemLabel(s, id, T) { if (Game.isSwap(id)) return id.slice(5) + ' first-round swap rights'; const a = this.tradeAsset(s, id); return a ? this.pickLabel(a, T) : ''; }
   evalTrade(s, mine, theirs, kMine, kTheirs) {
     const P = this.db.P, st = this.strategies(s.teams)[s.tTid];
@@ -1432,6 +1439,20 @@ export class Game {
 
   // One random move by an AI-run team: a signing (through a CBA method, within its owner's
   // budget), a like-for-like trade that passes the league office, or a waiver to open a spot.
+  // Carry out an AI-to-AI trade (tradeLogic.ts) and log it with its reason.
+  execTrade(st, box, x, day) {
+    const P = this.db.P, T = st.teams;
+    tradeCap(this, st, box.cap, x.a, x.b, x.aP, x.bP); recordTrade(this, st, x.a, x.b, x.aP, x.bP, x.aK, x.bK);
+    box.rosters[x.a] = [...box.rosters[x.a].filter(id => !x.aP.includes(id)), ...x.bP]; box.rosters[x.b] = [...box.rosters[x.b].filter(id => !x.bP.includes(id)), ...x.aP];
+    const nm = (ps, ks) => [...ps.map(id => P[id].name), ...ks.map(id => 'a ' + this.pickLabel(box.assets.find(k => k.id === id), T) + ' pick')].join(' and ') || 'nothing';
+    const text = T[x.a].region + ' traded ' + nm(x.aP, x.aK) + ' to ' + T[x.b].region + ' for ' + nm(x.bP, x.bK) + ' (' + x.why + ')';
+    box.assets = box.assets.map(k => x.aK.includes(k.id) ? { ...k, owner: x.b } : x.bK.includes(k.id) ? { ...k, owner: x.a } : k);
+    return { day, type: 'Trade', teams: T[x.a].abbr + ' · ' + T[x.b].abbr, pids: [...x.aP, ...x.bP], got: x.bP[0] ?? null, text }; // got: the main player the first team took in (press story)
+  }
+  // Every team's picks exist through the trading horizon (God Mode setting; default four drafts ahead).
+  ensureAssets(s = this.state) { const H = pickHorizon(s), have = new Set((s.assets || []).map(a => a.id)), add: any[] = [];
+    for (let yr = this.Y + 1; yr <= this.Y + H; yr++) s.teams.forEach(t => [1, 2].forEach(rd => { const id = yr + '-' + rd + '-' + t.tid; if (!have.has(id)) add.push({ id, yr, rd, orig: t.tid, owner: t.tid }); }));
+    return add.length ? [...(s.assets || []), ...add] : s.assets; }
   aiMove(box, day, s) {
     const P = this.db.P, T = s.teams, ai = T.map(t => t.tid).filter(t => !this.isUser(s, t)), r = Math.random(), tid = () => ai[Math.floor(Math.random() * ai.length)];
     if (!ai.length) return null;
@@ -1441,31 +1462,12 @@ export class Game {
       if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.teamCeiling(T[t])) return null;
       if (p.waived?.season === this.Y && p.waived.prevAmt > nums(this).NTMLE && teamSalary(this, st, t) > this.AP1) return null;
       return { day, type: 'Signing', teams: T[t].abbr, pids: [id], text: applySigning(this, st, box, t, p, terms) }; }
-    // A contender buys: a player plus its own first-round pick for a better veteran from a rebuilding club.
-    if (r < .6 && box.assets && s.day < DAY.TRADE_DEADLINE) {
-      const strat = this.strategies(T, s), con = ai.filter(t => strat[t] === 'contend'), reb = ai.filter(t => strat[t] === 'rebuild');
-      if (con.length && reb.length) {
-        const a = con[Math.floor(Math.random() * con.length)], b = reb[Math.floor(Math.random() * reb.length)];
-        const k = box.assets.filter(x => x.owner === a && x.orig === a && x.rd === 1 && x.yr > this.Y).sort((x, y) => x.yr - y.yr)[0];
-        const top3 = box.rosters[a].map(id => P[id]).sort((x, y) => y.ovr - x.ovr).slice(0, 3).map(p => p.id);
-        for (const pb of box.rosters[b].map(id => P[id]).filter(p => p.age >= 25 && p.ovr >= 54).sort((x, y) => y.ovr - x.ovr).slice(0, 3)) {
-          if (!k) break;
-          // Outgoing: lesser players (not the contender's top three), biggest salaries first, until the money works.
-          const pool = box.rosters[a].map(id => P[id]).filter(p => !top3.includes(p.id) && p.ovr <= pb.ovr - 3).sort((x, y) => y.amt - x.amt), out: any[] = [];
-          for (const p of pool) { if (out.reduce((t, x) => t + x.amt, 0) >= pb.amt * 0.8 || out.length >= 2) break; if (p.amt <= pb.amt * 1.25) out.push(p); }
-          const ids = out.map(p => p.id);
-          if (!ids.length || !checkTrade(this, st, a, b, ids, [pb.id], [k.id], []).ok) continue;
-          tradeCap(this, st, box.cap, a, b, ids, [pb.id]); recordTrade(this, st, a, b, ids, [pb.id], [k.id], []);
-          box.rosters[a] = [...box.rosters[a].filter(x => !ids.includes(x)), pb.id]; box.rosters[b] = [...box.rosters[b].filter(x => x !== pb.id), ...ids];
-          box.assets = box.assets.map(x => x.id === k.id ? { ...x, owner: b } : x);
-          return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [...ids, pb.id], text: T[a].region + ' traded ' + out.map(p => p.name).join(' and ') + ' and a ' + this.pickLabel(k, T) + ' pick to ' + T[b].region + ' for ' + pb.name };
-        }
-      }
-    }
-    if (r < .75) { const a = tid(), b = tid(); if (a === b) return null; const pa = box.rosters[a][3 + Math.floor(Math.random() * 9)]; if (!pa) return null; const c = box.rosters[b].filter(id => Math.abs(P[id].ovr - P[pa].ovr) <= 3 && Math.abs(P[id].amt - P[pa].amt) <= P[pa].amt * .3 + 2); if (!c.length) return null; const pb = c[Math.floor(Math.random() * c.length)];
-      if (!checkTrade(this, st, a, b, [pa], [pb], [], []).ok) return null;
-      tradeCap(this, st, box.cap, a, b, [pa], [pb]); recordTrade(this, st, a, b, [pa], [pb]);
-      box.rosters[a] = box.rosters[a].map(x => x === pa ? pb : x); box.rosters[b] = box.rosters[b].map(x => x === pb ? pa : x); return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [pa, pb], text: T[a].region + ' traded ' + P[pa].name + ' to ' + T[b].region + ' for ' + P[pb].name }; }
+    // Trades for a reason (tradeLogic.ts): a contender fills a hole from a seller, a team over the tax
+    // pays one with room to take a contract, two teams swap surplus for need. Both sides must come out
+    // ahead by their own read, and the league office must approve; no deal, no trade.
+    if (r < .85 && box.assets && day < DAY.TRADE_DEADLINE) { const st2 = { ...st, assets: box.assets };
+      for (let i = 0; i < 6; i++) { const x = aiTradeIdea(this, st2); if (x) return this.execTrade(st2, box, x, day); }
+      return null; }
     // A waiver: the least valuable player (rosterAI: worth to this team, the draft investment included),
     // only for a free agent clearly worth more to the team.
     const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < 15) return null; const st2 = { ...st, rosters: box.rosters }, cut = pickCut(this, st2, t, box.rosters[t]); if (!cut) return null; const w = cut.p;
@@ -1508,7 +1510,7 @@ export class Game {
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
     let news = s.news || [];
-    if (Math.random() < .35) { const e = this.aiMove(box, day, s); if (e) { lgLog.unshift(e); if (e.type === 'Trade' && Math.random() < .6) { const ab = e.teams.split(' · '), tid = s.teams.find(t => t.abbr === ab[0])?.tid; if (tid != null) news = [this.pressTrade(s, tid, this.db.P[e.pids[1]].name, [e.pids[1]]), ...news].slice(0, 80); } } }
+    if (Math.random() < .35) { const e = this.aiMove(box, day, s); if (e) { lgLog.unshift(e); if (e.type === 'Trade' && Math.random() < .6) { const ab = e.teams.split(' · '), tid = s.teams.find(t => t.abbr === ab[0])?.tid; const got = (e as any).got ?? e.pids[1]; if (tid != null && got != null && this.db.P[got]) news = [this.pressTrade(s, tid, this.db.P[got].name, [got]), ...news].slice(0, 80); } } }
     const tstats = { ...(s.tstats || {}) };
     Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
@@ -1554,7 +1556,20 @@ export class Game {
     s.managed.forEach(t => { const mine = [...inj.filter(x => x.mine && x.tid === t).reverse().map(x => x.text), ...(cbaLog[t] || [])]; if (mine.length) addClub(t, c => ({ log: [...mine.map(text => ({ date: this.fmtS(day), day, text })), ...(c.log || [])] })); });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
     ccpPlay(this, { ...s, fa: box.fa, rosters: box.rosters }, dnOf(this.Y, this.dateOf(day))); // today's CCP games
-    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    // AI teams call you with trades that fit their plans (tradeLogic.ts offerToUser); an offer lasts about
+    // ten days, and goes away if the players in it move.
+    let inOffers = (s.inOffers || []).filter((o: any) => day - o.day <= 10 && day < DAY.TRADE_DEADLINE && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
+    let notices = patch.notices ?? s.notices;
+    let offerPast: string[] = s.offerPast || []; const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
+    if (day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
+      const st2 = { ...s, rosters: box.rosters, cap: box.cap, assets: box.assets }; let x: any = null;
+      for (let i = 0; i < 4 && !x; i++) { x = offerToUser(this, st2, (gp, gv, gk, gvk) => teamGain(this, st2, s.me, gp, gv, gk, gvk)); if (x && offerPast.includes(okey(x))) x = null; }
+      if (x) offerPast = [...offerPast, okey(x)].slice(-80);
+      if (x && !inOffers.some((o: any) => o.a === x.a)) { const T = s.teams, nm = (ps, ks) => [...ps.map(id => this.db.P[id].name), ...ks.map(id => this.pickLabel(box.assets.find(k => k.id === id), T) + ' pick')].join(', ') || 'nothing';
+        inOffers = [...inOffers, { ...x, id: 'o' + this.Y + '-' + day + '-' + x.a, day }];
+        notices = addNotice({ notices }, { tone: 'info', title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name, lines: [x.why, 'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.', 'Open Trade → Offers to you to accept, negotiate or decline. It stands for about ten days.'], pids: [...x.aP, ...x.bP] }); }
+    }
+    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, inOffers, offerPast, notices, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
   // Rotation order by rating: healthy players first, two-way players after the standard contracts.

@@ -31,6 +31,9 @@ export function TradeScreen({ vm }: { vm: VM }) {
     </div>);
   return (
     <>
+      {vm.inOffersV.count > 0 && !O && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10, padding: '8px 12px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)' }}>
+        <span>📞 {vm.inOffersV.count === 1 ? 'A team has' : vm.inOffersV.count + ' teams have'} called with a trade offer.</span>
+        <button className="btn btn-primary" onClick={vm.inOffersV.open} style={{ marginLeft: 'auto', fontSize: '12.5px' }}>Offers to you ({vm.inOffersV.count})</button></div>}
       {!!O && (
         <section style={{ marginBottom: 18, padding: "12px 14px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", background: "color-mix(in srgb, var(--color-accent) 6%, transparent)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>

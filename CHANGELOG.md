@@ -5,6 +5,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-02
 
 ### Added
+- **AI teams call you with trade offers.** Every offer has a reason that fits the team's plans:
+  - A contender, or a team on the rise, after one of your players at the position it needs.
+  - A rebuilding team moving a veteran for your young players or picks.
+  - A team over the tax paying you to take a contract, when you have the room.
+  - You get a notice when an offer arrives. Under Trade → Offers to you, you can accept, negotiate or decline; an offer stands for about ten days, and the same offer isn't made twice.
+- **God Mode: how far ahead picks can be traded** (Settings → Trading picks). The default is four drafts ahead (the NBA allows seven), and it applies to every team, including the AI.
 - **Injuries show games and days,** for example "5 games / 12 days".
   - Games count down as his team plays; days count down on the calendar.
   - Over the summer the days keep running while the games wait for next season.
@@ -81,6 +87,16 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **Draft picks are valued by where they'll really land.** A future pick's projected spot comes from each team's outlook, not just its record:
+  - Its current strength, its players' ages and contracts, who's likely to leave, and how it's playing.
+  - The further out a pick is, the more it's pulled toward the middle, with more uncertainty.
+  - A bad team's future firsts are worth much more than a good team's.
+- **Pick swaps are worth more:** the chance the other team's pick lands higher, times how much higher. Two future swaps with a 3-win team are now worth far more than a 50-win team's #19.
+- **Taking on a bad contract has a price.** The team absorbing an overpaid contract demands picks, swaps or young players for it. How much depends on:
+  - The salary and years left, how good and how old the player is.
+  - The receiving team's cap room and timeline: a team over the tax minds most, one with room least.
+  - A contender dumping salary has to pay to do it.
+- **AI-to-AI trades are more common, and each has a reason:** a contender filling a hole from a seller, a salary dump with a sweetener, or two teams swapping surplus for need. Both teams have to come out ahead by their own read, and AI teams trade in free agency too. The trade log says why each deal happened.
 - **AI teams are patient with their high draft picks.** Every cut, waiver and rookie team option now weighs the team's draft investment.
   - A top pick gets years of patience, and real minutes to develop, from the team that drafted him. That fades as his rookie deal runs out.
   - A #1 pick is almost never cut in his first seasons, and a lottery pick's third-year option is nearly always picked up.
@@ -114,6 +130,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The variants are rarer than the name they come from.
 
 ### Fixed
+- **AI teams no longer trade after the trade deadline.**
 - **An injured player now comes back to his spot.** On a team you run, a player who's out drops to the end of the roster with no minutes. When he's healthy, he returns to his old spot and minutes. Before, a star hurt early in the season could sit in the last slot, with no minutes, for the rest of the season.
 - **Injuries now count down in the play-in and playoffs, and free agents heal.** Before, an unsigned player's injury never healed.
 - **Work ethic now counts.** It was missing for every generated player, so it never affected development. Hard workers now grow faster and age more slowly, and scouting reports call out gym rats and questionable work ethics.

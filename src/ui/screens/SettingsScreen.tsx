@@ -117,6 +117,12 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             {vm.capEasySet.on ? 'Turn off' : 'Turn on'}
           </button>
         </div>
+        {vm.god.on && <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", color: GOD_PINK }}>Trading picks</div>
+          <div><div>Picks can be traded up to {vm.pickYearsSet.v} draft{vm.pickYearsSet.v === 1 ? '' : 's'} ahead</div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>God Mode: how far into the future every team, you and the AI, can trade draft picks and pick swaps. Default 4 (the NBA allows 7). Picks further out stay with their teams until they come into range.</div></div>
+          <select className="input" value={vm.pickYearsSet.v} onChange={e => vm.pickYearsSet.set(+e.target.value)} style={{ width: "auto" }}>{[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} year{n === 1 ? '' : 's'}</option>)}</select>
+        </div>}
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Team sales
