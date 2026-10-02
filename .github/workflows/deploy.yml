@@ -1,42 +1,34 @@
-# Builds the site and publishes it to GitHub Pages (free).
-# One-time setup: repo Settings → Pages → Source: "GitHub Actions".
+# Publishes the site on every push to the development branch: builds it and pushes the files
+# to the gh-pages branch, which GitHub Pages serves at https://swagman1337qq.github.io/basketball/
+# (live about a minute later). It runs the same script as `npm run deploy`
+# (scripts/deploy-pages.sh). No setup needed: Pages already serves the gh-pages branch.
+# Run it by hand from the Actions tab (Deploy to GitHub Pages → Run workflow).
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [claude/basketball-gm-website-2h8gs7]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # to push the built site to gh-pages
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false # let a deploy finish; the newest push is queued after it
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Build and publish to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm run deploy

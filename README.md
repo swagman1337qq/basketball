@@ -12,7 +12,7 @@ The UI is built from the Claude Design handoff ("Basketball GM redesign", Classi
 |---|---|---|
 | Framework | **React 19 + TypeScript**, built with **Vite** | Same model as the prototype (components + a view model), fast dev server, static output. |
 | Database | **IndexedDB** in the browser, via **Dexie** | There's no server and no account. Leagues save automatically and work offline. Use Export/Import to back up or move a league. |
-| Hosting | **GitHub Pages** (workflow included) | Free static hosting. Netlify, Cloudflare Pages or Vercel also work: upload `dist/`. |
+| Hosting | **GitHub Pages**, published by GitHub Actions on every push | Free static hosting. Netlify, Cloudflare Pages or Vercel also work: upload `dist/`. |
 | Fonts & flags | Bundled locally (`@fontsource`, `flag-icons`, MIT/OFL) | No third-party requests at runtime. |
 
 A server database (such as Supabase or Firebase) only becomes useful if you later want accounts, cloud saves across devices, or multiplayer. The save format (`Game.toSave()`) is plain JSON, so you can move to one later.
@@ -30,10 +30,12 @@ npm run preview    # serve the production build
 
 **https://swagman1337qq.github.io/basketball/**
 
-The site is published from the `gh-pages` branch (built files only). To publish the latest code:
+The site is published from the `gh-pages` branch (built files only). **Every push to `claude/basketball-gm-website-2h8gs7` publishes it automatically**: the GitHub Actions workflow (`.github/workflows/deploy.yml`) builds the site and pushes it to `gh-pages`, and it's live about a minute later. Watch it under the repo's **Actions** tab, or rerun it there with **Run workflow**. If nothing in the built site changed (a docs-only commit, say), it says so and publishes nothing.
+
+To publish by hand instead (same script):
 
 ```bash
-npm run deploy     # builds and pushes dist/ to gh-pages; live in about a minute
+npm run deploy     # builds and pushes dist/ to gh-pages; DRY_RUN=1 builds without pushing
 ```
 
 Saves live in each browser (IndexedDB), so every player keeps their own leagues; use Export/Import in Settings to move a league between devices.
