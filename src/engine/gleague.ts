@@ -5,7 +5,8 @@
 // the affiliate earn their bonus), and G League teams keep "returning rights" to their
 // own players from last season. Two-way players split time between the club and its
 // affiliate. Playing time there helps young players grow.
-import { syncOvr } from './ratings';
+import { ovrShare, syncOvr } from './ratings';
+import { applyChange, skillChange, skillWeights } from './development';
 import type { Game } from './Game';
 
 const AFFIL: Record<string, string> = {
@@ -52,7 +53,7 @@ export function placeInGLeague(g: Game, s: any, fa: number[], rnd: () => number 
 export function gLeagueTick(g: Game, fa: number[], gamesSoFar: number) {
   const P = g.db.P;
   fa.forEach(id => { const p = P[id]; if (!p?.gl || p.gl.tid == null) return;
-    if (p.age <= 25) { p.glx = (p.glx || 0) + (p.age <= 22 ? 0.3 : 0.18); const w = Math.trunc(p.glx); if (w && p.ovr < p.pot) { p.glx -= w; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.min(100, p.r[k] + w); }); syncOvr(p); } }
+    if (p.age <= 25) { p.glx = (p.glx || 0) + (p.age <= 22 ? 0.3 : 0.18); const w = Math.trunc(p.glx); if (w && p.ovr < p.pot) { p.glx -= w; applyChange(p, skillChange(p, w * (1 - ovrShare(p.grp, 'hgt')), skillWeights(p, { year: g.Y }))); syncOvr(p); } }
     if (!p.ccpS) Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6))); }); // CCP games replace the estimate once he plays
 }
 

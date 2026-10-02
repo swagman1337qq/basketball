@@ -31,6 +31,7 @@ import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
+import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -74,6 +75,7 @@ export class Game {
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
+    g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -146,6 +148,8 @@ export class Game {
     if (!g.db.ownersV) { const st = { ...g.state, teams: g.state.teams.map((t: any) => ({ ...t })) }; placeNamedOwners(st.teams, tid => g.isUser(g.state, tid)); g.state = { ...g.state, teams: st.teams }; g.db.ownersV = 1; }
     // 2026-10: owners get a background each (how the money was made, how they got the team), stored so it never changes.
     // 2026-10: draft surprises. Prospects (and this June's draftees who haven't been to camp yet) get their hidden translation.
+    // 2026-10: prospects not yet in the league get a body ahead of their game, like new ones (development.ts).
+    if (!g.db.bodyV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } }); }); g.db.bodyV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
     if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
     // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
@@ -184,6 +188,7 @@ export class Game {
     Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.wOvr) { const w = Math.round(wngBonus(p)); p.ovr = Math.max(1, Math.min(100, p.ovr + w)); p.pot = Math.max(p.ovr, Math.min(100, p.pot + w)); p.wOvr = 1; } });
     // Saves from before the Team player trait: hand it out the same way new players get it.
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.streaky === undefined) p.pers.streaky = ((p.id * 2246822519) >>> 0) % 100 < 12; }); // 2026-10: the Streaky trait
+    Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.work == null) p.pers.work = workEthicOf(p.id); }); // 2026-10: every player has a work ethic (it was missing)
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
@@ -449,12 +454,14 @@ export class Game {
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
     p.pers.legacy = rnd() < .12; // legacy-driven
     p.pers.streaky = ((p.id * 2246822519) >>> 0) % 100 < 12; // streaky shooter (from his id, so world generation is unchanged)
+    p.pers.work = workEthicOf(p.id); // work ethic, 0–100 (development.ts), also from his id
     p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (rnd() + rnd() + rnd() - 1.5) * 45))); // hidden: how open he is to change
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
+    if (!cls && age <= 23) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     if (cls) ensureTranslation(p); // how his game will translate to the NBA: hidden until his first camp (translation.ts)
     P[p.id] = p; return p;
@@ -466,7 +473,9 @@ export class Game {
   prospectPot(p, rnd: () => number = Math.random) {
     const z = (rnd() + rnd() + rnd() + rnd() - 2) * 1.732, gen = rnd() < 0.01 ? 7 : 0;
     // The top of the scale stretches: a one-in-a-hundred prospect becomes a 75+ superstar.
-    return Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + 6), 40, 95));
+    const pot = Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + 6), 40, 95));
+    bodyAhead(p, pot - p.ovr); syncOvr(p); // his body arrives ahead of his game (development.ts)
+    return pot;
   }
   rng(seed) { return mulberry32(seed); }
   cl(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -970,22 +979,23 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
-      const P = this.db.P, d = this.db, Y = this.Y + 1, coachOf = k => { const c = this.clubOf(s, +k); return c ? (c.budget.Coaching - 18) / 12 : 0; }, progBy: Record<number, any[]> = {};
+      const P = this.db.P, d = this.db, Y = this.Y + 1, coachOf = k => { const c = this.clubOf(s, +k); return c ? coachMult(c.budget.Coaching) : 1; }, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
       Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
-      const grow = (p, bonus) => { if (p.age < 24 && (p.minorCount || 0) >= 4) { bonus -= 2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
+      const grow = (p, cm = 1, focus = 'Balanced') => { let pen = 0; if (p.age < 24 && (p.minorCount || 0) >= 4) { pen = -2; p.pot = Math.max(p.ovr, p.pot - 1 - Math.floor(Math.random() * 3)); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
-        let x = rate * this.devMult(p, rate) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + bonus;
+        let x = rate * this.devMult(p, rate) * (rate > 0 ? cm : coachAging(cm)) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + pen;
         // Luck can carry him past his ceiling, but only partly: most of an overshoot is given back
         // (otherwise good luck raises the ceiling for good while bad luck is grown back: a ratchet).
         { const over = p.ovr + x - (p.pot + 1); if (over > 0) x -= over * 0.65; }
         let potD = 0; if (a <= 24 && p.pot - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
-        // The year's change goes into his ratings (height aside), and the overall follows them.
-        const dlt = Math.round(x), from = p.ovr, hf = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
-        Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(p.r[k] + dlt * hf + (Math.random() - .5) * 4, 4, 100)); });
-        syncOvr(p);
+        // The year's change goes into his ratings his own way (development.ts): his body on its own
+        // track, the rest into his skills by his development profile and focus, with a little noise.
+        const from = p.ovr, dl = develop(p, x, 0.5, { year: this.Y, focus, keys: Game.FOCUS[focus], work: wk, slow: this.devMult(p, -1), rnd: Math.random });
+        SKILLS.forEach(k => (dl[k] = (dl[k] || 0) + (Math.random() - .5) * 3));
+        applyChange(p, dl); syncOvr(p);
         // His ceiling is re-estimated: hard work, a good season and his development factor raise it.
         // His ceiling is re-estimated from how the year actually went, and it can fall: a serious
         // injury, a rookie who couldn't adapt to the NBA, a young player who stalled.
@@ -1015,8 +1025,8 @@ export class Game {
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx) return; const x = applyTranslation(p); if (!x) return;
         if (this.isUser(s, +k)) { (camp[+k] = camp[+k] || []).push((s.managed.length > 1 ? teams[k].abbr + ': ' : '') + translationLine(p, x)); campIds.push(id); }
         if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));
-      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
-      fa.forEach(id => grow(P[id], 0));
+      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k), focusOf(k, id)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
+      fa.forEach(id => grow(P[id]));
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -1235,12 +1245,13 @@ export class Game {
   static FOCUS: Record<string, string[]> = { Balanced: [], Shooting: ['tp', 'fg', 'ft'], Finishing: ['ins', 'dnk', 'lay'], Playmaking: ['drb', 'pss', 'oiq'], Defense: ['diq', 'blk', 'stl'], Rebounding: ['reb', 'box', 'stre'], Athleticism: ['spd', 'acc', 'jmp', 'stre'], Conditioning: ['endu'] };
   // Expected monthly change per attribute for a player under a training focus (devTick without the dice).
   growthPreview(s, tid, p, focus) {
-    const a = p.age, club = this.clubOf(s, tid), coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
-    const annual = a <= 22 ? 4 : a <= 25 ? 2.5 : a <= 28 ? .8 : a <= 31 ? -1.2 : -3;
-    const minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1, stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
-    const monthly = annual / 12 * coach * minF * (annual > 0 ? stunt * (0.85 + (p.pers.work ?? 50) / 333) : 1), keys = Game.FOCUS[focus] || [], out: Record<string, number> = {};
+    const a = p.age, club = this.clubOf(s, tid), coach = club ? coachMult(club.budget.Coaching) : 1, wk = p.pers?.work ?? 50, annual = this.devRate(p);
+    let minF = p.dev ? 1.4 : a <= 24 ? ((p.min || 0) < 10 ? .55 : (p.min || 0) < 20 ? .85 : 1.1) : 1; if (minF < 1) minF += (1 - minF) * this.cl((wk - 55) / 45, 0, 1) * .8;
+    const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
+    const monthly = annual / 12 * (annual > 0 ? coach * stunt * (0.85 + wk / 333) : coachAging(coach)) * minF, keys = Game.FOCUS[focus] || [];
     const tReps = monthly > 0 ? tacticReps(club?.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
-    Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (tReps?.[r]) w *= 1 + tReps[r] * repF * repAffinity(p, r); if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; out[r] = monthly * w; });
+    const dl = develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, work: wk, slow: this.devMult(p, -1), rnd: () => .5, dry: true });
+    const out: Record<string, number> = {}; Object.keys(p.r).forEach(r => { if (r !== 'hgt') out[r] = dl[r] || 0; }); // height only changes in a rare growth spurt
     return { monthly, per: out };
   }
   // Tactics a roster can run: some options need players with the right roles.
@@ -1256,6 +1267,8 @@ export class Game {
   //    some peak early and never improve (the great rookie season that turns out to be his best).
   //  - The season he had: a breakout year builds confidence and raises his ceiling a little.
   //  - Luck: every year has some.
+  // That decides how much his overall moves; where it lands (which ratings, his body apart from his
+  // skills) is his own development profile: development.ts.
   devK(p) { if (p.devK == null) { const h = (x: number) => (((p.id * x + 11) >>> 0) % 1000) / 1000; p.devK = +Math.exp((h(7919) + h(104729) + h(15485863) - 1.5) * 2 * 0.28).toFixed(2); } return p.devK; }
   // This season's development form, rolled on opening night: progress isn't linear. Most years
   // are normal (about 1), some are breakouts (2+), and some go nowhere or backwards (0 or below:
@@ -1296,7 +1309,7 @@ export class Game {
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
-    Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? 1 + (club.budget.Coaching - 18) / 60 : 1;
+    Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club, coach = club ? coachMult(club.budget.Coaching) : 1;
       if (p.frozen) return; // God Mode: attributes frozen
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
       // Few minutes slow a young player down, unless he works at it (CCP minutes count too).
@@ -1306,15 +1319,15 @@ export class Game {
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
       if (a < 24 && (p.minorCount || 0) >= 3 && Math.random() < .2) p.pot = Math.max(p.ovr, p.pot - 1);
       const work = this.devMult(p, annual) * (annual > 0 ? 1 + (lockerRoom(this, s, +k, rosters).score - 50) / 500 : 1);
-      const monthly = annual / 12 * (mine ? coach : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
+      const monthly = annual / 12 * (mine ? (annual > 0 ? coach : coachAging(coach)) : 1) * minF * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
       const focus = mine ? ((club.coachAuto || {})[id] ? coachFocus(p).focus : club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
-      // Practice reps in your system (tactics.ts): a little extra growth in the skills it uses.
-      // Natural affinity caps it: reps help a skill he has some feel for, barely one he doesn't (a
-      // center with no touch shooting a thousand threes won't become a shooter).
+      // Practice reps in your system (tactics.ts) steer some growth into the skills it uses, if he has a
+      // feel for them (a center with no touch shooting a thousand threes won't become a shooter). The
+      // month's change lands his own way (development.ts): his body on its own track, the rest into his
+      // skills by his development profile and training focus.
       const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
-      Object.keys(p.r).forEach(r => { let w = keys.length ? (keys.includes(r) ? 2.2 : .45) : 1; if (tReps?.[r]) w *= 1 + tReps[r] * repF * repAffinity(p, r); if (r === 'hgt') w = 0; /* height only changes in a rare yearly growth spurt */ if (['spd', 'acc', 'jmp', 'endu'].includes(r) && a >= 29) w *= 1.4; if (['oiq', 'diq', 'ft', 'tp', 'fg', 'pss'].includes(r) && a >= 30) w *= .6;
-        const d = monthly * w; dl[r] = d; p.rx[r] = (p.rx[r] || 0) + d; const whole = Math.trunc(p.rx[r]); if (whole) { p.r[r] = cl(p.r[r] + whole, 4, 100); p.rx[r] -= whole; } });
+      Object.assign(dl, develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl);
       // His overall grows by what the new skills are worth at his position (a point guard's handle
       // counts far more than a center's), and his ceiling moves with it: growth in the skills his
       // position needs raises his potential, growth spent elsewhere lowers it a little. A hidden
@@ -1449,7 +1462,7 @@ export class Game {
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); ccpTopUp(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
-      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.osx = (q.osx || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.osx); if (w && q.ovr < q.pot + 2) { q.osx -= w; Object.keys(q.r).forEach(k => { if (k !== 'hgt') q.r[k] = Math.min(100, q.r[k] + w); }); syncOvr(q); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
+      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.osx = (q.osx || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.osx); if (w && q.ovr < q.pot + 2) { q.osx -= w; applyChange(q, skillChange(q, w * (1 - ovrShare(q.grp, 'hgt')), skillWeights(q, { year: this.Y }))); syncOvr(q); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
     }
     // Budget categories on Auto follow the recommendation as the record and revenue move.
     s.managed.forEach(t => { const c = this.clubOf({ ...s, ...patch, clubs }, t), a = c?.budgetAuto; if (a && Object.values(a).some(Boolean)) addClub(t, c1 => ({ budget: applyAutoBudget(this, { ...s, rosters }, t, c1.budget, a) })); });

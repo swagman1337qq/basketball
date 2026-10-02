@@ -5,6 +5,16 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-02
 
 ### Added
+- **Players develop their own way.** Every player has a hidden development profile.
+  - Some pour their growth into one area and become specialists, like a shooter who keeps getting better from deep while his defense stays where it was. Others grow two areas, or round out a little everywhere.
+  - Where a player's growth goes carries over from year to year. Skills he isn't working on stall, and can slip.
+  - Feel for the game (Offensive and Defensive IQ, boxing out) comes later in a career; dunking and shot-blocking come early.
+  - Aging works the same way: athleticism goes first, while feel for the game and the shot hold on longest.
+- **The body has its own schedule.** Learning to shoot no longer makes a player faster.
+  - Speed, burst and leaping barely grow after 20–21. They start to fade at each player's own athletic peak, somewhere from 26 to 29.
+  - Strength and stamina fill out into the mid-20s, each up to a limit set by his frame.
+  - Young players arrive with their athleticism mostly there and their skills still raw.
+- **"How he develops"** on the Development tab of your own players' profiles: where his growth goes, his slowest area, how his body is changing, and his work ethic. God Mode shows the hidden numbers.
 - **God Mode makes you the boss.** The owner has nothing over you.
   - No firing, no payroll orders, no fire sales and no meddling. Your contract renews itself.
   - Losing money doesn't matter. The Owner screen shows your job security as "God Mode · 100".
@@ -36,6 +46,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **The Coaching budget speeds growth by at most 12%,** with diminishing returns, and slows aging a little. It used to add flat points every year, at any age, so a big coaching budget pushed players past their potential.
+- **Training focus decides where a player's growth goes, not how much.** His focus skills take a much bigger share and the rest stall. Athleticism and Conditioning only help while he's still filling out. The preview on the Tactics screen shows the new split.
+- Growth in the CCP and overseas follows each player's own development profile too, instead of raising every rating alike.
+- In leagues you already have, players already in the league keep the athleticism they have now. Undrafted prospects get the new young body.
 - **Owners come from all walks of life.** There are about forty backgrounds, and no two owners in a league share one. Examples:
   - A cable-network founder, or a retired AI chief living off his dividends.
   - A family that inherited the team, or a founding partner from the expansion days.
@@ -45,6 +59,11 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - Jalen, Jaylen, Jaylin, Jalon, Jaylon, Jaelen, Jalyn and more.
   - Michael, Mikal, Mikel and Mikael.
   - The variants are rarer than the name they come from.
+
+### Fixed
+- **Work ethic now counts.** It was missing for every generated player, so it never affected development. Hard workers now grow faster and age more slowly, and scouting reports call out gym rats and questionable work ethics.
+- A big Coaching budget made veterans decline faster during the season. It now slows their decline a little.
+- The training focus preview on the Tactics screen labels the Blocks and Steals bars.
 
 ## 2026-10-01
 

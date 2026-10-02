@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-02 (God Mode owner powers, owner backgrounds, draft surprises, past drafts, rookie cards)._
+_Last reviewed: 2026-10-02 (player development phase 1; God Mode owner powers, owner backgrounds, draft surprises, past drafts, rookie cards)._
 
 ## How it fits together
 
@@ -94,11 +94,12 @@ Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of 
 - Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries.
 - Depth chart and the assistant coaches' lineup advice with one-click apply.
 - 20 ratings (including acceleration, layups, box-out, blocks, steals), measured wingspan, badges.
+- Player development (`development.ts`): how much a player grows is set in `Game.ts` (age, room under potential, hidden development factor, work ethic, form, minutes, coaching); where it lands is his own hidden development profile. Specialists pour growth into one area, others grow two or round out, and the direction carries from year to year. Skills he isn't working on stall or slip. His body has its own track: athletic peak 26–29, frame limits on strength and stamina, and young players arrive with their athleticism mostly there. Coaching is a capped multiplier (at most +12%), and training focus decides where growth goes. Your players' Development tab shows "How he develops".
 - Training focus per player, hidden decimal growth, monthly development reports, year-over-year progress.
 - Locker room morale; veteran mentors who pass on or remove traits.
 - Player moods with every factor explained on hover; jersey numbers.
 
-Screens: Roster, Depth chart, Development, Tactics. Code: `assistants.ts`, `coaches.ts`, `lockerRoom.ts`, `ratings.ts`, `progress.ts`, `jerseys.ts`.
+Screens: Roster, Depth chart, Development, Tactics. Code: `assistants.ts`, `coaches.ts`, `lockerRoom.ts`, `ratings.ts`, `development.ts`, `progress.ts`, `jerseys.ts`.
 
 ### Contracts and trades
 - Salary cap, luxury tax with repeater rates, 1st and 2nd aprons, salary floor.
@@ -190,6 +191,7 @@ All in `src/engine/`.
 | `allStar.ts` | All-Star Weekend |
 | `hof.ts` | Hall of Fame eligibility and voting |
 | `media.ts` | Preseason predictions: standings, win totals, title and award picks |
+| `development.ts` | Where development lands: each player's development profile, the body's own track, work ethic, the coaching multiplier |
 | `progress.ts` | Opening-night and end-of-season rating snapshots |
 | `intangibles.ts` | Intangibles and hidden gems |
 | `traits.ts` | Personality traits and their descriptions |
@@ -239,4 +241,11 @@ Tick these off (or delete them) as they're fixed. Severity is a first guess.
 - [ ] **Dead check in `Game.sim()`.** It refuses to sim while an inbox item has `block`, but nothing ever sets `block` (`Game.ts`, `sim()`).
 - [ ] **Very dense code.** Lines run to 3,471 characters (`viewModel.ts`); `Game.ts` is 165 KB. Splitting `Game.ts` by phase and formatting long lines would make reviews and diffs far easier.
 - [ ] **Saves grow about 1.4 MB a season.** A headless run went 3.5 MB → 5.0 MB → 6.3 MB over three seasons, and later seasons sim slower (about 5 s → 7–12 s each, headless). Worth trimming old box scores, logs and per-game history before leagues reach 20+ seasons.
+- [ ] **Player development, phases 2 and 3** (audit of 2026-10-02). Phase 1 is done (`development.ts`): development is player-specific, the body has its own track, every player has a work ethic, and coaching is a capped multiplier. Still to do:
+  - [ ] *Potential is a destination, not a ceiling.* `devRate`'s catch-up term (`need = room ÷ (27 − age)`) plans growth to close the gap by about 27 and makes up for bad years. In a 10-season run, about two thirds of young players peaked within 3 of their first potential and only 5% fell 8+ short. Young players also improve almost every year: only about 15% of years at 19–22 were flat or down.
+  - [ ] *Potential is one number.* There are no per-rating ceilings, so reaching potential can mean being good at everything.
+  - [ ] *Only one potential exists, and everyone sees it.* It's shown exactly for every NBA player; scouting error only touches the draft board and scout-report text. AI teams draft from the list ranked by true potential (`aiDraft`).
+  - [ ] *Environment only for teams you manage.* Coaching, training focus and tactics reps only reach managed teams. Facilities don't affect development. Minutes, focus, the CCP, the locker room and the yearly form roll multiply with no overall cap. Player role isn't modeled.
+  - [ ] *Projections still assume even growth*: `rolesOf(p, proj)`, the scout report's projection, and God Mode's `setOverall`.
+- [ ] **The height rating isn't tied to listed height.** Within a position the correlation is about 0: `mkPlayer` draws `r.hgt` from the overall, not the inches. The sim uses it for rebounding, blocks and interior defense.
 - [ ] **Code review findings.** A full review of the engine, rules, saves and UI is in progress; its confirmed findings go here.

@@ -21,7 +21,7 @@ const PRESETS: Record<string, any> = {
   'Hack-a-Shaq': { foul: 'Hack-a-Shaq' },
 };
 const nameOf = (x: any) => Object.keys(PRESETS).find(k => JSON.stringify(PRESETS[k]) === JSON.stringify(x || null)) || 'Custom';
-const LB: Record<string, string> = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
+const LB: Record<string, string> = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
 
 export function TacticsScreen({ vm }: { vm: VM }) {
   const { gm, s, open } = vm.ctx, P = gm.db.P, ids: number[] = s.rosters[s.me];
@@ -110,7 +110,7 @@ export function TacticsScreen({ vm }: { vm: VM }) {
                 {Object.entries(pv.per).map(([k, v]) => <div key={k} title={LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2) + ' per month'} style={{ height: Math.max(2, (Math.abs(v) / mx) * 86) + 'px', background: v >= 0 ? (Game.FOCUS[focus].includes(k) ? 'var(--gm-elite)' : 'var(--gm-good)') : 'var(--gm-bad)', opacity: 0.85 }} />)}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(' + Object.keys(pv.per).length + ',minmax(0,1fr))', gap: '3px', fontSize: '9.5px', textAlign: 'center', ...muted }}>{Object.keys(pv.per).map(k => <span key={k}>{LB[k]}</span>)}</div>
-              <p style={{ fontSize: '12px', ...muted, margin: '6px 0 0' }}>Expected {pv.monthly >= 0 ? '+' : ''}{pv.monthly.toFixed(2)} overall per month before the random swing (±40%). Focus attributes grow 2.2× and the rest 0.45×; the Coaching budget, minutes, the dev league and injuries scale it.</p>
+              <p style={{ fontSize: '12px', ...muted, margin: '6px 0 0' }}>Expected {pv.monthly >= 0 ? '+' : ''}{pv.monthly.toFixed(2)} overall per month before the random swing (±40%). The focus decides where growth goes, not how much: his focus skills take a much bigger share and the rest stall. His own development profile shapes it too, and his body (speed, strength, stamina) follows its own schedule; Athleticism and Conditioning only help while he’s still filling out. Coaching (up to +12%), minutes, the dev league and injuries scale it.</p>
             </>
           ); })()}
         </section>

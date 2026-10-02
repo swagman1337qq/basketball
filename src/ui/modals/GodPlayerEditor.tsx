@@ -204,7 +204,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {num('Morale', p.moodAdj || 0, -30, 30, v => mut(q => (q.moodAdj = v)), undefined, '−30 to +30')}
           {num('Confidence', Math.round(p.conf ?? 50), 5, 95, v => mut(q => (q.conf = v)))}
         </div>
-        <p style={{ ...muted, fontSize: '11.5px' }}>Work ethic scales monthly growth (±15%); loyalty vs ambition decides draft-night heists; morale shifts happiness; confidence nudges shooting and the adjustment period.</p>
+        <p style={{ ...muted, fontSize: '11.5px' }}>Work ethic scales growth (about ±20%) and slows aging; loyalty vs ambition decides draft-night heists; morale shifts happiness; confidence nudges shooting and the adjustment period.</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Happiness</h4>
         {(() => { const tid = Number(Object.keys(s.rosters).find(k => s.rosters[k].includes(p.id))), has = !isNaN(tid) && s.teams[tid];
           const cur = has ? gm.moodOf(p, s.rosters[tid].indexOf(p.id), s, tid).hap : null;
