@@ -14,9 +14,11 @@ export interface SaveRow {
 
 class SaveDB extends Dexie {
   saves!: Table<SaveRow, string>;
+  meta!: Table<{ key: string; value: any }, string>; // shared across leagues: the player-card library (cards.ts)
   constructor() {
     super('front-office');
     this.version(1).stores({ saves: 'id, updatedAt' });
+    this.version(2).stores({ saves: 'id, updatedAt', meta: 'key' });
   }
 }
 

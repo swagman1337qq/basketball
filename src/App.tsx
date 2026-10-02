@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { getSave, newSaveId, putSave, summarize, exportSave, type SaveRow } from './db/saves';
+import { adoptLeagueCards, loadCards } from './db/cards';
 import { Game } from './engine/Game';
 import { GMView } from './ui/GMView';
 import { TitleScreen } from './ui/TitleScreen';
@@ -11,6 +12,7 @@ interface Open { id: string; name: string; createdAt: number; game: Game }
 export function App() {
   const [open, setOpen] = useState<Open | null>(null);
   const [error, setError] = useState('');
+  useEffect(() => { loadCards(); }, []); // the shared player-card library
 
   const onCreate = useCallback(async (name: string, seed: number, tids: number[], worst = false) => {
     const game = Game.create(seed, tids, { worst });
@@ -24,7 +26,10 @@ export function App() {
   const onOpen = useCallback(async (id: string) => {
     const row = await getSave(id);
     if (!row) return;
-    setOpen({ id, name: row.name, createdAt: row.createdAt, game: Game.load(row.data) });
+    const game = Game.load(row.data);
+    // A league from before cards were shared: its cards join the shared library, then leave the save.
+    if (game.state.cards) { try { await adoptLeagueCards(game.state.cards, row.name); game.setState({ cards: undefined }); } catch { /* keep them in the save */ } }
+    setOpen({ id, name: row.name, createdAt: row.createdAt, game });
   }, []);
 
   if (!open) return <TitleScreen onOpen={onOpen} onCreate={onCreate} />;

@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { potView, scoutSd } from '../../engine/potential';
+import { draftedBy, nowLabel } from '../../engine/godMove';
 import { PCT_TIERS, pctTier, ratingMedian, ratingPct } from '../../engine/ratingDist';
 
 const chip = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: '999px', border: '1px solid var(--color-divider)', fontSize: '12px', whiteSpace: 'nowrap' as const };
@@ -21,7 +22,7 @@ function useProfile(vm: VM) {
   let tid = -9; Object.keys(s.rosters).forEach(k => { if (s.rosters[k].includes(p.id)) tid = +k; });
   const draftYear = p.cls || p.draft;
   const openClass = () => draftYear && gm.setState({ listModal: { type: 'class', year: draftYear } });
-  const draftLabel = p.cls && !p.dr ? 'Class of ' + p.cls : p.dr ? draftYear + ' draft · round ' + p.dr.rd + ', pick ' + p.dr.pick : draftYear ? draftYear + ' draft · undrafted' : '';
+  const dt = draftedBy(gm, p), draftLabel = p.cls && !p.dr ? 'Class of ' + p.cls : p.dr ? draftYear + ' draft · round ' + p.dr.rd + ', pick ' + p.dr.pick + (dt != null && s.teams[dt] ? ' by ' + s.teams[dt].abbr : '') + ' · now: ' + nowLabel(gm, s, p).label : draftYear ? draftYear + ' draft · undrafted' : '';
   return { gm, s, p, tid, draftYear, openClass, draftLabel };
 }
 

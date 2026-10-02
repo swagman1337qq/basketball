@@ -3,6 +3,7 @@
 // (a free agent, a CCP player, a player abroad, a draft prospect) signs a fair contract for what
 // he's worth: his overall, plus part of his upside if he's young, and the years a player his age
 // wants. A full AI roster waives its last minimum-salary player to make room.
+import { glLabel } from './gleague';
 import type { Game } from './Game';
 import { addTx, recordTrade } from './txlog';
 import { applySigning, prefYears } from './contracts';
@@ -29,6 +30,28 @@ export function whereIs(g: Game, s: any, pid: number) {
   if (p.cls) return { tid: -1, label: 'the ' + p.cls + ' draft class' };
   return { tid: -1, label: 'nowhere' };
 }
+
+// Where a player is now, for lists: his NBA team, Retired, Free agent, his CCP club, his club abroad,
+// still a draft prospect, or out of the league (an undrafted player who went home, or one long gone).
+export function nowLabel(g: Game, s: any, p: any): { label: string; tid: number } {
+  if (!p) return { label: '—', tid: -1 };
+  if (p.retired) return { label: p.gone ? 'Out of the league' : 'Retired' + (p.retired.season ? ' (' + p.retired.season + ')' : ''), tid: -1 };
+  const tid = g.tidOf(s.rosters, p.id); if (tid >= 0) return { label: s.teams[tid].abbr, tid };
+  if ((s.overseas || []).includes(p.id)) return { label: (p.abroad?.club || 'Abroad') + (p.abroad?.lg ? ' (' + p.abroad.lg + ')' : ' (abroad)'), tid: -1 };
+  if ((s.fa || []).includes(p.id)) return { label: p.gl?.tid != null ? 'CCP: ' + glLabel(s, p) : 'Free agent', tid: -1 };
+  if (p.cls && p.cls >= g.Y) return { label: 'Draft prospect (' + p.cls + ')', tid: -1 };
+  return { label: 'Out of the league', tid: -1 };
+}
+// The team that drafted him (it used the pick), however he's moved since; null if undrafted or drafted
+// before this league began.
+let DT: { n: number; m: Map<number, number> } | null = null;
+export function draftedBy(g: Game, p: any): number | null {
+  if (p?.draftTid != null) return p.draftTid;
+  const pu = g.db.pickUsed || {}, n = Object.keys(pu).length;
+  if (!DT || DT.n !== n) { const m = new Map<number, number>(); Object.values(pu).forEach((u: any) => { if (u?.pid != null && u.tid != null) m.set(u.pid, u.tid); }); DT = { n, m }; }
+  return DT.m.get(p?.id) ?? null;
+}
+export function draftedLabel(g: Game, s: any, p: any) { const t = draftedBy(g, p); return t != null && s.teams[t] ? s.teams[t].abbr : p.undrafted ? 'Undrafted' : p.cls && p.cls >= g.Y ? 'Not drafted yet' : p.dr ? 'Before this league' : 'Undrafted'; }
 
 // Why he can't be moved (or '' if he can).
 export function cantMove(g: Game, s: any, pid: number, to: number) {

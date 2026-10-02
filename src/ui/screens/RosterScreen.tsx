@@ -80,7 +80,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
             {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
             {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}
             {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
-            {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day' : 'Out ' + p.inj.games + 'g'} · {p.inj.name}</span>}
+            {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day (' + gm.injText(p, true) + ')' : 'Out ' + gm.injText(p, true)} · {p.inj.name}</span>}
           </span>
         </td>
         <td style={td}>{p.pos}</td>

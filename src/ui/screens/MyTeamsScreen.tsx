@@ -41,7 +41,7 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
               <div style={{ fontSize: '12px', borderTop: '1px solid var(--color-divider)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <div><span style={muted}>Next: </span>{g ? <>{post ? post.label + ' · ' : gm.fmtS(s.day) + ' · '}{g.home ? 'vs ' : 'at '}<Link onClick={() => openTeam(g.opp)}>{T[g.opp].region}</Link> ({T[g.opp].w}–{T[g.opp].l})</> : s.phase === 'playoffs' || s.phase === 'playin' ? 'Season over' : 'No games until the regular season'}</div>
                 <div><span style={muted}>Payroll: </span>{money(pay)} · {ids.length} players</div>
-                <div><span style={muted}>Injuries: </span>{inj.length ? inj.map((id, i) => <span key={id}>{i ? ', ' : ''}<Link onClick={() => open(id)}>{P[id].name}</Link> ({P[id].inj.dtd ? 'DTD' : P[id].inj.games + 'g'})</span>) : 'None'}</div>
+                <div><span style={muted}>Injuries: </span>{inj.length ? inj.map((id, i) => <span key={id}>{i ? ', ' : ''}<Link onClick={() => open(id)}>{P[id].name}</Link> ({P[id].inj.dtd ? 'DTD' : vm.ctx.gm.injText(P[id], true)})</span>) : 'None'}</div>
               </div>
               {alerts.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>

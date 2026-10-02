@@ -43,6 +43,7 @@ flowchart TD
 | View model | `src/ui/viewModel.ts`, `src/ui/vm.ts` | Menu (`NAV`), phase bar actions, every screen's values |
 | Engine store | `src/engine/Game.ts` | `db` (players `db.P`, schedule, caps) is mutated in place; `state` is replaced through `setState` |
 | Saves | `src/db/saves.ts` | One IndexedDB row per league (`Game.toSave()`); export/import as JSON |
+| Player cards | `src/db/cards.ts` | The card library, shared by every league in the browser (IndexedDB `meta` row `cards`); a league's old `s.cards` join it on open (`App.tsx`) |
 | Hosting | `.github/workflows/deploy.yml`, `scripts/deploy-pages.sh` | Every push to the development branch builds and pushes `dist/` to the `gh-pages` branch (GitHub Actions); `npm run deploy` does the same by hand |
 
 ## The season loop
@@ -92,6 +93,7 @@ Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of 
 
 ### Roster and coaching
 - Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries.
+- Injuries count games and days (`Game.injUntil`, `injText`, `calNow`): games with his team's games (play-in and playoffs too), days on the calendar, summer included. Free agents heal on the calendar (`healIdle`). On a team you run, an injured player drops to the end of the roster and returns to his old spot and minutes when healthy (`injAway`/`injBack`).
 - Depth chart and the assistant coaches' lineup advice with one-click apply.
 - 20 ratings (including acceleration, layups, box-out, blocks, steals), measured wingspan, badges.
 - Development environment (`environment.ts`): coaching and facilities (yours from Finances; an AI team's from its owner type, `teamBudget`), playing time for players 24 and under, the locker room and a mentor. They combine with diminishing returns into one multiplier, capped at ±25% and weighted toward players with modest potential, and they never raise a ceiling. A player's role in games (`roleReps`, from his season stats) leans where his growth goes. Every team reads potential through its own scouts (`Game.potRead`, `teamRead`; your screens show yours) in the draft, trades (`pVal`), re-signings and extensions. AI teams' medical staffs follow their owners (injury recovery). Monthly reports and the year-by-year notes say why (`envWhy`, `planStatus`, `roleLead`). The yearly form roll includes timing, so breakouts are partly given back the next year. Shown on the Development tab (your players; God Mode: anyone).
@@ -123,6 +125,7 @@ Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook.
 - 3-2-1 lottery with exact odds and a lottery-night reveal.
 - Draft promises and draft-night heists.
 - Draft surprises: each prospect has a hidden "NBA translation" that shows at his first training camp. His level moves (about half ±2, the rest 3–6 either way, about one in eight a real bust or steal), his shape shifts (e.g. shooting up, playmaking down), and his ceiling moves too. You get a camp report; God Mode profiles can peek.
+- Draft class lists (from a player's draft line): Current team and Drafted by (`godMove.ts` `nowLabel`, `draftedBy`).
 - Past drafts: every pick of every draft held in the league, with draft-night rating, first camp, rating now, career line and where he is.
 - Overseas market: buyouts, league-strength translation, redemption arcs, 15-game adjustment.
 - CCP development league and G League affiliates with call-ups.
@@ -154,14 +157,14 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 
 ### Control and saves
 - Run 1 to 30 teams: My teams dashboard, switch teams, take over or hand a team to the AI.
-- God Mode: edit any player (ratings, bio, traits, injuries), team and league editor (names, colors, logos, arena, cap), force trades, daily schedule, player cards.
+- God Mode: edit any player (ratings, bio, traits, injuries), team and league editor (names, colors, logos, arena, cap), force trades, daily schedule, player cards. The card library is shared by all leagues (`db/cards.ts`); applying a card changes only that league's player.
 - God Mode owner powers: the owner has nothing over you (no firing, payroll orders, fire sales or meddling; your contract renews itself; players sign whatever you offer). Edit any owner (type, kind, background, worth, purchase, bio) or force a team sale; move any player to any team from his profile (`godMove.ts`).
 - Easy mode: hand off lineups, tactics, contract paperwork, free agency, draft picks, firing, scouting, injuries.
 - Tutorial (quick or in-depth) and What's new from the changelog.
 - Three layouts, light and dark themes, team-color accents, player search.
 - Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option.
 
-Screens: My teams, Settings, League editor, Player cards, Daily schedule, Tutorial, What's new. Code: `easy.ts`, `playerCard.ts`, `GodPlayerEditor.tsx`, `Tour.tsx`, `db/saves.ts`.
+Screens: My teams, Settings, League editor, Player cards, Daily schedule, Tutorial, What's new. Code: `easy.ts`, `playerCard.ts`, `GodPlayerEditor.tsx`, `Tour.tsx`, `db/saves.ts`, `db/cards.ts`.
 
 ## Menu screens
 

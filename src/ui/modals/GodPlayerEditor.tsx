@@ -226,7 +226,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <select className="input" value="" onChange={e => { const x = INJ.find(i => i[0] === e.target.value); if (x) mut(q => { q.inj = { name: x[0], games: x[1], major: x[2] || undefined, dtd: x[3] || undefined }; (q.injHist = q.injHist || []).push({ name: x[0], games: x[1], season: gm.seasonLbl(), god: true }); }); }}>
               <option value="">Trigger an injury…</option>{INJ.map(i => <option key={i[0]} value={i[0]}>{i[0]} ({i[1]}g{i[2] ? ', major' : i[3] ? ', day-to-day' : ''})</option>)}
             </select>
-            {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; })}>Heal now</button>}
+            {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; delete q.preInj; })}>Heal now</button>}
           </span>
         </div>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Tendencies</h4>

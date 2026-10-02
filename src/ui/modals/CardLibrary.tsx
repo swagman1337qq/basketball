@@ -1,10 +1,11 @@
 // God Mode card library: player cards you can build from scratch (a blank template), fill from any
 // player, edit field by field with a live overall and badges, save, download, and apply to a
-// player. Cards live in the save (s.cards); the ready-made ones are ordinary editable cards.
-import { useState } from 'react';
+// player. Cards are shared by every league (db/cards.ts); the ready-made ones are ordinary editable cards.
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { cardLib, cardsVersion, loadCards, setCardLib, subscribeCards } from '../../db/cards';
 import type { VM } from '../vm';
 import { Combo, CountryPicker, FtInInput, muted, NumInput, ruleH4 } from '../kit';
-import { applyCard, BLANK_CARD, exportCard, PRESET_CARDS } from '../../engine/playerCard';
+import { applyCard, BLANK_CARD, exportCard } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
 import { TRAITS } from '../../engine/traits';
 
@@ -23,10 +24,9 @@ const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const clone = (x: any) => JSON.parse(JSON.stringify(x));
 const newId = () => 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
 
-// The library in the save: seeded with the ready-made cards the first time.
-export function cardsOf(s: any): { id: string; card: any }[] {
-  return s.cards || PRESET_CARDS.map((x, i) => ({ id: 'preset' + i, card: { ...clone(x.card), label: x.label } }));
-}
+// The library: shared by every league in this browser (db/cards.ts). Applying a card copies it onto a
+// player in this league only; editing or deleting a card never changes a player.
+export function cardsOf(_s?: any): { id: string; card: any }[] { return cardLib(); }
 
 // Everyone in the league (rosters, free agents, overseas, prospects), for "New card from any player".
 let OPTS: { key: number; list: any[] } | null = null;
@@ -39,9 +39,10 @@ export const playerOpts = (gm: any, s: any) => {
 };
 
 export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
+  useSyncExternalStore(subscribeCards, cardsVersion); useEffect(() => { loadCards(); }, []);
   const { gm, s } = vm.ctx, C = gm.db.C, lib = cardsOf(s);
   const [who, setWho] = useState(''), [sel, setSel] = useState(''), [draft, setDraft] = useState<any>(null), [msg, setMsg] = useState(''), [paste, setPaste] = useState('');
-  const saveLib = (next: { id: string; card: any }[]) => gm.setState({ cards: next });
+  const saveLib = (next: { id: string; card: any }[]) => { setCardLib(next); };
   const undo = p && s.cardUndo && s.cardUndo.pid === p.id ? s.cardUndo : null;
   const say = (m: string) => setMsg(m);
 

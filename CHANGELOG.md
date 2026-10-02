@@ -5,6 +5,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-02
 
 ### Added
+- **Injuries show games and days,** for example "5 games / 12 days".
+  - Games count down as his team plays; days count down on the calendar.
+  - Over the summer the days keep running while the games wait for next season.
+  - Free agents heal on the calendar.
+- **Drafted by and current team** in a draft class list: click the draft line on a player's profile.
+  - The team that drafted him never changes.
+  - Current team shows where he is now: an NBA team, retired, free agent, his CCP club, his club abroad, or still a prospect.
+  - The profile's draft line shows both too.
 - **Every team judges potential through its own scouts.** In trades, re-signings and extensions, AI teams value other teams' players on their own read: the league's read plus their scouts' miss, which a bigger scouting budget shrinks. They know their own players best.
   - Your screens show your scouts' read of other teams' players, so your Scouting budget matters in trades too.
   - Your assistants' free-agent ideas use the same read.
@@ -73,6 +81,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **Player cards are shared by all your leagues.** A card you create, edit or delete in one league shows up in every league's library.
+  - Applying a card still changes only that one player in that league. Editing a card later never changes players it was already applied to.
+  - Each league's own cards join the shared library the first time you open it.
 - **The height rating now mostly follows listed height,** at about 4 points an inch. Some players still play bigger or smaller than their size. Existing players' overalls don't change.
 - **Facilities help development a little,** up to +6% for the best.
 - **Playing time counts through the same capped environment.** Sitting on the bench costs a young player at most about a quarter of his growth, and less for a hard worker. It used to cost nearly half.
@@ -94,6 +105,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The variants are rarer than the name they come from.
 
 ### Fixed
+- **An injured player now comes back to his spot.** On a team you run, a player who's out drops to the end of the roster with no minutes. When he's healthy, he returns to his old spot and minutes. Before, a star hurt early in the season could sit in the last slot, with no minutes, for the rest of the season.
+- **Injuries now count down in the play-in and playoffs, and free agents heal.** Before, an unsigned player's injury never healed.
 - **Work ethic now counts.** It was missing for every generated player, so it never affected development. Hard workers now grow faster and age more slowly, and scouting reports call out gym rats and questionable work ethics.
 - A big Coaching budget made veterans decline faster during the season. It now slows their decline a little.
 - The training focus preview on the Tactics screen labels the Blocks and Steals bars.
