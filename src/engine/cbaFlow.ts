@@ -3,6 +3,7 @@
 // AI free agency, draftee contracts, the in-season tick (10-days, hardship, two-way games,
 // disabled player exceptions) and the cap side of trades (TPEs, trade kickers).
 import type { Game } from './Game';
+import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, ROSTER_MIN, rookieDeal, rosterMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { acceptance, aiTerms, applySigning, buyoutBlocked, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
@@ -189,12 +190,12 @@ export interface Decision { pid: number; kind: 'teamOpt' | 'qo'; label: string; 
 export function decisionsFor(g: Game, s: any, tid: number): Decision[] {
   const P = g.db.P, Y = g.Y, out: Decision[] = [];
   (s.rosters[tid] || []).forEach(id => { const p = P[id];
-    if (p.opt?.kind === 'team' && p.opt.season === Y + 1 && !p.ext) { const sal = g.salAt(p, Y + 1); out.push({ pid: id, kind: 'teamOpt', label: (p.rookieScale ? 'Rookie-scale ' : '') + 'team option for ' + Y + '–' + String(Y + 1).slice(2), amt: sal, def: aiExercise(g, p, sal), note: 'Decline and he becomes an unrestricted free agent' + (p.rookieScale ? ' (and you can’t pay him more than the option amount to re-sign him)' : '') + '.' }); }
+    if (p.opt?.kind === 'team' && p.opt.season === Y + 1 && !p.ext) { const sal = g.salAt(p, Y + 1); out.push({ pid: id, kind: 'teamOpt', label: (p.rookieScale ? 'Rookie-scale ' : '') + 'team option for ' + Y + '–' + String(Y + 1).slice(2), amt: sal, def: exerciseOption(g, s, tid, p, sal), note: 'Decline and he becomes an unrestricted free agent' + (p.rookieScale ? ' (and you can’t pay him more than the option amount to re-sign him)' : '') + '.' }); }
     else if (p.exp === Y && !p.ext && qoEligible(g, p)) { const qo = qoFor(g, p); out.push({ pid: id, kind: 'qo', label: 'Qualifying offer', amt: qo, def: g.fair(p.ovr) >= qo * 0.8, note: 'Extend it and he’s a restricted free agent: you can match any offer sheet. If nobody signs him he can accept the one-year QO.' }); }
   });
   return out;
 }
-const aiExercise = (g: Game, p: any, sal: number) => g.fair(p.ovr) * (p.age <= 24 ? 1.3 : 1) >= sal * 0.85;
+// AI team options (and your default): rosterAI.exerciseOption.
 
 // Free agency opens: draftees sign, extensions start, options are decided, qualifying offers
 // go out, AI teams re-sign some of their own free agents with Bird rights, everyone else hits
@@ -217,7 +218,7 @@ export function openFreeAgency(g: Game, s: any) {
       if (p.opt?.kind === 'player' && p.opt.season === Y + 1) { const sal = g.salAt(p, Y + 1), stay = g.fair(p.ovr) * 1.05 <= sal || p.age >= 33 && g.fair(p.ovr) <= sal * 1.2;
         delete p.opt; if (stay) { note(t, p.name + ' exercised his player option (' + sal.toFixed(2) + 'M)'); } else { p.exp = Y; note(t, p.name + ' declined his player option and is a free agent'); lg(t, p.name + ' declined his player option with the ' + s.teams[t].region + ' ' + s.teams[t].name, [id]); } }
       // Team options.
-      if (p.opt?.kind === 'team' && p.opt.season === Y + 1) { const sal = g.salAt(p, Y + 1), yes = user ? (dec['opt' + id] ?? aiExercise(g, p, sal)) : aiExercise(g, p, sal);
+      if (p.opt?.kind === 'team' && p.opt.season === Y + 1) { const sal = g.salAt(p, Y + 1), yes = user ? (dec['opt' + id] ?? exerciseOption(g, s, t, p, sal)) : exerciseOption(g, s, t, p, sal);
         if (yes) { p.opt = p.rookieScale && p.exp > Y + 1 ? { kind: 'team', season: Y + 2 } : undefined; if (!p.opt) delete p.opt; note(t, 'Exercised the team option on ' + p.name + ' (' + sal.toFixed(2) + 'M)'); }
         else { delete p.opt; p.exp = Y; p.optDeclined = true; note(t, 'Declined the team option on ' + p.name); lg(t, 'The ' + s.teams[t].region + ' ' + s.teams[t].name + ' declined their option on ' + p.name, [id]); } }
       if (p.exp > Y) return true;
@@ -243,7 +244,7 @@ export function openFreeAgency(g: Game, s: any) {
   if (letGo.length) { const c = box.cap[s.me]; box.cap[s.me] = { ...c, renounced: [...(c.renounced || []), ...letGo] };
     letGo.forEach(id => { const p = P[id]; p.birdTid = null; delete p.rfa; note(s.me, p.name + '’s contract expired and you renounced his rights, as decided: he’s an unrestricted free agent and his cap hold is off your books.'); }); }
   // Nobody may start free agency with more than 21 under contract: AI teams trim.
-  s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > 21) { const w = stdIds(g, box.rosters[t.tid]).map(id => P[id]).sort((a, b) => a.ovr - b.ovr)[0]; waivePlayer(g, s, box, t.tid, w, 'waive'); } });
+  s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > 21) { const w = pickCut(g, { ...s, rosters: box.rosters }, t.tid, box.rosters[t.tid])!.p; waivePlayer(g, s, box, t.tid, w, 'waive'); } }); // rosterAI: worth to the team, not overall alone
   const nFA = box.fa.length, nR = box.fa.filter(id => P[id].rfa).length;
   lgLog = [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + nFA + ' players available (' + nR + ' restricted). The ' + Y + '–' + String(Y + 1).slice(2) + ' mid-level is ' + N.NTMLE + 'M (non-taxpayer), ' + N.TPMLE + 'M (taxpayer), bi-annual ' + N.BAE + 'M, room ' + N.ROOM + 'M.' }, ...lgLog];
   const logs = clubLogs(g, s, by);
@@ -298,7 +299,7 @@ export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
 }
 export function trimRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[], max = 15) {
   const P = g.db.P;
-  while (stdIds(g, box.rosters[tid]).length > max) { const w = stdIds(g, box.rosters[tid]).map(id => P[id]).sort((a, b) => (a.ovr - (a.ctype === 'ex10' ? 5 : 0)) - (b.ovr - (b.ctype === 'ex10' ? 5 : 0)))[0];
+  while (stdIds(g, box.rosters[tid]).length > max) { const w = pickCut(g, { ...s, rosters: box.rosters }, tid, box.rosters[tid])!.p; // rosterAI: the least worth to this team
     waivePlayer(g, s, box, tid, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[tid].abbr, pids: [w.id], text })); }
   // Too many two-ways (after trades): release the extras.
   while (twoWayIds(g, box.rosters[tid]).length > TWO_WAY_MAX) { const w = P[twoWayIds(g, box.rosters[tid])[0]]; waivePlayer(g, s, box, tid, w, 'waive'); }

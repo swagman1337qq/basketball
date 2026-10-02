@@ -159,7 +159,8 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 - Run 1 to 30 teams: My teams dashboard, switch teams, take over or hand a team to the AI.
 - God Mode: edit any player (ratings, bio, traits, injuries), team and league editor (names, colors, logos, arena, cap), force trades, daily schedule, player cards. The card library is shared by all leagues (`db/cards.ts`); applying a card changes only that league's player.
 - God Mode owner powers: the owner has nothing over you (no firing, payroll orders, fire sales or meddling; your contract renews itself; players sign whatever you offer). Edit any owner (type, kind, background, worth, purchase, bio) or force a team sale; move any player to any team from his profile (`godMove.ts`).
-- Easy mode: hand off lineups, tactics, contract paperwork, free agency, draft picks, firing, scouting, injuries.
+- Easy mode: hand off lineups, tactics, contract paperwork, free agency and roster decisions (opening-night trim to 15), draft picks, firing, scouting, injuries.
+- Roster decisions (`rosterAI.ts`): AI cuts, waivers, the summer trim to 21, rookie team options and your staff's opening-night cuts keep the players worth most to the team (`rosterValue`: ability, the team's read of upside, trajectory, timeline, role, position depth, unique skills, guaranteed money, draft investment). AI rotations give young high picks development minutes (`devMinutes`).
 - Tutorial (quick or in-depth) and What's new from the changelog.
 - Three layouts, light and dark themes, team-color accents, player search.
 - Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option.
@@ -206,6 +207,7 @@ All in `src/engine/`.
 | `assistants.ts` | Assistant coaches' lineup advice |
 | `coaches.ts` | Assistant coaches running a player's training |
 | `easy.ts` | Easy mode switches |
+| `rosterAI.ts` | Roster decisions: a player's worth to a team (`rosterValue`), who gets cut (`pickCut`), team options, draft investment, development minutes |
 | `cba.ts` | The CBA: cap, tax, aprons, contract types, salary matching |
 | `cbaFlow.ts` | The CBA through the league year: signings, releases, options, RFA, AI free agency |
 | `contracts.ts` | Signing, accepting, waivers, stretch, buyouts |

@@ -10,17 +10,18 @@
 //   scouting  scouting reports and draft boards are much more accurate
 //   injuries  injured players always sit (no playing through pain)
 import { bestTacticsFor } from './tactics';
+import { pickCut, rosterValue } from './rosterAI';
 import type { Game } from './Game';
 import { lineupAdvice } from './assistants';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
-import { nums, stdIds, teamSalary } from './cba';
+import { nums, stdIds, teamSalary, twoWayIds, TWO_WAY_MAX } from './cba';
 
 export type EasyKey = 'lineup' | 'tactics' | 'cap' | 'fa' | 'draft' | 'fire' | 'scouting' | 'injuries';
 export const EASY: [EasyKey, string, string][] = [
   ['lineup', 'Set my lineup and minutes', 'Your assistant coaches pick the starters and share out the minutes every week.'],
   ['tactics', 'Choose my tactics', 'The staff picks the pace, offense and defense that suit your players.'],
   ['cap', 'Handle contract paperwork', 'Options, qualifying offers, offer sheets and roster cuts are decided for you, sensibly.'],
-  ['fa', 'Fill my roster in free agency', 'Empty roster spots get filled with the best player you can afford.'],
+  ['fa', 'Make free agency and roster decisions for me', 'Empty roster spots get filled with the best player you can afford, and on opening night the roster is trimmed to 15: the staff keeps the players worth most to the team (ability, upside, age, role, position, contract, your timeline), not just the highest overalls.'],
   ['draft', 'Make my draft picks', 'Your picks go to the best player available.'],
   ['fire', 'Never get fired', 'The owner still writes, but can’t fire you.'],
   ['scouting', 'Easier scouting', 'Scouting reports and draft rankings are much more accurate.'],
@@ -55,14 +56,21 @@ export function easyFreeAgency(g: Game, s: any, box: any, lgLog: any[]) {
   });
 }
 
-// Before opening night: cut managed rosters to 15 standard contracts (cheapest dead money first).
+// Opening night: trim managed rosters to 15 standard contracts (and the two-way limit) when the staff
+// makes your roster decisions (free agency or contract paperwork on easy mode). Who goes is the player
+// worth least to the team (rosterAI.ts): ability, upside, age and trajectory, role, position depth, a
+// skill nobody else has, contract, draft investment and your timeline, not the lowest overall.
 export function easyCuts(g: Game, s: any, box: any, lgLog: any[]) {
-  if (!easyOn(s, 'cap')) return;
+  if (!easyOn(s, 'cap') && !easyOn(s, 'fa')) return;
   const P = g.db.P;
   s.managed.forEach((t: number) => {
     while (stdIds(g, box.rosters[t]).length > 15) {
-      const w = stdIds(g, box.rosters[t]).map(id => P[id]).sort((a, b) => (a.ovr + (a.ctype === 'ex10' ? -6 : 0) + a.amt * 0.3) - (b.ovr + (b.ctype === 'ex10' ? -6 : 0) + b.amt * 0.3))[0];
-      waivePlayer(g, s, box, t, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[t].abbr, pids: [w.id], text: text + ' (easy mode)' }));
+      const w = pickCut(g, { ...s, rosters: box.rosters }, t, box.rosters[t])!.p;
+      waivePlayer(g, s, box, t, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[t].abbr, pids: [w.id], text: text + ' (staff decision)' }));
+    }
+    while (twoWayIds(g, box.rosters[t]).length > TWO_WAY_MAX) {
+      const tw = twoWayIds(g, box.rosters[t]), w = P[tw.slice().sort((a, b) => rosterValue(g, s, t, P[a], box.rosters[t]) - rosterValue(g, s, t, P[b], box.rosters[t]))[0]];
+      waivePlayer(g, s, box, t, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[t].abbr, pids: [w.id], text: text + ' (staff decision)' }));
     }
   });
 }

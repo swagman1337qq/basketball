@@ -81,6 +81,15 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **AI teams are patient with their high draft picks.** Every cut, waiver and rookie team option now weighs the team's draft investment.
+  - A top pick gets years of patience, and real minutes to develop, from the team that drafted him. That fades as his rookie deal runs out.
+  - A #1 pick is almost never cut in his first seasons, and a lottery pick's third-year option is nearly always picked up.
+  - Being cut doesn't lower anyone's potential. If a pick doesn't develop, his ratings and play show it over time.
+- **Roster cuts are real basketball decisions.** AI teams, and your staff when it decides for you, keep the players worth most to the team, not just the highest overalls. They weigh:
+  - Ability now, plus upside (the team's own read, worth more the younger he is) and which way he's trending.
+  - Age against the team's timeline, his role, position depth, and any skill nobody else on the roster has.
+  - His contract: guaranteed money is paid either way, so cutting it saves nothing.
+- **"Make free agency and roster decisions for me"** (easy mode; it was "Fill my roster in free agency") now also trims your roster to 15 on opening night, with the same judgment.
 - **Player cards are shared by all your leagues.** A card you create, edit or delete in one league shows up in every league's library.
   - Applying a card still changes only that one player in that league. Editing a card later never changes players it was already applied to.
   - Each league's own cards join the shared library the first time you open it.

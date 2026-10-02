@@ -34,6 +34,7 @@ import { applyTranslation, ensureTranslation, translationLine } from './translat
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
 import { fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, teamRead } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
+import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -602,7 +603,7 @@ export class Game {
     // regular season and postseason); he plays at reduced strength.
     const thr = user && !s.easy?.injuries ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
     let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
-    if (!user) ids = ids.slice().sort((a, b) => P[b].ovr - P[a].ovr);
+    if (!user) { const k = (id: number) => P[id].ovr + devMinutes(this, s, tid, P[id]); ids = ids.slice().sort((a, b) => k(b) - k(a)); } // AI: best first, and real minutes for a young high pick (rosterAI)
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
@@ -1465,7 +1466,10 @@ export class Game {
       if (!checkTrade(this, st, a, b, [pa], [pb], [], []).ok) return null;
       tradeCap(this, st, box.cap, a, b, [pa], [pb]); recordTrade(this, st, a, b, [pa], [pb]);
       box.rosters[a] = box.rosters[a].map(x => x === pa ? pb : x); box.rosters[b] = box.rosters[b].map(x => x === pb ? pa : x); return { day, type: 'Trade', teams: T[a].abbr + ' · ' + T[b].abbr, pids: [pa, pb], text: T[a].region + ' traded ' + P[pa].name + ' to ' + T[b].region + ' for ' + P[pb].name }; }
-    const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < 15) return null; const w = std.map(id => P[id]).sort((a, b) => a.ovr - b.ovr)[0], best = Math.max(0, ...box.fa.map(id => P[id].ovr)); if (!w || best < w.ovr + 4) return null;
+    // A waiver: the least valuable player (rosterAI: worth to this team, the draft investment included),
+    // only for a free agent clearly worth more to the team.
+    const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < 15) return null; const st2 = { ...st, rosters: box.rosters }, cut = pickCut(this, st2, t, box.rosters[t]); if (!cut) return null; const w = cut.p;
+    const cand = box.fa.map(id => P[id]).filter(q => q && !q.inj && q.ovr >= w.ovr - 2).sort((a, b) => b.ovr - a.ovr).slice(0, 6), best = Math.max(-Infinity, ...cand.map(q => rosterValue(this, st2, t, q, std.filter(x => x !== w.id).concat(q.id)))); if (best < cut.v + 4) return null;
     const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
   }
   private busy = false;

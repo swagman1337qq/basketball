@@ -6,6 +6,7 @@
 // players to extend once the July 6 window opens. Free agency can't open until every required
 // decision is made. It is the draft phase with s.preFA set, so every draft-phase rule holds.
 import type { Game } from './Game';
+import { exerciseOption } from './rosterAI';
 import { BIRD_LABEL, birdOf, capHold, extWindow, qoEligible, qoFor } from './cba';
 import { fmtMoney as money } from './capModel';
 
@@ -16,7 +17,7 @@ export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { return [...
 export const contractLine = (g: Game, p: any) => money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2);
 
 const SKIP = ['tenDay', 'hardship'];
-const aiExercise = (g: Game, p: any, sal: number) => g.fair(p.ovr) * (p.age <= 24 ? 1.3 : 1) >= sal * 0.85;
+const aiExercise = (g: Game, p: any, sal: number, s: any = g.state) => exerciseOption(g, s, g.tidOf(s.rosters, p.id), p, sal); // rosterAI
 export const playerOptionStays = (g: Game, p: any, sal: number) => g.fair(p.ovr) * 1.05 <= sal || (p.age >= 33 && g.fair(p.ovr) <= sal * 1.2);
 
 // Pre-Free Agency opens: every player option for next season is decided now (NBA players
