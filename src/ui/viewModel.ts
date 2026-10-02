@@ -30,7 +30,7 @@ import { groupFilter, groupTitle, searchAll } from './search';
 import { ensureIntg } from '../engine/intangibles';
 import { DEFAULT_BRIEF, runBriefs } from '../engine/scoutBrief';
 import { kindOf, scoutRead } from '../engine/scoutReport';
-import { liftCeil, potView, refreshPot, setTruePot } from '../engine/potential';
+import { liftCeil, potView, refreshPot, scoutSd, setTruePot } from '../engine/potential';
 import { facEffect, teamBudget } from '../engine/environment';
 import { coachMult } from '../engine/development';
 import { mulberry32 } from '../engine/rng';
@@ -84,7 +84,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const lastKey = r => (String(r.last ?? (r.familyFirst ? String(r.name).split(' ')[0] : String(r.name).split(' ').slice(-1)[0])) + ' ' + r.name).toLowerCase();
   const sortBy = (arr, [k, dir]) => arr.slice().sort((a, b) => { const x = k === 'name' ? lastKey(a) : a[k], y = k === 'name' ? lastKey(b) : b[k]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
   const hdr = (tbl, cols) => cols.map(([k, label, al]) => { const [sk, sd] = s.sort[tbl]; return { label, align: al || 'right', arrow: sk === k ? (sd > 0 ? ' ↑' : ' ↓') : '', color: sk === k ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)', onClick: () => gm.setState(st => ({ sort: { ...st.sort, [tbl]: [k, st.sort[tbl][0] === k ? -st.sort[tbl][1] : (['rk', 'name', 'pos', 'rank', 'fromT', 'age', 'mood'].includes(k) ? 1 : -1)] } })) }; });
-  const ownIds = new Set<number>((s.managed || []).flatMap(t => s.rosters[t] || [])), potOf = (p, id) => potView(p, { god: !!s.god, own: ownIds.has(id) }); // potential.ts
+  // Potential as you see it (potential.ts): God Mode the truth, your staff's read of your own players,
+  // your scouts' read of everyone else (a prospect in a later class is fuzzier still, as on the draft board).
+  const ownIds = new Set<number>((s.managed || []).flatMap(t => s.rosters[t] || [])), mySd = scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting);
+  const potOf = (p, id) => { const v = potView(p, { god: !!s.god, own: ownIds.has(id), tid: s.me, sd: mySd }); if (s.god || ownIds.has(id) || !p.cls || p.cls <= gm.Y) return v; const yo = p.cls - gm.Y, scoutF = 1.5 - ((s.budget?.Scouting ?? 4) - 1) / 11; return Math.max(p.ovr, Math.round(v + (p.nz?.[1] ?? 0) * yo * 5 * scoutF * 1.6)); };
   const pBase = id => { const p = P[id]; return { ...p, pot: potOf(p, id), topBadges: knownBadges(gm, s, p).list.slice(0, 3), native: p.native || '', injTag: p.inj ? 'Out ' + p.inj.games + 'g · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(potOf(p, id)), open: open(id) }; };
   const strat = gm.strategies(T);
   const STRAT = { rebuild: ['Rebuilding', 'Prioritizing draft capital and young upside. Willing to absorb unfavorable contracts as the cost of acquiring picks.'], middle: ['On the rise', 'Building around a young core. Values high-upside players and is reluctant to move picks except for a priority target.'], contend: ['Contending', 'In win-now mode. Will part with draft picks for proven, immediate contributors.'] };
@@ -255,7 +258,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const scoutF = 1.5 - (s.budget.Scouting - 1) / 11;
   const yearsOut = s.dClass - gm.Y, spread = (yearsOut * 5 + 3) * scoutF;
   // God Mode sees true ratings; otherwise these are your scouts' estimates.
-  const est = (p, i) => s.god ? (i ? (p.tpot ?? p.pot) : p.ovr) : Math.round((i ? p.pot : p.ovr) + p.nz[i] * spread * 1.6);
+  const est = (p, i) => s.god ? (i ? (p.tpot ?? p.pot) : p.ovr) : i ? potOf(p, p.id) : Math.round(p.ovr + p.nz[i] * spread * 1.6); // potential: your scouts' read (potOf)
   const cur = s.phase === 'draft' ? s.picks[s.pi] : null, onClock = !!cur && mine2(gm.owner2027(cur.orig, s.assets, cur.rd)), taken = new Set(s.picks.filter(x => x.pid).map(x => x.pid));
   const myPicks = s.picks.filter(x => mine2(gm.owner2027(x.orig, s.assets, x.rd))), myNext = myPicks.find(x => !x.pid);
   const isCur = s.dClass === gm.Y;

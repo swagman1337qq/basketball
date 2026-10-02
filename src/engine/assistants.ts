@@ -103,7 +103,7 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
   const line = (p: any) => (p.gp >= 10 ? p.pts.toFixed(1) + ' pts, ' + p.reb.toFixed(1) + ' reb, ' + p.ast.toFixed(1) + ' ast last season' : p.glT || p.gl?.tid != null ? 'playing in the CCP' : 'no NBA stats last season');
   const cands = (s.fa || []).map((id: number) => P[id]).filter((p: any) => p && !p.retired && !(p.abroad && p.abroad.clause === 'Buyout'));
   const score = (p: any, ask: number) => {
-    const imp = Math.max(0, p.ovr - eighth), val = Math.max(0.5, Math.min(2, g.fair(p.ovr) / Math.max(0.5, ask))), young = p.age <= 24 ? Math.max(0, p.pot - 45) : 0;
+    const imp = Math.max(0, p.ovr - eighth), val = Math.max(0.5, Math.min(2, g.fair(p.ovr) / Math.max(0.5, ask))), young = p.age <= 24 ? Math.max(0, g.potRead(p, tid, s) - 45) : 0;
     const fits = needGrp && p.grp === needGrp ? 1 : 0;
     if (mode === 'contend') return imp * 3 + p.ovr * 0.6 + fits * 4 + val * 3 - (p.age >= 34 ? 2 : 0);
     if (mode === 'rebuild') return young * 0.9 + p.ovr * 0.35 + imp + fits * 2 + val * 3 - Math.max(0, p.age - 28) * 2.5;
@@ -119,7 +119,7 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
     const place = rot.filter(x => x.ovr > p.ovr).length + 1, fair = g.fair(p.ovr);
     const nth = place === 1 ? 'our best player' : 'our ' + ordinal(place) + '-best player';
     const role = needGrp && p.grp === needGrp ? 'We’re thin at ' + WORD[needGrp] + ' and he’d be ' + nth + '.'
-      : mode === 'rebuild' && p.age <= 24 ? p.age + ' with a ' + p.pot + ' ceiling: fits the rebuild.'
+      : mode === 'rebuild' && p.age <= 24 ? p.age + ' with a ' + g.potRead(p, tid, s) + ' ceiling (our read): fits the rebuild.'
       : place <= 8 ? 'He’d be ' + nth + ': real rotation help' + (mode === 'contend' ? ' for a playoff run.' : '.')
       : 'Solid depth for the end of the bench.';
     const value = fair > c.ask * 1.2 ? ' A bargain: worth about ' + money(fair) + '.' : '';
@@ -129,8 +129,8 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
   }
   // Two-way ideas: young players with a ceiling who'd take a two-way deal.
   if (twSpots > 0) cands.filter((p: any) => yosOf(g, p) <= 3 && p.age <= 24 && !picks.some(x => x.pid === p.id) && (p.ovr < 52 || g.askFor(p, s) <= N.min(yosOf(g, p)) * 1.3))
-    .sort((a: any, b: any) => (b.pot * 0.7 + b.ovr * 0.3) - (a.pot * 0.7 + a.ovr * 0.3)).slice(0, Math.min(twSpots, 2))
-    .forEach((p: any) => picks.push({ pid: p.id, kind: 'twoWay', why: 'Two-way idea: ' + p.age + ' years old, ' + p.ovr + ' now with a ' + p.pot + ' ceiling. Costs nothing against the cap; let him develop.' }));
+    .sort((a: any, b: any) => (g.potRead(b, tid, s) * 0.7 + b.ovr * 0.3) - (g.potRead(a, tid, s) * 0.7 + a.ovr * 0.3)).slice(0, Math.min(twSpots, 2))
+    .forEach((p: any) => picks.push({ pid: p.id, kind: 'twoWay', why: 'Two-way idea: ' + p.age + ' years old, ' + p.ovr + ' now with a ' + g.potRead(p, tid, s) + ' ceiling (our read). Costs nothing against the cap; let him develop.' }));
   const modeS = mode === 'contend' ? 'We’re a top-10 roster (' + ordinal(rank) + '), so I’m after players who help now.' : mode === 'rebuild' ? 'We’re rebuilding (' + ordinal(rank) + ' of ' + nT + ' by roster), so I’m after youth and upside, not expensive veterans.' : 'We’re in the middle of the pack (' + ordinal(rank) + '), so I want value: players who help now without blocking the young guys.';
   const room = capRoom(g, s, tid);
   const budgetS = spots === 0 ? 'The roster is full at 15, so only a clear upgrade makes sense.' : spots + ' open roster spot' + (spots === 1 ? '' : 's') + (room > 1 ? ', ' + money(room) + ' of cap space' : ', no cap space') + (need0 ? '; our biggest need is a ' + WORD[need0] + '.' : '.');

@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setRating, syncOvr, teamRating, wngBonus } from './ratings';
+import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -32,8 +32,8 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { fullCeil, initCeil, moveTruePot, paceOf, planRate, refreshPot, rollPerr, sharpen } from './potential';
-import { envOf, roleReps, teamBudget } from './environment';
+import { fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, teamRead } from './potential';
+import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -79,6 +79,7 @@ export class Game {
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.db.ceilV = 1; // and every player with his own ceilings (potential.ts)
+    g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -155,6 +156,8 @@ export class Game {
     if (!g.db.bodyV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } }); }); g.db.bodyV = 1; }
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
     // ceilings are set so a typical career reaches it, and the league's read of it starts a little off.
+    // 2026-10: the height rating mostly follows his listed height now (ratings.ts); his overall doesn't move.
+    if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
     if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
@@ -465,6 +468,7 @@ export class Game {
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
+    setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); // his height rating mostly follows his listed height (ratings.ts)
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     if (!cls && age <= 23) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
@@ -1017,7 +1021,10 @@ export class Game {
           if (p.draft === this.Y - 1 && form < -0.25) { pd -= 1 + Math.random() * 2; why.push('Couldn’t adapt to the NBA’s ' + (p.r.stre <= p.r.spd ? 'strength' : 'speed and pace')); }
           if (a <= 24 && gain <= 0 && !inj) why.push('Stalled');
           if (gain >= 0.7 * expG + 3) why.push('Breakout year');
-          else if (!why.length && p.dyS === this.Y && (p.dy ?? 1) < 0.2) why.push('A lost year');
+          else if (!why.length && p.dyS === this.Y && (p.dy ?? 1) < 0.2) why.push(p.draft === this.Y - 2 ? 'Sophomore slump' : 'A lost year');
+          if (env.mult <= 0.88) why.push('Held back by his situation (' + (env.parts.slice().sort((x2, y2) => x2[1] - y2[1])[0]?.[0] || 'environment').toLowerCase() + ')'); else if (env.mult >= 1.12) why.push('A good place to grow');
+          { const rl = roleLead(roleReps(this.seasonTotals(p, this.Y)), 1.3); if (rl && gain > 0) why.push('His role made him more of a ' + ROLE_NOUN[rl]); }
+          if (planStatus(p) === 'behind' && a >= 22) why.push('Behind his development plan');
           moveTruePot(p, pd);
           if (why.length && p.rh?.[this.Y]) p.rh[this.Y].why = why;
         }
@@ -1194,13 +1201,23 @@ export class Game {
   // This year's firsts use the draft board's order, so the two always agree.
   projSlot(k, T) { if (k.yr === this.Y && (k.rd || 1) === 1) { const x = this.boardOrder().find(p => (p.rd || 1) === 1 && p.orig === k.orig); if (x) return x.n; }
     const s = expectedByRank(T.length)[this.slotOf(k.orig, T)] ?? this.slotOf(k.orig, T); return 15.5 + (s - 15.5) * (k.yr === this.Y ? 1 : k.yr === (this.Y + 1) ? 0.6 : 0.35); }
-  pVal(p, st) {
-    const base = Math.pow(Math.max(0, p.ovr - 38), 1.9) / 10;
-    const gap = Math.max(0, p.pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
+  // Team tid's read of a player's potential (potential.ts): its own staff's for its own players, its
+  // scouts' (the league's read plus their miss; the budget buys accuracy) for everyone else. God Mode:
+  // you see the truth.
+  potRead(p, tid, s = this.state) {
+    if (tid == null || tid < 0 || !p) return p?.pot ?? 0;
+    if (s.god && this.isUser(s, tid)) return p.tpot ?? p.pot;
+    if ((s.rosters[tid] || []).includes(p.id)) return potView(p, { own: true });
+    return teamRead(p, tid, scoutSd(teamBudget(this, s, tid).Scouting, !!s.easy?.scouting && this.isUser(s, tid)));
+  }
+  // A player's worth to a team with strategy st; tid: whose eyes (its read of his potential).
+  pVal(p, st, tid?: number) {
+    const pot = tid == null ? p.pot : this.potRead(p, tid), base = Math.pow(Math.max(0, p.ovr - 38), 1.9) / 10;
+    const gap = Math.max(0, pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
     const agePen = p.age >= 31 ? 0.65 : p.age >= 29 ? 0.85 : 1;
     const M = { rebuild: [p.age >= 29 ? 0.55 : 0.9, 1.7, 0.35], middle: [0.9, 1.4, 1.0], contend: [1.35, 0.5, 0.75] }[st];
     let v = base * agePen * M[0] + youth * M[1];
-    if (st === 'middle' && p.age <= 24 && p.pot >= 60) v += 8;
+    if (st === 'middle' && p.age <= 24 && pot >= 60) v += 8;
     return v - (p.amt - this.fair(p.ovr)) * Math.max(1, p.exp - (this.Y - 1)) * 0.35 * M[2];
   }
   kVal(k, st, giving, T) {
@@ -1221,14 +1238,14 @@ export class Game {
   tradeItemLabel(s, id, T) { if (Game.isSwap(id)) return id.slice(5) + ' first-round swap rights'; const a = this.tradeAsset(s, id); return a ? this.pickLabel(a, T) : ''; }
   evalTrade(s, mine, theirs, kMine, kTheirs) {
     const P = this.db.P, st = this.strategies(s.teams)[s.tTid];
-    const recv = mine.reduce((a, id) => a + this.pVal(P[id], st), 0) + kMine.reduce((a, id) => a + this.tradeItemVal(s, id, st, false, s.tTid, s.me), 0);
-    const give = theirs.reduce((a, id) => a + this.pVal(P[id], st), 0) + kTheirs.reduce((a, id) => a + this.tradeItemVal(s, id, st, true, s.me, s.tTid), 0);
+    const recv = mine.reduce((a, id) => a + this.pVal(P[id], st, s.tTid), 0) + kMine.reduce((a, id) => a + this.tradeItemVal(s, id, st, false, s.tTid, s.me), 0);
+    const give = theirs.reduce((a, id) => a + this.pVal(P[id], st, s.tTid), 0) + kTheirs.reduce((a, id) => a + this.tradeItemVal(s, id, st, true, s.me, s.tTid), 0);
     const thr = Math.max(1, Math.abs(give) * 0.06);
     return { st, recv, give, diff: recv - give - thr, ok: recv - give >= thr };
   }
   injTick(rosters, day, s, out, mins: Record<number, number> = {}) {
     const P = this.db.P, pk = a => a[Math.floor(Math.random() * a.length)];
-    const hbOf = k => { const c = this.clubOf(s, +k); return c ? 1 - (c.budget.Health - 10) / 40 : 1; };
+    const hbOf = k => 1 - (teamBudget(this, s, +k).Health - 10) / 40; // the medical staff: yours from Finances, an AI team's from its owner
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
       if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { let lost = '';
           // A major injury can also cost skill once he's back (rust, lost feel).
@@ -1248,7 +1265,7 @@ export class Game {
       else if (x < .077) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain', 'Fractured hand', 'Torn meniscus', 'Calf strain', 'Patellar tendinopathy']), games: 8 + Math.floor(Math.random() * 18) };
       else if (x < .36) { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Knee soreness', 'Back spasms', 'Groin strain', 'Hip contusion', 'Concussion protocol', 'Sprained wrist']), games: 1 + Math.floor(Math.random() * 8) }; p.minorCount = (p.minorCount || 0) + 1; }
       else inj = { name: pk(['Ankle sprain', 'Sore knee', 'Bruised thigh', 'Jammed finger', 'Back tightness', 'Sore wrist', 'Hip soreness', 'Tweaked hamstring']), games: 1 + Math.floor(Math.random() * 5), dtd: true }; // plays through it, at reduced strength
-      if (this.isUser(s, +k)) inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
+      inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
       p.inj = inj; (p.injHist = p.injHist || []).push({ name: inj.name, games: inj.games, season: this.seasonLbl(), ...(inj.dtd ? { dtd: true } : {}) });
       out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, pid: id, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out about ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') });
     }));
@@ -1285,7 +1302,9 @@ export class Game {
   // a player who can't adapt, loses confidence, or just has a lost year). Hard workers lean up.
   rollDevYear(s = this.state) {
     const P = this.db.P, g3 = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
-    [...(Object.values(s.rosters).flat() as number[]), ...(s.fa || [])].forEach(id => { const p = P[id]; if (!p) return; p.dy = +Math.max(-0.8, Math.min(2.8, 1 + 0.85 * g3() + ((p.pers?.work ?? 50) - 50) / 200)).toFixed(2); p.dyS = this.Y; });
+    // Timing too: growth that comes early (a breakout) is partly given back the next year, and a down
+    // year is partly made up (a sophomore slump, then a bounce): bigger swings, same careers on average.
+    [...(Object.values(s.rosters).flat() as number[]), ...(s.fa || [])].forEach(id => { const p = P[id]; if (!p) return; const t = 0.5 * g3(); p.dy = +Math.max(-1, Math.min(3, 1 + 0.85 * g3() + t - 0.7 * (p.dyT || 0) + ((p.pers?.work ?? 50) - 50) / 200)).toFixed(2); p.dyT = +t.toFixed(2); p.dyS = this.Y; });
   }
   // Expected yearly change in overall before personality, minutes and luck.
   // His development plan (potential.ts): this age's share of the way from where he came into the league
@@ -1333,8 +1352,8 @@ export class Game {
       // feel for them (a center with no touch shooting a thousand threes won't become a shooter). The
       // month's change lands his own way (development.ts): his body on its own track, the rest into his
       // skills by his development profile and training focus.
-      const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
-      Object.assign(dl, develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl);
+      const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4, role = roleReps(this.seasonTotals(p, this.Y));
+      Object.assign(dl, develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl);
       // A hidden gem's extra ceiling surfaces (intangibles.ts), and his potential is re-read (potential.ts).
       const gemUp = gemTick(p), pot0 = p.pot;
       if (gemUp > 0) moveTruePot(p, gemUp);
@@ -1346,7 +1365,8 @@ export class Game {
       p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
-        const note = gemUp > 0 && wp > 0 ? 'Outgrowing his scouting report: the staff sees more in him every month (potential ' + p.pot + ')' : unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.dev ? 'CCP reps are accelerating his growth' : a <= 24 && p.min < 10 ? 'Stalled without minutes; consider the dev league' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress';
+        const note = gemUp > 0 && wp > 0 ? 'Outgrowing his scouting report: the staff sees more in him every month (potential ' + p.pot + ')' : unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline: athleticism goes first' : (p.tpot ?? p.pot) - p.ovr <= 1 && a <= 26 ? 'Close to his ceiling: not much growth left'
+          : (() => { const ew = envWhy(env), ps = planStatus(p), rl = roleLead(role); return env.mult <= 0.92 && ew ? ew : ps === 'behind' ? 'Falling behind his development plan' : rl ? 'His role is making him a ' + ROLE_NOUN[rl] : ew ? ew : ps === 'ahead' ? 'Ahead of schedule' : p.dev ? 'CCP reps are accelerating his growth' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress'; })();
         (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
     }));
     const label = this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), out: Record<number, any> = {};
@@ -1516,7 +1536,7 @@ export class Game {
         if (!avail.length) { pi = picks.length; break; } // class exhausted: the remaining picks are forfeited
         // An AI team drafts on its own read: the league's read of each prospect plus its own scouts' miss
         // (a frugal owner's thin staff misses more). Your auto-draft uses the board as shown.
-        const ranked = ai ? (() => { const sd = this.cl(4.2 - teamBudget(this, s, ow).Scouting * 0.3, 1.2, 4), val = (x: number) => { const r = seeded(((ow + 1) * 7919 + x * 104729 + this.Y * 31) >>> 0), q = this.db.P[x]; return (q.pot + (r() + r() + r() - 1.5) * 2 * sd) * 0.7 + q.ovr * 0.3; }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); return avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); })() : avail;
+        const ranked = ai ? (() => { const val = (x: number) => { const q = this.db.P[x]; return this.potRead(q, ow, s) * 0.7 + q.ovr * 0.3; }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); return avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); })() : avail;
         const id = ranked[Math.min(ranked.length - 1, Math.floor(Math.random() * Math.random() * 3))];
         picks[pi].pid = id; taken.add(id);
         const p = this.db.P[id], T = s.teams[ow];

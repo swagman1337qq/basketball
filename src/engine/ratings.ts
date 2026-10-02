@@ -152,6 +152,16 @@ export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
 // tall); every inch longer or shorter is 6 points. It counts toward the overall at a set rate per
 // position: a great wingspan (+12″, about 98) is worth up to ~+4 for a big, +3 for a wing, +2 for
 // a guard, and a short one costs the same.
+// The height rating: mostly his size (about 4 points an inch: a 6′3″ guard ≈ 34, a 6′7″ wing ≈ 50, a
+// 6′11″ big ≈ 66), partly how he plays to it, kept from his old rating and a fixed lean of his own:
+// some players use their length and strength like a bigger man, some play small.
+export const hgtFromInches = (inches: number) => 34 + (inches - 75) * 4;
+export function blendHeight(p: any, old: number) { const lean = ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10; return Math.round(Math.max(4, Math.min(100, 0.6 * (hgtFromInches(inchesOf(p.hgt)) + lean) + 0.4 * old))); }
+// Set the height rating and move his other ratings the other way so his overall stays put.
+export function setHgtKeepOvr(p: any, v: number) {
+  const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = T / (T - (W.hgt ?? 0)); p.r.hgt = v;
+  for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(100, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
+}
 export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 export const WNG_W: Record<string, number> = { G: .04, W: .06, B: .08 };
 export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(100, 50 + (wing - hIn - 4) * 6)));

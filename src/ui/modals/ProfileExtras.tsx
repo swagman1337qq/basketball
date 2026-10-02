@@ -8,8 +8,9 @@ import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { devOutlook } from '../../engine/development';
-import { ceilList, fullCeil, paceLabel, paceOf, potView } from '../../engine/potential';
+import { ceilList, fullCeil, paceLabel, paceOf, potView, scoutSd } from '../../engine/potential';
 import { envOf } from '../../engine/environment';
+import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
 const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', blk: 'Blocks', stl: 'Steals', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
@@ -160,8 +161,9 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
         <h4 style={ruleH4}>Ratings & scouting confidence</h4>
         <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} c={s.god && !(tid >= 0 && gm.isUser(s, tid)) ? GOD_PINK : undefined} />
         {s.god ? <Row k="True potential" v={(p.tpot ?? p.pot) + ' · the league’s read: ' + p.pot + (tid >= 0 && gm.isUser(s, tid) ? ' · your staff’s: ' + potView(p, { own: true }) : '')} c={GOD_PINK} />
-          : <Row k="Potential" v={mine ? potView(p, { own: true }) + ' (your staff’s read)' : Math.max(p.ovr, p.pot - margin * 2) + '–' + (p.pot + margin * 2) + ' (the league’s read ± your scouts)'} />}
+          : <Row k="Potential" v={mine ? potView(p, { own: true }) + ' (your staff’s read)' : (() => { const v = potView(p, { tid: s.me, sd: scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting) }); return Math.max(p.ovr, v - margin * 2) + '–' + (v + margin * 2) + ' (your scouts’ read; the league’s is ' + p.pot + ')'; })()} />}
         <Row k="Confidence" v={mine ? (conf >= 70 ? 'Brimming' : conf >= 55 ? 'Assured' : conf >= 40 ? 'Steady' : conf >= 25 ? 'Shaken' : 'Fragile') : 'Hidden'} c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined} />
+        {mine && (() => { const exp = hgtFromInches(inchesOf(p.hgt)), d = p.r.hgt - Math.round(exp); return <Row k="Size" v={p.hgt + ' · height rating ' + p.r.hgt + (Math.abs(d) <= 2 ? ' (about what his height gives)' : d > 0 ? ' (plays ' + d + ' bigger than his height)' : ' (plays ' + (-d) + ' smaller than his height)')} />; })()}
         {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>How he develops</h4>
         {s.god && p.ceil && <><Row k="Skill ceilings" v={ceilList(p).map(([k2, v2]) => LB[k2] + ' ' + v2).join(' · ')} c={GOD_PINK} /><Row k="Full ceiling" v={Math.round(fullCeil(p)) + ' overall with every skill maxed (true potential is the part he can still reach at ' + p.age + ')'} c={GOD_PINK} /><Row k="Development pace" v={paceOf(p).toFixed(2) + ' · ' + paceLabel(paceOf(p)) + ' (hidden: how much of his plan he gets)'} c={GOD_PINK} /></>}

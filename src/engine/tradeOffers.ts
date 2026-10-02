@@ -23,7 +23,7 @@ function combosOf(R: number[], picks: string[], seed: number) {
 // because offers try thousands of packages.
 function evaluator(g: Game, s: any, tid: number) {
   const st = g.strategies(s.teams)[tid] || 'middle', P = g.db.P, vp = new Map<number, number>(), vk = new Map<string, number>();
-  const pv = (id: number) => { let v = vp.get(id); if (v == null) { v = g.pVal(P[id], st); vp.set(id, v); } return v; };
+  const pv = (id: number) => { let v = vp.get(id); if (v == null) { v = g.pVal(P[id], st, tid); vp.set(id, v); } return v; }; // through this team's own scouts
   const kv = (id: string, giving: boolean) => { const key = id + (giving ? '+' : '-'); let v = vk.get(key); if (v == null) { v = g.kVal(s.assets.find((a: any) => a.id === id), st, giving, s.teams); vk.set(key, v); } return v; };
   return (mine: number[], theirs: number[], kMine: string[], kTheirs: string[]) => {
     const recv = mine.reduce((a, id) => a + pv(id), 0) + kMine.reduce((a, id) => a + kv(id, false), 0), give = theirs.reduce((a, id) => a + pv(id), 0) + kTheirs.reduce((a, id) => a + kv(id, true), 0);
@@ -33,7 +33,7 @@ function evaluator(g: Game, s: any, tid: number) {
 function myValuer(g: Game, s: any) {
   const st = g.strategies(s.teams)[s.me] || 'middle', P = g.db.P, cache = new Map<string, number>();
   const one = (key: string, f: () => number) => { let v = cache.get(key); if (v == null) { v = f(); cache.set(key, v); } return v; };
-  return (ids: number[], kids: string[], giving: boolean) => ids.reduce((a, id) => a + one('p' + id, () => g.pVal(P[id], st)), 0) + kids.reduce((a, id) => a + one('k' + id + giving, () => g.kVal(s.assets.find((x: any) => x.id === id), st, giving, s.teams)), 0);
+  return (ids: number[], kids: string[], giving: boolean) => ids.reduce((a, id) => a + one('p' + id, () => g.pVal(P[id], st, s.me)), 0) + kids.reduce((a, id) => a + one('k' + id + giving, () => g.kVal(s.assets.find((x: any) => x.id === id), st, giving, s.teams)), 0);
 }
 
 // Offers for your players/picks from every AI team that can make one it would accept (0 to 29),

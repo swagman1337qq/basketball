@@ -228,7 +228,7 @@ export function openFreeAgency(g: Game, s: any) {
       if (wantQo) { p.rfa = { tid: t, qo }; note(t, 'Extended a ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' (restricted free agent)'); }
       // AI teams keep some of their own free agents before the market opens (Bird rights).
       if (!user && p.birdTid === t) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
-        const keep = (rank < 9 || p.age <= 24 && p.pot >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP);
+        const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
       if (user) { if (t === s.me && dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
       p.rookie = false; box.fa.push(id); return false; }); });
@@ -370,7 +370,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const rook = !!p.rookieScale, vetOk = !rook && (p.signed?.season != null ? g.Y - p.signed.season >= 2 : (p.yrsWith || 0) >= 2);
       if (!rook && !vetOk) return;
       // Worth keeping? Young players on what they'll become, veterans on what they are.
-      const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, p.pot - p.ovr) * 0.5) : p.ovr;
+      const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, g.potRead(p, t, s) - p.ovr) * 0.5) : p.ovr; // his team's own read of his potential
       if (proj < (rook ? 56 : 58) || p.age >= 33) return;
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;

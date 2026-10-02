@@ -17,18 +17,18 @@ import { lockerRoom, mentorOf } from './lockerRoom';
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // What each kind of owner spends (budget $M, as in Finances); each team varies a little around it.
 const ARCH_BUD: Record<string, Record<string, number>> = {
-  'Win-Now Spender': { Coaching: 30, Facilities: 22, Scouting: 6 },
-  'Hype Focus': { Coaching: 20, Facilities: 26, Scouting: 4 },
-  'Asset Hoarder': { Coaching: 26, Facilities: 16, Scouting: 9 },
-  'Meddling Micromanager': { Coaching: 17, Facilities: 15, Scouting: 4 },
-  'Frugal Profit-Seeker': { Coaching: 9, Facilities: 7, Scouting: 2 },
+  'Win-Now Spender': { Coaching: 30, Facilities: 22, Scouting: 6, Health: 16 },
+  'Hype Focus': { Coaching: 20, Facilities: 26, Scouting: 4, Health: 11 },
+  'Asset Hoarder': { Coaching: 26, Facilities: 16, Scouting: 9, Health: 12 },
+  'Meddling Micromanager': { Coaching: 17, Facilities: 15, Scouting: 4, Health: 10 },
+  'Frugal Profit-Seeker': { Coaching: 9, Facilities: 7, Scouting: 2, Health: 5 },
 };
-const LIMIT: Record<string, [number, number]> = { Coaching: [5, 40], Facilities: [3, 30], Scouting: [1, 12] };
+const LIMIT: Record<string, [number, number]> = { Coaching: [5, 40], Facilities: [3, 30], Scouting: [1, 12], Health: [3, 25] };
 // A team's development budgets: yours from Finances, an AI team's from its owner.
 export function teamBudget(g: Game, s: any, tid: number): Record<string, number> {
   const c = g.clubOf(s, tid); if (c?.budget) return c.budget;
   const b = ARCH_BUD[s.teams[tid]?.arch] || ARCH_BUD['Meddling Micromanager'], h = (x: number) => ((((tid + 1) * 2654435761) ^ (x * 40503)) >>> 0) % 1000 / 1000 - 0.5;
-  const out: Record<string, number> = {}; Object.keys(LIMIT).forEach((k, i) => (out[k] = +cl(b[k] + h(i + 1) * (k === 'Scouting' ? 2 : 8), LIMIT[k][0], LIMIT[k][1]).toFixed(1)));
+  const out: Record<string, number> = {}; Object.keys(LIMIT).forEach((k, i) => (out[k] = +cl(b[k] + h(i + 1) * (k === 'Scouting' ? 2 : k === 'Health' ? 5 : 8), LIMIT[k][0], LIMIT[k][1]).toFixed(1)));
   return out;
 }
 // Facilities' share: a modern gym and recovery center, at most +6% (−4% for a bare-bones one).
@@ -53,6 +53,20 @@ export function envOf(g: Game, s: any, p: any, tid: number, rosters = s.rosters)
   const S = parts.reduce((t, [, v]) => t + v, 0), d = 0.25 * Math.tanh(S / 0.25), fr = fringe(p);
   return { mult: +cl(1 + d * fr, 0.75, 1.3).toFixed(3), parts, fringe: fr, total: S };
 }
+
+// The factor that matters most, in plain words (development reports): worst first when it's holding
+// him back, best first when he's thriving. Null when nothing stands out.
+export function envWhy(e: Env): string | null {
+  const pct = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 100)) + '%';
+  if (e.mult <= 0.92) { const [k, v] = e.parts.slice().sort((a, b) => a[1] - b[1])[0] || []; if (k == null || v >= 0) return null;
+    return ({ 'Playing time': 'The bench is costing him growth (' + pct(v) + '); real minutes or the CCP would help', Coaching: 'A thin coaching staff is slowing him (' + pct(v) + ')', Facilities: 'Bare-bones facilities are slowing him (' + pct(v) + ')', 'Locker room': 'The locker room is dragging on him (' + pct(v) + ')' } as any)[k] || null; }
+  if (e.mult >= 1.08) { const [k, v] = e.parts.slice().sort((a, b) => b[1] - a[1])[0] || []; if (k == null || v <= 0) return null;
+    return ({ 'Playing time': 'Real minutes are speeding his growth (' + pct(v) + ')', 'CCP reps': 'CCP reps are speeding his growth (' + pct(v) + ')', Coaching: 'Thriving under a strong coaching staff (' + pct(v) + ')', Facilities: 'Top facilities are helping him grow (' + pct(v) + ')', 'Locker room': 'A great locker room is lifting him (' + pct(v) + ')', Mentor: 'His mentor is helping him grow (' + pct(v) + ')', 'Veteran leaders': 'Learning from the veterans (' + pct(v) + ')' } as any)[k] || null; }
+  return null;
+}
+export const ROLE_NOUN: Record<string, string> = { shoot: 'shooter', finish: 'finisher', play: 'playmaker', def: 'defender', reb: 'rebounder' };
+// The skill group his role leans on most (≥ min), or null.
+export const roleLead = (r: Record<string, number> | null, min = 1.25) => { if (!r) return null; const [g, v] = Object.entries(r).sort((a, b) => b[1] - a[1])[0]; return v >= min ? g : null; };
 
 // His role in games this season, as growth leanings by skill group (1 = neutral, 0.75–1.5): what he's
 // asked to do gets the reps. Needs 10 games; counts more the more he plays. `t`: his season totals.

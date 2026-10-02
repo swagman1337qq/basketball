@@ -82,7 +82,23 @@ export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p,
 export function rollPerr(p: any, sd: number) { const r = mulberry32(((p.id * 40503) ^ 0x9e11) >>> 0); p.perr = +((r() + r() + r() - 1.5) * 2 * sd).toFixed(2); }
 // Every summer the league learns more: the miss shrinks (gone by 27).
 export function sharpen(p: any, rnd: () => number = Math.random) { p.perr = p.age >= 27 ? 0 : +((p.perr || 0) * 0.75 + (rnd() + rnd() + rnd() - 1.5) * 2 * 0.6).toFixed(2); }
-// What a viewer sees: God Mode the truth; your staff your own players almost exactly; everyone else the consensus.
-export function potView(p: any, o: { god?: boolean; own?: boolean }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.round(t + (p.perr || 0) * 0.3)) : p.pot; }
+// How far a team's scouts miss on top of the league's read (points of potential, typical size): the
+// scouting budget buys accuracy. Easy mode's forgiving scouting cuts it to a third.
+export const scoutSd = (budget = 4, easy = false) => Math.max(0.6, Math.min(4, 4.2 - 0.3 * budget)) * (easy ? 0.35 : 1);
+// A team's own read of another team's player: the league's read plus its scouts' miss, fixed for that
+// team and player (scouts hold their opinions), smaller for older players whose game is known.
+export function teamRead(p: any, tid: number, sd: number) {
+  const r = mulberry32((((tid + 3) * 2246822519) ^ (p.id * 3266489917)) >>> 0), youth = Math.max(0.25, Math.min(1, (27 - p.age) / 8));
+  return Math.max(p.ovr, Math.min(100, Math.round(p.pot + (r() + r() + r() - 1.5) * 2 * sd * youth)));
+}
+// What a viewer sees: God Mode the truth; your staff your own players almost exactly; anyone else your
+// scouts' read (tid/sd) or, without them, the league's read.
+export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.round(t + (p.perr || 0) * 0.3)) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
+// Where he stands against his development plan (for reports): 'behind', 'ahead', or null (on track, or done).
+export function planStatus(p: any): 'behind' | 'ahead' | null {
+  const d = p.dv0; if (!d || p.age > 27) return null; const W = wRem(d.a), F = fullCeil(p), gap = F - d.o; if (W <= 0 || gap < 4) return null;
+  const done = (ovrExact(p) - d.o) / gap, due = TYPICAL * (1 - wRem(p.age + 1) / W);
+  return done < due - 0.15 ? 'behind' : done > due + 0.15 ? 'ahead' : null;
+}
 // His ceilings in each skill (God Mode), highest first.
 export function ceilList(p: any): [string, number][] { return p.ceil ? (Object.entries(p.ceil) as [string, number][]).map(([k, v]) => [k, Math.round(v)] as [string, number]).sort((a, b) => b[1] - a[1]) : []; }

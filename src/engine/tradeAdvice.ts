@@ -16,8 +16,8 @@ export function ourStrategy(g: Game, s: any): 'contend' | 'middle' | 'rebuild' {
 // kind 'offer': they already said yes (an offer they made us). kind 'proposal': our own offer to them.
 export function tradeAdvice(g: Game, s: any, tid: number, mine: number[], theirs: number[], kMine: string[], kTheirs: string[], kind: 'offer' | 'proposal'): Advice {
   const P = g.db.P, st = ourStrategy(g, s);
-  const give = mine.reduce((a, id) => a + g.pVal(P[id], st), 0) + kMine.reduce((a, id) => a + g.tradeItemVal(s, id, st, true, tid, s.me), 0);
-  const get = theirs.reduce((a, id) => a + g.pVal(P[id], st), 0) + kTheirs.reduce((a, id) => a + g.tradeItemVal(s, id, st, false, s.me, tid), 0);
+  const give = mine.reduce((a, id) => a + g.pVal(P[id], st, s.me), 0) + kMine.reduce((a, id) => a + g.tradeItemVal(s, id, st, true, tid, s.me), 0);
+  const get = theirs.reduce((a, id) => a + g.pVal(P[id], st, s.me), 0) /* your staff's and scouts' read of potential */ + kTheirs.reduce((a, id) => a + g.tradeItemVal(s, id, st, false, s.me, tid), 0);
   const r = give <= 0.5 ? (get > 0.5 ? 9 : 1) : get / give;
   const ev = g.evalTrade({ ...s, tTid: tid }, mine, theirs, kMine, kTheirs), scale = Math.max(10, Math.abs(ev.give));
   const lines: string[] = [];
