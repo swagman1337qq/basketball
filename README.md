@@ -2,7 +2,7 @@
 
 A single-player basketball GM and head-coach sim that runs entirely in your browser. Run one club or any number of the 30 (15 per conference): set the rotation and tactics, trade, sign free agents and overseas players, scout the world and draft, develop young players, and keep your owner happy, season after season, through a play-in, an East/West playoff bracket, awards, and a job market that can fire or hire you.
 
-`docs/SPEC_STATUS.md` walks through the full feature spec point by point and says where each piece lives.
+`docs/FEATURE_MAP.md` is the one-page overview: how the pieces fit, the season loop, every feature area with its screens and code, and a checklist of known issues. `docs/SPEC_STATUS.md` walks through the full feature spec point by point and says where each piece lives.
 
 The UI is built from the Claude Design handoff ("Basketball GM redesign", Classical design system). `docs/HANDOFF.md` is the product spec and lists every rule the engine follows.
 
