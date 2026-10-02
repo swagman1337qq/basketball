@@ -1,10 +1,28 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-DtclIjTR.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-BzL2LMU5.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-02
 
 ### Added
+- **Every team judges potential through its own scouts.** In trades, re-signings and extensions, AI teams value other teams' players on their own read: the league's read plus their scouts' miss, which a bigger scouting budget shrinks. They know their own players best.
+  - Your screens show your scouts' read of other teams' players, so your Scouting budget matters in trades too.
+  - Your assistants' free-agent ideas use the same read.
+- **AI teams have medical staffs.** A win-now owner's team gets players back from injuries faster, and a frugal owner's slower.
+- **Development reports say why.** Monthly notes now include, for example:
+  - "The bench is costing him growth" or "His role is making him a shooter".
+  - "Falling behind his development plan", "Ahead of schedule" or "Close to his ceiling".
+  - The year-by-year notes add "Held back by his situation", "A good place to grow" and "Sophomore slump".
+- **Bigger swings from year to year.** A breakout year is partly given back the next season and a down year partly made up (sophomore slumps, bounce-backs), without changing where careers end up on average.
+- **Size** on the Development tab: a player's height, his height rating, and whether he plays bigger or smaller than his height.
+- **Where a player develops matters.** How fast he closes in on his potential depends on his team's environment.
+  - The factors are coaching, facilities, playing time (for players 24 and under; CCP minutes count, and a hard worker makes up most of what the bench costs), the locker room, and a veteran mentor.
+  - Together they're capped at ±25%, with diminishing returns. They matter most for players with modest potential: a fringe player's career swings on where he lands, while a top prospect develops anywhere.
+  - They never raise his ceiling.
+  - Your players' Development tab shows the breakdown; God Mode shows anyone's.
+- **AI teams spend on coaching and facilities the way their owners would.** A win-now spender has the best staff and gym, and a frugal owner the barest. Finances now ranks your budgets against theirs.
+- **A player's role shapes his growth.** The shots, drives, passing, defense and rebounding he's asked for in games get the reps, and his growth leans that way.
+- **AI teams draft on their own scouting.** Each team reads prospects through its own scouts, so teams disagree about who's best, and a frugal owner's thin staff misses more often.
 - **Potential is a ceiling now, not a destination.** It's how good a player could become if everything goes right, and most players stop short of it.
   - Every player has a development plan from the day he comes into the league, and a hidden pace for how much of it he gets. A typical player gets about four fifths of the way. About one in nine barely develops at all, and about one in seven develops fast.
   - A lost year stays lost: nothing makes it up later. His potential shrinks as years go by without the growth, and it can still rise with a breakout or a hidden gem.
@@ -55,6 +73,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **The height rating now mostly follows listed height,** at about 4 points an inch. Some players still play bigger or smaller than their size. Existing players' overalls don't change.
+- **Facilities help development a little,** up to +6% for the best.
+- **Playing time counts through the same capped environment.** Sitting on the bench costs a young player at most about a quarter of his growth, and less for a hard worker. It used to cost nearly half.
+- **Projections** ("projects as", the scout report's outlook) now grow a player's skills, not his speed and leaping.
 - **The Coaching budget speeds growth by at most 12%,** with diminishing returns, and slows aging a little. It used to add flat points every year, at any age, so a big coaching budget pushed players past their potential.
 - **Training focus decides where a player's growth goes, not how much.** His focus skills take a much bigger share and the rest stall. Athleticism and Conditioning only help while he's still filling out. The preview on the Tactics screen shows the new split.
 - Growth in the CCP and overseas follows each player's own development profile too, instead of raising every rating alike.
