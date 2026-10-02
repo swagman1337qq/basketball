@@ -8,6 +8,7 @@ import { incentiveProgress } from '../../engine/frontOffice';
 import { intelF, leagueStr } from '../../engine/overseas';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { devOutlook } from '../../engine/development';
+import { ceilList, fullCeil, paceLabel, paceOf, potView } from '../../engine/potential';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
 const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', blk: 'Blocks', stl: 'Steals', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
@@ -157,10 +158,12 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
       <section>
         <h4 style={ruleH4}>Ratings & scouting confidence</h4>
         <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} c={s.god && !(tid >= 0 && gm.isUser(s, tid)) ? GOD_PINK : undefined} />
-        <Row k="Potential" v={mine ? p.pot : Math.max(p.ovr, p.pot - margin * 2) + '–' + (p.pot + margin * 2)} />
+        {s.god ? <Row k="True potential" v={(p.tpot ?? p.pot) + ' · the league’s read: ' + p.pot + (tid >= 0 && gm.isUser(s, tid) ? ' · your staff’s: ' + potView(p, { own: true }) : '')} c={GOD_PINK} />
+          : <Row k="Potential" v={mine ? potView(p, { own: true }) + ' (your staff’s read)' : Math.max(p.ovr, p.pot - margin * 2) + '–' + (p.pot + margin * 2) + ' (the league’s read ± your scouts)'} />}
         <Row k="Confidence" v={mine ? (conf >= 70 ? 'Brimming' : conf >= 55 ? 'Assured' : conf >= 40 ? 'Steady' : conf >= 25 ? 'Shaken' : 'Fragile') : 'Hidden'} c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined} />
         {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>How he develops</h4>
+        {s.god && p.ceil && <><Row k="Skill ceilings" v={ceilList(p).map(([k2, v2]) => LB[k2] + ' ' + v2).join(' · ')} c={GOD_PINK} /><Row k="Full ceiling" v={Math.round(fullCeil(p)) + ' overall with every skill maxed (true potential is the part he can still reach at ' + p.age + ')'} c={GOD_PINK} /><Row k="Development pace" v={paceOf(p).toFixed(2) + ' · ' + paceLabel(paceOf(p)) + ' (hidden: how much of his plan he gets)'} c={GOD_PINK} /></>}
         {mine ? devOutlook(p, !!s.god).map(([k2, v2]) => <Row key={k2} k={k2} v={v2} c={k2 === 'Hidden profile' ? GOD_PINK : undefined} />)
           : <p style={{ ...muted, fontSize: '12px', margin: 0 }}>Only your own staff knows how a player develops: where his growth goes, his body and his work ethic.</p>}
         {mine && <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Every player grows his own way: some pour everything into one area, some round out. His body (speed, burst, leaping, strength, stamina) follows its own schedule, so skill work doesn’t make him faster.</p>}

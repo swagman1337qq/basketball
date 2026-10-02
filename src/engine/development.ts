@@ -22,6 +22,7 @@ import { repAffinity } from './tactics';
 export const BODY = ['spd', 'acc', 'jmp', 'stre', 'endu'];
 export const SKILLS = Object.values(GROUPS).flatMap(g => g.keys); // the 14 basketball skills, in five groups
 const GROUP_OF: Record<string, string> = Object.fromEntries(Object.entries(GROUPS).flatMap(([g, x]) => x.keys.map(k => [k, g])));
+export const groupOf = (k: string) => GROUP_OF[k];
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seeded = (...xs: number[]) => mulberry32(xs.reduce((h, x) => (Math.imul(h ^ x, 2654435761) + 0x9e3779b9) >>> 0, 0x5eed1e5));
 const nrm = (r: () => number) => (r() + r() + r() - 1.5) * 2; // roughly a standard normal
@@ -65,24 +66,29 @@ export function devProfile(p: any): DevProfile {
 function emphasis(p: any, year: number) { const r = seeded(p.id, year, 7); return Object.fromEntries(Object.keys(GROUPS).map(g => [g, Math.exp(0.25 * nrm(r))])); }
 
 export interface WeightOpts { year: number; keys?: string[]; reps?: Record<string, number> | null; repF?: number } // keys: the training focus's ratings
+// w: each skill's share of growth; lazy: how far each is from what he's working on (0–1: a skill he
+// isn't working on slips a little; one that's simply maxed out at its ceiling doesn't).
+export interface Weights { w: Record<string, number>; lazy: Record<string, number> }
 const LATE: Record<string, 1> = { oiq: 1, diq: 1, box: 1 }; // feel for the game comes with years
 const EARLY: Record<string, 1> = { dnk: 1, blk: 1 }; // the skills that ride on young legs
-// How a year's growth is shared among his skills (relative weights).
-export function skillWeights(p: any, o: WeightOpts): Record<string, number> {
+// How a year's growth is shared among his skills. A skill grows toward its own ceiling (p.ceil,
+// potential.ts) and stops there.
+export function skillWeights(p: any, o: WeightOpts): Weights {
   const d = devProfile(p), e = emphasis(p, o.year), a = p.age, focus = (o.keys || []).filter(k => SKILLS.includes(k));
-  const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0), avg = SKILLS.reduce((s, k) => s + v(k), 0) / SKILLS.length, out: Record<string, number> = {};
+  const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0), avg = SKILLS.reduce((s, k) => s + v(k), 0) / SKILLS.length, w: Record<string, number> = {}, it: Record<string, number> = {};
   SKILLS.forEach(k => {
     const g = GROUP_OF[k];
-    let w = d.aff[g] * e[g];
-    w *= cl(1 + (v(k) - avg) / 50, 0.6, 1.4); // what he already has a feel for grows faster
-    w *= cl((100 - v(k)) / 40, 0.05, 1.2); // and growth slows near the top of the scale
-    if (LATE[k]) w *= cl(0.65 + (a - 19) * 0.08, 0.65, 1.4);
-    if (EARLY[k]) w *= cl(1.25 - (a - 21) * 0.08, 0.5, 1.25);
-    if (focus.length) w *= focus.includes(k) ? 2.2 : 0.45; // the training focus decides where growth goes, not how much
-    if (o.reps?.[k]) w *= 1 + o.reps[k] * (o.repF ?? 1) * repAffinity(p, k); // his system's practice reps
-    out[k] = w;
+    let i = d.aff[g] * e[g]; // what he works on
+    if (LATE[k]) i *= cl(0.65 + (a - 19) * 0.08, 0.65, 1.4);
+    if (EARLY[k]) i *= cl(1.25 - (a - 21) * 0.08, 0.5, 1.25);
+    if (focus.length) i *= focus.includes(k) ? 2.2 : 0.45; // the training focus decides where growth goes, not how much
+    if (o.reps?.[k]) i *= 1 + o.reps[k] * (o.repF ?? 1) * repAffinity(p, k); // his system's practice reps
+    it[k] = i;
+    w[k] = i * cl(1 + (v(k) - avg) / 50, 0.6, 1.4) // what he already has a feel for grows faster
+      * cl(((p.ceil?.[k] ?? 100) - v(k)) / 12, 0.02, 1.4) * cl((100 - v(k)) / 40, 0.05, 1.2); // and slows near its ceiling
   });
-  return out;
+  const mi = SKILLS.reduce((s, k) => s + it[k], 0) / SKILLS.length || 1;
+  return { w, lazy: Object.fromEntries(SKILLS.map(k => [k, cl(1 - it[k] / mi, 0, 1)])) };
 }
 
 // Where a decline shows first: the athletic skills go, feel for the game and the shot hold on.
@@ -93,22 +99,23 @@ const SPILL = 1.6; // no skill grows more than about 1.6× faster than an even s
 // share slips a little, and the overall moves by `target`. When most of it would go into skills that
 // count little at his position (a guard who learns to box out), part of it spills over evenly so a
 // single skill doesn't run away. Returns rating changes.
-export function skillChange(p: any, target: number, w: Record<string, number>): Record<string, number> {
+export function skillChange(p: any, target: number, sw: Weights): Record<string, number> {
   const W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, b) => a + b, 0), out: Record<string, number> = {};
   if (!target) { SKILLS.forEach(k => (out[k] = 0)); return out; }
-  const up = target > 0, base = up ? w : SLIP, m = SKILLS.reduce((a, k) => a + base[k], 0) / SKILLS.length || 1;
-  const u: Record<string, number> = Object.fromEntries(SKILLS.map(k => [k, base[k] / m - (up ? NEGLECT : 0)]));
+  const up = target > 0, base = up ? sw.w : SLIP, m = SKILLS.reduce((a, k) => a + base[k], 0) / SKILLS.length || 1;
+  const u: Record<string, number> = Object.fromEntries(SKILLS.map(k => [k, base[k] / m - (up ? NEGLECT * sw.lazy[k] : 0)]));
   const ws = SKILLS.reduce((a, k) => a + W[k], 0), den = SKILLS.reduce((a, k) => a + W[k] * u[k], 0);
   if (den < ws / SPILL) { const b = (ws / SPILL - den) / (ws - den); SKILLS.forEach(k => (u[k] = (1 - b) * u[k] + b)); }
   const c = (target * T) / SKILLS.reduce((a, k) => a + W[k] * u[k], 0);
   SKILLS.forEach(k => (out[k] = c * u[k]));
-  // A rating can't pass 100 (or drop below 4): what doesn't fit goes to his other skills, so the
-  // overall still moves by `target` (a star whose best skills are maxed grows elsewhere).
+  // A rating can't pass its ceiling (or drop below 4): what doesn't fit goes to his other skills, so
+  // the overall moves by `target` while there's room anywhere (a star maxed in his best skills grows
+  // elsewhere); with every skill at its ceiling, he's done growing.
   for (let pass = 0; pass < 3; pass++) {
     const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0); let spill = 0; const open: string[] = [];
-    SKILLS.forEach(k => { const hi = 99.5 - v(k), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if (u[k] > 0 && (up ? v(k) + out[k] < 97 : v(k) + out[k] > 6)) open.push(k); });
+    SKILLS.forEach(k => { const top = Math.min(99.5, (p.ceil?.[k] ?? 99.5) + 0.5), hi = Math.max(0, top - v(k)), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k); }); // growth that doesn't fit can land on any skill with room left
     if (!spill || !open.length) break;
-    const den2 = open.reduce((a, k) => a + W[k] * Math.max(0.2, u[k]), 0); open.forEach(k => (out[k] += (spill * Math.max(0.2, u[k])) / den2));
+    const den2 = open.reduce((a, k) => a + W[k] * Math.max(0.15, u[k]), 0); open.forEach(k => (out[k] += (spill * Math.max(0.15, u[k])) / den2));
   }
   return out;
 }
@@ -119,6 +126,8 @@ const YOUTH: Record<string, (a: number) => number> = {
   stre: a => cl((26.5 - a) / 8.5, 0, 1), endu: a => cl((27 - a) / 9, 0, 1),
 };
 const YEAR_CAP: Record<string, number> = { spd: 2.5, acc: 2.5, jmp: 2.5, stre: 4, endu: 4 };
+// How much a physical rating can still grow (his frame, at his age).
+export function bodyLeft(p: any, k: string) { const d = devProfile(p), ph = p.ph || { a0: p.age, g: {} }; return Math.max(0, Math.min(d.cap[k] * YOUTH[k](ph.a0) - (ph.g[k] || 0), d.cap[k] * YOUTH[k](p.age))); }
 export interface BodyOpts { focus?: string; work: number; slow: number; rnd: () => number; dry?: boolean }
 // His physical ratings over part of a year (frac: 1/12 for a month in season, 0.5 for the summer).
 // Growth comes from his frame and age only (Athleticism or Conditioning focus speeds it up, never past
@@ -143,13 +152,13 @@ export function bodyChange(p: any, frac: number, o: BodyOpts): Record<string, nu
 }
 // A young player's body arrives ahead of his game: athletes come into the league close to the speed
 // and leaping they'll have at their peak, while their skills have most of the way to go. So a new young
-// player's physical ratings start about where the old even growth would have taken them (less what his
+// player's physical ratings start about where his peak would put them (less what his
 // frame still adds), and his skills start lower by the same weight: his overall doesn't change. `room`:
 // how much his overall is expected to grow (potential − overall).
 export function bodyAhead(p: any, room: number) {
   if (!(room > 0) || !p.r) return;
   const d = devProfile(p), W = OVR_W[p.grp] || OVR_W.W, sh: Record<string, number> = {};
-  BODY.forEach(k => (sh[k] = cl(0.85 * room - d.cap[k] * YOUTH[k](p.age), 0, 20)));
+  BODY.forEach(k => (sh[k] = cl(room - d.cap[k] * YOUTH[k](p.age), 0, 30)));
   const down = BODY.reduce((a, k) => a + W[k] * sh[k], 0) / SKILLS.reduce((a, k) => a + W[k], 0);
   BODY.forEach(k => (p.r[k] = Math.round(cl(p.r[k] + sh[k], 4, 100))));
   SKILLS.forEach(k => (p.r[k] = Math.round(cl(p.r[k] - down, 4, 100))));

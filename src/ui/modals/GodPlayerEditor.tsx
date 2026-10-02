@@ -2,6 +2,7 @@
 // script, date of birth, height, weight, wingspan), psychology, fatigue, specific
 // injuries and a custom headshot. The player's ID and past-season stats stay locked.
 import { useEffect, useState } from 'react';
+import { liftCeil, refreshPot } from '../../engine/potential';
 import type { VM } from '../vm';
 import { processImage } from '../upload';
 import { Combo, CountryPicker, Dice, FtInInput, muted, NumInput, ruleH4 } from '../kit';
@@ -71,7 +72,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   useEffect(() => { if (p?.born === 'US' && !usCities) import('../../data/usCities').then(m => setUsCities(m.US_CITIES)); }, [p?.born, usCities]);
   if (!p) return null;
   // Changing where he was born or raised, or his heritage, redoes his national-team eligibility.
-  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
+  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); liftCeil(p); refreshPot(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
   // league, or every team in the country when the league is blank or typed by hand.
   const lgs = p.from ? leaguesIn(p.from.country || p.raised || p.born) : [], curL = lgs.find(x => x.lg === p.from?.lg);

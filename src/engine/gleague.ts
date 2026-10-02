@@ -7,6 +7,7 @@
 // affiliate. Playing time there helps young players grow.
 import { ovrShare, syncOvr } from './ratings';
 import { applyChange, skillChange, skillWeights } from './development';
+import { refreshPot } from './potential';
 import type { Game } from './Game';
 
 const AFFIL: Record<string, string> = {
@@ -53,7 +54,7 @@ export function placeInGLeague(g: Game, s: any, fa: number[], rnd: () => number 
 export function gLeagueTick(g: Game, fa: number[], gamesSoFar: number) {
   const P = g.db.P;
   fa.forEach(id => { const p = P[id]; if (!p?.gl || p.gl.tid == null) return;
-    if (p.age <= 25) { p.glx = (p.glx || 0) + (p.age <= 22 ? 0.3 : 0.18); const w = Math.trunc(p.glx); if (w && p.ovr < p.pot) { p.glx -= w; applyChange(p, skillChange(p, w * (1 - ovrShare(p.grp, 'hgt')), skillWeights(p, { year: g.Y }))); syncOvr(p); } }
+    if (p.age <= 25) { p.glx = (p.glx || 0) + (p.age <= 22 ? 0.3 : 0.18); const w = Math.trunc(p.glx); if (w && p.ovr < (p.tpot ?? p.pot)) { p.glx -= w; applyChange(p, skillChange(p, w * (1 - ovrShare(p.grp, 'hgt')), skillWeights(p, { year: g.Y }))); syncOvr(p); refreshPot(p); } }
     if (!p.ccpS) Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6))); }); // CCP games replace the estimate once he plays
 }
 

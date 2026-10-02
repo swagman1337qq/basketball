@@ -11,6 +11,7 @@ import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, rati
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
+import { potView } from '../../engine/potential';
 import { PCT_TIERS, pctTier, ratingMedian, ratingPct } from '../../engine/ratingDist';
 
 const chip = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: '999px', border: '1px solid var(--color-divider)', fontSize: '12px', whiteSpace: 'nowrap' as const };
@@ -96,7 +97,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             </div>
           )}
           <Ring v={p.ovr} label="Overall" />
-          <Ring v={p.pot} label="Potential" ceiling />
+          <Ring v={potView(p, { god: !!s.god, own: tid >= 0 && gm.isUser(s, tid) })} label={s.god ? 'True potential' : 'Potential'} ceiling />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '130px' }}>
             {pl.isMine && pl.canExt && <button className="btn btn-primary" onClick={() => gm.setState({ ptab: 'contract' })} title="He's eligible for an extension now">Extend…</button>}{pl.isMine && <><button className="btn btn-secondary" onClick={pl.release}>Release</button><button className="btn btn-ghost" onClick={pl.toAbroad} style={{ fontSize: '12px' }}>Release to play overseas</button></>}
             {pl.isOther && <button className="btn btn-primary" onClick={pl.tradeFor}>Trade for</button>}

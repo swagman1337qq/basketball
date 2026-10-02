@@ -2,6 +2,7 @@
 // tendencies) as JSON, to copy from one player and load onto another in God Mode. Loading keeps
 // who he is in this league: his ID, team, contract, stats and history.
 import { syncOvr } from './ratings';
+import { setTruePot } from './potential';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 
@@ -39,7 +40,8 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.age != null) p.age = cl(card.age, 15, 45);
   p.rx = card._rx ?? {}; p.px = card._px ?? 0; if (card._gem !== undefined) p.gem = card._gem; else delete p.gem; // a fresh build: no leftover hidden growth (undo restores it)
   syncOvr(p);
-  p.pot = cl(card.pot ?? p.pot, p.ovr, 100);
+  delete p.ceil; delete p.ph; p.perr = 0; // a fresh build: his potential is the card's, exactly (potential.ts)
+  setTruePot(p, cl(card.pot ?? p.pot, p.ovr, 100));
   return '';
 }
 

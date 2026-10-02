@@ -48,7 +48,7 @@ export function scoutRead(g: Game, s: any, p: any) {
 function observed(p: any, margin: number) {
   const r = mulberry32(p.id * 9973 + 7), out: Record<string, number> = {};
   Object.keys(p.r).forEach(k => (out[k] = cl(Math.round(p.r[k] + (r() * 2 - 1) * margin * 1.3), 1, 100)));
-  return { r: out, ovr: cl(Math.round(p.ovr + (r() * 2 - 1) * margin), 1, 100), pot: cl(Math.round(p.pot + (p.nz?.[1] ?? r() * 2 - 1) * margin * 1.4), 1, 100) };
+  return { r: out, ovr: cl(Math.round(p.ovr + (r() * 2 - 1) * margin), 1, 100), pot: margin === 0 ? (p.tpot ?? p.pot) : cl(Math.round(p.pot + (p.nz?.[1] ?? r() * 2 - 1) * margin * 1.4), 1, 100) }; // God Mode (no margin): his true potential
 }
 
 // Where a rating sits in this league: 75+ is a superstar, 66+ an All-Star, 56+ a starter

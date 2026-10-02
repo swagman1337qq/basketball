@@ -5,6 +5,15 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-02
 
 ### Added
+- **Potential is a ceiling now, not a destination.** It's how good a player could become if everything goes right, and most players stop short of it.
+  - Every player has a development plan from the day he comes into the league, and a hidden pace for how much of it he gets. A typical player gets about four fifths of the way. About one in nine barely develops at all, and about one in seven develops fast.
+  - A lost year stays lost: nothing makes it up later. His potential shrinks as years go by without the growth, and it can still rise with a breakout or a hidden gem.
+  - Every player has a ceiling in each skill. A specialist's are high in his area and modest elsewhere, so reaching his potential doesn't mean being good at everything.
+- **The potential you see is a scouting read.** It's the league's estimate: a few points off for prospects, closer every season he plays. Your own staff reads your players more closely, and AI teams draft and trade on the league's read, not the truth.
+- **God Mode shows the true potential.**
+  - The ring on a player's profile reads "True potential", and roster tables and the draft board show it too.
+  - The Development tab shows it next to the league's read, plus his ceiling in every skill, his full ceiling and his hidden development pace.
+  - The editor's "True potential" slider sets it.
 - **Players develop their own way.** Every player has a hidden development profile.
   - Some pour their growth into one area and become specialists, like a shooter who keeps getting better from deep while his defense stays where it was. Others grow two areas, or round out a little everywhere.
   - Where a player's growth goes carries over from year to year. Skills he isn't working on stall, and can slip.
@@ -50,6 +59,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Training focus decides where a player's growth goes, not how much.** His focus skills take a much bigger share and the rest stall. Athleticism and Conditioning only help while he's still filling out. The preview on the Tactics screen shows the new split.
 - Growth in the CCP and overseas follows each player's own development profile too, instead of raising every rating alike.
 - In leagues you already have, players already in the league keep the athleticism they have now. Undrafted prospects get the new young body.
+- In leagues you already have, every player's potential is re-read as a ceiling. Young players' numbers rise a little, and most won't reach them.
+- Top draft prospects arrive more athletic and with rawer skills.
 - **Owners come from all walks of life.** There are about forty backgrounds, and no two owners in a league share one. Examples:
   - A cable-network founder, or a retired AI chief living off his dividends.
   - A family that inherited the team, or a founding partner from the expansion days.
