@@ -2,12 +2,20 @@ import { Fragment, useState } from 'react';
 import type { VM } from '../vm';
 import { KIND_LABEL, ownerProfile } from '../../engine/owners';
 import { fmtBillions } from '../../engine/frontOffice';
+import { GOD_PINK } from '../kit';
+
+// God Mode: a link to the League editor, opened on this owner's team.
+const editOwner = (vm: VM, tid: number) => vm.ctx.gm.setState({ screen: 'editor', editorTid: tid, teamModal: null, modal: false });
 
 export function OwnerScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.3fr)", gap: "36px", alignItems: "start" }}>
         <section>
+          {vm.own.god && <div style={{ padding: '8px 12px', marginBottom: 12, borderLeft: '3px solid ' + GOD_PINK, background: 'color-mix(in srgb, ' + GOD_PINK + ' 8%, transparent)', fontSize: '12.5px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span><b style={{ color: GOD_PINK }}>God Mode</b> · The owner has nothing over you: no firing, no payroll orders or fire sales, no meddling, and your contract renews itself. Losing money doesn’t matter.</span>
+            <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: GOD_PINK, borderColor: GOD_PINK }} onClick={() => editOwner(vm, vm.ctx.s.me)}>Edit owner or sell the team</button>
+          </div>}
           <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
             Owner
           </div>
@@ -23,7 +31,7 @@ export function OwnerScreen({ vm }: { vm: VM }) {
           {vm.own.sales?.[0] && (() => { const x = vm.own.sales[0]; return (
             <p style={{ margin: "-10px 0 18px", fontSize: "13px" }}>
               {vm.own.newOwner && <b style={{ color: "var(--color-accent-700)" }}>New owner. </b>}
-              Bought {x.stake === 100 ? 'the team' : 'a ' + x.stake + '% controlling stake'} from {x.from} for {fmtBillions(x.price)} before the {x.season - 1}–{String(x.season).slice(2)} season.
+              Bought {x.stake === 100 ? 'the team' : 'a ' + x.stake + '% controlling stake'} from {x.from} for {fmtBillions(x.price)} {x.during ? 'during' : 'before'} the {x.season - 1}–{String(x.season).slice(2)} season{x.forced ? ' (a God Mode sale)' : ''}.
               {vm.own.newOwner && ' He gives you his first full season before he judges you, and spends a little more than his type usually would this year.'}
             </p>); })()}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -59,7 +67,7 @@ export function OwnerScreen({ vm }: { vm: VM }) {
             </h4>
             {vm.own.sales.map((x: any, i: number) => (
               <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "13px" }}>
-                <b>{x.season - 1}–{String(x.season).slice(2)}</b>: {x.from} ({x.fromArch}) sold {x.stake === 100 ? 'the team' : x.stake + '%'} to {x.to} ({x.arch}), {x.who}, for {fmtBillions(x.price)}{x.stake < 100 ? ' (club valued at ' + fmtBillions(x.value) + ')' : ''}.
+                <b>{x.season - 1}–{String(x.season).slice(2)}</b>{x.forced ? ' (God Mode)' : ''}: {x.from} ({x.fromArch}) sold {x.stake === 100 ? 'the team' : x.stake + '%'} to {x.to} ({x.arch}), {x.who}, for {fmtBillions(x.price)}{x.stake < 100 ? ' (club valued at ' + fmtBillions(x.value) + ')' : ''}.
               </div>
             ))}
           </>}
@@ -139,7 +147,7 @@ function OwnerDirectory({ vm }: { vm: VM }) {
       <h4 style={H4}>Owner biography</h4>
       <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 6 }}>
         <b style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{mine.name}</b>
-        <span style={{ fontSize: '12.5px', color: 'var(--color-neutral-700)' }}>{mine.kindLabel} · {mine.worthLabel} · bought the team in {mine.year} for {mine.priceLabel}</span>
+        <span style={{ fontSize: '12.5px', color: 'var(--color-neutral-700)' }}>{mine.kindLabel} · {mine.bgLabel ? mine.bgLabel + ' · ' : ''}{mine.worthLabel} · {mine.acq}</span>
       </div>
       <p style={{ margin: 0, lineHeight: 1.6, maxWidth: 900 }}>{mine.bio}</p>
       <h4 style={H4}>Owners around the league</h4>
@@ -149,17 +157,18 @@ function OwnerDirectory({ vm }: { vm: VM }) {
         <span style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>Richest first · click an owner for the biography</span>
       </div>
       <table className="table" style={{ fontSize: '13px' }}>
-        <thead><tr><th style={{ padding: '5px 8px' }}>Owner</th><th style={{ padding: '5px 8px' }}>Team</th><th style={{ padding: '5px 8px' }}>Owner type</th><th style={{ padding: '5px 8px' }}>Kind</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Fortune</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Bought</th></tr></thead>
+        <thead><tr><th style={{ padding: '5px 8px' }}>Owner</th><th style={{ padding: '5px 8px' }}>Team</th><th style={{ padding: '5px 8px' }}>Owner type</th><th style={{ padding: '5px 8px' }}>Kind</th><th style={{ padding: '5px 8px' }}>Money from</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Fortune</th><th style={{ padding: '5px 8px', textAlign: 'right' }}>Got the team</th></tr></thead>
         <tbody>{all.map(({ t, o }: any) => (<Fragment key={t.tid}>
           <tr onClick={() => setOpenT(openT === t.tid ? null : t.tid)} style={{ cursor: 'pointer', background: openT === t.tid ? 'var(--color-neutral-100)' : undefined }}>
             <td style={{ padding: '5px 8px', fontWeight: 600, color: 'var(--color-accent-700)' }}>{o.name}</td>
             <td style={{ padding: '5px 8px' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{logo(t.tid, 16)}<button className="hv4" onClick={e => { e.stopPropagation(); openTeam(t.tid); }} style={{ all: 'unset', cursor: 'pointer' }}>{t.region} {t.name}</button></span></td>
             <td style={{ padding: '5px 8px' }}>{t.arch}</td>
             <td style={{ padding: '5px 8px' }} title={o.kindDesc}>{o.kindLabel}</td>
+            <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>{o.bgLabel}</td>
             <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{o.worthLabel.replace(' net worth', '').replace(' under management', ' AUM')}</td>
-            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{o.year} · {o.priceLabel}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }} title={o.acq}>{o.acqShort}</td>
           </tr>
-          {openT === t.tid && <tr><td colSpan={6} style={{ padding: '6px 8px 12px', lineHeight: 1.6, fontSize: '13px' }}>{o.bio}</td></tr>}
+          {openT === t.tid && <tr><td colSpan={7} style={{ padding: '6px 8px 12px', lineHeight: 1.6, fontSize: '13px' }}>{o.bio}{s.god && <> <button className="btn btn-ghost" style={{ fontSize: '12px', padding: '1px 8px', color: GOD_PINK }} onClick={() => editOwner(vm, t.tid)}>Edit owner or sell the team</button></>}</td></tr>}
         </Fragment>))}</tbody>
       </table>
     </>

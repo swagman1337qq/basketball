@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { Dice, godBtn, godText } from '../kit';
 import { TransactionsTab } from './TransactionsTab';
@@ -9,6 +9,9 @@ import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './Pro
 import { ProfileHeader, ProfileOverview } from './ProfileMain';
 import { PlayerStatsTab } from './PlayerStatsTab';
 import { AccoladesTab } from './AccoladesTab';
+import { alphaTeams } from '../kit';
+import { cantMove, godMovePlayer, godTerms, whereIs } from '../../engine/godMove';
+import { fmtMoney } from '../../engine/capModel';
 
 export function PlayerModal({ vm }: { vm: VM }) {
   useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.pid]);
@@ -25,6 +28,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
               </button>
             ))}
             <span style={{ flex: "1" }}></span>
+            {!!vm.ctx.s.god && <GodMove vm={vm} />}
             {!!vm.ctx.s.god && vm.ctx.s.ptab !== 'edit' && <button className="btn btn-secondary" onClick={() => vm.goTab('edit')} style={{ fontSize: "13px", ...godBtn }}>✎ Edit player</button>}
 
           </div>
@@ -58,7 +62,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       Years
                     </span>
-                    <NumInput value={vm.ext.years} min={1} max={vm.ext.maxYears} step={1} onValue={v => vm.ext.setYears({ target: { value: v } })} suffix={'max ' + vm.ext.maxYears} />
+                    <NumInput value={vm.ext.years} min={1} max={vm.ctx.s.god ? 6 : vm.ext.maxYears} step={1} onValue={v => vm.ext.setYears({ target: { value: v } })} suffix={'max ' + vm.ext.maxYears} />
                     <span style={{ textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
                       {vm.ext.yearsLabel}
                     </span>
@@ -67,7 +71,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                     <span style={{ color: "var(--color-neutral-700)" }}>
                       Per year
                     </span>
-                    <NumInput value={vm.ext.amt} min={vm.ext.min} max={vm.ext.max} step={0.1} width={90} onValue={v => vm.ext.setAmt({ target: { value: v } })} suffix={'$M · ' + vm.ext.min + '–' + vm.ext.max} />
+                    <NumInput value={vm.ext.amt} min={vm.ctx.s.god ? 0.1 : vm.ext.min} max={vm.ctx.s.god ? Math.max(vm.ext.max, vm.ctx.gm.MAXC * 2) : vm.ext.max} step={0.1} width={90} onValue={v => vm.ext.setAmt({ target: { value: v } })} suffix={'$M · ' + vm.ext.min + '–' + vm.ext.max} />
                     <span style={{ textAlign: "right", fontFamily: "var(--font-heading)", fontSize: "18px" }}>
                       {vm.ext.amtLabel}
                     </span>
@@ -327,5 +331,29 @@ export function PlayerModal({ vm }: { vm: VM }) {
         </div>
       </div>
     </>
+  );
+}
+
+// God Mode: move this player to your team or any other, now. Under contract, he keeps his deal;
+// otherwise he signs a fair one for his value and age (not a minimum).
+function GodMove({ vm }: { vm: VM }) {
+  const { gm, s, T } = vm.ctx, pid = s.pid, p = gm.db.P[pid];
+  const [to, setTo] = useState<number | ''>(''), [msg, setMsg] = useState('');
+  useEffect(() => { setTo(''); setMsg(''); }, [pid]);
+  if (!p || p.retired || p.gone) return null;
+  const here = whereIs(gm, s, pid), terms = here.tid < 0 ? godTerms(gm, p) : null;
+  const deal = terms ? 'a fair contract: ' + fmtMoney(terms.amt) + ' × ' + terms.years + (terms.years === 1 ? ' year' : ' years') : 'his current contract';
+  const go = (tid: number) => { const why = godMovePlayer(gm, pid, tid); setMsg(why); if (!why) setTo(''); };
+  const mineNo = cantMove(gm, s, pid, s.me);
+  return (
+    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      {!mineNo && <button className="btn btn-secondary" style={{ fontSize: '13px', ...godBtn }} title={'God Mode: ' + p.name + ' joins your team now, from ' + here.label + ', on ' + deal} onClick={() => go(s.me)}>Move to my team</button>}
+      <select className="input" value={to} onChange={e => setTo(e.target.value === '' ? '' : +e.target.value)} style={{ fontSize: '12.5px', minHeight: 30, width: 'auto', maxWidth: 190 }} title="God Mode: move him to any team">
+        <option value="">Move to a team…</option>
+        {alphaTeams(T).filter((t: any) => t.tid !== here.tid).map((t: any) => <option key={t.tid} value={t.tid}>{t.region} {t.name}{gm.isUser(s, t.tid) ? ' (yours)' : ''}</option>)}
+      </select>
+      {to !== '' && <button className="btn btn-secondary" style={{ fontSize: '13px', ...godBtn }} title={'On ' + deal} onClick={() => go(to as number)}>Move</button>}
+      {msg && <span style={{ color: 'var(--gm-bad)', fontSize: '12px' }}>{msg}</span>}
+    </span>
   );
 }

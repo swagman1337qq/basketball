@@ -1,11 +1,14 @@
 // God Mode team & league editor: identity (names, colors, crest or uploaded logo,
-// arena), finances (cap, tax and owner-budget adjustments, owner and GM), and roster
-// moves (sign free agents, release, force trades with no salary matching).
+// arena), finances (cap, tax and owner-budget adjustments, owner and GM), the owner (type,
+// kind, background, fortune, when he got the team, the biography, or sell the team outright),
+// and roster moves (sign free agents, release, force trades with no salary matching).
 // Team IDs, engine formulas and past-season stats stay locked.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { teamSalary } from '../../engine/cba';
 import { OWNER_ARCHETYPES } from '../../data/world';
+import { KIND_LABEL, OWNER_BGS, ownerProfile } from '../../engine/owners';
+import { forceTeamSale } from '../../engine/frontOffice';
 import { processImage } from '../upload';
 import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
 
@@ -13,8 +16,10 @@ const GLYPHS = ['Drama', 'Footprints', 'Glasses', 'Hand', 'Palette', 'Square', '
 
 export function LeagueEditorScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, money } = vm.ctx, P = gm.db.P;
-  const [tid, setTid] = useState<number>(s.me), [other, setOther] = useState<number>(T.find(t => t.tid !== s.me)?.tid ?? 0);
+  const [tid, setTid] = useState<number>(s.editorTid ?? s.me), [other, setOther] = useState<number>(T.find(t => t.tid !== s.me)?.tid ?? 0);
   const [pa, setPa] = useState<number | ''>(''), [pb, setPb] = useState<number | ''>(''), [err, setErr] = useState(''), [msg, setMsg] = useState('');
+  const [buyer, setBuyer] = useState(''), [buyArch, setBuyArch] = useState(''), [buyBg, setBuyBg] = useState(''), [saleMsg, setSaleMsg] = useState('');
+  useEffect(() => { if (s.editorTid != null) gm.setState({ editorTid: null }); }, []); // opened from the Owner screen on a given team
   if (!s.god) return null; // God Mode only (the tab isn't shown without it)
   const t = T[tid];
   const setT = (f: Record<string, any>) => gm.setState(st => { Object.assign(gm.db.teams[tid] || {}, f); return { teams: st.teams.map(x => (x.tid === tid ? { ...x, ...f } : x)) }; });
@@ -70,8 +75,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             {adj('Payroll adjustment', 'capAdj', -60, 60, 'Negative adds cap space; positive uses it up. Payroll now ' + money(pay) + '.')}
             {adj('Tax bill adjustment', 'taxAdj', -50, 50, 'Added to (or taken off) this season’s luxury tax bill.')}
             {adj('Owner budget', 'ceilAdj', -40, 40, 'Moves the owner’s payroll ceiling: ' + money(gm.ownerCeiling(t.arch) + (t.ceilAdj || 0)) + '.')}
-            <span style={muted}>Owner</span><input className="input" value={t.owner} onChange={e => setT({ owner: e.target.value })} />
-            <span style={muted}>Archetype</span><select className="input" value={t.arch} onChange={e => setT({ arch: e.target.value })}>{OWNER_ARCHETYPES.map(a => <option key={a}>{a}</option>)}</select>
+            <span style={muted}>Owner</span><span style={{ fontSize: '12.5px' }}>{t.owner} ({t.arch}): edit below</span>
             <span style={muted}>GM & head coach</span><input className="input" value={t.gm} disabled={gm.isUser(s, tid)} title={gm.isUser(s, tid) ? 'You run this team' : ''} onChange={e => setT({ gm: e.target.value })} />
           </div>
         </section>
@@ -88,6 +92,18 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
           </select>
         </section>
       </div>
+      <OwnerEditor vm={vm} tid={tid} setT={setT} />
+      <section style={{ marginTop: '26px' }}>
+        <h4 style={ruleH4}>Sell the team</h4>
+        <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>{t.owner} sells the whole club now, at about what it’s worth. Name the buyer or leave it blank for a new one; the owner type and background fit the buyer unless you pick them.</p>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="input" placeholder="Buyer (blank: a new owner)" value={buyer} onChange={e => setBuyer(e.target.value)} style={{ width: 220 }} />
+          <select className="input" value={buyArch} onChange={e => setBuyArch(e.target.value)} style={{ width: 'auto' }}><option value="">Owner type: random</option>{OWNER_ARCHETYPES.map(a => <option key={a}>{a}</option>)}</select>
+          <select className="input" value={buyBg} onChange={e => setBuyBg(e.target.value)} style={{ width: 'auto', maxWidth: 260 }}><option value="">Background: fits the buyer</option>{OWNER_BGS.filter(b => !b.acq || b.acq === 'group').map(b => <option key={b.key} value={b.key}>{b.label}</option>)}</select>
+          <button className="btn btn-primary" onClick={() => { const before = gm.state.teams[tid].owner; forceTeamSale(gm, tid, { owner: buyer, arch: buyArch || undefined, bg: buyBg || undefined }); const after = gm.state.teams[tid]; setSaleMsg(after.owner !== before ? 'Sold: ' + before + ' → ' + after.owner + ' (' + after.arch + ').' : 'That buyer already owns the team.'); setBuyer(''); }}>Sell the team now</button>
+          {saleMsg && <span style={{ color: 'var(--gm-good)', fontSize: '12px' }}>{saleMsg}</span>}
+        </div>
+      </section>
       <section style={{ marginTop: '26px' }}>
         <h4 style={ruleH4}>Force a trade</h4>
         <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>Swap any two players between any two teams, AI-run or yours, with no salary matching or apron rules.</p>
@@ -101,5 +117,42 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
         </div>
       </section>
     </>
+  );
+}
+
+// The owner, rewritten at will: his type (what he demands), his kind, where the money came from,
+// what he's worth, when he got the team and for how much, and the biography itself.
+function OwnerEditor({ vm, tid, setT }: { vm: VM; tid: number; setT: (f: Record<string, any>) => void }) {
+  const { gm, s, money } = vm.ctx, t = s.teams[tid], o = ownerProfile(gm, s, tid);
+  const grid = { display: 'grid', gridTemplateColumns: '150px minmax(0,1fr)', gap: '8px 12px', alignItems: 'center' } as const;
+  const reset = (k: string) => <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px' }} onClick={() => setT({ [k]: undefined })}>Reset</button>;
+  return (
+    <section style={{ marginTop: '26px' }}>
+      <h4 style={ruleH4}>Owner · {t.owner}</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.4fr)', gap: '30px', alignItems: 'start' }}>
+        <div style={grid}>
+          <span style={muted}>Name</span><input className="input" value={t.owner} onChange={e => setT({ owner: e.target.value })} />
+          <span style={muted}>Personality (type)</span><select className="input" value={t.arch} onChange={e => setT({ arch: e.target.value })}>{OWNER_ARCHETYPES.map(a => <option key={a}>{a}</option>)}</select>
+          <span style={muted}>Kind</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><select className="input" value={t.ownerKind || ''} onChange={e => setT({ ownerKind: e.target.value || undefined })}><option value="">From his type ({KIND_LABEL[o.kind]})</option>{Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></span>
+          <span style={muted}>Made the money in</span>
+          <select className="input" value={t.ownerBg || o.bg || ''} onChange={e => setT({ ownerBg: e.target.value || undefined, ownerBio: undefined })}>{!o.bg && <option value="">{o.bgLabel || 'Written by hand'}</option>}{OWNER_BGS.map(b => <option key={b.key} value={b.key}>{b.label}</option>)}</select>
+          <span style={muted}>Net worth</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><NumInput value={+o.worth.toFixed(1)} min={0.1} max={2000} step={0.1} width={90} onValue={v => setT({ ownerWorth: v })} suffix="$B" />{t.ownerWorth != null && reset('ownerWorth')}</span>
+          <span style={muted}>Got the team in</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><NumInput value={o.year} min={1946} max={gm.Y + 1} step={1} width={80} onValue={v => setT({ ownerYear: v })} />{t.ownerYear != null && reset('ownerYear')}</span>
+          <span style={muted}>Paid</span>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}><NumInput value={o.price} min={1} max={50000} step={5} width={90} onValue={v => setT({ ownerPrice: v })} suffix={'$M · ' + money(o.price)} />{t.ownerPrice != null && reset('ownerPrice')}</span>
+        </div>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+            <span style={muted}>Biography{t.ownerBio ? ' (written in God Mode)' : ' (generated: edit to rewrite it)'}</span>
+            {!!t.ownerBio && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px' }} onClick={() => setT({ ownerBio: undefined })}>Use the generated one</button>}
+          </div>
+          <textarea className="input" value={o.bio} onChange={e => setT({ ownerBio: e.target.value })} rows={8} style={{ width: '100%', boxSizing: 'border-box', fontSize: '13px', lineHeight: 1.5, minHeight: 150, resize: 'vertical' }} />
+          <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>{o.kindLabel} · {o.bgLabel} · {o.worthLabel} · {o.acq}</p>
+        </div>
+      </div>
+    </section>
   );
 }

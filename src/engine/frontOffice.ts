@@ -8,6 +8,7 @@ import { capState, stdIds, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
+import { bgByKey, kindOf, saleBg } from './owners';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -148,10 +149,10 @@ export function ownerReview(g: Game, s: any, tid: number) {
     'Hype Focus': [['Fill 90% of the arena', Math.round(fin.full * 100) + '%', st3(fin.full >= 0.9, fin.full >= 0.8)], ['Roster a star rated 65+', String(bestOvr), st3(bestOvr >= 65, bestOvr >= 62)]],
     'Meddling Micromanager': [['Start ' + (P[fav]?.name || 'his favorite'), (ids.indexOf(fav) < 5 ? 'Starting' : 'Bench') + ' · benched ' + favBench + ' games', st3(ids.indexOf(fav) < 5 && favBench < 10, favBench < 20)], ['Win at least half your games', pctS(me), st3(g.pct(me) >= 0.5, g.pct(me) >= 0.45)]],
   };
-  const ceiling = g.teamCeiling(me);
+  const ceiling = g.teamCeiling(me), god = !!s.god;
   const demands = DEM[me.arch].slice();
   const mandate = (g.clubOf(s, tid)?.inbox || []).find(x => x.kind === 'mandate' && !x.resolved);
-  if (payroll > ceiling) demands.push(['Owner mandate: get payroll under ' + money(ceiling) + (mandate ? ' by ' + g.fmtS(mandate.deadline) : ''), money(payroll), 'Failing']);
+  if (payroll > ceiling && !god) demands.push(['Owner mandate: get payroll under ' + money(ceiling) + (mandate ? ' by ' + g.fmtS(mandate.deadline) : ''), money(payroll), 'Failing']);
   const fails = (s.mandateFails || {})[tid] || 0;
   const LIM: Record<string, string[]> = {
     'Win-Now Spender': ['Payroll ceiling: ' + money(ceiling) + ' (2nd apron)', 'No profit requirement'],
@@ -160,8 +161,9 @@ export function ownerReview(g: Game, s: any, tid: number) {
     'Hype Focus': ['Payroll ceiling: ' + money(ceiling), 'Ticket price may not drop below $90'],
     'Meddling Micromanager': ['Payroll ceiling: ' + money(ceiling), 'Signs off on every trade'],
   };
-  const sec = Math.round(cl(62 + (g.pct(me) - 0.5) * 80 + demands.reduce((a, d) => a + (d[2] === 'Met' ? 6 : d[2] === 'At risk' ? -4 : -10), 0) - fails * 8, 0, 100));
-  return { owner: me.owner, arch: me.arch, desc: OWNER_DESC[me.arch], sec, demands, limits: LIM[me.arch], fire: OWNER_FIRE[me.arch], fin, firsts, favBench, ceiling, label: sec >= 70 ? 'Secure' : sec >= 40 ? 'Stable' : sec >= 20 ? 'Warm seat' : 'Hot seat' };
+  // God Mode: the owner has no power over you. Your job is never in question, whatever the record or the books say.
+  const sec = god ? 100 : Math.round(cl(62 + (g.pct(me) - 0.5) * 80 + demands.reduce((a, d) => a + (d[2] === 'Met' ? 6 : d[2] === 'At risk' ? -4 : -10), 0) - fails * 8, 0, 100));
+  return { owner: me.owner, arch: me.arch, desc: OWNER_DESC[me.arch], sec, demands, limits: LIM[me.arch], fire: OWNER_FIRE[me.arch], fin, firsts, favBench, ceiling, god, label: god ? 'God Mode' : sec >= 70 ? 'Secure' : sec >= 40 ? 'Stable' : sec >= 20 ? 'Warm seat' : 'Hot seat' };
 }
 
 // End-of-season firing check against the owner's written conditions.
@@ -240,7 +242,13 @@ export function seasonReview(g: Game) {
     let gmOffer = s.gmOffer || null;
     if (!fired.includes(s.me)) {
       const d = contractDecision(g, s, s.me);
-      if (d.offer) gmOffer = d.offer;
+      // God Mode: your contract renews itself on the owner's best terms; nothing to answer.
+      if (d.offer && d.offer.kind === 'expiring' && s.god) {
+        const o = d.offer, start = Y + 1;
+        career.contract = { tid: o.tid, years: o.years, salary: o.salary, from: start, thru: start + o.years - 1, signed: Y };
+        lgLog.unshift({ day: s.day, type: 'Career', teams: T[o.tid].abbr, text: 'God Mode: your contract with the ' + T[o.tid].region + ' ' + T[o.tid].name + ' renewed for ' + o.years + ' year' + (o.years === 1 ? '' : 's') + ' ($' + o.salary.toFixed(2) + 'M a season)' });
+      }
+      else if (d.offer) gmOffer = d.offer;
       else if (d.expiring) {
         fired.push(s.me); const last = career.seasons[career.seasons.length - 1]; if (last) { last.expired = true; }
         news.unshift({ day: s.day, season: Y, kind: 'fired', tid: s.me, who: T[s.me].owner, role: 'Owner, ' + T[s.me].abbr, quote: 'The contract is up and we’ve decided not to renew it. We thank them for their work.' });
@@ -279,7 +287,8 @@ export function seasonReview(g: Game) {
 // next season (+.039 on average), so a new owner spends a little more his first year.
 // Sales close when free agency opens (the new league year).
 export const SALE_RATES: Record<string, number> = { off: 0, real: 0.05, often: 0.15 };
-const BUYERS = ['a private-equity investor', 'a tech founder', 'a hedge-fund manager', 'a real-estate developer', 'an energy executive', 'a sports-and-entertainment investment group', 'a logistics magnate', 'a media executive', 'a family investment office', 'a former minority partner'];
+// A new owner starts with a clean slate: no hand-set bio, fortune or type left over from the last one.
+const NEW_OWNER = { ownerKey: undefined, ownerBio: undefined, ownerWorth: undefined, ownerKind: undefined, ownerYear: undefined, ownerPrice: undefined };
 const NEW_ARCH: [string, number][] = [['Win-Now Spender', 30], ['Hype Focus', 20], ['Asset Hoarder', 20], ['Meddling Micromanager', 16], ['Frugal Profit-Seeker', 14]];
 // What a club is worth ($M): about $3B for the smallest market up to $10B+ for the biggest (2025
 // prices: Blazers $4.25B, Celtics $6.1B, Lakers $10B), growing with league revenue (the cap).
@@ -288,6 +297,28 @@ export function teamValue(g: Game, s: any, tid: number) {
   return Math.round((3000 + 12000 * Math.pow(Math.max(0, mk - 0.75), 2)) * lf * (0.92 + 0.16 * g.pct(t)));
 }
 export const fmtBillions = (m: number) => m >= 1000 ? '$' + (m / 1000).toFixed(2).replace(/0$/, '') + 'B' : '$' + Math.round(m) + 'M';
+// God Mode: sell any club right now, to a buyer you name (or a new one, as in a normal sale), of the
+// owner type and background you pick (or ones that fit). The whole club changes hands at about its value.
+export function forceTeamSale(g: Game, tid: number, opts: { owner?: string; arch?: string; bg?: string } = {}) {
+  g.setState(s => {
+    const t = s.teams[tid]; if (!s.god || !t) return null;
+    const NP = namePools(), pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    const wpick = (o: [string, number][]) => { let r = Math.random() * o.reduce((a, x) => a + x[1], 0); for (const [k, w] of o) if ((r -= w) < 0) return k; return o[0][0]; };
+    const used = new Set(s.teams.map((x: any) => String(x.owner).split(' ').slice(-1)[0]));
+    const owner = (opts.owner || '').trim() || pick(NP.us.f) + ' ' + (pick(OWNER_SURNAMES.filter(x => !used.has(x))) || pick(OWNER_SURNAMES));
+    if (owner === t.owner) return null;
+    const arch = opts.arch && OWNER_ARCHETYPES.includes(opts.arch) ? opts.arch : wpick(NEW_ARCH);
+    const bg = (opts.bg && bgByKey(opts.bg)) || saleBg(s, tid, kindOf({ owner, abbr: t.abbr, arch }));
+    const Y = g.Y, inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase), season = inSeason ? Y : Y + 1;
+    const value = teamValue(g, s, tid), price = Math.round(value * (0.95 + Math.random() * 0.25));
+    const sale = { season, from: t.owner, fromArch: t.arch, to: owner, arch, stake: 100, price, value, who: bg.who, gm: null, forced: true, during: inSeason };
+    const teams = s.teams.map((x: any) => x.tid !== tid ? x : { ...x, ...NEW_OWNER, owner, arch, ownerBg: bg.key, ownerSince: season, splash: { thru: season, amt: arch === 'Frugal Profit-Seeker' ? 6 : arch === 'Win-Now Spender' || arch === 'Hype Focus' ? 20 : 12 }, sales: [...(x.sales || []), sale] });
+    const text = 'God Mode: ' + t.owner + ' sold the ' + t.region + ' ' + t.name + ' to ' + owner + ', ' + bg.who + ', for ' + fmtBillions(price) + '. New owner type: ' + arch + '.';
+    return { teams, lgLog: [{ day: s.day, type: 'Ownership', teams: t.abbr, text }, ...s.lgLog],
+      news: [{ day: s.day, season: Y, kind: 'sale', tid, who: owner, role: 'New owner, ' + t.abbr, quote: pick(['This franchise has a proud history and a big future. We’re going to invest to win.', 'I didn’t buy this team to stand still. Expect us to be aggressive.', 'Our fans deserve a winner, and they’re going to get an owner who shows up.']) }, ...(s.news || [])],
+      ...(s.gmOffer?.tid === tid && s.gmOffer.kind === 'early' ? { gmOffer: null } : {}) };
+  });
+}
 export function teamSales(g: Game) {
   g.setState(s => {
     const rate = SALE_RATES[s.teamSales ?? 'real'] ?? 0.05, Y = g.Y;
@@ -303,10 +334,11 @@ export function teamSales(g: Game) {
       if (Math.random() >= p) return;
       const sur = pick(OWNER_SURNAMES.filter(x => !used.has(x))) || pick(OWNER_SURNAMES); used.add(sur);
       const owner = pick(NP.us.f) + ' ' + sur, arch = wpick(NEW_ARCH), stake = Math.random() < 0.55 ? 100 : 5 * Math.floor(11 + Math.random() * 8);
-      const value = Math.round(teamValue(g, s, i) * (0.95 + Math.random() * 0.25)), price = Math.round(value * stake / 100), who = pick(BUYERS);
+      const bg = saleBg({ ...s, teams }, i, kindOf({ owner, abbr: t.abbr, arch })), who = bg.who; // the buyer's background matches the announcement
+      const value = Math.round(teamValue(g, s, i) * (0.95 + Math.random() * 0.25)), price = Math.round(value * stake / 100);
       const mine = g.isUser(s, i), newGm = !mine && Math.random() < 0.5 ? pick(NP.us.f) + ' ' + pick(NP.us.l) : null;
       const sale = { season: Y + 1, from: t.owner, fromArch: t.arch, to: owner, arch, stake, price, value, who, gm: newGm ? { out: t.gm, in: newGm } : null };
-      teams[i] = { ...t, owner, arch, ownerSince: Y + 1, splash: { thru: Y + 1, amt: arch === 'Frugal Profit-Seeker' ? 6 : arch === 'Win-Now Spender' || arch === 'Hype Focus' ? 20 : 12 }, sales: [...(t.sales || []), sale], ...(newGm ? { gm: newGm } : {}) };
+      teams[i] = { ...t, ...NEW_OWNER, owner, arch, ownerBg: bg.key, ownerSince: Y + 1, splash: { thru: Y + 1, amt: arch === 'Frugal Profit-Seeker' ? 6 : arch === 'Win-Now Spender' || arch === 'Hype Focus' ? 20 : 12 }, sales: [...(t.sales || []), sale], ...(newGm ? { gm: newGm } : {}) };
       const what = stake === 100 ? 'the ' + t.region + ' ' + t.name : 'a ' + stake + '% controlling stake in the ' + t.region + ' ' + t.name;
       const text = t.owner + ' sold ' + what + ' to ' + owner + ', ' + who + ', for ' + fmtBillions(price) + (stake < 100 ? ' (valuing the club at ' + fmtBillions(value) + '; ' + t.owner + ' keeps ' + (100 - stake) + '% as a minority partner)' : '') + '. New owner type: ' + arch + '.';
       lgLog.unshift({ day: s.day, type: 'Ownership', teams: t.abbr, text });
@@ -492,9 +524,10 @@ export function offseasonMandates(g: Game) {
       const T = s.teams[tid], ceil = g.teamCeiling(T), pay = teamSalary(g, s, tid), st = { ...s, ...top, clubs }, c = g.clubOf(st, tid) || {};
       const inbox = c.inbox || [], open = inbox.find((x: any) => x.kind === 'mandate' && !x.resolved);
       let next = inbox;
-      if (open && open.deadline !== 'opening') next = inbox.map((x: any) => x === open ? { ...x, resolved: 'expired', done: true } : x); // an old in-season order lapses
+      // An old in-season order lapses; in God Mode every payroll order is void.
+      if (open && (open.deadline !== 'opening' || s.god)) next = inbox.map((x: any) => x === open ? { ...x, resolved: s.god ? 'void' : 'expired', done: true } : x);
       const cur = next.find((x: any) => x.kind === 'mandate' && !x.resolved);
-      if (pay > ceil + 0.05 && !cur) next = [{ id: 'm' + g.Y + '-' + tid, tid, day: s.day, season: g.Y, kind: 'mandate', deadline: 'opening', target: ceil, pid: null, done: true, options: [],
+      if (pay > ceil + 0.05 && !cur && !s.god) next = [{ id: 'm' + g.Y + '-' + tid, tid, day: s.day, season: g.Y, kind: 'mandate', deadline: 'opening', target: ceil, pid: null, done: true, options: [],
         title: T.owner + ': cut payroll before opening night', text: 'Owner ' + T.owner + ' (' + T.arch + ') wants payroll under ' + money(ceil) + ' by opening night. You’re at ' + money(pay) + ', ' + money(pay - ceil) + ' over. Trade or waive players (waived salary still counts as dead money). If you’re still over when the season starts, he’ll order a fire sale of your worst contracts.' }, ...next];
       else if (cur && pay <= ceil + 0.05) next = next.map((x: any) => x === cur ? { ...x, resolved: 'met', done: true } : x);
       if (next !== inbox) { changed = true; const pt = g.clubPatch(st, tid, { inbox: next.slice(0, 40) }, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; }
@@ -510,7 +543,8 @@ export function openingNightFireSales(g: Game, s: any, rosters: any, lgLog: any[
     if (!open) return;
     const T = s.teams[tid], ceil = g.teamCeiling(T);
     let next;
-    if (teamSalary(g, st, tid) <= ceil + 0.05) next = inbox.map((x: any) => x === open ? { ...x, resolved: 'met', done: true } : x);
+    if (s.god) next = inbox.map((x: any) => x === open ? { ...x, resolved: 'void', done: true } : x); // God Mode: no fire sale, ever
+    else if (teamSalary(g, st, tid) <= ceil + 0.05) next = inbox.map((x: any) => x === open ? { ...x, resolved: 'met', done: true } : x);
     else { const sold = fireSale(g, st, tid, rosters, lgLog, fa); fails[tid] = (fails[tid] || 0) + 1;
       next = [{ id: 'fs' + g.Y + '-' + tid, tid, day: s.day, season: g.Y, kind: 'firesale', done: true, options: [], title: T.owner + ' ordered a fire sale', text: 'Payroll was still over ' + money(ceil) + ' on opening night. Traded away for nothing: ' + (sold.join(', ') || 'nobody (no team could take the contracts)') + '.' }, ...inbox.map((x: any) => x === open ? { ...x, resolved: 'failed', done: true } : x)]; }
     const pt = g.clubPatch(st, tid, { inbox: next.slice(0, 40) }, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt };

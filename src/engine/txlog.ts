@@ -28,7 +28,7 @@ export function recordTrade(g: Game, s: any, a: number, b: number, aP: number[],
 // A draft pick was used: remember which player it became.
 export function recordPick(g: Game, s: any, p: any, pk: { n: number; rd?: number; orig?: number }, tid: number) {
   const rd = pk.rd || 1, orig = pk.orig ?? tid, d: any = g.db;
-  (d.pickUsed = d.pickUsed || {})[g.Y + '-' + rd + '-' + orig] = { n: pk.n, pid: p.id, tid };
+  (d.pickUsed = d.pickUsed || {})[g.Y + '-' + rd + '-' + orig] = { n: pk.n, pid: p.id, tid, ovr: p.ovr, pot: p.pot }; // how he rated on draft night (past drafts)
   addTx(g, s, p, { k: 'draft', tid, n: pk.n, rd, orig });
 }
 export const tradesOf = (g: Game): Trade[] => (g.db as any).trades || [];

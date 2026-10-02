@@ -13,7 +13,7 @@
 // Native American tribes are their own "country" (XN) of birth and heritage: tribal members are
 // U.S. citizens and can only represent the United States.
 import { cyr, namePools, nativeMaps } from './world';
-import { MORE, NEW_POOLS } from './names';
+import { FIRST_WEIGHT, MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
 
@@ -175,7 +175,9 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   if (!NP[lp]?.l?.length) lp = NP[fp]?.l?.length ? fp : 'us';
   // Surnames by frequency where we have it (Chinese, Taiwanese), otherwise uniformly.
   const pickL = () => { const w = WEIGHT[lp], a = NP[lp].l as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] || 0.05), 0); for (const x of a) { if ((r -= w[x] || 0.05) < 0) return x; } return a[a.length - 1]; };
-  const f = pick(NP[fp].f) as string; let l = pickL();
+  // First names: weighted where we have it (spelling variants are rarer than the name they come from).
+  const pickF = () => { const w = FIRST_WEIGHT[fp], a = NP[fp].f as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] ?? 1), 0); for (const x of a) { if ((r -= w[x] ?? 1) < 0) return x; } return a[a.length - 1]; };
+  const f = pickF(); let l = pickL();
   for (let i = 0; l === f && i < 5; i++) l = pickL();
   const same = fp === lp;
   let first = f, last = l, nativeFirst = '', nativeLast = '', sep = ' ';

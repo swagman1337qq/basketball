@@ -21,6 +21,7 @@ export const TRAITS: Trait[] = [
   { k: 'villain', label: 'Road villain', desc: 'Feeds off hostile crowds: the boos and mocking on the road fire him up. Shoots better and wants the ball more on the road; the opposite of crowd-fed.' },
   { k: 'fearless', label: 'Fearless', desc: 'Superstar mentality: wants the last shot, never shrinks from the lights. Demands the ball in crunch time and pressure doesn’t rattle him.' },
   { k: 'clutch', label: 'Clutch', desc: 'Raises his game in the last minutes of close games.' },
+  { k: 'streaky', label: 'Streaky', desc: 'His jumper runs hot and cold for weeks at a time: a scorching stretch, then a long slump. Same average over a season, a much wilder ride.' },
   { k: 'prone', label: 'Injury prone', desc: 'Gets hurt more often than most players.' },
   { k: 'padder', label: 'Selfish', desc: 'Only cares about his own stats. Puts up big numbers, stops the ball and coasts on defense: the team plays worse with him.' },
 ];

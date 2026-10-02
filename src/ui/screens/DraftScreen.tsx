@@ -2,7 +2,7 @@ import type { VM } from '../vm';
 import { GOD_PINK } from '../kit';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
-import { Seg, usePaged } from '../kit';
+import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
 
@@ -13,9 +13,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
   const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   const pg = usePaged(boardRows, 'prospects', 30);
-  return (
-    <>
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" }}>
+  const head = (
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px", flexWrap: "wrap" }}>
         <div style={{ display: "inline-flex", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", overflow: "hidden", flex: "none" }}>
           {(vm.dClasses || []).map((sg: any, i: number) => (
             <button key={i} onClick={sg.onClick} style={{ all: "unset", cursor: "pointer", padding: "6px 14px", fontSize: "13px", whiteSpace: "nowrap", color: sg.color, boxShadow: sg.ring }}>
@@ -23,6 +22,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </button>
           ))}
         </div>
+        {(vm.pastDrafts || []).length > 0 && <select className="input" value={vm.dr.past ? vm.ctx.s.dClass : ''} onChange={e => e.target.value && vm.ctx.gm.setState({ dClass: +e.target.value, adv: {} })} style={{ width: 'auto', fontSize: '13px', minHeight: 32 }} title="Every draft held in this league: who went where, and how they turned out">
+          <option value="">Past drafts…</option>{vm.pastDrafts.map((y: number) => <option key={y} value={y}>{y} draft</option>)}
+        </select>}
         <div style={{ flex: "1", color: vm.ctx.s.god ? GOD_PINK : "var(--color-neutral-700)", fontSize: "12px" }}>
           {vm.dr.classNote}
         </div>
@@ -37,6 +39,11 @@ export function DraftScreen({ vm }: { vm: VM }) {
           </div>
         </>)}
       </div>
+  );
+  if (vm.dr.past) return <>{head}<PastDraft vm={vm} /></>;
+  return (
+    <>
+      {head}
       {!!vm.dr.isCurrent && (<>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", padding: "10px 14px", border: vm.dr.mineClock ? "3px solid var(--gm-good)" : "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", background: vm.dr.mineClock ? "color-mix(in srgb, var(--gm-good) 10%, transparent)" : undefined }}>
           <div style={{ flex: "1" }}>
@@ -213,5 +220,43 @@ export function DraftScreen({ vm }: { vm: VM }) {
         </section>
       </div>
     </>
+  );
+}
+
+// A past draft: every pick in order, who made it, how he rated that night, how his game carried
+// over at his first camp, and how he's turned out (rating now, career numbers, where he is).
+function PastDraft({ vm }: { vm: VM }) {
+  const { gm, s, T, logo, open, openTeam } = vm.ctx, P = gm.db.P, year = s.dClass, [sortK, setSortK] = useState<'n' | 'now' | 'pts'>('n');
+  const used = Object.entries((gm.db as any).pickUsed || {}).filter(([k]) => k.startsWith(year + '-')).map(([k, v]: any) => ({ ...v, rd: +k.split('-')[1], orig: +k.split('-')[2] }));
+  const career = (p: any) => { const rows = (p.stats || []).filter((r: any) => !r.po), g = rows.reduce((a: number, r: any) => a + (r.gp || 0), 0), sum = (k: string) => rows.reduce((a: number, r: any) => a + (r[k] || 0), 0); return { g, pts: g ? sum('pts') / g : 0, reb: g ? (sum('orb') + sum('drb')) / g : 0, ast: g ? sum('ast') / g : 0, seasons: new Set(rows.map((r: any) => r.season)).size }; };
+  const where = (p: any) => { if (p.retired) return p.gone ? 'Left the league' : 'Retired' + (p.retired.season ? ' (' + p.retired.season + ')' : ''); const t = gm.tidOf(s.rosters, p.id); if (t >= 0) return T[t].abbr; if ((s.overseas || []).includes(p.id)) return 'Overseas'; if ((s.fa || []).includes(p.id)) return 'Free agent'; return '—'; };
+  const rows = used.map(u => { const p = P[u.pid] || { name: '?', id: u.pid }, c = career(p); return { u, p, c, now: p.retired || p.gone ? -1 : p.ovr ?? -1 }; })
+    .sort((a, b) => sortK === 'now' ? b.now - a.now : sortK === 'pts' ? b.c.pts * Math.min(1, b.c.g / 40) - a.c.pts * Math.min(1, a.c.g / 40) : a.u.n - b.u.n);
+  if (!rows.length) return <p style={{ ...muted }}>No picks were recorded for the {year} draft.</p>;
+  const active = rows.filter(r => r.now >= 0), best = active.slice().sort((a, b) => b.now - a.now)[0], steal = active.filter(r => r.u.n > 14).sort((a, b) => b.now - a.now)[0];
+  const th = (k: typeof sortK | null, label: string, right = false) => <th style={{ padding: '6px 8px', textAlign: right ? 'right' : 'left', cursor: k ? 'pointer' : undefined, color: k && sortK === k ? 'var(--color-accent-700)' : undefined, whiteSpace: 'nowrap' }} onClick={k ? () => setSortK(k) : undefined}>{label}</th>;
+  return (
+    <section>
+      <p style={{ margin: '0 0 10px', fontSize: '13px' }}>
+        {best && <>Best of the class so far: <button className="hv1" onClick={() => open(best.p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{best.p.name}</button> (#{best.u.n}, now {best.now}). </>}
+        {steal && steal !== best && <>Biggest steal: <button className="hv1" onClick={() => open(steal.p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{steal.p.name}</button> (#{steal.u.n}, now {steal.now}).</>}
+      </p>
+      <table className="table" style={{ fontSize: '13px' }}>
+        <thead><tr>{th('n', 'Pick', true)}{th(null, 'Team')}{th(null, 'Player')}{th(null, 'From')}{th(null, 'Draft night', true)}{th(null, 'First camp', true)}{th('now', 'Now', true)}{th('pts', 'Career', true)}{th(null, 'Where now')}</tr></thead>
+        <tbody>{rows.map(({ u, p, c, now }) => (
+          <tr key={u.n} style={{ background: gm.isUser(s, u.tid) ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : undefined }}>
+            <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'var(--font-heading)', fontSize: '16px' }}>{u.n}{u.rd === 2 && <span style={{ ...muted, fontSize: '10.5px' }}> (2nd)</span>}</td>
+            <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{logo(u.tid, 16)}<button className="hv4" onClick={() => openTeam(u.tid)} style={{ all: 'unset', cursor: 'pointer' }}>{T[u.tid]?.abbr}</button>{u.orig !== u.tid && T[u.orig] && <span style={{ ...muted, fontSize: '11px' }}>via {T[u.orig].abbr}</span>}</span></td>
+            <td style={{ padding: '5px 8px' }}><button className="hv1" onClick={() => open(p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{p.name}</button> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos}</span></td>
+            <td style={{ padding: '5px 8px', fontSize: '12px', ...muted }}>{p.from?.team || ''}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{u.ovr != null ? u.ovr + ' / ' + u.pot : '—'}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.dxDone ? (p.dxDone.to > p.dxDone.from + 2 ? 'var(--gm-good)' : p.dxDone.to < p.dxDone.from - 2 ? 'var(--gm-bad)' : undefined) : undefined }} title={p.dxDone ? 'At his first NBA camp his game carried over ' + (p.dxDone.to - p.dxDone.from >= 0 ? '+' : '') + (p.dxDone.to - p.dxDone.from) : 'Not in an NBA camp yet'}>{p.dxDone ? p.dxDone.from + ' → ' + p.dxDone.to : '—'}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{now >= 0 ? now + ' / ' + p.pot : '—'}</td>
+            <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{c.g ? c.g + ' G · ' + c.pts.toFixed(1) + ' / ' + c.reb.toFixed(1) + ' / ' + c.ast.toFixed(1) : <span style={muted}>no games</span>}</td>
+            <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>{where(p)}</td>
+          </tr>))}</tbody>
+      </table>
+      <p style={{ ...muted, fontSize: '11.5px', marginTop: 6 }}>Draft night is how he rated then (true ratings, before camp). First camp is how his game carried over to the NBA. Career is points / rebounds / assists per game in the regular season. Click Pick, Now or Career to sort.</p>
+    </section>
   );
 }

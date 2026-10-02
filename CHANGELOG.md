@@ -2,6 +2,50 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-02
+
+### Added
+- **God Mode makes you the boss.** The owner has nothing over you.
+  - No firing, no payroll orders, no fire sales and no meddling. Your contract renews itself.
+  - Losing money doesn't matter. The Owner screen shows your job security as "God Mode · 100".
+  - You dictate every contract. Players sign whatever you offer, and the signing and extension boxes no longer cap the amount or the years. Your owner also accepts any counter you make on your own contract.
+- **God Mode: edit the owner.** League editor → Owner, or "Edit owner or sell the team" on the Owner screen.
+  - You can change his name, personality (owner type), kind, where the money came from, net worth, when he got the team and what he paid.
+  - You can rewrite the biography, or go back to the generated one.
+- **God Mode: sell any team.** League editor → Sell the team.
+  - Name a buyer (or leave it blank for a new one) and pick the owner type and background.
+  - The club changes hands right away, at about what it's worth.
+- **God Mode: move any player.** Every player's profile has "Move to my team" and "Move to a team…".
+  - A player under contract keeps his deal, and the move goes on his record.
+  - A free agent, CCP player, player abroad or draft prospect signs a fair contract for his value and age, not a minimum.
+  - A full AI roster waives its last minimum-salary player to make room.
+- **Draft surprises.** The draft board shows how a prospect played as an amateur. How his game carries over to the NBA only shows at his first training camp.
+  - About half are what the scouts saw. Others come in 3–6 points worse or better.
+  - About one in eight is a real bust or a real steal: a "50" who turns up at 42, or at 58.
+  - Many have a different shape than advertised. For example, he shoots better than his college numbers showed but can't run an offense.
+  - Ceilings move too. Some top picks plateau as good players rather than stars.
+  - A camp report lists how each of your rookies looks. God Mode can peek at a prospect's translation on his profile.
+- **Past drafts.** Draft → Past drafts shows every draft held in your league.
+  - Each pick, who made it and how the player rated on draft night.
+  - How his game carried over at his first camp and how he's turned out: his rating now, career numbers and where he plays.
+- **Seven new rookie cards** in the card library (God Mode → Player cards):
+  - Dalton Knecht (2024–25), Ben Simmons (2017–18), Al Horford (2007–08), Chris Paul (2005–06), Klay Thompson (2011–12), Kawhi Leonard (2011–12) and Dwight Howard (2004–05).
+  - Each is tuned against his real rookie season (per-game and advanced stats, shooting by distance, month-by-month splits), translated to today's league.
+  - Example: Knecht has his scorching November and cold December, Simmons finishes at the rim and never shoots threes, and Howard lives on dunks.
+- **New trait: Streaky.** A streaky shooter's jumper runs hot and cold for weeks at a time. His season average is the same, but the ride is wilder. About one player in eight has it.
+- **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
+
+### Changed
+- **Owners come from all walks of life.** There are about forty backgrounds, and no two owners in a league share one. Examples:
+  - A cable-network founder, or a retired AI chief living off his dividends.
+  - A family that inherited the team, or a founding partner from the expansion days.
+  - A former star, a music mogul, a crypto founder, or a local group that bought the team to keep it in town.
+  - A buyer's background matches how his purchase was announced. The owner directory shows where each fortune came from and how each owner got the team.
+- **More American names**, including spelling variants of the same name.
+  - Jalen, Jaylen, Jaylin, Jalon, Jaylon, Jaelen, Jalyn and more.
+  - Michael, Mikal, Mikel and Mikael.
+  - The variants are rarer than the name they come from.
+
 ## 2026-10-01
 
 ### Added

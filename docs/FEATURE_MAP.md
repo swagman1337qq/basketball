@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-02, at commit `83ff0ca`._
+_Last reviewed: 2026-10-02 (God Mode owner powers, owner backgrounds, draft surprises, past drafts, rookie cards)._
 
 ## How it fits together
 
@@ -119,14 +119,17 @@ Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook.
 - Shortlist, draft board and mock drafts; about 100 prospects a year, 60 drafted.
 - 3-2-1 lottery with exact odds and a lottery-night reveal.
 - Draft promises and draft-night heists.
+- Draft surprises: each prospect has a hidden "NBA translation" that shows at his first training camp. His level moves (about half ±2, the rest 3–6 either way, about one in eight a real bust or steal), his shape shifts (e.g. shooting up, playmaking down), and his ceiling moves too. You get a camp report; God Mode profiles can peek.
+- Past drafts: every pick of every draft held in the league, with draft-night rating, first camp, rating now, career line and where he is.
 - Overseas market: buyouts, league-strength translation, redemption arcs, 15-game adjustment.
 - CCP development league and G League affiliates with call-ups.
 
-Screens: Scouting, Shortlist, Draft, Lottery, Overseas, CCP. Code: `scoutReport.ts`, `scoutBrief.ts`, `lottery.ts`, `overseas.ts`, `ccp.ts`, `gleague.ts`.
+Screens: Scouting, Shortlist, Draft (with Past drafts), Lottery, Overseas, CCP. Code: `scoutReport.ts`, `scoutBrief.ts`, `lottery.ts`, `translation.ts`, `overseas.ts`, `ccp.ts`, `gleague.ts`, `txlog.ts` (`pickUsed`).
 
 ### Owner and career
 - Finances: revenue, ticket price, coaching / health / facilities / scouting budgets on sliders with Auto.
 - Five owner archetypes with made-up named owners, biographies and a directory; team sales.
+- About forty owner backgrounds (how the money was made and how they got the team: bought, inherited, founding partner, local group), never two the same in a league, stored on the team (`ownerBg`).
 - Owner reviews, year-end letters, payroll orders and opening-night fire sales; you can be fired.
 - You as the GM: name, nationality, experience, headshot, your contract and extensions.
 - Job market: vacancies, applications, offers, switching teams.
@@ -138,7 +141,9 @@ Screens: Finances, Owner, Career, Press room. Code: `frontOffice.ts`, `owners.ts
 - 215 countries with population groups, name pools, cities, flags and scouting regions.
 - Native-script names next to romanized ones (Cyrillic, Arabic, Thai, Vietnamese diacritics and more).
 - Heritage, birthplaces and hometowns; national-team eligibility.
-- Personality traits (Egotistic, Clutch, Selfish and more), hidden intangibles and hidden gems.
+- Personality traits (Egotistic, Clutch, Selfish, Streaky and more), hidden intangibles and hidden gems.
+- American first names weighted by frequency, with spelling variants (the Jalen family, Mikal/Mikel/Mikael) rarer than the names they come from.
+- Ready-made player cards: Luka Dončić plus seven rookies (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard), each tuned against his real rookie season translated to today's league.
 - Families: sons and brothers of former players.
 - Generated faces or uploaded headshots; retirements and an optional retirement age.
 
@@ -147,6 +152,7 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 ### Control and saves
 - Run 1 to 30 teams: My teams dashboard, switch teams, take over or hand a team to the AI.
 - God Mode: edit any player (ratings, bio, traits, injuries), team and league editor (names, colors, logos, arena, cap), force trades, daily schedule, player cards.
+- God Mode owner powers: the owner has nothing over you (no firing, payroll orders, fire sales or meddling; your contract renews itself; players sign whatever you offer). Edit any owner (type, kind, background, worth, purchase, bio) or force a team sale; move any player to any team from his profile (`godMove.ts`).
 - Easy mode: hand off lineups, tactics, contract paperwork, free agency, draft picks, firing, scouting, injuries.
 - Tutorial (quick or in-depth) and What's new from the changelog.
 - Three layouts, light and dark themes, team-color accents, player search.
@@ -216,6 +222,8 @@ All in `src/engine/`.
 | `jerseys.ts` | Jersey numbers |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
 | `prune.ts` | Trims retired players to keep saves small |
+| `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |
+| `godMove.ts` | God Mode: move any player to any team (keeps his deal, or a fair new one) |
 | `rng.ts` | Seeded mulberry32 RNG for world generation |
 
 ## Known issues to address
@@ -230,4 +238,5 @@ Tick these off (or delete them) as they're fixed. Severity is a first guess.
 - [ ] **`npm run deploy` can leave a stray worktree.** If the build output didn't change, `git commit` fails under `set -e` and the script exits before `git worktree remove`.
 - [ ] **Dead check in `Game.sim()`.** It refuses to sim while an inbox item has `block`, but nothing ever sets `block` (`Game.ts`, `sim()`).
 - [ ] **Very dense code.** Lines run to 3,471 characters (`viewModel.ts`); `Game.ts` is 165 KB. Splitting `Game.ts` by phase and formatting long lines would make reviews and diffs far easier.
+- [ ] **Saves grow about 1.4 MB a season.** A headless run went 3.5 MB → 5.0 MB → 6.3 MB over three seasons, and later seasons sim slower (about 5 s → 7–12 s each, headless). Worth trimming old box scores, logs and per-game history before leagues reach 20+ seasons.
 - [ ] **Code review findings.** A full review of the engine, rules, saves and UI is in progress; its confirmed findings go here.

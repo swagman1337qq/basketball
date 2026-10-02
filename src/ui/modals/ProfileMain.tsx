@@ -10,6 +10,7 @@ import { HoverCard } from '../HoverCard';
 import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
+import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { PCT_TIERS, pctTier, ratingMedian, ratingPct } from '../../engine/ratingDist';
 
 const chip = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: '999px', border: '1px solid var(--color-divider)', fontSize: '12px', whiteSpace: 'nowrap' as const };
@@ -172,6 +173,8 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             <HoverCard key={t.k} width={240} anchor={<button className="tag" onClick={t.open || undefined} style={{ border: 'none', cursor: t.open ? 'pointer' : 'help', background: 'var(--color-neutral-200)', color: 'var(--color-neutral-800)', font: 'inherit', fontSize: '12px' }}>{t.label}</button>}>
               <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.label}</div><div style={{ fontSize: '12.5px' }}>{t.desc}</div>{t.open && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>Click to see every player with this trait.</div>}
             </HoverCard>))}</div>
+          {s.god && p?.dx && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }} title="Hidden until his first NBA training camp. Only God Mode shows it.">NBA translation (hidden): {translationPreview(p.dx)}</div>}
+          {p?.dxDone && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }} title="How his amateur game carried over at his first NBA training camp">First NBA camp: {p.dxDone.from} → {p.dxDone.to}, {TIER_LABEL[p.dxDone.tier]}{Object.entries(p.dxDone.sh || {}).map(([g, v]: any) => ' · ' + GROUPS[g].label + ' ' + (v > 0 ? '+' : '−') + Math.abs(v)).join('')}</div>}
           {pl.mal != null && <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }} title="Hidden: how open he is to changing his personality (mentoring, locker room). Only God Mode shows it.">Malleability {pl.mal}/100 · {pl.mal >= 70 ? 'impressionable' : pl.mal >= 40 ? 'open to change' : pl.mal >= 20 ? 'set in his ways' : 'fiercely independent'}</div>}
           <h4 style={{ ...ruleH4, marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Happiness</span>{s.god && pl.hasMood && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto', ...godText, border: '1px solid currentColor' }} title="God Mode: set his happiness to 90 (Thrilled). Adjust it in Edit player." onClick={() => { p.hapGod = 90; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Make happy</button>}<span style={{ color: pl.hapColor, fontSize: '15px' }}>{pl.hapLabel}</span></h4>
           {pl.hasMood ? (

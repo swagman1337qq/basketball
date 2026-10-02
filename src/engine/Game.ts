@@ -3,7 +3,7 @@
 // model built from this state (see ui/viewModel.ts).
 import { PRESET_CARDS } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
-import { placeNamedOwners } from './owners';
+import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
 import { LOUD_COLORS, PALETTE_V } from '../data/palette';
 import { CLASSIC_COLORS } from '../data/franchises';
@@ -29,6 +29,8 @@ import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
+import { answerOffer } from './gmCareer';
+import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -71,6 +73,7 @@ export class Game {
     g.makeDB(seed);
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
+    g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -141,6 +144,10 @@ export class Game {
     if (g.state.teams.some((t: any) => t.owner === 'Kared Jushner')) g.state = { ...g.state, teams: g.state.teams.map((t: any) => t.owner === 'Kared Jushner' || (t.sales || []).some((x: any) => x.to === 'Kared Jushner' || x.from === 'Kared Jushner') ? { ...t, owner: t.owner === 'Kared Jushner' ? 'Tanner Matthews' : t.owner, sales: (t.sales || []).map((x: any) => ({ ...x, to: x.to === 'Kared Jushner' ? 'Tanner Matthews' : x.to, from: x.from === 'Kared Jushner' ? 'Tanner Matthews' : x.from })) } : t) };
     // 2026-09: the hand-written owners join older leagues (never on a team you run).
     if (!g.db.ownersV) { const st = { ...g.state, teams: g.state.teams.map((t: any) => ({ ...t })) }; placeNamedOwners(st.teams, tid => g.isUser(g.state, tid)); g.state = { ...g.state, teams: st.teams }; g.db.ownersV = 1; }
+    // 2026-10: owners get a background each (how the money was made, how they got the team), stored so it never changes.
+    // 2026-10: draft surprises. Prospects (and this June's draftees who haven't been to camp yet) get their hidden translation.
+    if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
+    if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
     // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
     if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
       const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors))) t.colors = nw; };
@@ -152,6 +159,8 @@ export class Game {
     (g.state.cards || []).forEach((c: any) => { const p = c.card?.pers; if (c.id === 'preset0' && p && p.crowd && p.villain === undefined) Object.assign(p, { crowd: false, villain: true, fearless: true }); });
     // ...and retuned to his real 2018–19 shooting splits: an unedited saved copy takes the new build.
     (g.state.cards || []).forEach((c: any) => { if (c.id === 'preset0' && c.card?.r?.fg === 45 && c.card?.r?.tp === 56 && c.card?.r?.oiq === 82) { const nw = PRESET_CARDS[0].card; c.card = { ...c.card, r: { ...nw.r }, tend: { ...nw.tend }, intg: { ...nw.intg } }; } });
+    // 2026-10: seven more ready-made rookie cards (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard) join saved card libraries, once.
+    if (g.state.cards && !g.state.cardsV) { const have = new Set(g.state.cards.map((c: any) => c.id)); g.state = { ...g.state, cardsV: 2, cards: [...g.state.cards, ...PRESET_CARDS.map((x, i) => ({ id: 'preset' + i, card: { ...JSON.parse(JSON.stringify(x.card)), label: x.label } })).filter(c => c.id !== 'preset0' && !have.has(c.id))] }; }
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
@@ -174,6 +183,7 @@ export class Game {
     // Saves from before wingspan counted toward the overall.
     Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.wOvr) { const w = Math.round(wngBonus(p)); p.ovr = Math.max(1, Math.min(100, p.ovr + w)); p.pot = Math.max(p.ovr, Math.min(100, p.pot + w)); p.wOvr = 1; } });
     // Saves from before the Team player trait: hand it out the same way new players get it.
+    Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.streaky === undefined) p.pers.streaky = ((p.id * 2246822519) >>> 0) % 100 < 12; }); // 2026-10: the Streaky trait
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
@@ -438,6 +448,7 @@ export class Game {
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08, flashy: rnd() < .08, heat: rnd() < .1, villain: rnd() < .05, fearless: rnd() < .07 };
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
     p.pers.legacy = rnd() < .12; // legacy-driven
+    p.pers.streaky = ((p.id * 2246822519) >>> 0) % 100 < 12; // streaky shooter (from his id, so world generation is unchanged)
     p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (rnd() + rnd() + rnd() - 1.5) * 45))); // hidden: how open he is to change
     p.fat = 0;
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
@@ -445,6 +456,7 @@ export class Game {
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
+    if (cls) ensureTranslation(p); // how his game will translate to the NBA: hidden until his first camp (translation.ts)
     P[p.id] = p; return p;
   }
   // A draft prospect's ceiling: his likely career peak, drawn like the real league's. Per class of about
@@ -572,7 +584,7 @@ export class Game {
     const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0) }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: p.tend, flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0) }; }) };
   }
 
   playGame(s, home, away): GameResult {
@@ -892,6 +904,7 @@ export class Game {
   }
   startPreFA() { startPreFA(this); }
   startFA() {
+    if (this.state.god && this.state.gmOffer?.kind === 'expiring' && !this.state.unemployed) answerOffer(this, true); // God Mode: your contract renews itself
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
       if (s.gmOffer?.kind === 'expiring' && !s.unemployed) return null; // answer the owner's contract offer first
@@ -997,6 +1010,11 @@ export class Game {
         const spurt = a <= 19 ? .003 : a <= 21 ? .001 : 0; // about one player every two or three seasons, league-wide
         if (Math.random() < spurt) { const inch = 1, hIn = this.inches(p.hgt), nIn = Math.min(91, hIn + inch); if (nIn > hIn) { p.hgt = Math.floor(nIn / 12) + '′' + (nIn % 12) + '″'; setRating(p, 'hgt', Math.min(100, p.r.hgt + 4 * (nIn - hIn))); lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' grew ' + (nIn - hIn === 1 ? 'an inch' : 'two inches') + ' over the summer (now ' + p.hgt + ')' }, ...lgLog]; } }
         return from; };
+      // First NBA training camp: how each rookie's game translates (translation.ts). The scouts couldn't see it.
+      const camp: Record<number, string[]> = {}, campIds: number[] = [];
+      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx) return; const x = applyTranslation(p); if (!x) return;
+        if (this.isUser(s, +k)) { (camp[+k] = camp[+k] || []).push((s.managed.length > 1 ? teams[k].abbr + ': ' : '') + translationLine(p, x)); campIds.push(id); }
+        if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], coachOf(k)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
       fa.forEach(id => grow(P[id], 0));
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
@@ -1052,8 +1070,9 @@ export class Game {
       s.managed.forEach(t => { const f: any = { prog: progBy[t] || [] }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
       (this.db as any).boxes = {}; // last season's box scores go with its game log
-      const qoMine = (byClub[s.me] || []).filter(x => /qualifying offer/.test(x));
-      return { ...top, ...(qoMine.length ? { notices: addNotice(s, { tone: 'info', title: 'Qualifying offers accepted', lines: qoMine.map(x => x + ' (one year; he’s under contract with you this season).') }) } : {}), clubs, offered: {}, extPlan: [], cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      const qoMine = (byClub[s.me] || []).filter(x => /qualifying offer/.test(x)), campLines = s.managed.flatMap((t: number) => camp[t] || []);
+      const campNotes = campLines.length ? addNotice(s, { tone: 'info', title: 'Training camp: your rookies', lines: [...campLines, 'Draft boards show how a player looked as an amateur; camp shows how his game carries over to the NBA.'], pids: campIds }) : s.notices;
+      return { ...top, notices: campNotes, ...(qoMine.length ? { notices: addNotice({ notices: campNotes }, { tone: 'info', title: 'Qualifying offers accepted', lines: qoMine.map(x => x + ' (one year; he’s under contract with you this season).') }) } : {}), clubs, offered: {}, extPlan: [], cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
     offseasonMandates(this);
@@ -1396,6 +1415,8 @@ export class Game {
     const rosters = { ...s.rosters };
     s.managed.forEach(t => { if (this.clubOf(s, t)?.keepSorted) rosters[t] = this.autoSorted(rosters[t]); });
     easyLineups(this, s, rosters, day);
+    // Streaky shooters' runs drift from game to game: hot and cold stretches that last a few weeks.
+    Object.values(rosters).forEach((ids: any) => ids.forEach((id: number) => { const q = this.db.P[id]; if (q?.pers?.streaky) q.hot = +Math.max(-1, Math.min(1, 0.85 * (q.hot || 0) + (Math.random() + Math.random() + Math.random() - 1.5) * 0.56)).toFixed(3); }));
     const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box: any = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) }, assets: s.assets };
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };

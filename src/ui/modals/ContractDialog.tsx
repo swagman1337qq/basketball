@@ -57,12 +57,12 @@ function Sign({ vm }: { vm: VM }) {
         <div style={lab}>Terms</div>
         <div style={row}>
           <span>First-year salary</span>
-          <NumInput value={amt} min={fixedAmt ? amt : 0} max={fixedAmt ? amt : m.maxFirst} step={0.1} width={90} disabled={fixedAmt && !s.god} onValue={x => set({ amt: x })} suffix={'$M · max ' + fmtMoney(m.maxFirst)} />
+          <NumInput value={amt} min={fixedAmt && !s.god ? amt : 0} max={s.god ? Math.max(m.maxFirst, gm.MAXC * 2) : fixedAmt ? amt : m.maxFirst} step={0.1} width={90} disabled={fixedAmt && !s.god} onValue={x => set({ amt: x })} suffix={s.god ? '$M · God Mode: any amount' : '$M · max ' + fmtMoney(m.maxFirst)} />
         </div>
         {m.maxYears > 0 && (
           <div style={{ ...row, marginTop: '6px' }}>
             <span>Years</span>
-            <NumInput value={years} min={1} max={m.maxYears} step={1} width={60} onValue={x => set({ years: x })} suffix={'max ' + m.maxYears + ' · ' + (Y1 - 1) + '–' + String(Y1).slice(2) + ' to ' + (Y1 + years - 2) + '–' + String(Y1 + years - 1).slice(2)} />
+            <NumInput value={years} min={1} max={s.god ? Math.max(m.maxYears, 6) : m.maxYears} step={1} width={60} onValue={x => set({ years: x })} suffix={'max ' + m.maxYears + ' · ' + (Y1 - 1) + '–' + String(Y1).slice(2) + ' to ' + (Y1 + years - 2) + '–' + String(Y1 + years - 1).slice(2)} />
           </div>
         )}
         {m.maxYears > 1 && years >= 2 && !fixedAmt && (

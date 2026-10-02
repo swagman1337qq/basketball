@@ -61,8 +61,8 @@ export function zoneSkill(r: any): Record<Zone, number> {
 // this relative to the league mean (= 20%). This is the usage-rate gatekeeper: volume
 // comes from usage and minutes, efficiency from shooting ratings, so a pure shooter with
 // low usage can't put up star numbers (points ≈ possessions × USG% × TS%).
-export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: boolean; roles?: string[] }) {
-  let u = Math.exp(0.022 * (p.ovr - 50) + 0.004 * (p.r.oiq - 50) + 0.003 * (p.r.drb - 50));
+export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: boolean; roles?: string[]; tend?: Tend }) {
+  let u = Math.exp(0.022 * (p.ovr - 50) + 0.004 * (p.r.oiq - 50) + 0.003 * (p.r.drb - 50)) * (p.tend?.usg ?? 1);
   if (p.alpha) u *= 1.05;
   if (p.touches) u *= 1.06;
   if (p.roles?.includes('Primary creator')) u *= 1.05;
@@ -110,7 +110,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number }
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number; usg?: number } // usg: how often he ends a possession (shot volume)
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
 // replaces it). A non-shooter barely takes threes (a big with no range lives at the rim); pull-up
 // threes need a handle, so a spot-up shooter who can't dribble takes his threes from the corners and
@@ -161,6 +161,7 @@ export interface SimPlayer {
   flashy?: boolean; heat?: boolean; volatile?: boolean; villain?: boolean; fearless?: boolean; // villain: hostile road crowds fire him up; fearless: wants the ball when it matters, pressure doesn't touch him
   // playing style: showtime passes; heat checks when hot; forced shots when frustrated
   tend?: Tend; // shot tendencies: how often he takes each shot and draws fouls (1 = what his skills suggest)
+  hot?: number; // a streaky shooter's current run, −1 (ice cold) to +1 (on fire); 0 for everyone else
   target: number; // minutes per 48 the coach wants him to play
 }
 export interface FourFactors { efg: number; tov: number; orb: number; ftr: number }
@@ -444,7 +445,8 @@ export class GameSim {
       const usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 60, 0.4, 1.5)) : 0;
       const readD = oiqSh >= 0 ? 0.0005 * oiqSh : 0.0009 * oiqSh; // shot selection: knowing which shots to take
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
-      const pct = readD + moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
+      const pct = hotD + readD + moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

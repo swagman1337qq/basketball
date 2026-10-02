@@ -59,7 +59,7 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   return txt;
 }
 function describe(g: Game, t: Terms, p: any) {
-  const lab: Record<string, string> = { cap: 'cap space', bird: 'Bird rights', ntmle: 'non-taxpayer mid-level', tpmle: 'taxpayer mid-level', room: 'room exception', bae: 'bi-annual exception', min: 'minimum', twoWay: 'two-way contract', ex10: 'Exhibit 10', tenDay: '10-day contract', hardship: 'hardship exception', dpe: 'disabled player exception', offer: 'offer sheet', rookie: 'rookie scale' };
+  const lab: Record<string, string> = { god: 'God Mode', cap: 'cap space', bird: 'Bird rights', ntmle: 'non-taxpayer mid-level', tpmle: 'taxpayer mid-level', room: 'room exception', bae: 'bi-annual exception', min: 'minimum', twoWay: 'two-way contract', ex10: 'Exhibit 10', tenDay: '10-day contract', hardship: 'hardship exception', dpe: 'disabled player exception', offer: 'offer sheet', rookie: 'rookie scale' };
   return (t.method === 'twoWay' || t.method === 'tenDay' || t.method === 'ex10' ? '' : '$' + t.amt.toFixed(2) + 'M × ' + t.years + ' yr' + (t.years === 1 ? '' : 's') + ' through ' + p.exp + ' ') + '(' + (lab[t.method] || t.method) + ')' + (p.opt ? ', ' + p.opt.kind + ' option' : '');
 }
 
