@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-02
 
 ### Added
+- **God Mode: Hidden gem** on a player's Development tab (under How he develops): whether he's a hidden gem, what kind (role player, starter or star), and how much extra potential is still to surface.
 - **AI teams call you with trade offers.** Every offer has a reason that fits the team's plans:
   - A contender, or a team on the rise, after one of your players at the position it needs.
   - A rebuilding team moving a veteran for your young players or picks.
@@ -87,6 +88,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Shot volume** is a new tendency in the God Mode player editor: how often he ends a possession.
 
 ### Changed
+- **Undrafted players rarely become stars now.** Before, a team that signed enough undrafted players would find several starters a year. Now, for a league's undrafted players each year:
+  - The overwhelming majority never become NBA players.
+  - About three become bench players, and one in a season or two a real starter.
+  - A high-level player turns up every few years, and a star about once a decade (a Ben Wallace or an Austin Reaves).
+  - Undrafted isn't a ceiling. A late bloomer can still surprise everyone (a hidden gem, or a game that translates better than the scouts saw), and the youngest have the most room to climb.
+  - The league reads a CCP or tryout player's potential less precisely than a drafted prospect's: fewer scouts watch him.
+- **Players in the CCP and abroad develop on their own plan.** Before, they got the same flat bump every month. CCP reps and minutes abroad still help.
+- **The draft's best undrafted rookies stay around** as free agents and CCP players instead of disappearing in the summer cleanup.
 - **Draft picks are valued by where they'll really land.** A future pick's projected spot comes from each team's outlook, not just its record:
   - Its current strength, its players' ages and contracts, who's likely to leave, and how it's playing.
   - The further out a pick is, the more it's pulled toward the middle, with more uncertainty.
@@ -130,6 +139,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The variants are rarer than the name they come from.
 
 ### Fixed
+- **A rookie who looks better than expected at his first camp no longer keeps growing extra fast because of it.** His jump at camp counted twice: once at camp and again in his development plan for years after. A rookie who looked worse also grew too slowly for the same reason.
 - **AI teams no longer trade after the trade deadline.**
 - **An injured player now comes back to his spot.** On a team you run, a player who's out drops to the end of the roster with no minutes. When he's healthy, he returns to his old spot and minutes. Before, a star hurt early in the season could sit in the last slot, with no minutes, for the rest of the season.
 - **Injuries now count down in the play-in and playoffs, and free agents heal.** Before, an unsigned player's injury never healed.

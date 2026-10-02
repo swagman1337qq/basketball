@@ -46,9 +46,10 @@ export function envOf(g: Game, s: any, p: any, tid: number, rosters = s.rosters)
     if (a <= 24) { const m = mentorOf(g, s, tid, p.id, rosters); if (m.mentor != null) parts.push([m.paired ? 'Mentor' : 'Veteran leaders', m.paired ? 0.04 : 0.02]); }
   }
   if (a <= 24) {
-    const mpg = p.min || 0; let x = p.dev ? 0.12 : mpg < 10 ? -0.25 : mpg < 20 ? -0.08 : mpg < 28 ? 0.04 : 0.08;
+    const ccp = p.dev || (tid < 0 && p.gl?.tid != null), abroad = tid < 0 && !!p.abroad, mpg = p.min || 0;
+    let x = ccp ? 0.12 : abroad ? 0.04 : mpg < 10 ? -0.25 : mpg < 20 ? -0.08 : mpg < 28 ? 0.04 : 0.08;
     if (x < 0) x *= 1 - cl((wk - 55) / 45, 0, 1) * 0.8; // a gym rat makes up most of it
-    parts.push([p.dev ? 'CCP reps' : 'Playing time', x]);
+    parts.push([ccp ? 'CCP reps' : abroad ? 'Playing abroad' : 'Playing time', x]);
   }
   const S = parts.reduce((t, [, v]) => t + v, 0), d = 0.25 * Math.tanh(S / 0.25), fr = fringe(p);
   return { mult: +cl(1 + d * fr, 0.75, 1.3).toFixed(3), parts, fringe: fr, total: S };

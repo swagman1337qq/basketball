@@ -15,6 +15,7 @@
 import { BODY, bodyLeft, devProfile, groupOf, SKILLS } from './development';
 import { ovrExact, OVR_ADJ, OVR_W, wngBonus } from './ratings';
 import { mulberry32 } from './rng';
+import { rollGem } from './intangibles';
 
 // His plan: the share of his growth planned at each age (from 18; renormalized from his first season).
 const W_AGE: Record<number, number> = { 18: 0.14, 19: 0.15, 20: 0.15, 21: 0.14, 22: 0.13, 23: 0.11, 24: 0.09, 25: 0.07, 26: 0.05, 27: 0.03, 28: 0.01 };
@@ -99,6 +100,23 @@ export function planStatus(p: any): 'behind' | 'ahead' | null {
   const d = p.dv0; if (!d || p.age > 27) return null; const W = wRem(d.a), F = fullCeil(p), gap = F - d.o; if (W <= 0 || gap < 4) return null;
   const done = (ovrExact(p) - d.o) / gap, due = TYPICAL * (1 - wRem(p.age + 1) / W);
   return done < due - 0.15 ? 'behind' : done > due + 0.15 ? 'ahead' : null;
+}
+// An undrafted or fringe player (the CCP's player pool, tryouts and draft): the overwhelming majority
+// never become NBA players, about one in a hundred becomes a bench player, about one in five hundred a
+// starter, a high-level player is rarer still, and a star is a once-in-a-decade story (Ben Wallace,
+// Austin Reaves). His expected peak is drawn from that ladder; the younger he is, the more of a climb
+// is possible. His hidden gem chance is low (late bloomers, VanVleet and Caruso types), and the
+// league's read of him is rougher (fewer scouts watch him).
+export function fringePeak(p: any, rnd: () => number) {
+  const u = rnd(), young = Math.max(0.2, Math.min(1, (25 - p.age) / 4)), o = p.ovr;
+  const draw = u < 0.988 ? o + rnd() * 4 * young : u < 0.9975 ? 48 + rnd() * 7 : u < 0.9993 ? 56 + rnd() * 5 : u < 0.99985 ? 62 + rnd() * 3 : 66 + rnd() * 6;
+  return Math.round(Math.max(o, o + (draw - o) * (0.35 + 0.65 * young)));
+}
+export function makeFringe(p: any, rnd: () => number = Math.random) {
+  delete p.gem; rollGem(p, rnd, 0.01);
+  // His hidden gem is a late bloom into a role player or, now and then, a starter; a star is the ladder's call.
+  if (p.gem) { const add = rnd() < 0.8 ? 4 + Math.floor(rnd() * 5) : 9 + Math.floor(rnd() * 5); p.gem = { add, left: add, tier: add >= 9 ? 'starter' : 'role' }; }
+  initCeil(p, fringePeak(p, rnd)); rollPerr(p, 4.5); refreshPot(p);
 }
 // His ceilings in each skill (God Mode), highest first.
 export function ceilList(p: any): [string, number][] { return p.ceil ? (Object.entries(p.ceil) as [string, number][]).map(([k, v]) => [k, Math.round(v)] as [string, number]).sort((a, b) => b[1] - a[1]) : []; }

@@ -14,7 +14,7 @@ import { GameSim, blankLine } from './sim';
 import { CCP_AFFIL, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
-import { refreshPot, setTruePot } from './potential';
+import { makeFringe } from './potential';
 
 export interface CcpTeam { id: number; key: string; aff: number | null; conf: string; region: string; city: string; where: string; name: string; abbr: string; icon: string; colors: [string, string]; note: string }
 export interface CcpGame { dn: number; st: 'tip' | 'show' | 'reg' | 'po'; h: number; a: number; hs?: number; as?: number; rd?: number; ot?: number; top?: [number, number, number, number] }
@@ -208,9 +208,9 @@ export function ccpTopUp(g: Game, s: any, fa: number[]) {
     const tid = t.aff == null ? IND : t.aff;
     while ((count[tid] || 0) < CCP_MIN) {
       const r = Math.random(), kind = r < 0.45 ? 'draft' : r < 0.7 ? 'tryout' : 'pool', age = kind === 'draft' ? 21 + Math.floor(Math.random() * 3) : 22 + Math.floor(Math.random() * 6);
-      const p = g.mkPlayer(33 + Math.random() * 15, age, s.natW || natDefault(), 0);
+      const p = g.mkPlayer(30 + Math.random() * 13, age, s.natW || natDefault(), 0); // below NBA level, mostly
       Object.assign(p, { amt: N.min(0), ask: N.min(0), exp: Y, dr: null, draft: Y - 1, undrafted: Y - 1, yos0: 0, yrsWith: 0, rookie: false });
-      if ((p.tpot ?? p.pot) > p.ovr + 12) setTruePot(p, p.ovr + 12); else refreshPot(p); // a CCP find, not a hidden star
+      makeFringe(p); // potential.ts: almost all stay fringe players; a rare one becomes something
       p.gl = { tid, kind, since: Y, gp: 0, pts: 0, reb: 0, ast: 0 };
       fa.push(p.id); count[tid] = (count[tid] || 0) + 1;
     }

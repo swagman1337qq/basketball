@@ -1045,13 +1045,14 @@ export class Game {
         return from; };
       // First NBA training camp: how each rookie's game translates (translation.ts). The scouts couldn't see it.
       const camp: Record<number, string[]> = {}, campIds: number[] = [];
-      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
+      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), e0 = ovrExact(p), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
+        if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); // camp moved his level, not his growth: the plan moves with it (or a steal grows as if the jump were still ahead of him)
         if (p.ceil) SKILLS.forEach(k2 => { p.ceil[k2] = Math.min(99, Math.max(p.r[k2], p.ceil[k2] + p.r[k2] - b0[k2])); }); // his ceilings move with what camp showed (potential.ts)
         moveTruePot(p, tc); p.perr = +((p.perr || 0) * 0.75).toFixed(2); refreshPot(p); x.pot = p.pot;
         if (this.isUser(s, +k)) { (camp[+k] = camp[+k] || []).push((s.managed.length > 1 ? teams[k].abbr + ': ' : '') + translationLine(p, x)); campIds.push(id); }
         if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], +k, focusOf(k, id)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
-      fa.forEach(id => grow(P[id]));
+      fa.forEach(id => grow(P[id])); (s.overseas || []).forEach(id => { if (P[id]?.r && !P[id].retired) grow(P[id]); }); // free agents and players abroad: their summer too
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -1091,6 +1092,7 @@ export class Game {
       // The market holds about 90 players into the season (the NBA's in-season pool of unsigned
       // veterans and CCP hopefuls); the rest sign abroad or move on.
       if (box.fa.length > 90) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 90));
+        box.fa.filter(id => P[id].undrafted === this.Y && P[id].cls === 0).sort((a, b) => P[b].pot - P[a].pot).slice(0, 20).forEach(id => keep.add(id)); // the draft's best undrafted rookies stay (the CCP), as camp invites and two-ways do
         box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; addTx(this, s, P[id], { k: 'retire', text: P[id].retired.why + ' at ' + P[id].age }); return false; }); }
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
@@ -1439,6 +1441,15 @@ export class Game {
 
   // One random move by an AI-run team: a signing (through a CBA method, within its owner's
   // budget), a like-for-like trade that passes the league office, or a waiver to open a spot.
+  // A month of development for a player without an NBA team (the CCP, abroad): his plan at his pace in
+  // his environment, like everyone else (no shortcut to his ceiling).
+  devIdle(s, p) {
+    if (!p?.r || p.frozen || p.retired || p.gone) return;
+    const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, env = envOf(this, s, p, -1);
+    const monthly = annual / 12 * (annual > 0 ? env.mult : 1) * this.devMult(p, annual) * (0.6 + Math.random() * .8);
+    applyChange(p, develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, work: p.pers?.work ?? 50, slow: this.devMult(p, -1), rnd: Math.random }));
+    syncOvr(p); refreshPot(p);
+  }
   // Carry out an AI-to-AI trade (tradeLogic.ts) and log it with its reason.
   execTrade(st, box, x, day) {
     const P = this.db.P, T = st.teams;
@@ -1538,7 +1549,7 @@ export class Game {
       confidenceTick(this, s, rosters);
       placeInGLeague(this, s, box.fa); ccpTopUp(this, s, box.fa); gLeagueTick(this, box.fa, this.gamesPlayed(s));
       if (s.easy?.tactics) s.managed.forEach(t => addClub(t, c => ({ tactics: bestTactics(this, rosters[t], c.tactics) })));
-      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q.age <= 29 && q.abroad) { q.osx = (q.osx || 0) + (q.age <= 25 ? .35 : .2) * (q.redeem ? 1.3 : 1); const w = Math.trunc(q.osx); if (w && q.ovr < (q.tpot ?? q.pot) + 2) { q.osx -= w; applyChange(q, skillChange(q, w * (1 - ovrShare(q.grp, 'hgt')), skillWeights(q, { year: this.Y }))); syncOvr(q); refreshPot(q); } q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } });
+      (s.overseas || []).forEach(id => { const q = this.db.P[id]; if (q?.abroad) { this.devIdle(s, q); q.abroad.pts = +(8 + (q.ovr - 44) * 1.1 + 2).toFixed(1); } }); // players abroad develop on their plan (devIdle)
     }
     // Budget categories on Auto follow the recommendation as the record and revenue move.
     s.managed.forEach(t => { const c = this.clubOf({ ...s, ...patch, clubs }, t), a = c?.budgetAuto; if (a && Object.values(a).some(Boolean)) addClub(t, c1 => ({ budget: applyAutoBudget(this, { ...s, rosters }, t, c1.budget, a) })); });
