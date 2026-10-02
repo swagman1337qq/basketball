@@ -9,6 +9,7 @@ import { intelF, leagueStr } from '../../engine/overseas';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { devOutlook } from '../../engine/development';
 import { ceilList, fullCeil, paceLabel, paceOf, potView } from '../../engine/potential';
+import { envOf } from '../../engine/environment';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
 const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', blk: 'Blocks', stl: 'Steals', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
@@ -167,6 +168,12 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
         {mine ? devOutlook(p, !!s.god).map(([k2, v2]) => <Row key={k2} k={k2} v={v2} c={k2 === 'Hidden profile' ? GOD_PINK : undefined} />)
           : <p style={{ ...muted, fontSize: '12px', margin: 0 }}>Only your own staff knows how a player develops: where his growth goes, his body and his work ethic.</p>}
         {mine && <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Every player grows his own way: some pour everything into one area, some round out. His body (speed, burst, leaping, strength, stamina) follows its own schedule, so skill work doesn’t make him faster.</p>}
+        {mine && tid >= 0 && (() => { const e = envOf(gm, s, p, tid), pc = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 100)) + '%'; return (<>
+          <h4 style={{ ...ruleH4, marginTop: '18px' }}>Development environment</h4>
+          {e.parts.map(([k2, v2]) => <Row key={k2} k={k2} v={pc(v2)} c={v2 > 0.005 ? good : v2 < -0.005 ? bad : undefined} />)}
+          <Row k="Together" v={pc(e.mult - 1) + ' growth' + (e.fringe >= 1.05 ? ' (counts extra for a player with his potential)' : e.fringe <= 0.8 ? ' (counts less for a player with his potential)' : '')} c={e.mult > 1.005 ? good : e.mult < 0.995 ? bad : undefined} />
+          <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>How fast he closes in on his potential here. The factors add up with diminishing returns, capped at ±25%, and matter most for players with modest potential. They never raise his ceiling.</p>
+        </>); })()}
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Hidden decimals</h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '2px 16px', fontSize: '12px' }}>
           {Object.keys(p.r).map(k => { const x = (p.rx || {})[k] || 0; return <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px solid var(--color-divider)' }}><span style={muted}>{LB[k]}</span><span>{mine ? (p.r[k] + x).toFixed(2) : p.r[k]}</span></div>; })}

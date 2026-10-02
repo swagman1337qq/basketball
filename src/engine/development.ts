@@ -65,7 +65,8 @@ export function devProfile(p: any): DevProfile {
 // This season's emphasis: what he happened to work on (a summer spent on his handle). Same all season.
 function emphasis(p: any, year: number) { const r = seeded(p.id, year, 7); return Object.fromEntries(Object.keys(GROUPS).map(g => [g, Math.exp(0.25 * nrm(r))])); }
 
-export interface WeightOpts { year: number; keys?: string[]; reps?: Record<string, number> | null; repF?: number } // keys: the training focus's ratings
+// keys: the training focus's ratings; reps: his system's practice reps; role: his role in games (environment.ts roleReps)
+export interface WeightOpts { year: number; keys?: string[]; reps?: Record<string, number> | null; repF?: number; role?: Record<string, number> | null }
 // w: each skill's share of growth; lazy: how far each is from what he's working on (0–1: a skill he
 // isn't working on slips a little; one that's simply maxed out at its ceiling doesn't).
 export interface Weights { w: Record<string, number>; lazy: Record<string, number> }
@@ -78,7 +79,7 @@ export function skillWeights(p: any, o: WeightOpts): Weights {
   const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0), avg = SKILLS.reduce((s, k) => s + v(k), 0) / SKILLS.length, w: Record<string, number> = {}, it: Record<string, number> = {};
   SKILLS.forEach(k => {
     const g = GROUP_OF[k];
-    let i = d.aff[g] * e[g]; // what he works on
+    let i = d.aff[g] * e[g] * (o.role?.[g] ?? 1); // what he works on, and what his role in games asks of him
     if (LATE[k]) i *= cl(0.65 + (a - 19) * 0.08, 0.65, 1.4);
     if (EARLY[k]) i *= cl(1.25 - (a - 21) * 0.08, 0.5, 1.25);
     if (focus.length) i *= focus.includes(k) ? 2.2 : 0.45; // the training focus decides where growth goes, not how much

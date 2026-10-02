@@ -31,6 +31,8 @@ import { ensureIntg } from '../engine/intangibles';
 import { DEFAULT_BRIEF, runBriefs } from '../engine/scoutBrief';
 import { kindOf, scoutRead } from '../engine/scoutReport';
 import { liftCeil, potView, refreshPot, setTruePot } from '../engine/potential';
+import { facEffect, teamBudget } from '../engine/environment';
+import { coachMult } from '../engine/development';
 import { mulberry32 } from '../engine/rng';
 import { TACTIC_GROUPS } from '../engine/tactics';
 import type { VM } from './vm';
@@ -296,19 +298,20 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   if (s.phase !== 'draft') { const pre = ['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase); dr.status = pre ? 'Draft night comes after the playoffs and lottery' : 'The ' + gm.Y + ' draft is complete'; dr.sub = pre ? 'Order shown is projected: lottery teams by their expected pick under the 3-2-1 lottery, then everyone else by record. Click Lottery in the bar above for the odds.' : ''; dr.noSimMine = true; dr.done = true; }
   const dClasses = [gm.Y, (gm.Y + 1), (gm.Y + 2)].map(y => ({ label: y === gm.Y ? y + ' · this June' : String(y), onClick: () => gm.setState({ dClass: y, adv: {} }), color: s.dClass === y ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.dClass === y ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
 
-  const b = s.budget, lgAvg = k => d.lg[k].reduce((a, x) => a + x, 0) / d.lg[k].length, rel = k => (b[k] / lgAvg(k) - 1);
+  const lgOf = k => ['Coaching', 'Facilities', 'Scouting'].includes(k) ? s.teams.filter(t => !gm.isUser(s, t.tid)).map(t => teamBudget(gm, s, t.tid)[k]) : d.lg[k];
+  const b = s.budget, lgAvg = k => lgOf(k).reduce((a, x) => a + x, 0) / lgOf(k).length, rel = k => (b[k] / lgAvg(k) - 1);
   const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + '%';
   const wp = pct(me);
   const mk = me.mkt, mRank = 1 + T.filter(t => t.mkt > mk).length;
   const F = financesOf(gm, s, s.me), att = F.att, taxBill = F.taxBill, rev = F.rev, exp = F.exp, net = F.net;
-  const EFF = { Coaching: 'Player progression ' + sgn(rel('Coaching') * 25) + ' vs league average', Health: 'Injury recovery ' + sgn(rel('Health') * 30) + ' vs league average', Facilities: 'Attendance and hype ' + sgn(rel('Facilities') * 15) + ', builds over seasons', Scouting: 'Draft ratings ±' + Math.round(3 * scoutF) + ' this year, ±' + Math.round(13 * scoutF) + ' two classes out', Tickets: att.toLocaleString() + ' per game · ' + Math.round(F.full * 100) + '% of ' + F.cap.toLocaleString() + ' seats' };
+  const EFF = { Coaching: 'Player growth ' + sgn((coachMult(b.Coaching) - 1) * 100) + ' and slower aging (capped with the rest of his environment; counts most for fringe players)', Health: 'Injury recovery ' + sgn(rel('Health') * 30) + ' vs league average', Facilities: 'Attendance and hype ' + sgn(rel('Facilities') * 15) + ', player growth ' + sgn(facEffect(b.Facilities) * 100) + ', builds over seasons', Scouting: 'Draft ratings ±' + Math.round(3 * scoutF) + ' this year, ±' + Math.round(13 * scoutF) + ' two classes out', Tickets: att.toLocaleString() + ' per game · ' + Math.round(F.full * 100) + '% of ' + F.cap.toLocaleString() + ' seats' };
   const YRS = [gm.Y, (gm.Y + 1), (gm.Y + 2), (gm.Y + 3), (gm.Y + 4)];
   const led = mine.map(id => P[id]).sort((x, y) => y.amt - x.amt);
   const pos = v => (cl(v, 120, 240) - 120) / 120 * 100 + '%';
   const fin = { payroll: money(payroll), payW: pos(payroll), status: s.capEasy ? (payroll > gm.AP2 ? 'Over the hard cap: you can’t add salary.' : payroll > gm.TAX ? 'In the tax: paying ' + money(taxBill) + ' this season; ' + money(gm.AP2 - payroll) + ' left until the hard cap.' : payroll > gm.CAP ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax.' : money(capRoom) + ' in cap space.') : payroll > gm.AP2 ? 'Above the 2nd apron: heavy trade and signing restrictions.' : payroll > gm.AP1 ? 'Above the 1st apron: no mid-level, trades must match 100%.' : payroll > gm.TAX ? 'In the tax: paying ' + money(taxBill) + ' this season.' : payroll > gm.CAP ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax and ' + money(gm.AP1 - payroll) + ' under the 1st apron.' : money(capRoom) + ' in cap space.',
     marks: (s.capEasy ? [['Minimum', gm.MINP, 1], ['Cap', gm.CAP, 0], ['Tax', gm.TAX, 1], ['Hard cap', gm.AP2, 0]] : [['Minimum', gm.MINP, 1], ['Cap', gm.CAP, 0], ['Tax', gm.TAX, 1], ['1st apron', gm.AP1, 0], ['2nd apron', gm.AP2, 1]]).map(([label, v, below]) => ({ label, val: money(v), left: pos(v), top: below ? '28px' : '-20px' })),
     rev: rev.map(([name, v]) => ({ name, v: money(v) })), exp: exp.map(([name, v]) => ({ name, v: money(v) })), net: money(net), netColor: net < 0 ? 'var(--color-accent-800)' : 'var(--color-text)',
-    budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => { const [mn, mx, , stp] = d.BUD[k]; return { name: k === 'Tickets' ? 'Ticket price' : k, min: mn, max: mx, step: stp, v: b[k], range: k === 'Tickets' ? '$' + mn + '–$' + mx + ' average' : money(mn) + '–' + money(mx), amt: k === 'Tickets' ? '$' + b[k] : money(b[k]), rank: ord(1 + d.lg[k].filter(x => x > b[k]).length), effect: EFF[k], auto: !!(s.budgetAuto || {})[k], rec: k === 'Tickets' ? '$' + autoBudget(gm, s, s.me, k) : money(autoBudget(gm, s, s.me, k)),
+    budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => { const [mn, mx, , stp] = d.BUD[k]; return { name: k === 'Tickets' ? 'Ticket price' : k, min: mn, max: mx, step: stp, v: b[k], range: k === 'Tickets' ? '$' + mn + '–$' + mx + ' average' : money(mn) + '–' + money(mx), amt: k === 'Tickets' ? '$' + b[k] : money(b[k]), rank: ord(1 + lgOf(k).filter(x => x > b[k]).length), effect: EFF[k], auto: !!(s.budgetAuto || {})[k], rec: k === 'Tickets' ? '$' + autoBudget(gm, s, s.me, k) : money(autoBudget(gm, s, s.me, k)),
       set: e => { const v = +e.target.value; gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; delete ba[k]; return { budget: { ...st.budget, [k]: v }, budgetAuto: ba }; }); },
       toggleAuto: () => gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; if (ba[k]) delete ba[k]; else ba[k] = true; return { budgetAuto: ba, budget: applyAutoBudget(gm, st, st.me, st.budget, { [k]: !!ba[k] }) }; }) }; }),
     allAuto: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].every(k => (s.budgetAuto || {})[k]),

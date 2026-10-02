@@ -94,6 +94,7 @@ Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of 
 - Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries.
 - Depth chart and the assistant coaches' lineup advice with one-click apply.
 - 20 ratings (including acceleration, layups, box-out, blocks, steals), measured wingspan, badges.
+- Development environment (`environment.ts`): coaching and facilities (yours from Finances; an AI team's from its owner type, `teamBudget`), playing time for players 24 and under, the locker room and a mentor. They combine with diminishing returns into one multiplier, capped at ±25% and weighted toward players with modest potential, and they never raise a ceiling. A player's role in games (`roleReps`, from his season stats) leans where his growth goes. AI teams draft on their own scouts' read (`aiDraft`). Shown on the Development tab (your players; God Mode: anyone).
 - Potential (`potential.ts`) is a ceiling, not a destination. Each player has hidden ceilings per skill and a development plan from his first season to about 27. His hidden pace decides how much of the plan he gets, and a lost year is never made up. True potential (`p.tpot`) is what he could still reach if everything goes right. The potential shown (`p.pot`) is the league's scouting read of it: off by a few points for prospects, sharpening each season. AI teams use that read; your staff reads your own players closely. God Mode shows the truth: the profile ring ("True potential"), tables, the draft board, and on the Development tab the skill ceilings, full ceiling and pace. The editor's slider sets it.
 - Player development (`development.ts`): how much a player grows is set in `Game.ts` (age, room under potential, hidden development factor, work ethic, form, minutes, coaching); where it lands is his own hidden development profile. Specialists pour growth into one area, others grow two or round out, and the direction carries from year to year. Skills he isn't working on stall or slip. His body has its own track: athletic peak 26–29, frame limits on strength and stamina, and young players arrive with their athleticism mostly there. Coaching is a capped multiplier (at most +12%), and training focus decides where growth goes. Your players' Development tab shows "How he develops".
 - Training focus per player, hidden decimal growth, monthly development reports, year-over-year progress.
@@ -194,6 +195,7 @@ All in `src/engine/`.
 | `media.ts` | Preseason predictions: standings, win totals, title and award picks |
 | `development.ts` | Where development lands: each player's development profile, the body's own track, work ethic, the coaching multiplier |
 | `potential.ts` | Potential as a ceiling: skill ceilings, the development plan and hidden pace, true potential vs the league's scouting read |
+| `environment.ts` | Development environment: team budgets (AI teams' from their owners), the capped environment multiplier, role reps |
 | `progress.ts` | Opening-night and end-of-season rating snapshots |
 | `intangibles.ts` | Intangibles and hidden gems |
 | `traits.ts` | Personality traits and their descriptions |
@@ -243,11 +245,16 @@ Tick these off (or delete them) as they're fixed. Severity is a first guess.
 - [ ] **Dead check in `Game.sim()`.** It refuses to sim while an inbox item has `block`, but nothing ever sets `block` (`Game.ts`, `sim()`).
 - [ ] **Very dense code.** Lines run to 3,471 characters (`viewModel.ts`); `Game.ts` is 165 KB. Splitting `Game.ts` by phase and formatting long lines would make reviews and diffs far easier.
 - [ ] **Saves grow about 1.4 MB a season.** A headless run went 3.5 MB → 5.0 MB → 6.3 MB over three seasons, and later seasons sim slower (about 5 s → 7–12 s each, headless). Worth trimming old box scores, logs and per-game history before leagues reach 20+ seasons.
-- [ ] **Player development, phase 3** (audit of 2026-10-02). Phase 1 is done (`development.ts`): development is player-specific, the body has its own track, every player has a work ethic, and coaching is a capped multiplier. Phase 2 is done (`potential.ts`): potential is a ceiling with per-skill ceilings, a hidden pace, and true vs scouted potential. Still to do:
+- [x] **Player development rework** (audit of 2026-10-02), all three phases done.
+  - Phase 1 (`development.ts`): development is player-specific, the body has its own track, every player has a work ethic, and coaching is a capped multiplier.
+  - Phase 2 (`potential.ts`): potential is a ceiling with per-skill ceilings, a hidden pace, and true vs scouted potential.
+  - Phase 3 (`environment.ts`): a capped environment for every team, role-based growth, and AI draft scouting.
+  - Checked with a 10-season headless harness on two seeds: the 70+ tier and league athleticism hold steady, and players peak about 4 below their true potential.
   - [x] *Potential is a destination, not a ceiling.* Fixed in phase 2: a development plan and a hidden pace replace the catch-up term, and players peak on average about 3–4 below their true potential.
   - [x] *Potential is one number.* Fixed in phase 2: every skill has its own ceiling.
   - [x] *Only one potential exists, and everyone sees it.* Fixed in phase 2: true potential vs the league's scouting read. Still a single league-wide read, though; AI teams don't have their own scouting yet.
-  - [ ] *Environment only for teams you manage.* Coaching, training focus and tactics reps only reach managed teams. Facilities don't affect development. Minutes, focus, the CCP, the locker room and the yearly form roll multiply with no overall cap. Player role isn't modeled.
-  - [ ] *Projections still assume even growth*: `rolesOf(p, proj)`, the scout report's projection, and God Mode's `setOverall`.
+  - [x] *Environment only for teams you manage.* Fixed in phase 3 (`environment.ts`). Was: Coaching, training focus and tactics reps only reach managed teams. Facilities don't affect development. Minutes, focus, the CCP, the locker room and the yearly form roll multiply with no overall cap. Player role isn't modeled.
+  - [x] *Projections still assumed even growth.* Fixed in phase 3: `rolesOf(p, proj)` and the scout report grow skills only. God Mode's `setOverall` still moves every rating alike, on purpose: it's an editing tool.
+- [ ] **AI trades and contracts still value potential on the league's one shared read.** Only the draft uses each team's own scouting. The AI teams' Health budget also isn't used yet: injuries only read your budget.
 - [ ] **The height rating isn't tied to listed height.** Within a position the correlation is about 0: `mkPlayer` draws `r.hgt` from the overall, not the inches. The sim uses it for rebounding, blocks and interior defense.
 - [ ] **Code review findings.** A full review of the engine, rules, saves and UI is in progress; its confirmed findings go here.

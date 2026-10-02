@@ -107,7 +107,7 @@ export function scoutReport(g: Game, s: any, pid: number): Report {
   const P = g.db.P, p = P[pid], C = g.db.C, rd = scoutRead(g, s, p), o = observed(p, rd.margin), pick = pickOf(pid * 31 + g.Y);
   const grp = p.grp as 'G' | 'W' | 'B', grow = p.age <= 23 ? Math.max(0, o.pot - o.ovr) * (p.age <= 20 ? 0.6 : 0.45) : 0;
   // Young players are graded on the tools they'll grow into (skills), not only today's level.
-  const R: Record<string, number> = {}; Object.keys(o.r).forEach(k => (R[k] = o.r[k] + (k === 'hgt' ? 0 : grow)));
+  const R: Record<string, number> = {}; Object.keys(o.r).forEach(k => (R[k] = o.r[k] + (['hgt', 'spd', 'acc', 'jmp', 'stre', 'endu'].includes(k) ? 0 : grow * 1.3))); // his skills grow, his body mostly doesn't
   const sizeAdj = grp === 'G' ? 12 : grp === 'W' ? 0 : -10;
   const hIn0 = (() => { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; })(), wing0 = p.wing ?? hIn0 + 3 + (p.id % 4);
   const sizeG = Math.round(cl(5.5 + (hIn0 - ({ G: 76, W: 79, B: 83 } as any)[grp]) * 0.9 + (wing0 - hIn0 - 3) * 0.5, 1, 10) * 2) / 2;
