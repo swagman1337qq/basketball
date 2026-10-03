@@ -6,7 +6,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
-import { alphaTeams, GOD_PINK, godBtn, HL, hlRow, kickerStyle, Link, muted, Ring, usePaged } from '../kit';
+import { alphaTeams, GOD_PINK, godBtn, HL, hlRow, inkOn, kickerStyle, Link, muted, onHL, Ring, Swatch, usePaged } from '../kit';
 import { ChampBanner } from '../ChampBanner';
 import { JERSEY_RE, numsWith, retireJersey, unretireJersey } from '../../engine/jerseys';
 import { titleYears } from '../../engine/hof';
@@ -14,8 +14,6 @@ import { titleYears } from '../../engine/hof';
 const td: CSSProperties = { padding: '4px 8px', borderBottom: '1px solid var(--color-divider)' }, tdr: CSSProperties = { ...td, textAlign: 'right', whiteSpace: 'nowrap' };
 const btnS: CSSProperties = { fontSize: '11.5px', padding: '1px 8px', whiteSpace: 'nowrap' };
 // Buttons on a highlighted (light) row: dark text in either theme; God Mode's pink, darkened to read.
-const litBtn: CSSProperties = { color: HL.ink, borderColor: 'rgba(29,27,25,.4)', background: 'rgba(255,255,255,.35)' };
-const godLit: CSSProperties = { ...litBtn, color: '#a3105f', borderColor: GOD_PINK };
 const lbl = (y: number) => (y - 1) + '–' + String(y).slice(2);
 const numKey = (n: string) => (n === '00' ? -1 : +n);
 const fold = (x: string) => x.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -27,8 +25,9 @@ const finText = (fin: string) => FIN.find(([re]) => re.test(fin))?.[1] ?? fin.to
 const madePO = (fin: string) => /title|finals|semifinals|first round/i.test(fin), madeFinals = (fin: string) => /title|lost in the finals/i.test(fin);
 // Where a player is now: on the team, still playing elsewhere (another team, unsigned, abroad,
 // the CCP), retired, or retired into the Hall of Fame.
-const ROW_BG: Record<string, string> = { now: HL.mine, away: HL.active, hof: HL.hof };
-const LEGEND: [string | null, string][] = [[HL.mine, 'On the team now'], [HL.active, 'Still playing, for another team or unsigned'], [HL.hof, 'Hall of Fame'], [null, 'Retired']];
+// Row colors by where he is now. "On the team now" is your team's own color on the history of the team
+// you're running, lavender on any other team's.
+const rowBgs = (now: string): Record<string, string> => ({ now, away: HL.active, hof: HL.hof });
 
 function Fold({ vm, k, title, note, children }: { vm: VM; k: string; title: ReactNode; note?: ReactNode; children: ReactNode }) {
   const { gm, s } = vm.ctx, shut = !!(s.thFold || {})[k];
@@ -46,7 +45,7 @@ function Fold({ vm, k, title, note, children }: { vm: VM; k: string; title: Reac
 }
 
 export function TeamHistoryScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, open, isMine } = vm.ctx, P = gm.db.P;
+  const { gm, s, T, logo, open, isMine, meColor } = vm.ctx, P = gm.db.P;
   const [view, setView] = useState<number>(s.me);
   const [ask, setAsk] = useState<{ pid: number; num: string } | null>(null);
   const [q, setQ] = useState(''), [size, setSize] = useState(25);
@@ -54,6 +53,8 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   const pick = (x: number) => { setView(x); setAsk(null); };
   const step = (d: number) => { const i = AT.findIndex(x => x.tid === tid); pick(AT[(i + d + AT.length) % AT.length].tid); };
   const canEdit = isMine(tid) || !!s.god, godOnly = !isMine(tid) && !!s.god, retired: any[] = t.retired || [];
+  const ROW_BG = rowBgs(tid === s.me ? meColor : HL.mine), LEGEND: [string | null, string][] = [[ROW_BG.now, 'On the team now'], [HL.active, 'Still playing, for another team or unsigned'], [HL.hof, 'Hall of Fame'], [null, 'Retired']];
+  const litBtn = (st: string) => onHL(ROW_BG[st]), godLit = (st: string): CSSProperties => ({ ...litBtn(st), color: inkOn(ROW_BG[st]) === HL.ink ? '#a3105f' : '#ffd1ea', borderColor: GOD_PINK });
 
   // Every season the team has played, newest first: finished ones from league history (saves
   // from before every team's line was kept have only the user's, then tid 0), then this one if
@@ -123,9 +124,9 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   // Retiring a number: the one he wore here (pick one if he wore several, or type it if the
   // league never recorded it). Not while he's still on the team.
   const action = (r: any) => {
-    const done = retired.filter(x => x.pid === r.id), lit = !!ROW_BG[r.st], look = { ...btnS, ...(lit ? (godOnly ? godLit : litBtn) : godOnly ? godBtn : {}) };
+    const done = retired.filter(x => x.pid === r.id), lit = !!ROW_BG[r.st], look = { ...btnS, ...(lit ? (godOnly ? godLit(r.st) : litBtn(r.st)) : godOnly ? godBtn : {}) };
     if (done.length) return <span style={{ fontSize: '12px' }}>No. {done.map(x => x.num).join(', ')} retired</span>;
-    if (r.st === 'now') return <button className="btn btn-secondary" disabled title="He’s on the team: retire his number after he leaves or retires" style={{ ...btnS, ...(lit ? litBtn : {}) }}>Retire jersey</button>;
+    if (r.st === 'now') return <button className="btn btn-secondary" disabled title="He’s on the team: retire his number after he leaves or retires" style={{ ...btnS, ...(lit ? litBtn(r.st) : {}) }}>Retire jersey</button>;
     if (ask?.pid === r.id) {
       const ok = JERSEY_RE.test(ask.num), set = (num: string) => setAsk({ pid: r.id, num });
       return (
@@ -135,7 +136,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
             : r.nums.length === 1 ? <b>{ask.num}</b>
             : <input className="input" autoFocus value={ask.num} onChange={e => set(e.target.value.replace(/\D/g, '').slice(0, 2))} onKeyDown={e => { if (e.key === 'Enter' && ok) { retireJersey(gm, tid, r.id, ask.num); setAsk(null); } }} placeholder="#" title="The number he wore here (0–99 or 00)" style={{ width: 44, padding: '1px 6px', fontSize: '12px' }} />}
           <button className="btn btn-primary" disabled={!ok} onClick={() => { retireJersey(gm, tid, r.id, ask.num); setAsk(null); }} style={btnS}>Retire</button>
-          <button className="btn btn-ghost" onClick={() => setAsk(null)} style={{ ...btnS, ...(lit ? litBtn : {}) }}>Cancel</button>
+          <button className="btn btn-ghost" onClick={() => setAsk(null)} style={{ ...btnS, ...(lit ? litBtn(r.st) : {}) }}>Cancel</button>
         </span>
       );
     }
@@ -210,7 +211,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
 
       <Fold vm={vm} k="players" title="Players" note={rows.length ? rows.length + ' players since ' + lbl(gm.db.firstSeason || 2027) : undefined}>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', fontSize: '12px', margin: '0 0 10px' }}>
-          {LEGEND.map(([c, l]) => <span key={l} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 14, borderRadius: 3, background: c || 'transparent', border: '1px solid ' + (c ? 'transparent' : 'var(--color-neutral-500)'), flex: 'none' }} />{l}</span>)}
+          {LEGEND.map(([c, l]) => <span key={l} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Swatch c={c} />{l}</span>)}
         </div>
         {rows.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No one has played a game for the team yet.</p> : (<>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: '12.5px' }}>

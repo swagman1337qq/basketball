@@ -1,12 +1,13 @@
 // League finances: every team's market, attendance, ticket price, revenue, profit, payroll, cap
-// space, open roster spots, strategy and budgets, sortable, with the teams you run highlighted.
+// space, open roster spots, strategy and budgets, sortable, with your team (the one you're running
+// now) highlighted in its color.
 // Revenue, profit and attendance are this season's projection (frontOffice.ts financesOf); the
 // budgets are the ones each club develops players with (environment.ts teamBudget).
 import { useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type { VM } from '../vm';
 import { useSort } from '../sortable';
-import { HL, hlRow, Link, muted } from '../kit';
+import { hlRow, Link, muted, Swatch } from '../kit';
 import { financesOf } from '../../engine/frontOffice';
 import { teamBudget } from '../../engine/environment';
 import { rosterMax, stdIds } from '../../engine/cba';
@@ -17,7 +18,7 @@ const STRAT: Record<string, string> = { contend: 'Contending', middle: 'On the r
 const mktLabel = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid' : 'Small');
 
 export function LeagueFinancesScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
+  const { gm, s, T, logo, openTeam, isMine, isMe, meColor } = vm.ctx;
   const rows = useMemo(() => {
     const strat = gm.strategies(T, s), lim = rosterMax(s);
     return T.map((t: any) => {
@@ -34,7 +35,7 @@ export function LeagueFinancesScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', fontSize: '12px', marginBottom: 10 }}>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 14, borderRadius: 3, background: HL.mine, flex: 'none' }} />{s.managed.length > 1 ? 'Your teams' : 'Your team'}</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><Swatch c={meColor} />Your team</span>
         <span style={muted}>Revenue, profit and attendance are this season’s projection at today’s ticket prices and records. Budgets are what each club spends a season on its staff and building.</span>
       </div>
       <div style={{ overflowX: 'auto' }}>
@@ -45,8 +46,8 @@ export function LeagueFinancesScreen({ vm }: { vm: VM }) {
             {sort.head('strat', 'Strategy')}<th style={{ padding: '6px 8px', textAlign: 'left' }}>Trade</th>
             {sort.head('sc', 'Scouting', 'right')}{sort.head('co', 'Coaching', 'right')}{sort.head('he', 'Health', 'right')}{sort.head('fa', 'Facilities', 'right')}
           </tr></thead>
-          <tbody>{sort.rows.map((r: any) => { const mine = isMine(r.tid); return (
-            <tr key={r.tid} style={hlRow(mine ? HL.mine : null)}>
+          <tbody>{sort.rows.map((r: any) => { const mine = isMe(r.tid); return (
+            <tr key={r.tid} style={hlRow(mine ? meColor : null)}>
               <td style={td}><span style={{ display: 'inline-flex', gap: 7, alignItems: 'center' }}>{logo(r.tid, 18)}<Link onClick={() => openTeam(r.tid)} style={{ color: mine ? 'inherit' : 'var(--color-accent-700)', fontWeight: mine ? 600 : 400 }}>{r.t.region} {r.t.name}</Link></span></td>
               <td style={tdr} title={'Market size ' + r.mkt + ' (' + mRank(r.mkt) + ' of ' + rows.length + ')'}>{mktLabel(r.mkt)}</td>
               <td style={tdr} title={Math.round(r.full * 100) + '% full'}>{Math.round(r.att).toLocaleString()}</td>

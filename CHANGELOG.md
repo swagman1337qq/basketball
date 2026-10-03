@@ -14,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
 
 ### Changed
+- **Your team is highlighted in its own color.** On League leaders, Awards, League finances and Team history, the team you're running now (and its players) is marked in its primary team color instead of lavender, with the text switching between dark and white to stay readable. Only that team gets it: when you run several teams, the others aren't highlighted. Another team's history still marks its current players in lavender.
 - **Tendencies are now the shot categories the NBA tracks, nothing else.** Every player has nine, shown in the NBA's own units:
   - **Usage rate** (USG%)
   - **Shooting by zone**, as shares of his shots that always add up to 100%: **Restricted Area**, **In the Paint (Non-RA)**, **Mid-Range**, **Corner 3**, **Above the Break 3**

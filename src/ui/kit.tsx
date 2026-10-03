@@ -13,11 +13,20 @@ export const godBtn: CSSProperties = { color: GOD_PINK, borderColor: GOD_PINK };
 export const godFill: CSSProperties = { color: '#fff', background: GOD_PINK, borderColor: GOD_PINK };
 export const godBox: CSSProperties = { border: '1px dashed ' + GOD_PINK, background: 'color-mix(in srgb, ' + GOD_PINK + ' 7%, transparent)', borderRadius: 'var(--radius-md)' };
 export const godText: CSSProperties = { color: GOD_PINK };
-// Highlights (Pantone TCX colors as sRGB): your team and your players (14-3209 Pastel Lavender),
-// active players with another team or unsigned (14-0115 Foam Green), Hall of Famers (15-0927
-// Pale Gold). They're light in both themes, so text on them is always dark (`hlRow`).
+// Highlights. The team you're running now (and its players) gets its own primary color (vm.ctx
+// `meColor`); the other Pantone TCX colors (as sRGB): a team's current players on another team's
+// history (14-3209 Pastel Lavender), active players with another team or unsigned (14-0115 Foam
+// Green), Hall of Famers (15-0927 Pale Gold). Text on a highlight is dark or white, whichever reads
+// better on it (`inkOn`).
 export const HL = { mine: '#D8A1C4', active: '#B4C79C', hof: '#BD9865', ink: '#1d1b19' };
-export const hlRow = (bg?: string | null): CSSProperties | undefined => (bg ? { background: bg, color: HL.ink } : undefined);
+const lum = (hex: string) => { const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec((hex || '').trim()); if (!m) return 1; const h = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1], n = parseInt(h, 16);
+  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+export const inkOn = (bg: string) => (lum(bg) > 0.2 ? HL.ink : '#ffffff'); // the better contrast of the two (WCAG luminance)
+export const hlRow = (bg?: string | null): CSSProperties | undefined => (bg ? { background: bg, color: inkOn(bg) } : undefined);
+// A secondary button sitting on a highlighted row.
+export const onHL = (bg: string): CSSProperties => (inkOn(bg) === HL.ink ? { color: HL.ink, borderColor: 'rgba(29,27,25,.4)', background: 'rgba(255,255,255,.35)' } : { color: '#fff', borderColor: 'rgba(255,255,255,.55)', background: 'rgba(255,255,255,.12)' });
+// A color swatch for a highlight key.
+export const Swatch = ({ c }: { c: string | null }) => <span style={{ width: 14, height: 14, borderRadius: 3, background: c || 'transparent', border: '1px solid ' + (c ? 'color-mix(in srgb, var(--color-text) 25%, transparent)' : 'var(--color-neutral-500)'), flex: 'none' }} />;
 // A championship ring, as Basketball-Reference marks titles.
 export function Ring({ size = 13, title = 'Championship' }: { size?: number; title?: string }) {
   return (

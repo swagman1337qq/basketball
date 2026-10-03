@@ -569,7 +569,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const dlg = !dg || dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };
 
   return {
-    ctx: { gm, s, T, logo, open: id => open(id)(null), openTeam: tid => openTeam(tid)(null), isMine: mine2, money, ord, tone },
+    ctx: { gm, s, T, logo, open: id => open(id)(null), openTeam: tid => openTeam(tid)(null), isMine: mine2, isMe: (tid: number) => tid === s.me, meColor: me.colors?.[0] || '#D8A1C4', money, ord, tone }, // isMe/meColor: the team you're running now, highlighted in its primary color
     switcher: { show: s.managed.length > 1, value: s.me, opts: s.managed.map(t => ({ v: t, label: T[t].region + ' ' + T[t].name })), set: e => gm.switchTeam(+e.target.value) },
     myName, myRegion: me.region, myAbbr: me.abbr, myLogo: logo(s.me, 44), myLogoLg: logo(s.me, 56), myLogoSm: logo(s.me, 34), theirLogo: logo(s.tTid, 28), myLogoTr: logo(s.me, 28),
     phaseLabel: gm.seasonLbl() + ' ' + { regular: 'regular season', playoffs: 'playoffs', lottery: 'draft lottery', draft: s.preFA ? 'pre-free agency' : 'draft', fa: 'free agency', preseason: 'preseason' }[s.phase], layout, save, gmName: s.gm?.name || '', navCollapsed: !!s.navCollapsed, toggleNav: () => gm.setState(st => ({ navCollapsed: !st.navCollapsed })), isA: variant === 'A', isB: variant === 'B', isC: variant === 'C', nav, navGroups, is, page, dateLong,

@@ -1,16 +1,16 @@
-// Season awards: individual honors with the top of the voting, and the All-League teams. Your
-// players (and you, for Coach of the Year) are highlighted wherever they appear.
+// Season awards: individual honors with the top of the voting, and the All-League teams. The players
+// of the team you're running now (and you, for Coach of the Year) are highlighted in its color.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { h4Style, HL, hlRow, Kicker, Link, muted, Seg } from '../kit';
+import { h4Style, hlRow, Kicker, Link, muted, Seg, Swatch } from '../kit';
 import { awardDefs, runVote, VOTERS } from '../../engine/awards';
 
 const INDIV: [string, string][] = [['mvp', 'Most Valuable Player'], ['dpoy', 'Defensive Player of the Year'], ['roy', 'Rookie of the Year'], ['smoy', 'Sixth Man of the Year'], ['mip', 'Most Improved Player']];
 
 export function AwardsScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, open, openTeam, isMine } = vm.ctx;
+  const { gm, s, T, logo, open, openTeam, isMe, meColor } = vm.ctx;
   const P = gm.db.P;
-  const lit = (tid: number) => hlRow(isMine(tid) ? HL.mine : null), sub = (tid: number) => (isMine(tid) ? { opacity: 0.75 } : muted); // your players: lavender, with dark text
+  const lit = (tid: number) => hlRow(isMe(tid) ? meColor : null), sub = (tid: number) => (isMe(tid) ? { opacity: 0.75 } : muted); // your players: your team's color
   const seasons = Object.keys(s.awards || {}).map(Number).sort((a, b) => b - a);
   const [pick, setPick] = useState<number | null>(null);
   const [openV, setOpenV] = useState<Record<string, boolean>>({});
@@ -42,7 +42,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
         <div title={hint}><Kicker accent>{title}</Kicker></div>
         {w ? (
           <>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', ...(isMine(w.tid) ? { ...lit(w.tid), borderRadius: 'var(--radius-sm)', padding: '6px 8px', margin: '0 -8px' } : {}) }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', ...(isMe(w.tid) ? { ...lit(w.tid), borderRadius: 'var(--radius-sm)', padding: '6px 8px', margin: '0 -8px' } : {}) }}>
               <div className="gm-face" style={{ width: 40, height: 60, flex: 'none', overflow: 'hidden' }}>{gm.faceEl(w.pid, w.tid)}</div>
               <div style={{ minWidth: 0 }}>
                 <Link onClick={() => open(w.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, lineHeight: 1.1 }}>{P[w.pid].name}</Link>
@@ -88,7 +88,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
     <>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
         <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => { setPick(v); gm.setState({ awardsYear: null }); }} />
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '12px', whiteSpace: 'nowrap' }}><span style={{ width: 14, height: 14, borderRadius: 3, background: HL.mine, flex: 'none' }} />Your players</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '12px', whiteSpace: 'nowrap' }}><Swatch c={meColor} />Your players ({T[s.me].abbr})</span>
         <span style={{ ...muted, fontSize: '12px' }}>{a.list ? 'Voted by formula (hover a title to see it; edit them in Settings → Award formulas). Most awards need 65 games.' : 'Individual awards and All-League teams need 58 of 82 games played.'}</span>
       </div>
       {asNow}
@@ -139,7 +139,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
 
 // All-Star Weekend: both rosters (starters first) and the game.
 function AllStarBox({ vm, y }: { vm: VM; y: number }) {
-  const { gm, s, T, logo, open, isMine } = vm.ctx, a = (s.allStars || {})[y], P = gm.db.P;
+  const { gm, s, T, logo, open, isMe, meColor } = vm.ctx, a = (s.allStars || {})[y], P = gm.db.P;
   if (!a) return null;
   const tidOf = (pid: number) => (P[pid]?.stats || []).filter((r: any) => r.season === y && !r.po).slice(-1)[0]?.tid;
   const g = a.game;
@@ -152,7 +152,7 @@ function AllStarBox({ vm, y }: { vm: VM; y: number }) {
           <div key={c}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', borderBottom: '1px solid var(--color-text)', paddingBottom: 2, marginBottom: 4 }}>{c}{g?.winner === c ? ' · won' : ''}</div>
             {[...a[c].starters.map((id: number) => [id, true]), ...a[c].reserves.map((id: number) => [id, false])].map(([id, st]: any) => (
-              <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 4px', borderBottom: '1px solid var(--color-divider)', ...hlRow(tidOf(id) != null && isMine(tidOf(id)) ? HL.mine : null) }}>
+              <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 4px', borderBottom: '1px solid var(--color-divider)', ...hlRow(tidOf(id) != null && isMe(tidOf(id)) ? meColor : null) }}>
                 <span style={{ width: 22, fontSize: '11px', opacity: 0.7 }}>{P[id]?.pos}</span>
                 {tidOf(id) != null && logo(tidOf(id), 16)}
                 <Link onClick={() => open(id)} style={{ fontWeight: st ? 600 : 400 }}>{P[id]?.name}</Link>
