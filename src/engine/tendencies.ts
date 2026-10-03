@@ -61,7 +61,7 @@ const UNIT: Record<Exclude<TenKey, 'usage'>, { typ: number; k: number; kLo?: num
   ra: { typ: ZB.ra * 100, k: 28, kLo: 22, max: 85, dp: 0, suf: '% of shots' }, paint: { typ: ZB.paint * 100, k: 28, kLo: 22, max: 60, dp: 0, suf: '% of shots' }, mid: { typ: ZB.mid * 100, k: 28, kLo: 22, max: 60, dp: 0, suf: '% of shots' },
   c3: { typ: ZB.c3 * 100, k: 34, kLo: 14, max: 45, dp: 0, suf: '% of shots' }, atb: { typ: ZB.atb * 100, k: 38, kLo: 14, max: 80, dp: 0, suf: '% of shots' },
   cns: { typ: 30, k: 30, max: 85, dp: 0, suf: '% of shots' }, pullup: { typ: 22, k: 20, max: 70, dp: 0, suf: '% of shots' },
-  ftr: { typ: 0.235, k: 39, max: 0.9, dp: 3, suf: ' FTA per FGA' }, // fitted to what players actually shoot (the engine's foul share is steeper: FTR_K)
+  ftr: { typ: 0.253, k: 42, max: 0.9, dp: 3, suf: ' FTA per FGA' }, // fitted to what players actually shoot (the engine's foul share is steeper: FTR_K)
 };
 export const tenUnit = (k: Exclude<TenKey, 'usage'>, score: number) => { const u = UNIT[k]; return Math.min(u.max, u.typ * Math.exp((score - 50) / (score < 50 && u.kLo ? u.kLo : u.k))); };
 export const tenScore = (k: Exclude<TenKey, 'usage'>, val: number) => { const u = UNIT[k], x = Math.log(Math.max(0.001, val) / u.typ); return cl(50 + (x < 0 && u.kLo ? u.kLo : u.k) * x, 2, 98); };

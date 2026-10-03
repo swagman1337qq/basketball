@@ -14,21 +14,24 @@ export type Side = 'home' | 'away';
 export type Zone = 'rim' | 'mid' | 'c3' | 'atb';
 export const ZONES: Zone[] = ['rim', 'mid', 'c3', 'atb'];
 
-// ── 2026 baselines (per team, per game) ─────────────────────────────────────────
+// ── 2025-26 baselines (per team, per game; Basketball-Reference league averages) ─────
+// The league's spread matches too: team scoring from about 106 to 122 a game (2025-26: Brooklyn 105.9,
+// Denver 122.1), ORtg and net rating spreads, single-game margins and home court (LINEUP_REG,
+// TOV_K, LEAD_K, the venue and tempo effects).
 export const BASE = {
-  pace: 98.8, pts: 113.8,
-  fg: 0.467, tp: 0.360, tpa: 37.6, ft: 0.78,
-  trb: 44.1, orb: 11.1, drb: 33.0, ast: 26.5, stl: 8.2, blk: 4.9, tov: 14.3,
-  ortg: 114.5, ts: 0.576, efg: 0.543, tovPct: 0.126, orbPct: 0.252, ftr: 0.189,
+  pace: 99.4, pts: 115.6,
+  fg: 0.471, tp: 0.360, tpa: 37.0, ft: 0.783,
+  trb: 43.8, orb: 11.4, drb: 32.4, ast: 26.7, stl: 8.4, blk: 4.8, tov: 14.5,
+  ortg: 115.8, ts: 0.581, efg: 0.546, tovPct: 0.127, orbPct: 0.26, ftr: 0.206,
   dist: 14.5, rimPct: 0.696, c3Pct: 0.388,
   // The four shot-quality tiers the engine simulates: share of FGA, FG%, average
   // distance (ft) and assisted rate. Together they reproduce the league lines above
-  // (46.7% FG, 42% of shots from three at 36.0%, corner threes 38.8%, rim 69.6%, 14.5 ft).
+  // (47.1% FG, 43% of shots from three at 36.0%, corner threes 38.8%, rim 69.6%, 14.6 ft).
   zone: {
     rim: { share: 0.31, pct: 0.696, dist: 2.5, ast: 0.55 },
-    mid: { share: 0.268, pct: 0.37, dist: 12.2, ast: 0.48 },
+    mid: { share: 0.26, pct: 0.37, dist: 12.2, ast: 0.48 },
     c3: { share: 0.105, pct: 0.388, dist: 22.5, ast: 0.95 },
-    atb: { share: 0.317, pct: 0.351, dist: 25.8, ast: 0.82 },
+    atb: { share: 0.325, pct: 0.351, dist: 25.8, ast: 0.82 },
   } as Record<Zone, { share: number; pct: number; dist: number; ast: number }>,
 };
 
@@ -38,21 +41,33 @@ export const BASE = {
 export const PAINT_SHARE = 0.52;
 const PAINT_D = 0.02;
 
-// Per offensive trip at league average (≈113 trips a game: 89 FGA, 14 TOV, FT-only trips).
-const RATE = { tov: 0.1155, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.069, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.12, dt: 1.04 };
+// Per offensive trip at league average (≈115 trips a game: 89 FGA, 14.5 TOV, FT-only trips).
+// How much a lineup's ball-handling, feel and IQ (offense) and pressure, feel and hands (defense) move
+// the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
+const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
+const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.17, dt: 1.032 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
-const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.011 };
+const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.014 };
+// Defenses key on a lineup of shot-makers and help off one that can't shoot, so part of a lineup's
+// shooting edge (its players' usage-weighted average against the league) is given back on every
+// shot; the differences between its own players stay. Without it, team shooting spread about twice
+// as wide as the NBA's (2025-26 team eFG%: .520 to .577).
+const LINEUP_REG = 0.66;
+// The scoreboard: a team well ahead relaxes (looser shots, careless passes) and one well behind plays
+// with urgency, so margins drift back a little, as in real games: NBA margins vary about 12–13 points
+// around what the two teams' strength predicts (independent trips alone would give about 18).
+const LEAD_K = 0.0018;
 const BLOCK_ON_MISS: Record<Zone, number> = { rim: 0.36, mid: 0.053, c3: 0.008, atb: 0.008 };
 
 // ── The bell curve: rating → deviation from the baseline percentage ─────────────
 // Asymmetric on purpose: elite ratings add little (a 90 three-point shooter is ~40%),
 // poor ratings cost a lot (a 40 is ~27%). The norms' offsets re-centre the league mean.
 const CURVE: Record<string, { mid: number; up: number; down: number }> = {
-  three: { mid: 65, up: 0.0016, down: 0.0036 },
-  rim: { mid: 60, up: 0.0025, down: 0.004 },
-  jumper: { mid: 55, up: 0.0022, down: 0.0035 },
-  ft: { mid: 60, up: 0.0035, down: 0.006 },
+  three: { mid: 65, up: 0.0016, down: 0.0029 },
+  rim: { mid: 60, up: 0.0025, down: 0.0032 },
+  jumper: { mid: 55, up: 0.0022, down: 0.0028 },
+  ft: { mid: 60, up: 0.0035, down: 0.005 },
 };
 // Above average, each extra point is worth a little less (an elite finisher makes ~75–80% at the rim,
 // not 90%), so superstars' efficiency stays in the range of the NBA's best.
@@ -191,6 +206,7 @@ export interface SimTeam {
   tactics?: Tactics | null; situ?: { lead?: Tactics | null; trail?: Tactics | null } | null;
   ff?: FourFactors; // season Four Factors (regressed early on) for the clutch tiebreaker
   chem?: number; // locker room 0–100: a good room shoots a little better, a toxic one worse
+  tempo?: number; // an AI team's pace, as a multiplier on its trips' length (about 0.96–1.04; tactics.ts sets yours)
 }
 export interface SimOpts { pbp?: boolean; norms?: Norms }
 
@@ -227,7 +243,7 @@ export const ffScore = (f: FourFactors) => (0.4 * (f.efg - BASE.efg)) / 0.025 + 
 const FEEL_MID = 54, POISE_MID = 55;
 const SUB_MARGIN = 285; // seconds ahead of his minutes target before a bench player comes in
 
-interface PlayerCache { use: number; prof: Record<Zone, number>; skill: Record<Zone, number>; role: boolean; star: boolean }
+interface PlayerCache { use: number; prof: Record<Zone, number>; skill: Record<Zone, number>; role: boolean; star: boolean; q: number } // q: his shot-making against the league, over his own shot mix
 type Ev = (ids: number[], text: () => string, sub?: () => string, scoring?: boolean) => void;
 
 export class GameSim {
@@ -255,7 +271,8 @@ export class GameSim {
     (['home', 'away'] as Side[]).forEach(k => {
       this.teams[k].players.forEach(p => {
         const use = usageRaw(p), rel = use / this.norms.usage;
-        this.cache.set(p, { use, prof: shotProfile(p, this.norms), skill: zoneSkill(p.r), role: rel < 0.9 && mental(p.r) < 62, star: rel >= 1.25 || mental(p.r) >= 65 });
+        const prof = shotProfile(p, this.norms), skill = zoneSkill(p.r);
+        this.cache.set(p, { use, prof, skill, role: rel < 0.9 && mental(p.r) < 62, star: rel >= 1.25 || mental(p.r) >= 65, q: ZONES.reduce((a, z) => a + prof[z] * (curve(CURVE_OF[z], skill[z]) + this.norms.offset[z]), 0) });
       });
       this.on[k] = this.avail(k).slice(0, 5);
       this.on[k].forEach(p => (this[k].box[p.id].gs = 1));
@@ -275,7 +292,7 @@ export class GameSim {
     const S = this[k], ps = this.avail(k), diff = Math.abs(this.home.pts - this.away.pts);
     if (ps.length <= 5) { this.on[k] = ps; return; }
     const late = this.q >= 4 && this.t < 300;
-    if (late && diff > 20) {
+    if ((late && diff > 20) || (this.q >= 4 && this.t < 480 && diff > 24) || (this.q >= 4 && this.t < 180 && diff > 15)) { // garbage time
       const deep = ps.slice(5).sort((a, b) => a.target - b.target);
       this.on[k] = (deep.length >= 5 ? deep : [...deep, ...ps.slice(0, 5)]).slice(0, 5);
       return;
@@ -344,10 +361,11 @@ export class GameSim {
     const fo = this.teams[offK].ff, fd = this.teams[defK].ff;
     const cAdv = clutch && fo && fd ? cl((ffScore(fo) - ffScore(fd)) / 2, -2, 2) : 0;
 
-    // Venue: away role players lose efficiency, ball security and defense; stars don't.
+    // Venue: away role players lose efficiency, ball security and defense; stars don't. Worth about 2.5
+    // points a game to the home team, as in the NBA (home teams win about 55%).
     const awayOff = offK === 'away', awayDef = defK === 'away';
-    const roadPen = (p: SimPlayer) => (awayOff && !p.villain && C(p).role && !C(p).star ? (p.crowd ? 0.05 : 0.025) * cl(1 - ((p.poise ?? POISE_MID) - POISE_MID) / 60, 0.3, 1.6) : 0); // poise steadies him on the road
-    const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.004 : 0;
+    const roadPen = (p: SimPlayer) => (awayOff && !p.villain && C(p).role && !C(p).star ? (p.crowd ? 0.026 : 0.013) * cl(1 - ((p.poise ?? POISE_MID) - POISE_MID) / 60, 0.3, 1.6) : 0); // poise steadies him on the road
+    const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.002 : 0;
     const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
 
     const handleO = avg(onO, p => p.r.drb * 0.45 + p.r.pss * 0.45 + (p.r.acc ?? p.r.drb) * 0.1), pressD = avg(onD, p => perimD(p.r));
@@ -382,7 +400,7 @@ export class GameSim {
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
-    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / 45 + (pressD - n.perimD) / 60 - (feelO - FEEL_MID) / 90 + (feelD - FEEL_MID) / 150) * (1 - 0.04 * connectors) * (1 + 0.035 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / 80 + handsD / 300) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
+    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
@@ -391,7 +409,7 @@ export class GameSim {
     // Who coughs it up: whoever has the ball, so usage first. Creators handle it most and throw the
     // riskiest passes (star playmakers lead the NBA in turnovers: about 4 a game); a good handle
     // only trims that a little.
-    const handler = wpick(onO, p => Math.pow(use(p), 1.3) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (1.35 - p.r.oiq / 150) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
+    const handler = wpick(onO, p => Math.pow(use(p), 1.7) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (1.35 - p.r.oiq / 150) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
     const r = Math.random();
     const kind0 = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
     // Defensive three seconds: bigs who don't read the play camp in the lane (about 0.4 a game).
@@ -399,7 +417,7 @@ export class GameSim {
     const kind = kind0 === 'fga' && Math.random() < p3 ? 'd3' : kind0;
 
     // Clock: a whistle, a quick putback, or a normal trip at the offense's pace.
-    const paceF = fx ? fx.dt : 1;
+    const paceF = (fx ? fx.dt : 1) * Math.pow(this.teams[offK].tempo ?? 1, 0.7) * Math.pow(this.teams[defK].tempo ?? 1, 0.3);
     const dt = Math.min(this.t, kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
     onO.forEach(p => (O.box[p.id].min += dt / 60));
     onD.forEach(p => (D.box[p.id].min += dt / 60));
@@ -455,7 +473,7 @@ export class GameSim {
       const intD = avg(bigs, p => interiorD(p.r));
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
       // Rotations (the whole lineup's Defensive IQ) make every shot harder; gamblers leave easier ones.
-      const defAdj = (z === 'rim' ? 0.003 * (intD - n.interiorD) + (rimPro ? 0.01 : 0) - 0.0005 * gamB : z === 'mid' ? 0.0015 * (pressD - n.perimD) - 0.0003 * gamS : 0.0012 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0012 * diqD;
+      const defAdj = (z === 'rim' ? 0.0021 * (intD - n.interiorD) + (rimPro ? 0.007 : 0) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -467,10 +485,11 @@ export class GameSim {
       // hand) chucks it over the double team anyway.
       const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0), oiqSh = sh.r.oiq - (n.oiq ?? 52);
       const usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 60, 0.4, 1.5)) : 0;
-      const readD = oiqSh >= 0 ? 0.0005 * oiqSh : 0.0009 * oiqSh; // shot selection: knowing which shots to take
+      const readD = oiqSh >= 0 ? 0.0003 * oiqSh : 0.0005 * oiqSh; // shot selection: knowing which shots to take
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
-      const pct = hotD + readD + moodD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
+      const pct = hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

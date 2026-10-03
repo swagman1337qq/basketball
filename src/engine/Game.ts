@@ -666,10 +666,19 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
-      tactics: club ? club.tactics : null, situ: club ? club.situ || null : null,
+      tactics: club ? club.tactics : null, situ: club ? club.situ || null : null, tempo: club ? undefined : this.tempoOf(s, tid),
       players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0) }; }) };
   }
 
+  // An AI team's pace (a multiplier on the length of its trips): its coach's taste, new each season, plus
+  // its roster: quick, young teams run, veteran teams grind. About 95 to 104 possessions a game, as in the
+  // NBA (2025-26: Boston 94.8, Miami 103.4). Teams you run set theirs in Tactics.
+  tempoOf(s, tid) {
+    const P = this.db.P, top = (s.rosters[tid] || []).map(id => P[id]).filter(Boolean).sort((a, b) => b.ovr - a.ovr).slice(0, 8); if (!top.length) return 1;
+    const quick = top.reduce((a, p) => a + (p.r.spd + (p.r.acc ?? p.r.spd)) / 2 - p.r.stre * 0.3, 0) / top.length, age = top.reduce((a, p) => a + p.age, 0) / top.length;
+    const coach = ((((tid + 1) * 2654435761) ^ (this.Y * 40503)) >>> 0) % 1000 / 1000 - 0.5;
+    return this.cl(1 - coach * 0.075 - (quick - 42) * 0.0012 + (age - 27) * 0.004, 0.945, 1.055);
+  }
   playGame(s, home, away): GameResult {
     return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms }).run();
   }
@@ -777,7 +786,7 @@ export class Game {
   }
   tsOf(t) { return t.fga + t.fta ? t.pts / (2 * (t.fga + 0.44 * t.fta)) : 0; }
   // USG%: share of team plays used while on the floor (team plays per minute from the baselines).
-  usgOf(t) { const teamPlaysPer48 = 89.3 + 0.44 * 21.6 + BASE.tov; return t.min ? (100 * (t.fga + 0.44 * t.fta + t.tov) * 48) / (t.min * teamPlaysPer48) : 0; }
+  usgOf(t) { const teamPlaysPer48 = 89.1 + 0.44 * 23.5 + BASE.tov; return t.min ? (100 * (t.fga + 0.44 * t.fta + t.tov) * 48) / (t.min * teamPlaysPer48) : 0; }
   eff(t) { return t.pts + t.orb + t.drb + t.ast + t.stl + t.blk - (t.fga - t.fgm) - (t.fta - t.ftm) - t.tov; }
   // A simple PER: efficiency per minute, scaled so the league average is 15.
   perOf(t, season) { const lg = this.db.lgRate?.[season] || 0.55; return t.min ? 15 * (this.eff(t) / t.min) / lg : 0; }

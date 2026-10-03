@@ -11,7 +11,7 @@ const TEAM_FIELDS = ['gp', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb
 
 // A league-average team season (used when a past season's team totals weren't kept).
 function avgTeam(gp = 82): StatLine {
-  const fga = 89.3, tpa = BASE.tpa, fta = 21.6, fgm = fga * BASE.fg, tpm = tpa * BASE.tp, ftm = fta * BASE.ft;
+  const fga = 89.1, tpa = BASE.tpa, fta = 23.5, fgm = fga * BASE.fg, tpm = tpa * BASE.tp, ftm = fta * BASE.ft;
   const t: StatLine = { gp, pts: BASE.pts, fgm, fga, tpm, tpa, ftm, fta, orb: BASE.orb, drb: BASE.drb, ast: BASE.ast, stl: BASE.stl, blk: BASE.blk, tov: BASE.tov, pf: 19.5 };
   Object.keys(t).forEach(k => { if (k !== 'gp') t[k] *= gp; });
   ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (t['o' + k[0].toUpperCase() + k.slice(1)] = t[k]));
