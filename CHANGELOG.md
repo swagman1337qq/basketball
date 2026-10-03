@@ -4,6 +4,25 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-03
 
+### Changed
+- **Tendencies now use only stats the NBA actually tracks, in the NBA's own units.** The full list:
+  - **Usage rate** (USG%)
+  - **Drives** per 36 minutes
+  - **Catch & shoot** (% of his shots)
+  - **Pull-up shooting** (% of his shots)
+  - **Isolation** (% of his plays)
+  - **P&R ball handler** (% of his plays)
+  - **P&R roll man** (% of his plays)
+  - **Post-up** (% of his plays)
+  - **Mid-range** (% of his shots)
+  - **3-point attempt rate** (% of his shots)
+  - **Passes made** per 36 minutes
+
+  "Pass-first" is gone (the NBA tracks passes made instead), and "Pick and roll" is split into ball handler and roll man, as the NBA tracks them.
+  - Typical values match NBA rotation players by position. For example, bigs drive about twice per 36 minutes and guards about eight.
+  - Hover a row for the NBA's definition. Where the game records the real number (usage, 3-point rate, mid-range), this season's actual figure shows next to the tendency.
+  - God Mode edits them in the same units.
+
 ### Added
 - **Playing style: tendencies that evolve as players develop.** Every player now has ten tendencies:
   - Shot volume

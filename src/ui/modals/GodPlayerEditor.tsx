@@ -15,7 +15,7 @@ import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
-import { ensureTen, TEN_KEYS, TEN_LABEL } from '../../engine/tendencies';
+import { ensureTen, expUsg, TEN_KEYS, TEN_LABEL, tenScore, tenSuffix, tenUnit, usageScoreFor, type TenKey } from '../../engine/tendencies';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -232,10 +232,12 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         </div>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Playing style</h4>
         <div style={grid}>
-          {TEN_KEYS.map(k => num(TEN_LABEL[k], Math.round(ensureTen(p)?.[k] ?? 50), 2, 98, v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [k]: v }; })))}
+          {TEN_KEYS.map(k => { const sc = ensureTen(p)?.[k] ?? 50, roles = gm.rolesOf(p), norms = gm.db.norms;
+            if (k === 'usage') { const lo = Math.ceil(expUsg(p, norms, roles, 2)), hi = Math.floor(expUsg(p, norms, roles, 98)); return num('Usage rate', Math.round(expUsg(p, norms, roles, sc)), lo, hi, v => mut(q => { ensureTen(q); q.ten = { ...q.ten, usage: usageScoreFor(q, norms, roles, v) }; }), undefined, '% (USG%)'); }
+            const u = k as Exclude<TenKey, 'usage'>, lo = Math.ceil(tenUnit(u, 2)), hi = Math.floor(tenUnit(u, 98)); return num(TEN_LABEL[k], Math.round(tenUnit(u, sc)), lo, Math.max(lo + 1, hi), v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [k]: tenScore(u, v) }; }), undefined, tenSuffix(u)); })}
         </div>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving, and the fine-tuning below stops fading)</label>
-        <p style={{ ...muted, fontSize: '11.5px' }}>0–100, 50 = typical for his type. Shot volume is how much of the offense he finishes himself; the rest shape his shot mix, how often he passes, drives, posts up or pulls up. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer), so a player who becomes a star takes on a star's load over a season or two.</p>
+        <p style={{ ...muted, fontSize: '11.5px' }}>The NBA's own tracking categories, in NBA units: usage rate (USG%), drives and passes per 36 minutes, play-type frequencies (isolation, pick-and-roll ball handler and roll man, post-up) as a share of his plays, and catch-and-shoot, pull-up, mid-range and three-point shares of his shots. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer), so a player who becomes a star takes on a star's load over a season or two.</p>
         <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '10px 0 2px' }}>Fine-tuning (multipliers on top)</div>
         <div style={grid}>
           {TENDS.map(([k, label]) => num(label, Math.round(((p.tend || {})[k] ?? 1) * 100), 20, 300, v => mut(q => { q.tend = { ...(q.tend || {}), [k]: v / 100 }; if (v === 100) delete q.tend[k]; if (!Object.keys(q.tend).length) delete q.tend; }), undefined, '%'))}
