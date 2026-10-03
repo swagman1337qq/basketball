@@ -10,7 +10,7 @@ import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
-import { americanFirst, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
+import { americanFirst, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { effTend, ensureTen, evolveTendencies, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, syncOvr, teamRating, wngBonus } from './ratings';
@@ -468,6 +468,9 @@ export class Game {
     // Born in North America to immigrant parents: about a third get an American first name
     // and keep the family surname (the way Okafor or Achiuwa did).
     let amerFirst = '';
+    // Born outside his heritage country, in one that writes names another way (an American of Lebanese
+    // descent): his name is written the local way, without the native script.
+    if (nm && nm.native && born !== her && !scriptOk(born, nm.script)) Object.assign(nm, { native: '', nativeFirst: '', nativeLast: '' });
     if (nm && amer) { amerFirst = americanFirst(race, rnd); disp = amerFirst + ' ' + nm.last; native = ''; }
     else if (nm) { disp = nm.name; native = nm.native; }
     const nmx = nm && amer ? { first: amerFirst, last: nm.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } : nm ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };

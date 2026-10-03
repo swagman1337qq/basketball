@@ -86,8 +86,8 @@ export const GROUPS: Record<string, Group[]> = {
   // Native American (a separate "country" of birth; tribal members are U.S. citizens and represent
   // the United States). Shares follow the Census 2020 counts of the largest tribal nations.
   XN: [g('Navajo', .17, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cherokee', .15, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lakota & Dakota', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Ojibwe', .08, ['nan', 'usw'], ['nan', 'usw'], NA), g('Choctaw', .07, ['nan', 'usw'], ['nan', 'usw'], NA), g('Apache', .05, ['nan', 'usw'], ['nan', 'usw'], NA), g('Lumbee', .05, ['nan', 'usw', 'usb'], ['nan', 'usw'], { brown: .6, white: .2, black: .2 }), g('Muscogee', .04, ['nan', 'usw'], ['nan', 'usw'], NA), g('Blackfeet', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Haudenosaunee', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Pueblo', .03, ['nan', 'usw'], ['nan', 'usw'], NA), g('Comanche', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g('Cheyenne', .015, ['nan', 'usw'], ['nan', 'usw'], NA), g("Tohono O'odham", .012, ['nan', 'usw'], ['nan', 'usw'], NA), g('Kiowa', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Osage', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Seminole', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Hopi', .01, ['nan', 'usw'], ['nan', 'usw'], NA), g('Crow', .008, ['nan', 'usw'], ['nan', 'usw'], NA), g('Penobscot', .003, ['nan', 'usw'], ['nan', 'usw'], NA), g('Passamaquoddy', .003, ['nan', 'usw'], ['nan', 'usw'], NA)],
-  US: [g('African American', .74, 'usb', 'usb', B), g('White', .135, 'usw', 'usw', W), g('Multiracial', .105, ['usb', 'usw'], ['usb', 'usw'], { black: .55, white: .3, brown: .15 }), g('Hispanic', .016, 'hus', 'hus', { brown: .8, white: .2 }), g('Asian American', .004, ['cnC', 'usw'], ['cnC', 'vn', 'fch', 'kr'], A)],
-  CA: [g('Black Canadian', .50, ['usb', 'jm'], ['jm', 'usb', 'ht', 'so', 'yo', 'ig'], B), g('English Canadian', .30, 'usw', ['usw', 'gb'], W), g('French Canadian', .10, 'qc', 'qc', W), g('South Asian', .04, ['in', 'pa'], ['in', 'pa'], Br), g('Asian', .03, 'cnC', 'cnC', A), g('Filipino', .015, ['ph', 'usw'], 'ph', { brown: .6, asian: .4 }), g('Indigenous', .015, 'usw', ['usw', 'qc'], Br)],
+  US: [g('African American', .74, 'usb', 'usb', B), g('White', .135, 'usw', 'usw', W), g('Multiracial', .105, ['usb', 'usw'], ['usb', 'usw'], { black: .55, white: .3, brown: .15 }), g('Hispanic', .016, 'hus', 'hus', { brown: .8, white: .2 }), g('Chinese American', .0016, 'usw', 'cnC', A), g('Korean American', .0008, 'usw', 'kr', A), g('Vietnamese American', .0008, 'usw', 'vn', A), g('Filipino American', .0008, 'usw', 'ph', { brown: .6, asian: .4 })],
+  CA: [g('Black Canadian (Caribbean)', .33, ['usb', 'jm'], ['jm', 'usb'], B), g('Black Canadian (Haitian)', .07, ['qc', 'ht'], 'ht', B), g('Black Canadian (Somali)', .04, 'so', 'so', B), g('Black Canadian (Yoruba)', .02, ['usb', 'yo'], 'yo', B), g('Black Canadian (Igbo)', .02, ['usb', 'ig'], 'ig', B), g('Black Canadian', .02, 'usb', 'usb', B), g('English Canadian', .30, 'usw', ['usw', 'gb'], W), g('French Canadian', .10, 'qc', 'qc', W), g('South Asian', .04, ['in', 'pa'], ['in', 'pa'], Br), g('Asian', .03, 'cnC', 'cnC', A), g('Filipino', .015, ['ph', 'usw'], 'ph', { brown: .6, asian: .4 }), g('Indigenous', .015, 'usw', ['usw', 'qc'], Br)],
   BS: [g('Bahamian', .90, 'us', ['bah', 'us'], B), g('White Bahamian', .05, 'us', ['bah', 'us'], W), g('Haitian', .05, 'ht', 'ht', B)],
   BR: [g('Pardo', .453, 'pt', 'pt', Br), g('White (Portuguese roots)', .33, 'pt', 'pt', W), g('White (Italian roots)', .105, 'pt', 'it', W), g('Black', .102, 'pt', 'pt', B), g('Indigenous', .006, 'pt', 'pt', Br), g('Japanese Brazilian', .004, 'pt', 'jp', A)],
   AR: [g('Spanish roots', .45, 'rp', 'rp', W), g('Italian roots', .40, 'rp', 'it', W), g('Mestizo', .10, 'rp', 'rp', Br), g('Syrian-Lebanese', .03, 'rp', 'lev', { white: .5, brown: .5 }), g('Indigenous', .02, 'rp', 'rp', Br)],
@@ -112,7 +112,7 @@ export const GROUPS: Record<string, Group[]> = {
   TR: [g('Turkish', .75, 'tr', 'tr', W), g('Kurdish', .18, ['ku', 'tr'], 'tr', { white: .6, brown: .4 }), g('Arab', .02, ['lev', 'tr'], 'tr', Br)],
   IL: [g('Jewish', .712, 'il', 'il', W), g('Ethiopian Israeli', .018, 'il', 'eth', B), g('Arab', .21, 'ail', 'ail', Br)],
   GE: [g('Georgian', .868, 'ge', 'ge', W), g('Azerbaijani', .063, 'az', 'az', W), g('Armenian', .045, 'am', 'am', W)],
-  GB: [g('White British', .744, 'gb', 'gb', W), g('Polish', .025, ['gb', 'pl'], 'pl', W), g('Romanian', .015, 'ro', 'ro', W), g('Italian', .01, ['gb', 'it'], 'it', W), g('Indian', .031, ['gb', 'in'], ['in', 'pa'], Br), g('Pakistani & Bangladeshi', .038, 'pk', 'pk', Br), g('Chinese', .007, 'cnC', 'cnC', A), g('Black African', .025, ['gb', 'yo', 'ig'], ['yo', 'ig', 'ha', 'ak', 'so'], B), g('Black Caribbean', .01, 'jm', 'jm', B), g('Mixed', .029, 'gb', 'gb', { black: .5, white: .3, brown: .2 }), g('Arab', .006, 'lev', 'lev', Br)],
+  GB: [g('White British', .744, 'gb', 'gb', W), g('Polish', .025, ['gb', 'pl'], 'pl', W), g('Romanian', .015, 'ro', 'ro', W), g('Italian', .01, ['gb', 'it'], 'it', W), g('Indian', .031, ['gb', 'in'], ['in', 'pa'], Br), g('Pakistani & Bangladeshi', .038, 'pk', 'pk', Br), g('Chinese', .007, 'cnC', 'cnC', A), g('Black African (Yoruba)', .009, ['gb', 'yo'], 'yo', B), g('Black African (Igbo)', .008, ['gb', 'ig'], 'ig', B), g('Black African (Ghanaian)', .004, ['gb', 'ak'], 'ak', B), g('Black African (Somali)', .004, 'so', 'so', B), g('Black Caribbean', .01, 'jm', 'jm', B), g('Mixed', .029, 'gb', 'gb', { black: .5, white: .3, brown: .2 }), g('Arab', .006, 'lev', 'lev', Br)],
   NG: [g('Hausa-Fulani', .30, 'ha', 'ha', B), g('Yoruba', .155, 'yo', 'yo', B), g('Igbo', .152, 'ig', 'ig', B)],
   SN: [g('Senegalese', 1, 'sn', 'sn', B)], ML: [g('Malian', 1, 'ml', 'ml', B)], CM: [g('Cameroonian', 1, 'cm', 'cm', B)], CD: [g('Congolese', 1, 'cd', 'cd', B)],
   SS: [g('Dinka', .36, 'ss', 'ss', B), g('Nuer', .16, 'nu', 'nu', B)],
@@ -193,15 +193,51 @@ export function pickGroup(country: string, rnd: () => number = Math.random): Gro
   return gs[gs.length - 1];
 }
 
-const FAMILY_FIRST = new Set(['cn', 'kr', 'tw', 'kp', 'kh', 'vn']);
-const CYR_COUNTRIES = ['RS', 'ME', 'BA'];
+// Pools whose names are written family name first (in Latin too): Chinese, Korean, Taiwanese,
+// Khmer, Vietnamese, and Chinese names from Malaysia, Singapore and Hong Kong.
+const FAMILY_FIRST = new Set(['cn', 'kr', 'tw', 'kp', 'kh', 'vn', 'cnM', 'cnH']);
+
+// Native scripts. A name gets one only when both parts come from pools written in the same script
+// (SCRIPT), the script is how names are normally written in the player's country (COUNTRY_SCRIPTS),
+// and every name in such a pool has its native form (nativeScripts.ts). So a Moroccan gets Arabic
+// script and a Frenchman of Moroccan descent doesn't (French names are written in Latin script); a
+// Chinese name from Hong Kong gets characters, an English name from Hong Kong ("Kevin Wong") doesn't.
+// Countries that use Latin script officially (Turkey, Azerbaijan, Uzbekistan, Somalia, Indonesia,
+// Malaysia's Malays, the Philippines, Oromo in Ethiopia, ...) get none.
+const SCRIPT: Record<string, string> = {
+  cn: 'Hani', tw: 'Hani', ug: 'Hani', mgl: 'Hani', bo: 'Hani', cnM: 'Hans', cnH: 'Hant', jp: 'Jpan', kr: 'Kore', kp: 'Kore', vn: 'Viet', th: 'Thai', kh: 'Khmr', lo: 'Laoo', mm: 'Mymr',
+  gr: 'Grek', cy: 'Grek', ru: 'Cyrl', ua: 'Cyrl', bg: 'Cyrl', mk: 'Cyrl', kz: 'Cyrl', kg: 'Cyrl', tj: 'Cyrl', mnG: 'Cyrl', rs: 'Cyrl', ge: 'Geor', am: 'Armn', il: 'Hebr',
+  ail: 'Arab', eg: 'Arab', gulf: 'Arab', omn: 'Arab', omb: 'Arab', iq: 'Arab', lev: 'Arab', mg: 'Arab', sd: 'Arab', afg: 'Arab', ir: 'Arab', pk: 'Arab', ku: 'Arab',
+  bd: 'Beng', inB: 'Beng', np: 'Deva', inH: 'Deva', inMr: 'Deva', inG: 'Gujr', inT: 'Taml', lkT: 'Taml', inTe: 'Telu', inK: 'Knda', inMl: 'Mlym', pa: 'Guru', lk: 'Sinh', bt: 'Tibt', mv: 'Thaa', eth: 'Ethi',
+};
+const ARAB = ['Arab'], CYRL = ['Cyrl'];
+const COUNTRY_SCRIPTS: Record<string, string[]> = {
+  CN: ['Hani'], TW: ['Hani'], HK: ['Hant'], MO: ['Hant'], SG: ['Hans', 'Taml'], MY: ['Hans', 'Taml'], BN: ['Hans'], JP: ['Jpan'], KR: ['Kore'], KP: ['Kore'], VN: ['Viet'], TH: ['Thai'], KH: ['Khmr'], LA: ['Laoo'], MM: ['Mymr'],
+  GR: ['Grek'], CY: ['Grek'], GE: ['Geor'], AM: ['Armn'], IL: ['Hebr', 'Arab'],
+  RU: CYRL, UA: CYRL, BY: CYRL, BG: CYRL, MK: CYRL, RS: CYRL, ME: CYRL, BA: CYRL, KZ: CYRL, KG: CYRL, TJ: CYRL, MN: CYRL, UZ: CYRL, MD: CYRL, EE: CYRL, LV: CYRL, LT: CYRL, // Russian speakers too
+  EG: ARAB, SA: ARAB, AE: ARAB, QA: ARAB, KW: ARAB, BH: ARAB, OM: ARAB, YE: ARAB, IQ: ARAB, SY: ARAB, JO: ARAB, LB: ARAB, PS: ARAB, LY: ARAB, TN: ARAB, DZ: ARAB, MA: ARAB, SD: ARAB, MR: ARAB, TD: ARAB, DJ: ARAB,
+  IR: ARAB, AF: ARAB, PK: ARAB, BD: ['Beng'], NP: ['Deva'], LK: ['Sinh', 'Taml'], BT: ['Tibt'], MV: ['Thaa'], ET: ['Ethi'], ER: ['Ethi'],
+  IN: ['Deva', 'Gujr', 'Beng', 'Taml', 'Telu', 'Knda', 'Mlym', 'Guru'],
+};
+export const scriptOk = (country: string, script: string) => !!script && (COUNTRY_SCRIPTS[country] || []).includes(script);
+// How the native form is put together: family name first (and with what between), or given name first
+// with a separator other than a space (Chinese transliterations of Uyghur and Mongol names use ·;
+// Tibetan and Burmese names run together).
+const NATIVE_LF: Record<string, string> = { cn: '', kr: '', tw: '', kp: '', cnM: '', cnH: '', jp: ' ', vn: ' ', kh: ' ' };
+const NATIVE_SEP: Record<string, string> = { ug: '·', mgl: '·', bo: '', mm: '' };
+// Groups that list the same pools for given names and surnames take both parts from one of them (an
+// Indian, Pakistani or Bangladeshi name, not "Arif Srinivasan"), except English-speaking and similar
+// pools that families really do mix (an American multiracial player, a Māori New Zealander).
+const MIX_OK = new Set(['usb', 'usw', 'us', 'nan', 'gb', 'au', 'jm', 'bah', 'car', 'mi', 'pi', 'la', 'fc', 'fr', 'dk', 'no']);
 
 // A name (Romanized + native script) and a look from a heritage group.
 export function nameFromGroup(country: string, grp: Group, rnd: () => number = Math.random) {
   const NP: any = allPools(), NM: any = allNative();
   const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
   const pool = (x: string | string[]) => (Array.isArray(x) ? pick(x) : x);
-  let fp = pool(grp.f), lp = pool(grp.l);
+  let fp: string, lp: string;
+  if (Array.isArray(grp.f) && Array.isArray(grp.l) && grp.f.join() === grp.l.join() && !grp.f.every(k => MIX_OK.has(k))) { const i = Math.floor(rnd() * grp.f.length); fp = grp.f[i]; lp = grp.l[i]; }
+  else { fp = pool(grp.f); lp = pool(grp.l); }
   if (!NP[fp]?.f?.length) fp = NP[lp]?.f?.length ? lp : 'us';
   if (!NP[lp]?.l?.length) lp = NP[fp]?.l?.length ? fp : 'us';
   // Surnames by frequency where we have it (the census for American pools; Chinese, Taiwanese), otherwise uniformly.
@@ -209,23 +245,21 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   const pickF = () => givenFrom(fp, rnd);
   const f = pickF(); let l = pickL();
   for (let i = 0; l === f && i < 5; i++) l = pickL();
-  const same = fp === lp;
-  let first = f, last = l, nativeFirst = '', nativeLast = '', sep = ' ';
-  if (same && fp === 'vn') { const v = vietnameseName(rnd); first = v.first; last = v.last; nativeFirst = v.nativeFirst; nativeLast = v.nativeLast; }
-  else if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; }
-  else if (same && fp === 'rs' && CYR_COUNTRIES.includes(country)) { nativeFirst = cyr(f); nativeLast = cyr(l); }
-  else if (same && NM[fp] && fp !== 'rs') { nativeFirst = NM[fp][f] || ''; nativeLast = NM[fp][l] || ''; }
+  const same = fp === lp, script = SCRIPT[fp] && SCRIPT[fp] === SCRIPT[lp] ? SCRIPT[fp] : '', ok = scriptOk(country, script);
+  let first = f, last = l, nativeFirst = '', nativeLast = '';
+  if (same && fp === 'vn') { const v = vietnameseName(rnd); first = v.first; last = v.last; if (ok) { nativeFirst = v.nativeFirst; nativeLast = v.nativeLast; } }
+  else if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; if (ok) { nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; } }
+  else if (ok) { nativeFirst = fp === 'rs' ? cyr(f) : NM[fp]?.[f] || ''; nativeLast = lp === 'rs' ? cyr(l) : NM[lp]?.[l] || ''; }
   // Pool keys that disambiguate same-spelled surnames (e.g. Xu许) display as plain Latin.
-  first = first.replace(/[^\x00-\u024f\u1e00-\u1eff' ’-]+$/u, ''); last = last.replace(/[^\x00-\u024f\u1e00-\u1eff' ’-]+$/u, '');
-  if (fp === 'ug' || fp === 'mgl') sep = '·'; else if (fp === 'bo') sep = '';
+  first = first.replace(/[^\x00-ɏḀ-ỿ' ’-]+$/u, ''); last = last.replace(/[^\x00-ɏḀ-ỿ' ’-]+$/u, '');
   const familyFirst = same && FAMILY_FIRST.has(fp);
   const name = familyFirst ? last + ' ' + first : first + ' ' + last;
-  const cjkFamily = same && ['cn', 'kr', 'jp', 'tw', 'kp', 'vn'].includes(fp), spaced = fp === 'jp' || fp === 'vn';
-  const native = !nativeFirst || !nativeLast ? '' : cjkFamily ? nativeLast + (spaced ? ' ' : '') + nativeFirst : nativeFirst + sep + nativeLast;
+  const lf = same && NATIVE_LF[fp] != null, sep = NATIVE_SEP[fp] ?? ' ';
+  const native = !nativeFirst || !nativeLast ? '' : lf ? nativeLast + NATIVE_LF[fp] + nativeFirst : nativeFirst + sep + nativeLast;
   const ks = Object.keys(grp.race); let r = rnd() * ks.reduce((a, k) => a + grp.race[k], 0), race = ks[0];
   for (const k of ks) { if ((r -= grp.race[k]) < 0) { race = k; break; } }
-  const nOrder = cjkFamily ? (spaced ? 'lf ' : 'lf') : 'fl';
-  return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k, nOrder, nSep: sep };
+  const nOrder = lf ? (NATIVE_LF[fp] ? 'lf ' : 'lf') : 'fl';
+  return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k, nOrder, nSep: sep, script: native ? script : '' };
 }
 
 // A random real name for a country: a heritage group drawn by population share (or the

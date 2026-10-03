@@ -8,6 +8,9 @@ const W: Race = { white: 1 }, B: Race = { black: 1 }, A: Race = { asian: 1 }, Br
 const WBr: Race = { white: .5, brown: .5 }, BBr: Race = { black: .6, brown: .4 }, ABr: Race = { asian: .5, brown: .5 }, Mest: Race = { brown: .75, white: .2, black: .05 };
 const Arab: Race = { brown: .6, white: .4 };
 
+// The Gulf states (Bahrain, Kuwait, Oman, Qatar, Saudi Arabia, the UAE) count their citizens, not every
+// resident: most of their residents are foreign workers who can't become citizens, so they can't play
+// for the national team. Their small naturalized and long-settled communities are kept.
 // [code, name, scouting region, cities, groups (or [pool, race] for one group), extras]
 export type Nation = [string, string, string, string[], G[] | [string | string[], Race], any?];
 const one = (pool: string | string[], race: Race): [string | string[], Race] => [pool, race];
@@ -87,22 +90,22 @@ export const NATIONS: Nation[] = [
   ['GI', 'Gibraltar', 'WEU', ['Gibraltar'], [['Gibraltarian', .8, ['gb', 'es'], ['es', 'it', 'gb'], W], ['British', .2, 'gb', 'gb', W]], { eu: 1 }],
   // ── Middle East & North Africa ──
   ['DZ', 'Algeria', 'AFR', ['Algiers', 'Oran', 'Constantine'], [['Arab-Berber', .99, 'mg', 'mg', Arab]]],
-  ['BH', 'Bahrain', 'EEU', ['Manama', 'Riffa'], [['Bahraini', .48, 'gulf', 'gulf', Arab], ['South Asian', .45, ['in', 'pk', 'bd'], ['in', 'pk', 'bd'], Br], ['Other Arab', .07, 'lev', 'lev', Arab]]],
+  ['BH', 'Bahrain', 'EEU', ['Manama', 'Riffa'], [['Bahraini', .84, 'gulf', 'gulf', Arab], ['Afro-Bahraini', .04, 'gulf', 'gulf', B], ['Other Arab', .06, ['lev', 'eg'], ['lev', 'eg'], Arab], ['South Asian', .06, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br]]],
   ['EG', 'Egypt', 'AFR', ['Cairo', 'Alexandria', 'Giza', 'Port Said'], one('eg', Arab)],
-  ['IR', 'Iran', 'EEU', ['Tehran', 'Mashhad', 'Isfahan', 'Tabriz', 'Shiraz'], [['Persian', .61, 'ir', 'ir', WBr], ['Azerbaijani', .16, ['az', 'ir'], 'ir', W], ['Kurdish', .10, ['ku', 'ir'], 'ir', WBr], ['Lur & others', .13, 'ir', 'ir', WBr]]],
+  ['IR', 'Iran', 'EEU', ['Tehran', 'Mashhad', 'Isfahan', 'Tabriz', 'Shiraz'], [['Persian', .61, 'ir', 'ir', WBr], ['Azerbaijani', .16, 'ir', 'ir', W], ['Kurdish', .10, ['ku', 'ir'], 'ir', WBr], ['Lur & others', .13, 'ir', 'ir', WBr]]],
   ['IQ', 'Iraq', 'EEU', ['Baghdad', 'Basra', 'Mosul', 'Erbil'], [['Arab', .78, 'iq', 'iq', Arab], ['Kurdish', .17, 'ku', 'iq', WBr], ['Turkmen & Assyrian', .05, ['iq', 'lev'], 'lev', WBr]]],
   ['JO', 'Jordan', 'EEU', ['Amman', 'Zarqa', 'Irbid'], one('lev', Arab)],
-  ['KW', 'Kuwait', 'EEU', ['Kuwait City', 'Hawalli'], [['Kuwaiti', .30, 'gulf', 'gulf', Arab], ['Other Arab', .27, ['lev', 'eg'], ['lev', 'eg'], Arab], ['South Asian', .40, ['in', 'pk', 'bd'], ['in', 'pk', 'bd'], Br]]],
+  ['KW', 'Kuwait', 'EEU', ['Kuwait City', 'Hawalli'], [['Kuwaiti', .86, 'gulf', 'gulf', Arab], ['Afro-Kuwaiti', .03, 'gulf', 'gulf', B], ['Other Arab', .08, ['lev', 'eg'], ['lev', 'eg'], Arab], ['South Asian', .03, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br]]],
   ['LB', 'Lebanon', 'EEU', ['Beirut', 'Tripoli', 'Sidon'], one('lev', WBr)],
   ['LY', 'Libya', 'AFR', ['Tripoli', 'Benghazi', 'Misrata'], one(['mg', 'eg'], Arab)],
   ['MA', 'Morocco', 'AFR', ['Casablanca', 'Rabat', 'Marrakesh', 'Fez', 'Tangier'], one('mg', Arab)],
-  ['OM', 'Oman', 'EEU', ['Muscat', 'Salalah', 'Sohar'], [['Omani', .57, 'gulf', 'gulf', Arab], ['South Asian', .40, ['in', 'pk', 'bd'], ['in', 'pk', 'bd'], Br]]],
+  ['OM', 'Oman', 'EEU', ['Muscat', 'Salalah', 'Sohar'], [['Omani', .82, ['gulf', 'omn'], 'omn', Arab], ['Omani Baloch', .08, ['gulf', 'omn'], 'omb', { brown: .7, white: .3 }], ['Afro-Omani', .06, ['gulf', 'omn'], 'omn', B], ['South Asian', .04, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br]]],
   ['PS', 'Palestine', 'EEU', ['Ramallah', 'Gaza', 'Hebron', 'Nablus'], one('ail', Arab)],
-  ['QA', 'Qatar', 'EEU', ['Doha', 'Al Rayyan'], [['Qatari', .12, 'gulf', 'gulf', Arab], ['South Asian', .60, ['in', 'np', 'bd', 'pk'], ['in', 'np', 'bd', 'pk'], Br], ['Other Arab', .15, ['eg', 'lev'], ['eg', 'lev'], Arab], ['Filipino', .08, 'ph', 'ph', ABr], ['African', .05, ['sd', 'so'], ['sd', 'so'], B]]],
-  ['SA', 'Saudi Arabia', 'EEU', ['Riyadh', 'Jeddah', 'Dammam', 'Mecca'], [['Saudi', .62, 'gulf', 'gulf', Arab], ['South Asian', .20, ['in', 'pk', 'bd'], ['in', 'pk', 'bd'], Br], ['Other Arab', .10, ['eg', 'lev'], ['eg', 'lev'], Arab], ['Afro-Saudi', .08, 'gulf', 'gulf', B]]],
+  ['QA', 'Qatar', 'EEU', ['Doha', 'Al Rayyan'], [['Qatari', .72, 'gulf', 'gulf', Arab], ['Afro-Qatari', .06, 'gulf', 'gulf', B], ['Other Arab', .12, ['eg', 'lev', 'sd'], ['eg', 'lev', 'sd'], Arab], ['African', .05, ['sd', 'so'], ['sd', 'so'], B], ['South Asian', .05, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br]]],
+  ['SA', 'Saudi Arabia', 'EEU', ['Riyadh', 'Jeddah', 'Dammam', 'Mecca'], [['Saudi', .86, 'gulf', 'gulf', Arab], ['Afro-Saudi', .08, 'gulf', 'gulf', B], ['Other Arab', .04, ['eg', 'lev'], ['eg', 'lev'], Arab], ['South Asian', .02, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br]]],
   ['SY', 'Syria', 'EEU', ['Damascus', 'Aleppo', 'Homs', 'Latakia'], [['Arab', .85, 'lev', 'lev', Arab], ['Kurdish', .10, 'ku', 'lev', WBr], ['Armenian & Assyrian', .05, ['am', 'lev'], ['am', 'lev'], W]]],
   ['TN', 'Tunisia', 'AFR', ['Tunis', 'Sfax', 'Sousse', 'Monastir'], one('mg', Arab)],
-  ['AE', 'United Arab Emirates', 'EEU', ['Dubai', 'Abu Dhabi', 'Sharjah'], [['Emirati', .12, 'gulf', 'gulf', Arab], ['Indian', .38, 'in', 'in', Br], ['Pakistani & Bangladeshi', .25, ['pk', 'bd'], ['pk', 'bd'], Br], ['Filipino', .06, 'ph', 'ph', ABr], ['Other Arab', .10, ['eg', 'lev'], ['eg', 'lev'], Arab], ['Western', .09, ['gb', 'usw'], ['gb', 'usw'], W]]],
+  ['AE', 'United Arab Emirates', 'EEU', ['Dubai', 'Abu Dhabi', 'Sharjah'], [['Emirati', .80, 'gulf', 'gulf', Arab], ['Afro-Emirati', .04, 'gulf', 'gulf', B], ['Other Arab', .09, ['eg', 'lev'], ['eg', 'lev'], Arab], ['South Asian', .05, ['pk', 'in', 'bd'], ['pk', 'in', 'bd'], Br], ['Western', .02, ['gb', 'usw'], ['gb', 'usw'], W]]],
   ['YE', 'Yemen', 'EEU', ["Sana'a", 'Aden', 'Taiz'], [['Yemeni', .92, 'gulf', 'gulf', Arab], ['Afro-Yemeni', .08, 'gulf', 'gulf', B]]],
   // ── Sub-Saharan Africa ──
   ['BJ', 'Benin', 'AFR', ['Cotonou', 'Porto-Novo', 'Parakou'], [['Fon & Adja', .55, 'ewe', 'ewe', B], ['Yoruba', .12, 'yo', 'yo', B], ['Bariba & Fula', .20, 'mn', 'mn', B]]],
@@ -115,7 +118,7 @@ export const NATIONS: Nation[] = [
   ['KM', 'Comoros', 'AFR', ['Moroni', 'Mutsamudu'], one(['so', 'eaf'], B)],
   ['CG', 'Congo', 'AFR', ['Brazzaville', 'Pointe-Noire', 'Dolisie'], one('cen', B)],
   ['DJ', 'Djibouti', 'AFR', ['Djibouti City', 'Ali Sabieh'], [['Somali', .60, 'so', 'so', B], ['Afar', .35, ['so', 'eth'], 'eth', B], ['Arab', .05, 'gulf', 'gulf', Arab]]],
-  ['GQ', 'Equatorial Guinea', 'AFR', ['Malabo', 'Bata'], one(['cen', 'es'], B)],
+  ['GQ', 'Equatorial Guinea', 'AFR', ['Malabo', 'Bata'], [['Equatoguinean', 1, ['es', 'cen'], ['cen', 'cen', 'es'], B]]],
   ['ER', 'Eritrea', 'AFR', ['Asmara', 'Keren', 'Massawa'], one('eth', B)],
   ['SZ', 'Eswatini', 'AFR', ['Mbabane', 'Manzini'], one('za', B)],
   ['ET', 'Ethiopia', 'AFR', ['Addis Ababa', 'Dire Dawa', 'Gondar', 'Hawassa'], [['Oromo', .35, 'eth', 'eth', B], ['Amhara', .27, 'eth', 'eth', B], ['Somali', .06, 'so', 'so', B], ['Tigrayan & others', .32, 'eth', 'eth', B]]],
@@ -146,7 +149,7 @@ export const NATIONS: Nation[] = [
   ['ZM', 'Zambia', 'AFR', ['Lusaka', 'Kitwe', 'Ndola'], one('za', B)],
   ['ZW', 'Zimbabwe', 'AFR', ['Harare', 'Bulawayo', 'Mutare'], one('za', B)],
   // ── Asia ──
-  ['AF', 'Afghanistan', 'ASI', ['Kabul', 'Kandahar', 'Herat', 'Mazar-i-Sharif'], [['Pashtun', .42, 'afg', 'afg', WBr], ['Tajik', .27, ['afg', 'tj'], 'afg', W], ['Hazara', .09, 'afg', 'afg', ABr], ['Uzbek', .09, 'uz', 'uz', W]]],
+  ['AF', 'Afghanistan', 'ASI', ['Kabul', 'Kandahar', 'Herat', 'Mazar-i-Sharif'], [['Pashtun', .42, 'afg', 'afg', WBr], ['Tajik', .27, 'afg', 'afg', W], ['Hazara', .09, 'afg', 'afg', ABr], ['Uzbek & Turkmen', .09, 'afg', 'afg', W]]],
   ['BD', 'Bangladesh', 'ASI', ['Dhaka', 'Chittagong', 'Khulna', 'Sylhet'], one('bd', Br)],
   ['BT', 'Bhutan', 'ASI', ['Thimphu', 'Phuntsholing'], [['Bhutanese', .8, 'bt', 'bt', A], ['Lhotshampa', .2, 'np', 'np', Br]]],
   ['BN', 'Brunei', 'ASI', ['Bandar Seri Begawan'], [['Malay', .66, 'my', 'my', ABr], ['Chinese', .10, 'cnM', 'cnM', A], ['Indigenous & others', .24, 'my', 'my', ABr]]],
