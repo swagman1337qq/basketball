@@ -24,6 +24,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - God Mode edits them in the same units.
 
 ### Added
+- **Team history, with retired jerseys.** A new **Team history** tab (under Team) opens on your team; the arrows and the team menu show any other.
+  - **Players**: everyone who has played for the team, with his games, minutes, points, rebounds, assists, PER, EWA and titles there, and his last season there. Sort by any column, search, and choose how many show per page.
+  - Rows are colored by where he is now: **lavender** if he's on the team, **green** if he's still playing somewhere else (another team, unsigned, abroad or in the CCP), **gold** if he's in the Hall of Fame, and no color if he's retired. A key above the list explains the colors.
+  - **Retire jersey**: on a team you run, retire a former player's number from his row (not while he's still on the team). If he wore more than one number there you pick it; if the league never recorded it you type it in. No one new can wear a retired number; a current player who already wears it keeps it until he leaves.
+  - **Retired jerseys** lists each retired number with the player's position, a link to his profile and his titles with the team. **Unretire** puts a number back in circulation.
+  - Every section folds away, and the league remembers which ones you folded.
 - **Playing style: tendencies that evolve as players develop.** Every player now has ten tendencies:
   - Shot volume
   - Pass-first

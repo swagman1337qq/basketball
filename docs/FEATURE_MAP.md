@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-03 (tendencies moved to the NBA's own tracking categories)._
+_Last reviewed: 2026-10-03 (Team history and retired jerseys)._
 
 ## How it fits together
 
@@ -15,7 +15,7 @@ There's no server. The whole game runs in the browser, saves to IndexedDB and is
 ```mermaid
 flowchart TD
   subgraph UI["Browser UI · React 19 · src/ui"]
-    Screens["35 menu screens<br/>Team · Management · League"]
+    Screens["36 menu screens<br/>Team · Management · League"]
     Pages["Player and team pages, pop-ups<br/>profiles · box scores · notices"]
     Live["Live game viewer<br/>ui/live/"]
   end
@@ -89,8 +89,9 @@ Screens: Live game, Box score, Stats, League stats, Tactics. Code: `sim.ts`, `ta
 - Media preseason predictions and a press room.
 - Hall of Fame (3-season wait, up to five a year), league history, league-wide transactions.
 - Expansion from 45 ready-made franchises or your own design, with an expansion draft.
+- Team history (`TeamHistoryScreen.tsx`), for any team, every section foldable (`s.thFold`). Players: everyone who has played for the team, his regular-season line there (PER minute-weighted, EWA summed per season as `advanced.ts` counts it), titles there (a playoff line for that year's champion) and last season, rows colored by where he is now with a key (the shared highlight colors, `kit.tsx` `HL`: on the team, active elsewhere, Hall of Fame). Retired jerseys: you retire a former player's number from his row (teams you run; any team in God Mode), stored on the team (`t.retired`: num, pid, season) by `jerseys.ts` `retireJersey`/`unretireJersey`. `assignNumbers` keeps retired numbers from newcomers (a current wearer keeps his); each season's stat line records the number worn (`row.num`, read by `numsWith`).
 
-Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of Fame, Press room, Transactions. Code: `Game.ts`, `awards.ts`, `formula.ts`, `allStar.ts`, `media.ts`, `hof.ts`, `txlog.ts`.
+Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of Fame, Press room, Transactions, Team history. Code: `Game.ts`, `awards.ts`, `formula.ts`, `allStar.ts`, `media.ts`, `hof.ts`, `txlog.ts`, `jerseys.ts`.
 
 ### Roster and coaching
 - Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries.
@@ -176,7 +177,7 @@ The menu is `NAV` in `src/ui/viewModel.ts`; `GMView.tsx` picks the component. Sc
 
 | Group | Screen → file (`src/ui/screens/` unless noted) |
 |---|---|
-| Team | Dashboard → `DashboardScreen` + `InboxCard` · Schedule → `ScheduleScreen` · Roster → `RosterScreen` · Depth chart → `DepthChartScreen` · Development → `DevelopmentScreen` · Tactics → `TacticsScreen` · Finances → `FinancesScreen` · Cap sheet → `CapSheetScreen` · Contracts → `ContractsScreen` |
+| Team | Dashboard → `DashboardScreen` + `InboxCard` · Schedule → `ScheduleScreen` · Roster → `RosterScreen` · Depth chart → `DepthChartScreen` · Development → `DevelopmentScreen` · Tactics → `TacticsScreen` · Finances → `FinancesScreen` · Cap sheet → `CapSheetScreen` · Contracts → `ContractsScreen` · Team history → `TeamHistoryScreen` |
 | Management | Trade → `TradeScreen` · Pre-Free Agency → `PreFAScreen` · Free agency → `FreeAgencyScreen` · CCP → `CcpScreen` · Draft → `DraftScreen` + `MockDrafts` · Shortlist → `ShortlistScreen` · Scouting → `ScoutingScreen` + `ScoutReportsSection` · Overseas → `OverseasScreen` · Owner → `OwnerScreen` · Career → `CareerScreen` · Player cards† → `CardsScreen` |
 | League | My teams† → `MyTeamsScreen` · Standings → `StandingsScreen` · Transactions → `TransactionsScreen` · Playoffs → `PlayoffsScreen` · Awards → `AwardsScreen` + `AwardFormulas` · Predictions → `PredictionsScreen` · Hall of Fame → `HallOfFameScreen` · Stats → `StatsScreen` + `LeagueStatsScreen` · Cap outlook → `CapOutlookScreen` · Settings → `SettingsScreen` + `RetirementSetting` + `ExpansionPicker` · Tutorial → `ui/Tour.tsx` · What's new → `ChangelogScreen` · League editor† → `LeagueEditorScreen` · Daily schedule† → `DailyScheduleScreen` · Press room → `PressScreen` |
 | Not in the menu | Live game → `LiveGameScreen` + `ui/live/` · Play-in → `PlayinScreen` · Lottery → `LotteryScreen` · Title screen → `ui/TitleScreen.tsx` · Pop-ups → `ui/modals/` (player profile, team, box score, contract, owner letter, GM setup, God Mode player editor, card library, notices, confirm) |
@@ -235,7 +236,7 @@ All in `src/engine/`.
 | `eligibility.ts` | National-team eligibility |
 | `family.ts` | Sons and brothers of former players |
 | `faces.ts` | Deterministic SVG faces |
-| `jerseys.ts` | Jersey numbers |
+| `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
 | `prune.ts` | Trims retired players to keep saves small |
 | `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |

@@ -13,6 +13,21 @@ export const godBtn: CSSProperties = { color: GOD_PINK, borderColor: GOD_PINK };
 export const godFill: CSSProperties = { color: '#fff', background: GOD_PINK, borderColor: GOD_PINK };
 export const godBox: CSSProperties = { border: '1px dashed ' + GOD_PINK, background: 'color-mix(in srgb, ' + GOD_PINK + ' 7%, transparent)', borderRadius: 'var(--radius-md)' };
 export const godText: CSSProperties = { color: GOD_PINK };
+// Highlights (Pantone TCX colors as sRGB): your team and your players (14-3209 Pastel Lavender),
+// active players with another team or unsigned (14-0115 Foam Green), Hall of Famers (15-0927
+// Pale Gold). They're light in both themes, so text on them is always dark (`hlRow`).
+export const HL = { mine: '#D8A1C4', active: '#B4C79C', hof: '#BD9865', ink: '#1d1b19' };
+export const hlRow = (bg?: string | null): CSSProperties | undefined => (bg ? { background: bg, color: HL.ink } : undefined);
+// A championship ring, as Basketball-Reference marks titles.
+export function Ring({ size = 13, title = 'Championship' }: { size?: number; title?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={title} style={{ verticalAlign: '-2px', flex: 'none' }}>
+      <title>{title}</title>
+      <circle cx="12" cy="15" r="6.5" fill="none" stroke="#d4a017" strokeWidth="3" />
+      <path d="M12 2.5 15.5 6 12 9 8.5 6z" fill="#d4a017" stroke="#8a6508" strokeWidth="0.8" />
+    </svg>
+  );
+}
 // Right-aligned cells hold numbers and records (60–22): never wrap them.
 export const th = (align: 'left' | 'right' = 'left'): CSSProperties => ({ padding: '6px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}) });
 export const td = (align: 'left' | 'right' = 'left', extra?: CSSProperties): CSSProperties => ({ padding: '5px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}), ...extra });

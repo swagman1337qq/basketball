@@ -23,7 +23,7 @@ import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, team
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
-import { assignNumbers } from './jerseys';
+import { assignNumbers, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
 import { removeUnplayed, slimRetired } from './prune';
 import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
@@ -89,7 +89,7 @@ export class Game {
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
     ccpNewSeason(g, g.state); ccpTopUp(g, g.state, g.state.fa); // the CCP (development league) season
-    assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
+    assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams)); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
     g.rollDevYear(g.state);
     return g;
@@ -207,7 +207,7 @@ export class Game {
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.streaky === undefined) p.pers.streaky = ((p.id * 2246822519) >>> 0) % 100 < 12; }); // 2026-10: the Streaky trait
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.work == null) p.pers.work = workEthicOf(p.id); }); // 2026-10: every player has a work ethic (it was missing)
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
-    assignNumbers(g.db.P, g.state.rosters); g._rosterRef = g.state.rosters;
+    assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams)); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
     return g;
   }
@@ -244,7 +244,7 @@ export class Game {
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
       this.state = { ...this.state, ...patch };
-      if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch); this._rosterRef = patch.rosters; }
+      if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch, retiredNums(this.state.teams)); this._rosterRef = patch.rosters; }
       this.version++;
       // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
       const now = Date.now();
@@ -696,6 +696,7 @@ export class Game {
         let row = p.stats.find(x => x.season === Y && x.tid === side.tid && !!x.po === po);
         if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, ...blankLine(), h: {}, a: {} }; row.gs = 0; p.stats.push(row); }
         row.gp++;
+        if (p.numTid === side.tid && p.num != null) row.num = p.num; // the number he wore for them (Team history)
         Object.keys(b).forEach(f => { if (typeof row[f] === 'number' && f !== 'gp') row[f] += b[f]; });
         const sp = k === 'home' ? (row.h = row.h || {}) : (row.a = row.a || {});
         SPLIT.forEach(f => (sp[f] = (sp[f] || 0) + (f === 'gp' ? 1 : b[f] || 0)));
