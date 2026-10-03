@@ -54,6 +54,7 @@ function deepSteps(vm: VM): Step[] {
     { section: 'League tabs', title: 'Hall of Fame', lines: ['Great careers are inducted after retirement: titles, awards and career numbers all count.'], screen: 'hof' },
     { section: 'League tabs', title: 'Stats', lines: ['Players (every season, basic and advanced), teams, league averages, and league history: champions, runners-up and awards.'], screen: 'stats' },
     { section: 'League tabs', title: 'Cap outlook', lines: ['The real salary cap since 1984–85 and the projected cap for every future season. The cap grows up to 10% a year.'], screen: 'caps' },
+    { section: 'League tabs', title: 'League finances', lines: ['Every team’s market, attendance, ticket price, revenue, profit, payroll, cap space and budgets, with your team highlighted.', 'Sort by any column; Trade with opens a trade with that team.'], screen: 'lgfin' },
     { section: 'League tabs', title: 'Settings', lines: ['Layout and light/dark theme, Easy mode (automation), God Mode (edit anything, see true ratings), owner firing on/off.', 'Also: a mandatory retirement age, league expansion, and saving your league to a file.'], screen: 'settings' },
     { section: 'League tabs', title: 'Press room', lines: ['What owners and GMs around the league say on the record: reviews, hirings, firings, trades.'], screen: 'press' },
 

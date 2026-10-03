@@ -24,6 +24,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - God Mode edits them in the same units.
 
 ### Added
+- **League finances.** A new **League finances** tab (under League) lists every team's market size, attendance, ticket price, revenue, profit, payroll, cap space, open roster spots, strategy and budgets (scouting, coaching, health, facilities). Your team is highlighted in lavender. Sort by any column; **Trade with** opens a trade with that team.
 - **A championship banner on the Playoffs screen.** When the Finals end, the champion's banner (its colors, the year and its crest) hangs under the Finals in the bracket.
 - **Team history, with retired jerseys and championship banners.** A new **Team history** tab (under Team) opens on your team; the arrows and the team menu show any other.
   - **Overall**: the total record and win %, playoff and Finals appearances, championships, and the best and worst records.

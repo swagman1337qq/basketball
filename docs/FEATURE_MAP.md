@@ -15,7 +15,7 @@ There's no server. The whole game runs in the browser, saves to IndexedDB and is
 ```mermaid
 flowchart TD
   subgraph UI["Browser UI · React 19 · src/ui"]
-    Screens["36 menu screens<br/>Team · Management · League"]
+    Screens["37 menu screens<br/>Team · Management · League"]
     Pages["Player and team pages, pop-ups<br/>profiles · box scores · notices"]
     Live["Live game viewer<br/>ui/live/"]
   end
@@ -143,8 +143,9 @@ Screens: Scouting, Shortlist, Draft (with Past drafts), Lottery, Overseas, CCP. 
 - You as the GM: name, nationality, experience, headshot, your contract and extensions.
 - Job market: vacancies, applications, offers, switching teams.
 - Player incentives (likely and unlikely), stat-padding dilemmas, press quotes.
+- League finances (`LeagueFinancesScreen.tsx`): every team's market size, attendance, ticket price, revenue and profit (this season's projection, `financesOf`), payroll, cap space, open roster spots, AI strategy (`Game.strategies`) and budgets (`teamBudget`), sortable, your teams highlighted (`HL.mine`); Trade with opens the Trade screen on that team. The game models market size, not population, and keeps no team cash, so those two columns of the reference are Market and left out.
 
-Screens: Finances, Owner, Career, Press room. Code: `frontOffice.ts`, `owners.ts`, `ownerLetter.ts`, `gmCareer.ts`.
+Screens: Finances, Owner, Career, Press room, League finances. Code: `frontOffice.ts`, `owners.ts`, `ownerLetter.ts`, `gmCareer.ts`.
 
 ### World and players
 - 215 countries with population groups, name pools, cities, flags and scouting regions.
@@ -179,7 +180,7 @@ The menu is `NAV` in `src/ui/viewModel.ts`; `GMView.tsx` picks the component. Sc
 |---|---|
 | Team | Dashboard → `DashboardScreen` + `InboxCard` · Schedule → `ScheduleScreen` · Roster → `RosterScreen` · Depth chart → `DepthChartScreen` · Development → `DevelopmentScreen` · Tactics → `TacticsScreen` · Finances → `FinancesScreen` · Cap sheet → `CapSheetScreen` · Contracts → `ContractsScreen` · Team history → `TeamHistoryScreen` |
 | Management | Trade → `TradeScreen` · Pre-Free Agency → `PreFAScreen` · Free agency → `FreeAgencyScreen` · CCP → `CcpScreen` · Draft → `DraftScreen` + `MockDrafts` · Shortlist → `ShortlistScreen` · Scouting → `ScoutingScreen` + `ScoutReportsSection` · Overseas → `OverseasScreen` · Owner → `OwnerScreen` · Career → `CareerScreen` · Player cards† → `CardsScreen` |
-| League | My teams† → `MyTeamsScreen` · Standings → `StandingsScreen` · Transactions → `TransactionsScreen` · Playoffs → `PlayoffsScreen` · Awards → `AwardsScreen` + `AwardFormulas` · Predictions → `PredictionsScreen` · Hall of Fame → `HallOfFameScreen` · Stats → `StatsScreen` + `LeagueStatsScreen` · Cap outlook → `CapOutlookScreen` · Settings → `SettingsScreen` + `RetirementSetting` + `ExpansionPicker` · Tutorial → `ui/Tour.tsx` · What's new → `ChangelogScreen` · League editor† → `LeagueEditorScreen` · Daily schedule† → `DailyScheduleScreen` · Press room → `PressScreen` |
+| League | My teams† → `MyTeamsScreen` · Standings → `StandingsScreen` · Transactions → `TransactionsScreen` · Playoffs → `PlayoffsScreen` · Awards → `AwardsScreen` + `AwardFormulas` · Predictions → `PredictionsScreen` · Hall of Fame → `HallOfFameScreen` · Stats → `StatsScreen` + `LeagueStatsScreen` · Cap outlook → `CapOutlookScreen` · League finances → `LeagueFinancesScreen` · Settings → `SettingsScreen` + `RetirementSetting` + `ExpansionPicker` · Tutorial → `ui/Tour.tsx` · What's new → `ChangelogScreen` · League editor† → `LeagueEditorScreen` · Daily schedule† → `DailyScheduleScreen` · Press room → `PressScreen` |
 | Not in the menu | Live game → `LiveGameScreen` + `ui/live/` · Play-in → `PlayinScreen` · Lottery → `LotteryScreen` · Title screen → `ui/TitleScreen.tsx` · Pop-ups → `ui/modals/` (player profile, team, box score, contract, owner letter, GM setup, God Mode player editor, card library, notices, confirm) |
 
 ## Engine modules
