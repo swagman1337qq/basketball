@@ -512,7 +512,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // God Mode: how many drafts ahead picks can be traded (tradeLogic.ts; default 4).
   const pickYearsSet = { v: pickHorizon(s), set: (n: number) => gm.setState(st => { const st2 = { ...st, pickYears: n }; return { pickYears: n, assets: gm.ensureAssets(st2) }; }) };
   // Trade offers AI teams brought you (Trade → Offers to you).
-  const inOffersV = { count: (s.inOffers || []).length, open: () => gm.setState(st => ({ offers: { kind: 'incoming', what: '', list: (st.inOffers || []).map(o => ({ id: o.id, tid: o.a, mine: o.bP, theirs: o.aP, kMine: o.bK, kTheirs: o.aK, value: 0, note: o.why })), i: 0 } })) };
+  // openId: straight to one offer (the notice's View Trade Offer button), on the Trade screen.
+  const inList = st => (st.inOffers || []).map(o => ({ id: o.id, tid: o.a, mine: o.bP, theirs: o.aP, kMine: o.bK, kTheirs: o.aK, value: 0, note: o.why }));
+  const inOffersV = { count: (s.inOffers || []).length, open: () => gm.setState(st => ({ offers: { kind: 'incoming', what: '', list: inList(st), i: 0 } })),
+    has: (id: string) => (s.inOffers || []).some(o => o.id === id),
+    openId: (id: string) => gm.setState(st => { const list = inList(st), i = list.findIndex(o => o.id === id); return i < 0 ? null : { notices: [], teamModal: null, modal: false, screen: 'trade', offers: { kind: 'incoming', what: '', list, i }, ofAdvice: false }; }) };
   const firing = { on: s.ownerFiring !== false && !s.god, label: s.god ? 'God Mode is on: you can’t be fired' : s.ownerFiring === false ? 'Off: owners review you but can’t fire you' : 'On: owners fire you if their written conditions are broken', btn: s.ownerFiring === false ? 'Turn on' : 'Turn off', toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })) };
   const god = { on: !!s.god, label: s.god ? 'On' : 'Off', btn: s.god ? 'Turn off' : 'Turn on', toggle: () => gm.setState(st => ({ god: !st.god, ...(st.god && st.screen === 'cards' ? { screen: 'dash' } : {}) })) };
   const gp = gm.gamesPlayed(s), PH = [['regular', 'Regular season'], ['playin', 'Play-in'], ['playoffs', 'Playoffs'], ['lottery', 'Lottery'], ['draft', 'Draft'], ['prefa', 'Pre-Free Agency'], ['fa', 'Free agency'], ['preseason', 'Preseason']];

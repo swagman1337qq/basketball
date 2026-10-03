@@ -11,7 +11,7 @@ import { BIRD_LABEL, birdOf, capHold, extWindow, qoEligible, qoFor } from './cba
 import { fmtMoney as money } from './capModel';
 
 // ── Notices: the popup that tells you how a move turned out ──────────────────────
-export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[] }
+export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string } // offerId: an AI team's trade offer (s.inOffers)
 let seq = 0;
 export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { return [...(s.notices || []), { ...n, id: 'n' + Date.now() + '-' + seq++ }].slice(-30); }
 export const contractLine = (g: Game, p: any) => money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2);

@@ -1634,8 +1634,9 @@ export class Game {
       for (let i = 0; i < 4 && !x; i++) { x = offerToUser(this, st2, (gp, gv, gk, gvk) => teamGain(this, st2, s.me, gp, gv, gk, gvk)); if (x && offerPast.includes(okey(x))) x = null; }
       if (x) offerPast = [...offerPast, okey(x)].slice(-80);
       if (x && !inOffers.some((o: any) => o.a === x.a)) { const T = s.teams, nm = (ps, ks) => [...ps.map(id => this.db.P[id].name), ...ks.map(id => this.pickLabel(box.assets.find(k => k.id === id), T) + ' pick')].join(', ') || 'nothing';
-        inOffers = [...inOffers, { ...x, id: 'o' + this.Y + '-' + day + '-' + x.a, day }];
-        notices = addNotice({ notices }, { tone: 'info', title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name, lines: [x.why, 'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.', 'Open Trade → Offers to you to accept, negotiate or decline. It stands for about ten days.'], pids: [...x.aP, ...x.bP] }); }
+        const oid = 'o' + this.Y + '-' + day + '-' + x.a;
+        inOffers = [...inOffers, { ...x, id: oid, day }];
+        notices = addNotice({ notices }, { tone: 'info', title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name, lines: [x.why, 'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.', 'Accept, negotiate or decline it from the offer (also under Trade → Offers to you). It stands for about ten days.'], pids: [...x.aP, ...x.bP], offerId: oid }); }
     }
     return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, inOffers, offerPast, notices, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
