@@ -170,7 +170,7 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 - Roster decisions (`rosterAI.ts`): AI cuts, waivers, the summer trim to 21, rookie team options and your staff's opening-night cuts keep the players worth most to the team (`rosterValue`: ability, the team's read of upside, trajectory, timeline, role, position depth, unique skills, guaranteed money, draft investment). AI rotations give young high picks development minutes (`devMinutes`).
 - Tutorial (quick or in-depth) and What's new from the changelog.
 - Three layouts, light and dark themes, team-color accents, player search.
-- Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option.
+- Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option (`Game.swapToWorst`: the lowest team rating, then `thinProspects` trades its 23-and-under players with 56+ true potential one for one, same position group and similar salary first, to other teams or free agency for veterans with little upside and no higher a rating; one under 64 may stay; it stays the weakest roster, and the first pick gets the very worst).
 
 Screens: My teams, Settings, League editor, Player cards, Daily schedule, Tutorial, What's new. Code: `easy.ts`, `playerCard.ts`, `GodPlayerEditor.tsx`, `Tour.tsx`, `db/saves.ts`, `db/cards.ts`.
 

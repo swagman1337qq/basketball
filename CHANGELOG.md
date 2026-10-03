@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-03
 
 ### Fixed
+- **"Swap my roster with the worst roster" no longer hands you a stash of prospects.** It took the lowest-rated roster, which was almost always a rebuilding team full of raw kids with big ceilings (often two to five, sometimes more). You still get the weakest roster on the floor, but its young players with real upside go to other teams for veterans about as good today. At most one modest prospect stays (true potential under 64), and with several teams the first still gets the very worst.
 - **God Mode: True potential now goes all the way to 100, at any age.** Setting it used to stop short: Luka Dončić's card topped out around 84 and raw prospects in the 70s, because his potential was rebuilt from skill ceilings that stopped at 99 and couldn't count his height or frame. For a player 29 or older, the setting did nothing at all.
   - Now the number you set is exactly what he gets, and it holds.
   - A veteran gets three seasons to grow toward it.

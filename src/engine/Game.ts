@@ -114,14 +114,47 @@ export class Game {
     [...(this.db.fa || []), ...(this.db.os || [])].forEach(id => { const p = P[id]; p.raise = 0.05; p.ctype = 'standard'; });
   }
   // Start-screen option: the teams you picked take the league's worst rosters (the first
-  // pick gets the very worst), swapping with whoever had them.
+  // pick gets the very worst), swapping with whoever had them: the weakest on the floor today,
+  // without a stash of prospects (the weakest roster is usually a rebuilder's, full of raw kids
+  // with real ceilings). Its young players with real upside go to other teams, one for one, for
+  // veterans about as good today with little upside left; one modest prospect may stay.
   swapToWorst(tids: number[]) {
     const d = this.db, P = d.P, done: number[] = [];
     tids.forEach(mine => {
       const worst = d.teams.map(t => t.tid).filter(t => !done.includes(t)).sort((a, b) => teamRating(P, d.rosters[a]) - teamRating(P, d.rosters[b]))[0];
       if (worst != null && worst !== mine) { [d.rosters[mine], d.rosters[worst]] = [d.rosters[worst], d.rosters[mine]]; const a = d.teams[mine], b = d.teams[worst]; [a.str, b.str] = [b.str, a.str]; }
       done.push(mine);
+      this.thinProspects(mine, [...new Set([...tids, ...done])]);
     });
+    // The first pick still gets the very worst of them.
+    const built = tids.map(t => ({ ids: d.rosters[t], str: d.teams[t].str })).sort((a, b) => teamRating(P, a.ids) - teamRating(P, b.ids));
+    tids.forEach((t, i) => { d.rosters[t] = built[i].ids; d.teams[t].str = built[i].str; });
+  }
+  private thinProspects(mine: number, keepOut: number[]) {
+    const d = this.db, P = d.P, tp = (p: any) => p.tpot ?? p.pot, tr = (t: number) => teamRating(P, d.rosters[t]);
+    const others = () => d.teams.map(t => t.tid).filter(t => !keepOut.includes(t));
+    const put = (t: number | 'fa', out: number, inn: number) => { const L = t === 'fa' ? d.fa : d.rosters[t]; L[L.indexOf(out)] = inn; };
+    const trade = (p: any, q: any, t: number | 'fa') => { put(mine, p.id, q.id); put(t, q.id, p.id); p.yrsWith = 0; q.yrsWith = 0; };
+    const vet = (q: any) => q.age >= 24 && tp(q) - q.ovr <= 3 && !q.ntc && !q.rookie, grp = (q: any, p: any) => (q.grp === p.grp ? 0 : 1); // a veteran with little upside left; same position group first
+    const young = d.rosters[mine].map(id => P[id]).filter(p => p.age <= 23 && tp(p) >= 56).sort((a, b) => tp(a) - tp(b));
+    const stay = young.length && tp(young[0]) < 64 ? young[0].id : null;
+    young.filter(p => p.id !== stay).forEach(p => {
+      const deep = d.rosters[mine].map(id => P[id].ovr).sort((a, b) => b - a).indexOf(p.ovr) >= 10; // past the top ten: barely counts in the team rating
+      const pool = (cap: number) => [...others().flatMap(t => d.rosters[t].map(id => ({ q: P[id], t: t as number | 'fa' }))), ...d.fa.map(id => ({ q: P[id], t: 'fa' as number | 'fa' }))]
+        .filter(({ q }) => q && q.r && vet(q) && q.ovr <= p.ovr + cap && q.ovr >= p.ovr - 8)
+        .sort((a, b) => grp(a.q, p) - grp(b.q, p) || (a.t === 'fa' ? 1 : 0) - (b.t === 'fa' ? 1 : 0) || (Math.abs(p.ovr - a.q.ovr) + Math.abs(a.q.amt - p.amt) * 0.6) - (Math.abs(p.ovr - b.q.ovr) + Math.abs(b.q.amt - p.amt) * 0.6)); // closest in level and salary (payrolls hold)
+      const m = pool(0)[0] || (deep ? pool(6)[0] : null);
+      if (m) trade(p, m.q, m.t);
+    });
+    // Still the weakest roster: if not, his best player goes for a slightly weaker veteran from the
+    // weakest of the rest, until it is.
+    for (let i = 0; i < 6; i++) {
+      const rest = others(), low = rest.sort((a, b) => tr(a) - tr(b))[0];
+      if (low == null || tr(mine) <= tr(low)) break;
+      const best = d.rosters[mine].map(id => P[id]).sort((a, b) => b.ovr - a.ovr)[0];
+      const q = d.rosters[low].map(id => P[id]).filter(x => x.ovr < best.ovr && x.age >= 24 && tp(x) - x.ovr <= 3 && !x.ntc).sort((a, b) => b.ovr - a.ovr)[0];
+      if (!q) break; trade(best, q, low);
+    }
   }
   // Team cards for the start screen, from the same seeded world create() would build.
   static preview(seed = 2027) {
