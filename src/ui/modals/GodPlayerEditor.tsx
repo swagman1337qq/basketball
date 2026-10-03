@@ -15,6 +15,7 @@ import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
+import { ensureTen, TEN_KEYS, TEN_LABEL } from '../../engine/tendencies';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -229,11 +230,17 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; delete q.preInj; })}>Heal now</button>}
           </span>
         </div>
-        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Tendencies</h4>
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Playing style</h4>
+        <div style={grid}>
+          {TEN_KEYS.map(k => num(TEN_LABEL[k], Math.round(ensureTen(p)?.[k] ?? 50), 2, 98, v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [k]: v }; })))}
+        </div>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving, and the fine-tuning below stops fading)</label>
+        <p style={{ ...muted, fontSize: '11.5px' }}>0–100, 50 = typical for his type. Shot volume is how much of the offense he finishes himself; the rest shape his shot mix, how often he passes, drives, posts up or pulls up. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer), so a player who becomes a star takes on a star's load over a season or two.</p>
+        <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '10px 0 2px' }}>Fine-tuning (multipliers on top)</div>
         <div style={grid}>
           {TENDS.map(([k, label]) => num(label, Math.round(((p.tend || {})[k] ?? 1) * 100), 20, 300, v => mut(q => { q.tend = { ...(q.tend || {}), [k]: v / 100 }; if (v === 100) delete q.tend[k]; if (!Object.keys(q.tend).length) delete q.tend; }), undefined, '%'))}
         </div>
-        <p style={{ ...muted, fontSize: '11.5px' }}>How often he takes each shot, draws shooting fouls and coughs up the ball, on top of what his ratings suggest (100% = normal). His ratings still decide whether the shots go in: rookie Luka Dončić took lots of threes (about 130%) and drew fouls at a very high rate while making only a third of his threes.</p>
+        <p style={{ ...muted, fontSize: '11.5px' }}>Exact multipliers on top of his playing style (100% = none), for matching a real player's line; they fade a quarter of the way back to 100% each summer unless his tendencies are locked. His ratings still decide whether the shots go in: rookie Luka Dončić took lots of threes (about 130%) and drew fouls at a very high rate while making only a third of his threes.</p>
         <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Locked</h4>
         <div style={{ fontSize: '12px', ...muted }}>

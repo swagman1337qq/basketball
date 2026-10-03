@@ -34,6 +34,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.pers) p.pers = { ...p.pers, ...card.pers };
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
   if (card.tend) p.tend = { ...card.tend }; else delete p.tend;
+  delete p.ten; // his evolving playing style starts over from the new build (tendencies.ts; his quirks stay)
   if (card.her && !card.heritage) { const gs = groupsOf(card.her); p.heritage = gs.length ? [...gs].sort((a, b) => b.w - a.w)[0].k : C[card.her]?.n; }
   if (card.rep || card.born || card.raised || card.her) { refreshElig(p, C); if (card.rep && C[card.rep]) { if (!p.elig.some((e: any) => e.c === card.rep)) p.elig = [{ c: card.rep, why: 'citizen by birth' }, ...p.elig]; p.rep = card.rep; } } // eligibility follows the card's countries
   if (card.pos) p.grp = GRP[card.pos];

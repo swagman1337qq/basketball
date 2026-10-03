@@ -2,6 +2,33 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-03
+
+### Added
+- **Playing style: tendencies that evolve as players develop.** Every player now has ten tendencies:
+  - Shot volume
+  - Pass-first
+  - Drives to the rim
+  - Isolation
+  - Pick and roll
+  - Post-ups
+  - Catch-and-shoot
+  - Pull-up jumpers
+  - Mid-range
+  - Three-pointers
+
+  They decide how he plays: which shots he looks for, how often he finishes the play himself, whether he passes, drives, posts up or pulls up. His ratings still decide whether the shots go in. You'll find them under **Playing style** on every profile, with arrows showing how each changed since last summer.
+- **Tendencies change gradually, not overnight.** Each summer after development, and a little each month in season, they drift toward what his skills, role and team ask of him. For example:
+  - A player who becomes a better shooter takes more threes.
+  - A player whose handle and burst improve drives more.
+  - A player who becomes a better passer turns pass-first.
+  - A veteran losing his athleticism drives and posts up less and leans on his jumper.
+  - Young players adapt fastest. Every player keeps his own quirks, so two players with the same ratings don't play alike.
+- **Shot volume grows with the role.** A player who develops into a star, becomes a better scorer or becomes his team's first option takes on more of the offense over a season or two. One whose game declines, or who joins a better team, gives some back.
+  - It isn't tied to overall: a defensive specialist stays low-volume.
+  - No player is stuck at a low shot volume he started with.
+- **God Mode:** edit all ten tendencies on the Edit player tab, and lock them so they stop changing. Hand-set fine-tuning (and a player card's tendencies) now fades back to normal over a few summers unless locked.
+
 ## 2026-10-02
 
 ### Added

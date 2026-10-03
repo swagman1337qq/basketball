@@ -10,6 +10,7 @@ import { HoverCard } from '../HoverCard';
 import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
+import { PlayingStyle } from '../PlayingStyle';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { potView, scoutSd } from '../../engine/potential';
 import { draftedBy, nowLabel } from '../../engine/godMove';
@@ -216,6 +217,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             </div>
           ))}
           <div style={{ display: 'flex', gap: '10px', marginTop: '6px', fontSize: '11px' }}>{TIERS.map(([n, c]) => <span key={n} style={{ color: c }}>◆ {n}</span>)}</div>
+          {p.r && <PlayingStyle p={p} />}
         </section>
         <section><OverviewExtras vm={vm} stack /></section>
       </div>

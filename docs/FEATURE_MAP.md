@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-02 (player development phase 1; God Mode owner powers, owner backgrounds, draft surprises, past drafts, rookie cards)._
+_Last reviewed: 2026-10-03 (evolving playing-style tendencies and shot volume)._
 
 ## How it fits together
 
@@ -72,6 +72,7 @@ flowchart LR
 ### Game simulation
 - One possession-by-possession engine plays every game, watched or simmed.
 - Tuned to 2026 NBA averages (pace 98.8, 113.8 points); league norms re-center ratings every season.
+- Playing style (`tendencies.ts`): every player has ten stored tendencies, 0–100 (shot volume, pass-first, drives, isolation, pick and roll, post-ups, catch-and-shoot, pull-ups, mid-range, threes). Each drifts toward a target set by his current skills (read against the rest of his game), his role (his rank as an offensive option on his team), personality and age, plus a fixed personal quirk: a summer step after development (each tendency 80% likely to move) and a small monthly step in season. Young players adapt fastest; aging bodies drive and post up less. The engine reads them as multipliers (`effTend`): shot mix, foul drawing, assisted rate, turnovers, passer choice and shot volume (on top of the volume his overall earns in `usageRaw`). Hand-set multipliers (God Mode, player cards) sit on top and fade 25% a summer unless locked (`p.tenLock`). Shown on every profile (Playing style, with the change since last summer); editable in God Mode.
 - Four shot tiers (rim, mid-range, corner 3, above-the-break 3; five zones in the UI), usage-based shot selection, Four Factors clutch tiebreaker.
 - Tactics: pace, offense and defense schemes, lead and trail presets, schemes unlocked by player roles.
 - Fatigue, minor and major injuries, home and road splits, personality effects (selfish, clutch, crowd-fed).
@@ -199,6 +200,7 @@ All in `src/engine/`.
 | `allStar.ts` | All-Star Weekend |
 | `hof.ts` | Hall of Fame eligibility and voting |
 | `media.ts` | Preseason predictions: standings, win totals, title and award picks |
+| `tendencies.ts` | Playing style: ten evolving tendencies per player, their targets, summer and monthly evolution, and the multipliers the engine plays (`effTend`) |
 | `development.ts` | Where development lands: each player's development profile, the body's own track, work ethic, the coaching multiplier |
 | `potential.ts` | Potential as a ceiling: skill ceilings, the development plan and hidden pace, true potential vs the league's scouting read |
 | `environment.ts` | Development environment: team budgets (AI teams' from their owners), the capped environment multiplier, role reps |

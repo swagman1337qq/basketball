@@ -110,7 +110,9 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number; usg?: number } // usg: how often he ends a possession (shot volume)
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number } // usg: how often he ends a possession (shot volume); pass: how often he's the passer on a teammate's make
+// Players carry evolving playing-style tendencies (tendencies.ts, effTend) that fill these in; autoTend
+// below is only the fallback for a player without them.
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
 // replaces it). A non-shooter barely takes threes (a big with no range lives at the rim); pull-up
 // threes need a handle, so a spot-up shooter who can't dribble takes his threes from the corners and
@@ -138,7 +140,9 @@ export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend; pers?: a
   const w = {} as Record<Zone, number>;
   let tot = 0;
   for (const z of ZONES) {
-    let x = BASE.zone[z].share * n.shareCorr[z] * Math.exp(0.04 * (sk[z] - n.skill[z]));
+    // Skill tilts the mix a little right away; most of how a better shooter shoots more comes through his
+    // tendencies, which follow his skills gradually (tendencies.ts).
+    let x = BASE.zone[z].share * n.shareCorr[z] * Math.exp((p.tend?.[z] != null ? 0.02 : 0.04) * (sk[z] - n.skill[z]));
     if (z === 'rim' && roles.includes('Slasher')) x *= 1.3;
     if ((z === 'c3' || z === 'atb') && roles.includes('Floor spacer')) x *= 1.25;
     if (z === 'c3' && roles.includes('3-and-D wing')) x *= 1.4;
@@ -457,7 +461,7 @@ export class GameSim {
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1), 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * Math.exp((p.r.oiq - 50) / 70) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * Math.exp((p.r.oiq - 50) / 70) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);

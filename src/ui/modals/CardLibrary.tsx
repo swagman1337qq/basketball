@@ -122,7 +122,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         {TRAITS.map(t => { const on = !!draft.pers?.[t.k]; return <button key={t.k} title={t.desc} className={on ? 'btn btn-primary' : 'btn btn-ghost'} style={{ fontSize: '11.5px', padding: '2px 8px' }} onClick={() => set(d => { d.pers = { ...(d.pers || {}), [t.k]: !on }; })}>{on ? '✓ ' : ''}{t.label}</button>; })}
       </div>
 
-      <div style={{ fontWeight: 600, fontSize: '12.5px' }}>Shot tendencies <span style={{ ...muted, fontWeight: 400 }}>(100% = what his ratings suggest)</span></div>
+      <div style={{ fontWeight: 600, fontSize: '12.5px' }}>Tendency fine-tuning <span style={{ ...muted, fontWeight: 400 }}>(multipliers on top of his evolving playing style; 100% = none; they fade each summer unless locked)</span></div>
       <div style={rgrid}>{TENDS.map(([k, l]) => <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>{l}</span><NumInput value={Math.round((draft.tend?.[k] ?? 1) * 100)} min={20} max={300} step={5} onValue={v => set(d => { d.tend = { ...(d.tend || {}), [k]: v / 100 }; if (v === 100) delete d.tend[k]; })} width={62} suffix="%" /></label>)}</div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
