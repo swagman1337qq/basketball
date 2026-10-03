@@ -1,20 +1,18 @@
 // Roster: any team, any season. The header has the team's record, conference rank, team
 // rating, margin of victory, average age, roster spots, payroll, cap and profit, the cap
 // indicator, play-through-injury settings, sorting, a team note and the assistant coaches'
-// lineup advice. The table has jersey numbers, a starter/bench color block, badges with
-// hover cards, a minutes control and moods that explain themselves. Players are grouped
+// lineup advice. The table has jersey numbers, a starter/bench color block, a minutes
+// control and moods that explain themselves (badges are on the player's profile). Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
 // two-way players and, in the offseason, Exhibit 10 camp deals.
 import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
-import { BadgeChip } from '../BadgeChip';
 import { howAcquired } from '../../engine/txlog';
 import { baseline, deltas, fmtChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
 import { teamRating } from '../../engine/ratings';
-import { knownBadges } from '../../engine/scoutReport';
 import { nums, rosterMax, stdIds, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
 import { financesOf } from '../../engine/frontOffice';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
@@ -59,7 +57,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const startersSet = new Set(cur ? mainIds.slice(0, 5) : []);
   const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
-    const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id), bs = knownBadges(gm, s, p).list.slice(0, 3);
+    const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id);
     const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
     return (
       <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDrag(id); }} onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== id) move(drag, id); setDrag(null); }}
@@ -76,7 +74,6 @@ export function RosterScreen({ vm }: { vm: VM }) {
             <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
             <span style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400 }}>{p.name}</span>
             {p.native && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>({p.native})</span>}
-            {cur && bs.map(b => <BadgeChip key={b.key} b={b} small />)}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
             {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
             {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}

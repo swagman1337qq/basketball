@@ -48,6 +48,7 @@ const rtier = (v: number): [string, string] => { const t = RTIERS.find(x => v >=
 
 export function ProfileHeader({ vm }: { vm: VM }) {
   const { gm, s, p, tid, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl;
+  const [allFor, setAllFor] = useState<number | null>(null); // the player whose badges are all showing
   if (!p.id) return null;
   const t = gm.seasonTotals(p, gm.Y), gp = t?.gp || 0, f1 = (v: number) => v.toFixed(1);
   const kb = knownBadges(gm, s, p), badges = kb.list, T = s.teams;
@@ -82,8 +83,9 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           </div>
           {badges.length > 0 && (
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {badges.slice(0, 7).map(b => <BadgeChip key={b.key} b={b} />)}
-              {badges.length > 7 && <span style={{ ...chip, ...muted }}>+{badges.length - 7}</span>}
+              {(allFor === p.id ? badges : badges.slice(0, 7)).map(b => <BadgeChip key={b.key} b={b} />)}
+              {badges.length > 7 && (() => { const more = badges.length - 7, all = allFor === p.id; return (
+                <button className="hv4" onClick={() => setAllFor(all ? null : p.id)} aria-expanded={all} title={all ? 'Show only the first 7' : more + ' more badge' + (more === 1 ? '' : 's') + ': ' + badges.slice(7).map(b => b.name).join(', ') + '. Click to show them; hover any badge for what it does (all are explained under Badges on the Overview tab).'} style={{ ...chip, cursor: 'pointer', background: 'transparent', color: 'var(--color-accent-700)' }}>{all ? 'Show fewer' : '+' + more + ' more badge' + (more === 1 ? '' : 's')}</button>); })()}
               {kb.partial && <span style={{ ...chip, ...muted }} title="Your scouts haven’t seen enough of him to know all his badges">More unknown · scout him</span>}
             </div>
           )}

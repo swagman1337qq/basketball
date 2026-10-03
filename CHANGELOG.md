@@ -5,6 +5,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-03
 
 ### Changed
+- **Badges are off the Roster table**, which was getting too busy. They're still on player profiles, in free agency and on Tactics.
+- **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 - **Tendencies now use only stats the NBA actually tracks, in the NBA's own units.** The full list:
   - **Usage rate** (USG%)
   - **Drives** per 36 minutes
