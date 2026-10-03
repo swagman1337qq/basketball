@@ -16,6 +16,7 @@ import { cyr, namePools, nativeMaps } from './world';
 import { FIRST_WEIGHT, MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
+import { US_CENSUS } from './usCensusNames';
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
@@ -135,6 +136,23 @@ NATIONS.forEach(([code, name, , , spec]) => {
 // Every name pool (base, heritage extras, new pools and additions), native-script maps,
 // and frequency weights (Chinese and Taiwanese surnames), built once.
 let POOLS: any = null, NATIVE: any = null;
+// American names (usb, usw) also come from the Census 2020 name tables (usCensusNames.ts): thousands
+// of given names and surnames, weighted by how common they are. A given name comes from the pool's
+// curated core of today's common player names (the Jalen family and the rest, FIRST_WEIGHT) one time in
+// five, from the census list otherwise; surnames always come from the census list.
+type Wide = { names: string[]; cum: Float64Array };
+const WIDE: Record<string, { f: Wide; l: Wide }> = {};
+const CORE_F = 0.2;
+function decodeWide(s: string, pts: number[][]): Wide {
+  const names = s.split('|'), cum = new Float64Array(names.length), L = Math.log; let acc = 0, j = 0;
+  for (let i = 0; i < names.length; i++) {
+    const r = i + 1; while (j < pts.length - 2 && pts[j + 1][0] < r) j++;
+    const [r0, w0] = pts[j], [r1, w1] = pts[Math.min(j + 1, pts.length - 1)];
+    acc += r1 === r0 ? w0 : Math.exp(L(w0) + (L(w1) - L(w0)) * (L(r) - L(r0)) / (L(r1) - L(r0))); cum[i] = acc; // weights between the stored ranks, on a log-log line
+  }
+  return { names, cum };
+}
+const drawWide = (x: Wide, rnd: () => number) => { const t = rnd() * x.cum[x.cum.length - 1]; let lo = 0, hi = x.cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (x.cum[m] < t) lo = m + 1; else hi = m; } return x.names[lo]; };
 const WEIGHT: Record<string, Record<string, number>> = {};
 export function allPools(): Record<string, { f: string[]; l: string[]; lf?: number }> { build(); return POOLS; }
 export function allNative() { build(); return NATIVE; }
@@ -152,7 +170,20 @@ function build() {
   // Vietnamese: weighted family names; full names (with middle names) come from vietnameseName().
   POOLS.vn = { ...(POOLS.vn || {}), f: VN_GIVEN.map(e => e.split('|')[0]), l: VN_SURNAME_LIST.slice() }; WEIGHT.vn = VN_SURNAME_WEIGHT; NATIVE.vn = { ...(NATIVE.vn || {}), ...VN_NATIVE };
   POOLS.tw = { lf: 1, f: [], l: [] }; add('tw', 'f', TW_POOL.f); add('tw', 'l', TW_POOL.l.map(x => x[0])); WEIGHT.tw = Object.fromEntries(TW_POOL.l.map(([e, w]) => [e.split('|')[0], w]));
+  Object.entries(US_CENSUS).forEach(([k, v]) => { WIDE[k] = { f: decodeWide(v.f, v.fw), l: decodeWide(v.l, v.lw) }; });
 }
+
+// A given name from a pool: the census list for the American pools (now and then the curated core),
+// otherwise the pool's own names, weighted where we have weights (spelling variants are rarer than the
+// name they come from).
+function givenFrom(fp: string, rnd: () => number) {
+  build(); const NP: any = POOLS;
+  if (WIDE[fp] && rnd() >= CORE_F) return drawWide(WIDE[fp].f, rnd);
+  const w = FIRST_WEIGHT[fp], a = NP[fp].f as string[]; if (!w) return a[Math.floor(rnd() * a.length)];
+  let r = rnd() * a.reduce((t, x) => t + (w[x] ?? 1), 0); for (const x of a) { if ((r -= w[x] ?? 1) < 0) return x; } return a[a.length - 1];
+}
+// An American given name for a player born in North America to immigrant parents (Game.bio).
+export const americanFirst = (race: string, rnd: () => number = Math.random) => givenFrom(race === 'black' ? 'usb' : 'usw', rnd);
 
 export function groupsOf(country: string): Group[] { return GROUPS[country] || []; }
 export function pickGroup(country: string, rnd: () => number = Math.random): Group | null {
@@ -173,10 +204,9 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   let fp = pool(grp.f), lp = pool(grp.l);
   if (!NP[fp]?.f?.length) fp = NP[lp]?.f?.length ? lp : 'us';
   if (!NP[lp]?.l?.length) lp = NP[fp]?.l?.length ? fp : 'us';
-  // Surnames by frequency where we have it (Chinese, Taiwanese), otherwise uniformly.
-  const pickL = () => { const w = WEIGHT[lp], a = NP[lp].l as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] || 0.05), 0); for (const x of a) { if ((r -= w[x] || 0.05) < 0) return x; } return a[a.length - 1]; };
-  // First names: weighted where we have it (spelling variants are rarer than the name they come from).
-  const pickF = () => { const w = FIRST_WEIGHT[fp], a = NP[fp].f as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] ?? 1), 0); for (const x of a) { if ((r -= w[x] ?? 1) < 0) return x; } return a[a.length - 1]; };
+  // Surnames by frequency where we have it (the census for American pools; Chinese, Taiwanese), otherwise uniformly.
+  const pickL = () => { if (WIDE[lp]) return drawWide(WIDE[lp].l, rnd); const w = WEIGHT[lp], a = NP[lp].l as string[]; if (!w) return pick(a); let r = rnd() * a.reduce((t, x) => t + (w[x] || 0.05), 0); for (const x of a) { if ((r -= w[x] || 0.05) < 0) return x; } return a[a.length - 1]; };
+  const pickF = () => givenFrom(fp, rnd);
   const f = pickF(); let l = pickL();
   for (let i = 0; l === f && i < 5; i++) l = pickL();
   const same = fp === lp;

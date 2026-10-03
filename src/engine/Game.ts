@@ -10,7 +10,7 @@ import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
-import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
+import { americanFirst, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { effTend, ensureTen, evolveTendencies, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, syncOvr, teamRating, wngBonus } from './ratings';
@@ -468,7 +468,7 @@ export class Game {
     // Born in North America to immigrant parents: about a third get an American first name
     // and keep the family surname (the way Okafor or Achiuwa did).
     let amerFirst = '';
-    if (nm && amer) { const AP = allPools(), ps = AP[race === 'black' ? 'usb' : 'usw']; amerFirst = pick(ps.f); disp = amerFirst + ' ' + nm.last; native = ''; }
+    if (nm && amer) { amerFirst = americanFirst(race, rnd); disp = amerFirst + ' ' + nm.last; native = ''; }
     else if (nm) { disp = nm.name; native = nm.native; }
     const nmx = nm && amer ? { first: amerFirst, last: nm.last, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' } : nm ? { first: nm.first, last: nm.last, nativeFirst: nm.nativeFirst, nativeLast: nm.nativeLast, familyFirst: nm.familyFirst, nOrder: nm.nOrder, nSep: nm.nSep } : { first: f, last: l, nativeFirst: '', nativeLast: '', familyFirst: false, nOrder: 'fl', nSep: ' ' };
     // Native American: some belong to two tribal nations (like Kiowa and Cherokee), and many are

@@ -154,7 +154,7 @@ Screens: Finances, Owner, Career, Press room, League finances. Code: `frontOffic
 - Native-script names next to romanized ones (Cyrillic, Arabic, Thai, Vietnamese diacritics and more).
 - Heritage, birthplaces and hometowns; national-team eligibility.
 - Personality traits (Egotistic, Clutch, Selfish, Streaky and more), hidden intangibles and hidden gems.
-- American first names weighted by frequency, with spelling variants (the Jalen family, Mikal/Mikel/Mikael) rarer than the names they come from.
+- American names from the U.S. Census Bureau's 2020 Census name tables (`src/data/usCensusNames.ts`, generated): about 3,000 first names and 5,000 surnames for African American players (`usb`), 1,500 and 6,000 for white American players (`usw`), weighted by real frequency per group, first names leaned toward today's players' generation (by each name's share of the young "two or more races" population). `heritage.ts` reads them as weighted lists (`decodeWide`/`drawWide`); a curated core of current player names (the Jalen family with its spelling variants, `FIRST_WEIGHT`) supplies one given name in five (`CORE_F`); `americanFirst` serves North-American-born children of immigrants.
 - Ready-made player cards: Luka Dončić plus seven rookies (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard), each tuned against his real rookie season translated to today's league.
 - Families: sons and brothers of former players.
 - Generated faces or uploaded headshots; retirements and an optional retirement age.
@@ -255,7 +255,7 @@ Tick these off (or delete them) as they're fixed. Severity is a first guess.
 - [ ] **No automated tests.** There's no test runner; a change to the engine is only checked by playing. A headless "sim N seasons and check invariants" test would catch most regressions (players on two rosters, NaN salaries, stuck phases).
 - [ ] **Type checking catches little.** `tsconfig.json` has `strict: false` and `noImplicitAny: false`, and most engine code is `any`.
 - [ ] **No error boundary, and opening a league isn't guarded.** Nothing in `src/` catches render errors, and `App.tsx` calls `Game.load()` without a try/catch, so one bad save or render error blanks the whole app.
-- [ ] **Large main bundle.** The main JS chunk is about 1.55 MB (520 KB gzipped), over the 800 KB warning. Two lazy screens don't split because they're also imported directly: `Tour.tsx` by `SettingsScreen.tsx` and `LeagueStatsScreen.tsx` by `StatsScreen.tsx`.
+- [ ] **Large main bundle.** The main JS chunk is about 1.55 MB (520 KB gzipped), over the 800 KB warning. The Census name tables (`usCensusNames.ts`, about 115 KB) are a good candidate to load on demand. Two lazy screens don't split because they're also imported directly: `Tour.tsx` by `SettingsScreen.tsx` and `LeagueStatsScreen.tsx` by `StatsScreen.tsx`.
 - [x] **The GitHub Actions deploy never runs.** Fixed: the workflow now runs on every push to the development branch and publishes to `gh-pages` with the same script as `npm run deploy`.
 - [x] **`npm run deploy` can leave a stray worktree.** Fixed: an unchanged site publishes nothing, and the scratch worktree is always removed.
 - [ ] **Dead check in `Game.sim()`.** It refuses to sim while an inbox item has `block`, but nothing ever sets `block` (`Game.ts`, `sim()`).
