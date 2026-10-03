@@ -6,7 +6,7 @@ import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, ROSTER_MIN, rookieDeal, rosterMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
-import { acceptance, aiTerms, applySigning, buyoutBlocked, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
+import { acceptance, aiTerms, applySigning, buyoutBlocked, CAP_METHODS, forceSignBlock, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
 import { fmtMoney as money } from './capModel';
@@ -46,13 +46,21 @@ export function defaultTerms(g: Game, s: any, tid: number, p: any, methods: any[
 }
 
 // ── The user signs a player (from the signing dialog in s.dialog) ────────────────────
-export function userSign(g: Game) {
+// Every rule applies, God Mode included. force: God Mode's Force Sign, the one way past the salary cap
+// (forceSignBlock: roster limits still apply) and he signs; a cap method he couldn't use becomes a
+// plain God Mode contract, so no exception is spent and no hard cap is triggered.
+export function userSign(g: Game, force = false) {
   g.setState(s => {
     const dg = s.dialog; if (!dg || dg.type !== 'sign') return null;
     const P = g.db.P, p = P[dg.pid], tid = s.me, T = s.teams, N = nums(g);
     const t: Terms = { method: dg.method, amt: +dg.amt, years: +dg.years, opt: dg.opt || null, kicker: +(dg.kicker || 0) / 100, ntc: !!dg.ntc, inc: (dg.inc || []).map(x => ({ ...x })) };
     const err = (why: string) => ({ dialog: { ...dg, err: why } });
-    if (!s.god) {
+    if (force) {
+      if (!s.god) return null;
+      const why = forceSignBlock(g, s, tid, p, t.method); if (why) return err(why);
+      const likely = t.inc!.filter(x => x.likely).reduce((a, x) => a + x.amt, 0);
+      if (CAP_METHODS.includes(t.method) && !validateSigning(g, s, tid, p, { ...t, amt: t.amt + likely }).ok) t.method = 'god';
+    } else {
       if (p.abroad && p.abroad.clause === 'Buyout') return err('His club holds a buyout clause: agree a buyout on the Overseas screen first.');
       if (buyoutBlocked(g, s, tid, p)) return err('Above the 1st apron you can’t sign a player waived this season whose salary was over the mid-level (' + N.NTMLE + 'M).');
       const likely = t.inc!.filter(x => x.likely).reduce((a, x) => a + x.amt, 0);

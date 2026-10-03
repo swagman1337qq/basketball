@@ -1746,6 +1746,8 @@ export class Game {
   }
   // Salary in a future season: this season's salary with the contract's annual raises.
   salAt(p, y) { const r = 1 + (p.raise || 0); if (y <= p.exp) return +(p.amt * Math.pow(r, Math.max(0, y - this.Y))).toFixed(2); if (p.ext && y <= p.exp + p.ext.yrs) return +(p.ext.amt * Math.pow(1 + (p.ext.raise ?? p.raise ?? 0), y - p.exp - 1)).toFixed(2); return 0; }
+  // God Mode's Force Sign on the signing dialog: past the salary cap (cbaFlow.userSign).
+  forceSign() { if (this.state.dialog?.type === 'sign' && this.state.god) userSign(this, true); }
   confirmDialog() {
     const dg0 = this.state.dialog;
     if (dg0?.type === 'sign') return userSign(this);

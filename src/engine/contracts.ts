@@ -3,7 +3,7 @@
 import type { Game } from './Game';
 import { addTx } from './txlog';
 import { callUpNote } from './gleague';
-import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, signingMethods, stdIds, teamSalary, yosOf, deadSchedule, type Method } from './cba';
+import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, rosterMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, deadSchedule, type Method } from './cba';
 
 export interface Terms { method: string; amt: number; years: number; opt?: 'player' | 'team' | null; inc?: any[]; kicker?: number; ntc?: boolean }
 
@@ -63,9 +63,9 @@ function describe(g: Game, t: Terms, p: any) {
   return (t.method === 'twoWay' || t.method === 'tenDay' || t.method === 'ex10' ? '' : '$' + t.amt.toFixed(2) + 'M × ' + t.years + ' yr' + (t.years === 1 ? '' : 's') + ' through ' + p.exp + ' ') + '(' + (lab[t.method] || t.method) + ')' + (p.opt ? ', ' + p.opt.kind + ' option' : '');
 }
 
-// Can this signing go through? (Validates against the CBA methods.)
+// Can this signing go through? (Validates against the CBA methods.) God Mode too: only its Force Sign
+// (forceSignBlock) skips the salary cap.
 export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms): { ok: boolean; why?: string; m?: Method } {
-  if (s.god) return { ok: true };
   const m = signingMethods(g, s, tid, p).find(x => x.key === t.method);
   if (!m) return { ok: false, why: 'That signing method isn’t available.' };
   if (!m.ok) return { ok: false, why: m.why || 'Not available', m };
@@ -81,6 +81,19 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
   if (hc === 'AP1' && after > N.AP1) return { ok: false, why: 'This would put you over the 1st apron, where you’re hard-capped.', m };
   if (hc === 'AP2' && after > N.AP2) return { ok: false, why: 'This would put you over the 2nd apron, where you’re hard-capped.', m };
   return { ok: true, m };
+}
+
+// God Mode's Force Sign: the salary cap doesn't apply (no cap room, exception or apron needed, and a
+// method he can't use counts as a plain God Mode contract) and he signs. Roster limits and an overseas
+// club's buyout clause still do. The reason it can't, or null.
+export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min', 'dpe'];
+export function forceSignBlock(g: Game, s: any, tid: number, p: any, method: string): string | null {
+  if (p.abroad && p.abroad.clause === 'Buyout') return 'His club holds a buyout clause: agree a buyout on the Overseas screen first.';
+  const ids = s.rosters[tid] || [], std = stdIds(g, ids).length, lim = rosterMax(s);
+  if (method === 'twoWay') return twoWayIds(g, ids).length >= TWO_WAY_MAX ? 'You already have ' + TWO_WAY_MAX + ' two-way players.' : null;
+  if (method === 'ex10') return std >= 21 ? 'Camp roster full (21).' : null;
+  if (method === 'hardship') return null;
+  return std >= lim ? 'Roster full (' + lim + (lim === 15 ? ' in season' : ' in the offseason') + '): waive or trade someone first.' : null;
 }
 
 // How an AI team would sign a player now (or null).

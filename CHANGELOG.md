@@ -14,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
 
 ### Changed
+- **God Mode signings: Sign plays by the rules, Force Sign doesn't.** In God Mode the regular **Sign** button used to skip every rule. It now works exactly as it does outside God Mode: cap room, exceptions, aprons and hard caps, roster limits, contract rules, and the player can turn you down. A new pink **Force Sign** button is the one way past the salary cap: it signs him on the terms you set even when that puts you over the cap, with no cap room or exception needed (it doesn't use up an exception or trigger a hard cap), and he accepts. Roster limits still apply, so waive someone first if the roster is full.
 - **Your team is highlighted in its own color.** On League leaders, Awards, League finances and Team history, the team you're running now (and its players) is marked in its primary team color instead of lavender, with the text switching between dark and white to stay readable. Only that team gets it: when you run several teams, the others aren't highlighted. Another team's history still marks its current players in lavender.
 - **Tendencies are now the shot categories the NBA tracks, nothing else.** Every player has nine, shown in the NBA's own units:
   - **Usage rate** (USG%)

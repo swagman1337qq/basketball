@@ -1,14 +1,15 @@
 // Signing and release dialogs. Signing: every CBA method the team can use for this player
 // (with the reason when one is unavailable), years, first-year salary, options, trade kicker,
-// no-trade clause and incentives, and a live read on whether he'd sign. Release: waive,
-// stretch or buy out, with the dead money each season.
+// no-trade clause and incentives, and a live read on whether he'd sign. Every rule applies in God
+// Mode too; God Mode adds Force Sign, which signs him past the salary cap. Release: waive, stretch or
+// buy out, with the dead money each season.
 import type { VM } from '../vm';
 import { BIRD_LABEL, birdOf, capState, deadSchedule, nums, remainingGuaranteed, signingMethods, teamSalary, yosOf } from '../../engine/cba';
-import { acceptance, validateSigning } from '../../engine/contracts';
+import { acceptance, forceSignBlock, validateSigning } from '../../engine/contracts';
 import { buyoutWilling, defaultTerms } from '../../engine/cbaFlow';
 import { incentiveOptions } from '../../engine/frontOffice';
 import { fmtMoney } from '../../engine/capModel';
-import { muted, NumInput, Seg, godFill, godText } from '../kit';
+import { muted, NumInput, Seg, godFill } from '../kit';
 
 const lab: React.CSSProperties = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)', margin: '10px 0 4px' };
 const row: React.CSSProperties = { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' };
@@ -36,7 +37,7 @@ function Sign({ vm }: { vm: VM }) {
   const opts = !fixedAmt && m.key !== 'dpe' ? incentiveOptions(gm, s, p, tid, amt) : [];
   const likely = inc.filter(x => x.likely).reduce((a, x) => a + x.amt, 0);
   const terms = { method: m.key, amt, years, opt: years >= 2 ? dg.opt || null : null, kicker: +(dg.kicker || 0) / 100, ntc: !!dg.ntc, inc };
-  const v = validateSigning(gm, s, tid, p, { ...terms, amt: amt + likely });
+  const v = validateSigning(gm, s, tid, p, { ...terms, amt: amt + likely }), fsb = s.god ? forceSignBlock(gm, s, tid, p, m.key) : null;
   const acc = acceptance(gm, s, tid, p, { ...terms, amt: amt + inc.reduce((a, x) => a + x.amt * (x.likely ? 1 : 0.6), 0) });
   const hit = m.key === 'twoWay' ? 0 : m.key === 'min' && years === 1 && yos >= 2 ? N.min(2) : amt + likely;
   const pay = teamSalary(gm, s, tid), after = pay + hit, cs = capState(s, tid);
@@ -57,7 +58,7 @@ function Sign({ vm }: { vm: VM }) {
         <div style={lab}>Terms</div>
         <div style={row}>
           <span>First-year salary</span>
-          <NumInput value={amt} min={fixedAmt && !s.god ? amt : 0} max={s.god ? Math.max(m.maxFirst, gm.MAXC * 2) : fixedAmt ? amt : m.maxFirst} step={0.1} width={90} disabled={fixedAmt && !s.god} onValue={x => set({ amt: x })} suffix={s.god ? '$M · God Mode: any amount' : '$M · max ' + fmtMoney(m.maxFirst)} />
+          <NumInput value={amt} min={fixedAmt && !s.god ? amt : 0} max={s.god ? Math.max(m.maxFirst, gm.MAXC * 2) : fixedAmt ? amt : m.maxFirst} step={0.1} width={90} disabled={fixedAmt && !s.god} onValue={x => set({ amt: x })} suffix={'$M · max ' + fmtMoney(m.maxFirst) + (s.god ? ' (Force Sign: any amount)' : '')} />
         </div>
         {m.maxYears > 0 && (
           <div style={{ ...row, marginTop: '6px' }}>
@@ -104,8 +105,8 @@ function Sign({ vm }: { vm: VM }) {
       </div>
       <div className="dialog-actions">
         <button className="btn btn-secondary" onClick={vm.closeDialog}>Cancel</button>
-        {s.god && (!v.ok || !acc.ok) && <span style={{ ...godText, fontSize: '12px', alignSelf: 'center', marginRight: 'auto' }}>God Mode: signing anyway, rules off</span>}
-        <button className="btn btn-primary" disabled={!s.god && !v.ok} title={!s.god && v.ok && !acc.ok ? 'His camp has said no to these terms: he’ll most likely turn it down' : undefined} style={s.god && (!v.ok || !acc.ok) ? godFill : undefined} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{!s.god && !acc.ok ? 'Make the offer anyway' : m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
+        {s.god && <button className="btn" disabled={!!fsb} style={{ ...godFill, marginRight: 'auto', opacity: fsb ? 0.5 : 1 }} title={fsb || 'God Mode: sign him on these terms whatever the salary cap says (no cap room, exception or apron needed), and he accepts. Roster limits still apply.'} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.forceSign(); }}>Force Sign</button>}
+        <button className="btn btn-primary" disabled={!v.ok} title={!v.ok ? v.why + (s.god ? ' Force Sign goes past the salary cap.' : '') : !acc.ok ? 'His camp has said no to these terms: he’ll most likely turn it down' : undefined} onClick={() => { gm.setState(st => ({ dialog: { ...t0, ...st.dialog } })); gm.confirmDialog(); }}>{!acc.ok ? 'Make the offer anyway' : m.key === 'offer' ? 'Submit offer sheet' : 'Sign player'}</button>
       </div>
     </>
   );
