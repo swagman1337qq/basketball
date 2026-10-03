@@ -15,7 +15,7 @@ There's no server. The whole game runs in the browser, saves to IndexedDB and is
 ```mermaid
 flowchart TD
   subgraph UI["Browser UI · React 19 · src/ui"]
-    Screens["37 menu screens<br/>Team · Management · League"]
+    Screens["38 menu screens<br/>Team · Management · League"]
     Pages["Player and team pages, pop-ups<br/>profiles · box scores · notices"]
     Live["Live game viewer<br/>ui/live/"]
   end
@@ -79,13 +79,15 @@ flowchart LR
 - Live game: scoreboard, box score, play-by-play, five speeds, step or sim to the end.
 - Box score for every game; per game, totals, per 36, shooting and advanced stats; league leaders; a ring by every season a player won the title (`hof.ts` `titleYears`: the champion's roster at the final buzzer, kept as `history[].ring`; older seasons fall back to a playoff line for the champion). Team history and the Hall of Fame count titles with it.
 
-Screens: Live game, Box score, Stats, League stats, Tactics. Code: `sim.ts`, `tactics.ts`, `norms.ts`, `advanced.ts`, `leaders.ts`, `ui/live/`.
+- League leaders (`LeagueLeadersScreen.tsx`): the top 10 in every box-score, shooting and advanced stat for any season, per game or totals, by the bold numbers' qualifying rules (`leaders.ts` `leaderBoards`); your players highlighted (this season: on your roster; earlier: played for you that year).
+
+Screens: Live game, Box score, Stats, League stats, League leaders, Tactics. Code: `sim.ts`, `tactics.ts`, `norms.ts`, `advanced.ts`, `leaders.ts`, `ui/live/`.
 
 ### Season and league
 - 30 teams (15 per conference), 82 games, standings by conference or division.
 - All-Star Weekend in mid-February, trade deadline in early February.
 - Play-in, East and West best-of-7 brackets and the Finals, with "if the season ended today" views; when the Finals end, the champion's banner hangs under the Finals (`ChampBanner.tsx`).
-- Awards voted by editable formulas: MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, All-League, All-Defense, All-Rookie and more.
+- Awards voted by editable formulas: MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, All-League, All-Defense, All-Rookie and more; the Awards screen highlights your players (and you as Coach of the Year) in the shared lavender.
 - Media preseason predictions and a press room.
 - Hall of Fame (3-season wait, up to five a year), league history, league-wide transactions.
 - Expansion from 45 ready-made franchises or your own design, with an expansion draft.
@@ -180,7 +182,7 @@ The menu is `NAV` in `src/ui/viewModel.ts`; `GMView.tsx` picks the component. Sc
 |---|---|
 | Team | Dashboard → `DashboardScreen` + `InboxCard` · Schedule → `ScheduleScreen` · Roster → `RosterScreen` · Depth chart → `DepthChartScreen` · Development → `DevelopmentScreen` · Tactics → `TacticsScreen` · Finances → `FinancesScreen` · Cap sheet → `CapSheetScreen` · Contracts → `ContractsScreen` · Team history → `TeamHistoryScreen` |
 | Management | Trade → `TradeScreen` · Pre-Free Agency → `PreFAScreen` · Free agency → `FreeAgencyScreen` · CCP → `CcpScreen` · Draft → `DraftScreen` + `MockDrafts` · Shortlist → `ShortlistScreen` · Scouting → `ScoutingScreen` + `ScoutReportsSection` · Overseas → `OverseasScreen` · Owner → `OwnerScreen` · Career → `CareerScreen` · Player cards† → `CardsScreen` |
-| League | My teams† → `MyTeamsScreen` · Standings → `StandingsScreen` · Transactions → `TransactionsScreen` · Playoffs → `PlayoffsScreen` · Awards → `AwardsScreen` + `AwardFormulas` · Predictions → `PredictionsScreen` · Hall of Fame → `HallOfFameScreen` · Stats → `StatsScreen` + `LeagueStatsScreen` · Cap outlook → `CapOutlookScreen` · League finances → `LeagueFinancesScreen` · Settings → `SettingsScreen` + `RetirementSetting` + `ExpansionPicker` · Tutorial → `ui/Tour.tsx` · What's new → `ChangelogScreen` · League editor† → `LeagueEditorScreen` · Daily schedule† → `DailyScheduleScreen` · Press room → `PressScreen` |
+| League | My teams† → `MyTeamsScreen` · Standings → `StandingsScreen` · Transactions → `TransactionsScreen` · Playoffs → `PlayoffsScreen` · Awards → `AwardsScreen` + `AwardFormulas` · Predictions → `PredictionsScreen` · Hall of Fame → `HallOfFameScreen` · Stats → `StatsScreen` + `LeagueStatsScreen` · League leaders → `LeagueLeadersScreen` · Cap outlook → `CapOutlookScreen` · League finances → `LeagueFinancesScreen` · Settings → `SettingsScreen` + `RetirementSetting` + `ExpansionPicker` · Tutorial → `ui/Tour.tsx` · What's new → `ChangelogScreen` · League editor† → `LeagueEditorScreen` · Daily schedule† → `DailyScheduleScreen` · Press room → `PressScreen` |
 | Not in the menu | Live game → `LiveGameScreen` + `ui/live/` · Play-in → `PlayinScreen` · Lottery → `LotteryScreen` · Title screen → `ui/TitleScreen.tsx` · Pop-ups → `ui/modals/` (player profile, team, box score, contract, owner letter, GM setup, God Mode player editor, card library, notices, confirm) |
 
 ## Engine modules
@@ -196,7 +198,7 @@ All in `src/engine/`.
 | `ratings.ts` | Team rating and player badges |
 | `ratingDist.ts` | Rating percentiles across the league |
 | `advanced.ts` | Basketball-Reference-style advanced stats |
-| `leaders.ts` | League leaders (bold numbers) |
+| `leaders.ts` | League leaders: the bold numbers, and the League leaders page's top-10 boards |
 | `awards.ts` | Season awards from formulas |
 | `formula.ts` | Safe expression compiler for award formulas |
 | `allStar.ts` | All-Star Weekend |

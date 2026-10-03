@@ -26,6 +26,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - God Mode edits them in the same units.
 
 ### Added
+- **League leaders.** A new **League leaders** tab (under League) shows the top 10 in every stat for any season: points, rebounds, assists and the rest per game or as totals, the shooting percentages, and advanced stats (PER, true shooting, usage, win shares, box plus-minus, VORP, EWA and more). It uses the same qualifying rules as the bold league-leading numbers. Your players are highlighted in lavender.
+- **The Awards screen highlights your players** in lavender wherever they appear: winners, the voting, the All-League, All-Defensive and All-Rookie teams, the All-Stars and the Finals MVPs (and you, when you're Coach of the Year).
 - **Championship rings in player stats.** On a player's Stats tab, a ring marks every season he won the title, as Basketball-Reference does. Only players on the champion's roster when the Finals ended get one: from now on the league remembers that roster (for earlier seasons, it's the champion's players who played in those playoffs). Team history and the Hall of Fame count titles the same way.
 - **League finances.** A new **League finances** tab (under League) lists every team's market size, attendance, ticket price, revenue, profit, payroll, cap space, open roster spots, strategy and budgets (scouting, coaching, health, facilities). Your team is highlighted in lavender. Sort by any column; **Trade with** opens a trade with that team.
 - **A championship banner on the Playoffs screen.** When the Finals end, the champion's banner (its colors, the year and its crest) hangs under the Finals in the bracket.

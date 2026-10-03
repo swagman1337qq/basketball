@@ -1,14 +1,16 @@
-// Season awards: individual honors with the top of the voting, and the All-League teams.
+// Season awards: individual honors with the top of the voting, and the All-League teams. Your
+// players (and you, for Coach of the Year) are highlighted wherever they appear.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { h4Style, Kicker, Link, muted, Seg } from '../kit';
+import { h4Style, HL, hlRow, Kicker, Link, muted, Seg } from '../kit';
 import { awardDefs, runVote, VOTERS } from '../../engine/awards';
 
 const INDIV: [string, string][] = [['mvp', 'Most Valuable Player'], ['dpoy', 'Defensive Player of the Year'], ['roy', 'Rookie of the Year'], ['smoy', 'Sixth Man of the Year'], ['mip', 'Most Improved Player']];
 
 export function AwardsScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, open, openTeam } = vm.ctx;
+  const { gm, s, T, logo, open, openTeam, isMine } = vm.ctx;
   const P = gm.db.P;
+  const lit = (tid: number) => hlRow(isMine(tid) ? HL.mine : null), sub = (tid: number) => (isMine(tid) ? { opacity: 0.75 } : muted); // your players: lavender, with dark text
   const seasons = Object.keys(s.awards || {}).map(Number).sort((a, b) => b - a);
   const [pick, setPick] = useState<number | null>(null);
   const [openV, setOpenV] = useState<Record<string, boolean>>({});
@@ -27,7 +29,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
       <table className="table" style={{ fontSize: '12px', marginTop: 4 }}>
         <thead><tr><th style={{ padding: '3px 6px' }}>#</th><th style={{ padding: '3px 6px' }}>Candidate</th><th style={{ padding: '3px 6px', textAlign: 'right' }} title={'First-place votes (of ' + VOTERS + ')'}>1st</th><th style={{ padding: '3px 6px', textAlign: 'right' }}>Pts</th><th style={{ padding: '3px 6px' }}>Share</th></tr></thead>
         <tbody>{rows.map((x, i) => (
-          <tr key={i}><td style={{ padding: '3px 6px', color: 'var(--color-neutral-600)' }}>{i + 1}</td><td style={{ padding: '3px 6px' }}>{name(x)}</td><td style={{ padding: '3px 6px', textAlign: 'right' }}>{x.first}</td><td style={{ padding: '3px 6px', textAlign: 'right', fontWeight: i === 0 ? 600 : 400 }}>{x.pts}</td>
+          <tr key={i} style={lit(x.tid)}><td style={{ padding: '3px 6px', opacity: 0.7 }}>{i + 1}</td><td style={{ padding: '3px 6px' }}>{name(x)}</td><td style={{ padding: '3px 6px', textAlign: 'right' }}>{x.first}</td><td style={{ padding: '3px 6px', textAlign: 'right', fontWeight: i === 0 ? 600 : 400 }}>{x.pts}</td>
             <td style={{ padding: '3px 6px', minWidth: 90 }}><div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><div style={{ flex: 1, height: 6, background: 'var(--color-neutral-100)', borderRadius: 3 }}><div style={{ width: (x.pts / max * 100) + '%', height: 6, background: i === 0 ? 'var(--color-accent)' : 'var(--color-neutral-500)', borderRadius: 3 }} /></div><span style={{ width: 38, textAlign: 'right' }}>{(x.share * 100).toFixed(1)}%</span></div></td></tr>
         ))}</tbody>
       </table>
@@ -40,20 +42,20 @@ export function AwardsScreen({ vm }: { vm: VM }) {
         <div title={hint}><Kicker accent>{title}</Kicker></div>
         {w ? (
           <>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', ...(isMine(w.tid) ? { ...lit(w.tid), borderRadius: 'var(--radius-sm)', padding: '6px 8px', margin: '0 -8px' } : {}) }}>
               <div className="gm-face" style={{ width: 40, height: 60, flex: 'none', overflow: 'hidden' }}>{gm.faceEl(w.pid, w.tid)}</div>
               <div style={{ minWidth: 0 }}>
                 <Link onClick={() => open(w.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, lineHeight: 1.1 }}>{P[w.pid].name}</Link>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', ...muted }}>{logo(w.tid, 14)}{T[w.tid] ? T[w.tid].region + ' ' + T[w.tid].name : 'Free agent'} · {P[w.pid].pos}</div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', ...sub(w.tid) }}>{logo(w.tid, 14)}{T[w.tid] ? T[w.tid].region + ' ' + T[w.tid].name : 'Free agent'} · {P[w.pid].pos}</div>
                 <div style={{ fontSize: '12px' }}>{w.line}</div>
               </div>
             </div>
             <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: '6px', fontSize: '12px' }}>
-              {openV[k] ? <Voting list={list} k={k.toUpperCase()} name={x => <><Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link> <span style={muted}>{T[x.tid]?.abbr}</span></>} /> : list.slice(1, 5).map((x, i) => (
-                <div key={x.pid} style={{ display: 'flex', gap: '8px', padding: '1px 0' }}>
-                  <span style={{ width: '14px', color: 'var(--color-neutral-600)' }}>{i + 2}</span>
+              {openV[k] ? <Voting list={list} k={k.toUpperCase()} name={x => <><Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link> <span style={sub(x.tid)}>{T[x.tid]?.abbr}</span></>} /> : list.slice(1, 5).map((x, i) => (
+                <div key={x.pid} style={{ display: 'flex', gap: '8px', padding: '1px 4px', margin: '0 -4px', borderRadius: 'var(--radius-sm)', ...lit(x.tid) }}>
+                  <span style={{ width: '14px', opacity: 0.7 }}>{i + 2}</span>
                   <Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link>
-                  <span style={{ ...muted, marginLeft: 'auto' }}>{x.pts != null ? x.pts + ' pts' : T[x.tid]?.abbr}</span>
+                  <span style={{ ...sub(x.tid), marginLeft: 'auto' }}>{x.pts != null ? x.pts + ' pts' : T[x.tid]?.abbr}</span>
                 </div>
               ))}
               <button className="btn btn-ghost" onClick={() => setOpenV(o => ({ ...o, [k]: !o[k] }))} style={{ fontSize: '12px', padding: '2px 0', marginTop: 4 }}>{openV[k] ? 'Hide the voting' : 'Show the voting' + (w.pts != null ? ' · ' + w.first + ' of ' + VOTERS + ' first-place votes' : '')}</button>
@@ -71,8 +73,8 @@ export function AwardsScreen({ vm }: { vm: VM }) {
           <div key={i}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', borderBottom: '1px solid var(--color-text)', paddingBottom: '2px', marginBottom: '4px' }}>{['First', 'Second', 'Third'][i]} team</div>
             {tm.map(pid => { const tid = (P[pid].stats || []).filter(r => r.season === yr && !r.po).slice(-1)[0]?.tid; return (
-              <div key={pid} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--color-divider)' }}>
-                <span style={{ width: '22px', fontSize: '11px', color: 'var(--color-neutral-600)' }}>{P[pid].pos}</span>
+              <div key={pid} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '4px 4px', borderBottom: '1px solid var(--color-divider)', ...lit(tid) }}>
+                <span style={{ width: '22px', fontSize: '11px', opacity: 0.7 }}>{P[pid].pos}</span>
                 {logo(tid, 16)}
                 <Link onClick={() => open(pid)}>{P[pid].name}</Link>
               </div>
@@ -86,6 +88,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
     <>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
         <Seg<number> value={yr} options={seasons.map(y => [y, lbl(y)] as [number, string])} onChange={v => { setPick(v); gm.setState({ awardsYear: null }); }} />
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '12px', whiteSpace: 'nowrap' }}><span style={{ width: 14, height: 14, borderRadius: 3, background: HL.mine, flex: 'none' }} />Your players</span>
         <span style={{ ...muted, fontSize: '12px' }}>{a.list ? 'Voted by formula (hover a title to see it; edit them in Settings → Award formulas). Most awards need 65 games.' : 'Individual awards and All-League teams need 58 of 82 games played.'}</span>
       </div>
       {asNow}
@@ -95,25 +98,25 @@ export function AwardsScreen({ vm }: { vm: VM }) {
         <section className="card" style={{ padding: '14px 16px', gap: '8px' }}>
           <Kicker accent>Coach of the Year</Kicker>
           {a.coy.slice(0, 3).map((c, i) => (
-            <div key={c.tid} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '2px 0', borderBottom: i ? '1px solid var(--color-divider)' : 'none' }}>
+            <div key={c.tid} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '2px 4px', borderBottom: i ? '1px solid var(--color-divider)' : 'none', borderRadius: 'var(--radius-sm)', ...lit(c.tid) }}>
               {logo(c.tid, i ? 16 : 34)}
               <div>
                 <div style={{ fontFamily: i ? 'inherit' : 'var(--font-heading)', fontSize: i ? '13px' : '19px', fontWeight: i ? 400 : 600 }}>{c.name}</div>
-                <div style={{ fontSize: '12px', ...muted }}><Link onClick={() => openTeam(c.tid)}>{T[c.tid].abbr}</Link> · {c.line}{c.pts != null ? ' · ' + c.pts + ' pts' : ''}</div>
+                <div style={{ fontSize: '12px', ...sub(c.tid) }}><Link onClick={() => openTeam(c.tid)}>{T[c.tid].abbr}</Link> · {c.line}{c.pts != null ? ' · ' + c.pts + ' pts' : ''}</div>
               </div>
             </div>
           ))}
           {a.coy[0]?.pts != null && <button className="btn btn-ghost" onClick={() => setOpenV(o => ({ ...o, COY: !o.COY }))} style={{ fontSize: '12px', padding: '2px 0', marginTop: 4 }}>{openV.COY ? 'Hide the voting' : 'Show the voting · ' + a.coy[0].first + ' of ' + VOTERS + ' first-place votes'}</button>}
-          {openV.COY && <Voting list={a.coy} k="COY" name={x => <>{x.name} <span style={muted}>{T[x.tid]?.abbr}</span></>} />}
+          {openV.COY && <Voting list={a.coy} k="COY" name={x => <>{x.name} <span style={sub(x.tid)}>{T[x.tid]?.abbr}</span></>} />}
         </section>
         {Object.entries(a.sfmvp || {}).filter(([, e]) => e).map(([c, e]: any) => (
-          <section key={c} className="card" style={{ padding: '14px 16px', gap: '8px', flexDirection: 'row', alignItems: 'center' }}>
+          <section key={c} className="card" style={{ padding: '14px 16px', gap: '8px', flexDirection: 'row', alignItems: 'center', ...lit(e.tid) }}>
             {logo(e.tid, 34)}
             <div><Kicker accent>{c} Finals MVP</Kicker><Link onClick={() => open(e.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '19px', fontWeight: 600 }}>{P[e.pid].name}</Link><div style={{ fontSize: '12px' }}>{e.line}</div></div>
           </section>
         ))}
         {a.fmvp && (
-          <section className="card" style={{ padding: '14px 16px', gap: '8px', gridColumn: 'span 3', flexDirection: 'row', alignItems: 'center' }}>
+          <section className="card" style={{ padding: '14px 16px', gap: '8px', gridColumn: 'span 3', flexDirection: 'row', alignItems: 'center', ...lit(a.fmvp.tid) }}>
             {logo(a.fmvp.tid, 40)}
             <div>
               <Kicker accent>Finals MVP</Kicker>
@@ -136,7 +139,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
 
 // All-Star Weekend: both rosters (starters first) and the game.
 function AllStarBox({ vm, y }: { vm: VM; y: number }) {
-  const { gm, s, T, logo, open } = vm.ctx, a = (s.allStars || {})[y], P = gm.db.P;
+  const { gm, s, T, logo, open, isMine } = vm.ctx, a = (s.allStars || {})[y], P = gm.db.P;
   if (!a) return null;
   const tidOf = (pid: number) => (P[pid]?.stats || []).filter((r: any) => r.season === y && !r.po).slice(-1)[0]?.tid;
   const g = a.game;
@@ -149,11 +152,11 @@ function AllStarBox({ vm, y }: { vm: VM; y: number }) {
           <div key={c}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', borderBottom: '1px solid var(--color-text)', paddingBottom: 2, marginBottom: 4 }}>{c}{g?.winner === c ? ' · won' : ''}</div>
             {[...a[c].starters.map((id: number) => [id, true]), ...a[c].reserves.map((id: number) => [id, false])].map(([id, st]: any) => (
-              <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0', borderBottom: '1px solid var(--color-divider)' }}>
-                <span style={{ width: 22, fontSize: '11px', color: 'var(--color-neutral-600)' }}>{P[id]?.pos}</span>
+              <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 4px', borderBottom: '1px solid var(--color-divider)', ...hlRow(tidOf(id) != null && isMine(tidOf(id)) ? HL.mine : null) }}>
+                <span style={{ width: 22, fontSize: '11px', opacity: 0.7 }}>{P[id]?.pos}</span>
                 {tidOf(id) != null && logo(tidOf(id), 16)}
                 <Link onClick={() => open(id)} style={{ fontWeight: st ? 600 : 400 }}>{P[id]?.name}</Link>
-                <span style={{ ...muted, fontSize: '11px', marginLeft: 'auto' }}>{st ? 'Starter' : 'Reserve'}{tidOf(id) != null ? ' · ' + T[tidOf(id)]?.abbr : ''}</span>
+                <span style={{ fontSize: '11px', marginLeft: 'auto', opacity: 0.75 }}>{st ? 'Starter' : 'Reserve'}{tidOf(id) != null ? ' · ' + T[tidOf(id)]?.abbr : ''}</span>
               </div>))}
           </div>))}
       </div>

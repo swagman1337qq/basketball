@@ -40,6 +40,7 @@ const ChangelogScreen = lazy(() => import('./screens/ChangelogScreen').then(m =>
 const CapOutlookScreen = lazy(() => import('./screens/CapOutlookScreen').then(m => ({ default: m.CapOutlookScreen })));
 const TeamHistoryScreen = lazy(() => import('./screens/TeamHistoryScreen').then(m => ({ default: m.TeamHistoryScreen })));
 const LeagueFinancesScreen = lazy(() => import('./screens/LeagueFinancesScreen').then(m => ({ default: m.LeagueFinancesScreen })));
+const LeagueLeadersScreen = lazy(() => import('./screens/LeagueLeadersScreen').then(m => ({ default: m.LeagueLeadersScreen })));
 import { CapSheetScreen } from './screens/CapSheetScreen';
 import { ContractsScreen } from './screens/ContractsScreen';
 import { CcpScreen } from './screens/CcpScreen';
@@ -144,6 +145,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.history && <TeamHistoryScreen vm={vm} />}
             {!!vm.is.ccp && <CcpScreen vm={vm} />}
             {!!vm.is.stats && <StatsScreen vm={vm} />}
+            {!!vm.is.leaders && <LeagueLeadersScreen vm={vm} />}
             </Fragment>)}
             </Suspense>
           </main>
