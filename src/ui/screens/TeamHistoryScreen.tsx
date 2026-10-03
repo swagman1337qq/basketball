@@ -9,6 +9,7 @@ import { byLast, useSort } from '../sortable';
 import { alphaTeams, GOD_PINK, godBtn, HL, hlRow, kickerStyle, Link, muted, Ring, usePaged } from '../kit';
 import { ChampBanner } from '../ChampBanner';
 import { JERSEY_RE, numsWith, retireJersey, unretireJersey } from '../../engine/jerseys';
+import { titleYears } from '../../engine/hof';
 
 const td: CSSProperties = { padding: '4px 8px', borderBottom: '1px solid var(--color-divider)' }, tdr: CSSProperties = { ...td, textAlign: 'right', whiteSpace: 'nowrap' };
 const btnS: CSSProperties = { fontSize: '11.5px', padding: '1px 8px', whiteSpace: 'nowrap' };
@@ -70,7 +71,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   }, [tid, s.history, t.w, t.l]);
   const done = seasons.filter(x => x.done), W = seasons.reduce((a, x) => a + x.w, 0), L = seasons.reduce((a, x) => a + x.l, 0);
   const byPct = done.slice().sort((a, b) => b.w / Math.max(1, b.w + b.l) - a.w / Math.max(1, a.w + a.l) || b.w - a.w), best = byPct[0], worst = byPct[byPct.length - 1];
-  const titleYears = done.filter(x => x.champ).map(x => x.year).sort((a, b) => a - b);
+  const champYears = done.filter(x => x.champ).map(x => x.year).sort((a, b) => a - b);
   // A season's roster: the Roster screen opens on this team and year.
   const openRoster = (y: number) => gm.setState((st: any) => ({ screen: 'roster', rosterAt: { tid, season: y }, modal: false, teamModal: null, pageStack: [], navTick: (st.navTick || 0) + 1 }));
   const tile = (k: string, v: ReactNode, sub?: ReactNode) => (
@@ -82,9 +83,8 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   );
 
   // Everyone who has played for the team: his regular-season line with it, the titles he won
-  // there (a playoff line for that season's champion), his last season there and where he is now.
+  // there (titleYears), his last season there and where he is now.
   const rows = useMemo(() => {
-    const champ = new Set((s.history || []).filter((h: any) => h.champ === tid).map((h: any) => h.year));
     const hof = new Set((s.hof || []).map((h: any) => h.pid)), here = new Set<number>(s.rosters[tid] || []);
     const out: any[] = [];
     (Object.values(P) as any[]).forEach(p => {
@@ -99,7 +99,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
       });
       const g = c.gp || 1, nums = numsWith(p, tid);
       out.push({ p, id: p.id, nums, num: nums[0] ?? '', pos: p.pos, gp: c.gp, min: c.min / g, pts: c.pts / g, trb: c.trb / g, ast: c.ast / g, per: c.min ? c.perMin / c.min : 0, ewa: c.ewa,
-        titles: lines.filter((r: any) => r.po && champ.has(r.season)).length, last: Math.max(...lines.map((r: any) => r.season)),
+        titles: titleYears(s, p, tid).length, last: Math.max(...lines.map((r: any) => r.season)),
         st: p.retired ? (hof.has(p.id) ? 'hof' : 'ret') : here.has(p.id) ? 'now' : 'away' });
     });
     return out;
@@ -166,7 +166,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
             {tile('Win %', pct(W, L))}
             {tile('Playoffs', done.filter(x => madePO(x.fin)).length, 'of ' + done.length + ' finished season' + (done.length === 1 ? '' : 's'))}
             {tile('Finals', done.filter(x => madeFinals(x.fin)).length)}
-            {tile('Championships', titleYears.length, titleYears.length ? titleYears.join(', ') : undefined)}
+            {tile('Championships', champYears.length, champYears.length ? champYears.join(', ') : undefined)}
             {best && tile('Best record', best.w + '–' + best.l, lbl(best.year))}
             {worst && done.length > 1 && tile('Worst record', worst.w + '–' + worst.l, lbl(worst.year))}
           </div>
@@ -200,9 +200,9 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
           </table>
         )}
       </Fold>
-      <Fold vm={vm} k="titles" title="Championships" note={titleYears.length ? titleYears.length + ' title' + (titleYears.length === 1 ? '' : 's') : undefined}>
-        {titleYears.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No championships yet.</p> : (
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', paddingTop: 10 }}>{titleYears.map(y => <ChampBanner key={y} team={t} year={y} width={132} />)}</div>
+      <Fold vm={vm} k="titles" title="Championships" note={champYears.length ? champYears.length + ' title' + (champYears.length === 1 ? '' : 's') : undefined}>
+        {champYears.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No championships yet.</p> : (
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', paddingTop: 10 }}>{champYears.map(y => <ChampBanner key={y} team={t} year={y} width={132} />)}</div>
         )}
       </Fold>
       </div>
@@ -244,7 +244,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
             </table>
           </div>
           {pg.pager}
-          <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Regular-season career with the team. Titles count the seasons he played in the playoffs for a champion here.{canEdit ? ' Retiring a number takes it out of circulation: no one new can wear it, though a current player who already does keeps it.' : ''}</p>
+          <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Regular-season career with the team. Titles count the seasons he was on the roster when the team won the Finals.{canEdit ? ' Retiring a number takes it out of circulation: no one new can wear it, though a current player who already does keeps it.' : ''}</p>
         </>)}
       </Fold>
     </>

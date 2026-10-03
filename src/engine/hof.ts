@@ -5,6 +5,13 @@ import type { Game } from './Game';
 
 export const HOF_BAR = 55, FIRST_BALLOT = 75, WAIT = 3, CLASS_MAX = 5, MIN_SEASONS = 5;
 
+// The seasons a player won the title: on the champion's roster when the Finals ended (kept with
+// each season's history as `ring`), or, for seasons from before that was kept, a playoff line for
+// the champion. With `tid`, only titles won with that team.
+export function titleYears(s: any, p: any, tid?: number): number[] {
+  return (s.history || []).filter((h: any) => h.champ != null && (tid == null || h.champ === tid) && (h.ring ? h.ring.includes(p.id) : (p.stats || []).some((r: any) => r.po && r.season === h.year && r.tid === h.champ))).map((h: any) => h.year);
+}
+
 export function careerOf(g: Game, s: any, p: any) {
   const rs = (p.stats || []).filter(r => !r.po), t: any = { gp: 0, min: 0, pts: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0 };
   rs.forEach(r => Object.keys(t).forEach(k => (t[k] += r[k] || 0)));
@@ -19,7 +26,7 @@ export function careerOf(g: Game, s: any, p: any) {
     (a.allLeague || []).forEach((tm, i) => { if (tm.includes(p.id)) A[['ALL1', 'ALL2', 'ALL3'][i]]++; });
     (a.allDef || []).forEach((tm, i) => { if (tm.includes(p.id)) A[['DEF1', 'DEF2'][i]]++; });
   });
-  const titles = (s.history || []).filter(h => (p.stats || []).some(r => r.po && r.season === h.year && r.tid === h.champ)).length;
+  const titles = titleYears(s, p).length;
   const L = p.legacy;
   if (L) { const gp = L.seasons * 70; Object.assign(t, { gp, pts: L.pts * gp, orb: L.reb * gp * 0.25, drb: L.reb * gp * 0.75, ast: L.ast * gp, stl: gp * 0.9, blk: gp * 0.5 }); }
   const asIn = Object.values(s.allStars || {}).filter((a: any) => [...a.East.starters, ...a.East.reserves, ...a.West.starters, ...a.West.reserves].includes(p.id)).length;

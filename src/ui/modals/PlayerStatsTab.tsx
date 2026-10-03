@@ -4,11 +4,12 @@
 // per-team career lines; shooting efficiency and all five shot zones, advanced stats, and splits.
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import type { VM } from '../vm';
-import { muted, ruleH4, Seg } from '../kit';
+import { muted, Ring, ruleH4, Seg } from '../kit';
 import { ccpAdvanced, seasonAdvanced } from '../../engine/advanced';
 import { roundStat, seasonLeaders, statVal } from '../../engine/leaders';
 import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
+import { titleYears } from '../../engine/hof';
 import { fiveZones, LEAGUE_ZONE } from './ProfileExtras';
 
 type Mode = 'pg' | 'p36' | 'tot';
@@ -78,6 +79,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
   };
   const Aw = ({ y }: { y: number }) => { if (ccp) return <td />; const tags = awardTags(s, p.id, y, po); return <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontSize: '11.5px' }}>{tags.map((a, i) => <span key={a.tag}>{i ? ', ' : ''}<button className="hv4" title={a.name + ': see the ' + (y - 1) + '–' + String(y).slice(2) + ' awards'} onClick={() => gm.setState({ screen: 'awards', awardsYear: y, modal: false, teamModal: null, boxId: null })} style={{ all: 'unset', cursor: 'pointer', fontWeight: a.won ? 800 : undefined, color: 'var(--color-accent-700)', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 }}>{a.tag}</button></span>)}</td>; };
   const lgName = ccp ? 'CCP' : 'NBA', allStar = (y: number) => !ccp && !po && allStarsOf(s, y).includes(p.id);
+  const titles = new Set(ccp ? [] : titleYears(s, p)), champOf = (y: number) => T[(s.history || []).find((h: any) => h.year === y)?.champ];
   const bbRow = (key: string, first: ReactNode, age: ReactNode, team: string, t: any, y: number | null, opts: { grey?: boolean; bold?: boolean; top?: boolean } = {}) => (
     <tr key={key} style={{ borderTop: opts.top ? '2px solid var(--color-text)' : undefined, background: opts.bold ? 'var(--color-neutral-100)' : undefined }}>
       <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontWeight: opts.bold ? 700 : undefined, color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{first}</td>
@@ -98,14 +100,14 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
         <thead><tr><TH l>Season</TH><TH>Age</TH><TH l>Team</TH><TH l>Lg</TH><TH l>Pos</TH>{COLS.map(([k, h, t]) => <TH key={k} t={t}>{h}</TH>)}<TH l>Awards</TH></tr></thead>
         <tbody>
           {lines.map(({ y, t, teams, parts }) => <Fragment key={y}>
-            {bbRow('s' + y, <>{lbl(y)}{allStar(y) && <span title="All-Star" style={{ color: 'var(--color-neutral-500)', marginLeft: 4, fontSize: '11px' }}>★</span>}</>, ageIn(y), teams, t, y)}
+            {bbRow('s' + y, <>{lbl(y)}{titles.has(y) && <span style={{ marginLeft: 4 }}><Ring size={12} title={'Won the ' + lbl(y) + ' championship' + (champOf(y) ? ' with the ' + champOf(y).region + ' ' + champOf(y).name : '')} /></span>}{allStar(y) && <span title="All-Star" style={{ color: 'var(--color-neutral-500)', marginLeft: 4, fontSize: '11px' }}>★</span>}</>, ageIn(y), teams, t, y)}
             {parts.map(x => bbRow('s' + y + x.team, lbl(y), ageIn(y), x.team, x.t, y, { grey: true }))}
           </Fragment>)}
           {nYrs > 1 && bbRow('car', nYrs + ' Yr' + (nYrs === 1 ? '' : 's'), '', '', career, null, { bold: true, top: true })}
           {byTeam.length > 1 && byTeam.map(x => bbRow('t' + x.tid, (T[x.tid]?.abbr || '—') + ' (' + x.yrs + ' Yr' + (x.yrs === 1 ? '' : 's') + ')', '', '', x.t, null, { bold: true }))}
         </tbody>
       </Wrap>
-      <p style={{ ...muted, fontSize: '11px', margin: '0 0 6px' }}>{ccp ? 'His CCP games (the development league).' : <>Bold: led the league that season (per game with 70% of the games; percentages with 300 made field goals, 82 threes or 125 free throws over a full season). ★ All-Star. Awards: voting finish (MVP-4 = 4th in MVP voting; winners in bold), AS All-Star, NBA1–3 All-League, DEF All-Defensive, ROOK All-Rookie{po ? ', FMVP Finals MVP' : ''}.</>}</p>
+      <p style={{ ...muted, fontSize: '11px', margin: '0 0 6px' }}>{ccp ? 'His CCP games (the development league).' : <>Bold: led the league that season (per game with 70% of the games; percentages with 300 made field goals, 82 threes or 125 free throws over a full season). <Ring size={11} title="Champion" /> Won the title (on the champion’s roster at the end of the Finals). ★ All-Star. Awards: voting finish (MVP-4 = 4th in MVP voting; winners in bold), AS All-Star, NBA1–3 All-League, DEF All-Defensive, ROOK All-Rookie{po ? ', FMVP Finals MVP' : ''}.</>}</p>
 
       <h4 style={{ ...ruleH4, marginTop: 18 }}>Scoring and plus-minus</h4>
       <Wrap>
