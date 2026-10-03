@@ -57,12 +57,23 @@ export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: '
 export function zoneSkill(r: any): Record<Zone, number> {
   return { rim: 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, mid: r.fg, c3: r.tp, atb: r.tp };
 }
+// Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
+// and still not a scorer). Rotation players average about 57.
+export function offAbility(r: any) {
+  const rim = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, z = [rim, r.fg, r.tp].sort((a, b) => b - a);
+  const scoring = z[0] * 0.5 + z[1] * 0.3 + z[2] * 0.1 + r.ft * 0.1;
+  return scoring * 0.55 + r.drb * 0.17 + r.oiq * 0.15 + (r.acc ?? r.spd) * 0.13;
+}
+
 // Raw usage weight: how often he ends a possession while on the floor. USG% in the UI is
 // this relative to the league mean (= 20%). This is the usage-rate gatekeeper: volume
 // comes from usage and minutes, efficiency from shooting ratings, so a pure shooter with
-// low usage can't put up star numbers (points ≈ possessions × USG% × TS%).
+// low usage can't put up star numbers (points ≈ possessions × USG% × TS%). Two parts: what his
+// offensive game earns him right away (a better scorer and creator gets more of the ball; his
+// overall doesn't, so a defensive specialist isn't fed like a scorer), times his shot-volume
+// tendency, which carries his role, confidence and habits and moves over seasons (tendencies.ts).
 export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: boolean; roles?: string[]; tend?: Tend }) {
-  let u = Math.exp(0.022 * (p.ovr - 50) + 0.004 * (p.r.oiq - 50) + 0.003 * (p.r.drb - 50)) * (p.tend?.usg ?? 1);
+  let u = Math.exp(0.019 * (offAbility(p.r) - 57)) * (p.tend?.usg ?? 1);
   if (p.alpha) u *= 1.05;
   if (p.touches) u *= 1.06;
   if (p.roles?.includes('Primary creator')) u *= 1.05;

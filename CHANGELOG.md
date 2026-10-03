@@ -5,6 +5,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-03
 
 ### Changed
+- **Shot volume now grows and shrinks with a player's game.** A player's usage used to follow his overall (defense included), and his usage tendency barely moved as he developed. Now:
+  - It follows his **offense**: how well he scores and creates. A defensive specialist isn't fed the ball like a scorer anymore.
+  - His **usage tendency evolves**. A player who becomes a better scorer, a more complete creator or grows an elite weapon (a sniper, a rim finisher), or becomes his team's best option, takes on a bigger share of the offense over a season or two. Young players grow into a bigger role fastest, and on a rebuilding team the young talent gets the ball (on a contender, a young role player waits his turn).
+  - When his offense fades or his role shrinks, his shots go down too.
+  - **Personality**: Egotistic, Ball-dominant and Selfish players want more shots than their game earns and keep taking shots they can't make, and they hold on to their shots as they age. Heat checkers, Fearless and Legacy-driven players shoot a little more; Team players less.
+  - Leagues in progress: every player's usage tendency is reset once to fit his game, role and personality.
 - **Badges are off the Roster table**, which was getting too busy. They're still on player profiles, in free agency and on Tactics.
 - **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 - **Tendencies now use only stats the NBA actually tracks, in the NBA's own units.** The full list:

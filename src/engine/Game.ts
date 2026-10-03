@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { effTend, ensureTen, evolveTendencies, fadeHandTend, initTendencies, optionRanks } from './tendencies';
+import { effTend, ensureTen, evolveTendencies, fadeHandTend, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
@@ -84,7 +84,8 @@ export class Game {
     g.db.ceilV = 1; // and every player with his own ceilings (potential.ts)
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
-    { const rk = optionRanks(g.db.P, g.state.rosters); rk.forEach((v, id) => initTendencies(g.db.P[id], v)); } // playing styles that fit each player's role on his team (tendencies.ts)
+    { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k] }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
+    g.db.usgV = 1; // shot volume follows the offensive game and role (tendencies.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -199,6 +200,12 @@ export class Game {
       if (p.wing == null) { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), hIn = m ? +m[1] * 12 + +m[2] : 78; p.wing = hIn + Math.round(Math.max(-6, Math.min(12, (h(211) + h(223) + h(227)) * 6 + 3.8))); } });
     // Saves from before evolving tendencies: each player's style starts where his game and role point.
     { const rk = optionRanks(g.db.P, g.state.rosters || {}); Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.retired && !p.ten) initTendencies(p, rk.get(p.id) ?? null); }); }
+    // 2026-10: shot volume follows the offensive game, role and personality, not the overall (sim.ts usageRaw,
+    // tendencies.ts): saved usage tendencies start over from the new target plus each player's quirk (the
+    // change-since-summer arrow kept), and the league's usage mean moves to the new scale.
+    if (!g.db.usgV) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
+      Object.values(g.db.P).forEach((p: any) => { if (!p.r || p.retired || !p.ten || p.tenLock) return; const nx = Math.round(Math.max(2, Math.min(98, tenTargets(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number] }).usage + quirkOf(p, 'usage')))); if (p.tenPrev?.usage != null) p.tenPrev.usage += nx - p.ten.usage; p.ten.usage = nx; });
+      const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
     // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
     { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
     // Saves from before wingspan counted toward the overall.
@@ -1061,7 +1068,8 @@ export class Game {
       fa.forEach(id => grow(P[id])); (s.overseas || []).forEach(id => { if (P[id]?.r && !P[id].retired) grow(P[id]); }); // free agents and players abroad: their summer too
       // His playing style catches up with his game: a summer's step toward what his new skills and role
       // point to (not every tendency moves every year), and hand-set tendencies fade (tendencies.ts).
-      { const rk = optionRanks(P, rosters); [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, rk.get(id) ?? null, 1, 0.8); fadeHandTend(p); }); }
+      { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
+        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number] }, 1, 0.8); fadeHandTend(p); }); }
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -1187,9 +1195,10 @@ export class Game {
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
   fair(ovr) { return Math.min(this.MAXC, (2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52) * this.db.sf * this.CAP / CAPS0.CAP); }
-  strategies(T, s = this.state) {
+  // Where each AI team is headed (`all`: the teams you run too): contending, the middle, rebuilding.
+  strategies(T, s = this.state, all = false) {
     const sc = t => this.pct(t) * 0.65 + (t.str - 45) / 12 * 0.35;
-    const srt = T.filter(t => !this.isUser(s, t.tid)).sort((a, b) => sc(b) - sc(a)), out = {};
+    const srt = T.filter(t => all || !this.isUser(s, t.tid)).sort((a, b) => sc(b) - sc(a)), out = {};
     srt.forEach((t, i) => out[t.tid] = i < 9 ? 'contend' : i >= 20 ? 'rebuild' : 'middle');
     return out;
   }
@@ -1400,9 +1409,9 @@ export class Game {
     const LB = { hgt: 'Hgt', stre: 'Str', spd: 'Spd', acc: 'Acc', jmp: 'Jmp', endu: 'End', ins: 'Ins', dnk: 'Dnk', lay: 'Lay', ft: 'FT', fg: 'Mid', tp: '3PT', oiq: 'OIQ', diq: 'DIQ', blk: 'Blk', stl: 'Stl', drb: 'Drb', pss: 'Pss', reb: 'Reb', box: 'Box' };
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
-    const rk = optionRanks(P, rosters);
+    const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true);
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
-      evolveTendencies(p, rk.get(id) ?? null, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
+      evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k] }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
       if (p.frozen) return; // God Mode: attributes frozen
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;

@@ -20,15 +20,21 @@
 // plus a personal quirk that never changes (two players with the same ratings don't play alike).
 // Tendencies move toward the target gradually and probabilistically: a big step chance each summer
 // after development, a small one month to month in season. Young players adapt fastest; veterans
-// keep their habits, except that a body that has lost its burst has to adapt (fewer drives). A
-// player who becomes a better scorer, or his team's best option, takes on more usage over a
-// season or two; one whose game declines, or who joins a better team, gives some back.
+// keep their habits, except that a body that has lost its burst has to adapt (fewer drives).
+//
+// Shot volume (usage) is a behavior too, not his overall. It moves toward what his offensive game,
+// his role and his personality point to: a player who becomes a better scorer or a more complete
+// creator, or grows an elite weapon, or becomes his team's best option, takes on more of the
+// offense over a season or two (young players grow into a bigger role fastest); one whose game
+// declines, or who joins a team with better options, gives some back. Egotistic, ball-dominant and
+// selfish players take more shots than their game earns, and believe in shots they can't make.
 //
 // The engine reads the tendencies as multipliers (effTend): the shot mix, how often he draws
 // fouls, how often his makes are assisted, turnovers, how often he's the passer, and usage.
 // Hand-set multipliers (God Mode, player cards) sit on top and fade toward normal a little every
 // summer unless his tendencies are locked.
-import { usageRaw, type Norms, type Tend } from './sim';
+import { offAbility, usageRaw, type Norms, type Tend } from './sim';
+export { offAbility };
 
 export const TEN_KEYS = ['usage', 'drive', 'cns', 'pullup', 'iso', 'pnr', 'roll', 'post', 'mid', 'three', 'pass'] as const;
 export type TenKey = (typeof TEN_KEYS)[number];
@@ -64,27 +70,23 @@ const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const hash = (id: number, salt: number) => ((((id + 1) * 2654435761) ^ (salt * 40503)) >>> 0) % 100000 / 100000;
 const nrmH = (id: number, salt: number) => (hash(id, salt) + hash(id, salt + 7) + hash(id, salt + 13) - 1.5) * 2; // about N(0, 1)
 
-// His personal quirks: fixed per player (and per tendency), about ±7 on the 0–100 scale (±4.5 for shot volume).
+// His personal quirks: fixed per player (and per tendency), about ±7 on the 0–100 scale (±3.5 for shot volume).
 const SALT: Record<TenKey, number> = { usage: 0, pass: 1, drive: 2, iso: 3, pnr: 4, post: 5, cns: 6, pullup: 7, mid: 8, three: 9, roll: 10 }; // fixed, so quirks survive list changes
-export const quirkOf = (p: any, k: TenKey) => (p.tenQ?.[k] ?? +(nrmH(p.id, 101 + SALT[k]) * (k === 'usage' ? 4.5 : 7)).toFixed(1));
-
-// Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
-// and still not a scorer).
-export function offAbility(r: any) {
-  const rim = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, z = [rim, r.fg, r.tp].sort((a, b) => b - a);
-  const scoring = z[0] * 0.5 + z[1] * 0.3 + z[2] * 0.1 + r.ft * 0.1;
-  return scoring * 0.55 + r.drb * 0.17 + r.oiq * 0.15 + (r.acc ?? r.spd) * 0.13;
-}
+export const quirkOf = (p: any, k: TenKey) => (p.tenQ?.[k] ?? +(nrmH(p.id, 101 + SALT[k]) * (k === 'usage' ? 3.5 : 7)).toFixed(1));
 
 // Defense and rebounding, on the same scale as offAbility: the gap says scorer or specialist.
 export const defAbility = (r: any) => r.diq * 0.3 + ((r.blk ?? r.diq) + (r.stl ?? r.diq)) * 0.1 + r.reb * 0.2 + (r.box ?? r.reb) * 0.1 + r.stre * 0.1 + r.hgt * 0.1;
 
+// His team context, when known: his place among its rotation as an offensive option (0 = first
+// option), and where the team is headed (Game.strategies). A bare number is the rank.
+export interface TenCtx { rank?: number | null; mode?: 'rebuild' | 'middle' | 'contend' }
+const ctxOf = (c?: number | null | TenCtx): TenCtx => (typeof c === 'number' ? { rank: c } : c || { rank: null });
+
 // Where his game points today. Each style is read against his own offensive level (what he does
 // best compared with the rest of his game), plus a little for level itself, since better players
-// create a bit more of everything. `rank`: his place among his team's rotation as an offensive option
-// (0 = first option), when known.
-export function tenTargets(p: any, rank?: number | null): Record<TenKey, number> {
-  const r = p.r || {}, f = p.pers || {}, g = p.grp, big = g === 'B', guard = g === 'G', age = p.age ?? 25;
+// create a bit more of everything.
+export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
+  const r = p.r || {}, f = p.pers || {}, g = p.grp, big = g === 'B', guard = g === 'G', age = p.age ?? 25, { rank, mode } = ctxOf(ctx);
   const t = (v: number) => cl(v, 2, 98), acc = r.acc ?? r.spd, finish = Math.max(r.dnk, r.lay ?? r.dnk);
   const L = (r.drb + r.pss + r.fg + r.tp + r.ins + finish + acc + r.oiq) / 8, rel = (x: number) => x - L + 0.3 * (L - 52);
   const shoot3 = r.tp < 40 ? 50 + (r.tp - 50) * 2.2 : 50 + rel(r.tp) * 0.7; // non-shooters stop taking threes
@@ -105,18 +107,31 @@ export function tenTargets(p: any, rank?: number | null): Record<TenKey, number>
     pass: t(50 + rel(r.pss) * 0.9 + (r.pss - offA) * 0.5 + (r.drb - L) * 0.3 + (guard ? 8 : big ? -2 : 0) + (f.team ? 6 : 0) - (f.alpha ? 4 : 0) - (f.padder ? 4 : 0) + (f.flashy ? 3 : 0)),
     usage: 50,
   };
-  // Usage (on top of the usage his overall already earns him in the engine): a scorer more than a
-  // defender or rebounder wants more of it, a defensive specialist less; the team's first option is
-  // expected to carry the load, the fifth to fit in. Heavy passers finish fewer possessions; teenagers
-  // defer; veterans hand some over.
-  const rankB = rank == null ? 0 : [8, 4, 0, -3, -5, -6, -7][Math.min(6, rank)];
-  out.usage = t(50 + cl((offA - defAbility(r)) * 0.6, -10, 10) + rankB - (out.pass - 50) * 0.12 + (age <= 21 ? -4 : age >= 33 ? -3 : 0));
+  // Shot volume, on top of what his offensive game earns him right away in the engine (usageRaw):
+  // - his level as a scorer and creator against the league (rotation players average about 57):
+  //   a better scorer or a more complete creator earns a bigger share, a declining one gives it back;
+  // - an elite scoring weapon earns shots even in a narrow game (a sniper, a rim finisher);
+  // - a scorer more than a stopper wants the ball; a defensive specialist is asked to fit in;
+  // - his role: the first option carries the load, the fifth fits in; on a rebuilding team the young
+  //   talent gets the ball, on a contender a young role player waits his turn;
+  // - personality: egotistic, ball-dominant and selfish players want more shots than their game earns
+  //   and believe in shots they can't make (a weak game pulls the egotistic and selfish down only half as much); heat
+  //   checkers, fearless and legacy-driven players a little more; team players fewer;
+  // - heavy passers finish fewer possessions; a teenager defers unless he's the best option;
+  //   veterans hand some over.
+  const rimS = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, weapon = Math.max(rimS, r.fg, r.tp);
+  const belief = f.alpha || f.padder ? 0.5 : f.touches ? 0.7 : f.heat || f.fearless ? 0.85 : 1, lvl = (offA - 57) * 0.55;
+  const ego = cl((f.alpha ? 6 : 0) + (f.touches ? 4 : 0) + (f.padder ? 3 : 0) + (f.heat ? 2 : 0) + (f.fearless ? 2 : 0) + (f.legacy ? 1.5 : 0) + (f.flashy ? 1 : 0) + (f.volatile ? 1 : 0) - (f.team ? 5 : 0), -5, 8); // traits overlap: one appetite
+  const rankB = rank == null ? 0 : [6, 3, 0, -2, -4, -5, -6][Math.min(6, rank)];
+  const situation = age > 24 ? 0 : mode === 'rebuild' ? 3 : mode === 'contend' && (rank ?? 9) > 0 ? -2 : 0;
+  out.usage = t(48 + (lvl < 0 ? lvl * belief : lvl) + cl((weapon - 64) * 0.25, 0, 4) + cl((offA - defAbility(r)) * 0.35, -6, 3) + rankB + situation + ego
+    - (out.pass - 50) * 0.12 + (age <= 20 && (rank ?? 9) > 0 ? -3 : 0) + (age >= 33 ? -3 : 0));
   return out;
 }
 
 // A new player (or one from an older save): his tendencies start where his game points, plus quirks.
-export function initTendencies(p: any, rank?: number | null) {
-  const tg = tenTargets(p, rank);
+export function initTendencies(p: any, ctx?: number | null | TenCtx) {
+  const tg = tenTargets(p, ctx);
   p.tenQ = Object.fromEntries(TEN_KEYS.map(k => [k, quirkOf(p, k)]));
   p.ten = Object.fromEntries(TEN_KEYS.map(k => [k, Math.round(cl(tg[k] + p.tenQ[k], 2, 98))])); p.tenV = 2;
   return p.ten;
@@ -139,13 +154,15 @@ export function ensureTen(p: any) {
 
 // One step of evolution. `frac` is how big a step this is (1 = a summer, about 0.15 = a month);
 // `prob` the chance each tendency moves at all this time. Returns the changes (rounded).
-export function evolveTendencies(p: any, rank: number | null, frac: number, prob: number, rnd: () => number = Math.random): Record<string, number> {
+export function evolveTendencies(p: any, ctx: number | null | TenCtx, frac: number, prob: number, rnd: () => number = Math.random): Record<string, number> {
   if (!ensureTen(p) || p.tenLock) return {};
-  const tg = tenTargets(p, rank), age = p.age ?? 25, ageF = age <= 24 ? 1.25 : age <= 29 ? 1 : age <= 33 ? 0.8 : 0.65, d: Record<string, number> = {};
+  const tg = tenTargets(p, ctx), age = p.age ?? 25, ageF = age <= 24 ? 1.25 : age <= 29 ? 1 : age <= 33 ? 0.8 : 0.65, d: Record<string, number> = {};
   TEN_KEYS.forEach(k => {
     if (rnd() > prob) return;
     const cur = p.ten[k], gap = tg[k] + p.tenQ[k] - cur;
-    let rate = (k === 'usage' ? 0.38 : 0.3) * ageF * (0.5 + rnd());
+    let rate = (k === 'usage' ? 0.45 : 0.3) * ageF * (0.5 + rnd());
+    if (k === 'usage' && gap > 0 && age <= 25) rate *= 1.25; // a young player who's earned a bigger role grows into it quickly
+    if (k === 'usage' && gap < 0 && !(p.pers?.alpha || p.pers?.padder || p.pers?.touches)) rate *= 1.3; // a fading game loses its shots, unless his ego won't let go
     if (gap < 0 && age >= 30 && (k === 'drive' || k === 'post')) rate *= 1.4; // the body forces it
     const step = gap * Math.min(1, rate * frac) + (rnd() + rnd() - 1) * 1.5 * Math.sqrt(frac);
     const nx = Math.round(cl(cur + step, 2, 98) * 10) / 10;
@@ -162,7 +179,7 @@ export function fadeHandTend(p: any) {
 }
 
 // What the engine plays: the tendencies as multipliers (1 = typical), times any hand-set ones.
-const ex = (v: number, k: number) => Math.exp((v - 50) / k);
+const ex = (v: number, k: number) => Math.exp((v - 50) / k), USG_K = 60; // shot volume: +20 on the tendency is about 40% more of the offense
 export function effTend(p: any): Tend | undefined {
   const t = ensureTen(p), h = p?.tend || {};
   if (!t) return p?.tend;
@@ -176,7 +193,7 @@ export function effTend(p: any): Tend | undefined {
     ast: Math.exp(((t.cns - 50) + 0.4 * (t.roll - 50) - 0.5 * (t.iso - 50) - 0.4 * (t.pullup - 50)) / 70), // roll men and spot-up shooters are fed; isolations and pull-ups aren't
     tov: Math.exp(((t.iso - 50) * 0.25 + (t.pnr - 50) * 0.2 + (t.pass - 50) * 0.25) / 60),
     pass: ex(t.pass, 30),
-    usg: ex(t.usage, 70) * Math.exp(-(t.pass - 50) / 300),
+    usg: ex(t.usage, USG_K) * Math.exp(-(t.pass - 50) / 300),
   };
   (Object.keys(o) as (keyof Tend)[]).forEach(k => { if (h[k] != null) o[k] = (o[k] as number) * h[k]; });
   return o;
@@ -199,10 +216,10 @@ export function styleLine(p: any): string {
 }
 
 // Usage rate in NBA terms (USG%, league mean 20): what the engine expects from his usage tendency
-// together with the usage his overall and skills earn him. `score` overrides the tendency (editing).
+// together with the usage his offensive game earns him. `score` overrides the tendency (editing).
 export function expUsg(p: any, norms: Norms | null | undefined, roles: string[] = [], score?: number) {
   const t = ensureTen(p), e = effTend(p) || {};
-  if (t && score != null) e.usg = (e.usg ?? 1) / ex(t.usage, 70) * ex(score, 70);
+  if (t && score != null) e.usg = (e.usg ?? 1) / ex(t.usage, USG_K) * ex(score, USG_K);
   return Math.min(40, 20 * usageRaw({ ovr: p.ovr, r: p.r, alpha: p.pers?.alpha, touches: p.pers?.touches, roles, tend: e }) / (norms?.usage || 1)); // nobody sustains more than about 40%
 }
 // The usage tendency that gives a USG% (God Mode editing).
