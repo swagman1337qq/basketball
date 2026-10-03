@@ -219,8 +219,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Status</h4>
         <div style={grid}>
           {num('Fatigue', Math.round(p.fat || 0), 0, 100, v => mut(q => (q.fat = v)))}
-          <span style={muted}>Attributes</span>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center', ...godText }} title="Frozen: no monthly growth, no yearly aging changes and no ratings lost to injuries. His age still goes up."><input type="checkbox" checked={!!p.frozen} onChange={e => mut(q => { if (e.target.checked) q.frozen = true; else delete q.frozen; })} /> Freeze (never improves or declines)</label>
           <span style={muted}>Injury</span>
           <span style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <select className="input" value="" onChange={e => { const x = INJ.find(i => i[0] === e.target.value); if (x) mut(q => { q.inj = { name: x[0], games: x[1], major: x[2] || undefined, dtd: x[3] || undefined }; (q.injHist = q.injHist || []).push({ name: x[0], games: x[1], season: gm.seasonLbl(), god: true }); }); }}>

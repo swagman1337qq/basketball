@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
-import { Dice, godBtn, godText } from '../kit';
+import { Dice, GOD_PINK, godBtn, godText } from '../kit';
 import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, FtInInput, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
@@ -216,6 +216,9 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <button className="btn btn-secondary" onClick={vm.pl.ed.randRatings} style={{ fontSize: "12px" }} title="New ratings around his overall, shaped by position (height stays)">🎲 Randomize ratings</button>
                   <button className="btn btn-secondary" onClick={() => vm.pl.ed.shiftAll(-1)} style={{ fontSize: "12px" }} title="Every rating except height −1 (overall too); wingspan is a measurement and doesn't change">−1 all</button>
                   <button className="btn btn-secondary" onClick={() => vm.pl.ed.shiftAll(1)} style={{ fontSize: "12px" }} title="Every rating except height +1 (overall too); wingspan is a measurement and doesn't change">+1 all</button>
+                  <label style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: "12px", marginLeft: 6, color: GOD_PINK, cursor: "pointer" }} title="Frozen: his ratings stop changing through development: no growth, no aging decline, no training-camp surprise, and injuries don’t cost him ratings. Your edits here still work. Everything else goes on as usual: he ages, gets hurt and heals, and his mood moves.">
+                    <input type="checkbox" checked={!!vm.pl.ed.frozen} onChange={e => vm.pl.ed.setFrozen(e.target.checked)} /> Freeze attributes
+                  </label>
                 </div>
                 {(vm.pl.ed.ratings || []).map((r: any, i: number) => (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 40px", gap: "12px", alignItems: "center", padding: "3px 0" }}>

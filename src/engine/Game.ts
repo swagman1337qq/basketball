@@ -1095,7 +1095,7 @@ export class Game {
         return from; };
       // First NBA training camp: how each rookie's game translates (translation.ts). The scouts couldn't see it.
       const camp: Record<number, string[]> = {}, campIds: number[] = [];
-      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), e0 = ovrExact(p), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
+      Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx || p.frozen) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), e0 = ovrExact(p), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
         if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); // camp moved his level, not his growth: the plan moves with it (or a steal grows as if the jump were still ahead of him)
         if (p.ceil) SKILLS.forEach(k2 => { p.ceil[k2] = Math.min(99, Math.max(p.r[k2], p.ceil[k2] + p.r[k2] - b0[k2])); }); // his ceilings move with what camp showed (potential.ts)
         moveTruePot(p, tc); p.perr = +((p.perr || 0) * 0.75).toFixed(2); refreshPot(p); x.pot = p.pot;
@@ -1449,7 +1449,7 @@ export class Game {
     const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true);
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
       evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k] }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
-      if (p.frozen) return; // God Mode: attributes frozen
+      if (p.frozen) return; // God Mode's Freeze attributes: no growth or decline (he still ages, gets hurt, heals and has moods)
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? (p.godPot != null ? Math.max(0, p.dy ?? 1) : p.dy ?? 1) : 1) : annual0, wk = p.pers?.work ?? 50; // God Mode's potential (potential.ts): a down year is no growth, not a slide as big as the plan
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
