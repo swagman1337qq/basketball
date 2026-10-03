@@ -32,6 +32,12 @@ export const BASE = {
   } as Record<Zone, { share: number; pct: number; dist: number; ast: number }>,
 };
 
+// The mid tier holds two NBA shot zones: in the paint outside the restricted area (floaters, hooks,
+// short turnarounds; about half of these shots) and mid-range. Paint shots go in a little more often
+// (and touch around the rim counts for them); mid-range a little less, so the tier's average holds.
+export const PAINT_SHARE = 0.52;
+const PAINT_D = 0.02;
+
 // Per offensive trip at league average (≈113 trips a game: 89 FGA, 14 TOV, FT-only trips).
 const RATE = { tov: 0.1155, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.069, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.12, dt: 1.04 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
@@ -121,7 +127,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number } // usg: how often he ends a possession (shot volume); pass: how often he's the passer on a teammate's make
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number } // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
 // Players carry evolving playing-style tendencies (tendencies.ts, effTend) that fill these in; autoTend
 // below is only the fallback for a player without them.
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
@@ -192,6 +198,7 @@ export interface BoxLine {
   min: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number; orb: number; drb: number;
   ast: number; tov: number; stl: number; blk: number; pf: number; pts: number; pm: number; gs: number;
   rm: number; ra: number; mm: number; ma: number; cm: number; ca: number; bm: number; ba: number; // made/att: rim, mid, corner 3, above-the-break 3
+  km: number; ka: number; // made/att in the paint outside the restricted area (floaters, hooks): part of the mid tier (mm/ma count them too)
 }
 export interface SideState { pts: number; qs: number[]; box: Record<number, BoxLine>; tiers: Record<string, [number, number]>; poss: number; fouls: number }
 export interface SideResult { tid: number; pts: number; qs: number[]; box: Record<number, BoxLine>; poss: number }
@@ -199,7 +206,7 @@ export interface GameResult { home: SideResult; away: SideResult; ot: number }
 export interface PbpEvent { side: Side; time: string; text: string; sub: string; score: string; ids?: number[] }
 
 export const TIER_KEY: Record<Zone, ['rm' | 'mm' | 'cm' | 'bm', 'ra' | 'ma' | 'ca' | 'ba']> = { rim: ['rm', 'ra'], mid: ['mm', 'ma'], c3: ['cm', 'ca'], atb: ['bm', 'ba'] };
-export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0 });
+export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, km: 0, ka: 0 });
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const other = (s: Side): Side => (s === 'home' ? 'away' : 'home');
 const avg = (arr: SimPlayer[], f: (p: SimPlayer) => number) => arr.reduce((s, p) => s + f(p), 0) / arr.length;
@@ -441,7 +448,9 @@ export class GameSim {
       // A heat check is a deep pull-up; a frustrated shot is a contested jumper, rarely a drive.
       const prof = md === 'heat' ? { ...prof0, atb: prof0.atb * 2, c3: prof0.c3 * 0.6 } : md === 'tilt' ? { ...prof0, mid: prof0.mid * 1.5, atb: prof0.atb * 1.4, rim: prof0.rim * 0.6 } : prof0;
       const z = wpick(ZONES, k => prof[k]);
-      const sk = C(sh).skill[z];
+      const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
+      const sk = cs[z] + (paint ? 0.5 * ((cs.rim - n.skill.rim) - (cs.mid - n.skill.mid)) : 0), subD = z !== 'mid' ? 0 : paint ? PAINT_D : -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE);
+      const lab = () => (paint ? (sh.grp === 'B' ? 'a hook shot' : 'a floater') : LABEL[z](sh));
       const bigs = onD.slice().sort((a, b) => b.r.hgt - a.r.hgt).slice(0, 2);
       const intD = avg(bigs, p => interiorD(p.r));
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
@@ -461,12 +470,12 @@ export class GameSim {
       const readD = oiqSh >= 0 ? 0.0005 * oiqSh : 0.0009 * oiqSh; // shot selection: knowing which shots to take
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
-      const pct = hotD + readD + moodD + BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = hotD + readD + moodD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - defAdj + tacD + fbD - usgPen + 0.0002 * (feelO - FEEL_MID) - 0.00015 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
-      b.fga++; b[at]++; if (three) b.tpa++;
+      b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
       if (Math.random() < cl(pct, 0.1, 0.9)) {
-        b.fgm++; b[mk]++; if (three) b.tpm++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
+        b.fgm++; b[mk]++; if (three) b.tpm++; if (paint) b.km++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
@@ -475,7 +484,7 @@ export class GameSim {
           passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * Math.exp((p.r.oiq - 50) / 70) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
           O.box[passer.id].ast++;
         }
-        ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + LABEL[z](sh) + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
+        ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
         if (Math.random() < RATE.andOne) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, foul(), 'and1', cAdv);
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
@@ -485,7 +494,7 @@ export class GameSim {
           const bl = wpick(onD, p => Math.pow(Math.max(1, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
-        } else ev([sh.id], () => sh.name + ' misses ' + LABEL[z](sh));
+        } else ev([sh.id], () => sh.name + ' misses ' + lab());
         keep = this.rebound(O, D, onO, onD, cAdv, ev, fx ? fx.orb : 0);
         if (!keep && tO.reb === 'Crash the glass' && Math.random() < 0.35) this.fastBreak = true;
       }

@@ -1,12 +1,13 @@
 // Player cards: a player's whole build (bio, ratings, potential, intangibles, personality, shot
-// tendencies) as JSON, to copy from one player and load onto another in God Mode. Loading keeps
+// tendencies in the NBA's categories) as JSON, to copy from one player and load onto another in God Mode. Loading keeps
 // who he is in this league: his ID, team, contract, stats and history.
 import { syncOvr } from './ratings';
 import { setTruePot } from './potential';
+import { applyMult, initTendencies, TEN_KEYS } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 
-const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'tend'] as const;
+const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten'] as const;
 
 export function exportCard(p: any) {
   const c: any = { card: 1 };
@@ -29,12 +30,11 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.name) for (const k of ['native', 'nativeFirst', 'nativeLast', 'first', 'last']) if (card[k] === undefined) delete p[k];
   if (card.born && card.born !== 'US' && card.state === undefined) delete p.state;
   if (card.age != null && !card.dob) delete p.dob;
-  KEEP.forEach(k => { if (card[k] !== undefined && k !== 'r' && k !== 'pers' && k !== 'intg' && k !== 'tend') p[k] = JSON.parse(JSON.stringify(card[k])); });
+  KEEP.forEach(k => { if (card[k] !== undefined && k !== 'r' && k !== 'pers' && k !== 'intg' && k !== 'ten') p[k] = JSON.parse(JSON.stringify(card[k])); });
   p.r = { ...p.r }; Object.entries(card.r).forEach(([k, v]) => (p.r[k] = cl(v as number, 1, 100)));
   if (card.pers) p.pers = { ...p.pers, ...card.pers };
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
-  if (card.tend) p.tend = { ...card.tend }; else delete p.tend;
-  delete p.ten; // his evolving playing style starts over from the new build (tendencies.ts; his quirks stay)
+  delete p.tend; delete p.ten; // his playing style starts over from the new build (below; his quirks stay)
   if (card.her && !card.heritage) { const gs = groupsOf(card.her); p.heritage = gs.length ? [...gs].sort((a, b) => b.w - a.w)[0].k : C[card.her]?.n; }
   if (card.rep || card.born || card.raised || card.her) { refreshElig(p, C); if (card.rep && C[card.rep]) { if (!p.elig.some((e: any) => e.c === card.rep)) p.elig = [{ c: card.rep, why: 'citizen by birth' }, ...p.elig]; p.rep = card.rep; } } // eligibility follows the card's countries
   if (card.pos) p.grp = GRP[card.pos];
@@ -43,6 +43,11 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   syncOvr(p);
   delete p.ceil; delete p.ph; p.perr = 0; // a fresh build: his potential is the card's, exactly (potential.ts)
   setTruePot(p, cl(card.pot ?? p.pot, p.ovr, 100), true); // exactly the card's, up to 100, whatever his ratings can show
+  // His shot tendencies: the card's (the NBA's categories, 0–100 scores), or from his game; older cards'
+  // multipliers become the same change on his tendencies (tendencies.ts applyMult).
+  initTendencies(p);
+  if (card.ten && typeof card.ten === 'object') TEN_KEYS.forEach(k => { const v = card.ten[k]; if (typeof v === 'number' && isFinite(v)) p.ten[k] = Math.max(2, Math.min(98, v)); });
+  else if (card.tend) applyMult(p, card.tend);
   return '';
 }
 
@@ -52,7 +57,6 @@ export const BLANK_CARD = {
   r: { hgt: 50, stre: 50, spd: 50, acc: 50, jmp: 50, endu: 50, ins: 50, dnk: 50, lay: 50, ft: 50, fg: 50, tp: 50, oiq: 50, diq: 50, blk: 50, stl: 50, drb: 50, pss: 50, reb: 50, box: 50 },
   pot: 60, intg: { feel: 50, poise: 50 },
   pers: { mot: 'Winning', alpha: false, touches: false, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: false, work: 50 },
-  tend: {},
 };
 
 // Ready-made cards (the starting library; every one is editable).

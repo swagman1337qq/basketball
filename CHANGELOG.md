@@ -14,6 +14,17 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
 
 ### Changed
+- **Tendencies are now the shot categories the NBA tracks, nothing else.** Every player has nine, shown in the NBA's own units:
+  - **Usage rate** (USG%)
+  - **Shooting by zone**, as shares of his shots that always add up to 100%: **Restricted Area**, **In the Paint (Non-RA)**, **Mid-Range**, **Corner 3**, **Above the Break 3**
+  - **Catch & Shoot** and **Pull-Up** (jump shots from 10+ feet with no dribble, or off the dribble), as shares of his shots
+  - **Free throw rate** (free throw attempts per field goal attempt)
+
+  Gone: drives, isolation, pick-and-roll ball handler and roll man, post-ups and passes made (they aren't shot tendencies), the 3-point attempt rate (the zones cover it), and God Mode's "fine-tuning" multipliers (draws fouls, turnovers, assisted on his makes and the rest). Player cards carry the new tendencies.
+  - Each one matters on the court. The zones decide where he shoots, and the game now plays floaters and hooks in the paint apart from mid-range jumpers, so all five zones are real numbers in the box score. Catch & shoot against pull-ups decides how often his makes are assisted, and free throw rate how often he's the one fouled.
+  - They match what players actually do, and the profile shows this season's real number next to each where the box score keeps it. Non-shooters take almost no threes, and bigs live at the rim and in the paint.
+  - God Mode edits them in the same units (a zone's share of his shots, with the others making room).
+  - Leagues in progress move over automatically.
 - **Shot volume now grows and shrinks with a player's game.** A player's usage used to follow his overall (defense included), and his usage tendency barely moved as he developed. Now:
   - It follows his **offense**: how well he scores and creates. A defensive specialist isn't fed the ball like a scorer anymore.
   - His **usage tendency evolves**. A player who becomes a better scorer, a more complete creator or grows an elite weapon (a sniper, a rim finisher), or becomes his team's best option, takes on a bigger share of the offense over a season or two. Young players grow into a bigger role fastest, and on a rebuilding team the young talent gets the ball (on a contender, a young role player waits his turn).
@@ -22,23 +33,6 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - Leagues in progress: every player's usage tendency is reset once to fit his game, role and personality.
 - **Badges are off the Roster table**, which was getting too busy. They're still on player profiles, in free agency and on Tactics.
 - **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
-- **Tendencies now use only stats the NBA actually tracks, in the NBA's own units.** The full list:
-  - **Usage rate** (USG%)
-  - **Drives** per 36 minutes
-  - **Catch & shoot** (% of his shots)
-  - **Pull-up shooting** (% of his shots)
-  - **Isolation** (% of his plays)
-  - **P&R ball handler** (% of his plays)
-  - **P&R roll man** (% of his plays)
-  - **Post-up** (% of his plays)
-  - **Mid-range** (% of his shots)
-  - **3-point attempt rate** (% of his shots)
-  - **Passes made** per 36 minutes
-
-  "Pass-first" is gone (the NBA tracks passes made instead), and "Pick and roll" is split into ball handler and roll man, as the NBA tracks them.
-  - Typical values match NBA rotation players by position. For example, bigs drive about twice per 36 minutes and guards about eight.
-  - Hover a row for the NBA's definition. Where the game records the real number (usage, 3-point rate, mid-range), this season's actual figure shows next to the tendency.
-  - God Mode edits them in the same units.
 
 ### Added
 - **League leaders.** A new **League leaders** tab (under League) shows the top 10 in every stat for any season: points, rebounds, assists and the rest per game or as totals, the shooting percentages, and advanced stats (PER, true shooting, usage, win shares, box plus-minus, VORP, EWA and more). It uses the same qualifying rules as the bold league-leading numbers. Your players are highlighted in lavender.

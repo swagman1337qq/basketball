@@ -15,7 +15,7 @@ import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
-import { ensureTen, expUsg, TEN_KEYS, TEN_LABEL, tenScore, tenSuffix, tenUnit, usageScoreFor, type TenKey } from '../../engine/tendencies';
+import { ensureTen, expUsg, TEN_KEYS, TEN_LABEL, tenScore, tenSuffix, tenUnit, usageScoreFor, ZONE_TEN, zoneScoreFor, zoneShares, jumpShares, jumpScoreFor, type TenKey, type ZoneTen } from '../../engine/tendencies';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
@@ -60,7 +60,6 @@ const fillUS = (all: Record<string, string>, q: any, from: 'city' | 'state' = 'c
   if (st && m.some(o => o.v.toLowerCase() === city.toLowerCase())) return; // already a real town in his state
   const o = rnd(m); q.city = o.v; q.state = o.sub;
 };
-const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers'], ['ast', 'Assisted on his makes'], ['usg', 'Shot volume (usage)']];
 const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
 // A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
 const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };
@@ -234,15 +233,13 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         <div style={grid}>
           {TEN_KEYS.map(k => { const sc = ensureTen(p)?.[k] ?? 50, roles = gm.rolesOf(p), norms = gm.db.norms;
             if (k === 'usage') { const lo = Math.ceil(expUsg(p, norms, roles, 2)), hi = Math.floor(expUsg(p, norms, roles, 98)); return num('Usage rate', Math.round(expUsg(p, norms, roles, sc)), lo, hi, v => mut(q => { ensureTen(q); q.ten = { ...q.ten, usage: usageScoreFor(q, norms, roles, v) }; }), undefined, '% (USG%)'); }
+            if ((ZONE_TEN as readonly string[]).includes(k)) { const z = k as ZoneTen, lo = Math.ceil(zoneShares(p, norms, roles, { [z]: 2 })[z]), hi = Math.floor(zoneShares(p, norms, roles, { [z]: 98 })[z]); return num(TEN_LABEL[k], Math.round(zoneShares(p, norms, roles)[z]), lo, Math.max(lo + 1, hi), v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [z]: zoneScoreFor(q, norms, roles, z, v) }; }), undefined, '% of shots'); } // a zone's share of his shots (the others make room)
+            if (k === 'cns' || k === 'pullup') { const lo = Math.ceil(jumpShares(p, norms, roles, { [k]: 2 })[k]), hi = Math.floor(jumpShares(p, norms, roles, { [k]: 98 })[k]); return num(TEN_LABEL[k], Math.round(jumpShares(p, norms, roles)[k]), lo, Math.max(lo + 1, hi), v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [k]: jumpScoreFor(q, norms, roles, k, v) }; }), undefined, '% of shots'); } // a share of his jump shots (the other makes room)
+            if (k === 'ftr') { const lo = Math.ceil(tenUnit('ftr', 2) * 100), hi = Math.floor(tenUnit('ftr', 98) * 100); return num(TEN_LABEL[k], Math.round(tenUnit('ftr', sc) * 100), lo, hi, v => mut(q => { ensureTen(q); q.ten = { ...q.ten, ftr: tenScore('ftr', v / 100) }; }), undefined, 'FTA per 100 FGA'); }
             const u = k as Exclude<TenKey, 'usage'>, lo = Math.ceil(tenUnit(u, 2)), hi = Math.floor(tenUnit(u, 98)); return num(TEN_LABEL[k], Math.round(tenUnit(u, sc)), lo, Math.max(lo + 1, hi), v => mut(q => { ensureTen(q); q.ten = { ...q.ten, [k]: tenScore(u, v) }; }), undefined, tenSuffix(u)); })}
         </div>
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving, and the fine-tuning below stops fading)</label>
-        <p style={{ ...muted, fontSize: '11.5px' }}>The NBA's own tracking categories, in NBA units: usage rate (USG%), drives and passes per 36 minutes, play-type frequencies (isolation, pick-and-roll ball handler and roll man, post-up) as a share of his plays, and catch-and-shoot, pull-up, mid-range and three-point shares of his shots. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer), so a player who becomes a star takes on a star's load over a season or two.</p>
-        <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', margin: '10px 0 2px' }}>Fine-tuning (multipliers on top)</div>
-        <div style={grid}>
-          {TENDS.map(([k, label]) => num(label, Math.round(((p.tend || {})[k] ?? 1) * 100), 20, 300, v => mut(q => { q.tend = { ...(q.tend || {}), [k]: v / 100 }; if (v === 100) delete q.tend[k]; if (!Object.keys(q.tend).length) delete q.tend; }), undefined, '%'))}
-        </div>
-        <p style={{ ...muted, fontSize: '11.5px' }}>Exact multipliers on top of his playing style (100% = none), for matching a real player's line; they fade a quarter of the way back to 100% each summer unless his tendencies are locked. His ratings still decide whether the shots go in: rookie Luka Dončić took lots of threes (about 130%) and drew fouls at a very high rate while making only a third of his threes.</p>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving)</label>
+        <p style={{ ...muted, fontSize: '11.5px' }}>The shot categories the NBA tracks, in its units: usage rate (USG%); shooting by zone (restricted area, in the paint outside it, mid-range, corner three, above the break three), as shares of his shots that always add up to 100%; catch-and-shoot and pull-up jumpers as shares of his shots; and free throw rate (free throw attempts per 100 field goal attempts). They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer); his ratings still decide whether the shots go in.</p>
         <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Locked</h4>
         <div style={{ fontSize: '12px', ...muted }}>

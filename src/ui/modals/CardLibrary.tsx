@@ -18,7 +18,6 @@ const BLOCKS: [string, [string, string][]][] = [
 const POS = ['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
 const GRP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 const MOTS = ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'];
-const TENDS: [string, string][] = [['rim', 'At the rim'], ['mid', 'Mid-range'], ['c3', 'Corner threes'], ['atb', 'Above-the-break threes'], ['draw', 'Draws fouls'], ['tov', 'Turnovers'], ['ast', 'Assisted on his makes']];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const clone = (x: any) => JSON.parse(JSON.stringify(x));
@@ -122,8 +121,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         {TRAITS.map(t => { const on = !!draft.pers?.[t.k]; return <button key={t.k} title={t.desc} className={on ? 'btn btn-primary' : 'btn btn-ghost'} style={{ fontSize: '11.5px', padding: '2px 8px' }} onClick={() => set(d => { d.pers = { ...(d.pers || {}), [t.k]: !on }; })}>{on ? '✓ ' : ''}{t.label}</button>; })}
       </div>
 
-      <div style={{ fontWeight: 600, fontSize: '12.5px' }}>Tendency fine-tuning <span style={{ ...muted, fontWeight: 400 }}>(multipliers on top of his evolving playing style; 100% = none; they fade each summer unless locked)</span></div>
-      <div style={rgrid}>{TENDS.map(([k, l]) => <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, fontSize: '12.5px' }}><span style={muted}>{l}</span><NumInput value={Math.round((draft.tend?.[k] ?? 1) * 100)} min={20} max={300} step={5} onValue={v => set(d => { d.tend = { ...(d.tend || {}), [k]: v / 100 }; if (v === 100) delete d.tend[k]; })} width={62} suffix="%" /></label>)}</div>
+      <div style={{ ...muted, fontSize: '12px' }}><b style={{ color: 'var(--color-text)', fontWeight: 600 }}>Playing style</b>: a card keeps the shot tendencies of the player it was copied from (set them on a player in God Mode, then copy him). A new card plays the way its ratings point, and either way his tendencies evolve from there.</div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button className="btn btn-primary" style={{ fontSize: '12px' }} disabled={!p} title={p ? '' : 'Pick a player above first'} onClick={() => apply(draft, '“' + (draft.label || draft.name || 'this card') + '”')}>{p ? 'Apply to ' + p.name : 'Pick a player to apply to'}</button>

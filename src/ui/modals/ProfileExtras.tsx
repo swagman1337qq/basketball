@@ -29,11 +29,14 @@ const Row = ({ k, v, c }: { k: ReactNode; v: ReactNode; c?: string }) => (
 
 // Five display zones from the engine's four shot tiers: the rim tier splits into the
 // restricted area and the rest of the paint by typical NBA shares.
+// The NBA's five shooting zones. Box scores from 2026-10 on keep the paint (non-RA) shots apart (ka/km,
+// inside the mid tier); older ones only had the engine's four tiers, so their split is estimated.
 export function fiveZones(t: any) {
+  if (t.ka != null) return [['Restricted area', t.rm || 0, t.ra || 0], ['In the paint (non-RA)', t.km || 0, t.ka], ['Mid-range', (t.mm || 0) - (t.km || 0), (t.ma || 0) - t.ka], ['Corner 3', t.cm || 0, t.ca || 0], ['Above the break 3', t.bm || 0, t.ba || 0]] as [string, number, number][];
   const ra = Math.round((t.ra || 0) * 0.74), rm = Math.min(ra, Math.round((t.rm || 0) * 0.84));
   return [['Restricted area', rm, ra], ['In the paint (non-RA)', (t.rm || 0) - rm, (t.ra || 0) - ra], ['Mid-range', t.mm || 0, t.ma || 0], ['Corner 3', t.cm || 0, t.ca || 0], ['Above the break 3', t.bm || 0, t.ba || 0]] as [string, number, number][];
 }
-export const LEAGUE_ZONE = [0.696, 0.44, 0.415, 0.388, 0.352];
+export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
 
 export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
   const { gm, s, open } = vm.ctx, { p, tid } = useP(vm);

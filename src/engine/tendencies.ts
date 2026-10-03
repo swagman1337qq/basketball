@@ -1,26 +1,25 @@
-// Playing style: how a player chooses to play, apart from how well he plays. Attributes decide
-// ability (whether the shot goes in); tendencies decide behavior (which shots he looks for, how
-// often he ends the possession himself, whether he drives, posts up or pulls up).
+// Playing style: how a player chooses to shoot, apart from how well he shoots. Ratings decide ability
+// (whether the shot goes in); tendencies decide behavior (how much of the offense he takes on, where
+// his shots come from, how he gets them, how often he gets to the line).
 //
-// Only categories the NBA itself tracks (NBA.com advanced stats, player tracking and play types),
-// each shown in its NBA unit. Stored on the player (p.ten) as a 0–100 score, 50 = league typical:
-//   usage   Usage rate (USG%): share of team plays he uses while on the floor (advanced)
-//   drive   Drives per 36 minutes (player tracking)
-//   cns     Catch & shoot: share of his shots (player tracking)
-//   pullup  Pull-up shooting: share of his shots (player tracking)
-//   iso     Isolation: share of his possessions (play type)
-//   pnr     P&R ball handler: share of his possessions (play type)
-//   roll    P&R roll man: share of his possessions (play type)
-//   post    Post-up: share of his possessions (play type)
-//   mid     Mid-range: share of his shots (shot zones)
-//   three   3-point attempt rate: share of his shots
-//   pass    Passes made per 36 minutes (player tracking)
+// Only the shot categories the NBA itself tracks on NBA.com, each shown in its NBA unit. Stored on the
+// player (p.ten) as a 0–100 score, 50 = league typical:
+//   usage   Usage rate (USG%): share of his team's plays he uses while on the floor (advanced stats)
+//   ra      Restricted Area: share of his shots (shooting by zone)
+//   paint   In the Paint (Non-RA): share of his shots (shooting by zone)
+//   mid     Mid-Range: share of his shots (shooting by zone)
+//   c3      Corner 3: share of his shots (shooting by zone)
+//   atb     Above the Break 3: share of his shots (shooting by zone)
+//   cns     Catch & Shoot: jump shots from 10+ feet with no dribble, share of his shots (shot dashboard)
+//   pullup  Pull-Up: jump shots from 10+ feet off the dribble, share of his shots (shot dashboard)
+//   ftr     Free throw rate: free throw attempts per field goal attempt (four factors)
 //
 // Each has a target: what his current abilities, role, team situation and personality point to,
 // plus a personal quirk that never changes (two players with the same ratings don't play alike).
 // Tendencies move toward the target gradually and probabilistically: a big step chance each summer
 // after development, a small one month to month in season. Young players adapt fastest; veterans
-// keep their habits, except that a body that has lost its burst has to adapt (fewer drives).
+// keep their habits, except that a body that has lost its burst has to adapt (fewer shots at the
+// rim, fewer trips to the line).
 //
 // Shot volume (usage) is a behavior too, not his overall. It moves toward what his offensive game,
 // his role and his personality point to: a player who becomes a better scorer or a more complete
@@ -29,41 +28,44 @@
 // declines, or who joins a team with better options, gives some back. Egotistic, ball-dominant and
 // selfish players take more shots than their game earns, and believe in shots they can't make.
 //
-// The engine reads the tendencies as multipliers (effTend): the shot mix, how often he draws
-// fouls, how often his makes are assisted, turnovers, how often he's the passer, and usage.
-// Hand-set multipliers (God Mode, player cards) sit on top and fade toward normal a little every
-// summer unless his tendencies are locked.
-import { offAbility, usageRaw, type Norms, type Tend } from './sim';
+// The engine plays them (effTend): the five zones set his shot mix (sim.ts shotProfile; the paint and
+// mid-range share the engine's mid tier), catch & shoot against pull-ups decides how often his makes
+// are assisted, free throw rate how often he's the one fouled, usage how much he shoots.
+import { BASE, DEFAULT_NORMS, offAbility, PAINT_SHARE, shotProfile, usageRaw, type Norms, type Tend } from './sim';
 export { offAbility };
 
-export const TEN_KEYS = ['usage', 'drive', 'cns', 'pullup', 'iso', 'pnr', 'roll', 'post', 'mid', 'three', 'pass'] as const;
+export const TEN_KEYS = ['usage', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'ftr'] as const;
 export type TenKey = (typeof TEN_KEYS)[number];
-export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', drive: 'Drives', cns: 'Catch & shoot', pullup: 'Pull-up shooting', iso: 'Isolation', pnr: 'P&R ball handler', roll: 'P&R roll man', post: 'Post-up', mid: 'Mid-range', three: '3-point attempt rate', pass: 'Passes made' };
-// The NBA's definitions (NBA.com stats: advanced, player tracking, play types, shot zones).
+export const ZONE_TEN = ['ra', 'paint', 'mid', 'c3', 'atb'] as const;
+export type ZoneTen = (typeof ZONE_TEN)[number];
+export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', ra: 'Restricted Area', paint: 'In the Paint (Non-RA)', mid: 'Mid-Range', c3: 'Corner 3', atb: 'Above the Break 3', cns: 'Catch & Shoot', pullup: 'Pull-Up', ftr: 'Free throw rate' };
+// The NBA's definitions (NBA.com stats: advanced, shooting by zone, shot dashboard, four factors).
 export const TEN_DESC: Record<TenKey, string> = {
-  usage: 'Usage rate (USG%): the share of his team\u2019s plays he uses (shots, free-throw trips, turnovers) while he\u2019s on the floor',
-  drive: 'Drives (player tracking): touches that start 20+ feet from the basket and are dribbled inside 10 feet',
-  cns: 'Catch & shoot (player tracking): jump shots from 10+ feet with no dribble before the shot, as a share of his shots',
-  pullup: 'Pull-up (player tracking): jump shots from 10+ feet taken after dribbling, as a share of his shots',
-  iso: 'Isolation (play type): possessions he ends going one-on-one, as a share of his possessions',
-  pnr: 'Pick & roll ball handler (play type): possessions he ends as the ball handler in a pick and roll',
-  roll: 'Pick & roll roll man (play type): possessions he ends as the screener, rolling or popping',
-  post: 'Post-up (play type): possessions he ends from a post-up',
-  mid: 'Mid-range (shot zones): shots outside the paint and inside the three-point line, as a share of his shots',
-  three: '3-point attempt rate: threes as a share of his shots',
-  pass: 'Passes made (player tracking), per 36 minutes',
+  usage: 'Usage rate (USG%): the share of his team’s plays he uses (shots, free-throw trips, turnovers) while he’s on the floor',
+  ra: 'Restricted Area (shooting by zone): shots inside the restricted-area arc, four feet from the basket, as a share of his shots',
+  paint: 'In the Paint (Non-RA) (shooting by zone): shots in the paint outside the restricted area (floaters, hooks, short turnarounds), as a share of his shots',
+  mid: 'Mid-Range (shooting by zone): shots outside the paint and inside the three-point line, as a share of his shots',
+  c3: 'Corner 3 (shooting by zone): threes from either corner, below the break, as a share of his shots',
+  atb: 'Above the Break 3 (shooting by zone): threes from anywhere but the corners, as a share of his shots',
+  cns: 'Catch & Shoot (shot dashboard): jump shots from 10+ feet where he held the ball 2 seconds or less and took no dribble, as a share of his shots',
+  pullup: 'Pull-Up (shot dashboard): jump shots from 10+ feet after one or more dribbles, as a share of his shots',
+  ftr: 'Free throw rate (FTA rate, one of the four factors): free throw attempts per field goal attempt',
 };
-// Display in NBA units: league-typical value at 50, spread `k`, cap. Typical values are for NBA
-// rotation players (2024–25): usage is shown through the engine (usageOf).
-const UNIT: Record<Exclude<TenKey, 'usage'>, { typ: number; k: number; max: number; dp: number; suf: string }> = {
-  drive: { typ: 5.5, k: 16, max: 26, dp: 1, suf: ' per 36' }, cns: { typ: 30, k: 30, max: 85, dp: 0, suf: '% of shots' }, pullup: { typ: 22, k: 20, max: 70, dp: 0, suf: '% of shots' },
-  iso: { typ: 6, k: 16, max: 35, dp: 1, suf: '% of plays' }, pnr: { typ: 13, k: 13, max: 55, dp: 1, suf: '% of plays' }, roll: { typ: 6, k: 13, max: 40, dp: 1, suf: '% of plays' },
-  post: { typ: 3.5, k: 13, max: 40, dp: 1, suf: '% of plays' }, mid: { typ: 12, k: 22, max: 45, dp: 0, suf: '% of shots' }, three: { typ: 40, k: 34, max: 92, dp: 0, suf: '% of shots' },
-  pass: { typ: 36, k: 45, max: 85, dp: 0, suf: ' per 36' },
+// League shares of each zone (the engine's baselines; the paint and mid-range split its mid tier).
+const ZB: Record<ZoneTen, number> = { ra: BASE.zone.rim.share, paint: BASE.zone.mid.share * PAINT_SHARE, mid: BASE.zone.mid.share * (1 - PAINT_SHARE), c3: BASE.zone.c3.share, atb: BASE.zone.atb.share };
+// NBA units: league-typical value at 50, spread `k` (`kLo` below 50, where a zone falls off faster:
+// a non-shooter takes almost no threes, a great shooter only somewhat more than most), cap. Usage is
+// shown through the engine (expUsg), the zones through his whole shot mix (zoneShares, adding up to
+// 100%), catch & shoot and pull-ups through his jump shots (jumpShares).
+const UNIT: Record<Exclude<TenKey, 'usage'>, { typ: number; k: number; kLo?: number; max: number; dp: number; suf: string }> = {
+  ra: { typ: ZB.ra * 100, k: 28, kLo: 22, max: 85, dp: 0, suf: '% of shots' }, paint: { typ: ZB.paint * 100, k: 28, kLo: 22, max: 60, dp: 0, suf: '% of shots' }, mid: { typ: ZB.mid * 100, k: 28, kLo: 22, max: 60, dp: 0, suf: '% of shots' },
+  c3: { typ: ZB.c3 * 100, k: 34, kLo: 14, max: 45, dp: 0, suf: '% of shots' }, atb: { typ: ZB.atb * 100, k: 38, kLo: 14, max: 80, dp: 0, suf: '% of shots' },
+  cns: { typ: 30, k: 30, max: 85, dp: 0, suf: '% of shots' }, pullup: { typ: 22, k: 20, max: 70, dp: 0, suf: '% of shots' },
+  ftr: { typ: 0.235, k: 39, max: 0.9, dp: 3, suf: ' FTA per FGA' }, // fitted to what players actually shoot (the engine's foul share is steeper: FTR_K)
 };
-export const tenUnit = (k: Exclude<TenKey, 'usage'>, score: number) => { const u = UNIT[k]; return Math.min(u.max, u.typ * Math.exp((score - 50) / u.k)); };
-export const tenScore = (k: Exclude<TenKey, 'usage'>, val: number) => { const u = UNIT[k]; return cl(50 + u.k * Math.log(Math.max(0.05, val) / u.typ), 2, 98); };
-export const tenFmt = (k: Exclude<TenKey, 'usage'>, val: number) => { const u = UNIT[k]; return val.toFixed(u.dp) + u.suf; };
+export const tenUnit = (k: Exclude<TenKey, 'usage'>, score: number) => { const u = UNIT[k]; return Math.min(u.max, u.typ * Math.exp((score - 50) / (score < 50 && u.kLo ? u.kLo : u.k))); };
+export const tenScore = (k: Exclude<TenKey, 'usage'>, val: number) => { const u = UNIT[k], x = Math.log(Math.max(0.001, val) / u.typ); return cl(50 + (x < 0 && u.kLo ? u.kLo : u.k) * x, 2, 98); };
+export const tenFmt = (k: Exclude<TenKey, 'usage'>, val: number) => { const u = UNIT[k]; return (u.dp === 3 ? val.toFixed(3).replace(/^0/, '') : val.toFixed(u.dp)) + u.suf; };
 export const tenSuffix = (k: Exclude<TenKey, 'usage'>) => UNIT[k].suf.trim();
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -71,7 +73,7 @@ const hash = (id: number, salt: number) => ((((id + 1) * 2654435761) ^ (salt * 4
 const nrmH = (id: number, salt: number) => (hash(id, salt) + hash(id, salt + 7) + hash(id, salt + 13) - 1.5) * 2; // about N(0, 1)
 
 // His personal quirks: fixed per player (and per tendency), about ±7 on the 0–100 scale (±3.5 for shot volume).
-const SALT: Record<TenKey, number> = { usage: 0, pass: 1, drive: 2, iso: 3, pnr: 4, post: 5, cns: 6, pullup: 7, mid: 8, three: 9, roll: 10 }; // fixed, so quirks survive list changes
+const SALT: Record<TenKey, number> = { usage: 0, cns: 6, pullup: 7, mid: 8, ra: 11, paint: 12, c3: 13, atb: 14, ftr: 15 }; // fixed, so quirks survive list changes
 export const quirkOf = (p: any, k: TenKey) => (p.tenQ?.[k] ?? +(nrmH(p.id, 101 + SALT[k]) * (k === 'usage' ? 3.5 : 7)).toFixed(1));
 
 // Defense and rebounding, on the same scale as offAbility: the gap says scorer or specialist.
@@ -86,25 +88,24 @@ const ctxOf = (c?: number | null | TenCtx): TenCtx => (typeof c === 'number' ? {
 // best compared with the rest of his game), plus a little for level itself, since better players
 // create a bit more of everything.
 export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
-  const r = p.r || {}, f = p.pers || {}, g = p.grp, big = g === 'B', guard = g === 'G', age = p.age ?? 25, { rank, mode } = ctxOf(ctx);
-  const t = (v: number) => cl(v, 2, 98), acc = r.acc ?? r.spd, finish = Math.max(r.dnk, r.lay ?? r.dnk);
+  const r = p.r || {}, f = p.pers || {}, g = p.grp, big = g === 'B', guard = g === 'G', wing = !big && !guard, age = p.age ?? 25, { rank, mode } = ctxOf(ctx);
+  const t = (v: number) => cl(v, 2, 98), acc = r.acc ?? r.spd, finish = Math.max(r.dnk, r.lay ?? r.dnk), lay = r.lay ?? r.dnk;
   const L = (r.drb + r.pss + r.fg + r.tp + r.ins + finish + acc + r.oiq) / 8, rel = (x: number) => x - L + 0.3 * (L - 52);
   const shoot3 = r.tp < 40 ? 50 + (r.tp - 50) * 2.2 : 50 + rel(r.tp) * 0.7; // non-shooters stop taking threes
-  const handle = (r.drb + acc) / 2;
-  const attack = big ? r.dnk * 0.35 + r.jmp * 0.25 + r.hgt * 0.2 + r.spd * 0.2 : acc * 0.3 + r.spd * 0.15 + r.drb * 0.25 + finish * 0.3;
-  const postSk = r.ins * 0.5 + r.stre * 0.25 + r.hgt * 0.25, offA = offAbility(r);
+  const handle = (r.drb + acc) / 2, postSk = r.ins * 0.5 + r.stre * 0.25 + r.hgt * 0.25, offA = offAbility(r);
+  // At the rim: drives and cuts for a guard or wing; rolls, lobs, putbacks and deep post seals for a big.
+  const rimSk = big ? r.dnk * 0.3 + r.hgt * 0.25 + r.jmp * 0.2 + r.ins * 0.25 : finish * 0.4 + acc * 0.3 + r.drb * 0.15 + r.spd * 0.15;
+  // Drawing fouls: attacking off the dribble, or a big's strength and touch inside.
+  const attack = big ? postSk * 0.45 + r.dnk * 0.3 + r.stre * 0.25 : acc * 0.3 + r.spd * 0.15 + r.drb * 0.25 + finish * 0.3;
   const out: Record<TenKey, number> = {
-    three: t(shoot3 - (big ? 6 : 0) + (f.team ? 3 : 0) + (f.heat ? 3 : 0)),
-    mid: t(50 + rel(r.fg) * 1.2 + (f.alpha ? 4 : 0) + (f.touches ? 4 : 0) + (f.volatile ? 3 : 0) + (age >= 31 ? 4 : 0)),
-    drive: t(50 + rel(attack) * 1.25 + (big ? -20 : 0) + (age >= 31 ? -(age - 30) * 1.5 : 0)), // bigs attack the rim on rolls and post-ups, not drives
-    pullup: t(50 + rel((r.drb + (r.fg + r.tp) / 2) / 2) * 1.3 + (f.heat ? 6 : 0) + (f.flashy ? 3 : 0) + (big ? -10 : 0)),
+    ra: t(41 + rel(rimSk) * 1.1 + (big ? 10 : guard ? -3 : 0) + (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) - (age >= 31 ? (age - 30) * 1.5 : 0)),
+    paint: t(42 + rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 + (big ? 8 : guard ? -2 : 0) + (age >= 30 && big ? 3 : 0)), // a big's hooks, a guard's floaters
+    mid: t(46 + rel(r.fg) * 1.2 + (f.alpha ? 4 : 0) + (f.touches ? 4 : 0) + (f.volatile ? 3 : 0) + (age >= 31 ? 4 : 0) - (big && r.fg < 50 ? 6 : 0)),
+    c3: t(5 + shoot3 + (wing ? 6 : guard ? -3 : -6) - (handle - L) * 0.4 + (f.team ? 4 : 0)), // spot-up shooters wait in the corners
+    atb: t(5 + shoot3 + (guard ? 4 : big ? -8 : 0) + (handle - L) * 0.3 + (f.heat ? 4 : 0) + (f.alpha ? 2 : 0)), // ball handlers pull up from the top
     cns: t((r.tp < 40 ? 50 + (r.tp - 50) * 1.8 : 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0)),
-    post: t(50 + rel(postSk) * 1.3 + (big ? -3 : guard ? -14 : -4) + (age >= 30 && !guard ? 3 : 0)),
-    iso: t(50 + rel(r.drb * 0.35 + acc * 0.25 + r.fg * 0.2 + r.oiq * 0.2) * 1.0 + (f.alpha ? 10 : 0) + (f.touches ? 6 : 0) - (f.team ? 8 : 0) + (big ? -8 : 0)),
-    pnr: t(50 + rel(r.drb * 0.5 + r.pss * 0.5) * 1.0 + (big ? -26 : guard ? 3 : -4)),
-    roll: t(50 + rel(r.dnk * 0.4 + r.hgt * 0.3 + r.spd * 0.3) * 1.0 + (big ? 5 : guard ? -26 : -10)),
-    // Passes made: passing skill, the ball in his hands, and how his passing compares with his scoring.
-    pass: t(50 + rel(r.pss) * 0.9 + (r.pss - offA) * 0.5 + (r.drb - L) * 0.3 + (guard ? 8 : big ? -2 : 0) + (f.team ? 6 : 0) - (f.alpha ? 4 : 0) - (f.padder ? 4 : 0) + (f.flashy ? 3 : 0)),
+    pullup: t(50 + rel((r.drb + (r.fg + r.tp) / 2) / 2) * 1.3 + (f.heat ? 6 : 0) + (f.flashy ? 3 : 0) + (f.alpha ? 3 : 0) + (f.touches ? 3 : 0) + (big ? -10 : 0)),
+    ftr: t(41.5 + rel(attack) * 1.1 + (big ? 3 : 0) + (f.fearless ? 2 : 0) + (f.flashy ? 1 : 0) - (age >= 32 ? age - 31 : 0)),
     usage: 50,
   };
   // Shot volume, on top of what his offensive game earns him right away in the engine (usageRaw):
@@ -115,9 +116,9 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   // - his role: the first option carries the load, the fifth fits in; on a rebuilding team the young
   //   talent gets the ball, on a contender a young role player waits his turn;
   // - personality: egotistic, ball-dominant and selfish players want more shots than their game earns
-  //   and believe in shots they can't make (a weak game pulls the egotistic and selfish down only half as much); heat
-  //   checkers, fearless and legacy-driven players a little more; team players fewer;
-  // - heavy passers finish fewer possessions; a teenager defers unless he's the best option;
+  //   and believe in shots they can't make (a weak game pulls the egotistic and selfish down only half
+  //   as much); heat checkers, fearless and legacy-driven players a little more; team players fewer;
+  // - a pass-first player finishes fewer possessions; a teenager defers unless he's the best option;
   //   veterans hand some over.
   const rimS = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, weapon = Math.max(rimS, r.fg, r.tp);
   const belief = f.alpha || f.padder ? 0.5 : f.touches ? 0.7 : f.heat || f.fearless ? 0.85 : 1, lvl = (offA - 57) * 0.55;
@@ -125,7 +126,7 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   const rankB = rank == null ? 0 : [6, 3, 0, -2, -4, -5, -6][Math.min(6, rank)];
   const situation = age > 24 ? 0 : mode === 'rebuild' ? 3 : mode === 'contend' && (rank ?? 9) > 0 ? -2 : 0;
   out.usage = t(48 + (lvl < 0 ? lvl * belief : lvl) + cl((weapon - 64) * 0.25, 0, 4) + cl((offA - defAbility(r)) * 0.35, -6, 3) + rankB + situation + ego
-    - (out.pass - 50) * 0.12 + (age <= 20 && (rank ?? 9) > 0 ? -3 : 0) + (age >= 33 ? -3 : 0));
+    - cl((r.pss - offA) * 0.12, -3, 4) + (age <= 20 && (rank ?? 9) > 0 ? -3 : 0) + (age >= 33 ? -3 : 0));
   return out;
 }
 
@@ -133,22 +134,35 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
 export function initTendencies(p: any, ctx?: number | null | TenCtx) {
   const tg = tenTargets(p, ctx);
   p.tenQ = Object.fromEntries(TEN_KEYS.map(k => [k, quirkOf(p, k)]));
-  p.ten = Object.fromEntries(TEN_KEYS.map(k => [k, Math.round(cl(tg[k] + p.tenQ[k], 2, 98))])); p.tenV = 2;
+  p.ten = Object.fromEntries(TEN_KEYS.map(k => [k, Math.round(cl(tg[k] + p.tenQ[k], 2, 98))])); p.tenV = 3;
   return p.ten;
 }
+// Hand-set multipliers (older saves' God Mode fine-tuning, player cards) on the engine's zones, foul
+// drawing, assisted makes and usage, turned into the same change on his tendencies. Turnover and
+// passing multipliers aren't shot tendencies and are dropped.
+export function applyMult(p: any, h: any) {
+  if (!h || !p.ten) return;
+  const add = (k: TenKey, m: number, kk: number) => { if (m > 0 && isFinite(m) && p.ten[k] != null) p.ten[k] = Math.round(cl(p.ten[k] + kk * Math.log(m), 2, 98)); };
+  const zk = (k: ZoneTen, m: number) => (m < 1 ? UNIT[k].kLo ?? UNIT[k].k : UNIT[k].k);
+  add('ra', h.rim, zk('ra', h.rim)); add('paint', h.mid, zk('paint', h.mid)); add('mid', h.mid, zk('mid', h.mid)); add('c3', h.c3, zk('c3', h.c3)); add('atb', h.atb, zk('atb', h.atb));
+  add('ftr', h.draw, FTR_K); add('usage', h.usg, USG_K);
+  if (h.ast > 0) { add('cns', h.ast, 30); add('pullup', 1 / h.ast, 30); } // assisted rate = exp((C&S − pull-up) / 60)
+}
+// Keys from before the NBA's shot categories, removed on load.
+const OLD_KEYS = ['drive', 'iso', 'pnr', 'roll', 'post', 'three', 'pass'];
 // Players saved before a tendency existed get it now (from where his game points, plus his quirk).
-// Saves from the first version (with "Pick and roll" and "Pass-first", and drives that counted a
-// big's rolls) move to the NBA's tracking categories.
+// Saves from before the NBA's shot categories keep how usage, catch & shoot, pull-ups and mid-range
+// have evolved; the zones and free throw rate start from his game, and hand-set multipliers move in.
 export function ensureTen(p: any) {
-  if (!p?.r) return null; if (!p.ten || !p.tenQ) return initTendencies(p);
-  if (TEN_KEYS.some(k => p.ten[k] == null) || p.tenV !== 2) {
-    const tg = tenTargets(p, null), fill = (k: TenKey) => { p.tenQ[k] = quirkOf(p, k); p.ten[k] = Math.round(cl(tg[k] + p.tenQ[k], 2, 98)); };
-    // Categories whose meaning changed start fresh from his game; usage, pull-ups, isolation, mid-range
-    // and threes keep how they've evolved.
-    if (p.tenV !== 2) (['drive', 'cns', 'pnr', 'roll', 'post', 'pass'] as TenKey[]).forEach(fill);
-    TEN_KEYS.forEach(k => { if (p.ten[k] == null) fill(k); });
-    p.tenV = 2;
+  if (!p?.r) return null;
+  if (!p.ten || !p.tenQ) initTendencies(p);
+  else if (p.tenV !== 3 || TEN_KEYS.some(k => p.ten[k] == null)) {
+    const tg = tenTargets(p, null), keep = p.tenV === 3 ? TEN_KEYS : ['usage', 'cns', 'pullup', 'mid'];
+    TEN_KEYS.forEach(k => { if (p.ten[k] == null || !keep.includes(k)) { p.tenQ[k] = quirkOf(p, k); p.ten[k] = Math.round(cl(tg[k] + p.tenQ[k], 2, 98)); } });
+    OLD_KEYS.forEach(k => { delete p.ten[k]; delete p.tenQ[k]; if (p.tenPrev) delete p.tenPrev[k]; });
+    p.tenV = 3;
   }
+  if (p.tend) { applyMult(p, p.tend); delete p.tend; }
   return p.ten;
 }
 
@@ -163,7 +177,7 @@ export function evolveTendencies(p: any, ctx: number | null | TenCtx, frac: numb
     let rate = (k === 'usage' ? 0.45 : 0.3) * ageF * (0.5 + rnd());
     if (k === 'usage' && gap > 0 && age <= 25) rate *= 1.25; // a young player who's earned a bigger role grows into it quickly
     if (k === 'usage' && gap < 0 && !(p.pers?.alpha || p.pers?.padder || p.pers?.touches)) rate *= 1.3; // a fading game loses its shots, unless his ego won't let go
-    if (gap < 0 && age >= 30 && (k === 'drive' || k === 'post')) rate *= 1.4; // the body forces it
+    if (gap < 0 && age >= 30 && (k === 'ra' || k === 'ftr')) rate *= 1.4; // the body forces it
     const step = gap * Math.min(1, rate * frac) + (rnd() + rnd() - 1) * 1.5 * Math.sqrt(frac);
     const nx = Math.round(cl(cur + step, 2, 98) * 10) / 10;
     if (Math.abs(nx - cur) >= 0.05) { d[k] = +(nx - cur).toFixed(1); p.ten[k] = nx; }
@@ -171,32 +185,44 @@ export function evolveTendencies(p: any, ctx: number | null | TenCtx, frac: numb
   return d;
 }
 
-// Hand-set multipliers (God Mode, player cards) fade a quarter of the way toward normal each summer.
-export function fadeHandTend(p: any) {
-  if (!p.tend || p.tenLock) return;
-  Object.keys(p.tend).forEach(k => { const v = Math.pow(p.tend[k], 0.75); if (Math.abs(v - 1) < 0.02) delete p.tend[k]; else p.tend[k] = +v.toFixed(3); });
-  if (!Object.keys(p.tend).length) delete p.tend;
+// What the engine plays: the tendencies as multipliers (1 = typical).
+const ex = (v: number, k: number) => Math.exp((v - 50) / k), USG_K = 60, FTR_K = 28; // shot volume: +20 on the tendency is about 40% more of the offense
+export function effTend(p: any): Tend | undefined {
+  const t = ensureTen(p);
+  if (!t) return undefined;
+  const w = (k: ZoneTen) => tenUnit(k, t[k]) / UNIT[k].typ, wp = ZB.paint * w('paint'), wm = ZB.mid * w('mid'); // a zone's weight against a league-typical shooter
+  return {
+    rim: w('ra'), mid: (wp + wm) / (ZB.paint + ZB.mid), pf: wp / (wp + wm), c3: w('c3'), atb: w('atb'),
+    draw: Math.exp((t.ftr - 50) / FTR_K), // his share of the team's shooting fouls
+    ast: Math.exp(((t.cns - 50) - (t.pullup - 50)) / 60), // catch-and-shoot makes come off a pass; pull-ups don't
+    usg: ex(t.usage, USG_K),
+  };
 }
 
-// What the engine plays: the tendencies as multipliers (1 = typical), times any hand-set ones.
-const ex = (v: number, k: number) => Math.exp((v - 50) / k), USG_K = 60; // shot volume: +20 on the tendency is about 40% more of the offense
-export function effTend(p: any): Tend | undefined {
-  const t = ensureTen(p), h = p?.tend || {};
-  if (!t) return p?.tend;
-  const big = p.grp === 'B';
-  const rimC = big ? 0.2 * t.drive + 0.4 * t.post + 0.4 * t.roll + 6 : 0.7 * t.drive + 0.1 * t.post + 0.1 * t.pnr + 0.1 * t.roll; // a big's rim attack: rolls, post-ups, putbacks
-  const midC = 0.45 * t.mid + 0.25 * t.pullup + 0.15 * t.iso + 0.15 * (big ? t.post : t.pnr);
-  const c3C = 0.55 * t.three + 0.45 * t.cns, atbC = 0.6 * t.three + 0.4 * t.pullup;
-  const o: Tend = {
-    rim: ex(rimC, 30), mid: ex(midC, 28), c3: c3C < 30 ? ex(c3C, 14) * ex(30, 34) / ex(30, 14) : ex(c3C, 34), atb: atbC < 30 ? ex(atbC, 14) * ex(30, 34) / ex(30, 14) : ex(atbC, 34), // non-shooters fall off fast
-    draw: ex(0.6 * t.drive + 0.4 * t.post, 40),
-    ast: Math.exp(((t.cns - 50) + 0.4 * (t.roll - 50) - 0.5 * (t.iso - 50) - 0.4 * (t.pullup - 50)) / 70), // roll men and spot-up shooters are fed; isolations and pull-ups aren't
-    tov: Math.exp(((t.iso - 50) * 0.25 + (t.pnr - 50) * 0.2 + (t.pass - 50) * 0.25) / 60),
-    pass: ex(t.pass, 30),
-    usg: ex(t.usage, USG_K) * Math.exp(-(t.pass - 50) / 300),
-  };
-  (Object.keys(o) as (keyof Tend)[]).forEach(k => { if (h[k] != null) o[k] = (o[k] as number) * h[k]; });
-  return o;
+// His shot mix in the NBA's zones (% of his shots): what the engine plays from his tendencies, skills
+// and roles (sim.ts shotProfile). `over`: tendency scores to try instead (editing).
+export function zoneShares(p: any, norms: Norms | null | undefined, roles: string[] = [], over?: Partial<Record<TenKey, number>>): Record<ZoneTen, number> {
+  const t = ensureTen(p), e = (t ? effTend(over ? { ...p, ten: { ...t, ...over }, tenQ: p.tenQ, tenV: 3 } : p) : undefined) || {};
+  const prof = shotProfile({ r: p.r, roles, tend: t ? e : undefined, pers: p.pers, grp: p.grp }, norms || DEFAULT_NORMS), pf = e.pf ?? PAINT_SHARE;
+  return { ra: 100 * prof.rim, paint: 100 * prof.mid * pf, mid: 100 * prof.mid * (1 - pf), c3: 100 * prof.c3, atb: 100 * prof.atb };
+}
+// The zone tendency that gives a share of his shots there (God Mode editing).
+export function zoneScoreFor(p: any, norms: Norms | null | undefined, roles: string[], k: ZoneTen, share: number) {
+  let lo = 2, hi = 98; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (zoneShares(p, norms, roles, { [k]: m })[k] < share) lo = m; else hi = m; }
+  return Math.round((lo + hi) / 2 * 10) / 10;
+}
+// Catch & shoot and pull-up jumpers as shares of his shots (NBA shot dashboard): his jump shots from
+// 10+ feet (mid-range, threes, the longer paint shots) split by the two tendencies (league-wide about
+// 28% and 25% of shots); the NBA counts a few as neither (held 2+ seconds without a dribble).
+export function jumpShares(p: any, norms: Norms | null | undefined, roles: string[] = [], over?: Partial<Record<TenKey, number>>): { cns: number; pullup: number } {
+  const t = { ...(ensureTen(p) || {}), ...over } as Record<TenKey, number>, z = zoneShares(p, norms, roles, over), J = (z.mid + z.c3 + z.atb + 0.25 * z.paint) * 0.92;
+  const wc = 0.53 * tenUnit('cns', t.cns ?? 50) / UNIT.cns.typ, wu = 0.47 * tenUnit('pullup', t.pullup ?? 50) / UNIT.pullup.typ;
+  return { cns: (J * wc) / (wc + wu), pullup: (J * wu) / (wc + wu) };
+}
+// The catch & shoot or pull-up tendency that gives a share of his shots (God Mode editing).
+export function jumpScoreFor(p: any, norms: Norms | null | undefined, roles: string[], k: 'cns' | 'pullup', share: number) {
+  let lo = 2, hi = 98; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (jumpShares(p, norms, roles, { [k]: m })[k] < share) lo = m; else hi = m; }
+  return Math.round((lo + hi) / 2 * 10) / 10;
 }
 
 // Each team's rotation ranked as offensive options (by offensive ability, among its top 9 by overall).
@@ -208,9 +234,10 @@ export function optionRanks(P: Record<number, any>, rosters: Record<string, numb
 }
 
 // A short read of his style for the profile: his two or three strongest leanings.
+const STYLE: Record<Exclude<TenKey, 'usage'>, string> = { ra: 'shots at the rim', paint: 'floaters and hooks', mid: 'mid-range shots', c3: 'corner threes', atb: 'threes above the break', cns: 'catch-and-shoot jumpers', pullup: 'pull-up jumpers', ftr: 'trips to the line' };
 export function styleLine(p: any): string {
   const t = ensureTen(p); if (!t) return '';
-  const top = TEN_KEYS.filter(k => k !== 'usage').map(k => [k, t[k]] as [TenKey, number]).filter(([, v]) => v >= 62).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => TEN_LABEL[k].toLowerCase());
+  const top = (TEN_KEYS.filter(k => k !== 'usage') as Exclude<TenKey, 'usage'>[]).map(k => [k, t[k]] as [Exclude<TenKey, 'usage'>, number]).filter(([, v]) => v >= 62).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => STYLE[k]);
   const vol = t.usage >= 65 ? 'A high-usage scorer' : t.usage >= 55 ? 'A willing scorer' : t.usage <= 35 ? 'A low-usage role player' : t.usage <= 45 ? 'Plays within the offense' : 'A balanced option';
   return vol + (top.length ? ', heavy on ' + (top.length > 1 ? top.slice(0, -1).join(', ') + ' and ' + top[top.length - 1] : top[0]) : '') + '.';
 }

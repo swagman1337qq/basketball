@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { allPools, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { effTend, ensureTen, evolveTendencies, fadeHandTend, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
+import { effTend, ensureTen, evolveTendencies, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
@@ -85,7 +85,7 @@ export class Game {
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k] }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
-    g.db.usgV = 1; // shot volume follows the offensive game and role (tendencies.ts)
+    g.db.usgV = 1; g.db.ten3 = 1; // shot volume follows the offensive game and role; tendencies are the NBA's shot categories (tendencies.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
@@ -236,6 +236,10 @@ export class Game {
     // 2026-10: shot volume follows the offensive game, role and personality, not the overall (sim.ts usageRaw,
     // tendencies.ts): saved usage tendencies start over from the new target plus each player's quirk (the
     // change-since-summer arrow kept), and the league's usage mean moves to the new scale.
+    // 2026-10: tendencies become the NBA's tracked shot categories (tendencies.ts: zones, catch & shoot,
+    // pull-ups, free throw rate, usage): every player moves over (hand-set multipliers too), and the
+    // league's shot-mix norms are recomputed for the new mix.
+    if (!g.db.ten3) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r && (p.ten || !p.retired)) ensureTen(p); }); g.refreshNorms(g.state); g.db.ten3 = 1; }
     if (!g.db.usgV) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
       Object.values(g.db.P).forEach((p: any) => { if (!p.r || p.retired || !p.ten || p.tenLock) return; const nx = Math.round(Math.max(2, Math.min(98, tenTargets(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number] }).usage + quirkOf(p, 'usage')))); if (p.tenPrev?.usage != null) p.tenPrev.usage += nx - p.ten.usage; p.ten.usage = nx; });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
@@ -1102,7 +1106,7 @@ export class Game {
       // His playing style catches up with his game: a summer's step toward what his new skills and role
       // point to (not every tendency moves every year), and hand-set tendencies fade (tendencies.ts).
       { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
-        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number] }, 1, 0.8); fadeHandTend(p); }); }
+        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number] }, 1, 0.8); }); }
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
