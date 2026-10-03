@@ -4,6 +4,7 @@ import { Children } from 'react';
 import type { ReactNode } from 'react';
 import type { VM } from '../vm';
 import { h4Style, Kicker, Link, muted, td, th } from '../kit';
+import { ChampBanner } from '../ChampBanner';
 
 const RN = ['First round', 'Conference semifinals', 'Conference finals', 'Finals'];
 
@@ -138,6 +139,11 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
           <Column label="East · Semis">{col(1, 'East', 2)}</Column>
           <Column label="East · R1">{col(0, 'East', 4)}</Column>
         </div>
+        {champ != null && !projected && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,minmax(0,1fr))', gap: '10px', marginTop: '22px' }}>
+            <div style={{ gridColumn: '3 / 6', display: 'flex', justifyContent: 'center' }}><ChampBanner team={T[champ]} year={gm.Y} width={150} /></div>
+          </div>
+        )}
         {projected && s.phase === 'regular' && <p style={{ ...muted, fontSize: '12px', margin: '10px 0 0' }}>Seeds 1–6 qualify directly; seeds 7–10 go to the play-in for the last two spots in each conference.</p>}
       </section>
 
