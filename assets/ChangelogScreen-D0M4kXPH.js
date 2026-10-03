@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{h as t,s as n}from"./index-CRkIxInA.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{l as t,x as n}from"./index-DhzgEuBD.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-03
 
 ### Changed
+- **Badges are off the Roster table**, which was getting too busy. They're still on player profiles, in free agency and on Tactics.
+- **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 - **Tendencies now use only stats the NBA actually tracks, in the NBA's own units.** The full list:
   - **Usage rate** (USG%)
   - **Drives** per 36 minutes
@@ -24,6 +26,18 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - God Mode edits them in the same units.
 
 ### Added
+- **Championship rings in player stats.** On a player's Stats tab, a ring marks every season he won the title, as Basketball-Reference does. Only players on the champion's roster when the Finals ended get one: from now on the league remembers that roster (for earlier seasons, it's the champion's players who played in those playoffs). Team history and the Hall of Fame count titles the same way.
+- **League finances.** A new **League finances** tab (under League) lists every team's market size, attendance, ticket price, revenue, profit, payroll, cap space, open roster spots, strategy and budgets (scouting, coaching, health, facilities). Your team is highlighted in lavender. Sort by any column; **Trade with** opens a trade with that team.
+- **A championship banner on the Playoffs screen.** When the Finals end, the champion's banner (its colors, the year and its crest) hangs under the Finals in the bracket.
+- **Team history, with retired jerseys and championship banners.** A new **Team history** tab (under Team) opens on your team; the arrows and the team menu show any other.
+  - **Overall**: the total record and win %, playoff and Finals appearances, championships, and the best and worst records.
+  - **Seasons**: every season's record and how it ended ("made conference finals", "league champs" in bold). Click a season to see that year's roster.
+  - **Championships**: a banner for every title, in the team's colors, with the year and the crest.
+  - **Players**: everyone who has played for the team, with his games, minutes, points, rebounds, assists, PER, EWA and titles there, and his last season there. Sort by any column, search, and choose how many show per page.
+  - Rows are colored by where he is now: **lavender** if he's on the team, **green** if he's still playing somewhere else (another team, unsigned, abroad or in the CCP), **gold** if he's in the Hall of Fame, and no color if he's retired. A key above the list explains the colors.
+  - **Retire jersey**: on a team you run, retire a former player's number from his row (not while he's still on the team). If he wore more than one number there you pick it; if the league never recorded it you type it in. No one new can wear a retired number; a current player who already wears it keeps it until he leaves.
+  - **Retired jerseys** lists each retired number with the player's position, a link to his profile and his titles with the team. **Unretire** puts a number back in circulation.
+  - Every section folds away, and the league remembers which ones you folded.
 - **Playing style: tendencies that evolve as players develop.** Every player now has ten tendencies:
   - Shot volume
   - Pass-first
@@ -542,4 +556,4 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - Scouting, overseas players and development.
 - Player profile tabs, tactics, league stats, God Mode editors, uploads and expansion teams.
 `,i=e(),a=e=>e.split(/(\*\*[^*]+\*\*)/).map((e,t)=>e.startsWith(`**`)?(0,i.jsx)(`b`,{children:e.slice(2,-2)},t):e),o={Added:`var(--gm-good)`,Changed:`#4a9fd8`,Fixed:`var(--gm-elite)`};function s(){let e=[],s=``;return r.split(`
-`).forEach(t=>{if(t.startsWith(`## `))e.push({date:t.slice(3).trim(),secs:[]});else if(t.startsWith(`### `))e[e.length-1]?.secs.push({name:t.slice(4).trim(),items:[],subs:[]});else if(t.startsWith(`- `)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r&&(r.items.push(t.slice(2)),r.subs.push([]))}else if(/^\s+- /.test(t)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r?.subs.length&&r.subs[r.subs.length-1].push(t.trim().slice(2))}else!e.length&&t.trim()&&!t.startsWith(`#`)&&(s=t.trim())}),(0,i.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:22,maxWidth:900},children:[s&&(0,i.jsx)(`p`,{style:{...t,margin:0,fontSize:`13px`},children:a(s.replace(` The game shows this page under **What's new**.`,``))}),e.map((e,t)=>(0,i.jsxs)(`section`,{children:[(0,i.jsx)(`h3`,{style:{margin:`0 0 8px`,fontSize:`19px`,borderBottom:`1px solid var(--color-divider)`,paddingBottom:4},children:e.date}),e.secs.map((e,t)=>(0,i.jsxs)(`div`,{style:{marginBottom:10},children:[(0,i.jsx)(n,{children:(0,i.jsx)(`span`,{style:{color:o[e.name]},children:e.name})}),(0,i.jsx)(`ul`,{style:{margin:`4px 0 0`,paddingLeft:20,display:`flex`,flexDirection:`column`,gap:5,fontSize:`13.5px`,lineHeight:1.5},children:e.items.map((t,n)=>(0,i.jsxs)(`li`,{children:[a(t),e.subs[n]?.length>0&&(0,i.jsx)(`ul`,{style:{margin:`3px 0 0`,paddingLeft:18,display:`flex`,flexDirection:`column`,gap:2},children:e.subs[n].map((e,t)=>(0,i.jsx)(`li`,{children:a(e)},t))})]},n))})]},t))]},t))]})}export{s as ChangelogScreen};
+`).forEach(t=>{if(t.startsWith(`## `))e.push({date:t.slice(3).trim(),secs:[]});else if(t.startsWith(`### `))e[e.length-1]?.secs.push({name:t.slice(4).trim(),items:[],subs:[]});else if(t.startsWith(`- `)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r&&(r.items.push(t.slice(2)),r.subs.push([]))}else if(/^\s+- /.test(t)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r?.subs.length&&r.subs[r.subs.length-1].push(t.trim().slice(2))}else!e.length&&t.trim()&&!t.startsWith(`#`)&&(s=t.trim())}),(0,i.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:22,maxWidth:900},children:[s&&(0,i.jsx)(`p`,{style:{...n,margin:0,fontSize:`13px`},children:a(s.replace(` The game shows this page under **What's new**.`,``))}),e.map((e,n)=>(0,i.jsxs)(`section`,{children:[(0,i.jsx)(`h3`,{style:{margin:`0 0 8px`,fontSize:`19px`,borderBottom:`1px solid var(--color-divider)`,paddingBottom:4},children:e.date}),e.secs.map((e,n)=>(0,i.jsxs)(`div`,{style:{marginBottom:10},children:[(0,i.jsx)(t,{children:(0,i.jsx)(`span`,{style:{color:o[e.name]},children:e.name})}),(0,i.jsx)(`ul`,{style:{margin:`4px 0 0`,paddingLeft:20,display:`flex`,flexDirection:`column`,gap:5,fontSize:`13.5px`,lineHeight:1.5},children:e.items.map((t,n)=>(0,i.jsxs)(`li`,{children:[a(t),e.subs[n]?.length>0&&(0,i.jsx)(`ul`,{style:{margin:`3px 0 0`,paddingLeft:18,display:`flex`,flexDirection:`column`,gap:2},children:e.subs[n].map((e,t)=>(0,i.jsx)(`li`,{children:a(e)},t))})]},n))})]},n))]},n))]})}export{s as ChangelogScreen};
