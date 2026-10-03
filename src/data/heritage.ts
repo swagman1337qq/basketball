@@ -17,6 +17,7 @@ import { FIRST_WEIGHT, MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
 import { US_CENSUS } from './usCensusNames';
+import { NATIVE_POOLS } from './nativeScripts';
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
@@ -171,6 +172,13 @@ function build() {
   POOLS.vn = { ...(POOLS.vn || {}), f: VN_GIVEN.map(e => e.split('|')[0]), l: VN_SURNAME_LIST.slice() }; WEIGHT.vn = VN_SURNAME_WEIGHT; NATIVE.vn = { ...(NATIVE.vn || {}), ...VN_NATIVE };
   POOLS.tw = { lf: 1, f: [], l: [] }; add('tw', 'f', TW_POOL.f); add('tw', 'l', TW_POOL.l.map(x => x[0])); WEIGHT.tw = Object.fromEntries(TW_POOL.l.map(([e, w]) => [e.split('|')[0], w]));
   Object.entries(US_CENSUS).forEach(([k, v]) => { WIDE[k] = { f: decodeWide(v.f, v.fw), l: decodeWide(v.l, v.lw) }; });
+  // Verified native scripts (nativeScripts.ts): every name in these pools has its native form; a name a
+  // pool has without one leaves it.
+  Object.entries(NATIVE_POOLS).forEach(([k, v]) => {
+    add(k, 'f', v.f ? v.f.split(';') : []); add(k, 'l', v.l ? v.l.split(';') : []);
+    const m = NATIVE[k] || {}; POOLS[k].f = POOLS[k].f.filter((x: string) => m[x]); POOLS[k].l = POOLS[k].l.filter((x: string) => m[x]);
+  });
+  ['cnM', 'cnH'].forEach(k => { if (POOLS[k]) POOLS[k].lf = 1; }); // family name first
 }
 
 // A given name from a pool: the census list for the American pools (now and then the curated core),
@@ -224,7 +232,7 @@ export const scriptOk = (country: string, script: string) => !!script && (COUNTR
 // with a separator other than a space (Chinese transliterations of Uyghur and Mongol names use ·;
 // Tibetan and Burmese names run together).
 const NATIVE_LF: Record<string, string> = { cn: '', kr: '', tw: '', kp: '', cnM: '', cnH: '', jp: ' ', vn: ' ', kh: ' ' };
-const NATIVE_SEP: Record<string, string> = { ug: '·', mgl: '·', bo: '', mm: '' };
+const NATIVE_SEP: Record<string, string> = { ug: '·', mgl: '·', bo: '', mm: '', bt: '་' }; // Dzongkha joins a Bhutanese name's two parts with a tsheg
 // Groups that list the same pools for given names and surnames take both parts from one of them (an
 // Indian, Pakistani or Bangladeshi name, not "Arif Srinivasan"), except English-speaking and similar
 // pools that families really do mix (an American multiracial player, a Māori New Zealander).
