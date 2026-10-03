@@ -18,6 +18,38 @@ export function relate(a: any, rel: 'father' | 'son' | 'brother', b: any) {
   else { add(a, 'brother', b.id); add(b, 'brother', a.id); }
 }
 
+// God Mode family editing (Edit player → NBA family). Links are real player records, always stored on
+// both players (father ↔ son, brother ↔ brother). Names aren't touched: rename him yourself if you like.
+const drop = (p: any, id: number) => { if (!p?.family) return; p.family = p.family.filter((x: any) => x.pid !== id); if (!p.family.length) delete p.family; };
+export function unrelate(a: any, b: any) { drop(a, b?.id); drop(b, a?.id); }
+export const relOf = (p: any, rel: string) => (p?.family || []).filter((x: any) => x.rel === rel).map((x: any) => x.pid as number);
+// Why `q` can't be p's <rel> (father, son or brother), or null.
+export function relateBlock(P: any, p: any, q: any, rel: 'father' | 'son' | 'brother'): string | null {
+  if (!q || q.gone || !p) return 'Pick a player.';
+  if (q.id === p.id) return 'He can’t be his own ' + rel + '.';
+  const old = (q.family || []).find((x: any) => x.pid === p.id);
+  if (old && old.rel !== ({ father: 'son', son: 'father', brother: 'brother' } as any)[rel]) return q.name + ' is already his ' + ({ father: 'son', son: 'father', brother: 'brother' } as any)[old.rel] + '.';
+  if (rel === 'father' && q.age - p.age < 15) return 'A father has to be at least 15 years older (' + q.name + ' is ' + q.age + ', he’s ' + p.age + ').';
+  if (rel === 'son' && p.age - q.age < 15) return 'A son has to be at least 15 years younger (' + q.name + ' is ' + q.age + ', he’s ' + p.age + ').';
+  if (rel === 'brother' && relOf(p, 'father').includes(q.id)) return q.name + ' is his father.';
+  return null;
+}
+// Set (or clear, with null) p's father; the old one loses him as a son.
+export function setFather(P: any, p: any, fid: number | null) {
+  relOf(p, 'father').forEach(id => unrelate(p, P[id]));
+  if (fid != null && P[fid]) relate(P[fid], 'father', p);
+}
+export function addSon(P: any, p: any, sid: number) { if (P[sid]) setFather(P, P[sid], p.id); }
+// Brothers: the two families of brothers become one (everyone is everyone's brother), and a father one
+// side has and the other doesn't becomes the father of all of them.
+export function addBrother(P: any, p: any, bid: number) {
+  const q = P[bid]; if (!q) return;
+  const group = [...new Set([p.id, ...relOf(p, 'brother'), q.id, ...relOf(q, 'brother')])].map(id => P[id]).filter(Boolean);
+  group.forEach(a => group.forEach(b => { if (a.id < b.id) relate(a, 'brother', b); }));
+  const dads = [...new Set(group.flatMap(x => relOf(x, 'father')))];
+  if (dads.length === 1) group.forEach(x => { if (!relOf(x, 'father').length) relate(P[dads[0]], 'father', x); });
+}
+
 // Rebuild a player's full name (Romanized and native) after a surname change.
 export function setSurname(p: any, last: string, nativeLast: string) {
   const parts = String(p.name).split(' ');

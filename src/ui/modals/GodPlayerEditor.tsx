@@ -1,6 +1,8 @@
 // God Mode player editor, part two: bio (first/last names in Romanized and native
 // script, date of birth, height, weight, wingspan), psychology, fatigue, specific
-// injuries and a custom headshot. The player's ID and past-season stats stay locked.
+// injuries and a custom headshot; cloning or deleting him (godPlayer.ts) and his NBA family
+// (father, brothers, sons: real player records, linked both ways, family.ts). The player's ID and
+// past-season stats stay locked.
 import { useEffect, useState } from 'react';
 import { liftCeil, refreshPot } from '../../engine/potential';
 import type { VM } from '../vm';
@@ -17,6 +19,11 @@ import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
 import { ensureTen, expUsg, TEN_KEYS, TEN_LABEL, tenScore, tenSuffix, tenUnit, usageScoreFor, ZONE_TEN, zoneScoreFor, zoneShares, jumpShares, jumpScoreFor, type TenKey, type ZoneTen } from '../../engine/tendencies';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
+import { addBrother, addSon, relateBlock, relOf, setFather, unrelate } from '../../engine/family';
+import { clonePlayer } from '../../engine/godPlayer';
+import { nowLabel } from '../../engine/godMove';
+import { PlayerPicker } from '../PlayerPicker';
+import type { Game } from '../../engine/Game';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
 const INJ: [string, number, boolean, boolean][] = [['Bruised knee', 2, false, true], ['Ankle sprain', 5, false, false], ['Hamstring strain', 10, false, false], ['Broken wrist', 25, false, false], ['Torn ACL', 90, true, false], ['Achilles rupture', 110, true, false]];
@@ -194,7 +201,15 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         </div>
       </section>
       <section>
-        <h4 style={ruleH4}>Player cards</h4>
+        <h4 style={ruleH4}>Player management</h4>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }} onClick={() => { const id = clonePlayer(gm, p.id); if (id != null) gm.setState({ pid: id, ptab: 'edit', modal: true }); }} title="A second, separate player with his ratings, body, background, personality, tendencies and face, and none of his history">Clone player</button>
+          <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: 'var(--gm-bad)', color: 'var(--gm-bad)' }} onClick={() => gm.setState({ dialog: { type: 'deletePlayer', pid: p.id } })}>Delete player…</button>
+        </div>
+        <p style={{ ...muted, fontSize: '11.5px' }}>Clone: a new player with his game, body, background and face but none of his stats, awards, contract or family. He starts as a free agent (a prospect stays in his draft class) and his page opens here so you can rename and edit him. Delete: he’s removed from the league for good, after you confirm.</p>
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>NBA family</h4>
+        <FamilyEditor gm={gm} p={p} mut={mut} open={vm.ctx.open} />
+        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Player cards</h4>
         <button className="btn btn-secondary" style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }} onClick={() => vm.ctx.gm.setState(st => ({ cardFrom: { pid: p.id, screen: st.screen, ptab: st.ptab || 'edit', name: p.name }, screen: 'cards', cardTarget: p.id, modal: false, teamModal: null }))}>Open Player cards for {p.name} →</button>
         <p style={{ ...muted, fontSize: '11.5px' }}>Build, save and apply whole player builds in the Player cards tab (Management, God Mode only).</p>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Psychology</h4>
@@ -306,4 +321,40 @@ function ContractEditor({ vm, p, mut, grid }: { vm: VM; p: any; mut: (f: (p: any
     </div>
     <p style={{ ...muted, fontSize: '11.5px' }}>God Mode skips the CBA: any salary, length or clause is allowed. Changes count right away on the cap sheet, in trades and in payroll.</p>
   </>);
+}
+
+// His NBA family: father, brothers and sons, each a real player record linked both ways. Add, change or
+// remove a link; the other player's page changes with it.
+function FamilyEditor({ gm, p, mut, open }: { gm: Game; p: any; mut: (f: (p: any) => void) => void; open: (pid: number) => void }) {
+  const P = gm.db.P, s = gm.state, [adding, setAdding] = useState<null | 'father' | 'brother' | 'son'>(null), [msg, setMsg] = useState('');
+  const ids = ((p.family || []) as { rel: string; pid: number }[]).map(x => x.pid);
+  const pick = (rel: 'father' | 'brother' | 'son') => (id: number) => { const why = relateBlock(P, p, P[id], rel); if (why) { setMsg(why); return; }
+    mut(q => { if (rel === 'father') setFather(P, q, id); else if (rel === 'son') addSon(P, q, id); else addBrother(P, q, id); }); setAdding(null); setMsg(''); };
+  const person = (id: number, rel: string, actions: any) => { const q = P[id]; if (!q) return null; return (
+    <div key={rel + id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
+      <div className="gm-face" style={{ width: 24, height: 36, overflow: 'hidden', flex: 'none' }}>{gm.faceEl(q.id, -1)}</div>
+      <span style={{ minWidth: 0, flex: 1 }}><button className="hv4" onClick={() => open(q.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, color: 'var(--color-accent-700)' }}>{q.name}</button> <span style={muted}>· {q.age} · {nowLabel(gm, s, q).label}</span></span>
+      {actions}
+    </div>); };
+  const btn = (label: string, on: () => void, title?: string) => <button className="btn btn-ghost" onClick={on} title={title} style={{ fontSize: '11.5px', padding: '1px 8px' }}>{label}</button>;
+  const adder = (rel: 'father' | 'brother' | 'son', label: string) => adding === rel
+    ? <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><PlayerPicker gm={gm} exclude={[p.id, ...(rel === 'father' ? [] : ids)]} onPick={pick(rel)} placeholder={'Find his ' + rel + '…'} />{btn('Cancel', () => { setAdding(null); setMsg(''); })}</span>
+    : <button className="btn btn-secondary" onClick={() => { setAdding(rel); setMsg(''); }} style={{ fontSize: '12px', borderColor: GOD_PINK, color: GOD_PINK }}>{label}</button>;
+  const dad = relOf(p, 'father')[0], bros = relOf(p, 'brother'), sons = relOf(p, 'son');
+  const label = { fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-neutral-700)', margin: '8px 0 2px' } as const;
+  return (
+    <div>
+      <div style={label}>Father</div>
+      {dad != null && P[dad] ? person(dad, 'father', <>{btn('Change', () => { setAdding('father'); setMsg(''); }, 'Pick a different father')}{btn('Remove', () => mut(q => setFather(P, q, null)))}</>) : <div style={{ ...muted, fontSize: '12.5px', marginBottom: 4 }}>No father in the league.</div>}
+      {(dad == null || adding === 'father') && <div style={{ marginTop: 4 }}>{adder('father', 'Add father')}</div>}
+      <div style={label}>Siblings</div>
+      {bros.length ? bros.map(id => person(id, 'brother', btn('Remove', () => mut(q => unrelate(q, P[id]))))) : <div style={{ ...muted, fontSize: '12.5px', marginBottom: 4 }}>No brothers in the league.</div>}
+      <div style={{ marginTop: 4 }}>{adder('brother', 'Add brother')}</div>
+      <div style={label}>Sons</div>
+      {sons.length ? sons.map(id => person(id, 'son', btn('Remove', () => mut(q => unrelate(q, P[id]))))) : <div style={{ ...muted, fontSize: '12.5px', marginBottom: 4 }}>No sons in the league.</div>}
+      <div style={{ marginTop: 4 }}>{adder('son', 'Add son')}</div>
+      {msg && <div style={{ color: 'var(--gm-bad)', fontSize: '12px', marginTop: 6 }}>{msg}</div>}
+      <p style={{ ...muted, fontSize: '11.5px', margin: '8px 0 0' }}>Every link is stored on both players: making someone his father makes him that player’s son, and brothers share their brothers (and a father, if only one side has one). Names don’t change: rename either player yourself if the surnames should match.</p>
+    </div>
+  );
 }

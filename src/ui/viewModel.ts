@@ -32,6 +32,7 @@ import { DEFAULT_BRIEF, runBriefs } from '../engine/scoutBrief';
 import { kindOf, scoutRead } from '../engine/scoutReport';
 import { liftCeil, potView, refreshPot, scoutSd, setTruePot } from '../engine/potential';
 import { draftedBy, draftedLabel, nowLabel } from '../engine/godMove';
+import { deletePlayer } from '../engine/godPlayer';
 import { cardLib } from '../db/cards';
 import { pickHorizon } from '../engine/tradeLogic';
 import { facEffect, teamBudget } from '../engine/environment';
@@ -571,7 +572,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const matches = searchAll({ q: s.q, P, C, T, tidOf, nav, Y: gm.Y, flag: c => gm.flag(c), open, openTeam, openList: l => () => gm.setState({ listModal: l, q: '' }), teamLogo: tid => logo(tid, 16) });
 
   const dg = s.dialog, dp = dg && P[dg.pid];
-  const dlg = !dg || dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };
+  const dlg = !dg ? {} : dg.type === 'deletePlayer' ? { title: 'Delete ' + (dp?.name || 'this player') + '?', body: 'God Mode: he’s removed from the league for good: from his team or free agency, his draft class, trade offers, watch lists, scouting and his family. Box scores, drafts and awards he already won keep his name, but his profile and stats go. This can’t be undone.', cta: 'Delete player', confirm: () => { if (dp) deletePlayer(gm, dp.id); gm.setState({ dialog: null }); } }
+    : dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };
 
   return {
     ctx: { gm, s, T, logo, open: id => open(id)(null), openTeam: tid => openTeam(tid)(null), isMine: mine2, isMe: (tid: number) => tid === s.me, meColor: me.colors?.[0] || '#D8A1C4', money, ord, tone }, // isMe/meColor: the team you're running now, highlighted in its primary color

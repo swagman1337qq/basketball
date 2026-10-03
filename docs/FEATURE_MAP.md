@@ -164,6 +164,7 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 ### Control and saves
 - Run 1 to 30 teams: My teams dashboard, switch teams, take over or hand a team to the AI.
 - God Mode: edit any player (ratings, bio, traits, injuries; Freeze attributes beside −1/+1 all stops every development change to his ratings, `p.frozen`: monthly and summer growth or decline, idle development, the camp translation and injury losses, while aging, injuries, healing and moods go on), team and league editor (names, colors, logos, arena, cap), force trades, daily schedule, player cards. The card library is shared by all leagues (`db/cards.ts`); applying a card changes only that league's player.
+- God Mode player management (Edit player): Delete (with a confirmation; `godPlayer.ts` `deletePlayer` clears him from every list, offer, watch list, club map and family, and leaves the name-only `gone` stub old records read), Clone (`clonePlayer`: a new id with his ratings, body, background, personality, tendencies and face, none of his history, into free agency or his draft class), and NBA family (father, brothers, sons as linked player records, both ways: `family.ts` `setFather`/`addSon`/`addBrother`/`unrelate`/`relateBlock`; picked with `ui/PlayerPicker.tsx`).
 - God Mode owner powers: the owner has nothing over you (no firing, payroll orders, fire sales or meddling; your contract renews itself). Signing a player: the Sign button follows every rule in God Mode too (cap, exceptions, roster, contract rules, the player's answer); Force Sign (`cbaFlow.userSign(g, true)`, `contracts.forceSignBlock`) is the one way past the salary cap: he signs on your terms and a cap method he couldn't use becomes a plain God Mode contract (no exception spent, no hard cap), roster limits and buyout clauses still apply. Edit any owner (type, kind, background, worth, purchase, bio) or force a team sale; move any player to any team from his profile (`godMove.ts`).
 - Easy mode: hand off lineups, tactics, contract paperwork, free agency and roster decisions (opening-night trim to 15), draft picks, firing, scouting, injuries.
 - Trades (`tradeLogic.ts`): team outlook (projected strength from roster, ages, contracts and record) sets future picks' expected slots, with uncertainty that grows by year; picks are worth their expected value (`pickWorth`), swaps the expected gain (`swapWorth`). Bad contracts cost the receiving team by its cap situation and timeline (`contractK`, `contractValue`). AI-to-AI trades need a reason (`aiTradeIdea`: contender buys, salary dump, need for need) and run in season and in free agency; AI teams bring you offers (`offerToUser` → `s.inOffers`, Trade → Offers to you); each offer's pop-up (a notice with `offerId`) has View Trade Offer, which opens that offer on the Trade screen (`vm.inOffersV.openId`). God Mode sets how many drafts ahead picks trade (`s.pickYears`, default 4; `Game.ensureAssets`).
@@ -237,13 +238,14 @@ All in `src/engine/`.
 | `ccp.ts` | The CCP development league |
 | `gleague.ts` | G League affiliates |
 | `eligibility.ts` | National-team eligibility |
-| `family.ts` | Sons and brothers of former players |
+| `family.ts` | Sons and brothers of former players; God Mode's family-link editing |
 | `faces.ts` | Deterministic SVG faces |
 | `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
 | `prune.ts` | Trims retired players to keep saves small |
 | `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |
 | `godMove.ts` | God Mode: move any player to any team (keeps his deal, or a fair new one) |
+| `godPlayer.ts` | God Mode: delete a player (every reference cleared) or clone one into a separate new player |
 | `rng.ts` | Seeded mulberry32 RNG for world generation |
 
 ## Known issues to address
