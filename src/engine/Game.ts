@@ -41,6 +41,7 @@ import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from '.
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
+import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './startRoster';
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
@@ -74,16 +75,18 @@ export class Game {
 
   // A new league. `tids` are the franchises the user will run (1 to all of them);
   // the first is the one on screen.
-  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean } = {}) {
+  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean; hopeless?: boolean } = {}) {
     const g = new Game();
     g.makeDB(seed);
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
+    else if (opts.hopeless) makeHopeless(g, Array.isArray(tids) ? tids : [tids]); // startRoster.ts
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.db.ceilV = 1; // and every player with his own ceilings (potential.ts)
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
+    if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
     { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k] }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
     g.db.usgV = 1; g.db.ten3 = 1; // shot volume follows the offensive game and role; tendencies are the NBA's shot categories (tendencies.ts)
     g.refreshNorms(g.state);
@@ -164,7 +167,8 @@ export class Game {
     const out = d.teams.map(t => { const ids = d.rosters[t.tid], star = ids.map(id => P[id]).sort((a, b) => b.ovr - a.ovr)[0];
       return { tid: t.tid, region: t.region, name: t.name, abbr: t.abbr, conf: t.conf, div: t.div, colors: t.colors, icon: t.icon, mkt: t.mkt, arch: t.arch, owner: t.owner, top8: top8(t), payroll: ids.reduce((a, id) => a + P[id].amt, 0), star: { name: star.name, pos: star.pos, ovr: star.ovr, age: star.age } }; });
     const rk = out.slice().sort((a, b) => b.top8 - a.top8).map(t => t.tid);
-    out.forEach(t => { const r = rk.indexOf(t.tid) + 1; t.rank = r; t.outlook = r <= 8 ? 'Contender' : r <= 20 ? 'In the mix' : 'Rebuilding'; });
+    const hop = hopelessTid(g); // the roster "Give me the most hopeless roster" starts from (startRoster.ts)
+    out.forEach(t => { const r = rk.indexOf(t.tid) + 1; t.rank = r; t.outlook = r <= 8 ? 'Contender' : r <= 20 ? 'In the mix' : 'Rebuilding'; t.hopeless = t.tid === hop; });
     return out;
   }
 

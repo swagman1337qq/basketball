@@ -46,6 +46,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 
 ### Added
+- **"Give me the most hopeless roster" on the start screen**, next to "Give me the worst roster" (pick one or neither). The worst roster is just the weakest team on the floor; the most hopeless one is a franchise stuck in a hole:
+  - It starts from the worst overall situation among the ten weakest rosters (little talent, old, overpaid for years, no young upside), then gets worse.
+  - **No real prospects:** young players with upside are traded for veterans about as good today.
+  - **Old:** the rotation averages about 29–30 years old.
+  - **Bad money:** three to five mediocre veterans (rated about 50) earn around $30–35M a year for three or four more seasons, so the payroll sits at or over the luxury tax with no cap room.
+  - **Holes:** role players start, and its best guard is gone.
+  - **No picks:** this season's first-round pick and the one two years out already belong to other teams, plus next year's second-rounder. Losing won't even buy a top pick.
+  - Bottom five in team rating, but not necessarily last. A welcome note lists exactly what you inherited. Your club keeps its name, market and owner.
 - **God Mode: delete and clone players.** The Edit player tab has a new **Player management** box.
   - **Delete player…** asks you to confirm, then removes him from the league for good: from his team or free agency, his draft class, trade offers, watch lists, scouting, training plans, mentors and his family. Box scores, drafts and awards he already won keep his name; his profile and stats are gone.
   - **Clone player** creates a second, separate player with the same ratings, body, background, personality, tendencies and face, but none of the original's stats, awards, contract or family. He starts as a free agent (a draft prospect's clone joins the same class), and his page opens on the Edit tab so you can rename him and change his ratings, contract, team or face.

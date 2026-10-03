@@ -171,7 +171,7 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 - Roster decisions (`rosterAI.ts`): AI cuts, waivers, the summer trim to 21, rookie team options and your staff's opening-night cuts keep the players worth most to the team (`rosterValue`: ability, the team's read of upside, trajectory, timeline, role, position depth, unique skills, guaranteed money, draft investment). AI rotations give young high picks development minutes (`devMinutes`).
 - Tutorial (quick or in-depth) and What's new from the changelog.
 - Three layouts, light and dark themes, team-color accents, player search.
-- Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option (`Game.swapToWorst`: the lowest team rating, then `thinProspects` trades its 23-and-under players with 56+ true potential one for one, same position group and similar salary first, to other teams or free agency for veterans with little upside and no higher a rating; one under 64 may stay; it stays the weakest roster, and the first pick gets the very worst).
+- Autosave to IndexedDB, many leagues, JSON export and import; worst-roster start option (`Game.swapToWorst`: the lowest team rating, then `thinProspects` trades its 23-and-under players with 56+ true potential one for one, same position group and similar salary first, to other teams or free agency for veterans with little upside and no higher a rating; one under 64 may stay; it stays the weakest roster, and the first pick gets the very worst); most-hopeless-roster start option (`startRoster.ts`: the most stuck of the ten weakest rosters by `hopelessScore` (rating, age, overpay × years, young upside), then no prospects, an old rotation, three to five bad contracts on mediocre veterans to the luxury tax, its best guard traded for a weaker big or wing, bottom five in rating; `hopelessPicks` gives this season's and a future first (and a second) to contenders; `hopelessReport` writes the welcome notice; the start screen shows the roster it starts from, `Game.preview` `hopeless`).
 
 Screens: My teams, Settings, League editor, Player cards, Daily schedule, Tutorial, What's new. Code: `easy.ts`, `playerCard.ts`, `GodPlayerEditor.tsx`, `Tour.tsx`, `db/saves.ts`, `db/cards.ts`.
 
@@ -245,6 +245,7 @@ All in `src/engine/`.
 | `prune.ts` | Trims retired players to keep saves small |
 | `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |
 | `godMove.ts` | God Mode: move any player to any team (keeps his deal, or a fair new one) |
+| `startRoster.ts` | Start-screen "most hopeless roster": picking and building the stuck franchise, its traded picks and the welcome note |
 | `godPlayer.ts` | God Mode: delete a player (every reference cleared) or clone one into a separate new player |
 | `rng.ts` | Seeded mulberry32 RNG for world generation |
 

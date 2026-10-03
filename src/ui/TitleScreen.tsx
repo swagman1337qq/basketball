@@ -8,7 +8,7 @@ const kicker = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppe
 
 const market = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid-size' : 'Small');
 
-export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tids: number[], worst?: boolean) => void }) {
+export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: (name: string, seed: number, tids: number[], start?: '' | 'worst' | 'hopeless') => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saves, setSaves] = useState<SaveRow[] | null>(null);
@@ -19,7 +19,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
   const [sel, setSel] = useState<number[]>([0]);
   const [multi, setMulti] = useState(false); // one team unless you ask for more
-  const [worst, setWorst] = useState(false);
+  const [start, setStart] = useState<'' | 'worst' | 'hopeless'>(''); // the worst roster, the most hopeless one, or neither
   const seedNum = Number.isFinite(Number(seed)) && seed !== '' ? Math.floor(Number(seed)) : 2027;
   const teams = useMemo(() => Game.preview(seedNum), [seedNum]);
   const picked = teams.find(t => t.tid === sel[0]) || teams[0];
@@ -30,7 +30,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   useEffect(() => { refresh(); }, []);
 
   const create = () => {
-    onCreate(name.trim() || 'My league', seedNum, sel, worst);
+    onCreate(name.trim() || 'My league', seedNum, sel, start);
   };
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -108,9 +108,14 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
               </div>
             </div>
             <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px' }}>
-              <input type="checkbox" checked={worst} onChange={e => setWorst(e.target.checked)} style={{ marginTop: '3px' }} />
-              <span><b>Swap my roster with the worst roster</b><span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>{worst ? 'You start with the league\u2019s weakest roster, the ' + (teams.slice().sort((a, b) => a.top8 - b.top8)[0].region) + ' roster (team rating ' + teams.slice().sort((a, b) => a.top8 - b.top8)[0].top8 + '), without its blue-chip prospects: they go to other teams for veterans about as good today, so one modest prospect at most is left' + (sel.length > 1 ? '; your other teams take the next-worst rosters, the same way' : '') + '. Your club keeps its name, market and owner.' : 'Off: rosters are dealt at random, as listed below.'}</span></span>
+              <input type="checkbox" checked={start === 'worst'} onChange={e => setStart(e.target.checked ? 'worst' : '')} style={{ marginTop: '3px' }} />
+              <span><b>Give me the worst roster</b><span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>{start === 'worst' ? 'You start with the league\u2019s weakest roster, the ' + (teams.slice().sort((a, b) => a.top8 - b.top8)[0].region) + ' roster (team rating ' + teams.slice().sort((a, b) => a.top8 - b.top8)[0].top8 + '), without its blue-chip prospects: they go to other teams for veterans about as good today, so one modest prospect at most is left' + (sel.length > 1 ? '; your other teams take the next-worst rosters, the same way' : '') + '. Your club keeps its name, market and owner.' : 'The weakest roster on the floor today.'}</span></span>
             </label>
+            <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px' }}>
+              <input type="checkbox" checked={start === 'hopeless'} onChange={e => setStart(e.target.checked ? 'hopeless' : '')} style={{ marginTop: '3px' }} />
+              <span><b>Give me the most hopeless roster</b><span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>{start === 'hopeless' ? 'Not just bad: stuck. You start from the ' + ((teams.find((t: any) => t.hopeless) || teams[0]).region) + ' roster, the worst overall situation among the ten weakest, and it gets worse: no real prospects, an old rotation, three or four mediocre veterans on big contracts with years left (over the luxury tax, no cap room), role players starting at guard, and this season\u2019s first-round pick plus another first already traded away. Bottom five in team rating' + (sel.length > 1 ? '; your other teams get the next most hopeless situations' : '') + '. Your club keeps its name, market and owner.' : 'A bad team with bad contracts, an old roster, no young talent and no picks: hard to fix.'}</span></span>
+            </label>
+            {!start && <div style={{ fontSize: '11.5px', color: 'var(--color-neutral-600)', marginTop: '-6px' }}>Neither: rosters are dealt at random, as listed below.</div>}
             <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>{sel.length > 1 ? 'Start running ' + sel.length + ' franchises' : 'Start as GM of the ' + picked.region + ' ' + picked.name}</button>
             <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>Check one or more clubs below. The first one you pick is on screen first; switch any time.</div>
           </section>
