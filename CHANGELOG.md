@@ -4,6 +4,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-03
 
+### Fixed
+- **God Mode: True potential now goes all the way to 100, at any age.** Setting it used to stop short: Luka Dončić's card topped out around 84 and raw prospects in the 70s, because his potential was rebuilt from skill ceilings that stopped at 99 and couldn't count his height or frame. For a player 29 or older, the setting did nothing at all.
+  - Now the number you set is exactly what he gets, and it holds.
+  - A veteran gets three seasons to grow toward it.
+  - Player cards set their potential the same way, and a manual edit afterwards still wins.
+  - A bad development year no longer makes a high ceiling backfire.
+  - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
+
 ### Changed
 - **Shot volume now grows and shrinks with a player's game.** A player's usage used to follow his overall (defense included), and his usage tendency barely moved as he developed. Now:
   - It follows his **offense**: how well he scores and creates. A defensive specialist isn't fed the ball like a scorer anymore.

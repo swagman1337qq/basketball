@@ -1020,7 +1020,7 @@ export class Game {
       const grow = (p, tid = -1, focus = 'Balanced') => { const env = envOf(this, s, p, tid, rosters), cm = tid >= 0 ? coachMult(teamBudget(this, s, tid).Coaching) : 1; let pen = 0; if (p.age < 24 && (p.minorCount || 0) >= 4) { pen = -2; moveTruePot(p, -(1 + Math.floor(Math.random() * 3))); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
-        let x = rate * this.devMult(p, rate) * (rate > 0 ? env.mult : coachAging(cm)) * (rate > 0 && p.dyS === this.Y ? Math.max(-.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + pen;
+        let x = rate * this.devMult(p, rate) * (rate > 0 ? env.mult : coachAging(cm)) * (rate > 0 && p.dyS === this.Y ? Math.max(p.godPot != null ? 0 : -.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + pen;
         // Luck can carry him past his ceiling, but only partly: most of an overshoot is given back
         // (otherwise good luck raises the ceiling for good while bad luck is grown back: a ratchet).
         { const over = p.ovr + x - (fullCeil(p) + 1); if (over > 0) x -= over * 0.65; }
@@ -1385,7 +1385,7 @@ export class Game {
   // to his full ceiling, at his own hidden pace. Nothing makes up a lost year, and a typical player gets
   // about four fifths of the way; work ethic, the hidden factor, minutes, coaching and luck decide the rest.
   devRate(p, age = p.age) {
-    if (age >= 29) return Game.ageDecline(age);
+    if (age >= 29) return Game.ageDecline(age) + (p.dv0?.n ? planRate(p, age) * paceOf(p) : 0); // a God Mode plan (potential.ts) grows on top of aging
     return planRate(p, age) * paceOf(p);
   }
   // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
@@ -1413,7 +1413,7 @@ export class Game {
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
       evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k] }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
       if (p.frozen) return; // God Mode: attributes frozen
-      const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? p.dy ?? 1 : 1) : annual0, wk = p.pers?.work ?? 50;
+      const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? (p.godPot != null ? Math.max(0, p.dy ?? 1) : p.dy ?? 1) : 1) : annual0, wk = p.pers?.work ?? 50; // God Mode's potential (potential.ts): a down year is no growth, not a slide as big as the plan
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
       // Cumulative youth stunting: frequent minor knocks slow a young player's growth and can cost potential.
       const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;

@@ -12,6 +12,9 @@
 //  • What the league sees (p.pot): the scouting consensus of his true potential. It's a few points off
 //    for a prospect and sharpens every season he plays. AI teams draft and trade on it; your staff reads
 //    your own players more closely; God Mode shows the truth.
+//  • God Mode's word (p.godPot): a true potential set in God Mode or by a player card holds exactly, up
+//    to 100 and at any age, even past what his ratings can show (skills stop at 100, his height and
+//    frame don't grow). A veteran with no plan years left gets a fresh three-season plan (dv0.n).
 import { BODY, bodyLeft, devProfile, groupOf, SKILLS } from './development';
 import { ovrExact, OVR_ADJ, OVR_W, wngBonus } from './ratings';
 import { mulberry32 } from './rng';
@@ -21,6 +24,10 @@ import { rollGem } from './intangibles';
 const W_AGE: Record<number, number> = { 18: 0.14, 19: 0.15, 20: 0.15, 21: 0.14, 22: 0.13, 23: 0.11, 24: 0.09, 25: 0.07, 26: 0.05, 27: 0.03, 28: 0.01 };
 const wAge = (a: number) => (a < 18 ? 0 : W_AGE[a] ?? 0);
 const wRem = (a: number) => { let s = 0; for (let x = Math.max(18, a); x <= 28; x++) s += wAge(x); return s; };
+// A plan's weights: by age to 28, or for God Mode's plan for a veteran (d.n), even over n seasons from its start.
+const GOD_YEARS = 3;
+const wAgeP = (d: any, a: number) => (d.n ? (a >= d.a && a < d.a + d.n ? 1 / d.n : 0) : wAge(a));
+const wRemP = (d: any, a: number) => (d.n ? Math.max(0, d.a + d.n - Math.max(a, d.a)) / d.n : wRem(a));
 export const TYPICAL = 0.77; // how much of his plan a typical player gets (pace, minutes, luck); sets a new player's ceilings
 const BEST = 1.25; // "everything goes extremely well": a quarter above a normal pace all the way
 // His development pace, hidden and fixed: most develop at a normal pace, about one in nine barely
@@ -37,28 +44,30 @@ function ovrOf(p: any, v: Record<string, number>) {
 const withBody = (p: any, c: Record<string, number>) => { const v = { ...c }; BODY.forEach(k => (v[k] = val(p, k) + bodyLeft(p, k))); return v; };
 const current = (p: any) => Object.fromEntries(SKILLS.map(k => [k, val(p, k)]));
 const plan0 = (p: any) => p.dv0 || { o: ovrExact(p), a: p.age };
-// His full ceiling: every skill at its ceiling (or where it is, if he's past it), his body at its best.
-export function fullCeil(p: any) { const c: Record<string, number> = {}; SKILLS.forEach(k => (c[k] = Math.max(val(p, k), p.ceil?.[k] ?? val(p, k)))); return ovrOf(p, withBody(p, c)); }
+// His full ceiling: every skill at its ceiling (or where it is, if he's past it), his body at its best;
+// never under God Mode's word.
+function skillCeil(p: any) { const c: Record<string, number> = {}; SKILLS.forEach(k => (c[k] = Math.max(val(p, k), p.ceil?.[k] ?? val(p, k)))); return ovrOf(p, withBody(p, c)); }
+export function fullCeil(p: any) { const F = skillCeil(p); return p.godPot != null ? Math.max(F, p.godPot) : F; }
 // This age's planned growth at a normal pace (Game.devRate multiplies it by his pace); it fades out
 // in the last few points under his full ceiling.
 export function planRate(p: any, age: number) {
-  const d = plan0(p), W = wRem(d.a), F = fullCeil(p), o = ovrExact(p); if (W <= 0) return 0;
-  return (Math.max(0, F - d.o) * wAge(age) * (d.k ?? 1)) / W * Math.min(1, Math.max(0, F - o) / 3);
+  const d = plan0(p), W = wRemP(d, d.a), F = fullCeil(p), o = ovrExact(p); if (W <= 0) return 0;
+  return (Math.max(0, F - d.o) * wAgeP(d, age) * (d.k ?? 1)) / W * Math.min(1, Math.max(0, F - o) / 3);
 }
 // True potential: his overall plus the rest of his plan at its best, never past his full ceiling.
-function trueOf(p: any, F: number) { const d = plan0(p), W = wRem(d.a), o = ovrExact(p); return Math.min(F, o + (W > 0 ? (Math.max(0, F - d.o) * wRem(p.age) * BEST * (d.k ?? 1)) / W : 0)); }
+function trueOf(p: any, F: number) { const d = plan0(p), W = wRemP(d, d.a), o = ovrExact(p); return Math.min(F, o + (W > 0 ? (Math.max(0, F - d.o) * wRemP(d, p.age) * BEST * (d.k ?? 1)) / W : 0)); }
 export function truePot(p: any) { return Math.max(p.ovr, Math.min(100, Math.round(trueOf(p, fullCeil(p))))); }
 
 // The shape of his ceilings: by his development profile, plus a little per skill (fixed for him).
 function gapShape(p: any) { const d = devProfile(p), r = mulberry32(((p.id * 2654435761) ^ 0x7e11) >>> 0), w: Record<string, number> = {}; SKILLS.forEach(k => (w[k] = d.aff[groupOf(k)] * (0.6 + 0.8 * r()))); return w; }
-// Move his skill ceilings from `base` along his shape until his full ceiling is F.
-function fit(p: any, base: Record<string, number>, F: number) {
-  const w = gapShape(p), at = (t: number) => Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), Math.min(99, base[k] + t * w[k]))]));
+// Move his skill ceilings from `base` along his shape until his full ceiling is F (skills stop at `cap`).
+function fit(p: any, base: Record<string, number>, F: number, cap = 99) {
+  const w = gapShape(p), at = (t: number) => Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), Math.min(cap, base[k] + t * w[k]))]));
   let lo = -120, hi = 120;
   for (let i = 0; i < 36; i++) { const m = (lo + hi) / 2; if (ovrOf(p, withBody(p, at(m))) < F) lo = m; else hi = m; }
   const c = at((lo + hi) / 2); p.ceil = Object.fromEntries(SKILLS.map(k => [k, +c[k].toFixed(1)]));
 }
-const startPlan = (p: any) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: p.age }; };
+const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: p.age, ...(n ? { n } : {}) }; };
 // A new player: his plan starts now, with ceilings set so a typical career peaks at `peak`. When the
 // rating scale cuts his ceiling short (a raw star prospect would need skills past 99), his plan aims
 // that much higher (dv0.k), so he still peaks around `peak` on average, just closer to his ceiling.
@@ -66,12 +75,20 @@ export function initCeil(p: any, peak: number) {
   startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
   const got = fullCeil(p) - o; if (got > 0.5 && want - o > got + 0.05) p.dv0.k = +Math.min(1.25, (want - o) / got).toFixed(3);
 }
-// Set his true potential to T (God Mode, player cards): a fresh plan from now, his full ceiling at T.
-export function setTruePot(p: any, T: number) { startPlan(p); fit(p, current(p), Math.max(p.dv0.o, T)); refreshPot(p); }
+// Set his true potential to T: a fresh plan from now, his full ceiling at T. `god` (God Mode, player
+// cards): exactly T, whatever the usual limits. His skill ceilings go as high as the scale allows (100),
+// what his ratings can't show is held as God Mode's word, and a veteran gets a three-season plan.
+export function setTruePot(p: any, T: number, god = false) {
+  T = Math.max(1, Math.min(100, Math.round(T))); delete p.godPot;
+  startPlan(p, god && wRem(p.age) < 0.1 ? GOD_YEARS : 0); fit(p, current(p), Math.max(p.dv0.o, T), god ? 100 : 99);
+  if (god && skillCeil(p) < T - 0.25) p.godPot = T;
+  refreshPot(p);
+}
 // Raise or lower his true potential by d points (a breakout, a serious injury, a hidden gem surfacing).
 export function moveTruePot(p: any, d: number) {
   if (!d) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr);
-  const F = fullCeil(p), dp = plan0(p), W = wRem(dp.a), r = W > 0 ? (wRem(p.age) * BEST) / W : 0, capped = trueOf(p, F) >= F - 0.01;
+  const F = fullCeil(p), dp = plan0(p), W = wRemP(dp, dp.a), r = W > 0 ? (wRemP(dp, p.age) * BEST) / W : 0, capped = trueOf(p, F) >= F - 0.01;
+  if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + d)); // God Mode's word moves with what happens to him
   fit(p, p.ceil, F + d / (capped ? 1 : Math.max(0.25, r)));
 }
 // God Mode raised a rating past its ceiling: that's his new ceiling there.
@@ -97,8 +114,8 @@ export function teamRead(p: any, tid: number, sd: number) {
 export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.round(t + (p.perr || 0) * 0.3)) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
 // Where he stands against his development plan (for reports): 'behind', 'ahead', or null (on track, or done).
 export function planStatus(p: any): 'behind' | 'ahead' | null {
-  const d = p.dv0; if (!d || p.age > 27) return null; const W = wRem(d.a), F = fullCeil(p), gap = F - d.o; if (W <= 0 || gap < 4) return null;
-  const done = (ovrExact(p) - d.o) / gap, due = TYPICAL * (1 - wRem(p.age + 1) / W);
+  const d = p.dv0; if (!d || (p.age > 27 && !d.n)) return null; const W = wRemP(d, d.a), F = fullCeil(p), gap = F - d.o; if (W <= 0 || gap < 4) return null;
+  const done = (ovrExact(p) - d.o) / gap, due = TYPICAL * (1 - wRemP(d, p.age + 1) / W);
   return done < due - 0.15 ? 'behind' : done > due + 0.15 ? 'ahead' : null;
 }
 // An undrafted or fringe player (the CCP's player pool, tryouts and draft): the overwhelming majority
