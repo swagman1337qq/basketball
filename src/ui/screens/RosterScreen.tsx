@@ -5,7 +5,7 @@
 // hover cards, a minutes control and moods that explain themselves. Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
 // two-way players and, in the offseason, Exhibit 10 camp deals.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { BadgeChip } from '../BadgeChip';
@@ -29,7 +29,8 @@ const td: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid v
 
 export function RosterScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeam, isMine } = vm.ctx, P = gm.db.P;
-  const [view, setView] = useState<{ tid: number; season: number }>({ tid: s.me, season: gm.Y });
+  const [view, setView] = useState<{ tid: number; season: number }>(() => s.rosterAt || { tid: s.me, season: gm.Y }); // rosterAt: opened on a team and season (Team history)
+  useEffect(() => { if (s.rosterAt) gm.setState({ rosterAt: null }); }, []); // used once, on opening
   const [advice, setAdvice] = useState<Advice | null>(null);
   const tid = T[view.tid] ? view.tid : s.me, season = view.season, cur = season === gm.Y, mine = isMine(tid) && cur;
   const t = T[tid], first = gm.db.firstSeason || 2027, seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);

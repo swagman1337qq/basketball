@@ -1,11 +1,13 @@
-// Team history: a franchise since the league began. Its retired numbers, and every player who
-// has played for it (his regular-season career with the team), colored by where he is now. You
-// retire a former player's number from his row (teams you run; any team in God Mode). Every
-// section folds away, and the league remembers which are folded.
+// Team history: a franchise since the league began. Its overall record, every season, retired
+// numbers, championship banners, and every player who has played for it (his regular-season
+// career with the team), colored by where he is now. You retire a former player's number from
+// his row (teams you run; any team in God Mode). Every section folds away, and the league
+// remembers which are folded.
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
-import { alphaTeams, GOD_PINK, godBtn, HL, hlRow, Link, muted, Ring, usePaged } from '../kit';
+import { alphaTeams, GOD_PINK, godBtn, HL, hlRow, kickerStyle, Link, muted, Ring, usePaged } from '../kit';
+import { ChampBanner } from '../ChampBanner';
 import { JERSEY_RE, numsWith, retireJersey, unretireJersey } from '../../engine/jerseys';
 
 const td: CSSProperties = { padding: '4px 8px', borderBottom: '1px solid var(--color-divider)' }, tdr: CSSProperties = { ...td, textAlign: 'right', whiteSpace: 'nowrap' };
@@ -15,8 +17,13 @@ const litBtn: CSSProperties = { color: HL.ink, borderColor: 'rgba(29,27,25,.4)',
 const godLit: CSSProperties = { ...litBtn, color: '#a3105f', borderColor: GOD_PINK };
 const lbl = (y: number) => (y - 1) + '–' + String(y).slice(2);
 const numKey = (n: string) => (n === '00' ? -1 : +n);
-const fold = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const fold = (x: string) => x.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 const f1 = (v: number) => v.toFixed(1);
+const pct = (w: number, l: number) => (w + l ? (w / (w + l)).toFixed(3).replace(/^0/, '') : '—');
+// How a season ended (league history's wording), as the Seasons list says it.
+const FIN: [RegExp, string][] = [[/title/i, 'league champs'], [/lost in the finals/i, 'made finals'], [/conference finals/i, 'made conference finals'], [/semifinals/i, 'made conference semifinals'], [/first round/i, 'made playoffs'], [/play-in/i, 'lost in the play-in'], [/missed/i, 'missed playoffs']];
+const finText = (fin: string) => FIN.find(([re]) => re.test(fin))?.[1] ?? fin.toLowerCase();
+const madePO = (fin: string) => /title|finals|semifinals|first round/i.test(fin), madeFinals = (fin: string) => /title|lost in the finals/i.test(fin);
 // Where a player is now: on the team, still playing elsewhere (another team, unsigned, abroad,
 // the CCP), retired, or retired into the Hall of Fame.
 const ROW_BG: Record<string, string> = { now: HL.mine, away: HL.active, hof: HL.hof };
@@ -46,6 +53,33 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   const pick = (x: number) => { setView(x); setAsk(null); };
   const step = (d: number) => { const i = AT.findIndex(x => x.tid === tid); pick(AT[(i + d + AT.length) % AT.length].tid); };
   const canEdit = isMine(tid) || !!s.god, godOnly = !isMine(tid) && !!s.god, retired: any[] = t.retired || [];
+
+  // Every season the team has played, newest first: finished ones from league history (saves
+  // from before every team's line was kept have only the user's, then tid 0), then this one if
+  // it's under way.
+  const seasons = useMemo(() => {
+    const out: { year: number; w: number; l: number; fin: string; done: boolean; champ: boolean }[] = [];
+    (s.history || []).forEach((h: any) => {
+      const x = h.teams?.[tid] || (!h.teams && tid === 0 && h.rec ? { rec: h.rec, fin: h.fin } : null);
+      if (!x) return;
+      const [w, l] = x.w != null ? [x.w, x.l] : String(x.rec).split(/[–-]/).map(Number);
+      out.push({ year: h.year, w: w || 0, l: l || 0, fin: x.fin || '', done: true, champ: h.champ === tid });
+    });
+    if (!out.some(x => x.year === gm.Y) && t.w + t.l > 0) out.push({ year: gm.Y, w: t.w, l: t.l, fin: '', done: false, champ: false });
+    return out.sort((a, b) => b.year - a.year);
+  }, [tid, s.history, t.w, t.l]);
+  const done = seasons.filter(x => x.done), W = seasons.reduce((a, x) => a + x.w, 0), L = seasons.reduce((a, x) => a + x.l, 0);
+  const byPct = done.slice().sort((a, b) => b.w / Math.max(1, b.w + b.l) - a.w / Math.max(1, a.w + a.l) || b.w - a.w), best = byPct[0], worst = byPct[byPct.length - 1];
+  const titleYears = done.filter(x => x.champ).map(x => x.year).sort((a, b) => a - b);
+  // A season's roster: the Roster screen opens on this team and year.
+  const openRoster = (y: number) => gm.setState((st: any) => ({ screen: 'roster', rosterAt: { tid, season: y }, modal: false, teamModal: null, pageStack: [], navTick: (st.navTick || 0) + 1 }));
+  const tile = (k: string, v: ReactNode, sub?: ReactNode) => (
+    <div key={k} style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 6 }}>
+      <div style={kickerStyle}>{k}</div>
+      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', lineHeight: 1.15 }}>{v}</div>
+      {sub != null && <div style={{ ...muted, fontSize: '11.5px' }}>{sub}</div>}
+    </div>
+  );
 
   // Everyone who has played for the team: his regular-season line with it, the titles he won
   // there (a playoff line for that season's champion), his last season there and where he is now.
@@ -123,6 +157,34 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
         <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', lineHeight: 1.1 }}>{t.region} {t.name}</div>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', columnGap: 36, alignItems: 'start' }}>
+      <div style={{ minWidth: 0 }}>
+      <Fold vm={vm} k="overall" title="Overall" note={seasons.length ? seasons.length + ' season' + (seasons.length === 1 ? '' : 's') : undefined}>
+        {seasons.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>The team hasn’t played a game yet.</p> : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: '12px 16px' }}>
+            {tile('Record', W.toLocaleString() + '–' + L.toLocaleString(), done.length < seasons.length ? 'this season so far included' : undefined)}
+            {tile('Win %', pct(W, L))}
+            {tile('Playoffs', done.filter(x => madePO(x.fin)).length, 'of ' + done.length + ' finished season' + (done.length === 1 ? '' : 's'))}
+            {tile('Finals', done.filter(x => madeFinals(x.fin)).length)}
+            {tile('Championships', titleYears.length, titleYears.length ? titleYears.join(', ') : undefined)}
+            {best && tile('Best record', best.w + '–' + best.l, lbl(best.year))}
+            {worst && done.length > 1 && tile('Worst record', worst.w + '–' + worst.l, lbl(worst.year))}
+          </div>
+        )}
+      </Fold>
+      <Fold vm={vm} k="seasons" title="Seasons">
+        {seasons.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No seasons yet.</p> : (
+          <div style={{ maxHeight: 420, overflowY: 'auto', fontSize: '13.5px', lineHeight: 1.8 }}>
+            {seasons.map(x => (
+              <div key={x.year} style={{ fontWeight: x.champ ? 700 : 400 }}>
+                <Link onClick={() => openRoster(x.year)} style={{ color: 'var(--color-accent-700)' }}>{lbl(x.year)}</Link>: {x.w}–{x.l},{' '}
+                {x.done ? <span style={madePO(x.fin) ? { color: 'var(--color-accent-700)' } : muted}>{finText(x.fin)}</span> : <span style={muted}>season in progress</span>}
+              </div>))}
+          </div>
+        )}
+      </Fold>
+      </div>
+      <div style={{ minWidth: 0 }}>
       <Fold vm={vm} k="retired" title="Retired jerseys" note={ret.length ? ret.length + ' number' + (ret.length === 1 ? '' : 's') : undefined}>
         {ret.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No numbers retired yet.{canEdit ? ' Retire a former player’s number from his row under Players.' : ''}</p> : (
           <table style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -138,6 +200,13 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
           </table>
         )}
       </Fold>
+      <Fold vm={vm} k="titles" title="Championships" note={titleYears.length ? titleYears.length + ' title' + (titleYears.length === 1 ? '' : 's') : undefined}>
+        {titleYears.length === 0 ? <p style={{ ...muted, fontStyle: 'italic', margin: 0 }}>No championships yet.</p> : (
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', paddingTop: 10 }}>{titleYears.map(y => <ChampBanner key={y} team={t} year={y} width={132} />)}</div>
+        )}
+      </Fold>
+      </div>
+      </div>
 
       <Fold vm={vm} k="players" title="Players" note={rows.length ? rows.length + ' players since ' + lbl(gm.db.firstSeason || 2027) : undefined}>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', fontSize: '12px', margin: '0 0 10px' }}>
