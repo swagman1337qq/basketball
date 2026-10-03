@@ -84,7 +84,7 @@ flowchart LR
 Screens: Live game, Box score, Stats, League stats, League leaders, Tactics. Code: `sim.ts`, `tactics.ts`, `norms.ts`, `advanced.ts`, `leaders.ts`, `ui/live/`.
 
 ### Season and league
-- 30 teams (15 per conference), 82 games, standings by conference or division.
+- 30 teams (15 per conference), 82 games, standings by conference or division. New leagues include the Iŋaliq Ivories (Little Diomede, Alaska) and the Wazíbló Dragoons (Pine Ridge, South Dakota) in the Northwest, each with a hand-drawn crest (`ui/teamCrests.tsx`, used by `TeamLogo` unless a logo style is picked in the League editor); Tampa and Phoenix are expansion options (`franchises.ts`). Their CCP clubs: `ccp.ts` `ccpAffilOf` (Denver's moves to Window Rock, and the Little Diomede club sits out).
 - All-Star Weekend in mid-February, trade deadline in early February.
 - Play-in, East and West best-of-7 brackets and the Finals, with "if the season ended today" views; when the Finals end, the champion's banner hangs under the Finals (`ChampBanner.tsx`).
 - Awards voted by editable formulas: MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, All-League, All-Defense, All-Rookie and more; the Awards screen highlights your players (and you as Coach of the Year) in your team's primary color (`meColor`; text dark or white by contrast, `kit.tsx` `inkOn`).

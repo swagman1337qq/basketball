@@ -62,7 +62,11 @@ export const CCP_AFFIL: Record<string, string> = {
   CHA: 'ocr', ATL: 'har', TPA: 'cai', RIC: 'mat', NSH: 'haz',
   SEA: 'ptr', POR: 'bro', VAN: 'daw', STL: 'pic', DEN: 'prd', SD: 'nwa', OAK: 'adk', LV: 'jar', LA: 'dvl', SJ: 'wht',
   AUS: 'mon', SA: 'chk', PHX: 'wrk', DAL: 'nom', HOU: 'utq',
+  INL: 'tuk', WAZ: 'prd',
 };
+// In a league with Iŋaliq (Little Diomede) and Wazíbló (Pine Ridge), Denver's club moves to Window Rock
+// (Phoenix's, when there's no Phoenix) and the Little Diomede club isn't used: those towns have NBA teams.
+export const ccpAffilOf = (abbr: string, all: string[]) => (abbr === 'DEN' && all.includes('WAZ') && !all.includes('PHX') ? 'wrk' : CCP_AFFIL[abbr]);
 export const CCP_INDEPENDENT = 'alt';
 export const CCP_SPARES = ['sup', 'ter', 'bvi', 'han', 'ddh', 'stp', 'dut', 'dio', 'gri', 'res', 'tuk', 'inu', 'olc', 'nai', 'fog', 'hai', 'fch'];
 export const ccpClub = (key: string) => CCP_CLUBS.find(c => c.key === key);

@@ -2,8 +2,10 @@
 // classic styles: a soccer-style shield (banner, stripes, ribbon), an old-school roundel
 // with the name wrapped around the ring, a 70s script wordmark over a basketball, and a
 // varsity octagon badge with a sunburst. Each uses the club's colors and emblem (glyphs
-// from Lucide, ISC license); small sizes drop the lettering so the mark stays legible.
+// from Lucide, ISC license); small sizes drop the lettering so the mark stays legible. A few
+// clubs have their own hand-drawn crest instead (teamCrests.tsx).
 import { useId } from 'react';
+import { CRESTS } from './teamCrests';
 import { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
 
 const GLYPHS: Record<string, LucideIcon> = { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
@@ -50,6 +52,9 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % 4];
   const sm = size < 46, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58);
   const svg = (children: any) => <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={label} style={{ display: 'block', flex: 'none', overflow: 'visible' }}>{children}</svg>;
+  // Clubs with their own hand-drawn crest (teamCrests.tsx), unless a style was picked in the League editor.
+  const crest = !team.logoStyle && team.abbr ? CRESTS[team.abbr] : undefined;
+  if (crest) return svg(crest(uid, sm));
 
   if (style === 'shield') {
     const shield = 'M50 3 L93 13 V48 C93 73 74 88 50 97 C26 88 7 73 7 48 V13 Z';

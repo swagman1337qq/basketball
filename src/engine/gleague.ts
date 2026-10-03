@@ -15,7 +15,7 @@ const AFFIL: Record<string, string> = {
   BAL: 'Chesapeake Watermen', HFD: 'Connecticut Ironsides', BKN: 'Coney Island Barkers', NWK: 'Jersey Shore Tides', PRV: 'Pawtucket Mill Cats', CLE: 'Lake Erie Riffs', DET: 'Motor City Spark Plugs', CBS: 'Scioto Valley Scouts',
   PIT: 'Allegheny Miners', BHM: 'Bessemer Marvels', CIN: 'Queen City Paddlers', CHA: 'Piedmont Pit Crew', ATL: 'Peachtree Embers', TPA: 'Ybor City Rollers', RAL: 'Triangle Techs', NSH: 'Music Row Pickers', SEA: 'Puget Sound Ferries',
   POR: 'Willamette Loggers', VAN: 'Fraser Valley Salmon', SLC: 'Wasatch Powder', DAL: 'Trinity River Roughnecks', DEN: 'Front Range Prospectors', SD: 'La Jolla Swells', OAK: 'East Bay Timber', LV: 'Henderson Dealers', SAC: 'Sierra Gold Panners',
-  SJ: 'Santa Clara Coders', AUS: 'Hill Country Hounds', SA: 'Rio Grande Riders', PHX: 'Sonoran Scorpions', KC: 'Missouri River Smokers', STL: 'Gateway Ferrymen', HNL: 'Oahu Outriggers', ABQ: 'Sandia Sidewinders',
+  SJ: 'Santa Clara Coders', AUS: 'Hill Country Hounds', SA: 'Rio Grande Riders', PHX: 'Sonoran Scorpions', INL: 'Norton Sound Navigators', WAZ: 'Badlands Riders', KC: 'Missouri River Smokers', STL: 'Gateway Ferrymen', HNL: 'Oahu Outriggers', ABQ: 'Sandia Sidewinders',
 };
 export const glSalary = (g: Game) => +(0.0405 * (g.CAP / 154.647)).toFixed(3); // $40,500 in 2025-26, growing with the cap
 export const GL_ROSTER = 12, AFFIL_MAX = 5;

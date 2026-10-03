@@ -46,6 +46,11 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 
 ### Added
+- **Two new franchises replace Tampa and Phoenix** (in new leagues):
+  - **Iŋaliq Ivories.** Iŋaliq is the Iñupiaq name of Little Diomede, Alaska, in the Bering Strait, a village known for its walrus-ivory carving. Their crest is a walrus head carved in ivory, with the fine incised lines and dots of Iñupiat engraving, set on an Arctic night sky with the northern lights and the two Diomede islands on the horizon. Navy, ivory and aurora teal.
+  - **Wazíbló Dragoons.** Wazíbló is Pine Ridge, South Dakota, home of the Oglala Lakota. Their crest is a dragoon (a rider at full gallop) over the eight-pointed morning star of the Lakota star quilt, above a ridge of pines. Red, gold, black and white, the colors of the four directions. It has no headdress, weapons or caricature: the horse culture and the star quilt carry the design.
+  - Both play in the West's Northwest, with the league's smallest markets. To keep 15 teams a conference, St. Louis moves to the East's Central, Nashville to the Southeast and Denver to the Southwest. Each new team has its own development-league club (the Tuktoyaktuk Pingos, the Pine Ridge Buttes).
+  - Tampa and Phoenix aren't gone for good: both can return through expansion. Leagues already in progress keep their teams.
 - **"Give me the most hopeless roster" on the start screen**, next to "Give me the worst roster" (pick one or neither). The worst roster is just the weakest team on the floor; the most hopeless one is a franchise stuck in a hole:
   - It starts from the worst overall situation among the ten weakest rosters (little talent, old, overpaid for years, no young upside), then gets worse.
   - **No real prospects:** young players with upside are traded for veterans about as good today.

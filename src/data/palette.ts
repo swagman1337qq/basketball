@@ -8,6 +8,8 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   CHA: ['#7b2cf5', '#39ff14'],  // purple and neon green
   SJ: ['#00e5ff', '#ff00a8'],   // electric cyan and magenta
   TPA: ['#ff6a00', '#00c2b8'],  // neon orange and teal
+  INL: ['#0b2545', '#f1e9d2'],  // Arctic navy and walrus ivory
+  WAZ: ['#c8102e', '#ffc72c'],  // star-quilt red and gold
   AUS: ['#c6ff00', '#5b21b6'],  // acid lime and purple
   SD: ['#ff4f79', '#1de9e6'],   // hot coral and aqua
   PHX: ['#ff7a00', '#8a2be2'],  // sunburst orange and electric violet

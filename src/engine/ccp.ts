@@ -12,7 +12,7 @@
 import type { Game } from './Game';
 import { effTend } from './tendencies';
 import { GameSim, blankLine } from './sim';
-import { CCP_AFFIL, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
+import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
 import { makeFringe } from './potential';
@@ -31,12 +31,12 @@ export const fmtDn = (Y: number, dn: number) => dateOfDn(Y, dn).toLocaleDateStri
 
 // The clubs this season: one affiliate per NBA team (its usual club, else a spare) and the independent.
 function buildTeams(s: any): CcpTeam[] {
-  const used = new Set<string>([CCP_INDEPENDENT]), spares = CCP_SPARES.slice(), out: CcpTeam[] = [];
+  const abbrs = s.teams.map((t: any) => t.abbr), used = new Set<string>([CCP_INDEPENDENT]), spares = CCP_SPARES.filter(k => !(k === 'dio' && abbrs.includes('INL'))), out: CcpTeam[] = [];
   const mk = (key: string | null, aff: number | null, conf: string): CcpTeam => {
     const c = key ? ccpClub(key)! : null, t = aff != null ? s.teams[aff] : null;
     return { id: out.length, key: key || 'gen' + aff, aff, conf, region: '', city: c ? c.city : t.region + ' Hills', where: c ? c.where : '', name: c ? c.name : 'Outriders', abbr: c ? c.abbr : (t.abbr + 'X').slice(0, 4), icon: c ? c.icon : 'Mountain', colors: c ? c.colors : [t.colors?.[1] || '#333', t.colors?.[0] || '#ccc'], note: c ? c.note : 'A remote outpost.' };
   };
-  s.teams.forEach((t: any) => { let k: string | null = CCP_AFFIL[t.abbr]; if (!k || used.has(k)) k = spares.shift() || null; if (k) used.add(k); out.push(mk(k, t.tid, t.conf)); });
+  s.teams.forEach((t: any) => { let k: string | null = ccpAffilOf(t.abbr, abbrs); if (!k || used.has(k)) k = spares.shift() || null; if (k) used.add(k); out.push(mk(k, t.tid, t.conf)); });
   const east = out.filter(t => t.conf === 'East').length, west = out.length - east;
   out.push(mk(CCP_INDEPENDENT, null, east <= west ? 'East' : 'West'));
   // Four tip-off regions: each conference split in two.

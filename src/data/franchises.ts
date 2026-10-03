@@ -39,7 +39,9 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Hartford', name: 'Jesters', abbr: 'HFD', conf: 'East', div: 'Atlantic', colors: ['#8e3b1f', '#f1e3c8'], icon: 'Drama', pop: 1.15, known: 'The Insurance Capital of the World', mkt: 0.75 },
   { region: 'Providence', name: 'Emus', abbr: 'PRV', conf: 'East', div: 'Atlantic', colors: ['#1f5f63', '#e9efe8'], icon: 'Award', pop: 1.68, known: 'Its jewelry-making heritage', mkt: 0.75 },
   { region: 'Columbus', name: 'Ibex', abbr: 'CBS', conf: 'East', div: 'Central', colors: ['#2d4a36', '#d8c29a'], icon: 'Anvil', pop: 2.2, known: 'The explorer it’s named after', mkt: 0.85 },
+  { region: 'Tampa', name: 'Sleds', abbr: 'TPA', conf: 'East', div: 'Southeast', colors: ['#1e6f5c', '#e8f3ec'], icon: 'Wind', pop: 3.3, known: 'Sled races on a beach that never sees snow', mkt: 1.0 },
   // ── West ──
+  { region: 'Phoenix', name: 'Chill', abbr: 'PHX', conf: 'West', div: 'Southwest', colors: ['#c1461d', '#fbe3c1'], icon: 'Droplets', pop: 5.0, known: 'Keeping cool in the Valley of the Sun', mkt: 1.15 },
   // Original teams, now expansion franchises (Los Angeles and Houston took their places).
   { region: 'Sacramento', name: 'Wombats', abbr: 'SAC', conf: 'West', div: 'Pacific', colors: ['#3a2f5b', '#d9a93a'], icon: 'Coffee', pop: 2.4, known: 'The 1849 Gold Rush', mkt: 0.85 },
   { region: 'Kansas City', name: 'Sailors', abbr: 'KC', conf: 'West', div: 'Northwest', colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat', pop: 2.25, known: 'Kansas City barbecue', mkt: 0.85 },
