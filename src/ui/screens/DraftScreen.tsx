@@ -1,5 +1,5 @@
 import type { VM } from '../vm';
-import { GOD_PINK } from '../kit';
+import { GOD_PINK, PN } from '../kit';
 import { useState } from 'react';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
@@ -177,7 +177,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
+                      <button className="hv6" onClick={p.open} title={p.name} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
                         {p.name}
                       </button>
                       {sc.tag(p.id)}
@@ -247,7 +247,7 @@ function PastDraft({ vm }: { vm: VM }) {
           <tr key={u.n} style={{ background: gm.isUser(s, u.tid) ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : undefined }}>
             <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'var(--font-heading)', fontSize: '16px' }}>{u.n}{u.rd === 2 && <span style={{ ...muted, fontSize: '10.5px' }}> (2nd)</span>}</td>
             <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{logo(u.tid, 16)}<button className="hv4" onClick={() => openTeam(u.tid)} style={{ all: 'unset', cursor: 'pointer' }}>{T[u.tid]?.abbr}</button>{u.orig !== u.tid && T[u.orig] && <span style={{ ...muted, fontSize: '11px' }}>via {T[u.orig].abbr}</span>}</span></td>
-            <td style={{ padding: '5px 8px' }}><button className="hv1" onClick={() => open(p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{p.name}</button> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos}</span></td>
+            <td style={{ padding: '5px 8px' }}><button className="hv1" onClick={() => open(p.id)} title={p.name} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, ...PN }}>{p.name}</button> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos}</span></td>
             <td style={{ padding: '5px 8px', fontSize: '12px', ...muted }}>{p.from?.team || ''}</td>
             <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{u.ovr != null ? u.ovr + ' / ' + u.pot : '—'}</td>
             <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.dxDone ? (p.dxDone.to > p.dxDone.from + 2 ? 'var(--gm-good)' : p.dxDone.to < p.dxDone.from - 2 ? 'var(--gm-bad)' : undefined) : undefined }} title={p.dxDone ? 'At his first NBA camp his game carried over ' + (p.dxDone.to - p.dxDone.from >= 0 ? '+' : '') + (p.dxDone.to - p.dxDone.from) : 'Not in an NBA camp yet'}>{p.dxDone ? p.dxDone.from + ' → ' + p.dxDone.to : '—'}</td>

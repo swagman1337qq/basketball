@@ -1,7 +1,7 @@
 import type { VM } from '../vm';
 import { CapBar } from '../CapBar';
 import { useState } from 'react';
-import { Seg, usePaged } from '../kit';
+import { Seg, usePaged, PN } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { Link, muted } from '../kit';
@@ -154,7 +154,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "4px 8px" }}>
                 <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                   <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                  <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
+                  <button className="hv6" onClick={p.open} title={p.name} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
                     {p.name}
                   </button>
                   {sc.tag(p.id)}

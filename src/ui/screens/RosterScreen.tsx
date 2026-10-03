@@ -19,7 +19,7 @@ import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
-import { alphaTeams, godBtn, Link, muted, NumInput } from '../kit';
+import { alphaTeams, godBtn, Link, muted, NumInput, PN } from '../kit';
 
 const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
@@ -72,8 +72,8 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <td style={{ ...td }}>
           <span style={{ display: 'inline-flex', gap: '7px', alignItems: 'center', flexWrap: 'wrap' }}>
             <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-            <span style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400 }}>{p.name}</span>
-            {p.native && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>({p.native})</span>}
+            <span title={p.name + (p.native ? ' (' + p.native + ')' : '')} style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}>{p.name}</span>
+            {p.native && p.name.length + p.native.length <= 34 && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
             {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
             {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}

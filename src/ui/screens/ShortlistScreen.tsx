@@ -1,4 +1,4 @@
-import { usePaged } from '../kit';
+import { usePaged, PN } from '../kit';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 import { useScoutSelect } from '../ScoutSelect';
@@ -61,7 +61,7 @@ function ListTable({ vm, rows }: { vm: VM; rows: any[] }) {
             <td style={{ padding: "5px 8px" }}>
               <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
                 <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                <span style={{ color: "var(--color-accent-700)" }}>
+                <span title={p.name} style={{ color: "var(--color-accent-700)", ...PN }}>
                   {p.name}
                 </span>
                 {sc.tag(p.id)}

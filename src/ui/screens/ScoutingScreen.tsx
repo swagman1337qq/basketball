@@ -1,3 +1,4 @@
+import { PN } from '../kit';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 import { ScoutReportsSection } from './ScoutReportsSection';
@@ -23,7 +24,7 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
             <tbody>
               {srtR.rows.map((r: any, i: number) => (
                 <tr key={i}>
-                  <td style={{ padding: "5px 8px" }}>
+                  <td title={r.name} style={{ padding: "5px 8px", whiteSpace: "nowrap", maxWidth: "26ch", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {r.name}
                   </td>
                   <td style={{ padding: "5px 8px" }}>
@@ -119,7 +120,7 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
           </>)}
           {(vm.promisesV || []).map((x: any, i: number) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid var(--color-divider)" }}>
-              <button onClick={x.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
+              <button onClick={x.open} title={x.name} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
                 {x.name}
               </button>
               <span>

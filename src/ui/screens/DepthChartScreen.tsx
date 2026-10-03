@@ -40,7 +40,7 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
                 <div style={{ fontSize: "10px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
                   Starter
                 </div>
-                <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", lineHeight: "1.1" }}>
+                <div title={c.s.name} style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", lineHeight: "1.1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.s.name}
                 </div>
                 <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
@@ -53,7 +53,7 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
             </div>
             {(c.bench || []).map((b: any, i: number) => (
               <div key={i} className="hv1" onClick={b.open} style={{ display: "flex", justifyContent: "space-between", gap: "6px", padding: "4px 2px", borderBottom: "1px solid var(--color-divider)", cursor: "pointer" }}>
-                <span>
+                <span title={b.name} style={{ minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {b.name}{" "}
                   <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
                     {b.pos}
@@ -96,7 +96,7 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
         <tbody>
           {(vm.roles || []).map((r: any, i: number) => (
             <tr key={i}>
-              <td style={{ padding: "5px 8px", whiteSpace: "nowrap" }}>
+              <td title={r.name} style={{ padding: "5px 8px", whiteSpace: "nowrap", maxWidth: "26ch", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {r.name}
               </td>
               <td style={{ padding: "5px 8px", color: "var(--color-neutral-700)" }}>

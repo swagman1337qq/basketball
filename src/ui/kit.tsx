@@ -41,6 +41,10 @@ export function Ring({ size = 13, title = 'Championship' }: { size?: number; tit
 export const th = (align: 'left' | 'right' = 'left'): CSSProperties => ({ padding: '6px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}) });
 export const td = (align: 'left' | 'right' = 'left', extra?: CSSProperties): CSSProperties => ({ padding: '5px 8px', textAlign: align, ...(align === 'right' ? { whiteSpace: 'nowrap' } : {}), ...extra });
 export const linkBtn: CSSProperties = { all: 'unset', cursor: 'pointer' };
+// A name in a list, card or table: one line, and an unusually long one ends in an ellipsis (the full name
+// is in the tooltip), so a long name never wraps a row or pushes the page down.
+export const PN: CSSProperties = { display: 'inline-block', maxWidth: '26ch', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom' };
+const textOf = (c: ReactNode): string | null => (typeof c === 'string' || typeof c === 'number' ? String(c) : Array.isArray(c) && c.every(x => typeof x === 'string' || typeof x === 'number') ? c.join('') : null);
 
 export function Kicker({ children, accent }: { children: ReactNode; accent?: boolean }) {
   return <div style={accent ? accentKicker : kickerStyle}>{children}</div>;
@@ -48,8 +52,9 @@ export function Kicker({ children, accent }: { children: ReactNode; accent?: boo
 
 // A clickable name (player or team) with the prototype's hover treatment.
 export function Link({ onClick, children, style }: { onClick?: () => void; children: ReactNode; style?: CSSProperties }) {
+  const txt = textOf(children), long = !!txt && txt.length > 24; // a long name: one line with an ellipsis (PN)
   return (
-    <button className="hv4" onClick={e => { e.stopPropagation(); onClick?.(); }} style={{ ...linkBtn, ...style }}>
+    <button className="hv4" onClick={e => { e.stopPropagation(); onClick?.(); }} title={long ? txt! : undefined} style={{ ...linkBtn, ...(long ? PN : {}), ...style }}>
       {children}
     </button>
   );

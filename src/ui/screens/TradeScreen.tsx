@@ -1,6 +1,6 @@
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
-import { godBtn } from '../kit';
+import { godBtn, PN } from '../kit';
 import { CapBar, CapLeft } from '../CapBar';
 
 const TONE: Record<string, string> = { good: 'var(--gm-good)', ok: 'var(--color-accent-700)', bad: 'var(--gm-bad)' };
@@ -92,7 +92,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <button className="hv4" onClick={p.open} title="Open his profile" style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>{p.name}</button>{" "}
+                      <button className="hv4" onClick={p.open} title={p.name + ": open his profile"} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>{p.name}</button>{" "}
                       <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
                         {p.pos}
                       </span>
@@ -281,7 +281,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <button className="hv4" onClick={p.open} title="Open his profile" style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>{p.name}</button>{" "}
+                      <button className="hv4" onClick={p.open} title={p.name + ": open his profile"} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>{p.name}</button>{" "}
                       <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
                         {p.pos}
                       </span>

@@ -1,3 +1,4 @@
+import { PN } from '../kit';
 import type { VM } from '../vm';
 
 export function DashboardScreen({ vm }: { vm: VM }) {
@@ -11,7 +12,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "4px 24px" }}>
             {(vm.progRows || []).map((r: any, i: number) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                <button className="hv1" onClick={r.open} style={{ all: "unset", cursor: "pointer" }}>
+                <button className="hv1" onClick={r.open} title={r.name} style={{ all: "unset", cursor: "pointer", ...PN }}>
                   {r.name}
                 </button>
                 <span>
@@ -125,7 +126,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                 <div style={{ width: "34px", fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)" }}>
                   {l.label}
                 </div>
-                <button className="hv4" onClick={l.open} style={{ all: "unset", cursor: "pointer", flex: "1" }}>
+                <button className="hv4" onClick={l.open} title={l.name} style={{ all: "unset", cursor: "pointer", flex: "1", ...PN, maxWidth: "none", minWidth: 0 }}>
                   {l.name}
                 </button>
                 <div style={{ fontFamily: "var(--font-heading)", fontSize: "22px", lineHeight: "1" }}>
@@ -152,7 +153,7 @@ export function DashboardScreen({ vm }: { vm: VM }) {
                   {p.pos}
                 </div>
                 <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                <button className="hv4" onClick={p.open} style={{ all: "unset", cursor: "pointer", flex: "1" }}>
+                <button className="hv4" onClick={p.open} title={p.name} style={{ all: "unset", cursor: "pointer", flex: "1", ...PN, maxWidth: "none", minWidth: 0 }}>
                   {p.name}
                 </button>
                 <div style={{ color: p.tone, fontWeight: "600" }}>

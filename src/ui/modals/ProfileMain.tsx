@@ -56,6 +56,8 @@ export function ProfileHeader({ vm }: { vm: VM }) {
   const yrs = yosOf(gm, p) + ((p.stats || []).some(r => !r.po && r.season === gm.Y) ? 1 : 0);
   const tc = tid >= 0 ? T[tid].colors?.[0] : undefined;
   const stack = { display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' } as const;
+  // The name's size by its length (the native script counts for a bit less): 42px for most, down to 26px.
+  const nameLen = p.name.length + (p.native ? p.native.length * 0.55 + 1 : 0), nameSize = nameLen <= 22 ? 42 : nameLen <= 28 ? 36 : nameLen <= 34 ? 31 : nameLen <= 42 ? 28 : 26;
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0,1fr) auto', gap: '22px', alignItems: 'center', marginBottom: '14px' }}>
@@ -66,8 +68,12 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             <Link onClick={() => pl.openRep(null)}>{pl.cname}</Link><span>·</span><span>{p.pos}</span><span>·</span>
             <Link onClick={() => pl.openT(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{pl.teamLogo}{pl.teamLabel}</Link>
           </div>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '42px', lineHeight: 1.04, letterSpacing: '-.01em', marginTop: '2px' }}>
-            {p.num != null && tid >= 0 && <JerseyNum vm={vm} p={p} tid={tid} />}{p.name}{p.native ? <span style={{ fontSize: '24px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
+          {/* One line, always: a long name gets a smaller size, then an ellipsis (the native script gives way
+              first); the whole name is in the tooltip. The header never grows, so the page never jumps. */}
+          <div title={p.name + (p.native ? ' · ' + p.native : '')} style={{ display: 'flex', alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font-heading)', fontSize: nameSize + 'px', lineHeight: 1.04, letterSpacing: '-.01em', marginTop: '2px', height: '46px' }}>
+            {p.num != null && tid >= 0 && <span style={{ flex: 'none', display: 'inline-flex' }}><JerseyNum vm={vm} p={p} tid={tid} /></span>}
+            <span style={{ flex: '0 1 auto', minWidth: '3em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+            {p.native ? <span style={{ flex: '0 100 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: Math.round(nameSize * 0.57) + 'px', ...muted, marginLeft: '12px' }}>{p.native}</span> : null}
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'flex-start', marginTop: '8px' }}>
             {/* Age over his measurements; draft slot over his season count. */}
