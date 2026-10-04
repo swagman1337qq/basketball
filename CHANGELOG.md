@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-03
 
 ### Fixed
+- **Depth chart boxes line up.** A starter playing out of position had a taller box (its note could wrap onto two lines), which pushed that column's bench list down. Every starter box is now the same height, with a one-line "Out of position" note, so the five columns always align.
 - **Draft picks were listed twice.** Every training camp added each team's picks two years out a second time, so the trade screen showed, for example, two 2030 firsts. The extra copies are gone from existing leagues the next time they're opened, and no new ones are made.
 - **Names fit the culture they come from.**
   - **First and last names now come from the same community.** Groups that mixed Indian, Pakistani and Bangladeshi names could produce "Arif Srinivasan" (a Muslim first name with a Tamil Hindu surname); now both parts come from one. The same goes for Korean and Japanese names in Guam, Albanian and Serbian names in Switzerland, and similar cases.

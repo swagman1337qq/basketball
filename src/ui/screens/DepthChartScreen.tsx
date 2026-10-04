@@ -32,21 +32,23 @@ export function DepthChartScreen({ vm }: { vm: VM }) {
                 {c.count}
               </span>
             </div>
-            <div className="hv3" onClick={c.s.open} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "8px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: "6px" }}>
+            {/* Every starter box is the same height, with a line kept for the out-of-position note, so the
+                five columns (and the bench lists under them) stay lined up. */}
+            <div className="hv3" onClick={c.s.open} title={c.s.note ? c.s.name + ': playing out of position (his ratings fit another spot better)' : c.s.name} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "8px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", cursor: "pointer", marginBottom: "6px", height: "80px", boxSizing: "border-box" }}>
               <div className="gm-face" style={{ width: "40px", height: "60px", flex: "none", overflow: "hidden" }}>
                 {c.s.face}
               </div>
-              <div style={{ minWidth: "0" }}>
-                <div style={{ fontSize: "10px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+              <div style={{ minWidth: "0", flex: "1" }}>
+                <div style={{ fontSize: "10px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", lineHeight: "13px" }}>
                   Starter
                 </div>
                 <div title={c.s.name} style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", lineHeight: "1.1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.s.name}
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
+                <div style={{ fontSize: "12px", color: "var(--color-neutral-700)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.s.pos} · {c.s.ovr} ovr
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--color-accent-800)", fontStyle: "italic" }}>
+                <div style={{ fontSize: "11px", color: "var(--color-accent-800)", fontStyle: "italic", height: "14px", lineHeight: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {c.s.note}
                 </div>
               </div>
