@@ -29,7 +29,7 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
   s.teams.forEach(t => { const x = tsrc[t.tid]; teams[t.tid] = x && x.gp ? { ...x } : avgTeam(); });
   if (po) {
     const poGp: Record<number, number> = {};
-    (Object.values(P) as any[]).forEach(p => (p.stats || []).forEach((r: any) => { if (r.season === season && r.po) poGp[r.tid] = Math.max(poGp[r.tid] || 0, r.gp); }));
+    g.playersIn(season).forEach(p => (p.stats || []).forEach((r: any) => { if (r.season === season && r.po) poGp[r.tid] = Math.max(poGp[r.tid] || 0, r.gp); }));
     Object.keys(teams).forEach(k => { const t = teams[+k], n = poGp[+k] || 0, f = t.gp ? n / t.gp : 0; Object.keys(t).forEach(f2 => { if (f2 !== 'gp') t[f2] *= f; }); t.gp = n; if (!n) Object.assign(t, avgTeam(1)); });
   }
   // Team records for win%.
@@ -37,7 +37,7 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
 
   // Player season totals (regular season), attributed to the team he played most minutes for.
   const rows: { p: any; t: StatLine; tid: number }[] = [];
-  (Object.values(P) as any[]).forEach(p => {
+  g.playersIn(season).forEach(p => {
     const rs = (p.stats || []).filter(r => r.season === season && !!r.po === po); if (!rs.length) return;
     const t: StatLine = {}; rs.forEach(r => Object.keys(r).forEach(k => { if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k]; }));
     if (!t.gp || !t.min) return;

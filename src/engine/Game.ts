@@ -25,7 +25,7 @@ import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
-import { removeUnplayed, slimRetired } from './prune';
+import { dropOldSplits, removeUnplayed, slimRetired } from './prune';
 import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
@@ -232,7 +232,7 @@ export class Game {
     // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
     [g.state, ...Object.values(g.state.clubs || {})].forEach((c: any) => { migrateTactics(c?.tactics); migrateTactics(c?.situ?.lead); migrateTactics(c?.situ?.trail); });
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
-    ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); // older saves: remove retirees who never played here, trim the rest
+    ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); dropOldSplits(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.
@@ -815,6 +815,17 @@ export class Game {
   // USG%: share of team plays used while on the floor (team plays per minute from the baselines).
   usgOf(t) { const teamPlaysPer48 = 89.1 + 0.44 * 23.5 + BASE.tov; return t.min ? (100 * (t.fga + 0.44 * t.fta + t.tov) * 48) / (t.min * teamPlaysPer48) : 0; }
   eff(t) { return t.pts + t.orb + t.drb + t.ast + t.stl + t.blk - (t.fga - t.fgm) - (t.fta - t.ftm) - t.tov; }
+  // The players with a stat line in `season`. Past seasons don't change, so each is indexed once;
+  // the current one only looks at players still active (a long league has tens of thousands retired).
+  private seasonIdx = new Map<number, number[]>();
+  playersIn(season: number): any[] {
+    const P = this.db.P, has = (p: any) => (p.stats || []).some((r: any) => r.season === season);
+    if (season >= this.Y) return (Object.values(P) as any[]).filter(p => !p.gone && (!p.retired || (p.retired.season ?? 0) >= season) && has(p));
+    let ids = this.seasonIdx.get(season);
+    if (!ids) { ids = (Object.values(P) as any[]).filter(has).map(p => p.id); this.seasonIdx.set(season, ids); }
+    return ids.map(id => P[id]).filter(Boolean);
+  }
+
   // A simple PER: efficiency per minute, scaled so the league average is 15.
   perOf(t, season) { const lg = this.db.lgRate?.[season] || 0.55; return t.min ? 15 * (this.eff(t) / t.min) / lg : 0; }
 
@@ -822,7 +833,7 @@ export class Game {
   refreshAverages(ids: number[]) {
     const P = this.db.P, Y = this.Y;
     let e = 0, m = 0;
-    (Object.values(P) as any[]).forEach(p => { const t = p.stats && p.stats.length ? this.seasonTotals(p, Y) : null; if (t) { e += this.eff(t); m += t.min; } });
+    this.playersIn(Y).forEach(p => { const t = this.seasonTotals(p, Y); if (t) { e += this.eff(t); m += t.min; } });
     if (m) (this.db.lgRate = this.db.lgRate || {})[Y] = e / m;
     new Set(ids).forEach(id => {
       const p = P[id], t = this.seasonTotals(p, Y);
@@ -1258,7 +1269,7 @@ export class Game {
         Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
-      removeUnplayed(this, s); slimRetired(this); // this summer's retirees: remove those who never played here, trim the rest
+      removeUnplayed(this, s); slimRetired(this); dropOldSplits(this); // this summer's retirees: remove those who never played here, trim the rest
       return { ...fsPatch, ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {

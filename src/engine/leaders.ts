@@ -34,7 +34,7 @@ export function seasonLeaders(g: Game, s: any, y: number, mode: LeadMode): Recor
   const hit = CACHE.get(key); if (hit) return hit;
   const maxGp = seasonGames(g, s, y), f = maxGp / 82, need = NEED;
   const best: Record<string, number> = {};
-  (Object.values(g.db.P) as any[]).forEach(q => {
+  g.playersIn(y).forEach(q => {
     if (!(q.stats || []).some((r: any) => r.season === y && !r.po)) return;
     const t = g.seasonTotals(q, y); if (!t || !t.gp) return;
     const qual = mode === 'tot' || t.gp >= 0.7 * maxGp;
@@ -58,7 +58,7 @@ export interface Leader { pid: number; v: number; tid: number }
 export function leaderBoards(g: Game, s: any, y: number, mode: LeadMode, boards: Board[], n = 10): Record<string, Leader[]> {
   const maxGp = seasonGames(g, s, y), f = maxGp / 82, adv = boards.some(b => b.adv) ? seasonAdvanced(g, s, y).byPid : {};
   const out: Record<string, Leader[]> = {}; boards.forEach(b => (out[b.id] = []));
-  (Object.values(g.db.P) as any[]).forEach(p => {
+  g.playersIn(y).forEach(p => {
     const rows = (p.stats || []).filter((r: any) => r.season === y && !r.po); if (!rows.length) return;
     const t = g.seasonTotals(p, y); if (!t || !t.gp) return;
     const tid = rows.reduce((a: any, r: any) => (r.min > a.min ? r : a)).tid, games = t.gp >= 0.7 * maxGp;

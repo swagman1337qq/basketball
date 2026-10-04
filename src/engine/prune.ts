@@ -1,18 +1,32 @@
 // Keeping saves small: retired players don't need the working data of an active career.
-// Every retired player drops his monthly development feed, hidden rating decimals and recent
-// game log; one who never played an NBA game also drops his rating snapshots and development-
-// league stat lines. Names, ratings, bio, transactions and NBA career stats stay.
+// Every retired player drops his monthly development feed, hidden rating decimals, recent game log
+// and everything that only drives development (skill ceilings, plan, last summer's tendencies); his
+// ratings history keeps one snapshot a season (opening night, whole numbers), which is all his
+// year-by-year table needs. One who never played an NBA game also drops his rating snapshots and
+// development-league stat lines. Names, ratings, bio, transactions and NBA career stats stay.
 import type { Game } from './Game';
 
+const DEV_ONLY = ['feed', 'rx', 'ox', 'glx', 'last5', 'dy', 'dyS', 'padding', 'ceil', 'tenPrev', 'ph', 'dv0', 'dx', 'dxDone', 'devK', 'dyT', 'minorCount', 'protect', 'minMin', 'moodAdj', 'hot', 'fat', 'rot', 'dev', 'gem'];
+const SLIM = 2;
 export function slimRetired(g: Game) {
   let n = 0;
   (Object.values(g.db.P) as any[]).forEach(p => {
-    if (!p.retired || p.slim) return;
-    ['feed', 'rx', 'ox', 'glx', 'last5', 'dy', 'dyS', 'padding'].forEach(k => delete p[k]);
+    if (!p.retired || (p.slim || 0) >= SLIM) return;
+    DEV_ONLY.forEach(k => delete p[k]);
+    (p.stats || []).forEach((r: any) => { delete r.h; delete r.a; });
     if (!(p.stats || []).length) { delete p.rh; delete p.ccpS; }
-    p.slim = 1; n++;
+    else if (p.rh) Object.values(p.rh).forEach((h: any) => { delete h.e; if (h.o) h.o = { ovr: Math.round(h.o.ovr * 10) / 10, ovrI: h.o.ovrI, pot: h.o.pot, r: Object.fromEntries(Object.entries(h.o.r || {}).map(([k, v]: any) => [k, Math.round(v)])) }; });
+    p.slim = SLIM; n++;
   });
   return n;
+}
+
+// Home and away splits are only shown for the current season: older seasons' stat lines drop them
+// (about half of every stat line). Runs once a season (db.splitY).
+export function dropOldSplits(g: Game) {
+  const Y = g.Y; if ((g.db.splitY ?? 0) >= Y) return;
+  (Object.values(g.db.P) as any[]).forEach(p => (p.stats || []).forEach((r: any) => { if (r.season < Y && (r.h || r.a)) { delete r.h; delete r.a; } }));
+  g.db.splitY = Y;
 }
 
 // Retired players who never played a game in the league (CCP-only players, undrafted prospects,

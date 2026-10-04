@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-04 (99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-04 (smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -251,7 +251,7 @@ All in `src/engine/`.
 | `spectator.ts` | Spectator Mode: hand every team to the AI (`enterSpectator`), take one back (`manageTeam`), and the driver that runs the season toward a goal (`spectate`) |
 | `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
-| `prune.ts` | Trims retired players to keep saves small |
+| `prune.ts` | Keeps saves small: trims retired players (`slimRetired`), drops old seasons' home/away splits (`dropOldSplits`), removes players who never played (`removeUnplayed`) |
 | `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |
 | `godMove.ts` | God Mode: move any player to any team (keeps his deal, or a fair new one) |
 | `startRoster.ts` | Start-screen "most hopeless roster": picking and building the stuck franchise, its traded picks and the welcome note |
@@ -270,7 +270,7 @@ Tick these off (or delete them) as they're fixed. Severity is a first guess.
 - [x] **`npm run deploy` can leave a stray worktree.** Fixed: an unchanged site publishes nothing, and the scratch worktree is always removed.
 - [ ] **Dead check in `Game.sim()`.** It refuses to sim while an inbox item has `block`, but nothing ever sets `block` (`Game.ts`, `sim()`).
 - [ ] **Very dense code.** Lines run to 3,471 characters (`viewModel.ts`); `Game.ts` is 165 KB. Splitting `Game.ts` by phase and formatting long lines would make reviews and diffs far easier.
-- [ ] **Saves grow about 1.4 MB a season.** A headless run went 3.5 MB → 5.0 MB → 6.3 MB over three seasons, and later seasons sim slower (about 5 s → 7–12 s each, headless). Worth trimming old box scores, logs and per-game history before leagues reach 20+ seasons.
+- [x] **Saves grow about 1.4 MB a season.** Partly fixed 2026-10: past seasons' stat lines drop their home/away splits (`prune.ts` `dropOldSplits`, `db.splitY`), and retired players drop everything that only drives development and keep one whole-number ratings snapshot a season (`slimRetired`, `p.slim` 2). A 30-season save went 42.4 MB → 30.5 MB (−28%), a 7-season one 12.6 → 9.6 MB (−23%). The daily league-average refresh and the season leaders/advanced stats no longer scan every retired player (`Game.playersIn`: past seasons indexed once). Still about 1 MB a season, mostly active players' stats and ratings history.
 - [x] **Player development rework** (audit of 2026-10-02), all three phases done.
   - Phase 1 (`development.ts`): development is player-specific, the body has its own track, every player has a work ethic, and coaching is a capped multiplier.
   - Phase 2 (`potential.ts`): potential is a ceiling with per-skill ceilings, a hidden pace, and true vs scouted potential.
