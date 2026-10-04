@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-BbtpBMiK.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-oM4f5Qd2.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -59,6 +59,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
 
 ### Changed
+- **A perfect 100 at the line is automatic.** A player with a Free Throw rating of 100 now makes about 98% of his free throws, every year: José Calderón's NBA record season (98.1%) as his normal. It's a rare tier: a 99 still shoots about 92%. In a test season, a star set to 100 went 619 for 631.
 - **Elite free throw shooters shoot like elite free throw shooters.** A Free Throw rating of 100 used to top out around 87%. Now a 90 makes about 90% and a 100 about 92–93%, the range of Steph Curry and Steve Nash. League-wide free throw shooting stays at the NBA's 78%.
 - **Terrible free throw shooters are terrible now.** A Free Throw rating of 1 used to still make about 51% at the line. Below 40 the rating now matters more: a 20 shoots about 55% (Shaq territory) and a 1 about 40% (Ben Wallace). In a test season, a starting center set to 1 went 302 for 789 (38%). Ratings of 40 and up shoot the same as before.
 - **Size matters at the rim.** Small guards used to finish layups almost as well as 7-footers (about 68% against 72%). Height and wingspan now count for much more on shots at the rim, so a 6′2″ guard makes about 64% there and a 7-footer about 73%, close to the NBA's gap. Strong rim protectors bother small finishers more, and small players get their shots at the rim blocked a little more often. A small guard with great touch (high Layups and Inside) still finishes well. League-wide scoring is unchanged.
