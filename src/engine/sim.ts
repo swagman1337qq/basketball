@@ -71,7 +71,10 @@ const CURVE: Record<string, { mid: number; up: number; down: number }> = {
 };
 // Above average, each extra point is worth a little less (an elite finisher makes ~75–80% at the rim,
 // not 90%), so superstars' efficiency stays in the range of the NBA's best.
-export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return d >= 0 ? (d * c.up) / (1 + d / 40) : d * c.down; };
+// Free throws fall off faster at the bottom: below 40 each point costs half again as much, so a 20
+// shoots like Shaq (about 53–55%) and a 1 like Ben Wallace (about 41%), not a passable 51%.
+const FT_KNEE = 40, FT_LOW = 0.0025;
+export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / 40) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : 0); };
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
 // A player's skill for each tier (0–99 scale).
@@ -562,7 +565,7 @@ export class GameSim {
 
   // Free throws. Returns true if the offense keeps the ball (offensive rebound off a live miss).
   private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack' | 'tech', cAdv: number) {
-    const pct = cl(BASE.ft + CAL.ft + curve('ft', sh.r.ft) + this.norms.ftOffset - (sh.adj ? 0.02 : 0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.4, 0.95);
+    const pct = cl(BASE.ft + CAL.ft + curve('ft', sh.r.ft) + this.norms.ftOffset - (sh.adj ? 0.02 : 0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.3, 0.95);
     let made = 0, last = false;
     for (let i = 0; i < n; i++) { O.box[sh.id].fta++; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; } }
     if (made) score(sh, made);
