@@ -48,7 +48,7 @@ const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands:
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.17, dt: 1.032 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
-const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.014 };
+const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
 // Defenses key on a lineup of shot-makers and help off one that can't shoot, so part of a lineup's
 // shooting edge (its players' usage-weighted average against the league) is given back on every
 // shot; the differences between its own players stay. Without it, team shooting spread about twice
@@ -63,18 +63,18 @@ const BLOCK_ON_MISS: Record<Zone, number> = { rim: 0.36, mid: 0.053, c3: 0.008, 
 // ── The bell curve: rating → deviation from the baseline percentage ─────────────
 // Asymmetric on purpose: elite ratings add little (a 90 three-point shooter is ~40%),
 // poor ratings cost a lot (a 40 is ~27%). The norms' offsets re-centre the league mean.
-const CURVE: Record<string, { mid: number; up: number; down: number }> = {
+const CURVE: Record<string, { mid: number; up: number; down: number; soft?: number }> = {
   three: { mid: 65, up: 0.0016, down: 0.0029 },
   rim: { mid: 60, up: 0.0025, down: 0.0032 },
   jumper: { mid: 55, up: 0.0022, down: 0.0028 },
-  ft: { mid: 60, up: 0.0035, down: 0.005 },
+  ft: { mid: 60, up: 0.005, down: 0.005, soft: 80 }, // the best shooters are 90–93% (Curry, Nash): a 90 is about 90%, a 100 about 92.5%
 };
 // Above average, each extra point is worth a little less (an elite finisher makes ~75–80% at the rim,
 // not 90%), so superstars' efficiency stays in the range of the NBA's best.
 // Free throws fall off faster at the bottom: below 40 each point costs half again as much, so a 20
 // shoots like Shaq (about 53–55%) and a 1 like Ben Wallace (about 41%), not a passable 51%.
 const FT_KNEE = 40, FT_LOW = 0.0025;
-export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / 40) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : 0); };
+export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / (c.soft ?? 40)) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : 0); };
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
 // A player's skill for each tier (0–99 scale).

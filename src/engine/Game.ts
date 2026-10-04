@@ -254,8 +254,8 @@ export class Game {
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
     // 2026-10: height and length count for more at the rim (sim.ts zoneSkill): re-center the league's rim norms once.
     if (!g.db.rimV) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 1; }
-    // 2026-10: free throws fall off faster below a 40 rating (sim.ts curve): re-center the league's free throw norm once.
-    if (!g.db.ftV) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, ftOffset: nw.ftOffset }; g.db.ftV = 1; }
+    // 2026-10: free throws fall off faster below a 40 rating and the best shooters reach 90%+ (sim.ts curve): re-center the league's free throw norm once.
+    if ((g.db.ftV || 0) < 2) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, ftOffset: nw.ftOffset }; g.db.ftV = 2; }
     // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
     { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
     // Saves from before wingspan counted toward the overall.
