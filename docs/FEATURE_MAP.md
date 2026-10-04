@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-04 (size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-04 (roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -96,7 +96,7 @@ Screens: Live game, Box score, Stats, League stats, League leaders, Tactics. Cod
 Screens: Dashboard, Standings, Schedule, Playoffs, Awards, Predictions, Hall of Fame, Press room, Transactions, Team history. Code: `Game.ts`, `awards.ts`, `formula.ts`, `allStar.ts`, `media.ts`, `hof.ts`, `txlog.ts`, `jerseys.ts`.
 
 ### Roster and coaching
-- Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries.
+- Rotation by drag and drop, starters, per-player minute targets, keep sorted, play through injuries. A Starters / Bench bar (`RosterScreen.tsx` `BenchBar`) sits between the fifth starter and the bench in the current season; drop a player on it to make him first off the bench.
 - Injuries count games and days (`Game.injUntil`, `injText`, `calNow`): games with his team's games (play-in and playoffs too), days on the calendar, summer included. Free agents heal on the calendar (`healIdle`). On a team you run, an injured player drops to the end of the roster and returns to his old spot and minutes when healthy (`injAway`/`injBack`), unless you moved him yourself while he was out (a manual move clears `p.preInj`): then he stays where you put him. Signings and trades in between don't stop his return.
 - Depth chart and the assistant coaches' lineup advice with one-click apply.
 - 20 ratings (including acceleration, layups, box-out, blocks, steals), measured wingspan, badges (on profiles, free agency and Tactics, not the Roster; a profile shows seven, "+N more badges" shows the rest).

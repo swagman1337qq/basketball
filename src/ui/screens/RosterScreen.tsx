@@ -5,7 +5,7 @@
 // control and moods that explain themselves (badges are on the player's profile). Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
 // two-way players and, in the offseason, Exhibit 10 camp deals.
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { howAcquired } from '../../engine/txlog';
@@ -61,7 +61,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
     return (
       <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDrag(id); }} onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== id) move(drag, id); setDrag(null); }}
-        style={{ cursor: 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined, borderBottom: i === 4 && list === mainIds && cur ? '2px solid var(--color-text)' : undefined }}>
+        style={{ cursor: 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined }}>
         <td style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }} title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'} />
         {mine && <td style={{ ...td, whiteSpace: 'nowrap', padding: '2px 3px' }} onClick={e => e.stopPropagation()}>
           <span style={{ cursor: 'grab', color: 'var(--color-neutral-500)', padding: '0 3px' }}>⋮⋮</span>
@@ -109,6 +109,16 @@ export function RosterScreen({ vm }: { vm: VM }) {
       </tr>
     );
   };
+  // The line between the starting five and the bench. Drop a player on it to make him the first man off the bench.
+  const BenchBar = () => (
+    <tr aria-hidden onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== mainIds[5]) move(drag, mainIds[5]); setDrag(null); }}>
+      <td colSpan={100} style={{ padding: 0, borderBottom: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 10px', borderTop: '3px solid var(--color-accent-700)', background: 'color-mix(in srgb, var(--color-accent-700) 9%, transparent)', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
+          <span>▲ Starters</span><span style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-accent-700) 35%, transparent)' }} /><span>Bench ▼</span>
+        </div>
+      </td>
+    </tr>
+  );
   const Head = () => (
     <thead><tr>
       <th style={{ width: 6, padding: 0 }} />{mine && <th />}<th style={{ ...tdr, fontWeight: 600 }}>#</th><th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>Player</th><th style={{ ...td, textAlign: 'left' }}>Pos</th><th style={tdr}>Age</th><th style={tdr}>Ovr</th><th style={tdr}>Pot</th>
@@ -174,10 +184,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
       {advice && <AdvicePanel vm={vm} advice={advice} onApply={() => { applyAdvice(gm, tid, advice); setAdvice(null); }} onClose={() => setAdvice(null)} />}
       {cur ? (
         <>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
-          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
+          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => <Fragment key={id}>{Row({ id, i, list: mainIds })}{i === 4 && cur && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
                     {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{tw.map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>

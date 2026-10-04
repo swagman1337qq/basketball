@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-04
 
 ### Added
+- **Roster: a Starters / Bench bar.** A clear bar now splits the starting five from the bench, so you can see at a glance where the lineup ends. Drag a player onto the bar to make him the first man off the bench.
 - **Trade screen: filter both rosters by position.** Each roster has its own **Pos** column (sortable, point guard to center) and position buttons above it: All, PG, SG, SF, PF, C, each with a count.
   - Hybrids count for every spot they play: a G shows under PG and SG, a GF under SG and SF, an F under SF and PF, an FC under PF and C.
   - Players you've already put in the trade stay in the list whatever the filter.
