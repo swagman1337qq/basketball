@@ -15,6 +15,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - Your menu is saved in this browser and applies to every league. It works in the collapsed icon menu and the other layouts too.
 
 ### Fixed
+- **Your lineup stays the way you set it.** When one of your players is hurt, the game parks him at the end of the roster and puts him back in his old spot when he heals. But if you'd already moved him yourself (back into the starting lineup, say), a long sim would still shuffle him back to his old spot when he healed, which looked like the roster re-sorting itself. Now a healed player returns to his old spot only if he's still parked where his injury put him. If you moved him, he stays where you put him, with the minutes you gave him.
 - **AI teams no longer salary-dump top draft picks for nothing.** A salary dump looks for "bad contracts", players paid far more than they're worth. It judged worth by today's overall, so a just-drafted No. 1 pick, paid the top rookie salary while still raw, looked like the worst contract in the league: one league had a No. 1 pick dumped a month after the draft. Now:
   - Rookie-scale contracts never count as bad contracts.
   - Young players are judged on where they're headed, not only where they are.
