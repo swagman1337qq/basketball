@@ -115,7 +115,7 @@ Screens: Roster, Depth chart, Development, Tactics. Code: `assistants.ts`, `coac
 - Max and minimum by service, rookie scale, full / early / non-Bird rights, cap holds.
 - Exceptions: MLEs, room, bi-annual, minimum, disabled player; hard caps.
 - Two-ways, Exhibit 10s, 10-days, hardship; waive, stretch, buyouts, waiver claims.
-- Trades: salary matching by apron, trade exceptions, kickers, no-trade clauses, pick protections and swaps, assistant GM advice, shopping a player for offers.
+- Trades: both rosters filter by position (PG/SG/SF/PF/C, hybrids count for both spots; players in the deal stay listed) and sort by a Pos column (`TradeScreen.tsx`); salary matching by apron, trade exceptions, kickers, no-trade clauses, pick protections and swaps, assistant GM advice, shopping a player for offers.
 - Pre-Free Agency: options, qualifying offers, re-sign or renounce, extensions.
 - Free agency on the NBA calendar: moratorium, restricted free agency and offer sheets.
 - Cap outlook: real cap history since 1984-85 and a 500-season projection.

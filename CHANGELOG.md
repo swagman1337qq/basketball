@@ -5,6 +5,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-04
 
 ### Added
+- **Trade screen: filter both rosters by position.** Each roster has its own **Pos** column (sortable, point guard to center) and position buttons above it: All, PG, SG, SF, PF, C, each with a count.
+  - Hybrids count for every spot they play: a G shows under PG and SG, a GF under SG and SF, an F under SF and PF, an FC under PF and C.
+  - Players you've already put in the trade stay in the list whatever the filter.
 - **Arrange the menu your way.** Every tab on the left (Trade, Owner, Career and the rest) can be moved:
   - **Drag** a tab onto another to put it just above that one, in that section. Drop it on a section title (Team, Management, League) to move it to the end of that section.
   - **Arrange menu** (at the bottom of the sidebar) adds ▲▼ arrows to every tab, for touch screens and keyboards. Past the top or bottom of a section, a tab moves into the next one.
