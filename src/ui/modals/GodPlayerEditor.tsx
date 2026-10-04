@@ -192,7 +192,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="gm-face" style={{ width: 64, height: 96, overflow: 'hidden', flex: 'none', borderRadius: 'var(--radius-sm)' }}>{gm.faceEl(p.id, -1)}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <button className="btn btn-secondary" onClick={() => mut(q => { q.faceSeed = Math.floor(Math.random() * 1e9); delete q.faceImg; gm.resetFace(q.id); })} style={{ fontSize: '12px' }}>🎲 New face</button>
+            <button className="btn btn-secondary" onClick={() => mut(q => { q.faceSeed = Math.floor(Math.random() * 1e9); delete q.faceImg; delete q.faceX; gm.resetFace(q.id); })} style={{ fontSize: '12px' }}>🎲 New face</button>
             <label className="btn btn-secondary" style={{ fontSize: '12px', cursor: 'pointer' }}>Upload JPG/PNG<input type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={e => upload(e.target.files?.[0])} /></label>
             {p.faceImg && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => mut(q => delete q.faceImg)}>Use the generated face</button>}
             <span style={{ ...muted, fontSize: '11px' }}>Cropped to 2:3 and resized to 160×240.</span>

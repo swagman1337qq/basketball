@@ -10,6 +10,7 @@ import { HoverCard } from '../HoverCard';
 import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
+import { FaceEditor } from './FaceEditor';
 import { PlayingStyle } from '../PlayingStyle';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { potView, scoutSd } from '../../engine/potential';
@@ -49,6 +50,7 @@ const rtier = (v: number): [string, string] => { const t = RTIERS.find(x => v >=
 export function ProfileHeader({ vm }: { vm: VM }) {
   const { gm, s, p, tid, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl;
   const [allFor, setAllFor] = useState<number | null>(null); // the player whose badges are all showing
+  const [faceFor, setFaceFor] = useState<number | null>(null); // the player whose face editor is open
   if (!p.id) return null;
   const t = gm.seasonTotals(p, gm.Y), gp = t?.gp || 0, f1 = (v: number) => v.toFixed(1);
   const kb = knownBadges(gm, s, p), badges = kb.list, T = s.teams;
@@ -61,7 +63,12 @@ export function ProfileHeader({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0,1fr) auto', gap: '22px', alignItems: 'center', marginBottom: '14px' }}>
-        <div className="gm-face" style={{ width: 112, height: 150, overflow: 'hidden', borderRadius: 'var(--radius-md)', boxShadow: tc ? 'inset 0 -4px 0 ' + tc : undefined, background: 'var(--color-neutral-100)' }}>{pl.face}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div className="gm-face" style={{ width: 112, height: 150, overflow: 'hidden', borderRadius: 'var(--radius-md)', boxShadow: tc ? 'inset 0 -4px 0 ' + tc : undefined, background: 'var(--color-neutral-100)' }}>{pl.face}</div>
+          {/* A new random face (nothing else about him changes), and the editor to change it by hand. */}
+          <button className="btn btn-secondary" style={{ fontSize: '11.5px', padding: '3px 6px' }} title="A new random face. Nothing else about him changes." onClick={() => { p.faceSeed = Math.floor(Math.random() * 1e9); delete p.faceX; delete p.faceImg; gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>New Face</button>
+          <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '3px 6px' }} onClick={() => setFaceFor(faceFor === p.id ? null : p.id)}>{faceFor === p.id ? 'Close editor' : 'Edit face'}</button>
+        </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', letterSpacing: '.08em', textTransform: 'uppercase', ...muted }}>
             <img src={pl.flag} alt="" style={{ width: 18, height: 12, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
@@ -115,6 +122,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           </div>
         </div>
       </div>
+      {faceFor === p.id && <FaceEditor gm={gm} p={p} onClose={() => setFaceFor(null)} />}
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
         <span style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', marginRight: '4px' }}>Shortlist</span>
         {(pl.lists || []).map((c: any, i: number) => <button key={i} onClick={c.toggle} style={{ all: 'unset', cursor: 'pointer', padding: '2px 10px', border: '1px solid ' + c.border, borderRadius: 'var(--radius-sm)', fontSize: '12px', color: c.color, background: c.bg }}>{c.mark}{c.name}</button>)}

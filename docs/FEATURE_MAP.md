@@ -157,9 +157,11 @@ Screens: Finances, Owner, Career, Press room, League finances. Code: `frontOffic
 - American names from the U.S. Census Bureau's 2020 Census name tables (`src/data/usCensusNames.ts`, generated): about 3,000 first names and 5,000 surnames for African American players (`usb`), 1,500 and 6,000 for white American players (`usw`), weighted by real frequency per group, first names leaned toward today's players' generation (by each name's share of the young "two or more races" population). `heritage.ts` reads them as weighted lists (`decodeWide`/`drawWide`); a curated core of current player names (the Jalen family with its spelling variants, `FIRST_WEIGHT`) supplies one given name in five (`CORE_F`); `americanFirst` serves North-American-born children of immigrants.
 - Ready-made player cards: Luka Dončić plus seven rookies (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard), each tuned against his real rookie season translated to today's league.
 - Families: sons and brothers of former players.
-- Generated faces or uploaded headshots; retirements and an optional retirement age.
+- Faces (`faces.ts`): `makeFace` describes a face as JSON from the player's face seed mixed with the league's seed (the same id looks different in every league), his age (grey, receding hairline, lines; `Game.face` redraws on a birthday) and a relative's face (`Game.kinFace`: father, else eldest brother). Head shape (superellipse cranium, cheeks, jaw, chin), seven eye shapes, six brow shapes, nose, lips, ears, skin tone on a continuous ramp with undertones, about 35 hair styles picked by hair texture (not by race), 15 facial-hair styles, six expressions, dyed hair and highlights for anyone (about 9%), and accessories at set rarities: headbands ~13%, earrings ~19%, nose studs ~3.5%, nose rings ~1.3%, lip and eyebrow rings ~0.7%, glasses ~0.4%, face shields ~0.3%; freckles, moles, neck tattoos, undershirts. `faceSvg` draws layered SVG lit from the upper left, shading with translucent layers (no gradients, filters or ids, so a face can repeat on a page).
+- New Face and Edit face under the profile portrait, in normal mode too (`ProfileMain.tsx`, `FaceEditor.tsx`): edits are stored as `p.faceX` ({ 'hair.style': … }) over the generated face; New Face rolls a new `faceSeed`. God Mode can still upload a headshot (`GodPlayerEditor.tsx`).
+- Retirements and an optional retirement age.
 
-Screens: player profile (Overview, Contract, Development, History, Comparison), country lists. Code: `src/data/`, `eligibility.ts`, `family.ts`, `faces.ts`, `traits.ts`, `intangibles.ts`.
+Screens: player profile (Overview, Contract, Development, History, Comparison), country lists. Code: `src/data/`, `eligibility.ts`, `family.ts`, `faces.ts`, `FaceEditor.tsx`, `traits.ts`, `intangibles.ts`.
 
 ### Control and saves
 - Run 1 to 30 teams: My teams dashboard, switch teams, take over or hand a team to the AI.
@@ -239,7 +241,7 @@ All in `src/engine/`.
 | `gleague.ts` | G League affiliates |
 | `eligibility.ts` | National-team eligibility |
 | `family.ts` | Sons and brothers of former players; God Mode's family-link editing |
-| `faces.ts` | Deterministic SVG faces |
+| `faces.ts` | Face generator (`makeFace`), layered SVG renderer (`faceSvg`) and the option lists the face editor offers |
 | `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
 | `prune.ts` | Trims retired players to keep saves small |

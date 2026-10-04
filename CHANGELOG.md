@@ -58,6 +58,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **On a player's profile, the "+5" after his first seven badges is now a "+5 more badges" button.** Hover it to see which badges they are, click it to show them all, and hover any badge for what it does.
 
 ### Added
+- **New faces, drawn far more realistically.** Every face is new: shaded with soft light from the upper left, with real head shapes (cheekbones, jaw, chin), seven eye shapes, brows, noses, lips and ears that all vary, skin tones on a smooth range with undertones, and athletes' builds (a heavier player has a fuller face and neck).
+  - **About 35 hairstyles**, from fades, waves, twists, locs, cornrows and box braids to crops, quiffs, middle parts, man buns, mullets and long hair, with different hairlines (shape-ups, widow's peaks, rounded, receding) and lengths. The style follows the hair's texture, not who wears it, and anyone can have dyed hair, highlights or frosted tips.
+  - **15 kinds of facial hair**, from stubble to thick beards, with natural texture.
+  - **Expressions:** serious, slight smile, smile, relaxed, mean mug and smirk, all kept subtle.
+  - **Accessories at realistic rates:** headbands are common, earrings fairly common, nose studs uncommon, lip and eyebrow rings rare, glasses and face shields exceptionally rare. Freckles, moles, neck tattoos and undershirts show up too.
+  - **Players age:** hair greys and hairlines recede at different ages for different players, and lines appear. Sons and brothers look like their fathers and brothers.
+  - **Every league looks different:** the same player number no longer gets the same face in every new league.
+- **New Face and Edit face, without God Mode.** Under the portrait on every player's page: New Face rolls a new random face (nothing else about him changes), and Edit face lets you change any part of it by hand: expression, skin, head shape, eyes, brows, nose, lips, ears, hair (style, texture, color, dye, hairline, grey), facial hair, accessories and marks. Cancel puts the old face back.
 - **Two new franchises replace Tampa and Phoenix** (in new leagues):
   - **Iŋaliq Ivories.** Iŋaliq is the Iñupiaq name of Little Diomede, Alaska, in the Bering Strait, a village known for its walrus-ivory carving. Their crest is a walrus head carved in ivory, with the fine incised lines and dots of Iñupiat engraving, set on an Arctic night sky with the northern lights and the two Diomede islands on the horizon. Navy, ivory and aurora teal.
   - **Wazíbló Dragoons.** Wazíbló is Pine Ridge, South Dakota, home of the Oglala Lakota. Their crest is a dragoon (a rider at full gallop) over the eight-pointed morning star of the Lakota star quilt, above a ridge of pines. Red, gold, black and white, the colors of the four directions. It has no headdress, weapons or caricature: the horse culture and the star quilt carry the design.

@@ -47,7 +47,7 @@ export function deletePlayer(g: Game, pid: number): boolean {
       lgLog: [{ day: s.day, type: 'God Mode', teams: '', pids: [], text: p.name + ' was deleted from the league (God Mode).' }, ...(s.lgLog || [])], gv: (s.gv || 0) + 1,
     };
   });
-  P[pid] = { id: pid, name: p.name, native: p.native, pos: p.pos, grp: p.grp, age: p.age, ovr: p.ovr, pot: p.pot, rep: p.rep, her: p.her, heritage: p.heritage, race: p.race, faceSeed: p.faceSeed,
+  P[pid] = { id: pid, name: p.name, native: p.native, pos: p.pos, grp: p.grp, age: p.age, ovr: p.ovr, pot: p.pot, rep: p.rep, her: p.her, heritage: p.heritage, race: p.race, faceSeed: p.faceSeed, faceX: p.faceX,
     retired: { season: g.Y, age: p.age, tid: -1, why: 'Deleted in God Mode' }, gone: 1, deleted: 1, stats: [] };
   g.resetFace(pid);
   return true;

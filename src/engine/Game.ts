@@ -319,8 +319,16 @@ export class Game {
   rnd() { return nextRandom(this.db); }
   wpick(o) { const e: [string, any][] = (Object.entries(o) as [string, any][]); let t = e.reduce((a, x) => a + x[1], 0) * this.rnd(); for (const [k, w] of e) { t -= w; if (t <= 0) return k; } return e[0][0]; }
 
-  face(pid) { return this.faceCache[pid] || (this.faceCache[pid] = makeFace(this.db.P[pid])); }
-  resetFace(pid) { delete this.faceCache[pid]; }
+  // Faces mix in the league's seed (the same id looks different in every league) and resemble a
+  // relative: his father, or without one in the league, his eldest brother. A birthday redraws him
+  // (grey, hairline, lines).
+  face(pid) { const c = this.faceCache[pid], p = this.db.P[pid]; if (c && c.age?.years === (p?.age ?? 25)) return c; return (this.faceCache[pid] = makeFace(p || { id: pid }, this.db.seed | 0, p ? this.kinFace(p, 0) : undefined)); }
+  private kinFace(p, depth) {
+    const P = this.db.P, fam = p.family || []; if (depth > 3 || !fam.length) return undefined;
+    const k = fam.find(x => x.rel === 'father' && P[x.pid]) || fam.filter(x => x.rel === 'brother' && P[x.pid] && x.pid < p.id).sort((a, b) => a.pid - b.pid)[0];
+    return k ? makeFace(P[k.pid], this.db.seed | 0, this.kinFace(P[k.pid], depth + 1)) : undefined;
+  }
+  resetFace(pid) { delete this.faceCache[pid]; (this.db.P[pid]?.family || []).forEach(x => delete this.faceCache[x.pid]); }
   // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
   randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
