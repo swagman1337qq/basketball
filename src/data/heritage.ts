@@ -216,7 +216,7 @@ const SCRIPT: Record<string, string> = {
   cn: 'Hani', tw: 'Hani', ug: 'Hani', mgl: 'Hani', bo: 'Hani', cnM: 'Hans', cnH: 'Hant', jp: 'Jpan', kr: 'Kore', kp: 'Kore', vn: 'Viet', th: 'Thai', kh: 'Khmr', lo: 'Laoo', mm: 'Mymr',
   gr: 'Grek', cy: 'Grek', ru: 'Cyrl', ua: 'Cyrl', bg: 'Cyrl', mk: 'Cyrl', kz: 'Cyrl', kg: 'Cyrl', tj: 'Cyrl', mnG: 'Cyrl', rs: 'Cyrl', ge: 'Geor', am: 'Armn', il: 'Hebr',
   ail: 'Arab', eg: 'Arab', gulf: 'Arab', omn: 'Arab', omb: 'Arab', iq: 'Arab', lev: 'Arab', mg: 'Arab', sd: 'Arab', afg: 'Arab', ir: 'Arab', pk: 'Arab', ku: 'Arab',
-  bd: 'Beng', inB: 'Beng', np: 'Deva', inH: 'Deva', inMr: 'Deva', inG: 'Gujr', inT: 'Taml', lkT: 'Taml', inTe: 'Telu', inK: 'Knda', inMl: 'Mlym', pa: 'Guru', lk: 'Sinh', bt: 'Tibt', mv: 'Thaa', eth: 'Ethi',
+  bd: 'Beng', inB: 'Beng', np: 'Deva', inH: 'Deva', inMr: 'Deva', inG: 'Gujr', inT: 'Taml', lkT: 'Taml', inTe: 'Telu', inK: 'Knda', inMlH: 'Mlym', inMlC: 'Mlym', pa: 'Guru', lk: 'Sinh', bt: 'Tibt', mv: 'Thaa', eth: 'Ethi',
 };
 const ARAB = ['Arab'], CYRL = ['Cyrl'];
 const COUNTRY_SCRIPTS: Record<string, string[]> = {
