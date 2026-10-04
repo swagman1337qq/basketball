@@ -142,6 +142,17 @@ function buildPackage(g: Game, s: any, buyer: number, seller: number, want: numb
   return best;
 }
 
+// A contract worth dumping: paid well above what he's worth, judged on where a young player is
+// heading, not only where he is. Rookie-scale deals never qualify (a team's draft picks are its
+// cheapest assets: a No. 1 pick's salary is high for his rookie overall but low for what he becomes).
+export function badContract(g: Game, p: any) {
+  if (!p || p.amt < 8 || p.exp <= g.Y || p.rookieScale || p.ctype === 'rookie') return false;
+  const proj = p.age <= 24 ? Math.max(p.ovr, p.ovr + 0.6 * Math.max(0, (p.pot ?? p.ovr) - p.ovr)) : p.ovr;
+  return p.amt > g.fair(proj) * 1.4;
+}
+// A young player a dumping team would throw in: never a recent first-round pick from the top 14.
+const throwIn = (p: any) => !((p.rookieScale?.pick ?? 99) <= 14 || (p.dr?.rd === 1 && (p.dr.pick ?? 99) <= 14 && p.age <= 23));
+
 // ── AI-to-AI trades with a reason ─────────────────────────────────────────────────────
 export function aiTradeIdea(g: Game, s: any, rnd: () => number = Math.random): TradeIdea | null { AI_M = 0.03; try { return aiTradeIdea0(g, s, rnd); } finally { AI_M = 0.06; } }
 function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
@@ -159,9 +170,9 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
   if (r < 0.8) { // Salary dump: a team over the tax pays a team with room to take a contract.
     const dumper = pick(ai.filter(t => teamSalary(g, s, t) > N.TAX)); if (dumper == null) return null;
     const st = strat[dumper] || 'middle', k = (id: number) => g.pVal(P[id], st, dumper);
-    const bad = (s.rosters[dumper] || []).map((id: number) => P[id]).filter((p: any) => p.amt >= 8 && p.exp > g.Y && p.amt > g.fair(p.ovr) * 1.4).sort((a: any, b: any) => k(a.id) - k(b.id))[0]; if (!bad) return null;
+    const bad = (s.rosters[dumper] || []).map((id: number) => P[id]).filter((p: any) => badContract(g, p)).sort((a: any, b: any) => k(a.id) - k(b.id))[0]; if (!bad) return null;
     const recv = pick(ai.filter(t => t !== dumper && strat[t] !== 'contend' && teamSalary(g, s, t) + bad.amt <= N.TAX - 2)); if (recv == null) return null;
-    const gd = { ...s, god: false }, sweet = tradablePicks(g, s, dumper).map((a: any) => a.id).sort(() => rnd() - 0.5).slice(0, 4), young = (s.rosters[dumper] || []).filter((id: number) => P[id].age <= 22 && id !== bad.id).slice(0, 2);
+    const gd = { ...s, god: false }, sweet = tradablePicks(g, s, dumper).map((a: any) => a.id).sort(() => rnd() - 0.5).slice(0, 4), young = (s.rosters[dumper] || []).filter((id: number) => P[id].age <= 22 && id !== bad.id && throwIn(P[id])).sort((x: number, y: number) => k(x) - k(y)).slice(0, 2); // his least valuable young players
     const backs = [[], ...(s.rosters[recv] || []).filter((id: number) => P[id].amt <= 4 && P[id].exp <= g.Y + 1).slice(0, 3).map((id: number) => [id])];
     for (const ks of subsets(sweet, 2)) for (const ys of subsets(young, 1)) for (const back of backs) {
       const aP = [bad.id, ...ys]; if (teamGain(g, s, recv, aP, back, ks, [], AI_M) < 0 || teamGain(g, s, dumper, back, aP, [], ks, AI_M) < 0) continue;
@@ -216,7 +227,7 @@ export function offerToUser(g: Game, s: any, myGain: (getP: number[], giveP: num
   }
   // A team over the tax pays you to take a contract, if you have the room.
   for (const t of ai.filter(x => teamSalary(g, s, x) > N.TAX).sort(() => rnd() - 0.5).slice(0, 3)) {
-    const bad = (s.rosters[t] || []).map((id: number) => P[id]).filter((p: any) => p.amt >= 8 && p.exp > g.Y && p.amt > g.fair(p.ovr) * 1.4)[0]; if (!bad || teamSalary(g, s, me) + bad.amt > N.TAX - 2) continue;
+    const bad = (s.rosters[t] || []).map((id: number) => P[id]).filter((p: any) => badContract(g, p))[0]; if (!bad || teamSalary(g, s, me) + bad.amt > N.TAX - 2) continue;
     const sweet = tradablePicks(g, s, t).map((a: any) => a.id).slice(0, 4);
     for (const ks of subsets(sweet, 2)) { if (!ks.length) continue;
       if (teamGain(g, s, t, [], [bad.id], [], ks) < 0) continue;
