@@ -33,7 +33,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, teamRead } from './potential';
+import { ceilMax, fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -84,7 +84,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
-    g.db.ceilV = 1; // and every player with his own ceilings (potential.ts)
+    g.db.ceilV = 1; g.db.topV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
@@ -208,6 +208,9 @@ export class Game {
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon
     if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
+    // 2026-10: 99 is extremely hard to reach (potential.ts softTop): skill ceilings past 85 thin out, below
+    // 98 for everyone but a rare generational skill. Ratings already there stay; the ceilings above them come down.
+    if (!g.db.topV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || !p.ceil || p.gone || p.retired || p.godPot != null) return; SKILLS.forEach(k => { const c = p.ceil[k]; if (c > 85) p.ceil[k] = +Math.max(p.r[k], Math.min(ceilMax(p, k), softTop(c))).toFixed(1); }); refreshPot(p); }); g.db.topV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
     if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
     // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
@@ -344,7 +347,7 @@ export class Game {
   }
   resetFace(pid) { delete this.faceCache[pid]; (this.db.P[pid]?.family || []).forEach(x => delete this.faceCache[x.pid]); }
   // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
-  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') p.r[k] = Math.round(this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100)); }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
+  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') { const v = this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100); p.r[k] = Math.round(SKILLS.includes(k) ? softTop(v) : v); } }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
@@ -533,7 +536,7 @@ export class Game {
     const [pos, grp] = forceGrp ? pick(POS.filter(x => x[1] === forceGrp)) : pick(POS);
     const ovr = Math.round(cl(base, 22, 92));
     const pot = Math.round(age < 23 ? ovr + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? ovr + rnd() * 5 : ovr);
-    const r: any = {}; RATING_KEYS.forEach(k => r[k] = Math.round(cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 100)));
+    const r: any = {}; RATING_KEYS.forEach(k => { const v = cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 100); r[k] = Math.round(SKILLS.includes(k) ? softTop(v) : v); }); // skills thin out past 85 (potential.ts)
     const hIn = grp === 'G' ? 73 + Math.floor(rnd() * 5) : grp === 'W' ? 77 + Math.floor(rnd() * 4) : 81 + Math.floor(rnd() * 5);
     // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
     const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
@@ -1139,7 +1142,7 @@ export class Game {
       const camp: Record<number, string[]> = {}, campIds: number[] = [];
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx || p.frozen) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), e0 = ovrExact(p), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
         if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); // camp moved his level, not his growth: the plan moves with it (or a steal grows as if the jump were still ahead of him)
-        if (p.ceil) SKILLS.forEach(k2 => { p.ceil[k2] = Math.min(99, Math.max(p.r[k2], p.ceil[k2] + p.r[k2] - b0[k2])); }); // his ceilings move with what camp showed (potential.ts)
+        if (p.ceil) SKILLS.forEach(k2 => { p.ceil[k2] = Math.max(p.r[k2], Math.min(ceilMax(p, k2), p.ceil[k2] + p.r[k2] - b0[k2])); }); // his ceilings move with what camp showed (potential.ts)
         moveTruePot(p, tc); p.perr = +((p.perr || 0) * 0.75).toFixed(2); refreshPot(p); x.pot = p.pot;
         if (this.isUser(s, +k)) { (camp[+k] = camp[+k] || []).push((s.managed.length > 1 ? teams[k].abbr + ': ' : '') + translationLine(p, x)); campIds.push(id); }
         if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));

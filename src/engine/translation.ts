@@ -54,6 +54,7 @@ export function applyTranslation(p: any) {
   for (let i = 0; i < 4; i++) {
     SKILLS.forEach(k => { if (base[k] != null) p.r[k] = cl(base[k] + d); });
     Object.entries(t.sh).forEach(([g, x]) => GROUPS[g]?.keys.forEach(k => { if (p.r[k] != null) p.r[k] = cl(p.r[k] + x); }));
+    SKILLS.forEach(k => { if (base[k] != null && p.r[k] > 97 && p.r[k] > base[k]) p.r[k] = Math.max(base[k], 97); }); // camp doesn't hand out a 98+ (potential.ts)
     syncOvr(p); const got = p.ovr - from; if (Math.abs(got - t.o) <= 0.5 || p.ovr <= 5) break; d += (t.o - got) * 1.15;
   }
   p.pot = Math.max(p.ovr, Math.min(100, Math.round(pot0 + t.c + (p.ovr - from) * 0.5)));

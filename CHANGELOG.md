@@ -59,6 +59,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - His ratings still decide how far he actually gets: not every body can reach an overall of 100.
 
 ### Changed
+- **A 99 is extremely hard to get now.** In a 100-season test, almost 500 players reached 99 in at least one skill (four had all 14). Now:
+  - Every skill gets harder to raise the higher it is: a skill at 85 takes in about half of the growth aimed at it, at 90 a third, at 95 a quarter. The rest goes into his other skills, so players still improve, just not into a wall of 99s.
+  - A normal player's skills top out at 97 or 98.
+  - About 1 player in 120 has one generational skill (think Steph Curry's shooting or Shaq's inside game) that can reach 99 or 100, if he develops into it.
+  - Development still varies a lot from player to player: fast and slow developers, breakouts, busts and hidden gems.
+  - In existing leagues, ratings already at 99 stay, but nobody new climbs there without a generational skill.
 - **A perfect 100 at the line is automatic.** A player with a Free Throw rating of 100 now makes about 98% of his free throws, every year: José Calderón's NBA record season (98.1%) as his normal. It's a rare tier: a 99 still shoots about 92%. In a test season, a star set to 100 went 619 for 631.
 - **Elite free throw shooters shoot like elite free throw shooters.** A Free Throw rating of 100 used to top out around 87%. Now a 90 makes about 90% and a 100 about 92–93%, the range of Steph Curry and Steve Nash. League-wide free throw shooting stays at the NBA's 78%.
 - **Terrible free throw shooters are terrible now.** A Free Throw rating of 1 used to still make about 51% at the line. Below 40 the rating now matters more: a 20 shoots about 55% (Shaq territory) and a 1 about 40% (Ben Wallace). In a test season, a starting center set to 1 went 302 for 789 (38%). Ratings of 40 and up shoot the same as before.

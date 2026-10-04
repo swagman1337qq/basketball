@@ -16,7 +16,7 @@
 //    to 100 and at any age, even past what his ratings can show (skills stop at 100, his height and
 //    frame don't grow). A veteran with no plan years left gets a fresh three-season plan (dv0.n).
 import { BODY, bodyLeft, devProfile, groupOf, SKILLS } from './development';
-import { ovrExact, OVR_ADJ, OVR_W, wngBonus } from './ratings';
+import { ovrExact, OVR_ADJ, OVR_W, softTop, TOP, wngBonus } from './ratings';
 import { mulberry32 } from './rng';
 import { rollGem } from './intangibles';
 
@@ -58,11 +58,27 @@ export function planRate(p: any, age: number) {
 function trueOf(p: any, F: number) { const d = plan0(p), W = wRemP(d, d.a), o = ovrExact(p); return Math.min(F, o + (W > 0 ? (Math.max(0, F - d.o) * wRemP(d, p.age) * BEST * (d.k ?? 1)) / W : 0)); }
 export function truePot(p: any) { return Math.max(p.ovr, Math.min(100, Math.round(trueOf(p, fullCeil(p))))); }
 
+// The top of the scale. Past 85, every point of a skill's ceiling is harder to come by: a normal
+// player's ceilings level off below 98, so a 99 is out of reach. About one player in 120 has a
+// generational skill (p.gen: a Curry three, a Shaq inside game, a Rodman glass), fixed from his id,
+// whose ceiling runs higher and can reach 99 or 100 if he develops into it.
+export const GEN_TOP = 100.5, GEN_BOOST = 14, GEN_RATE = 1 / 120;
+export { softTop };
+export function genOf(p: any): string | null {
+  if (p.gen !== undefined) return p.gen;
+  const r = mulberry32(((p.id * 3266489917) ^ 0x6e9) >>> 0); if (r() >= GEN_RATE) return null;
+  const w = gapShape(p), sc = (k: string) => w[k] * (0.3 + p.r[k] / 60); return (p.gen = SKILLS.slice().sort((a, b) => sc(b) - sc(a))[0]); // where his game already points
+}
+// A skill's ceiling for a raw target `v` (cap 100: God Mode's word, exact).
+export function ceilFor(p: any, k: string, v: number, cap = 99) { if (cap >= 100) return Math.min(cap, v); const g = genOf(p) === k; return Math.min(g ? 99.5 : TOP, g ? softTop(Math.max(v + GEN_BOOST, 104), GEN_TOP) : softTop(v)); } // a generational skill's ceiling is never below about 96
+// The most a ceiling can be moved to by events (a training camp, a breakout): below 98, or 99.5 for his generational skill.
+export const ceilMax = (p: any, k: string) => (genOf(p) === k ? 99.5 : TOP - 0.5);
+
 // The shape of his ceilings: by his development profile, plus a little per skill (fixed for him).
 function gapShape(p: any) { const d = devProfile(p), r = mulberry32(((p.id * 2654435761) ^ 0x7e11) >>> 0), w: Record<string, number> = {}; SKILLS.forEach(k => (w[k] = d.aff[groupOf(k)] * (0.6 + 0.8 * r()))); return w; }
 // Move his skill ceilings from `base` along his shape until his full ceiling is F (skills stop at `cap`).
 function fit(p: any, base: Record<string, number>, F: number, cap = 99) {
-  const w = gapShape(p), at = (t: number) => Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), Math.min(cap, base[k] + t * w[k]))]));
+  const w = gapShape(p), at = (t: number) => Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), ceilFor(p, k, base[k] + t * w[k], cap))]));
   let lo = -120, hi = 120;
   for (let i = 0; i < 36; i++) { const m = (lo + hi) / 2; if (ovrOf(p, withBody(p, at(m))) < F) lo = m; else hi = m; }
   const c = at((lo + hi) / 2); p.ceil = Object.fromEntries(SKILLS.map(k => [k, +c[k].toFixed(1)]));

@@ -133,9 +133,12 @@ export function setOverall(p: any, v: number) {
 // Both only partly follow Defensive IQ, so a leaper can swat everything and still be lost in
 // rotations (a Hassan Whiteside), and a guard can pile up steals without being a stopper (Luka).
 // `noise` is −0.5…0.5 (random for new players, a fixed hash for older saves).
+// The top of the skill scale (potential.ts): past 85 every point is harder to come by, leveling off below 98.
+export const SOFT_K = 85, TOP = 98;
+export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / room)); }
 export function deriveDefense(p: any, noise: (k: number) => number) {
   const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;
-  const c = (v: number) => Math.round(Math.max(4, Math.min(100, v)));
+  const c = (v: number) => Math.round(softTop(Math.max(4, Math.min(100, v))));
   r.blk = c(r.jmp * 0.3 + r.hgt * 0.3 + base * 0.3 + r.diq * 0.1 + ape * 2.2 + (g === 'B' ? 4 : g === 'G' ? -9 : -2) + noise(1) * 24);
   r.stl = c((r.acc ?? r.spd) * 0.25 + r.spd * 0.15 + base * 0.4 + r.diq * 0.1 + (r.pss ?? 50) * 0.1 + ape * 1.2 + (g === 'G' ? 4 : g === 'B' ? -6 : 1) + noise(2) * 24);
 }
