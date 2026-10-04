@@ -1386,9 +1386,11 @@ export class Game {
   injAway(rosters, tid, p) { const i = (rosters[tid] || []).indexOf(p.id); if (i < 0) return; p.preInj = { tid, i, rot: p.rot ?? null }; rosters[tid] = [...rosters[tid].filter(x => x !== p.id), p.id]; }
   injBack(s, rosters, tid, p) {
     const b = p.preInj; delete p.preInj; if (!this.isUser(s, tid) || !rosters[tid]?.includes(p.id)) return;
-    // Only a player still parked where his injury put him (nobody healthy behind him) goes back to his
-    // old spot. If you moved him yourself (back into the lineup, say), he stays where you put him.
-    const P = this.db.P, at0 = rosters[tid].indexOf(p.id); if (rosters[tid].slice(at0 + 1).some(x => !P[x].inj || P[x].inj.dtd)) return;
+    // He goes back to his old spot unless you moved him yourself while he was out (moving him on the
+    // roster forgets his spot: he stays where you put him). A player parked before spots were
+    // remembered (older saves) is placed by his overall, if he's still at the end.
+    const P = this.db.P, at0 = rosters[tid].indexOf(p.id);
+    if (!b && rosters[tid].slice(at0 + 1).some(x => !P[x].inj || P[x].inj.dtd)) return;
     const rest = rosters[tid].filter(x => x !== p.id), at = b && b.tid === tid ? b.i : rest.filter(x => (!P[x].inj || P[x].inj.dtd) && P[x].ovr > p.ovr).length;
     rest.splice(Math.min(at, rest.length), 0, p.id); rosters[tid] = rest;
     if (b && b.tid === tid) { if (b.rot == null) delete p.rot; else p.rot = b.rot; } else if (p.rot === 0) delete p.rot;

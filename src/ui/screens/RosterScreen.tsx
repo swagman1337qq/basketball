@@ -51,7 +51,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po), tot: any = rs.reduce((a: any, r: any) => { Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); return a; }, {});
     const g = tot.gp || 1; return { gp: tot.gp || 0, min: tot.min / g, pts: tot.pts / g, reb: ((tot.orb || 0) + (tot.drb || 0)) / g, ast: tot.ast / g, per: gm.perOf(tot, season) }; };
   const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = (id: number) => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
-  const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { rosters: { ...st.rosters, [tid]: o }, dragId: null, overId: null }; });
+  const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { rosters: { ...st.rosters, [tid]: o }, dragId: null, overId: null }; });
   const [drag, setDrag] = useState<number | null>(null);
   const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
   const startersSet = new Set(cur ? mainIds.slice(0, 5) : []);

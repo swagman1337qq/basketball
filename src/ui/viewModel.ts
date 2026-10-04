@@ -132,7 +132,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     { label: 'Team rating', value: String(trOf(s.me)), sub: ord(trRank(s.me)) + ' of ' + T.length + ' · ' + mine.length + '/15 players' }];
 
   const byOrder = s.sort.roster[0] === 'rk' && s.sort.roster[1] === 1;
-  const moveTo = (id, to) => gm.setState(st => { const o = st.rosters[st.me].filter(x => x !== id); o.splice(cl(to, 0, o.length), 0, id); return { rosters: { ...st.rosters, [st.me]: o }, sort: { ...st.sort, roster: ['rk', 1] }, dragId: null, overId: null }; });
+  const moveTo = (id, to) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[st.me].filter(x => x !== id); o.splice(cl(to, 0, o.length), 0, id); return { rosters: { ...st.rosters, [st.me]: o }, sort: { ...st.sort, roster: ['rk', 1] }, dragId: null, overId: null }; });
   const stopThen = fn => e => { e.stopPropagation(); fn(); };
   const rows = mine.map((id, i) => ({ ...pBase(id), rk: i + 1, role: i < 5 ? 'S' : '', contract: money(P[id].amt), ...gm.moodOf(P[id], i, s),
     up: stopThen(() => moveTo(id, i - 1)), down: stopThen(() => moveTo(id, i + 1)),
