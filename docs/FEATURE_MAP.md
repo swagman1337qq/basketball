@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-03 (tendencies are the NBA's tracked shot categories)._
+_Last reviewed: 2026-10-04 (AI ticket prices by owner type; preseason demand)._
 
 ## How it fits together
 
@@ -138,7 +138,8 @@ Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook.
 Screens: Scouting, Shortlist, Draft (with Past drafts), Lottery, Overseas, CCP. Code: `scoutReport.ts`, `scoutBrief.ts`, `lottery.ts`, `translation.ts`, `overseas.ts`, `ccp.ts`, `gleague.ts`, `txlog.ts` (`pickUsed`).
 
 ### Owner and career
-- Finances: revenue, ticket price, coaching / health / facilities / scouting budgets on sliders with Auto.
+- Finances: revenue, ticket price, coaching / health / facilities / scouting budgets on sliders with Auto; ranks compare with what AI clubs actually spend and charge.
+- AI clubs' budgets (`frontOffice.ts` `aiBudget`): staff and facilities from the owner (`environment.ts` `teamBudget`); ticket price from demand and owner type (`aiTicketPrice`: Frugal fills ~88%, Hype Focus ~99%, others ~93–94%, plus a per-team quirk). Demand uses `demandWp` (.500 before the season, the record fully from game 30).
 - Five owner archetypes with made-up named owners, biographies and a directory; team sales.
 - About forty owner backgrounds (how the money was made and how they got the team: bought, inherited, founding partner, local group), never two the same in a league, stored on the team (`ownerBg`).
 - Owner reviews, year-end letters, payroll orders and opening-night fire sales; you can be fired.

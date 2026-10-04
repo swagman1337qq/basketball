@@ -9,6 +9,7 @@ import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
 import { bgByKey, kindOf, saleBg } from './owners';
+import { teamBudget } from './environment';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
@@ -18,17 +19,44 @@ export const money = fmtMoney;
 // ── Finances ─────────────────────────────────────────────────────────────────────
 // Local revenue (tickets, local media, sponsorship, merchandise): what revenue sharing is based on.
 function localOf(g: Game, s: any, tid: number) {
-  const T = s.teams[tid], club = g.clubOf(s, tid), b = club ? club.budget : DEFAULT_BUDGET;
-  const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800, lf = g.CAP / 165; // league revenue grows with the cap
+  const T = s.teams[tid], club = g.clubOf(s, tid), b = club ? club.budget : aiBudget(g, s, tid);
+  const mk = T.mkt, wp = demandWp(g, T), cap = T.arenaCap || 18800, lf = g.CAP / 165; // league revenue grows with the cap
   const att = attendanceAt(g, T, b);
   const tix = (b.Tickets * att * 41) / 1e6;
   const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
   return { b, att, cap, tix, lf, parts, total: parts.reduce((a, p) => a + p[1], 0) };
 }
 
+// An AI club's budget: its owner's staff and building budgets (environment.ts) and the ticket price
+// he sets (aiTicketPrice).
+export function aiBudget(g: Game, s: any, tid: number) {
+  const b = teamBudget(g, s, tid), fac = b.Facilities ?? DEFAULT_BUDGET.Facilities;
+  return { ...DEFAULT_BUDGET, ...b, Tickets: aiTicketPrice(g, s, tid, fac) };
+}
+
+// How each owner type prices tickets: the share of seats he wants filled. A frugal owner charges what
+// brings in the most ticket money and lives with empty seats; a hype-focused owner prices to pack the
+// building; a meddler goes with his gut. Prices follow demand: market size and how good the team is
+// (in season its record, weighed more as games pile up, like dynamic pricing).
+const FILL: Record<string, number> = { 'Frugal Profit-Seeker': 0.88, 'Win-Now Spender': 0.94, 'Asset Hoarder': 0.94, 'Meddling Micromanager': 0.93, 'Hype Focus': 0.99 }; // NBA arenas run about 95% full
+export function aiTicketPrice(g: Game, s: any, tid: number, fac = DEFAULT_BUDGET.Facilities) {
+  const T = s.teams[tid], mk = T.mkt || 1, h = (x: number) => ((((tid + 1) * 2654435761) ^ (x * 40503)) >>> 0) % 1000 / 1000 - 0.5;
+  const wp = demandWp(g, T);
+  const fill = (FILL[T.arch] ?? 0.9) + (T.arch === 'Meddling Micromanager' ? h(7) * 0.08 : 0);
+  // Attendance (attendanceAt) = demand − 55 × (price − 110) / market. Price that fills `fill` of the seats,
+  // and the price that brings in the most ticket money; he charges the lower of the two.
+  const demand = 18800 + (wp - 0.5) * 9000 + (fac - 14) * 80 + (mk - 1) * 3000;
+  const atFill = 110 + (demand - fill * 18800) * mk / 55, best = (demand + 110 * 55 / mk) * mk / 110;
+  return Math.round(cl(Math.min(atFill, best) * (1 + h(3) * 0.12), 35, 300)); // plus his own pricing quirks (±6%)
+}
+
+// How good fans think the team is: .500 before the season, then its record, weighed fully from game 30
+// (a 0–0 team used to count as winless, so every preseason projection read as an empty arena).
+export const demandWp = (g: Game, T: any) => { const gp = (T.w || 0) + (T.l || 0); return 0.5 + (g.pct(T) - 0.5) * Math.min(1, gp / 30); };
+
 // Fans per game at a given ticket price and facilities budget.
 function attendanceAt(g: Game, T: any, b: any) {
-  const mk = T.mkt, wp = g.pct(T), cap = T.arenaCap || 18800;
+  const mk = T.mkt, wp = demandWp(g, T), cap = T.arenaCap || 18800;
   return cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
 }
 
@@ -41,7 +69,7 @@ function attendanceAt(g: Game, T: any, b: any) {
 // arena at least 80% full (below that the owner calls the empty seats a message; a hype-focused
 // owner wants 90%). If no price fills it that much, the one that makes the most money.
 export const BUDGET_KEYS = ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'];
-export function autoBudget(g: Game, s: any, tid: number, k: string, b: any = g.clubOf(s, tid)?.budget || DEFAULT_BUDGET): number {
+export function autoBudget(g: Game, s: any, tid: number, k: string, b: any = g.clubOf(s, tid)?.budget || aiBudget(g, s, tid)): number {
   const [mn, mx, df, stp] = g.db.BUD[k], T = s.teams[tid], arch = T.arch;
   const snap = (v: number) => +cl(Math.round(v / stp) * stp, mn, mx).toFixed(2);
   if (k === 'Tickets') {

@@ -19,7 +19,7 @@ import { knownBadges } from '../engine/scoutReport';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, extWindow, maxFor, nums, qoEligible, qoFor, rosterMax, rosterMin, seasonMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf } from '../engine/cba';
 import { preFAPending } from '../engine/preFA';
-import { applyAutoBudget, autoBudget, financesOf, ownerReview, reputation, seasonReview } from '../engine/frontOffice';
+import { applyAutoBudget, autoBudget, financesOf, ownerReview, reputation, seasonReview, aiTicketPrice } from '../engine/frontOffice';
 import { firstRoundOrder } from '../engine/lottery';
 import { heritageLabel, randomName } from '../data/heritage';
 import { randomTeamIn } from '../data/randomTeam';
@@ -274,7 +274,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const draftCols = hdr('draft', [['rank', 'Rk'], ['name', 'Prospect', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age'], ['fromT', 'Playing for', 'left'], ['hgt', 'Hgt'], ['ovr', isCur ? 'Ovr' : 'Ovr range'], ['pot', isCur ? 'Pot' : 'Pot range']]);
   const rng = (p, i) => { const e = est(p, i), w = Math.round(spread); return isCur ? String(e) : Math.max(20, e - w) + '–' + Math.min(90, e + w); };
   const draftRows = sortBy(clsIds.map(id => { const p = P[id]; return { ...pBase(id), rank: d.rank[id], ovr: est(p, 0), pot: est(p, 1), ovrS: rng(p, 0), potS: rng(p, 1), tone: tone(est(p, 0)), ptone: tone(est(p, 1)), fromT: p.from.team, fromL: p.from.lg, showDraft: isCur, cant: !onClock, draft: () => gm.draftPick(id) }; }), s.sort.draft);
-  const scoutRank = ord(1 + d.lg.Scouting.filter(x => x > s.budget.Scouting).length);
+  const scoutRank = ord(1 + s.teams.filter(t => !gm.isUser(s, t.tid) && teamBudget(gm, s, t.tid).Scouting > s.budget.Scouting).length);
   const conf2 = s.budget.Scouting >= 7 ? 'We have seen him plenty; high confidence.' : s.budget.Scouting >= 3.5 ? 'Moderate confidence in the read.' : 'Limited film on him. A bigger scouting budget would sharpen gm.';
   const advice = [];
   if (isCur && myNext) {
@@ -309,7 +309,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   if (s.phase !== 'draft') { const pre = ['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase); dr.status = pre ? 'Draft night comes after the playoffs and lottery' : 'The ' + gm.Y + ' draft is complete'; dr.sub = pre ? 'Order shown is projected: lottery teams by their expected pick under the 3-2-1 lottery, then everyone else by record. Click Lottery in the bar above for the odds.' : ''; dr.noSimMine = true; dr.done = true; }
   const dClasses = [gm.Y, (gm.Y + 1), (gm.Y + 2)].map(y => ({ label: y === gm.Y ? y + ' · this June' : String(y), onClick: () => gm.setState({ dClass: y, adv: {} }), color: s.dClass === y ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.dClass === y ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
 
-  const lgOf = k => ['Coaching', 'Facilities', 'Scouting'].includes(k) ? s.teams.filter(t => !gm.isUser(s, t.tid)).map(t => teamBudget(gm, s, t.tid)[k]) : d.lg[k];
+  const lgOf = k => s.teams.filter(t => !gm.isUser(s, t.tid)).map(t => k === 'Tickets' ? aiTicketPrice(gm, s, t.tid, teamBudget(gm, s, t.tid).Facilities) : teamBudget(gm, s, t.tid)[k]); // what the other clubs actually spend and charge
   const b = s.budget, lgAvg = k => lgOf(k).reduce((a, x) => a + x, 0) / lgOf(k).length, rel = k => (b[k] / lgAvg(k) - 1);
   const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + '%';
   const wp = pct(me);
