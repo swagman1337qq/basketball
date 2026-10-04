@@ -500,7 +500,7 @@ export class GameSim {
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1), 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(p.r.pss, 3.2) * Math.exp(((p.feel ?? FEEL_MID) - FEEL_MID) / 45) * Math.exp((p.r.oiq - 50) / 70) * (p.roles?.includes('Primary creator') ? 1.25 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // the best passer gets about 40% of his team's assists, like an NBA lead guard
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(1, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.35 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);

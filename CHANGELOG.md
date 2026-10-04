@@ -2,6 +2,14 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-04
+
+### Fixed
+- **Star playmakers no longer pile up 13–16 assists a game.** When a teammate scored, the engine credited the assist almost entirely to the best passer: passing, vision (Feel) and Offensive IQ multiplied together, so a player strong in all three took about 70% of his team's assists while on the floor. They now add up more modestly.
+  - Elite playmakers assist on about 35–45% of teammates' baskets, as in the NBA.
+  - The Chris Paul rookie card now averages about 9–10 assists (40% of teammates' baskets; his real AST% was 36.7). That's his 7.8 from 2005–06, adjusted for today's faster pace and higher assist rates.
+  - League assist leaders land around 9–10 a game. Team assist totals are unchanged.
+
 ## 2026-10-03
 
 ### Fixed
