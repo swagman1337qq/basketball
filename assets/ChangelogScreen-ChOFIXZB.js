@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-zQ7Qs4lq.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-DPoT529G.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -62,7 +62,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **A 99 is extremely hard to get now.** In a 100-season test, almost 500 players reached 99 in at least one skill (four had all 14). Now:
   - Every skill gets harder to raise the higher it is: a skill at 85 takes in about half of the growth aimed at it, at 90 a third, at 95 a quarter. The rest goes into his other skills, so players still improve, just not into a wall of 99s.
   - A normal player's skills top out at 97 or 98.
-  - About 1 player in 120 has one generational skill (think Steph Curry's shooting or Shaq's inside game) that can reach 99 or 100, if he develops into it.
+  - The only way to a 99 is a generational skill (think Steph Curry's shooting or Shaq's inside game) that can reach 99 or 100 if he develops into it. It's a once-in-a-hundred-leagues player: about one in a million.
   - Development still varies a lot from player to player: fast and slow developers, breakouts, busts and hidden gems.
   - In existing leagues, ratings already at 99 stay, but nobody new climbs there without a generational skill.
 - **A perfect 100 at the line is automatic.** A player with a Free Throw rating of 100 now makes about 98% of his free throws, every year: José Calderón's NBA record season (98.1%) as his normal. It's a rare tier: a 99 still shoots about 92%. In a test season, a star set to 100 went 619 for 631.
