@@ -61,9 +61,9 @@ export function truePot(p: any) { return Math.max(p.ovr, Math.min(100, Math.roun
 // The top of the scale. Past 85, every point of a skill's ceiling is harder to come by (ratings.ts
 // softTop): a normal player's ceilings level off below 98, so a 99 is out of reach. A generational
 // skill (p.gen: a Curry three, a Shaq inside game) runs higher and can reach 99 or 100 if he develops
-// into it. It's a once-in-a-hundred-leagues event: rolled once when a player is created, about one
-// in a million players (a 30-season league makes about 10,000).
-export const GEN_TOP = 100.5, GEN_BOOST = 14, GEN_RATE = 1e-6;
+// into it. One league in 138 has one: rolled once when a player is created, and a 30-season league
+// makes about 10,500 players, so the odds are one in 138 × 10,500 (about 1.45 million).
+export const GEN_TOP = 100.5, GEN_BOOST = 14, GEN_RATE = 1 / (138 * 10500);
 export { softTop };
 export const genOf = (p: any): string | null => p.gen ?? null;
 function rollGen(p: any, rnd: () => number = Math.random) {
