@@ -167,6 +167,9 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: "4px 8px" }}>
                 {p.pos}
               </td>
+              <td title={p.lastTitle} style={{ padding: "4px 8px", whiteSpace: "nowrap" }}>
+                {p.lastAbbr ? <button className="hv6" onClick={p.lastOpen} style={{ all: "unset", cursor: "pointer", display: "inline-flex", gap: "5px", alignItems: "center" }}>{p.lastLogo}{p.lastAbbr}{p.lastD && <span style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>(drafted)</span>}</button> : <span style={{ color: "var(--color-neutral-600)" }}>—</span>}
+              </td>
               <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                 {p.age}
               </td>

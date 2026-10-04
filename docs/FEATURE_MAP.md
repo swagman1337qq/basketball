@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-04 (roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-04 (FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -117,7 +117,7 @@ Screens: Roster, Depth chart, Development, Tactics. Code: `assistants.ts`, `coac
 - Two-ways, Exhibit 10s, 10-days, hardship; waive, stretch, buyouts, waiver claims.
 - Trades: both rosters filter by position (PG/SG/SF/PF/C, hybrids count for both spots; players in the deal stay listed) and sort by a Pos column (`TradeScreen.tsx`); salary matching by apron, trade exceptions, kickers, no-trade clauses, pick protections and swaps, assistant GM advice, shopping a player for offers.
 - Pre-Free Agency: options, qualifying offers, re-sign or renounce, extensions.
-- Free agency on the NBA calendar: moratorium, restricted free agency and offer sheets.
+- Free agency on the NBA calendar: moratorium, restricted free agency and offer sheets. The free agent list has a sortable Last team column (`txlog.ts` `lastTeam`: the latest of his transactions and the seasons he played; "(drafted)" when only his draft rights were there; — if he was never on an NBA team), with the team's logo, linking to the team.
 - Cap outlook: real cap history since 1984-85 and a 500-season projection.
 
 Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook. Code: `cba.ts`, `cbaFlow.ts`, `contracts.ts`, `capModel.ts`, `pickRules.ts`, `tradeAdvice.ts`, `tradeOffers.ts`, `preFA.ts`.

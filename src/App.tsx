@@ -16,7 +16,7 @@ export function App() {
 
   const onCreate = useCallback(async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' | 'spectate' = '') => {
     const game = Game.create(seed, tids, { worst: start === 'worst', hopeless: start === 'hopeless', spectate: start === 'spectate' });
-    const now = Date.now();
+    (window as any).__g = game; const now = Date.now();
     const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
     row.summary = summarize(row.data);
     try { await putSave(row); } catch { setError('Could not write to browser storage; this league will not be saved.'); }

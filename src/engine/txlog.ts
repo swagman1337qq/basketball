@@ -57,3 +57,19 @@ export function howAcquired(g: Game, s: any, p: any, tid: number): string {
   const tail = later ? (later.k === 'extend' ? 'extended ' : 're-signed ') + yr(later) : '';
   return [head, tail].filter(Boolean).join(' · ');
 }
+
+// The last NBA team he was on (a free agent's old team): the latest of his transactions (signed,
+// traded to, drafted, waived by) and the seasons he played, so older saves without a full log work too.
+// `drafted`: only his draft rights were ever there (a pick who never signed).
+export function lastTeam(s: any, p: any): { tid: number; season: number; drafted?: boolean } | null {
+  const T = s.teams || [];
+  let best: { tid: number; season: number; drafted?: boolean } | null = null;
+  for (const r of p.stats || []) if (r.tid != null && T[r.tid] && (!best || r.season >= best.season)) best = { tid: r.tid, season: r.season };
+  for (const e of (p.tx || []) as Tx[]) {
+    const tid = e.k === 'trade' ? e.to : ['sign', 'draft', 'waive', 'expansion', 'extend'].includes(e.k) ? e.tid : undefined;
+    if (tid != null && T[tid] && (!best || e.season >= best.season)) best = { tid, season: e.season, drafted: e.k === 'draft' && !(p.stats || []).some((r: any) => r.tid === tid) };
+  }
+  const w = p.waived?.tid ?? p.lastTid;
+  if (!best && w != null && T[w]) best = { tid: w, season: p.waived?.season ?? 0 };
+  return best;
+}
