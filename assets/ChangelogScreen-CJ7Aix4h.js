@@ -1,10 +1,19 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-CQWf3PGM.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-DSos0KDY.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-04
 
 ### Fixed
+- **Every AI team charged the same $118 for tickets.** Now each owner sets his own price, from demand (market size, how good the team is, the arena he's built) and his owner type:
+  - **Frugal Profit-Seekers** charge the most and accept some empty seats (about 88% full).
+  - **Hype Focus owners** keep prices low to pack the building (about 99%).
+  - **Win-Now Spenders, Asset Hoarders and Meddling Micromanagers** fall in between (about 93–94%), and meddlers go more with their gut.
+  - Every owner also has his own small pricing quirk.
+  - In a test league prices ran from about $87 (a small-market loser) to $270 (a 65-win big-market team), averaging about $142, with arenas about 94% full league-wide. They move with the team's record as the season goes, like dynamic pricing.
+- **AI teams' finances now use their owners' real facilities budgets**, not a league default, so League finances shows each club's actual attendance, revenue and profit.
+- **Preseason projections no longer treat every team as winless.** Before any games, attendance and merchandise counted each team as 0–82, so a preseason projection read as a half-empty arena. Teams now start from a .500 projection that follows their record from game 30 on.
+- **Your Finances screen compares your ticket price and Health budget with what the other teams actually charge and spend**, like the rest of your budgets already did.
 - **Star playmakers no longer pile up 13–16 assists a game.** When a teammate scored, the engine credited the assist almost entirely to the best passer: passing, vision (Feel) and Offensive IQ multiplied together, so a player strong in all three took about 70% of his team's assists while on the floor. They now add up more modestly.
   - Elite playmakers assist on about 35–45% of teammates' baskets, as in the NBA.
   - The Chris Paul rookie card now averages about 9–10 assists (40% of teammates' baskets; his real AST% was 36.7). That's his 7.8 from 2005–06, adjusted for today's faster pace and higher assist rates.
