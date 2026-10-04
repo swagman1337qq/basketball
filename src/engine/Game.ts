@@ -252,6 +252,8 @@ export class Game {
     if (!g.db.usgV) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
       Object.values(g.db.P).forEach((p: any) => { if (!p.r || p.retired || !p.ten || p.tenLock) return; const nx = Math.round(Math.max(2, Math.min(98, tenTargets(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number] }).usage + quirkOf(p, 'usage')))); if (p.tenPrev?.usage != null) p.tenPrev.usage += nx - p.ten.usage; p.ten.usage = nx; });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
+    // 2026-10: height and length count for more at the rim (sim.ts zoneSkill): re-center the league's rim norms once.
+    if (!g.db.rimV) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 1; }
     // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
     { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
     // Saves from before wingspan counted toward the overall.

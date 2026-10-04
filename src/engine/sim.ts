@@ -75,8 +75,15 @@ export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.m
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
 // A player's skill for each tier (0–99 scale).
+// At the rim, size counts: a 6'2" guard finishes over and around length that a 7-footer just
+// shoots over, so in the NBA small guards make about 58–64% in the restricted area and centers
+// 70%+. Height and length (wingspan) are a big part of finishing; touch and craft (Layups, Inside)
+// let a skilled small guard still finish well.
+// On top of that, a straight size edge on every rim shot: about 4 points of FG% between a 6'2" guard
+// and a 7-footer with the same skills (centered on the league, so overall scoring doesn't move).
+const RIM_SIZE = 0.0009;
 export function zoneSkill(r: any): Record<Zone, number> {
-  return { rim: 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, mid: r.fg, c3: r.tp, atb: r.tp };
+  return { rim: 0.2 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.2 * r.ins + 0.25 * r.hgt + 0.1 * r.jmp + ape(r) * 0.8, mid: r.fg, c3: r.tp, atb: r.tp };
 }
 // Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
 // and still not a scorer). Rotation players average about 57.
@@ -133,6 +140,7 @@ export interface Norms {
   shareCorr: Record<Zone, number>; // keeps the league shot mix on the baseline shares
   ftOffset: number;
   perimD: number; interiorD: number; reb: number; pss: number; handle: number;
+  rimHgt?: number; // the league's typical height rating at the rim, weighted by rim attempts
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
 }
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
@@ -473,7 +481,8 @@ export class GameSim {
       const intD = avg(bigs, p => interiorD(p.r));
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
       // Rotations (the whole lineup's Defensive IQ) make every shot harder; gamblers leave easier ones.
-      const defAdj = (z === 'rim' ? 0.0021 * (intD - n.interiorD) + (rimPro ? 0.007 : 0) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
+      const small = z === 'rim' ? cl(1 + (55 - sh.r.hgt) / 100, 0.75, 1.3) : 1; // good rim protection bothers a small finisher more than a big one, who shoots over it
+      const defAdj = (z === 'rim' ? small * (0.0021 * (intD - n.interiorD) + (rimPro ? 0.007 : 0)) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -489,7 +498,7 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -509,7 +518,7 @@ export class GameSim {
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
-        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1);
+        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1); // small finishers get blocked more
         if (Math.random() < blkP) {
           const bl = wpick(onD, p => Math.pow(Math.max(1, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;

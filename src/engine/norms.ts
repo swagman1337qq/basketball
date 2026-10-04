@@ -47,6 +47,7 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
     }
   }
   const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: effTend(e.p), pers: e.p.pers, grp: e.p.grp }, n));
+  n.rimHgt = wmean(E.map((e, i) => ({ v: e.p.r.hgt, w: vol(e) * prof[i].rim })));
   for (const z of ZONES) n.offset[z] = Math.max(-0.08, Math.min(0.08, -wmean(E.map((e, i) => ({ v: curve(CURVE_OF[z as Zone], e.sk[z]), w: vol(e) * prof[i][z] })))));
   n.ftOffset = Math.max(-0.08, Math.min(0.08, -wmean(E.map(e => ({ v: curve('ft', e.p.r.ft), w: vol(e) * (e.p.r.ins + e.p.r.dnk + e.p.r.stre / 2) })))));
   return n;
