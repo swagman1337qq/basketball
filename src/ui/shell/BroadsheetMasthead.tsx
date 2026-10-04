@@ -1,7 +1,9 @@
 import type { VM } from '../vm';
+import { useNavDnd } from './navDnd';
 import { LeagueMenu } from '../LeagueMenu';
 
 export function BroadsheetMasthead({ vm }: { vm: VM }) {
+  const dnd = useNavDnd(vm);
   return (
     <>
       <header style={{ padding: "18px 28px 0", borderBottom: "1px solid var(--color-text)" }}>
@@ -43,7 +45,7 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", columnGap: "20px" }}>
           {(vm.nav || []).map((n: any, i: number) => (
-            <button key={i} className="hv1" onClick={n.go} style={{ all: "unset", cursor: "pointer", whiteSpace: "nowrap", padding: "10px 0 9px", fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: n.fw, color: n.color, borderBottom: `2px solid ${n.ul ?? ""}`, marginBottom: "-1px" }}>
+            <button key={n.key} {...dnd.item(n)} className="hv1" onClick={n.go} title="Drag to move this tab" style={{ all: "unset", cursor: "pointer", whiteSpace: "nowrap", padding: "10px 0 9px", fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: n.fw, color: n.color, borderBottom: `2px solid ${n.ul ?? ""}`, marginBottom: "-1px", ...dnd.mark(n), ...(dnd.mark(n).boxShadow ? { boxShadow: 'inset 2px 0 0 var(--color-accent)', paddingLeft: '6px' } : {}) }}>
               {n.label}
             </button>
           ))}

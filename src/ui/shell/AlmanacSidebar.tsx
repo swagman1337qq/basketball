@@ -1,8 +1,10 @@
 import type { VM } from '../vm';
 import { LeagueMenu } from '../LeagueMenu';
+import { useNavDnd } from './navDnd';
 
 // Collapsed: a narrow rail of icons, each with its name underneath (and on hover).
 function Rail({ vm }: { vm: VM }) {
+  const dnd = useNavDnd(vm);
   const tiny = { fontSize: "9.5px", lineHeight: 1.1, textAlign: "center" as const, maxWidth: "70px" };
   return (
     <aside style={{ width: "78px", flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "10px 0", background: "var(--color-surface)", borderRight: "1px solid var(--color-divider)", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}>
@@ -15,9 +17,9 @@ function Rail({ vm }: { vm: VM }) {
       <button className="btn btn-secondary" onClick={vm.play7} title={vm.play7Label} style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>{vm.spec.on ? '▶▶ More' : '▶▶ Week'}</button>
       {(vm.navGroups || []).map((g: any, gi: number) => (
         <div key={gi} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", width: "100%", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "6px", marginTop: "8px" }}>
-          <span style={{ ...tiny, fontSize: "9.5px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-accent-700)", marginBottom: "2px" }}>{g.label === "Management" ? "Manage" : g.label}</span>
+          <span {...dnd.group(g.label)} style={{ ...dnd.gmark(g.label), ...tiny, fontSize: "9.5px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-accent-700)", marginBottom: "2px" }}>{g.label === "Management" ? "Manage" : g.label}</span>
           {(g.items || []).map((n: any, i: number) => (
-            <button key={i} className="hv2" onClick={n.go} title={n.label} aria-label={n.label} style={{ all: "unset", boxSizing: "border-box", cursor: "pointer", width: "72px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "5px 2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring }}>
+            <button key={n.key} {...dnd.item(n)} className="hv2" onClick={n.go} title={n.label + ' (drag to move)'} aria-label={n.label} style={{ all: "unset", boxSizing: "border-box", cursor: "pointer", width: "72px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "5px 2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring, ...dnd.mark(n) }}>
               {n.icon}<span style={{ ...tiny, fontWeight: n.fw }}>{n.label}</span>
             </button>
           ))}
@@ -29,6 +31,7 @@ function Rail({ vm }: { vm: VM }) {
 }
 
 export function AlmanacSidebar({ vm }: { vm: VM }) {
+  const dnd = useNavDnd(vm), ed = vm.navEdit;
   if (vm.navCollapsed) return <Rail vm={vm} />;
   return (
     <>
@@ -66,17 +69,30 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
         </div>
         {(vm.navGroups || []).map((g: any, i: number) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "8px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", padding: "0 0 4px", marginBottom: "2px" }}>
+            <div {...dnd.group(g.label)} title="Drop a tab here to move it to the end of this section" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", padding: "0 0 4px", marginBottom: "2px", ...dnd.gmark(g.label) }}>
               {g.label}
             </div>
             {(g.items || []).map((n: any, i: number) => (
-              <button key={i} className="hv1" onClick={n.go} style={{ all: "unset", boxSizing: "border-box", width: "100%", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", padding: "4px 0", fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: n.fw === 600 ? 600 : 500, color: n.color }}>
-                <span style={{ width: "5px", height: "5px", transform: "rotate(45deg)", background: n.dot, flex: "none" }}></span>
-                {n.label}
-              </button>
+              <div key={n.key} {...dnd.item(n)} style={{ display: "flex", alignItems: "center", gap: "2px", ...dnd.mark(n) }}>
+                <button className="hv1" onClick={n.go} title="Drag to move this tab" style={{ all: "unset", boxSizing: "border-box", flex: 1, minWidth: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", padding: "4px 0", fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: n.fw === 600 ? 600 : 500, color: n.color }}>
+                  <span style={{ width: "5px", height: "5px", transform: "rotate(45deg)", background: n.dot, flex: "none" }}></span>
+                  {n.label}
+                </button>
+                {ed.arrange && <>
+                  <button className="btn btn-ghost" onClick={() => ed.step(n.key, -1)} aria-label={'Move ' + n.label + ' up'} title="Move up" style={{ padding: "0 5px", fontSize: "11px", minHeight: 0 }}>▲</button>
+                  <button className="btn btn-ghost" onClick={() => ed.step(n.key, 1)} aria-label={'Move ' + n.label + ' down'} title="Move down" style={{ padding: "0 5px", fontSize: "11px", minHeight: 0 }}>▼</button>
+                </>}
+              </div>
             ))}
           </div>
         ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px" }}>
+          {ed.arrange && <span style={{ color: "var(--color-neutral-700)", fontSize: "11.5px" }}>Drag any tab, or use the arrows. Drop a tab on a section title to move it to the end of that section.</span>}
+          <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            <button className="btn btn-ghost" onClick={ed.toggleArrange} title="Reorder the menu: drag tabs anywhere, or use arrows" style={{ fontSize: "12px", padding: "2px 6px" }}>{ed.arrange ? "Done arranging" : "Arrange menu"}</button>
+            {ed.custom && <button className="btn btn-ghost" onClick={ed.reset} title="Put every tab back where it started" style={{ fontSize: "12px", padding: "2px 6px" }}>Reset menu</button>}
+          </span>
+        </div>
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px", color: "var(--color-neutral-700)", fontSize: "12px" }}>
           <span>
             {vm.dateLong}

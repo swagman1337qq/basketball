@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-04 (AI ticket prices by owner type; preseason demand)._
+_Last reviewed: 2026-10-04 (movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -39,7 +39,7 @@ flowchart TD
 | Layer | Where | Notes |
 |---|---|---|
 | Entry and autosave | `src/main.tsx`, `src/App.tsx` | Title screen or open league; autosaves 700 ms after a change and when the tab is hidden |
-| Shells and routing | `src/ui/GMView.tsx`, `src/ui/shell/` | Three layouts: Almanac (sidebar), Broadsheet (masthead), Desk (icon rail) |
+| Shells and routing | `src/ui/GMView.tsx`, `src/ui/shell/` | Three layouts: Almanac (sidebar), Broadsheet (masthead), Desk (icon rail). Menu tabs are movable in all of them (drag, or Arrange mode's arrows; `navLayout.ts` keeps the order and sections in localStorage, `shell/navDnd.ts` handles the drag) |
 | View model | `src/ui/viewModel.ts`, `src/ui/vm.ts` | Menu (`NAV`), phase bar actions, every screen's values |
 | Engine store | `src/engine/Game.ts` | `db` (players `db.P`, schedule, caps) is mutated in place; `state` is replaced through `setState` |
 | Saves | `src/db/saves.ts` | One IndexedDB row per league (`Game.toSave()`); export/import as JSON |

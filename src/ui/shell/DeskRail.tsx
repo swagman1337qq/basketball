@@ -1,6 +1,8 @@
 import type { VM } from '../vm';
+import { useNavDnd } from './navDnd';
 
 export function DeskRail({ vm }: { vm: VM }) {
+  const dnd = useNavDnd(vm);
   return (
     <>
       <nav style={{ width: "66px", flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "14px 0", borderRight: "1px solid var(--color-divider)", overflowY: "auto" }}>
@@ -9,7 +11,7 @@ export function DeskRail({ vm }: { vm: VM }) {
           {vm.myAbbr}
         </div>
         {(vm.nav || []).map((n: any, i: number) => (
-          <button key={i} className="hv2" onClick={n.go} title={n.label} aria-label={n.label} style={{ all: "unset", cursor: "pointer", width: "58px", padding: "4px 1px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring }}>
+          <button key={n.key} {...dnd.item(n)} className="hv2" onClick={n.go} title={n.label + ' (drag to move)'} aria-label={n.label} style={{ all: "unset", cursor: "pointer", width: "58px", padding: "4px 1px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring , ...dnd.mark(n) }}>
             {n.icon}<span style={{ fontSize: "9px", lineHeight: 1.1, textAlign: "center" }}>{n.label}</span>
           </button>
         ))}

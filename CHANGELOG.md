@@ -4,6 +4,13 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-04
 
+### Added
+- **Arrange the menu your way.** Every tab on the left (Trade, Owner, Career and the rest) can be moved:
+  - **Drag** a tab onto another to put it just above that one, in that section. Drop it on a section title (Team, Management, League) to move it to the end of that section.
+  - **Arrange menu** (at the bottom of the sidebar) adds ▲▼ arrows to every tab, for touch screens and keyboards. Past the top or bottom of a section, a tab moves into the next one.
+  - **Reset menu** puts everything back.
+  - Your menu is saved in this browser and applies to every league. It works in the collapsed icon menu and the other layouts too.
+
 ### Fixed
 - **Every AI team charged the same $118 for tickets.** Now each owner sets his own price, from demand (market size, how good the team is, the arena he's built) and his owner type:
   - **Frugal Profit-Seekers** charge the most and accept some empty seats (about 88% full).
