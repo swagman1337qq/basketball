@@ -202,6 +202,9 @@ export class Game {
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
     // ceilings are set so a typical career reaches it, and the league's read of it starts a little off.
     // 2026-10: the height rating mostly follows his listed height now (ratings.ts); his overall doesn't move.
+    // 2026-10: training camp used to add every pick two years out a second time. One copy of each stays:
+    // the first, the one trades, protections and swaps found and updated.
+    { const seen = new Set<string>(); g.state = { ...g.state, assets: (g.state.assets || []).filter((a: any) => !seen.has(a.id) && !!seen.add(a.id)) }; }
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon
     if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
@@ -1153,7 +1156,9 @@ export class Game {
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: ['Kentucky', 'Duke', 'Kansas', 'UCLA', 'Gonzaga', 'Arizona', 'UConn', 'Houston'][id % 8], lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
       d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = this.prospectPot(p, Math.random); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
       d.cls[Y + 2].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
-      teams.forEach(t => [1, 2].forEach(rd => assets.push({ id: (Y + 2) + '-' + rd + '-' + t.tid, yr: Y + 2, rd, orig: t.tid, owner: t.tid })));
+      // Picks two years out, unless the trading horizon already made them (it usually has: adding them
+      // again duplicated every one of them).
+      { const have = new Set(assets.map(a => a.id)); teams.forEach(t => [1, 2].forEach(rd => { const id = (Y + 2) + '-' + rd + '-' + t.tid; if (!have.has(id)) assets.push({ id, yr: Y + 2, rd, orig: t.tid, owner: t.tid }); })); }
       // Expansion: any even number of new franchises (chosen from the franchise database or
       // designed in Settings) join now; the league can expand again later.
       let expanded = s.expanded, expansion = s.expansion, expTeams = s.expTeams;

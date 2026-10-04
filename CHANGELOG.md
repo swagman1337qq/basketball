@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-03
 
 ### Fixed
+- **Draft picks were listed twice.** Every training camp added each team's picks two years out a second time, so the trade screen showed, for example, two 2030 firsts. The extra copies are gone from existing leagues the next time they're opened, and no new ones are made.
 - **Names fit the culture they come from.**
   - **First and last names now come from the same community.** Groups that mixed Indian, Pakistani and Bangladeshi names could produce "Arif Srinivasan" (a Muslim first name with a Tamil Hindu surname); now both parts come from one. The same goes for Korean and Japanese names in Guam, Albanian and Serbian names in Switzerland, and similar cases.
   - **The Gulf states count their citizens.** Oman, Qatar, the UAE, Kuwait, Bahrain and Saudi Arabia drew most of their players from their foreign workers, who can't become citizens or play for the national team, so an "Omani" was often South Asian. Now nearly all are Omani, Qatari, Emirati and so on, with Oman's own family names (Al Busaidi, Al Harthy, Al Balushi for Omani Baloch...).
