@@ -228,7 +228,7 @@ export function seasonReview(g: Game) {
     if ((aw.coy || [])[0] && g.isUser(s, aw.coy[0].tid)) career.coy = (career.coy || 0) + 1;
     const fired: number[] = [];
     s.managed.forEach(tid => {
-      const rv = ownerReview(g, s, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god || s.easy?.fire ? [] : fireReasons(g, s, tid, rv, fin);
+      const rv = ownerReview(g, s, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god || s.easy?.fire || s.graceY === Y ? [] : fireReasons(g, s, tid, rv, fin); // graceY: you took the team over from Spectator Mode this season
       career.seasons.push({ season: Y, tid, w: T[tid].w, l: T[tid].l, fin, sec: rv.sec, fired: reasons.length > 0 });
       if (reasons.length) {
         fired.push(tid); career.fired = (career.fired || 0) + 1;
@@ -239,8 +239,9 @@ export function seasonReview(g: Game) {
       }
     });
     // Your contract: extended, offered, or allowed to run out (same decision as the owner's letter).
-    let gmOffer = s.gmOffer || null;
-    if (!fired.includes(s.me)) {
+    // Spectator Mode: you aren't anyone's GM, so none of this (and no job offers below).
+    let gmOffer = s.spectator ? null : s.gmOffer || null;
+    if (!s.spectator && !fired.includes(s.me)) {
       const d = contractDecision(g, s, s.me);
       // God Mode: your contract renews itself on the owner's best terms; nothing to answer.
       if (d.offer && d.offer.kind === 'expiring' && s.god) {
@@ -265,14 +266,14 @@ export function seasonReview(g: Game) {
     const vacancies = vac.map(tid => ({ tid, reason: T[tid].owner + ' fired GM ' + T[tid].gm + ' after a ' + T[tid].w + '–' + T[tid].l + ' season' }));
     vacancies.forEach(v => lgLog.unshift({ day: s.day, type: 'Career', teams: T[v.tid].abbr, text: v.reason }));
     const offers = [], allFired0 = fired.length > 0 && fired.length >= s.managed.length;
-    vacancies.slice().sort((a, b) => teamNeed(g, s, a.tid) - teamNeed(g, s, b.tid)).forEach(v => { if (offers.length < 3 && (rep >= teamNeed(g, s, v.tid) - 5 || (allFired0 && offers.length < 2))) offers.push({ id: 'o' + v.tid + Y, tid: v.tid, from: 'vacancy', note: T[v.tid].owner + ' wants you to rebuild the ' + T[v.tid].name + '.', options: contractOptions(s, v.tid, rep) }); });
-    if (rep >= 65) aiT.filter(t => g.pct(t) >= 0.55 && !vac.includes(t.tid)).slice(0, 3).forEach(t => { if (Math.random() < (rep - 55) / 100) offers.push({ id: 'o' + t.tid + Y, tid: t.tid, from: 'poach', note: t.owner + ' (' + t.arch + ') would replace ' + t.gm + ' to bring you in.', options: contractOptions(s, t.tid, rep + 10) }); });
+    if (!s.spectator) vacancies.slice().sort((a, b) => teamNeed(g, s, a.tid) - teamNeed(g, s, b.tid)).forEach(v => { if (offers.length < 3 && (rep >= teamNeed(g, s, v.tid) - 5 || (allFired0 && offers.length < 2))) offers.push({ id: 'o' + v.tid + Y, tid: v.tid, from: 'vacancy', note: T[v.tid].owner + ' wants you to rebuild the ' + T[v.tid].name + '.', options: contractOptions(s, v.tid, rep) }); });
+    if (rep >= 65 && !s.spectator) aiT.filter(t => g.pct(t) >= 0.55 && !vac.includes(t.tid)).slice(0, 3).forEach(t => { if (Math.random() < (rep - 55) / 100) offers.push({ id: 'o' + t.tid + Y, tid: t.tid, from: 'poach', note: t.owner + ' (' + t.arch + ') would replace ' + t.gm + ' to bring you in.', options: contractOptions(s, t.tid, rep + 10) }); });
     const OQ = ['We’ve reached out. The job is theirs if they want it.', 'I want a builder, and I think we’ve found one. We’ve made our pitch.', 'Their record speaks for itself. We’d love to have them here.', 'We’ve made an offer. Now it’s their call.'];
     offers.forEach((o, i) => news.unshift({ day: s.day, season: Y, kind: 'offer', tid: o.tid, who: T[o.tid].owner, role: 'Owner, ' + T[o.tid].abbr, quote: OQ[(i + o.tid) % OQ.length] }));
     // Fired from every club you run: you stay in charge until you accept a new job.
     const allFired = fired.length && fired.length >= s.managed.length;
     fired.filter(t => !allFired || t !== s.me).forEach(t => { if (s.managed.length > 1) { /* handed over after the updater */ } });
-    return { ...top, clubs, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, gmOffer, gmAsk: null, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: fired.length ? 'career' : 'playoffs' };
+    return { ...top, clubs, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, gmOffer, gmAsk: null, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: s.spectator ? s.screen : fired.length ? 'career' : 'playoffs' };
   });
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
@@ -473,7 +474,7 @@ export function inboxTick(g: Game, s: any, day: number, rosters: any) {
 
 export function resolveInbox(g: Game, id: string, choice: string) {
   g.setState(s => {
-    const c = g.clubOf(s, s.me), x = (c.inbox || []).find(y => y.id === id); if (!x || x.done) return null;
+    const c = g.clubOf(s, s.me), x = (c?.inbox || []).find(y => y.id === id); if (!x || x.done) return null;
     const p = x.pid != null ? g.db.P[x.pid] : null;
     if (p) {
       if (x.kind === 'avail') { if (choice === 'yes') p.minMin = 6; else p.moodAdj = (p.moodAdj || 0) - 8; }

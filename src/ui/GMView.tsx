@@ -6,6 +6,7 @@ import { DeskRail } from './shell/DeskRail';
 import { BroadsheetMasthead } from './shell/BroadsheetMasthead';
 import { DeskTopbar } from './shell/DeskTopbar';
 import { DashboardScreen } from './screens/DashboardScreen';
+import { SpectatorDashboard, SpectatorPicker } from './screens/SpectatorDashboard';
 import { RosterScreen } from './screens/RosterScreen';
 import { DepthChartScreen } from './screens/DepthChartScreen';
 import { StandingsScreen } from './screens/StandingsScreen';
@@ -104,8 +105,8 @@ export function GMView({ vm }: { vm: VM }) {
               </div>
               {!vm.isC && <PlayerSearch vm={vm} />}
             </div>
-            {!!vm.is.dash && <InboxCard vm={vm} />}
-            {!!vm.is.dash && <DashboardScreen vm={vm} />}
+            {!!vm.is.dash && !vm.spec.on && <InboxCard vm={vm} />}
+            {!!vm.is.dash && (vm.spec.on ? <SpectatorDashboard vm={vm} /> : <DashboardScreen vm={vm} />)}
             {!!vm.is.roster && <RosterScreen vm={vm} />}
             {!!vm.is.depth && <DepthChartScreen vm={vm} />}
             {!!vm.is.standings && <StandingsScreen vm={vm} />}
@@ -150,11 +151,12 @@ export function GMView({ vm }: { vm: VM }) {
             </Suspense>
           </main>
         </div>
-        {!!vm.isC && <DeskPanel vm={vm} />}
+        {!!vm.isC && !vm.spec.on && <DeskPanel vm={vm} />}
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
-        {!!vm.ctx.s.letterOpen && <OwnerLetterModal vm={vm} />}
-        {!vm.ctx.s.letterOpen && !vm.hasDialog && !!(vm.ctx.s.notices || []).length && !vm.ctx.s.simming && <NoticeModal vm={vm} />}
+        {!!vm.ctx.s.letterOpen && !vm.spec.on && <OwnerLetterModal vm={vm} />}
+        {!vm.ctx.s.letterOpen && !vm.hasDialog && !!(vm.ctx.s.notices || []).length && !vm.ctx.s.simming && !vm.spec.on && <NoticeModal vm={vm} />}
+        {!!vm.ctx.s.specPick && vm.spec.on && <SpectatorPicker vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
         {vm.ctx.s.tour != null && <Suspense fallback={null}><TourOverlay vm={vm} /></Suspense>}
       </div>

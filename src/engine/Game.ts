@@ -47,6 +47,7 @@ import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryFiel
 import { awardDefs, computeAwards, seriesMvp } from './awards';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
+import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
 import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
@@ -75,7 +76,7 @@ export class Game {
 
   // A new league. `tids` are the franchises the user will run (1 to all of them);
   // the first is the one on screen.
-  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean; hopeless?: boolean } = {}) {
+  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean; hopeless?: boolean; spectate?: boolean } = {}) {
     const g = new Game();
     g.makeDB(seed);
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
@@ -96,6 +97,7 @@ export class Game {
     assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams)); g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
     g.rollDevYear(g.state);
+    if (opts.spectate) g.enterSpectator(); // spectator.ts: no team, the AI runs all of them
     return g;
   }
 
@@ -303,7 +305,12 @@ export class Game {
   }
   private quiet = false; private lastEmit = 0; private pendingEmit = false;
   private stopReq = false;
-  stopSim() { this.stopReq = true; }
+  stopSim() { this.stopReq = true; this.specStop = true; }
+  // Spectator Mode (spectator.ts): the AI runs every team; the driver runs the season toward a goal.
+  spectating = false; specStop = false; specLabel = '';
+  enterSpectator() { enterSpectator(this); }
+  manageTeam(tid: number) { manageTeam(this, tid); }
+  spectate(goal: SpecGoal) { return spectate(this, goal); }
   private flushEmit() { this.quiet = false; if (this.pendingEmit) { this.pendingEmit = false; this.lastEmit = Date.now(); this.listeners.forEach(l => l()); } }
 
   get CAP() { return this.db.caps.CAP; }
@@ -604,7 +611,7 @@ export class Game {
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
   static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
-  clubOf(s, tid) { return tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; }
+  clubOf(s, tid) { return s.spectator ? null : tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; } // Spectator Mode: no club is yours
   defaultClub(i = 0) {
     const SC = [['Dale Whitcombe', 'NA', 4], ['Inés Morales', 'WEU', 3], ['Goran Vuković', 'BAL', 4], ['Kwame Asante', 'AFR', 2]];
     const NP = namePools(), R = Object.keys(regions()), pick = a => a[Math.floor(Math.random() * a.length)];
@@ -613,6 +620,7 @@ export class Game {
   }
   // A patch that writes club fields for any managed team (top level if it's on screen).
   clubPatch(s, tid, fields, clubs?) {
+    if (s.spectator) return {};
     if (tid === s.me) return fields;
     const c = clubs || { ...(s.clubs || {}) };
     c[tid] = { ...(c[tid] || this.defaultClub(1)), ...fields };
@@ -635,6 +643,7 @@ export class Game {
   }
   // God Mode or a new job: add a franchise to the ones you run and switch to it.
   takeOver(tid, why = 'God Mode: took over') {
+    if (this.state.spectator) { this.manageTeam(tid); return; } // Spectator Mode ends: you run this team
     this.setState(s => {
       if (this.isUser(s, tid)) return null;
       const T = s.teams[tid];
@@ -963,7 +972,7 @@ export class Game {
         out.news = [{ day, season: this.Y, kind: 'title', tid: po.champ, who: T[po.champ].owner, role: 'Owner, ' + T[po.champ].abbr, quote: 'This city deserved this. I promised a champion and ' + T[po.champ].gm + ' and this group delivered one.' }, ...(s.news || [])];
         // The owner's year-end letter for each franchise you run.
         out.letters = { ...(s.letters || {}), [this.Y]: s.managed.map(t => yearEndLetter(this, { ...s, ...out }, t, finOf(t))) };
-        out.letterUnread = this.Y; // not opened on its own: the sim button offers "Next: Owner letter"
+        out.letterUnread = s.spectator ? null : this.Y; // not opened on its own: the sim button offers "Next: Owner letter" (none in Spectator Mode)
         // Hall of Fame class of this year.
         const hofClass = voteHof(this, { ...s, awards: out.awards, history: out.history });
         if (hofClass.length) {
@@ -1011,7 +1020,7 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
       if (s.gmOffer?.kind === 'expiring' && !s.unemployed) return null; // answer the owner's contract offer first
-      if (!s.preFA || (!s.easy?.cap && preFAPending(this, s, s.me) > 0)) return null; // Pre-Free Agency first, with every decision made
+      if (!s.preFA || (!s.easy?.cap && !s.spectator && preFAPending(this, s, s.me) > 0)) return null; // Pre-Free Agency first, with every decision made (the AI's, in Spectator Mode)
       // A new league year starts when free agency opens: the cap follows the projected cap
       // outlook (at most +10% a year, as the CBA allows), and every number tied to it (tax,
       // aprons, exceptions, max and min salaries) moves with it.
@@ -1023,7 +1032,7 @@ export class Game {
       const reLine = rePlan.filter(id => out.fa.includes(id)).map(id => Pp[id].name);
       const notices = addNotice(s, { tone: 'info', title: 'Free agency is open', lines: [...faNotes, ...(reLine.length ? ['You planned to re-sign ' + reLine.join(', ') + ': make your offer' + (reLine.length > 1 ? 's' : '') + ' on the Free agency screen. Other teams can bid now too.'] : [])].filter(Boolean), pids: [] });
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
-      return { ...out, notices: faNotes.length || reLine.length ? notices : s.notices, preFA: null, extPlan, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
+      return { ...out, notices: faNotes.length || reLine.length ? notices : s.notices, preFA: null, extPlan, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: s.spectator ? s.log : this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
     if (this.state.phase === 'fa') { teamSales(this); offseasonMandates(this); } // team sales close with the new league year; owners' payroll orders
   }
@@ -1189,7 +1198,7 @@ export class Game {
       (this.db as any).boxes = {}; // last season's box scores go with its game log
       const qoMine = (byClub[s.me] || []).filter(x => /qualifying offer/.test(x)), campLines = s.managed.flatMap((t: number) => camp[t] || []);
       const campNotes = campLines.length ? addNotice(s, { tone: 'info', title: 'Training camp: your rookies', lines: [...campLines, 'Draft boards show how a player looked as an amateur; camp shows how his game carries over to the NBA.'], pids: campIds }) : s.notices;
-      return { ...top, notices: campNotes, ...(qoMine.length ? { notices: addNotice({ notices: campNotes }, { tone: 'info', title: 'Qualifying offers accepted', lines: qoMine.map(x => x + ' (one year; he’s under contract with you this season).') }) } : {}), clubs, offered: {}, extPlan: [], cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
+      return { ...top, notices: campNotes, ...(qoMine.length ? { notices: addNotice({ notices: campNotes }, { tone: 'info', title: 'Qualifying offers accepted', lines: qoMine.map(x => x + ' (one year; he’s under contract with you this season).') }) } : {}), clubs, offered: {}, extPlan: [], cap: box.cap, overseas: box.overseas, tstats: {}, tstatsHist: { ...(s.tstatsHist || {}), [this.Y]: s.tstats || {} }, favBench: {}, mandateFails: {}, season: Y, phase: 'preseason', rosters, fa, teams, assets, day: 0, expansion, expTeams, games: [], po: null, playin: null, playinRes: [], lotto: null, picks: [...order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...order.map((orig, i) => ({ n: order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: Y, adv: {}, expanded, lgLog, screen: s.spectator ? s.screen : 'dash', tTid: s.teams.find(t => !this.isUser(s, t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [] };
     });
     this.enforceRetirement();
     offseasonMandates(this);
@@ -1568,7 +1577,7 @@ export class Game {
     const cand = box.fa.map(id => P[id]).filter(q => q && !q.inj && q.ovr >= w.ovr - 2).sort((a, b) => b.ovr - a.ovr).slice(0, 6), best = Math.max(-Infinity, ...cand.map(q => rosterValue(this, st2, t, q, std.filter(x => x !== w.id).concat(q.id)))); if (best < cut.v + 4) return null;
     const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
   }
-  private busy = false;
+  busy = false;
   _rosterRef: any = null;
 
   // Your teams over the roster limit (God Mode can sign and move players past it).
@@ -1680,7 +1689,7 @@ export class Game {
     let inOffers = (s.inOffers || []).filter((o: any) => day - o.day <= 10 && day < DAY.TRADE_DEADLINE && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
     let notices = patch.notices ?? s.notices;
     let offerPast: string[] = s.offerPast || []; const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
-    if (day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
+    if (!s.spectator && day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
       const st2 = { ...s, rosters: box.rosters, cap: box.cap, assets: box.assets }; let x: any = null;
       for (let i = 0; i < 4 && !x; i++) { x = offerToUser(this, st2, (gp, gv, gk, gvk) => teamGain(this, st2, s.me, gp, gv, gk, gvk)); if (x && offerPast.includes(okey(x))) x = null; }
       if (x) offerPast = [...offerPast, okey(x)].slice(-80);
@@ -1857,6 +1866,18 @@ export class Game {
   // Draft board shortcuts. Someone else's pick: trade with the team that owns it ("Trade for
   // pick" puts the pick on their side of the table). Your pick: trade with the partner you had
   // up ("Trade pick" puts it on yours). "Propose trade" opens the same screen with nothing selected.
+  // A player of yours (his profile's Trade button): the trade screen with him on your side, facing the
+  // partner you had up (or the first AI team). Another team's player goes on their side.
+  playerToTrade(pid: number) {
+    const s0 = this.state; let own = -1; Object.keys(s0.rosters).forEach(k => { if (s0.rosters[k].includes(pid)) own = +k; });
+    if (own < 0) return; if (this.isUser(s0, own) && own !== s0.me) this.switchTeam(own);
+    this.setState(s => {
+      const base = { modal: false, teamModal: null, listModal: null, screen: 'trade', tkMine: [], tkTheirs: [], tMsg: null };
+      if (own !== s.me) return { ...base, tTid: own, tMine: [], tTheirs: [pid] };
+      const tTid = s.tTid == null || this.isUser(s, s.tTid) ? s.teams.find(t => !this.isUser(s, t.tid))?.tid ?? 0 : s.tTid;
+      return { ...base, tTid, tMine: [pid], tTheirs: [] };
+    });
+  }
   pickToTrade(assetId: string, select: boolean) {
     const a0 = this.state.assets.find(a => a.id === assetId); if (!a0) return;
     if (this.isUser(this.state, a0.owner) && a0.owner !== this.state.me) this.switchTeam(a0.owner);

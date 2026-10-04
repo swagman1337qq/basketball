@@ -8,7 +8,7 @@ export function TransactionsScreen({ vm }: { vm: VM }) {
   const pg = usePaged(srt.rows, 'transactions', 40, srt.sortKey);
   return (
     <>
-      <div style={{ display: "flex", marginBottom: "14px" }}>
+      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "14px" }}>
         <div style={{ display: "inline-flex", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
           {(vm.txSegs || []).map((sg: any, i: number) => (
             <button key={i} onClick={sg.onClick} style={{ all: "unset", cursor: "pointer", padding: "6px 14px", fontSize: "13px", color: sg.color, boxShadow: sg.ring }}>
@@ -16,6 +16,7 @@ export function TransactionsScreen({ vm }: { vm: VM }) {
             </button>
           ))}
         </div>
+        {(vm.txYearOpts || []).length > 1 && <select className="input" aria-label="League year" value={vm.txYi} onChange={e => vm.setTxYear(+e.target.value)} style={{ width: "auto", fontSize: "13px" }}>{vm.txYearOpts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}</select>}
       </div>
       <table className="table" style={{ fontSize: "13px" }}>
         <thead>
@@ -50,7 +51,7 @@ export function TransactionsScreen({ vm }: { vm: VM }) {
       </table>
           {pg.pager}
       <p style={{ margin: "10px 0 0", color: "var(--color-neutral-700)", fontSize: "12px" }}>
-        Your moves are shaded. Click a column to sort (Date: newest or oldest first). Other teams sign, trade and waive players as days pass.
+        Your moves are shaded. Click a column to sort (Date: newest or oldest first). Other teams sign, trade and waive players as days pass. Earlier league years (each starts when free agency opens) are in the picker.
       </p>
     </>
   );

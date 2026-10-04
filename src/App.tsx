@@ -14,8 +14,8 @@ export function App() {
   const [error, setError] = useState('');
   useEffect(() => { loadCards(); }, []); // the shared player-card library
 
-  const onCreate = useCallback(async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' = '') => {
-    const game = Game.create(seed, tids, { worst: start === 'worst', hopeless: start === 'hopeless' });
+  const onCreate = useCallback(async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' | 'spectate' = '') => {
+    const game = Game.create(seed, tids, { worst: start === 'worst', hopeless: start === 'hopeless', spectate: start === 'spectate' });
     const now = Date.now();
     const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
     row.summary = summarize(row.data);

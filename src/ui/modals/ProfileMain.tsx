@@ -116,7 +116,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
           <Ring v={p.ovr} label="Overall" />
           <Ring v={potView(p, { god: !!s.god, own: tid >= 0 && gm.isUser(s, tid), tid: s.me, sd: scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting) })} label={s.god ? 'True potential' : 'Potential'} ceiling />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '130px' }}>
-            {pl.isMine && pl.canExt && <button className="btn btn-primary" onClick={() => gm.setState({ ptab: 'contract' })} title="He's eligible for an extension now">Extend…</button>}{pl.isMine && <><button className="btn btn-secondary" onClick={pl.release}>Release</button><button className="btn btn-ghost" onClick={pl.toAbroad} style={{ fontSize: '12px' }}>Release to play overseas</button></>}
+            {pl.isMine && pl.canExt && <button className="btn btn-primary" onClick={() => gm.setState({ ptab: 'contract' })} title="He's eligible for an extension now">Extend…</button>}{pl.isMine && <><button className="btn btn-secondary" onClick={() => gm.playerToTrade(p.id)} title="Open the trade screen with him on your side">Trade</button><button className="btn btn-secondary" onClick={pl.release}>Release</button><button className="btn btn-ghost" onClick={pl.toAbroad} style={{ fontSize: '12px' }}>Release to play overseas</button></>}
             {pl.isOther && <button className="btn btn-primary" onClick={pl.tradeFor}>Trade for</button>}
             {pl.isFA && <button className="btn btn-primary" onClick={pl.sign}>Sign · {pl.ask}</button>}
           </div>

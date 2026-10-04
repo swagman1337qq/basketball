@@ -86,6 +86,14 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           </button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>Spectator Mode</div>
+          <div><div>{vm.spec.on ? 'On: the AI runs every team and you watch' : 'Off: you run the ' + vm.myName}</div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Watch the league run itself, season after season: the AI makes every decision for every team (rosters, trades, free agency, the draft, lineups) and nothing stops to ask you anything. Sim a day, a week, to the champion or several seasons; history and stats are kept as usual. Take over any team whenever you like.</div></div>
+          {vm.spec.on
+            ? <button className="btn btn-secondary" onClick={vm.spec.pick} disabled={vm.spec.running} style={{ whiteSpace: "nowrap" }}>Manage a team…</button>
+            : <button className="btn btn-secondary" onClick={() => { if (window.confirm('Start Spectator Mode? The AI takes over your team' + (vm.ctx.s.managed.length > 1 ? 's' : '') + ' and every decision from now on. You can take over any team again later.')) vm.ctx.gm.enterSpectator(); }} style={{ whiteSpace: "nowrap" }}>Start spectating</button>}
+        </div>
+        {!vm.spec.on && <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Owner can fire you
           </div>
@@ -100,7 +108,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           <button className="btn btn-secondary" onClick={vm.firing.toggle} style={{ whiteSpace: "nowrap" }}>
             {vm.firing.btn}
           </button>
-        </div>
+        </div>}
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Cap easy mode

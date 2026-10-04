@@ -11,8 +11,8 @@ function Rail({ vm }: { vm: VM }) {
       </button>
       <div title={vm.myName} style={{ padding: "6px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>{vm.myLogoSm}<span style={{ ...tiny, fontWeight: 600 }}>{vm.myAbbr}</span></div>
       <LeagueMenu vm={vm} compact />
-      <button className="btn btn-primary" onClick={vm.play1} title="Play next game" style={{ width: "66px", padding: "4px 0", fontSize: "11px" }}>▶ Game</button>
-      <button className="btn btn-secondary" onClick={vm.play7} title="Play one week" style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>▶▶ Week</button>
+      <button className="btn btn-primary" onClick={vm.play1} title={vm.play1Label} style={{ width: "66px", padding: "4px 0", fontSize: "11px" }}>{vm.spec.on ? '▶ Sim' : '▶ Game'}</button>
+      <button className="btn btn-secondary" onClick={vm.play7} title={vm.play7Label} style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>{vm.spec.on ? '▶▶ More' : '▶▶ Week'}</button>
       {(vm.navGroups || []).map((g: any, gi: number) => (
         <div key={gi} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", width: "100%", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "6px", marginTop: "8px" }}>
           <span style={{ ...tiny, fontSize: "9.5px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-accent-700)", marginBottom: "2px" }}>{g.label === "Management" ? "Manage" : g.label}</span>
@@ -56,12 +56,13 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
         </div>
         <LeagueMenu vm={vm} />
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <button className="btn btn-primary" onClick={vm.play1} style={{ width: "100%" }}>
-            Play next game
+          <button className="btn btn-primary" onClick={vm.play1} disabled={vm.spec.on && vm.spec.running} style={{ width: "100%" }}>
+            {vm.play1Label}
           </button>
-          <button className="btn btn-secondary" onClick={vm.play7} style={{ width: "100%" }}>
-            Play one week
+          <button className="btn btn-secondary" onClick={vm.play7} disabled={vm.spec.on && vm.spec.running} style={{ width: "100%" }}>
+            {vm.play7Label}
           </button>
+          {vm.spec.on && (vm.spec.running ? <button className="btn btn-secondary" onClick={vm.spec.stop} style={{ width: "100%" }}>■ Stop</button> : <button className="btn btn-ghost" onClick={vm.spec.pick} style={{ width: "100%" }}>Manage a team…</button>)}
         </div>
         {(vm.navGroups || []).map((g: any, i: number) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "8px" }}>

@@ -177,6 +177,9 @@ Screens: player profile (Overview, Contract, Development, History, Comparison), 
 
 Screens: My teams, Settings, League editor, Player cards, Daily schedule, Tutorial, What's new. Code: `easy.ts`, `playerCard.ts`, `GodPlayerEditor.tsx`, `Tour.tsx`, `db/saves.ts`, `db/cards.ts`.
 
+- Spectator Mode (`spectator.ts`, `SpectatorDashboard.tsx`): no team is yours. `enterSpectator` empties `s.managed` (so `isUser` is false for every team and the AI runs all of them) and sets `s.spectator`; your clubs' front-office records go to `s.clubArchive`. While spectating, `clubOf`/`clubPatch` ignore `s.me`, `addNotice` adds nothing, there are no trade offers to you (`simDay`), owner letters, GM contract decisions or job offers (`seasonReview`), and `startFA` doesn't wait on Pre-Free Agency decisions. `spectate(goal)` drives the season: a step, days, the end of the regular season, the draft, the next opening night or N seasons (each ends when a champion is crowned); `stopSim` stops it. The season bar, sidebar and the Spectator dashboard (standings with playoff/play-in lines, champion, leaders, injuries, latest moves, champions) offer the goals; management screens leave the menu. `manageTeam(tid)` ends it (from Manage a team…, a team's page or Settings): the team's archived records return or it starts fresh, a league that began spectating sets up the GM first, and `graceY` keeps the owner from firing you over the season you joined. Start: the title screen's Spectator Mode option (`Game.create(..., { spectate })`) or Settings.
+- Player profile: Trade (above Release, your players) opens the trade screen with him on your side (`Game.playerToTrade`). Transactions: a league-year picker (years split at each free agency's salary-cap line) and an Injuries filter.
+
 ## Menu screens
 
 The menu is `NAV` in `src/ui/viewModel.ts`; `GMView.tsx` picks the component. Screens marked † appear only in God Mode (My teams also appears when you run more than one team).
@@ -242,6 +245,7 @@ All in `src/engine/`.
 | `eligibility.ts` | National-team eligibility |
 | `family.ts` | Sons and brothers of former players; God Mode's family-link editing |
 | `faces.ts` | Face generator (`makeFace`), layered SVG renderer (`faceSvg`) and the option lists the face editor offers |
+| `spectator.ts` | Spectator Mode: hand every team to the AI (`enterSpectator`), take one back (`manageTeam`), and the driver that runs the season toward a goal (`spectate`) |
 | `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
 | `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
 | `prune.ts` | Trims retired players to keep saves small |

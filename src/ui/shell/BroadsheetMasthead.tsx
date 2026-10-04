@@ -33,11 +33,11 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
         <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: "nowrap", fontSize: "13px" }}>
               {vm.themeLabel}
             </button>
-            <button className="btn btn-secondary" onClick={vm.play7} style={{ whiteSpace: "nowrap" }}>
-              Play week
+            <button className="btn btn-secondary" onClick={vm.play7} disabled={vm.spec.on && vm.spec.running} style={{ whiteSpace: "nowrap" }}>
+              {vm.spec.on ? vm.play7Label : 'Play week'}
             </button>
-            <button className="btn btn-primary" onClick={vm.play1} style={{ whiteSpace: "nowrap" }}>
-              Play next game
+            <button className="btn btn-primary" onClick={vm.play1} disabled={vm.spec.on && vm.spec.running} style={{ whiteSpace: "nowrap" }}>
+              {vm.play1Label}
             </button>
           </div>
         </div>

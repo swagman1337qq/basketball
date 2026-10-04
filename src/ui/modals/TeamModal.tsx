@@ -45,7 +45,7 @@ export function TeamModal({ vm }: { vm: VM }) {
                 </button>
               </>)}
               {!!vm.tm.canSwitch && <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: "nowrap" }}>Switch to this team</button>}
-              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap", ...godBtn }}>Take over</button>}
+              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap", ...(vm.tm.spect ? {} : godBtn) }}>{vm.tm.spect ? 'Manage this team' : 'Take over'}</button>}
               {!!vm.tm.canResign && <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Resign · hand to AI</button>}
             </div>
           </div>

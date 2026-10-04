@@ -13,7 +13,8 @@ import { fmtMoney as money } from './capModel';
 // ── Notices: the popup that tells you how a move turned out ──────────────────────
 export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string } // offerId: an AI team's trade offer (s.inOffers)
 let seq = 0;
-export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { return [...(s.notices || []), { ...n, id: 'n' + Date.now() + '-' + seq++ }].slice(-30); }
+// Spectator Mode: nothing stops to tell you anything (the notices would be about a team you don't run).
+export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { if (s.spectator) return s.notices || []; return [...(s.notices || []), { ...n, id: 'n' + Date.now() + '-' + seq++ }].slice(-30); }
 export const contractLine = (g: Game, p: any) => money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2);
 
 const SKIP = ['tenDay', 'hardship'];
@@ -33,7 +34,7 @@ export function startPreFA(g: Game) {
         if (!stay) lgLog.unshift({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: p.name + ' declined his player option with the ' + T.region + ' ' + T.name + ' and will be a free agent' });
         else if (p.ovr >= 60) lgLog.unshift({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: p.name + ' exercised his ' + money(sal) + ' player option with the ' + T.region + ' ' + T.name }); }); });
     const notices = mine.length ? addNotice(s, { tone: 'info', title: 'Player options are in', lines: mine, pids: opts.filter(o => o.tid === s.me).map(o => o.pid) }) : s.notices;
-    return { preFA: { season: Y, opts }, lgLog, notices, log: g.logEntry(s, 'Pre-Free Agency: player options are in. Decide your team options, qualifying offers and expiring contracts before free agency opens on June 30.') };
+    return { preFA: { season: Y, opts }, lgLog, notices, log: s.spectator ? s.log : g.logEntry(s, 'Pre-Free Agency: player options are in. Decide your team options, qualifying offers and expiring contracts before free agency opens on June 30.') };
   });
 }
 
