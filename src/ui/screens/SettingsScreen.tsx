@@ -123,6 +123,15 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>God Mode: how far into the future every team, you and the AI, can trade draft picks and pick swaps. Default 4 (the NBA allows 7). Picks further out stay with their teams until they come into range.</div></div>
           <select className="input" value={vm.pickYearsSet.v} onChange={e => vm.pickYearsSet.set(+e.target.value)} style={{ width: "auto" }}>{[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} year{n === 1 ? '' : 's'}</option>)}</select>
         </div>}
+        {vm.god.on && <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600", color: GOD_PINK }}>Roster size</div>
+          <div><div>{vm.rosterLimSet.max} standard contracts in season ({vm.rosterLimSet.max + 6} in the offseason), at least {vm.rosterLimSet.min} on opening night</div>
+            <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>God Mode: the league’s roster limits, for every team (the NBA: 15 in season, 21 in the offseason, at least 14). Two-way contracts stay at 3. AI teams over a lowered limit waive players right away. Force Sign can take you past the limit, but you can’t play a game until you’re back under it.</div></div>
+          <div style={{ display: "flex", gap: "6px", alignItems: "center", fontSize: "12px" }}>
+            <label>Max <select className="input" value={vm.rosterLimSet.max} onChange={e => vm.rosterLimSet.set(+e.target.value, vm.rosterLimSet.min)} style={{ width: "auto" }}>{Array.from({ length: 11 }, (_, i) => 10 + i).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+            <label>Min <select className="input" value={vm.rosterLimSet.min} onChange={e => vm.rosterLimSet.set(vm.rosterLimSet.max, +e.target.value)} style={{ width: "auto" }}>{Array.from({ length: vm.rosterLimSet.max - 7 }, (_, i) => 8 + i).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+          </div>
+        </div>}
         <div style={{ display: "grid", gridTemplateColumns: "180px minmax(0,1fr) auto", gap: "16px", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--color-divider)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: "600" }}>
             Team sales

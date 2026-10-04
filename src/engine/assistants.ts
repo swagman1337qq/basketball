@@ -3,7 +3,7 @@
 // age, development, injuries). Better-funded staffs read form more accurately.
 import type { Game } from './Game';
 import { mulberry32 } from './rng';
-import { capRoom, nums, signingMethods, stdIds, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
+import { capRoom, nums, seasonMax, signingMethods, stdIds, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { teamRating } from './ratings';
 
 export interface AdviceLine { pid: number; kind: 'start' | 'bench' | 'more' | 'less' | 'rest' | 'dev' | 'hurt'; text: string; by: string }
@@ -85,7 +85,7 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
   const top9 = rot.slice(0, 9), IDEAL: Record<string, number> = { G: 3.5, W: 3, B: 2.5 }, WORD: Record<string, string> = { G: 'guard', W: 'wing', B: 'big' };
   const added: any[] = [], needOf = () => { const n = (['G', 'W', 'B'] as const).map(k => ({ k, d: IDEAL[k] - top9.filter(p => p.grp === k).length - added.filter(p => p.grp === k).length })).sort((a, b) => b.d - a.d)[0]; return n.d >= 0.5 ? n.k : null; };
   let needGrp: string | null = needOf(); const need0 = needGrp;
-  const spots = Math.max(0, 15 - std.length), twSpots = Math.max(0, TWO_WAY_MAX - tw.length);
+  const spots = Math.max(0, seasonMax(s) - std.length), twSpots = Math.max(0, TWO_WAY_MAX - tw.length);
   // The budget, spent as we pick.
   let roomLeft = capRoom(g, s, tid), mleUsed = false, baeUsed = false, roomExcUsed = false;
   const money = (x: number) => '$' + x.toFixed(x < 10 ? 2 : 1) + 'M';
@@ -133,7 +133,7 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
     .forEach((p: any) => picks.push({ pid: p.id, kind: 'twoWay', why: 'Two-way idea: ' + p.age + ' years old, ' + p.ovr + ' now with a ' + g.potRead(p, tid, s) + ' ceiling (our read). Costs nothing against the cap; let him develop.' }));
   const modeS = mode === 'contend' ? 'We’re a top-10 roster (' + ordinal(rank) + '), so I’m after players who help now.' : mode === 'rebuild' ? 'We’re rebuilding (' + ordinal(rank) + ' of ' + nT + ' by roster), so I’m after youth and upside, not expensive veterans.' : 'We’re in the middle of the pack (' + ordinal(rank) + '), so I want value: players who help now without blocking the young guys.';
   const room = capRoom(g, s, tid);
-  const budgetS = spots === 0 ? 'The roster is full at 15, so only a clear upgrade makes sense.' : spots + ' open roster spot' + (spots === 1 ? '' : 's') + (room > 1 ? ', ' + money(room) + ' of cap space' : ', no cap space') + (need0 ? '; our biggest need is a ' + WORD[need0] + '.' : '.');
+  const budgetS = spots === 0 ? 'The roster is full at ' + seasonMax(s) + ', so only a clear upgrade makes sense.' : spots + ' open roster spot' + (spots === 1 ? '' : 's') + (room > 1 ? ', ' + money(room) + ' of cap space' : ', no cap space') + (need0 ? '; our biggest need is a ' + WORD[need0] + '.' : '.');
   const summary = modeS + ' ' + budgetS + (picks.length ? '' : ' Nobody out there we can afford would help right now.');
   return { by, summary, picks };
 }

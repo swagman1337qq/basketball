@@ -13,7 +13,7 @@ import { baseline, deltas, fmtChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
 import { teamRating } from '../../engine/ratings';
-import { nums, rosterMax, stdIds, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
+import { nums, rosterMax, seasonMax, stdIds, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
 import { financesOf } from '../../engine/frontOffice';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
@@ -139,11 +139,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
           {cur && <div>Team rating: <b>{tr}</b>/100 <span style={muted}>({trRank}{['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})</span></div>}
           <div>{mov != null && <>MOV: <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{mov >= 0 ? '+' : ''}{mov.toFixed(1)}</b> · </>}Average age {avgAge.toFixed(1)}</div>
           <div>Locker room: <LockerRoomChip vm={vm} tid={tid} /></div>
-          {cur && (lim > 15 ? (
+          {cur && (lim > seasonMax(s) ? (
             // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
             <div style={{ marginTop: 6 }}>
-              <b style={{ color: std.length > 15 ? 'var(--color-accent-700)' : undefined }}>{std.length}/15</b> standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
-              <div style={{ fontSize: '12px', color: std.length > 15 ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>{std.length > 15 ? 'You’ll need to cut ' + (std.length - 15) + ' player' + (std.length - 15 === 1 ? '' : 's') + ' when the regular season starts (or convert Exhibit 10s to two-way deals).' : std.length === 15 ? 'Full for opening night.' : (15 - std.length) + ' open spot' + (15 - std.length === 1 ? '' : 's') + ' for opening night; ' + (lim - std.length) + ' more you can add before then.'}</div>
+              <b style={{ color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}>{std.length}/{seasonMax(s)}</b> standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+              <div style={{ fontSize: '12px', color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>{std.length > seasonMax(s) ? 'You’ll need to cut ' + (std.length - seasonMax(s)) + ' player' + (std.length - seasonMax(s) === 1 ? '' : 's') + ' when the regular season starts (or convert Exhibit 10s to two-way deals).' : std.length === 15 ? 'Full for opening night.' : (15 - std.length) + ' open spot' + (15 - std.length === 1 ? '' : 's') + ' for opening night; ' + (lim - std.length) + ' more you can add before then.'}</div>
             </div>
           ) : <div style={{ marginTop: 6 }}>{Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}</div>)}
           {fin && <div>Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b></div>}
@@ -175,10 +175,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
       {cur ? (
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block marks the starting five, grey the bench. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of 15{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (21 allowed in the offseason, 15 by opening night)' : ''}</div>
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => Row({ id, i, list: mainIds }))}</tbody></table></div>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the 15-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
                     {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{tw.map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>
             <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Press To two-way or Make standard, or waive him by opening night.</span></div>

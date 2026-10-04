@@ -3,7 +3,7 @@
 // money; cap holds; and a reference for every CBA rule the league uses, at today's numbers.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { BIRD_LABEL, birdOf, capHold, capState, DAY, describeContract, exceptionsOf, nums, qoFor, rosterMax, stdIds, taxBill, teamSalary, twoWayIds, yosOf } from '../../engine/cba';
+import { BIRD_LABEL, birdOf, campMax, capHold, capState, DAY, describeContract, exceptionsOf, nums, qoFor, rosterMax, rosterMin, seasonMax, stdIds, taxBill, teamSalary, twoWayIds, yosOf } from '../../engine/cba';
 import { answerOfferSheet, convertContract, convOptions, decisionsFor, renounce } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { Link, muted, ruleH4 } from '../kit';
@@ -122,7 +122,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
 const qoOk = (g: any, p: any) => !!p.rookieScale || yosOf(g, p) <= 3;
 
 function CbaReference({ vm }: { vm: VM }) {
-  const { gm } = vm.ctx, N = nums(gm), M = fmtMoney;
+  const { gm, s } = vm.ctx, N = nums(gm), M = fmtMoney, mx = seasonMax(s);
   const rows: [string, string][] = [
     ['Salary cap', M(N.CAP) + '. Follows the league’s cap outlook (League → Cap outlook); up to +10% a year. Tax line ' + M(N.TAX) + ', 1st apron ' + M(N.AP1) + ', 2nd apron ' + M(N.AP2) + ', salary floor ' + M(N.FLOOR) + '.'],
     ['Maximum salary', '25% of the cap with 0–6 years of service (' + M(N.max(0)) + '), 30% with 7–9 (' + M(N.max(7)) + '), 35% with 10+ (' + M(N.max(10)) + '). Raises up to 8% with Bird rights, 5% otherwise.'],
@@ -137,11 +137,11 @@ function CbaReference({ vm }: { vm: VM }) {
     ['Mid-level exceptions', 'Non-taxpayer ' + M(N.NTMLE) + ' (4 years; hard-caps you at the 1st apron). Taxpayer ' + M(N.TPMLE) + ' (2 years; hard cap at the 2nd apron; not available above it). Room ' + M(N.ROOM) + ' (2 years) for teams that used cap space.'],
     ['Bi-annual exception', M(N.BAE) + ', up to 2 years; not in consecutive seasons; hard cap at the 1st apron; not for teams above it.'],
     ['Disabled player exception', 'For a season-ending injury (before ' + gm.fmtS(DAY.DPE_DEADLINE) + '): half his salary or the non-taxpayer MLE, whichever is less, to sign or trade for one player on a one-year deal.'],
-    ['Two-way contracts', 'Up to 3 per team for players with fewer than 4 years of service; ' + M(N.TWO_WAY) + ', off the 15-man roster and the cap; up to ' + DAY.TWO_WAY_GAMES + ' NBA games; not playoff-eligible. Can be converted to a standard contract.'],
-    ['Exhibit 10', 'One-year, non-guaranteed minimum deals for training camp (21-man offseason limit). Convert to a two-way before opening night, keep (becomes standard) or waive at no cap cost; a waived Exhibit 10 who joins your CCP team earns up to ' + M(N.E10_BONUS) + '.'],
+    ['Two-way contracts', 'Up to 3 per team for players with fewer than 4 years of service; ' + M(N.TWO_WAY) + ', off the ' + mx + '-man roster and the cap; up to ' + DAY.TWO_WAY_GAMES + ' NBA games; not playoff-eligible. Can be converted to a standard contract.'],
+    ['Exhibit 10', 'One-year, non-guaranteed minimum deals for training camp (' + campMax(s) + '-man offseason limit). Convert to a two-way before opening night, keep (becomes standard) or waive at no cap cost; a waived Exhibit 10 who joins your CCP team earns up to ' + M(N.E10_BONUS) + '.'],
     ['10-day contracts', 'From ' + gm.fmtS(DAY.TEN_DAY_START) + ': prorated minimum for 10 days, at most two with the same team; after that it’s the rest of the season.'],
-    ['Hardship exception', 'With 4+ players out, a 16th player on a non-guaranteed minimum deal until the roster is healthy.'],
-    ['Roster', '15 standard contracts in season (21 in the offseason), at least 14; plus up to 3 two-ways.'],
+    ['Hardship exception', 'With 4+ players out, one player past the ' + mx + '-man limit on a non-guaranteed minimum deal until the roster is healthy.'],
+    ['Roster', mx + ' standard contracts in season (' + campMax(s) + ' in the offseason), at least ' + rosterMin(s) + '; plus up to 3 two-ways.' + (s.rosterLim ? ' (Changed in God Mode; the NBA has 15, 21 and 14.)' : '')],
     ['Options, kickers, no-trade clauses', 'Player or team option on the final year. Trade kicker: up to 15% of remaining salary, paid when traded (never above the max). No-trade clauses only for 8+ year veterans with 4+ years on the team, re-signing with Bird rights.'],
     ['Over-38 rule', 'Contracts of 4+ years can’t run past his 38th birthday (in effect: fewer years for older players).'],
     ['Extensions', 'Rookie scale: in the offseason before his final season until opening night, up to 5 years. Veterans: 2 years after signing, with 2 or fewer years left; first year up to 140% of his salary or of the average salary; 4 years (5 for supermax).'],

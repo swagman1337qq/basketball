@@ -1,7 +1,7 @@
 // Multi-team dashboard: every franchise you run at a glance, with alerts, and switching.
 import { godBtn, godText } from '../kit';
 import type { VM } from '../vm';
-import { teamSalary, rosterMax, stdIds } from '../../engine/cba';
+import { teamSalary, rosterMax, rosterMin, stdIds } from '../../engine/cba';
 import { h4Style, Kicker, Link, muted } from '../kit';
 
 export function MyTeamsScreen({ vm }: { vm: VM }) {
@@ -23,7 +23,7 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
           const alerts: [string, string][] = [];
           const std = stdIds(gm, ids).length, lim = rosterMax(s);
           if (std > lim) alerts.push(['bad', std + ' standard contracts: cut to ' + lim]);
-          if (std < 14 && s.phase !== 'fa' && s.phase !== 'draft') alerts.push(['bad', 'Only ' + std + ' players: sign to 14']);
+          if (std < rosterMin(s) && s.phase !== 'fa' && s.phase !== 'draft') alerts.push(['bad', 'Only ' + std + ' players: sign to ' + rosterMin(s)]);
           if (pay > ceil) alerts.push(['bad', 'Payroll ' + money(pay) + ' is over the owner’s ' + money(ceil) + ' ceiling']);
           else if (pay > gm.TAX) alerts.push(['warn', 'In the luxury tax (' + money(pay - gm.TAX) + ' over)']);
           if (inbox) alerts.push(['warn', inbox + ' decision' + (inbox === 1 ? '' : 's') + ' waiting in the inbox']);

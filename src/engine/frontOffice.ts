@@ -4,7 +4,7 @@
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
-import { capState, stdIds, taxBill as cbaTax, teamSalary } from './cba';
+import { capState, rosterMin, seasonMax, stdIds, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
@@ -495,10 +495,10 @@ export function fireSale(g: Game, s: any, tid: number, rosters: any, lgLog: any[
   const best2 = rosters[tid].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 2);
   const cands = rosters[tid].filter(id => !best2.includes(id) && !P[id].rookieScale && P[id].ctype !== 'rookie').sort((a, b) => (P[b].amt - g.fair(P[b].ovr)) - (P[a].amt - g.fair(P[a].ovr)));
   for (const worst of cands) {
-    if (teamSalary(g, { ...s, rosters }, tid) <= ceil || rosters[tid].length <= 13 || guard++ >= 6) break; // never below the 13-man minimum
+    if (teamSalary(g, { ...s, rosters }, tid) <= ceil || rosters[tid].length <= rosterMin(s) - 1 || guard++ >= 6) break; // never more than one under the roster minimum
     // A team with the salary room takes him; if its roster is full it waives its last minimum-salary player.
     const spare = (t: number) => stdIds(g, rosters[t]).filter((id: number) => ['min', 'ex10'].includes(P[id].ctype) || P[id].amt <= g.MINP / 60).sort((a: number, b: number) => P[a].ovr - P[b].ovr)[0];
-    const to = s.teams.filter(t => !g.isUser(s, t.tid) && (stdIds(g, rosters[t.tid]).length < 15 || spare(t.tid) != null) && teamSalary(g, { ...s, rosters }, t.tid) + P[worst].amt <= Math.max(g.CAP, g.teamCeiling(t))).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
+    const to = s.teams.filter(t => !g.isUser(s, t.tid) && (stdIds(g, rosters[t.tid]).length < seasonMax(s) || spare(t.tid) != null) && teamSalary(g, { ...s, rosters }, t.tid) + P[worst].amt <= Math.max(g.CAP, g.teamCeiling(t))).sort((a, b) => g.payrollOf(rosters[a.tid]) - g.payrollOf(rosters[b.tid]))[0];
     if (!to) continue; // nobody can take him: he stays
     if (stdIds(g, rosters[to.tid]).length >= 15) { const cut = spare(to.tid); rosters[to.tid] = rosters[to.tid].filter(x => x !== cut); fa.unshift(cut); addTx(g, s, P[cut], { k: 'waive', tid: to.tid, text: 'Waived to make room for ' + P[worst].name }); lgLog.unshift({ day: s.day, type: 'Release', teams: to.abbr, pids: [cut], text: 'Released ' + P[cut].name + ' (the ' + to.name + ' needed the roster spot)' }); }
     rosters[tid] = rosters[tid].filter(x => x !== worst); rosters[to.tid] = [...rosters[to.tid], worst];

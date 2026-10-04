@@ -14,7 +14,7 @@ import { pickCut, rosterValue } from './rosterAI';
 import type { Game } from './Game';
 import { lineupAdvice } from './assistants';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
-import { nums, stdIds, teamSalary, twoWayIds, TWO_WAY_MAX } from './cba';
+import { nums, rosterMin, seasonMax, stdIds, teamSalary, twoWayIds, TWO_WAY_MAX } from './cba';
 
 export type EasyKey = 'lineup' | 'tactics' | 'cap' | 'fa' | 'draft' | 'fire' | 'scouting' | 'injuries';
 export const EASY: [EasyKey, string, string][] = [
@@ -46,7 +46,7 @@ export function easyFreeAgency(g: Game, s: any, box: any, lgLog: any[]) {
   if (!easyOn(s, 'fa')) return;
   const P = g.db.P;
   s.managed.forEach((t: number) => {
-    for (let k = 0; k < 3 && stdIds(g, box.rosters[t]).length < 14; k++) {
+    for (let k = 0; k < 3 && stdIds(g, box.rosters[t]).length < rosterMin(s); k++) {
       const st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa };
       const cands = box.fa.filter((id: number) => !P[id].rfa).sort((a: number, b: number) => P[b].ovr - P[a].ovr).slice(0, 25);
       let done = false;
@@ -56,7 +56,7 @@ export function easyFreeAgency(g: Game, s: any, box: any, lgLog: any[]) {
   });
 }
 
-// Opening night: trim managed rosters to 15 standard contracts (and the two-way limit) when the staff
+// Opening night: trim managed rosters to the season limit (15 standard contracts, and the two-way limit) when the staff
 // makes your roster decisions (free agency or contract paperwork on easy mode). Who goes is the player
 // worth least to the team (rosterAI.ts): ability, upside, age and trajectory, role, position depth, a
 // skill nobody else has, contract, draft investment and your timeline, not the lowest overall.
@@ -64,7 +64,7 @@ export function easyCuts(g: Game, s: any, box: any, lgLog: any[]) {
   if (!easyOn(s, 'cap') && !easyOn(s, 'fa')) return;
   const P = g.db.P;
   s.managed.forEach((t: number) => {
-    while (stdIds(g, box.rosters[t]).length > 15) {
+    while (stdIds(g, box.rosters[t]).length > seasonMax(s)) {
       const w = pickCut(g, { ...s, rosters: box.rosters }, t, box.rosters[t])!.p;
       waivePlayer(g, s, box, t, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[t].abbr, pids: [w.id], text: text + ' (staff decision)' }));
     }

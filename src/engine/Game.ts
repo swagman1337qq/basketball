@@ -19,7 +19,7 @@ import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { snapEnd, snapOpening } from './progress';
-import { capState, checkTrade, nums, rosterMax, ROSTER_MIN, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
+import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
@@ -885,6 +885,7 @@ export class Game {
     return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind, bid } };
   }
   simPlayin(forced?: GameResult) {
+    if (this.state.phase === 'playin' && !this.canPlay()) return;
     this.setState(s => {
       if (s.phase !== 'playin') return null;
       const pi = JSON.parse(JSON.stringify(s.playin)), todo = this.playinPending(pi);
@@ -913,6 +914,7 @@ export class Game {
     });
   }
   simPo(mode, forced?: GameResult) {
+    if (this.state.phase === 'playoffs' && !this.canPlay()) return;
     this.setState(s => {
       if (s.phase !== 'playoffs' || !s.po || s.po.champ != null) return null;
       const po = { ...s.po, finals: { ...(s.po.finals || {}) }, cf: { ...(s.po.cf || {}) }, rounds: s.po.rounds.map(r => r.map(x => ({ ...x, g: (x.g || []).slice() }))) };
@@ -1154,13 +1156,13 @@ export class Game {
         const first = teams.length - NEW.length, newT = NEW.map((_, j) => first + j);
         // Expansion draft: each existing AI club loses one player outside its top eight.
         for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; addTx(this, s, P[id], { k: 'expansion', from: t, to: nt }); }
-        newT.forEach(nt => { while (rosters[nt].length < 14 && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
+        newT.forEach(nt => { while (rosters[nt].length < rosterMin(s) && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
         for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = this.prospectPot(p, Math.random); d.cls[Y + 1].push(p.id); }
         expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
         lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to ' + teams.length + ' teams: ' + NEW.map(n => n.region + ' ' + n.name).join(', ') + '.' }, ...lgLog];
       }
-      // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to 14
-      // with minimum deals and cut to 15 (guaranteed money they waive stays on their cap).
+      // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to the minimum
+      // (14) with minimum deals and cut to the limit (15; guaranteed money they waive stays on their cap).
       const box = { rosters, fa, overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, byClub: Record<number, string[]> = {};
       const lgA: any[] = [], sT = { ...s, teams }; acceptQualifyingOffers(this, sT, box, lgA, byClub);
       Object.keys(box.rosters).forEach(k => { if (this.isUser(s, +k)) return; fillRoster(this, sT, box, +k, lgA); trimRoster(this, sT, box, +k, lgA); });
@@ -1211,7 +1213,7 @@ export class Game {
       return { ...top, clubs, rosters, fa, overseas, lgLog, tMine: s.tMine.filter(id => !P[id].retired), tTheirs: s.tTheirs.filter(id => !P[id].retired) };
     });
   }
-  // Opening night: at most 15 standard contracts and 3 two-ways, at least 14. Exhibit 10
+  // Opening night: at most 15 standard contracts (the season limit) and 3 two-ways, at least 14. Exhibit 10
   // players still on the roster become standard contracts; short clubs sign minimum deals.
   startSeason() {
     this.healIdle(this.state);
@@ -1222,10 +1224,10 @@ export class Game {
       if (s.phase !== 'preseason' || s.unemployed) return null;
       const P = this.db.P, box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), by: Record<number, string[]> = {};
       easyCuts(this, s, box, lgLog);
-      if (!s.managed.every(t => stdIds(this, box.rosters[t]).length <= 15 && twoWayIds(this, box.rosters[t]).length <= TWO_WAY_MAX)) return null;
+      if (!s.managed.every(t => stdIds(this, box.rosters[t]).length <= seasonMax(s) && twoWayIds(this, box.rosters[t]).length <= TWO_WAY_MAX)) return null;
       Object.keys(box.rosters).forEach(k => { const t = +k; box.rosters[t].forEach(id => { if (P[id].ctype === 'ex10') P[id].ctype = 'min'; });
         if (!this.isUser(s, t)) trimRoster(this, s, box, t, lgLog);
-        const signed = fillRoster(this, s, box, t, lgLog); if (signed.length && this.isUser(s, t)) by[t] = ['League minimum of ' + ROSTER_MIN + ' players: signed ' + signed.join(', ') + ' to minimum deals']; });
+        const signed = fillRoster(this, s, box, t, lgLog); if (signed.length && this.isUser(s, t)) by[t] = ['League minimum of ' + rosterMin(s) + ' players: signed ' + signed.join(', ') + ' to minimum deals']; });
       // Opening night: an owner's payroll order still unmet → his fire sale, before the first game
       // (after AI teams cut to 15, so the teams taking the contracts have room).
       const fsPatch = openingNightFireSales(this, s, box.rosters, lgLog, box.fa); s = { ...s, ...fsPatch };
@@ -1549,7 +1551,7 @@ export class Game {
     const P = this.db.P, T = s.teams, ai = T.map(t => t.tid).filter(t => !this.isUser(s, t)), r = Math.random(), tid = () => ai[Math.floor(Math.random() * ai.length)];
     if (!ai.length) return null;
     const st = { ...s, day, rosters: box.rosters, fa: box.fa, cap: box.cap };
-    if (r < .4) { const t = tid(); if (stdIds(this, box.rosters[t]).length >= 15 || !box.fa.length) return null; const c = box.fa.slice().filter(x => !P[x].rfa).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)]; if (id == null) return null;
+    if (r < .4) { const t = tid(); if (stdIds(this, box.rosters[t]).length >= seasonMax(st) || !box.fa.length) return null; const c = box.fa.slice().filter(x => !P[x].rfa).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)]; if (id == null) return null;
       const p = P[id], terms = aiTerms(this, st, t, p); if (!terms || (s.day >= DAY.TEN_DAY_START && p.ovr < 45)) return null;
       if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.teamCeiling(T[t])) return null;
       if (p.waived?.season === this.Y && p.waived.prevAmt > nums(this).NTMLE && teamSalary(this, st, t) > this.AP1) return null;
@@ -1562,17 +1564,42 @@ export class Game {
       return null; }
     // A waiver: the least valuable player (rosterAI: worth to this team, the draft investment included),
     // only for a free agent clearly worth more to the team.
-    const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < 15) return null; const st2 = { ...st, rosters: box.rosters }, cut = pickCut(this, st2, t, box.rosters[t]); if (!cut) return null; const w = cut.p;
+    const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < seasonMax(st)) return null; const st2 = { ...st, rosters: box.rosters }, cut = pickCut(this, st2, t, box.rosters[t]); if (!cut) return null; const w = cut.p;
     const cand = box.fa.map(id => P[id]).filter(q => q && !q.inj && q.ovr >= w.ovr - 2).sort((a, b) => b.ovr - a.ovr).slice(0, 6), best = Math.max(-Infinity, ...cand.map(q => rosterValue(this, st2, t, q, std.filter(x => x !== w.id).concat(q.id)))); if (best < cut.v + 4) return null;
     const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
   }
   private busy = false;
   _rosterRef: any = null;
 
+  // Your teams over the roster limit (God Mode can sign and move players past it).
+  rosterOver(s = this.state): { tid: number; std: number; tw: number }[] {
+    const lim = rosterMax(s);
+    return (s.managed || []).map(t => ({ tid: t, std: stdIds(this, s.rosters[t] || []).length, tw: twoWayIds(this, s.rosters[t] || []).length })).filter(x => x.std > lim || x.tw > TWO_WAY_MAX);
+  }
+  // No games while one of your teams is over the limit: a notice says who to cut, and false.
+  canPlay() {
+    const s = this.state, o = inSeasonPhase(s) ? this.rosterOver(s) : []; if (!o.length) return true;
+    const lim = rosterMax(s), T = s.teams;
+    this.setState(st => ({ notices: addNotice(st, { tone: 'bad', title: 'Over the roster limit', lines: [...o.map(x => T[x.tid].region + ' ' + T[x.tid].name + ': ' + x.std + ' standard contracts (the limit is ' + lim + ')' + (x.tw > TWO_WAY_MAX ? ' and ' + x.tw + ' two-ways (the limit is ' + TWO_WAY_MAX + ')' : '') + '.'), 'Waive or trade players before the next game. God Mode lets you sign past the limit, not play past it.'] }) }));
+    return false;
+  }
+  // God Mode: the league's roster size (the season maximum and the opening-night minimum; the offseason
+  // limit stays six above the maximum). AI teams over the new limit waive their least valuable players
+  // now, and in season short ones sign minimum deals; your teams get until their next game.
+  setRosterLimits(max: number, min: number) {
+    this.setState(s => {
+      if (!s.god) return null;
+      const mx = Math.max(10, Math.min(20, Math.round(max))), lim = { max: mx, min: Math.max(8, Math.min(mx, Math.round(min))) }, s2 = { ...s, rosterLim: lim };
+      const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice();
+      s.teams.forEach(t => { if (this.isUser(s, t.tid)) return; trimRoster(this, s2, box, t.tid, lgLog, rosterMax(s2)); if (s.phase === 'regular') fillRoster(this, s2, box, t.tid, lgLog); });
+      return { rosterLim: lim, ...box, lgLog };
+    });
+  }
+
   // Play n days. Every game is simulated in full; `forced` is the finished Live Game
   // for the user's game on the first day. Yields between days so the page stays responsive.
   async sim(n, forced?: GameResult) {
-    if (this.busy || this.state.phase !== 'regular') return;
+    if (this.busy || this.state.phase !== 'regular' || !this.canPlay()) return;
     if (this.state.inbox?.some(x => x.block)) return;
     this.busy = true; this.quiet = n > 1; this.stopReq = false;
     try {

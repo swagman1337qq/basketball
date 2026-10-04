@@ -3,7 +3,7 @@
 import type { Game } from './Game';
 import { addTx } from './txlog';
 import { callUpNote } from './gleague';
-import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, rosterMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, deadSchedule, type Method } from './cba';
+import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, rosterMax, seasonMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, deadSchedule, type Method } from './cba';
 
 export interface Terms { method: string; amt: number; years: number; opt?: 'player' | 'team' | null; inc?: any[]; kicker?: number; ntc?: boolean }
 
@@ -83,18 +83,9 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
   return { ok: true, m };
 }
 
-// God Mode's Force Sign: the salary cap doesn't apply (no cap room, exception or apron needed, and a
-// method he can't use counts as a plain God Mode contract) and he signs. Roster limits and an overseas
-// club's buyout clause still do. The reason it can't, or null.
+// The signing methods that spend cap room or an exception (God Mode's Force Sign turns one he can't use
+// into a plain God Mode contract).
 export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min', 'dpe'];
-export function forceSignBlock(g: Game, s: any, tid: number, p: any, method: string): string | null {
-  if (p.abroad && p.abroad.clause === 'Buyout') return 'His club holds a buyout clause: agree a buyout on the Overseas screen first.';
-  const ids = s.rosters[tid] || [], std = stdIds(g, ids).length, lim = rosterMax(s);
-  if (method === 'twoWay') return twoWayIds(g, ids).length >= TWO_WAY_MAX ? 'You already have ' + TWO_WAY_MAX + ' two-way players.' : null;
-  if (method === 'ex10') return std >= 21 ? 'Camp roster full (21).' : null;
-  if (method === 'hardship') return null;
-  return std >= lim ? 'Roster full (' + lim + (lim === 15 ? ' in season' : ' in the offseason') + '): waive or trade someone first.' : null;
-}
 
 // How an AI team would sign a player now (or null).
 export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
@@ -118,7 +109,7 @@ export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; 
   box.rosters[tid] = (box.rosters[tid] || []).filter(x => x !== p.id);
   const cap = { ...(box.cap[tid] || {}) };
   // Waiver claim: an AI team with room for the whole contract takes it over (no dead money).
-  const claimant = s.teams.filter(t => t.tid !== tid && !g.isUser(s, t.tid) && stdIds(g, box.rosters[t.tid] || []).length < 15 && capRoom(g, { ...s, rosters: box.rosters }, t.tid) >= p.amt && p.ovr >= 48 && mode !== 'buyout').sort(() => Math.random() - 0.5)[0];
+  const claimant = s.teams.filter(t => t.tid !== tid && !g.isUser(s, t.tid) && stdIds(g, box.rosters[t.tid] || []).length < seasonMax(s) && capRoom(g, { ...s, rosters: box.rosters }, t.tid) >= p.amt && p.ovr >= 48 && mode !== 'buyout').sort(() => Math.random() - 0.5)[0];
   if (claimant && Math.random() < 0.5 && p.ctype !== 'tenDay') {
     box.rosters[claimant.tid] = [...box.rosters[claimant.tid], p.id]; p.yrsWith = 0;
     lines.push(claimant.region + ' ' + claimant.name + ' claimed ' + p.name + ' off waivers from ' + T.abbr + ' (contract and all).');

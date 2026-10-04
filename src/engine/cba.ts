@@ -7,13 +7,18 @@ import type { Game } from './Game';
 // ── League calendar (82 game days spread from late October to mid-April) ────────────
 export const DAY = { EXT_TRADE: 40, PLAYOFF_WAIVE: 61, TRADE_DEADLINE: 50, TEN_DAY_START: 36, DPE_DEADLINE: 66, SIGNEE_TRADE: 26, INSEASON_SIGNEE_WAIT: 42, TEN_DAY_LEN: 5, TWO_WAY_GAMES: 50 };
 
-// Roster limits: 15 standard contracts in season (21 in the offseason and training camp),
-// plus up to 3 two-way players who don't count against the 15 or the cap. Minimum 14.
+// Roster limits: 15 standard contracts in season (21 in the offseason and training camp, six more
+// than the season limit), plus up to 3 two-way players who don't count against them or the cap.
+// Minimum 14 on opening night. God Mode can change the season maximum and the minimum (Settings).
 export const isTwoWay = (p: any) => p?.ctype === 'twoWay';
 export const stdIds = (g: Game, ids: number[]) => (ids || []).filter(id => !isTwoWay(g.db.P[id]));
 export const twoWayIds = (g: Game, ids: number[]) => (ids || []).filter(id => isTwoWay(g.db.P[id]));
-export const rosterMax = (s: any) => (s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs' ? 15 : 21);
-export const ROSTER_MIN = 14, TWO_WAY_MAX = 3;
+export const seasonMax = (s: any) => s?.rosterLim?.max ?? 15;
+export const rosterMin = (s: any) => s?.rosterLim?.min ?? 14;
+export const campMax = (s: any) => seasonMax(s) + 6;
+export const inSeasonPhase = (s: any) => s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs';
+export const rosterMax = (s: any) => (inSeasonPhase(s) ? seasonMax(s) : campMax(s));
+export const TWO_WAY_MAX = 3;
 // A point on the league calendar, for exceptions that last a year (traded player exceptions).
 export const stamp = (g: Game, s: any) => g.Y * 1000 + (s.phase === 'preseason' ? 50 : s.phase === 'regular' ? 100 + s.day : 300);
 
@@ -167,16 +172,16 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
   if (dpe && inSeason && s.day <= DAY.DPE_DEADLINE) out.push(m('dpe', 'Disabled player exception', dpe.amt, 1, 0, 'Replaces ' + (g.db.P[dpe.pid]?.name || 'an injured player') + ': one season, up to ' + dpe.amt.toFixed(2) + 'M.'));
   const minOk = sal + minS <= hard;
   out.push(m('min', 'Minimum exception', minS, 2, 0.05, 'The ' + yos + '-year minimum (' + minS.toFixed(2) + 'M); over the cap is fine.' + (yos >= 2 ? ' One-year deals count as the 2-year minimum on your cap; the league pays the rest.' : ''), minOk, minOk ? undefined : 'Hard-capped', undefined, minS));
-  if (yos <= 3) out.push(m('twoWay', 'Two-way contract', N.TWO_WAY, 2, 0, 'Up to 3 per team, for players with under 4 years of service; off the 15-man roster and the cap; up to 50 NBA games a season.', twCount < TWO_WAY_MAX, twCount >= TWO_WAY_MAX ? 'You already have 3 two-way players' : undefined));
+  if (yos <= 3) out.push(m('twoWay', 'Two-way contract', N.TWO_WAY, 2, 0, 'Up to 3 per team, for players with under 4 years of service; off the ' + seasonMax(s) + '-man roster and the cap; up to 50 NBA games a season.', twCount < TWO_WAY_MAX, twCount >= TWO_WAY_MAX ? 'You already have 3 two-way players' : undefined));
   if (pre || phase === 'fa') out.push(m('ex10', 'Exhibit 10 (training camp)', minS, 1, 0, 'One-year, non-guaranteed minimum deal for camp. Convert him to a two-way before opening night, keep him (he becomes a standard contract) or waive him for nothing; if waived and he joins your CCP team he earns a bonus of up to ' + N.E10_BONUS.toFixed(2) + 'M.', stdCount < 21, stdCount >= 21 ? 'Camp roster full (21)' : undefined));
   if (inSeason && s.day >= DAY.TEN_DAY_START) { const n = (p.tenDayWith || {})[tid] || 0; out.push(m('tenDay', '10-day contract', +(minS * 10 / 174).toFixed(3), 0, 0, 'Prorated minimum for 10 days; at most two with the same team, then rest of season.', n < 2, n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined)); }
   const injured = (s.rosters[tid] || []).filter(id => g.db.P[id].inj && !g.db.P[id].inj.dtd).length;
-  if (inSeason && injured >= 4 && stdCount >= 15) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: a 16th player on a non-guaranteed minimum deal until the roster is healthy.'));
+  if (inSeason && injured >= 4 && stdCount >= seasonMax(s)) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: one player past the ' + seasonMax(s) + '-man limit, on a non-guaranteed minimum deal until the roster is healthy.'));
   // Roster room.
   void off;
   return out.map(x => {
     if (['twoWay', 'ex10', 'hardship'].includes(x.key)) return x;
-    if (stdCount >= lim) return { ...x, ok: false, why: 'Roster full (' + lim + (lim === 15 ? ' in season' : ' in the offseason') + ')' };
+    if (stdCount >= lim) return { ...x, ok: false, why: 'Roster full (' + lim + (inSeasonPhase(s) ? ' in season' : ' in the offseason') + ')' };
     return x;
   });
 }

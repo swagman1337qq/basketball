@@ -5,8 +5,8 @@
 import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
-import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, ROSTER_MIN, rookieDeal, rosterMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
-import { acceptance, aiTerms, applySigning, buyoutBlocked, CAP_METHODS, forceSignBlock, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
+import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
+import { acceptance, aiTerms, applySigning, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
 import { fmtMoney as money } from './capModel';
@@ -46,9 +46,10 @@ export function defaultTerms(g: Game, s: any, tid: number, p: any, methods: any[
 }
 
 // ── The user signs a player (from the signing dialog in s.dialog) ────────────────────
-// Every rule applies, God Mode included. force: God Mode's Force Sign, the one way past the salary cap
-// (forceSignBlock: roster limits still apply) and he signs; a cap method he couldn't use becomes a
-// plain God Mode contract, so no exception is spent and no hard cap is triggered.
+// Every rule applies, God Mode included. force: God Mode's Force Sign, the one way past the salary cap,
+// the roster limit and an overseas club's buyout clause (his club gets its asking price): he signs. A cap
+// method he couldn't use becomes a plain God Mode contract, so no exception is spent and no hard cap is
+// triggered. Over the roster limit, you can't play a game until you're back under it (Game.canPlay).
 export function userSign(g: Game, force = false) {
   g.setState(s => {
     const dg = s.dialog; if (!dg || dg.type !== 'sign') return null;
@@ -57,7 +58,6 @@ export function userSign(g: Game, force = false) {
     const err = (why: string) => ({ dialog: { ...dg, err: why } });
     if (force) {
       if (!s.god) return null;
-      const why = forceSignBlock(g, s, tid, p, t.method); if (why) return err(why);
       const likely = t.inc!.filter(x => x.likely).reduce((a, x) => a + x.amt, 0);
       if (CAP_METHODS.includes(t.method) && !validateSigning(g, s, tid, p, { ...t, amt: t.amt + likely }).ok) t.method = 'god';
     } else {
@@ -82,7 +82,7 @@ export function userSign(g: Game, force = false) {
         return { dialog: null, fa: box.fa, offerSheets, log: g.logEntry(s, 'Signed ' + p.name + ' to an offer sheet; ' + T[orig].abbr + ' (also yours) must match or decline'), notices: addNotice(s, { tone: 'info', title: 'Offer sheet signed', lines: [p.name + ' signed your offer sheet. ' + T[orig].abbr + ' (also yours) has to match or decline it on the Cap sheet.'], pids: [p.id] }) }; }
     }
     const sheet = t.method === 'offer' && p.rfa ? T[p.rfa.tid] : null; // he had an offer sheet the other team declined to match
-    let cash = 0;
+    let cash = 0; const boughtOut = force && p.abroad?.clause === 'Buyout' ? p.abroad.club + ' got its asking price for him: a ' + money(p.abroad.fee) + ' buyout (Force Sign).' : '';
     if (p.abroad) { // NBA out clause: the fee is cash, and anything above $0.85M counts on the cap this season
       cash = p.abroad.fee; const over = Math.max(0, p.abroad.fee - 0.85);
       if (over > 0) { const c = { ...(box.cap[tid] || {}) }; c.dead = [...(c.dead || []), { pid: p.id, name: p.name + ' (buyout above the allowance)', amts: { [g.Y + (['fa', 'draft', 'lottery'].includes(s.phase) ? 1 : 0)]: +over.toFixed(2) }, mode: 'buyout', season: g.Y }]; box.cap[tid] = c; }
@@ -92,7 +92,9 @@ export function userSign(g: Game, force = false) {
     lgLog = [{ day: s.day, type: 'Signing', teams: T[tid].abbr, pids: [p.id], text: line }, ...lgLog];
     log = g.logEntry(s, line.replace(T[tid].region + ' ' + T[tid].name + ' signed', 'Signed') + (t.inc!.length ? ' + ' + t.inc!.reduce((a, x) => a + x.amt, 0).toFixed(2) + 'M in incentives' : ''));
     const offered = { ...(s.offered || {}) }; delete offered[p.id];
-    const notices = addNotice(s, { tone: 'good', title: 'Signed: ' + p.name, lines: [(sheet ? sheet.region + ' declined to match your offer sheet. ' : '') + p.name + ' signed with the ' + T[tid].region + ' ' + T[tid].name + ': ' + money(t.amt) + ' × ' + t.years + ' year' + (t.years === 1 ? '' : 's') + '.'], pids: [p.id] });
+    const ids2 = box.rosters[tid], over = stdIds(g, ids2).length > rosterMax(s) || twoWayIds(g, ids2).length > TWO_WAY_MAX;
+    const overLine = [...(boughtOut ? [boughtOut] : []), ...(over ? ['You’re over the roster limit (' + stdIds(g, ids2).length + ' standard of ' + rosterMax(s) + ', ' + twoWayIds(g, ids2).length + ' two-way of ' + TWO_WAY_MAX + '): waive or trade players before your next game.'] : [])];
+    const notices = addNotice(s, { tone: 'good', title: 'Signed: ' + p.name, lines: [...overLine, (sheet ? sheet.region + ' declined to match your offer sheet. ' : '') + p.name + ' signed with the ' + T[tid].region + ' ' + T[tid].name + ': ' + money(t.amt) + ' × ' + t.years + ' year' + (t.years === 1 ? '' : 's') + '.'], pids: [p.id] });
     return { dialog: null, ...unbox(box), buyoutCash: (s.buyoutCash || 0) + cash, lgLog, log, offered, notices, news: [g.pressSign(s, p, t.amt, t.inc), ...(s.news || [])] };
   });
 }
@@ -187,8 +189,8 @@ export function signDraftee(g: Game, s: any, box: { rosters: any; fa: number[] }
   }
   const ids = box.rosters[tid], tw = twoWayIds(g, ids).length, std = stdIds(g, ids).length;
   p.rookie = false; delete p.rookieScale;
-  if (tw < TWO_WAY_MAX && (user || p.ovr < 46 || std >= 15)) { Object.assign(p, { amt: N.TWO_WAY, capOverride: 0, exp: Y + 2, raise: 0, ctype: 'twoWay', twoWay: { tid, games: 0 } }); box.rosters[tid] = [...ids, p.id]; return 'twoWay'; }
-  if (user || std < 15) { Object.assign(p, { amt: N.min(0), exp: Y + 2, raise: 0.05, ctype: 'min' }); box.rosters[tid] = [...ids, p.id]; return 'min'; }
+  if (tw < TWO_WAY_MAX && (user || p.ovr < 46 || std >= seasonMax(s))) { Object.assign(p, { amt: N.TWO_WAY, capOverride: 0, exp: Y + 2, raise: 0, ctype: 'twoWay', twoWay: { tid, games: 0 } }); box.rosters[tid] = [...ids, p.id]; return 'twoWay'; }
+  if (user || std < seasonMax(s)) { Object.assign(p, { amt: N.min(0), exp: Y + 2, raise: 0.05, ctype: 'min' }); box.rosters[tid] = [...ids, p.id]; return 'min'; }
   Object.assign(p, { amt: N.min(0), ask: N.min(0), exp: Y + 1, ctype: 'standard' }); box.fa.push(p.id); return 'unsigned';
 }
 
@@ -251,8 +253,8 @@ export function openFreeAgency(g: Game, s: any) {
     box.cap[t.tid] = { ...c, exc: { ...freshExceptions(g), used: [] }, hardCap: null, renounced: [], dpe: null, tpe: (c.tpe || []).filter(x => x.until > now), dead: (c.dead || []).filter(d => Object.keys(d.amts || {}).some(y => +y > Y)) }; });
   if (letGo.length) { const c = box.cap[s.me]; box.cap[s.me] = { ...c, renounced: [...(c.renounced || []), ...letGo] };
     letGo.forEach(id => { const p = P[id]; p.birdTid = null; delete p.rfa; note(s.me, p.name + '’s contract expired and you renounced his rights, as decided: he’s an unrestricted free agent and his cap hold is off your books.'); }); }
-  // Nobody may start free agency with more than 21 under contract: AI teams trim.
-  s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > 21) { const w = pickCut(g, { ...s, rosters: box.rosters }, t.tid, box.rosters[t.tid])!.p; waivePlayer(g, s, box, t.tid, w, 'waive'); } }); // rosterAI: worth to the team, not overall alone
+  // Nobody may start free agency with more than the camp limit (21) under contract: AI teams trim.
+  s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > campMax(s)) { const w = pickCut(g, { ...s, rosters: box.rosters }, t.tid, box.rosters[t.tid])!.p; waivePlayer(g, s, box, t.tid, w, 'waive'); } }); // rosterAI: worth to the team, not overall alone
   const nFA = box.fa.length, nR = box.fa.filter(id => P[id].rfa).length;
   lgLog = [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + nFA + ' players available (' + nR + ' restricted). The ' + Y + '–' + String(Y + 1).slice(2) + ' mid-level is ' + N.NTMLE + 'M (non-taxpayer), ' + N.TPMLE + 'M (taxpayer), bi-annual ' + N.BAE + 'M, room ' + N.ROOM + 'M.' }, ...lgLog];
   const logs = clubLogs(g, s, by);
@@ -273,7 +275,7 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
     const teams = shuffle(T.map(t => t.tid).filter(t => !g.isUser(s, t))).sort((a, b) => (b === p.birdTid ? 1 : 0) - (a === p.birdTid ? 1 : 0) || Math.max(0, room(b)) - Math.max(0, room(a)));
     for (const t of teams) {
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
-      if (std >= 15 || (std >= 13 && !spare && p.ovr <= (depth[12] ?? 0) + 1 && p.birdTid !== t)) continue;
+      if (std >= seasonMax(s) || (std >= seasonMax(s) - 2 && !spare && p.ovr <= (depth[seasonMax(s) - 3] ?? 0) + 1 && p.birdTid !== t)) continue;
       const terms = aiTerms(g, st, t, p); if (!terms) continue;
       if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP)) continue;
       if (p.rfa && p.rfa.tid !== t) { // offer sheet
@@ -296,8 +298,9 @@ export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], 
     if (g.isUser(s, t)) (by[t] = by[t] || []).push(p.name + ' accepted his ' + p.amt.toFixed(2) + 'M qualifying offer'); });
 }
 
-// Opening-night rosters: at least 14; AI clubs fill with minimum deals and trim to 15.
-export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[], to = ROSTER_MIN) {
+// Opening-night rosters: at least the minimum (14); AI clubs fill with minimum deals and trim to the
+// season limit (15).
+export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[], to = rosterMin(s)) {
   const P = g.db.P, N = nums(g), signed: string[] = [];
   while (stdIds(g, box.rosters[tid]).length < to && box.fa.length) {
     const id = box.fa.slice().filter(x => !P[x].rfa).sort((a, b) => P[b].ovr - P[a].ovr)[0]; if (id == null) break; const p = P[id];
@@ -305,7 +308,7 @@ export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
   }
   return signed;
 }
-export function trimRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[], max = 15) {
+export function trimRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[], max = seasonMax(s)) {
   const P = g.db.P;
   while (stdIds(g, box.rosters[tid]).length > max) { const w = pickCut(g, { ...s, rosters: box.rosters }, tid, box.rosters[tid])!.p; // rosterAI: the least worth to this team
     waivePlayer(g, s, box, tid, w, 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: s.teams[tid].abbr, pids: [w.id], text })); }

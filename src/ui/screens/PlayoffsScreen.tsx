@@ -75,7 +75,7 @@ export function PlayinBracket({ vm }: { vm: VM }) {
                         {x.done && (x.bid && (gm.db as any).boxes?.[x.bid] ? <button className="hv4" onClick={() => gm.setState({ boxId: x.bid })} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', color: 'var(--color-accent-700)' }}>Box score</button> : <span title="Played before box scores were added">No box score</span>)}</div>
                       <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.done ? x.hp : ''} won={x.done && x.w === x.a} lost={x.done && x.w !== x.a} placeholder="Loser of 7 v 8" />
                       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.done ? x.ap : ''} won={x.done && x.w === x.b} lost={x.done && x.w !== x.b} placeholder="Winner of 9 v 10" />
-                      {next && mineGame && <button className="btn btn-primary" onClick={() => gm.setState({ screen: 'game' })} style={{ fontSize: '12px', padding: '3px 10px', marginTop: '2px' }}>Watch</button>}
+                      {next && mineGame && <button className="btn btn-primary" onClick={() => { if (gm.canPlay()) gm.setState({ screen: 'game' }); }} style={{ fontSize: '12px', padding: '3px 10px', marginTop: '2px' }}>Watch</button>}
                     </div>
                   );
                 })}
