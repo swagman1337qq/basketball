@@ -58,16 +58,17 @@ export function planRate(p: any, age: number) {
 function trueOf(p: any, F: number) { const d = plan0(p), W = wRemP(d, d.a), o = ovrExact(p); return Math.min(F, o + (W > 0 ? (Math.max(0, F - d.o) * wRemP(d, p.age) * BEST * (d.k ?? 1)) / W : 0)); }
 export function truePot(p: any) { return Math.max(p.ovr, Math.min(100, Math.round(trueOf(p, fullCeil(p))))); }
 
-// The top of the scale. Past 85, every point of a skill's ceiling is harder to come by: a normal
-// player's ceilings level off below 98, so a 99 is out of reach. About one player in 120 has a
-// generational skill (p.gen: a Curry three, a Shaq inside game, a Rodman glass), fixed from his id,
-// whose ceiling runs higher and can reach 99 or 100 if he develops into it.
-export const GEN_TOP = 100.5, GEN_BOOST = 14, GEN_RATE = 1 / 120;
+// The top of the scale. Past 85, every point of a skill's ceiling is harder to come by (ratings.ts
+// softTop): a normal player's ceilings level off below 98, so a 99 is out of reach. A generational
+// skill (p.gen: a Curry three, a Shaq inside game) runs higher and can reach 99 or 100 if he develops
+// into it. It's a once-in-a-hundred-leagues event: rolled once when a player is created, about one
+// in a million players (a 30-season league makes about 10,000).
+export const GEN_TOP = 100.5, GEN_BOOST = 14, GEN_RATE = 1e-6;
 export { softTop };
-export function genOf(p: any): string | null {
-  if (p.gen !== undefined) return p.gen;
-  const r = mulberry32(((p.id * 3266489917) ^ 0x6e9) >>> 0); if (r() >= GEN_RATE) return null;
-  const w = gapShape(p), sc = (k: string) => w[k] * (0.3 + p.r[k] / 60); return (p.gen = SKILLS.slice().sort((a, b) => sc(b) - sc(a))[0]); // where his game already points
+export const genOf = (p: any): string | null => p.gen ?? null;
+function rollGen(p: any, rnd: () => number = Math.random) {
+  if (p.gen !== undefined || rnd() >= GEN_RATE) return;
+  const w = gapShape(p), sc = (k: string) => w[k] * (0.3 + p.r[k] / 60); p.gen = SKILLS.slice().sort((a, b) => sc(b) - sc(a))[0]; // where his game already points
 }
 // A skill's ceiling for a raw target `v` (cap 100: God Mode's word, exact).
 export function ceilFor(p: any, k: string, v: number, cap = 99) { if (cap >= 100) return Math.min(cap, v); const g = genOf(p) === k; return Math.min(g ? 99.5 : TOP, g ? softTop(Math.max(v + GEN_BOOST, 104), GEN_TOP) : softTop(v)); } // a generational skill's ceiling is never below about 96
@@ -88,7 +89,7 @@ const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: 
 // rating scale cuts his ceiling short (a raw star prospect would need skills past 99), his plan aims
 // that much higher (dv0.k), so he still peaks around `peak` on average, just closer to his ceiling.
 export function initCeil(p: any, peak: number) {
-  startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
+  rollGen(p); startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
   const got = fullCeil(p) - o; if (got > 0.5 && want - o > got + 0.05) p.dv0.k = +Math.min(1.25, (want - o) / got).toFixed(3);
 }
 // Set his true potential to T: a fresh plan from now, his full ceiling at T. `god` (God Mode, player
