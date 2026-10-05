@@ -51,12 +51,23 @@ export function fullCeil(p: any) { const F = skillCeil(p); return p.godPot != nu
 // This age's planned growth at a normal pace (Game.devRate multiplies it by his pace); it fades out
 // in the last few points under his full ceiling.
 export function planRate(p: any, age: number) {
-  const d = plan0(p), W = wRemP(d, d.a), F = fullCeil(p), o = ovrExact(p); if (W <= 0) return 0;
-  return (Math.max(0, F - d.o) * wAgeP(d, age) * (d.k ?? 1)) / W * Math.min(1, Math.max(0, F - o) / 3);
+  const d = plan0(p), W = wRemP(d, d.a), T = trueT(p), o = ovrExact(p); if (W <= 0) return 0;
+  return (Math.max(0, T - d.o) * wAgeP(d, age) * (d.k ?? 1)) / W * Math.min(1, Math.max(0, T - o) / 3);
 }
-// True potential: his overall plus the rest of his plan at its best, never past his full ceiling.
-function trueOf(p: any, F: number) { const d = plan0(p), W = wRemP(d, d.a), o = ovrExact(p); return Math.min(F, o + (W > 0 ? (Math.max(0, F - d.o) * wRemP(d, p.age) * BEST * (d.k ?? 1)) / W : 0)); }
-export function truePot(p: any) { return Math.max(p.ovr, Math.min(100, Math.round(trueOf(p, fullCeil(p))))); }
+// True potential (p.tpot): the highest overall he can ever reach. The AI decides it once, when he's
+// created, and it never moves after that (no breakout, injury or hidden gem changes it); only God Mode
+// does. His overall is hard-capped there (capToT); his skill ceilings only shape where growth goes.
+export const trueT = (p: any): number => p.tpot ?? Math.round(Math.min(99, Math.max(p.ovr ?? 0, fullCeil(p))));
+export const truePot = trueT;
+// What he could still reach: his overall plus the rest of his plan at its best, never past his true
+// potential (minus a hidden gem's part the scouts haven't seen yet). The scouts read from this.
+function reachOf(p: any) { const d = plan0(p), W = wRemP(d, d.a), o = ovrExact(p), T = trueT(p); return Math.min(T - ((p.gem && p.gem.left) || 0), o + (W > 0 ? (Math.max(0, T - d.o) * wRemP(d, p.age) * BEST * (d.k ?? 1)) / W : 0)); }
+// The hard cap: his overall never passes his true potential; anything over comes off his skills evenly.
+export function capToT(p: any) {
+  const T = trueT(p), W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, b) => a + b, 0), sk = SKILLS.reduce((a, k) => a + (W[k] || 0), 0);
+  for (let i = 0; i < 3; i++) { const over = ovrExact(p) - T; if (over <= 0.005) return; const dec = (over * tot) / sk;
+    p.rx = p.rx || {}; SKILLS.forEach(k => { const v = Math.max(4, val(p, k) - dec), r = Math.round(v); p.r[k] = r; p.rx[k] = +(v - r).toFixed(4); }); }
+}
 
 // The top of the scale. Past 85, every point of a skill's ceiling is harder to come by (ratings.ts
 // softTop): a normal player's ceilings level off below 98, so a 99 is out of reach. A generational
@@ -90,29 +101,27 @@ const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: 
 // that much higher (dv0.k), so he still peaks around `peak` on average, just closer to his ceiling.
 export function initCeil(p: any, peak: number) {
   rollGen(p); startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
-  const got = fullCeil(p) - o; if (got > 0.5 && want - o > got + 0.05) p.dv0.k = +Math.min(1.25, (want - o) / got).toFixed(3);
+  p.tpot = Math.round(Math.min(99, Math.max(p.ovr ?? o, want))); // his true potential, for good (a typical career gets about TYPICAL of the way)
 }
 // Set his true potential to T: a fresh plan from now, his full ceiling at T. `god` (God Mode, player
 // cards): exactly T, whatever the usual limits. His skill ceilings go as high as the scale allows (100),
 // what his ratings can't show is held as God Mode's word, and a veteran gets a three-season plan.
 export function setTruePot(p: any, T: number, god = false) {
-  T = Math.max(1, Math.min(100, Math.round(T))); delete p.godPot;
+  T = Math.max(1, Math.min(99, Math.round(T))); delete p.godPot;
   startPlan(p, god && wRem(p.age) < 0.1 ? GOD_YEARS : 0); fit(p, current(p), Math.max(p.dv0.o, T), god ? 100 : 99);
-  if (god && skillCeil(p) < T - 0.25) p.godPot = T;
+  p.tpot = Math.max(T, p.ovr ?? 0); capToT(p);
   refreshPot(p);
 }
-// Raise or lower his true potential by d points (a breakout, a serious injury, a hidden gem surfacing).
-export function moveTruePot(p: any, d: number) {
-  if (!d) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr);
-  const F = fullCeil(p), dp = plan0(p), W = wRemP(dp, dp.a), r = W > 0 ? (wRemP(dp, p.age) * BEST) / W : 0, capped = trueOf(p, F) >= F - 0.01;
-  if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + d)); // God Mode's word moves with what happens to him
-  fit(p, p.ceil, F + d / (capped ? 1 : Math.max(0.25, r)));
-}
+// True potential doesn't move with events any more (a breakout, an injury, a hidden gem surfacing): the
+// AI decides it once and only God Mode changes it. Kept so older call sites read the same.
+export function moveTruePot(_p: any, _d: number) { /* fixed */ }
 // God Mode raised a rating past its ceiling: that's his new ceiling there.
 export function liftCeil(p: any) { if (!p.ceil) return; SKILLS.forEach(k => { if (p.ceil[k] < p.r[k]) p.ceil[k] = p.r[k]; }); }
 
 // The consensus: true potential plus the league's miss (p.perr), never below his overall.
-export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); p.tpot = truePot(p); p.pot = Math.max(p.ovr, Math.min(100, Math.round(p.tpot + (p.perr || 0)))); }
+// The league's read: what he could still reach plus the scouts' miss, never above his true potential
+// (the scouts can sell a player short, never oversell him) and never below his overall.
+export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); if (p.tpot == null) p.tpot = trueT(p); if (p.ovr > p.tpot) p.tpot = p.ovr; p.pot = Math.max(p.ovr, Math.min(p.tpot, Math.round(reachOf(p) + (p.perr || 0)))); }
 // The scouts' miss on a new player (points of potential, either way; fixed from his id).
 export function rollPerr(p: any, sd: number) { const r = mulberry32(((p.id * 40503) ^ 0x9e11) >>> 0); p.perr = +((r() + r() + r() - 1.5) * 2 * sd).toFixed(2); }
 // Every summer the league learns more: the miss shrinks (gone by 27).
@@ -124,14 +133,14 @@ export const scoutSd = (budget = 4, easy = false) => Math.max(0.6, Math.min(4, 4
 // team and player (scouts hold their opinions), smaller for older players whose game is known.
 export function teamRead(p: any, tid: number, sd: number) {
   const r = mulberry32((((tid + 3) * 2246822519) ^ (p.id * 3266489917)) >>> 0), youth = Math.max(0.25, Math.min(1, (27 - p.age) / 8));
-  return Math.max(p.ovr, Math.min(100, Math.round(p.pot + (r() + r() + r() - 1.5) * 2 * sd * youth)));
+  return Math.max(p.ovr, Math.min(p.tpot ?? 99, Math.round(p.pot + (r() + r() + r() - 1.5) * 2 * sd * youth)));
 }
 // What a viewer sees: God Mode the truth; your staff your own players almost exactly; anyone else your
 // scouts' read (tid/sd) or, without them, the league's read.
-export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.round(t + (p.perr || 0) * 0.3)) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
+export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.min(t, Math.round(reachOf(p) + (p.perr || 0) * 0.3))) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
 // Where he stands against his development plan (for reports): 'behind', 'ahead', or null (on track, or done).
 export function planStatus(p: any): 'behind' | 'ahead' | null {
-  const d = p.dv0; if (!d || (p.age > 27 && !d.n)) return null; const W = wRemP(d, d.a), F = fullCeil(p), gap = F - d.o; if (W <= 0 || gap < 4) return null;
+  const d = p.dv0; if (!d || (p.age > 27 && !d.n)) return null; const W = wRemP(d, d.a), gap = trueT(p) - d.o; if (W <= 0 || gap < 4) return null;
   const done = (ovrExact(p) - d.o) / gap, due = TYPICAL * (1 - wRemP(d, p.age + 1) / W);
   return done < due - 0.15 ? 'behind' : done > due + 0.15 ? 'ahead' : null;
 }

@@ -39,6 +39,7 @@ export function rollGem(p: any, rnd: () => number = Math.random, base = 0.06) {
   if (rnd() >= chance) { p.gem = 0; return; }
   const t = rnd(), add = t < 0.62 ? 5 + Math.floor(rnd() * 5) : t < 0.93 ? 10 + Math.floor(rnd() * 6) : 16 + Math.floor(rnd() * 9);
   p.gem = { add, left: add, tier: t < 0.62 ? 'role' : t < 0.93 ? 'starter' : 'star' };
+  if (p.tpot != null) p.tpot = Math.min(99, p.tpot + add); // part of his true potential from the start; the scouts see it surface over the years
 }
 
 // Monthly: a gem's hidden ceiling surfaces a little at a time (over about three seasons; faster

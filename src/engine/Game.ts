@@ -33,7 +33,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { ceilMax, fullCeil, initCeil, moveTruePot, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead } from './potential';
+import { capToT, ceilMax, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -84,7 +84,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
-    g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; // and every player with his own ceilings (potential.ts), 99s already rare
+    g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
@@ -210,6 +210,8 @@ export class Game {
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     // 2026-10: 99 is extremely hard to reach (potential.ts softTop): skill ceilings past 85 thin out, below
     // 98 for everyone but a rare generational skill. Ratings already there stay; the ceilings above them come down.
+    // 2026-10: true potential is fixed and a hard cap (potential.ts): set once from his full ceiling (plus a hidden gem's unsurfaced part).
+    if (!g.db.tV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.retired || p.gone || !p.ceil) return; p.tpot = Math.round(Math.min(99, Math.max(p.ovr, fullCeil(p) + ((p.gem && p.gem.left) || 0)))); refreshPot(p); }); g.db.tV = 1; }
     // 2026-10: every rating stops at 99.
     if (!g.db.r99V) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r) return; Object.keys(p.r).forEach(k => { if (p.r[k] > 99) p.r[k] = 99; }); if (p.ceil) Object.keys(p.ceil).forEach(k => { if (p.ceil[k] > 99.4) p.ceil[k] = 99.4; }); if (p.ovr != null && !p.retired) syncOvr(p); }); g.db.r99V = 1; }
     if (!g.db.topV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || !p.ceil || p.gone || p.retired || p.godPot != null) return; SKILLS.forEach(k => { const c = p.ceil[k]; if (c > 85) p.ceil[k] = +Math.max(p.r[k], Math.min(ceilMax(p, k), softTop(c))).toFixed(1); }); refreshPot(p); }); g.db.topV = 1; }
@@ -1063,9 +1065,14 @@ export class Game {
   // July 6, Summer League is mid-July, then the market thins out until training camps open
   // September 30. Most of the big names agree in the first days; the rest trickle in.
   static FA_END = 92;
-  // The chance, each summer, that a rating sitting at 98 breaks through to 99 (age 31 or younger). A
-  // handful of ratings sit at 98 in a league, so a breakthrough comes along every decade or two.
-  static BREAK = 0.004;
+  // Development calibration: the share of his plan a player grows each year at a normal pace (players
+  // were reaching about 89% of their planned growth by their late 20s against a design of 77%, and the
+  // league filled up with stars), and the most everything that speeds him up (work ethic, the hidden
+  // factor, a breakout year, his environment) can stack to: outliers exist, but not 4–8× a normal pace.
+  static REALIZE = 0.94; static GROW_CAP = 2.5;
+  // The chance, each summer, that a rating sitting at 98 breaks through to 99 (age 31 or younger). A few
+  // dozen ratings sit at 98 in a league, so a breakthrough comes along about once every 20 seasons.
+  static BREAK = 0.001;
   faDayOf(s = this.state) { return s.phase === 'fa' ? Math.max(0, s.day - (s.faStart ?? s.day)) : 0; }
   faDate(s = this.state, fd = this.faDayOf(s)) { return new Date(this.Y, 5, 30 + fd); }
   faStage(fd: number) { return fd === 0 ? 'Negotiations open at 6 p.m. ET' : fd < 6 ? 'Moratorium: deals are agreed now and become official July 6' : fd < 10 ? 'Deals are official' : fd <= 20 ? 'Summer League in Las Vegas' : fd <= 60 ? 'The quiet stretch: the market thins out' : fd < Game.FA_END ? 'Camp invites and last-minute deals' : 'Training camps open'; }
@@ -1118,10 +1125,11 @@ export class Game {
       const grow = (p, tid = -1, focus = 'Balanced') => { const env = envOf(this, s, p, tid, rosters), cm = tid >= 0 ? coachMult(teamBudget(this, s, tid).Coaching) : 1; let pen = 0; if (p.age < 24 && (p.minorCount || 0) >= 4) { pen = -2; moveTruePot(p, -(1 + Math.floor(Math.random() * 3))); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
-        let x = rate * this.devMult(p, rate) * (rate > 0 ? env.mult : coachAging(cm)) * (rate > 0 && p.dyS === this.Y ? Math.max(p.godPot != null ? 0 : -.5, p.dy ?? 1) : 1) * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + pen;
+        const boost = rate > 0 ? Math.min(Game.GROW_CAP, this.devMult(p, rate) * env.mult * (p.dyS === this.Y ? Math.max(p.godPot != null ? 0 : -.5, p.dy ?? 1) : 1)) : this.devMult(p, rate) * coachAging(cm); // everything that speeds him up, together at most GROW_CAP× his plan
+        let x = rate * boost * (0.25 + Math.random() * .5) + (a <= 25 ? form * .8 : form * .3) + nz() * (a <= 24 ? 1.3 : .8) + pen;
         // Luck can carry him past his ceiling, but only partly: most of an overshoot is given back
         // (otherwise good luck raises the ceiling for good while bad luck is grown back: a ratchet).
-        { const over = p.ovr + x - (fullCeil(p) + 1); if (over > 0) x -= over * 0.65; }
+        if (x > 0) x = Math.min(x, Math.max(0, trueT(p) - ovrExact(p))); // never past his true potential (potential.ts)
         let potD = 0; if (a <= 24 && (p.tpot ?? p.pot) - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
         // The year's change goes into his ratings his own way (development.ts): his body on its own
         // track, the rest into his skills by his development profile and focus, with a little noise.
@@ -1129,7 +1137,8 @@ export class Game {
         SKILLS.forEach(k => { const room = skillTop(p, k) - (p.r[k] + (p.rx?.[k] || 0)); dl[k] = Math.min((dl[k] || 0) + (Math.random() - .5) * 3, Math.max(dl[k] || 0, room)); }); // a little noise, never past a ceiling
         applyChange(p, dl); syncOvr(p);
         // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
-        if (a <= 31) [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'].forEach(k => { if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= Game.BREAK) return;
+        capToT(p); syncOvr(p);
+        if (a <= 31 && ovrExact(p) < trueT(p) - 0.3) [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'].forEach(k => { if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= Game.BREAK) return;
           p.brk = { ...(p.brk || {}), [k]: 1 }; p.r[k] = 99; if (p.rx) p.rx[k] = 0; if (p.ceil && p.ceil[k] != null) p.ceil[k] = 99; syncOvr(p);
           lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' made the jump to a 99 in ' + (RNAME[k] || k) + ', almost unheard of' }, ...lgLog]; });
         // His true ceiling moves only with real events: a breakout or a bust (above), a serious injury, a
@@ -1163,7 +1172,7 @@ export class Game {
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id]; if (!p?.dx || p.frozen) return; const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])), e0 = ovrExact(p), tc = p.dx.c || 0, x = applyTranslation(p); if (!x) return;
         if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); // camp moved his level, not his growth: the plan moves with it (or a steal grows as if the jump were still ahead of him)
         if (p.ceil) SKILLS.forEach(k2 => { p.ceil[k2] = Math.max(p.r[k2], Math.min(ceilMax(p, k2), p.ceil[k2] + p.r[k2] - b0[k2])); }); // his ceilings move with what camp showed (potential.ts)
-        moveTruePot(p, tc); p.perr = +((p.perr || 0) * 0.75).toFixed(2); refreshPot(p); x.pot = p.pot;
+        capToT(p); syncOvr(p); p.perr = +((p.perr || 0) * 0.75).toFixed(2); refreshPot(p); x.pot = p.pot; // camp shows what the scouts missed; his true potential stays
         if (this.isUser(s, +k)) { (camp[+k] = camp[+k] || []).push((s.managed.length > 1 ? teams[k].abbr + ': ' : '') + translationLine(p, x)); campIds.push(id); }
         if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], +k, focusOf(k, id)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
@@ -1495,7 +1504,7 @@ export class Game {
   // about four fifths of the way; work ethic, the hidden factor, minutes, coaching and luck decide the rest.
   devRate(p, age = p.age) {
     if (age >= 29) return Game.ageDecline(age) + (p.dv0?.n ? planRate(p, age) * paceOf(p) : 0); // a God Mode plan (potential.ts) grows on top of aging
-    return planRate(p, age) * paceOf(p);
+    return planRate(p, age) * paceOf(p) * Game.REALIZE;
   }
   // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
   // 35, −5 at 38, −7 at 40, −11 at 44 for a typical player; work ethic and the hidden factor
@@ -1504,7 +1513,7 @@ export class Game {
   // Personality, traits and the hidden factor: speeds growth (rate > 0) or slows decline (rate < 0).
   devMult(p, rate) {
     const w = p.pers?.work ?? 50, k = this.devK(p);
-    if (rate > 0) return (0.7 + w / 167) * (p.pers?.legacy ? 1.08 : 1) * (p.pers?.pro ? 1.06 : 1) * (p.pers?.volatile ? .94 : 1) * k;
+    if (rate > 0) return (0.7 + w / 167) * (p.pers?.legacy ? 1.08 : 1) * (p.pers?.pro ? 1.06 : 1) * (p.pers?.volatile ? .94 : 1) * Math.pow(k, 0.6); // the hidden factor matters, but not wildly (0.81–1.24 for most)
     return (1.2 - w / 250) * (p.pers?.pro ? .9 : 1) / Math.sqrt(k);
   }
   // How his season went against what his overall predicted (−1 … +1; 0 with under 20 games).
@@ -1530,7 +1539,8 @@ export class Game {
       // His environment (environment.ts): coaching, facilities, playing time, the locker room and a
       // mentor, together capped at ±25% and weighted toward fringe players. Good coaching also slows aging.
       const work = this.devMult(p, annual), env = envOf(this, s, p, +k, rosters), cm = coachMult(teamBudget(this, s, +k).Coaching);
-      const monthly = annual / 12 * (annual > 0 ? env.mult : coachAging(cm)) * injF * work * (annual > 0 ? stunt : 1) * (0.6 + Math.random() * .8);
+      const monthly = annual > 0 ? annual0 / 12 * Math.min(Game.GROW_CAP, (annual / annual0) * env.mult * work) * injF * stunt * (0.6 + Math.random() * .8) // personality, the hidden factor, this year's form and his environment, together at most GROW_CAP× his plan
+        : annual / 12 * coachAging(cm) * injF * work * (0.6 + Math.random() * .8);
       const focus = mine ? ((club.coachAuto || {})[id] ? coachFocus(p).focus : club.train[id] || 'Balanced') : 'Balanced', keys = FOC[focus], rolesB = mine ? this.rolesOf(p) : null, dl = {};
       p.rx = p.rx || {};
       // Practice reps in your system (tactics.ts) steer some growth into the skills it uses, if he has a
@@ -1538,7 +1548,8 @@ export class Game {
       // month's change lands his own way (development.ts): his body on its own track, the rest into his
       // skills by his development profile and training focus.
       const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4, role = roleReps(this.seasonTotals(p, this.Y));
-      Object.assign(dl, develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl);
+      const mo = monthly > 0 ? Math.min(monthly, Math.max(0, trueT(p) - ovrExact(p))) : monthly; // never past his true potential
+      Object.assign(dl, develop(p, mo * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl); capToT(p);
       // A hidden gem's extra ceiling surfaces (intangibles.ts), and his potential is re-read (potential.ts).
       const gemUp = gemTick(p), pot0 = p.pot;
       if (gemUp > 0) moveTruePot(p, gemUp);
@@ -1547,12 +1558,12 @@ export class Game {
       { const it = ensureIntg(p); p.ix = p.ix || { f: 0, p: 0 }; if (a <= 31) p.ix.p += 0.1; if (a <= 27) p.ix.f += 0.03 * (0.7 + wk / 167);
         const wf = Math.trunc(p.ix.f), wq = Math.trunc(p.ix.p); if (wf) { it.feel = cl(it.feel + wf, 1, 99); p.ix.f -= wf; } if (wq) { it.poise = cl(it.poise + wq, 1, 99); p.ix.p -= wq; } }
       syncOvr(p); // the overall is the (new) ratings
-      p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +monthly.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
+      p.feed = [{ m: MONTH_YR.format(this.dateOf(day - 1)), o: +mo.toFixed(2), dev: !!p.dev, f: focus, r: Object.fromEntries((Object.entries(dl) as [string, number][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 4).map(([r, v]) => [r, +v.toFixed(2)])) }, ...(p.feed || [])].slice(0, 12);
       if (mine) { const top = (Object.entries(dl) as [string, any][]).filter(([r]) => r !== 'hgt').sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 3).map(([r, v]) => LB[r] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(1)).join(' · ');
         const unlocked = this.rolesOf(p).filter(r => !rolesB.includes(r));
         const note = gemUp > 0 && wp > 0 ? 'Outgrowing his scouting report: the staff sees more in him every month (potential ' + p.pot + ')' : unlocked.length ? 'Unlocked: ' + unlocked.join(', ') : stunt < 1 && annual > 0 ? 'Growth stunted by repeated minor injuries (' + p.minorCount + ' this season)' : p.inj ? 'Growth slowed by injury' : monthly < 0 ? 'Age-related decline: athleticism goes first' : (p.tpot ?? p.pot) - p.ovr <= 1 && a <= 26 ? 'Close to his ceiling: not much growth left'
           : (() => { const ew = envWhy(env), ps = planStatus(p), rl = roleLead(role); return env.mult <= 0.92 && ew ? ew : ps === 'behind' ? 'Falling behind his development plan' : rl ? 'His role is making him a ' + ROLE_NOUN[rl] : ew ? ew : ps === 'ahead' ? 'Ahead of schedule' : p.dev ? 'CCP reps are accelerating his growth' : focus !== 'Balanced' ? focus + ' focus is paying off' : 'Steady progress'; })();
-        (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (monthly >= 0 ? '+' : '') + monthly.toFixed(2), up: monthly >= 0, changes: top, note, ovr: p.ovr }); }
+        (reps[+k] = reps[+k] || []).push({ id, name: p.name, focus, dev: !!p.dev, d: (mo >= 0 ? '+' : '') + mo.toFixed(2), up: mo >= 0, changes: top, note, ovr: p.ovr }); }
     }));
     const label = this.dateOf(day - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), out: Record<number, any> = {};
     Object.keys(reps).forEach(k => (out[k] = { label, rows: reps[k] }));

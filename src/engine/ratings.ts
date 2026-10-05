@@ -137,12 +137,10 @@ export function setOverall(p: any, v: number) {
 // Every rating stops at 99, and a 99 is improbable (potential.ts breakthroughs, generational skills).
 export const RMAX = 99;
 export const SOFT_K = 85, TOP = 98;
-// The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99). The
-// ceiling alone isn't enough: growth may land half a point past it, and a ceiling refit lifts the
-// ceiling to the rating, which would ratchet a skill up to 99 over the seasons.
-export const skillTop = (p: any, k: string) => Math.min(p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4, (p.ceil?.[k] ?? 99.5) + 0.5);
+// The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99).
+export const skillTop = (p: any, k: string) => (p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4); // his overall is capped by his true potential (potential.ts capToT); skill ceilings only shape growth
 // The approach is slow (SOFT_SCALE): a raw 110 lands about 93, 130 about 96, and only an enormous target gets near 98.
-export const SOFT_SCALE = 22;
+export const SOFT_SCALE = 16;
 export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / ((room * SOFT_SCALE) / (TOP - SOFT_K)))); }
 export function deriveDefense(p: any, noise: (k: number) => number) {
   const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;

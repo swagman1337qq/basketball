@@ -191,7 +191,8 @@ export function applyChange(p: any, dl: Record<string, number>) {
 export function develop(p: any, target: number, frac: number, o: BodyOpts & WeightOpts): Record<string, number> {
   const body = bodyChange(p, frac, o);
   BODY.forEach(k => { const v = p.r[k] + ((p.rx || {})[k] || 0); if (body[k] > 0) body[k] = Math.min(body[k], Math.max(0, skillTop(p, k) - v)); }); // the body tops out at 98 too
-  const bo = ovrDelta(p, body);
+  let bo = ovrDelta(p, body);
+  if (target >= 0 && bo > target && bo > 0) { const f = target / bo; BODY.forEach(k => (body[k] = (body[k] || 0) * f)); bo = target; } // at his true potential the body stops growing too
   const rest = target >= 0 ? Math.max(0, target - bo) : target - bo;
   const sk = skillChange(p, rest, skillWeights(p, o));
   return { ...body, ...sk };
