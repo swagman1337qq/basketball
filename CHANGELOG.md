@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-05
+
+### Changed
+- **Box scores: a bar between the starters and the bench.** A clear line now splits each team's starting five from its bench, so you can tell them apart at a glance.
+
 ## 2026-10-04
 
 ### Added

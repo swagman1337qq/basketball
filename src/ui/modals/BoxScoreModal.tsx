@@ -78,10 +78,12 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           <thead><tr>{th('Player', true)}{cols.map(c => th(c[0]))}</tr></thead>
           <tbody>
             {lines.map((l: number[], i: number) => { const p = P[l[0]], starter = at(l, 'gs') > 0, g = (k: string) => at(l, k), a = adv(g); return (
-              <tr key={l[0]} style={{ borderTop: i > 0 && starter !== (at(lines[i - 1], 'gs') > 0) ? '2px solid var(--color-divider)' : undefined }}>
+              <Fragment key={l[0]}>
+              {i > 0 && !starter && at(lines[i - 1], 'gs') > 0 && <tr aria-hidden><td colSpan={100} style={{ padding: 0, height: 0, borderTop: '3px solid var(--color-accent-700)' }} /></tr>}
+              <tr>
                 <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{p && <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)', marginRight: 6, verticalAlign: 'middle' }} />}{p ? <Link onClick={() => { close(); open(l[0]); }} style={{ fontWeight: starter ? 700 : 400 }}>{p.name}</Link> : 'Unknown'} <span style={{ ...muted, fontSize: '11px' }}>{p?.pos}</span></td>
                 {cols.map(c => <td key={c[0]} title={isLead(c[0], g) ? 'Game high' : undefined} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', ...(c[2] || {}), ...(c[0] === '+/−' ? pmColor(g('pm')) : {}), ...(isLead(c[0], g) ? { fontWeight: 800 } : {}) }}>{c[1](g, a, false)}</td>)}
-              </tr>); })}
+              </tr></Fragment>); })}
             {(() => { const a = adv(TEAM); return (<>
               <tr style={{ borderTop: '2px solid var(--color-text)', fontWeight: 600 }}>
                 <td style={{ padding: '4px 6px' }}>Team</td>{cols.map(c => <td key={c[0]} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{c[1](TEAM, a, true)}</td>)}

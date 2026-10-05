@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-04 (smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-05 (box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -77,7 +77,7 @@ flowchart LR
 - Tactics: pace, offense and defense schemes, lead and trail presets, schemes unlocked by player roles.
 - Fatigue, minor and major injuries, home and road splits, personality effects (selfish, clutch, crowd-fed). Selfish (`pers.padder`, `SimPlayer.selfish`): 1.3× usage, a slight cut to his share of assists (passer weight ×0.85), and team costs: his team's assist rate ×0.9 on teammates' makes while he's on the floor, his own makes ×0.85 as likely to be assisted, teammates −1.5% FG and the defense +1.2% against him.
 - Live game: scoreboard, box score, play-by-play, five speeds, step or sim to the end.
-- Box score for every game; per game, totals, per 36, shooting and advanced stats; league leaders; a ring by every season a player won the title (`hof.ts` `titleYears`: the champion's roster at the final buzzer, kept as `history[].ring`; older seasons fall back to a playoff line for the champion). Team history and the Hall of Fame count titles with it.
+- Box score for every game (`BoxScoreModal.tsx`; an unlabeled accent bar splits each team's starters from its bench); per game, totals, per 36, shooting and advanced stats; league leaders; a ring by every season a player won the title (`hof.ts` `titleYears`: the champion's roster at the final buzzer, kept as `history[].ring`; older seasons fall back to a playoff line for the champion). Team history and the Hall of Fame count titles with it.
 
 - League leaders (`LeagueLeadersScreen.tsx`): the top 10 in every box-score, shooting and advanced stat for any season, per game or totals, by the bold numbers' qualifying rules (`leaders.ts` `leaderBoards`); your players highlighted in your team's primary color (the team you're running now, `vm.ctx.meColor`; this season: on its roster; earlier: played for it that year).
 
