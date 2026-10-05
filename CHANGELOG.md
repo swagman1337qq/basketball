@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-05
 
 ### Changed
+- **High skills are even harder to raise.** The slowdown now starts at 70 instead of 75 and gets steep fast: a skill at 75 takes in about two thirds of the growth aimed at it, at 80 under half, at 85 about 30%, at 90 about a fifth, and at 95 about 12% (it used to be about half at 85 and a quarter at 95). The rest goes into his weaker skills.
 - **True potential is a real ceiling now.** Every player's true potential is decided once, when he enters the league, and it never changes on its own (only God Mode can change it).
   - His overall can never go past it. His skills keep improving until his overall gets there, whatever the individual skills could reach on their own.
   - The potential you see on a profile is the scouts' read. It can sell a player short but never oversell him, so it's never above his true potential, and it moves as his ratings change. Only God Mode shows the true number.

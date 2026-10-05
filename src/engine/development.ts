@@ -96,7 +96,7 @@ export function skillWeights(p: any, o: WeightOpts): Weights {
 const SLIP: Record<string, number> = { oiq: 0.35, diq: 0.5, pss: 0.45, box: 0.6, ft: 0.55, fg: 0.6, tp: 0.65, drb: 0.9, lay: 1, ins: 0.9, reb: 1, stl: 1.2, blk: 1.5, dnk: 1.8 };
 const NEGLECT = 0.22; // the cost of growth elsewhere: a skill he isn't working on stalls, or slips
 const SPILL = 1.6; // no skill grows more than about 1.6× faster than an even spread would need
-export const dimAt = (v: number, gen = false) => { const k = gen ? 85 : 75; return v <= k ? 1 : Math.exp(-(v - k) / 16); }; // a generational skill (p.gen, potential.ts) keeps growing longer
+export const dimAt = (v: number, gen = false) => { const k = gen ? 80 : 70; return v <= k ? 1 : Math.exp(-(v - k) / 12); }; // a generational skill (p.gen, potential.ts) keeps growing longer
 // Spread an overall change (in overall points) across his skills by the weights. A skill with a small
 // share slips a little, and the overall moves by `target`. When most of it would go into skills that
 // count little at his position (a guard who learns to box out), part of it spills over evenly so a
@@ -111,7 +111,7 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
   const c = (target * T) / SKILLS.reduce((a, k) => a + W[k] * u[k], 0);
   SKILLS.forEach(k => (out[k] = c * u[k]));
   // Diminishing returns: the higher a skill already is, the less of the growth aimed at it lands there
-  // (about half at 85, a third at 90, a quarter at 95); the rest goes to his other skills below.
+  // (two thirds at 75, under half at 80, 30% at 85, 19% at 90, 12% at 95); the rest goes to his other skills below.
   const vv = (k: string) => p.r[k] + ((p.rx || {})[k] || 0);
   let lost = 0; if (up) SKILLS.forEach(k => { const f = dimAt(vv(k), p.gen === k); if (f < 1 && out[k] > 0) { lost += W[k] * out[k] * (1 - f); out[k] *= f; } });
   // A rating can't pass its ceiling (or drop below 4): what doesn't fit goes to his other skills, so
