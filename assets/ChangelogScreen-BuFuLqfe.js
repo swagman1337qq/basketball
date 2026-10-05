@@ -1,10 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-B1N_1-L0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-BF53rdon.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-05
 
 ### Changed
+- **True potential is a real ceiling now.** Every player's true potential is decided once, when he enters the league, and it never changes on its own (only God Mode can change it).
+  - His overall can never go past it. His skills keep improving until his overall gets there, whatever the individual skills could reach on their own.
+  - The potential you see on a profile is the scouts' read. It can sell a player short but never oversell him, so it's never above his true potential, and it moves as his ratings change. Only God Mode shows the true number.
+  - Hidden gems are part of a player's true potential from day one. The scouts see it surface over the years.
+- **No more rocketing up a whole career in a season.** A second-round pick in one league went from a 33 to a 63 in a season and a half. His work ethic, a high hidden development factor, a breakout year and a great situation all multiplied together, to about 4.5× a normal pace. Now everything that speeds a player up together tops out at 2.5×, and the hidden factor has a smaller range. Fast developers and breakout years still happen.
+- **Superstars are rare again.** Players were reaching about 89% of their planned growth instead of the intended 77%, so the league slowly filled with stars: from 5 players at 75+ to 12–15 after a decade. Growth is recalibrated, and in a 30-season test about 8 players were 75+ at any time (the top 8, roughly), with 15–20 at 70+.
+- **A 99 is now about a once-in-20-seasons event.** A rating at 98 rarely breaks through.
 - **Every rating now tops out at 99, and a 99 is close to impossible.** That goes for every rating: skills, speed, strength and the rest, height and wingspan, and God Mode's editors too.
   - Players top out at 98, and getting there takes years. Near the top every point is harder to earn, so a 98 is rare too.
   - The last step to 99 is a breakthrough, almost unheard of: a rating already at 98 has a tiny chance each summer (for players 31 and younger). When it happens, it makes the league news. Expect one every decade or two.
