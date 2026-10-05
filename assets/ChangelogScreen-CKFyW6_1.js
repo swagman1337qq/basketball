@@ -1,10 +1,16 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-Cged2DAO.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-B1N_1-L0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-05
 
 ### Changed
+- **Every rating now tops out at 99, and a 99 is close to impossible.** That goes for every rating: skills, speed, strength and the rest, height and wingspan, and God Mode's editors too.
+  - Players top out at 98, and getting there takes years. Near the top every point is harder to earn, so a 98 is rare too.
+  - The last step to 99 is a breakthrough, almost unheard of: a rating already at 98 has a tiny chance each summer (for players 31 and younger). When it happens, it makes the league news. Expect one every decade or two.
+  - Generational skills still exist, about one league in 138.
+  - A perfect free throw shooter is now a 99 (it was 100) and still makes 98%.
+  - In existing leagues, anything above 99 comes down to 99.
 - **Box scores: a bar between the starters and the bench.** A clear line now splits each team's starting five from its bench, so you can tell them apart at a glance.
 
 ### Fixed
