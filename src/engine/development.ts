@@ -124,6 +124,8 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
     if (!spill || !open.length) break;
     const sw2 = (k: string) => Math.max(0.15, u[k]) * (up ? dimAt(v(k), p.gen === k) : 1), den2 = open.reduce((a, k) => a + W[k] * sw2(k), 0); open.forEach(k => (out[k] += (spill * sw2(k)) / den2));
   }
+  // The last pass's spill isn't checked again: no skill ends up past its top (or under 4).
+  SKILLS.forEach(k => { const v = p.r[k] + ((p.rx || {})[k] || 0); out[k] = Math.max(4 - v, Math.min(out[k], Math.max(0, skillTop(p, k) - v))); });
   return out;
 }
 
