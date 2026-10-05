@@ -50,9 +50,9 @@ function readOf(g: Game, c: any, p: any, scout: any) {
   const r = mulberry32(p.id * 7919 + hash(scout.name)), prospect = !!p.cls && !p.stats?.length, games = (p.stats || []).reduce((a: number, x: any) => a + (x.gp || 0), 0);
   const m = (prospect ? 7 : cl(4 - games / 60, 1.2, 4)) * (1.4 - scout.skill * 0.18) / intelF(c, p.id); // ★1 reads about 2.4× as wide as ★5
   const it = ensureIntg(p), R: Record<string, number> = {};
-  Object.keys(p.r).forEach(k => (R[k] = cl(p.r[k] + (r() * 2 - 1) * m * 1.3, 1, 100)));
+  Object.keys(p.r).forEach(k => (R[k] = cl(p.r[k] + (r() * 2 - 1) * m * 1.3, 1, 99)));
   const hIn = (() => { const x = String(p.hgt || '').match(/(\d+)\D+(\d+)/); return x ? +x[1] * 12 + +x[2] : 78; })();
-  R.wing = cl(50 + ((p.wing ?? hIn + 4) - hIn - 4) * 6, 1, 100);
+  R.wing = cl(50 + ((p.wing ?? hIn + 4) - hIn - 4) * 6, 1, 99);
   R.feel = cl(it.feel + (r() * 2 - 1) * m * 2.6, 1, 99); R.poise = cl(it.poise + (r() * 2 - 1) * m * 2.6, 1, 99);
   return { R, ovr: cl(p.ovr + (r() * 2 - 1) * m, 1, 100), pot: cl(p.pot + (r() * 2 - 1) * m * 1.4, 1, 100) };
 }

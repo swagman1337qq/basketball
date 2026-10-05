@@ -31,7 +31,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.born && card.born !== 'US' && card.state === undefined) delete p.state;
   if (card.age != null && !card.dob) delete p.dob;
   KEEP.forEach(k => { if (card[k] !== undefined && k !== 'r' && k !== 'pers' && k !== 'intg' && k !== 'ten') p[k] = JSON.parse(JSON.stringify(card[k])); });
-  p.r = { ...p.r }; Object.entries(card.r).forEach(([k, v]) => (p.r[k] = cl(v as number, 1, 100)));
+  p.r = { ...p.r }; Object.entries(card.r).forEach(([k, v]) => (p.r[k] = cl(v as number, 1, 99)));
   if (card.pers) p.pers = { ...p.pers, ...card.pers };
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
   delete p.tend; delete p.ten; // his playing style starts over from the new build (below; his quirks stay)

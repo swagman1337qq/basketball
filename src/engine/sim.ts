@@ -73,7 +73,7 @@ const CURVE: Record<string, { mid: number; up: number; down: number; soft?: numb
 // not 90%), so superstars' efficiency stays in the range of the NBA's best.
 // Free throws fall off faster at the bottom: below 40 each point costs half again as much, so a 20
 // shoots like Shaq (about 53–55%) and a 1 like Ben Wallace (about 41%), not a passable 51%.
-const FT_KNEE = 40, FT_LOW = 0.0025, FT_PERFECT = 99.5; // a rating of 100: 98% (ftPct)
+const FT_KNEE = 40, FT_LOW = 0.0025, FT_PERFECT = 98.5; // a perfect 99: 98% (ftPct)
 export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / (c.soft ?? 40)) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : 0); };
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
@@ -552,8 +552,8 @@ export class GameSim {
     if (p.protect) Object.assign(m, { c3: (m.c3 || 1) * 0.5, atb: (m.atb || 1) * 0.5 });
     return Object.keys(m).length ? shotProfile(p, this.norms, m) : this.cache.get(p)!.prof;
   }
-  // A perfect 100 is a different animal: 98% every season, José Calderón's record year (98.1% in
-  // 2008–09) as his normal. Everyone else follows the curve (a 99 is about 92.5%).
+  // A perfect 99 is a different animal: 98% every season, José Calderón's record year (98.1% in
+  // 2008–09) as his normal. Everyone else follows the curve (a 98 is about 92%).
   private ftPct(p: SimPlayer) { return p.r.ft >= FT_PERFECT ? 0.98 : BASE.ft + CAL.ft + curve('ft', p.r.ft) + this.norms.ftOffset; }
   // Clutch play options beyond isolating the star: the pick and roll pair, or tonight's hot hand.
   private clutchPick(onO: SimPlayer[], t: Tactics, k: Side): SimPlayer[] | null {

@@ -124,7 +124,7 @@ export function setRating(p: any, k: string, v: number) { p.r[k] = v; syncOvr(p,
 // overall lands there (a few passes, since ratings stop at 1 and 100).
 export function setOverall(p: any, v: number) {
   const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
-  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(100, Math.round(p.r[k] + d * f))); }); }
+  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(RMAX, Math.round(p.r[k] + d * f))); }); }
   syncOvr(p, true);
 }
 
@@ -134,15 +134,19 @@ export function setOverall(p: any, v: number) {
 // rotations (a Hassan Whiteside), and a guard can pile up steals without being a stopper (Luka).
 // `noise` is −0.5…0.5 (random for new players, a fixed hash for older saves).
 // The top of the skill scale (potential.ts): past 85 every point is harder to come by, leveling off below 98.
+// Every rating stops at 99, and a 99 is improbable (potential.ts breakthroughs, generational skills).
+export const RMAX = 99;
 export const SOFT_K = 85, TOP = 98;
-// The most growth can carry a skill: a normal skill stops at 98 (a generational one at 99.5). The
+// The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99). The
 // ceiling alone isn't enough: growth may land half a point past it, and a ceiling refit lifts the
 // ceiling to the rating, which would ratchet a skill up to 99 over the seasons.
-export const skillTop = (p: any, k: string) => Math.min(p.gen === k ? 99.5 : TOP + 0.4, (p.ceil?.[k] ?? 99.5) + 0.5);
-export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / room)); }
+export const skillTop = (p: any, k: string) => Math.min(p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4, (p.ceil?.[k] ?? 99.5) + 0.5);
+// The approach is slow (SOFT_SCALE): a raw 110 lands about 93, 130 about 96, and only an enormous target gets near 98.
+export const SOFT_SCALE = 22;
+export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / ((room * SOFT_SCALE) / (TOP - SOFT_K)))); }
 export function deriveDefense(p: any, noise: (k: number) => number) {
   const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;
-  const c = (v: number) => Math.round(softTop(Math.max(4, Math.min(100, v))));
+  const c = (v: number) => Math.round(softTop(Math.max(4, Math.min(RMAX, v))));
   r.blk = c(r.jmp * 0.3 + r.hgt * 0.3 + base * 0.3 + r.diq * 0.1 + ape * 2.2 + (g === 'B' ? 4 : g === 'G' ? -9 : -2) + noise(1) * 24);
   r.stl = c((r.acc ?? r.spd) * 0.25 + r.spd * 0.15 + base * 0.4 + r.diq * 0.1 + (r.pss ?? 50) * 0.1 + ape * 1.2 + (g === 'G' ? 4 : g === 'B' ? -6 : 1) + noise(2) * 24);
 }
@@ -152,7 +156,7 @@ export function deriveDefense(p: any, noise: (k: number) => number) {
 export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
   const before = ovrExact(p); deriveDefense(p, noise);
   const W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0), k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
-  for (let i = 0; i < 4; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.05) break; p.r.blk = Math.max(4, Math.min(100, Math.round(p.r.blk + d * k))); p.r.stl = Math.max(4, Math.min(100, Math.round(p.r.stl + d * k))); }
+  for (let i = 0; i < 4; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.05) break; p.r.blk = Math.max(4, Math.min(RMAX, Math.round(p.r.blk + d * k))); p.r.stl = Math.max(4, Math.min(RMAX, Math.round(p.r.stl + d * k))); }
 }
 
 // Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is
@@ -163,15 +167,15 @@ export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
 // 6′11″ big ≈ 66), partly how he plays to it, kept from his old rating and a fixed lean of his own:
 // some players use their length and strength like a bigger man, some play small.
 export const hgtFromInches = (inches: number) => 34 + (inches - 75) * 4;
-export function blendHeight(p: any, old: number) { const lean = ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10; return Math.round(Math.max(4, Math.min(100, 0.6 * (hgtFromInches(inchesOf(p.hgt)) + lean) + 0.4 * old))); }
+export function blendHeight(p: any, old: number) { const lean = ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10; return Math.round(Math.max(4, Math.min(RMAX, 0.6 * (hgtFromInches(inchesOf(p.hgt)) + lean) + 0.4 * old))); }
 // Set the height rating and move his other ratings the other way so his overall stays put.
 export function setHgtKeepOvr(p: any, v: number) {
   const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = T / (T - (W.hgt ?? 0)); p.r.hgt = v;
-  for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(100, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
+  for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
 }
 export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 export const WNG_W: Record<string, number> = { G: .04, W: .06, B: .08 };
-export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(100, 50 + (wing - hIn - 4) * 6)));
+export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(RMAX, 50 + (wing - hIn - 4) * 6)));
 export const wngRating = (p: any) => wngOf(p.wing ?? inchesOf(p.hgt) + 4, inchesOf(p.hgt));
 export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? .06);
 export function setWing(p: any, inches: number) { p.wing = inches; syncOvr(p, true); }

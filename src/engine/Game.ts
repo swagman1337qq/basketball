@@ -18,7 +18,7 @@ import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
-import { snapEnd, snapOpening } from './progress';
+import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
@@ -84,7 +84,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
-    g.db.ceilV = 1; g.db.topV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
+    g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
@@ -210,6 +210,8 @@ export class Game {
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     // 2026-10: 99 is extremely hard to reach (potential.ts softTop): skill ceilings past 85 thin out, below
     // 98 for everyone but a rare generational skill. Ratings already there stay; the ceilings above them come down.
+    // 2026-10: every rating stops at 99.
+    if (!g.db.r99V) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r) return; Object.keys(p.r).forEach(k => { if (p.r[k] > 99) p.r[k] = 99; }); if (p.ceil) Object.keys(p.ceil).forEach(k => { if (p.ceil[k] > 99.4) p.ceil[k] = 99.4; }); if (p.ovr != null && !p.retired) syncOvr(p); }); g.db.r99V = 1; }
     if (!g.db.topV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || !p.ceil || p.gone || p.retired || p.godPot != null) return; SKILLS.forEach(k => { const c = p.ceil[k]; if (c > 85) p.ceil[k] = +Math.max(p.r[k], Math.min(ceilMax(p, k), softTop(c))).toFixed(1); }); refreshPot(p); }); g.db.topV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
     if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
@@ -347,7 +349,7 @@ export class Game {
   }
   resetFace(pid) { delete this.faceCache[pid]; (this.db.P[pid]?.family || []).forEach(x => delete this.faceCache[x.pid]); }
   // God Mode: a fresh set of ratings around his overall, shaped by his position (height stays).
-  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') { const v = this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 100); p.r[k] = Math.round(SKILLS.includes(k) ? softTop(v) : v); } }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
+  randomRatings(p) { const o = p.ovr; RATING_KEYS.forEach(k => { if (k !== 'hgt') { const v = this.cl(o + (BIAS[p.grp]?.[k] || 0) + (Math.random() - .5) * 22, 4, 99); p.r[k] = Math.round(softTop(v)); } }); deriveDefense(p, () => Math.random() - .5); syncOvr(p); }
   // God Mode: a player now represents another country. Heritage, look and name follow it.
   renationalize(p, code, withName = true) {
     const C = this.db.C; if (!C[code]) return null;
@@ -536,7 +538,7 @@ export class Game {
     const [pos, grp] = forceGrp ? pick(POS.filter(x => x[1] === forceGrp)) : pick(POS);
     const ovr = Math.round(cl(base, 22, 92));
     const pot = Math.round(age < 23 ? ovr + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? ovr + rnd() * 5 : ovr);
-    const r: any = {}; RATING_KEYS.forEach(k => { const v = cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 100); r[k] = Math.round(SKILLS.includes(k) ? softTop(v) : v); }); // skills thin out past 85 (potential.ts)
+    const r: any = {}; RATING_KEYS.forEach(k => { const v = cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 99); r[k] = Math.round(softTop(v)); }); // every rating thins out past 85 (ratings.ts softTop)
     const hIn = grp === 'G' ? 73 + Math.floor(rnd() * 5) : grp === 'W' ? 77 + Math.floor(rnd() * 4) : 81 + Math.floor(rnd() * 5);
     // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
     const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
@@ -1061,6 +1063,9 @@ export class Game {
   // July 6, Summer League is mid-July, then the market thins out until training camps open
   // September 30. Most of the big names agree in the first days; the rest trickle in.
   static FA_END = 92;
+  // The chance, each summer, that a rating sitting at 98 breaks through to 99 (age 31 or younger). A
+  // handful of ratings sit at 98 in a league, so a breakthrough comes along every decade or two.
+  static BREAK = 0.004;
   faDayOf(s = this.state) { return s.phase === 'fa' ? Math.max(0, s.day - (s.faStart ?? s.day)) : 0; }
   faDate(s = this.state, fd = this.faDayOf(s)) { return new Date(this.Y, 5, 30 + fd); }
   faStage(fd: number) { return fd === 0 ? 'Negotiations open at 6 p.m. ET' : fd < 6 ? 'Moratorium: deals are agreed now and become official July 6' : fd < 10 ? 'Deals are official' : fd <= 20 ? 'Summer League in Las Vegas' : fd <= 60 ? 'The quiet stretch: the market thins out' : fd < Game.FA_END ? 'Camp invites and last-minute deals' : 'Training camps open'; }
@@ -1123,6 +1128,10 @@ export class Game {
         const from = p.ovr, dl = develop(p, x, 0.5, { year: this.Y, focus, keys: Game.FOCUS[focus], role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1), rnd: Math.random });
         SKILLS.forEach(k => { const room = skillTop(p, k) - (p.r[k] + (p.rx?.[k] || 0)); dl[k] = Math.min((dl[k] || 0) + (Math.random() - .5) * 3, Math.max(dl[k] || 0, room)); }); // a little noise, never past a ceiling
         applyChange(p, dl); syncOvr(p);
+        // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
+        if (a <= 31) [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'].forEach(k => { if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= Game.BREAK) return;
+          p.brk = { ...(p.brk || {}), [k]: 1 }; p.r[k] = 99; if (p.rx) p.rx[k] = 0; if (p.ceil && p.ceil[k] != null) p.ceil[k] = 99; syncOvr(p);
+          lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' made the jump to a 99 in ' + (RNAME[k] || k) + ', almost unheard of' }, ...lgLog]; });
         // His true ceiling moves only with real events: a breakout or a bust (above), a serious injury, a
         // rookie who couldn't adapt. A young player who stalls loses nothing up front, but the clock runs:
         // his potential (what he can still reach) shrinks with every lost year (potential.ts).
@@ -1147,7 +1156,7 @@ export class Game {
         // A late growth spurt: extremely rare, only for teenagers and 20–21-year-olds, one inch
         // (4 height points). Wingspan never changes.
         const spurt = a <= 19 ? .003 : a <= 21 ? .001 : 0; // about one player every two or three seasons, league-wide
-        if (Math.random() < spurt) { const inch = 1, hIn = this.inches(p.hgt), nIn = Math.min(91, hIn + inch); if (nIn > hIn) { p.hgt = Math.floor(nIn / 12) + '′' + (nIn % 12) + '″'; setRating(p, 'hgt', Math.min(100, p.r.hgt + 4 * (nIn - hIn))); lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' grew ' + (nIn - hIn === 1 ? 'an inch' : 'two inches') + ' over the summer (now ' + p.hgt + ')' }, ...lgLog]; } }
+        if (Math.random() < spurt) { const inch = 1, hIn = this.inches(p.hgt), nIn = Math.min(91, hIn + inch); if (nIn > hIn) { p.hgt = Math.floor(nIn / 12) + '′' + (nIn % 12) + '″'; setRating(p, 'hgt', Math.min(99, p.r.hgt + 4 * (nIn - hIn))); lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' grew ' + (nIn - hIn === 1 ? 'an inch' : 'two inches') + ' over the summer (now ' + p.hgt + ')' }, ...lgLog]; } }
         return from; };
       // First NBA training camp: how each rookie's game translates (translation.ts). The scouts couldn't see it.
       const camp: Record<number, string[]> = {}, campIds: number[] = [];

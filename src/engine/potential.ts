@@ -71,9 +71,9 @@ function rollGen(p: any, rnd: () => number = Math.random) {
   const w = gapShape(p), sc = (k: string) => w[k] * (0.3 + p.r[k] / 60); p.gen = SKILLS.slice().sort((a, b) => sc(b) - sc(a))[0]; // where his game already points
 }
 // A skill's ceiling for a raw target `v` (cap 100: God Mode's word, exact).
-export function ceilFor(p: any, k: string, v: number, cap = 99) { if (cap >= 100) return Math.min(cap, v); const g = genOf(p) === k; return Math.min(g ? 99.5 : TOP, g ? softTop(Math.max(v + GEN_BOOST, 104), GEN_TOP) : softTop(v)); } // a generational skill's ceiling is never below about 96
+export function ceilFor(p: any, k: string, v: number, cap = 99) { if (cap >= 100) return Math.min(cap, v); const g = genOf(p) === k; return Math.min(g ? 99.4 : TOP, g ? softTop(Math.max(v + GEN_BOOST, 104), GEN_TOP) : softTop(v)); } // a generational skill's ceiling is never below about 96
 // The most a ceiling can be moved to by events (a training camp, a breakout): below 98, or 99.5 for his generational skill.
-export const ceilMax = (p: any, k: string) => (genOf(p) === k ? 99.5 : TOP - 0.5);
+export const ceilMax = (p: any, k: string) => (genOf(p) === k ? 99.4 : TOP - 0.5);
 
 // The shape of his ceilings: by his development profile, plus a little per skill (fixed for him).
 function gapShape(p: any) { const d = devProfile(p), r = mulberry32(((p.id * 2654435761) ^ 0x7e11) >>> 0), w: Record<string, number> = {}; SKILLS.forEach(k => (w[k] = d.aff[groupOf(k)] * (0.6 + 0.8 * r()))); return w; }

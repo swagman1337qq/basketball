@@ -15,7 +15,7 @@
 // The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { OVR_W, skillTop } from './ratings';
+import { OVR_W, RMAX, skillTop } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
 
@@ -169,8 +169,8 @@ export function bodyAhead(p: any, room: number) {
   const d = devProfile(p), W = OVR_W[p.grp] || OVR_W.W, sh: Record<string, number> = {};
   BODY.forEach(k => (sh[k] = cl(room - d.cap[k] * YOUTH[k](p.age), 0, 30)));
   const down = BODY.reduce((a, k) => a + W[k] * sh[k], 0) / SKILLS.reduce((a, k) => a + W[k], 0);
-  BODY.forEach(k => (p.r[k] = Math.round(cl(p.r[k] + sh[k], 4, 100))));
-  SKILLS.forEach(k => (p.r[k] = Math.round(cl(p.r[k] - down, 4, 100))));
+  BODY.forEach(k => (p.r[k] = Math.round(cl(p.r[k] + sh[k], 4, RMAX))));
+  SKILLS.forEach(k => (p.r[k] = Math.round(cl(p.r[k] - down, 4, RMAX))));
 }
 // The overall change a set of rating changes makes.
 export function ovrDelta(p: any, dl: Record<string, number>) {
@@ -183,13 +183,15 @@ export function applyChange(p: any, dl: Record<string, number>) {
   for (const k in dl) {
     if (k === 'hgt' || !dl[k]) continue;
     const x = (p.rx[k] || 0) + dl[k], whole = Math.trunc(x), r = p.r[k] + whole;
-    if (r > 100 || r < 4) { p.r[k] = cl(r, 4, 100); p.rx[k] = 0; } else { p.r[k] = r; p.rx[k] = +(x - whole).toFixed(4); }
+    if (r > RMAX || r < 4) { p.r[k] = cl(r, 4, RMAX); p.rx[k] = 0; } else { p.r[k] = r; p.rx[k] = +(x - whole).toFixed(4); }
   }
 }
 // One stretch of development: the body on its own track, then the rest of the overall change (target)
 // spread across his skills. Body growth never pulls his skills down; body decline is part of the target.
 export function develop(p: any, target: number, frac: number, o: BodyOpts & WeightOpts): Record<string, number> {
-  const body = bodyChange(p, frac, o), bo = ovrDelta(p, body);
+  const body = bodyChange(p, frac, o);
+  BODY.forEach(k => { const v = p.r[k] + ((p.rx || {})[k] || 0); if (body[k] > 0) body[k] = Math.min(body[k], Math.max(0, skillTop(p, k) - v)); }); // the body tops out at 98 too
+  const bo = ovrDelta(p, body);
   const rest = target >= 0 ? Math.max(0, target - bo) : target - bo;
   const sk = skillChange(p, rest, skillWeights(p, o));
   return { ...body, ...sk };
