@@ -1070,9 +1070,9 @@ export class Game {
   // league filled up with stars), and the most everything that speeds him up (work ethic, the hidden
   // factor, a breakout year, his environment) can stack to: outliers exist, but not 4–8× a normal pace.
   static REALIZE = 0.94; static GROW_CAP = 2.5;
-  // The chance, each summer, that a rating sitting at 98 breaks through to 99 (age 31 or younger). A few
-  // dozen ratings sit at 98 in a league, so a breakthrough comes along about once every 20 seasons.
-  static BREAK = 0.001;
+  // The chance, each summer, that any rating in the league sitting at 98 breaks through to 99 (age 31 or
+  // younger): about once in 150 seasons, however many 98s there are.
+  static BREAK = 1 / 150;
   faDayOf(s = this.state) { return s.phase === 'fa' ? Math.max(0, s.day - (s.faStart ?? s.day)) : 0; }
   faDate(s = this.state, fd = this.faDayOf(s)) { return new Date(this.Y, 5, 30 + fd); }
   faStage(fd: number) { return fd === 0 ? 'Negotiations open at 6 p.m. ET' : fd < 6 ? 'Moratorium: deals are agreed now and become official July 6' : fd < 10 ? 'Deals are official' : fd <= 20 ? 'Summer League in Las Vegas' : fd <= 60 ? 'The quiet stretch: the market thins out' : fd < Game.FA_END ? 'Camp invites and last-minute deals' : 'Training camps open'; }
@@ -1122,6 +1122,8 @@ export class Game {
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
       Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
+      // Breakthroughs to 99: one in about 150 seasons league-wide, shared among the ratings sitting at 98 this summer.
+      const BK = [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'], at98 = [...(Object.values(rosters).flat() as number[]), ...fa].reduce((n, id) => { const q = P[id]; return q?.r && q.age < 31 ? n + BK.filter(k => q.r[k] === 98).length : n; }, 0), brkP = Game.BREAK / Math.max(1, at98);
       const grow = (p, tid = -1, focus = 'Balanced') => { const env = envOf(this, s, p, tid, rosters), cm = tid >= 0 ? coachMult(teamBudget(this, s, tid).Coaching) : 1; let pen = 0; if (p.age < 24 && (p.minorCount || 0) >= 4) { pen = -2; moveTruePot(p, -(1 + Math.floor(Math.random() * 3))); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
         // The offseason: his rate, shaped by personality and the hidden factor, a bit of confidence
         // from the season he just had, and luck. Now and then a young player breaks out or stalls.
@@ -1138,7 +1140,7 @@ export class Game {
         applyChange(p, dl); syncOvr(p);
         // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
         capToT(p); syncOvr(p);
-        if (a <= 31 && ovrExact(p) < trueT(p) - 0.3) [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'].forEach(k => { if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= Game.BREAK) return;
+        if (a <= 31 && ovrExact(p) < trueT(p) - 0.3) BK.forEach(k => { if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= brkP) return;
           p.brk = { ...(p.brk || {}), [k]: 1 }; p.r[k] = 99; if (p.rx) p.rx[k] = 0; if (p.ceil && p.ceil[k] != null) p.ceil[k] = 99; syncOvr(p);
           lgLog = [{ day: s.day, type: 'Team', teams: s.teams[Object.keys(rosters).find(k2 => rosters[k2].includes(p.id)) as any]?.abbr || 'FA', pids: [p.id], text: p.name + ' made the jump to a 99 in ' + (RNAME[k] || k) + ', almost unheard of' }, ...lgLog]; });
         // His true ceiling moves only with real events: a breakout or a bust (above), a serious injury, a
