@@ -36,7 +36,7 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
           // Your series: games you won are green, games you lost red.
           const mine = vm.ctx.isMine(x.a) || vm.ctx.isMine(x.b), res = mine ? (vm.ctx.isMine(w) ? 'var(--gm-good)' : 'var(--gm-bad)') : null;
           return <button key={i} className="hv4" disabled={!box} onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })} title={'Game ' + (i + 1) + ': ' + vm.ctx.T[w].abbr + ' won ' + Math.max(g.hp, g.ap) + '–' + Math.min(g.hp, g.ap) + (box ? ' · click for the box score' : ' · no box score (played before box scores were added)')}
-            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid ' + (res || 'var(--color-divider)'), background: res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined, fontWeight: res ? 700 : undefined, opacity: box ? 1 : .5, textDecoration: box ? 'underline dotted' : 'none', color: res || 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
+            style={{ all: 'unset', cursor: box ? 'pointer' : 'default', fontSize: '10px', padding: '0 4px', borderRadius: 3, border: '1px solid ' + (res || 'var(--color-divider)'), background: res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined, fontWeight: res ? 700 : undefined, opacity: box ? 1 : .5, color: res || 'var(--color-neutral-700)' }}>G{i + 1}</button>; })}
       </div>}
     </div>
   );
@@ -134,16 +134,11 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
           <Column label="West · R1">{col(0, 'West', 4)}</Column>
           <Column label="West · Semis">{col(1, 'West', 2)}</Column>
           <Column label="West · Finals">{col(2, 'West', 1)}</Column>
-          <Column label="Finals">{finals ? <SeriesCard vm={vm} x={finals} /> : empty(1)}</Column>
+          <Column label="Finals">{finals ? <div><SeriesCard vm={vm} x={finals} />{champ != null && !projected && <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}><ChampBanner team={T[champ]} year={gm.Y} width={130} /></div>}</div> : empty(1)}</Column>
           <Column label="East · Finals">{col(2, 'East', 1)}</Column>
           <Column label="East · Semis">{col(1, 'East', 2)}</Column>
           <Column label="East · R1">{col(0, 'East', 4)}</Column>
         </div>
-        {champ != null && !projected && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,minmax(0,1fr))', gap: '10px', marginTop: '22px' }}>
-            <div style={{ gridColumn: '3 / 6', display: 'flex', justifyContent: 'center' }}><ChampBanner team={T[champ]} year={gm.Y} width={150} /></div>
-          </div>
-        )}
         {projected && s.phase === 'regular' && <p style={{ ...muted, fontSize: '12px', margin: '10px 0 0' }}>Seeds 1–6 qualify directly; seeds 7–10 go to the play-in for the last two spots in each conference.</p>}
       </section>
 

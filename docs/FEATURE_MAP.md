@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-05 (true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-05 (playoffs banner under the Finals, smooth scrolling; true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -86,7 +86,7 @@ Screens: Live game, Box score, Stats, League stats, League leaders, Tactics. Cod
 ### Season and league
 - 30 teams (15 per conference), 82 games, standings by conference or division. New leagues include the Iŋaliq Ivories (Little Diomede, Alaska) and the Wazíbló Dragoons (Pine Ridge, South Dakota) in the Northwest, each with a hand-drawn crest (`ui/teamCrests.tsx`, used by `TeamLogo` unless a logo style is picked in the League editor); Tampa and Phoenix are expansion options (`franchises.ts`). Their CCP clubs: `ccp.ts` `ccpAffilOf` (Denver's moves to Window Rock, and the Little Diomede club sits out).
 - All-Star Weekend in mid-February, trade deadline in early February.
-- Play-in, East and West best-of-7 brackets and the Finals, with "if the season ended today" views; when the Finals end, the champion's banner hangs under the Finals (`ChampBanner.tsx`).
+- Play-in, East and West best-of-7 brackets and the Finals, with "if the season ended today" views; when the Finals end, the champion's banner hangs right under the Finals series, inside the Finals column (`ChampBanner.tsx`). Game chips under each series have no dotted underline (a hundred of them made scrolling stutter); they underline on hover.
 - Awards voted by editable formulas: MVP, DPOY, ROY, 6MOY, MIP, Finals MVP, All-League, All-Defense, All-Rookie and more; the Awards screen highlights your players (and you as Coach of the Year) in your team's primary color (`meColor`; text dark or white by contrast, `kit.tsx` `inkOn`).
 - Media preseason predictions and a press room.
 - Hall of Fame (3-season wait, up to five a year), league history, league-wide transactions.

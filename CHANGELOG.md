@@ -22,6 +22,8 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Box scores: a bar between the starters and the bench.** A clear line now splits each team's starting five from its bench, so you can tell them apart at a glance.
 
 ### Fixed
+- **Playoffs screen scrolls smoothly again.** After the playoffs it stuttered to about 20 frames a second. The cause was the dotted underline on the small game buttons under every series (G1, G2…), which the browser is slow to draw a hundred times over. The underline only shows on hover now, and the page scrolls at a full 60 frames a second.
+- **The championship banner hangs right under the Finals.** It used to sit below the whole bracket.
 - **No more sneaking up to 99.** A skill could grow half a point past its ceiling, and the ceiling then moved up to meet it, so over a few seasons some players still crept to 99 or even 100. A skill now stops at 98 for good, unless it's a generational one, and a big growth year can't push one past it either.
 
 ## 2026-10-04
