@@ -15,7 +15,7 @@
 // The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { OVR_W } from './ratings';
+import { OVR_W, skillTop } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
 
@@ -119,7 +119,7 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
   // elsewhere); with every skill at its ceiling, he's done growing.
   for (let pass = 0; pass < 3; pass++) {
     const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0); let spill = 0; const open: string[] = [];
-    SKILLS.forEach(k => { const top = Math.min(99.5, (p.ceil?.[k] ?? 99.5) + 0.5), hi = Math.max(0, top - v(k)), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k); }); // growth that doesn't fit can land on any skill with room left
+    SKILLS.forEach(k => { const top = skillTop(p, k), hi = Math.max(0, top - v(k)), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k); }); // growth that doesn't fit can land on any skill with room left
     if (pass === 0) spill += lost;
     if (!spill || !open.length) break;
     const sw2 = (k: string) => Math.max(0.15, u[k]) * (up ? dimAt(v(k), p.gen === k) : 1), den2 = open.reduce((a, k) => a + W[k] * sw2(k), 0); open.forEach(k => (out[k] += (spill * sw2(k)) / den2));

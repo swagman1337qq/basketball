@@ -135,6 +135,10 @@ export function setOverall(p: any, v: number) {
 // `noise` is −0.5…0.5 (random for new players, a fixed hash for older saves).
 // The top of the skill scale (potential.ts): past 85 every point is harder to come by, leveling off below 98.
 export const SOFT_K = 85, TOP = 98;
+// The most growth can carry a skill: a normal skill stops at 98 (a generational one at 99.5). The
+// ceiling alone isn't enough: growth may land half a point past it, and a ceiling refit lifts the
+// ceiling to the rating, which would ratchet a skill up to 99 over the seasons.
+export const skillTop = (p: any, k: string) => Math.min(p.gen === k ? 99.5 : TOP + 0.4, (p.ceil?.[k] ?? 99.5) + 0.5);
 export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / room)); }
 export function deriveDefense(p: any, noise: (k: number) => number) {
   const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;

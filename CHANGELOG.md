@@ -7,6 +7,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ### Changed
 - **Box scores: a bar between the starters and the bench.** A clear line now splits each team's starting five from its bench, so you can tell them apart at a glance.
 
+### Fixed
+- **No more sneaking up to 99.** A skill could grow half a point past its ceiling, and the ceiling then moved up to meet it, so over a few seasons some players still crept to 99 or even 100. A skill now stops at 98 for good, unless it's a generational one.
+
+
 ## 2026-10-04
 
 ### Added
