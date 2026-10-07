@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-ChLqw3Zx.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-5cvjm3FT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -26,6 +26,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
   (at a $186M cap). Free agents already on the market are re-priced when you load your league.
 - **One-year deals are much more common.** Minimum contracts are now one-year deals (young players 23 and under sometimes get two). Fringe players want short deals: players below 48 sign for one season, below 52 for one or two, below 56 for up to three. Your signing screen suggests those lengths too.
+
+### Fixed
+- **Changing a player's nationality no longer leaves his old U.S. state behind.** Making an American player Chinese (or any other country) in God Mode moved his hometown to a city in the new country but kept his state, so his hometown read like "Shanghai, Texas, China". The state is now cleared (and set again if you make him American), the same goes for a new random name from another country, and existing leagues are cleaned up when you load them.
 
 ## 2026-10-05
 
