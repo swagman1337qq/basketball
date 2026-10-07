@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-07
 
 ### Added
+- **Player cards: edit the playing style.** The card editor has a Playing style box, the same numbers as a player's God Mode editor: usage rate, his shots by zone (restricted area, paint, mid-range, corner 3, above-the-break 3), catch-and-shoot and pull-up jumpers, and free throw rate. Type the numbers you want and the card keeps them. **Match his ratings** drops them so he plays the way his ratings point, and **Lock them** keeps them from changing once the card is applied. The card's Potential field now says what it is: his true potential, the most he can ever reach.
 - **Daily schedule for everyone.** A new Daily schedule tab (League menu) shows every game in the league on any day, not just yours. Pick the day from the list or step with the arrows. Played games show the final score and a Box score button; games still to come show both teams' records. Your team's game is highlighted.
 
 ### Changed

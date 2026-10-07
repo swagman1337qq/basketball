@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-07 (a new nationality clears the old U.S. state (`setRep`, the name generator; `hometownOf` shows a state only for U.S.-born players, `db.stateV` cleanup); team clicks open the team's roster with Back; Daily schedule for every mode with God Mode force-win tick boxes, also on Team schedule; stat floors for the worst passers, rebounders and defenders; slower cap growth; new player value curve, bench players near the minimum; one-year minimum deals; playoffs banner under the Finals, smooth scrolling; true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-07 (player cards: editable playing style and lock; a new nationality clears the old U.S. state (`setRep`, the name generator; `hometownOf` shows a state only for U.S.-born players, `db.stateV` cleanup); team clicks open the team's roster with Back; Daily schedule for every mode with God Mode force-win tick boxes, also on Team schedule; stat floors for the worst passers, rebounders and defenders; slower cap growth; new player value curve, bench players near the minimum; one-year minimum deals; playoffs banner under the Finals, smooth scrolling; true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -256,7 +256,7 @@ All in `src/engine/`.
 | `faces.ts` | Face generator (`makeFace`), layered SVG renderer (`faceSvg`) and the option lists the face editor offers |
 | `spectator.ts` | Spectator Mode: hand every team to the AI (`enterSpectator`), take one back (`manageTeam`), and the driver that runs the season toward a goal (`spectate`) |
 | `jerseys.ts` | Jersey numbers, and retired numbers (retire, unretire, kept from newcomers) |
-| `playerCard.ts` | Player cards (a player's whole build, applied in God Mode) |
+| `playerCard.ts` | Player cards (a player's whole build, applied in God Mode). The card editor (`CardLibrary.tsx` `CardStyle`) edits the card's playing style in NBA units on a stand-in player built from the card (`cardPlayer`), stored as `card.ten` scores; `card.tenLock` locks them on apply |
 | `prune.ts` | Keeps saves small: trims retired players (`slimRetired`), drops old seasons' home/away splits (`dropOldSplits`), removes players who never played (`removeUnplayed`) |
 | `translation.ts` | Draft surprises: a prospect's hidden NBA translation, applied at his first camp |
 | `godMove.ts` | God Mode: move any player to any team (keeps his deal, or a fair new one) |

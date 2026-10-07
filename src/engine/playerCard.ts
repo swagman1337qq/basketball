@@ -7,7 +7,7 @@ import { applyMult, initTendencies, TEN_KEYS } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 
-const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten'] as const;
+const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten', 'tenLock'] as const;
 
 export function exportCard(p: any) {
   const c: any = { card: 1 };
@@ -48,6 +48,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   initTendencies(p);
   if (card.ten && typeof card.ten === 'object') TEN_KEYS.forEach(k => { const v = card.ten[k]; if (typeof v === 'number' && isFinite(v)) p.ten[k] = Math.max(2, Math.min(98, v)); });
   else if (card.tend) applyMult(p, card.tend);
+  if (card.tenLock) p.tenLock = true; else delete p.tenLock; // a card can lock its playing style
   return '';
 }
 

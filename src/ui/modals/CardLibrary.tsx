@@ -8,6 +8,7 @@ import { Combo, CountryPicker, FtInInput, muted, NumInput, ruleH4 } from '../kit
 import { applyCard, BLANK_CARD, exportCard } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
 import { TRAITS } from '../../engine/traits';
+import { ensureTen, expUsg, jumpScoreFor, jumpShares, TEN_KEYS, TEN_LABEL, tenScore, tenUnit, usageScoreFor, ZONE_TEN, zoneScoreFor, zoneShares, type TenKey, type ZoneTen } from '../../engine/tendencies';
 
 // The card's ratings in three blocks, like a scouting sheet.
 const BLOCKS: [string, [string, string][]][] = [
@@ -104,14 +105,14 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}><CountryPicker C={C} value={draft.rep || 'US'} onPick={c => set(d => { d.rep = c; d.born = c; d.raised = c; d.her = c; delete d.heritage; if (c !== 'US') delete d.state; })} width={170} /><input className="input" value={draft.city ?? ''} placeholder="City" onChange={e => set(d => { d.city = e.target.value; })} style={{ flex: 1, minWidth: 100 }} /></span>
       </div>
 
-      <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '13px' }}><b>Potential</b><NumInput value={draft.pot ?? 60} min={1} max={100} onValue={v => set(d => { d.pot = v; })} width={66} /><span style={{ ...muted, fontSize: '12px' }}>his ceiling (the game can raise it as he develops)</span></label>
+      <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '13px' }}><b>Potential</b><NumInput value={draft.pot ?? 60} min={1} max={100} onValue={v => set(d => { d.pot = v; })} width={66} /><span style={{ ...muted, fontSize: '12px' }}>his true potential: the highest overall he can ever reach (it never changes on its own)</span></label>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 12 }}>
         {BLOCKS.map(([title, rows]) => (
           <div key={title} style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 10px' }}>
             <div style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--color-accent-700)' }}>{title}</div>
             {rows.map(([k, label]) => { const v = k === 'feel' || k === 'poise' ? draft.intg?.[k] ?? 50 : k === 'work' ? draft.pers?.work ?? 50 : draft.r?.[k] ?? 50;
               const setV = (x: number) => set(d => { if (k === 'feel' || k === 'poise') d.intg = { ...(d.intg || {}), [k]: x }; else if (k === 'work') d.pers = { ...(d.pers || {}), work: x }; else d.r = { ...(d.r || {}), [k]: x }; });
-              return <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: '13px', padding: '2px 0' }}><span>{label}</span><NumInput value={v} min={1} max={k === 'feel' || k === 'poise' ? 99 : 100} onValue={setV} width={66} /></label>; })}
+              return <label key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: '13px', padding: '2px 0' }}><span>{label}</span><NumInput value={v} min={1} max={99} onValue={setV} width={66} /></label>; })}
           </div>))}
       </div>
 
@@ -121,7 +122,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         {TRAITS.map(t => { const on = !!draft.pers?.[t.k]; return <button key={t.k} title={t.desc} className={on ? 'btn btn-primary' : 'btn btn-ghost'} style={{ fontSize: '11.5px', padding: '2px 8px' }} onClick={() => set(d => { d.pers = { ...(d.pers || {}), [t.k]: !on }; })}>{on ? '✓ ' : ''}{t.label}</button>; })}
       </div>
 
-      <div style={{ ...muted, fontSize: '12px' }}><b style={{ color: 'var(--color-text)', fontWeight: 600 }}>Playing style</b>: a card keeps the shot tendencies of the player it was copied from (set them on a player in God Mode, then copy him). A new card plays the way its ratings point, and either way his tendencies evolve from there.</div>
+      <CardStyle gm={gm} draft={draft} set={set} />
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button className="btn btn-primary" style={{ fontSize: '12px' }} disabled={!p} title={p ? '' : 'Pick a player above first'} onClick={() => apply(draft, '“' + (draft.label || draft.name || 'this card') + '”')}>{p ? 'Apply to ' + p.name : 'Pick a player to apply to'}</button>
@@ -135,4 +136,39 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
     </div>}
     <p style={{ ...muted, fontSize: '11.5px' }}>A card is a whole build: name, bio, ratings, potential, intangibles, personality and shot tendencies. Applying one keeps the player’s team, contract, stats and history; his overall comes from the ratings. Edits aren’t kept until you press Save card.</p>
   </>);
+}
+
+// The card's playing style, in the NBA's units like a player's God Mode editor: usage rate, his shots by
+// zone, catch-and-shoot and pull-up jumpers, free throw rate. Each number becomes a tendency score for
+// the card's ratings (the same number means a different score for a different build). A card with no
+// tendencies of its own plays the way its ratings point; either way they evolve from there unless locked.
+function cardPlayer(draft: any) {
+  const q: any = { id: 0, pos: draft.pos || 'SF', grp: GRP[draft.pos] || 'W', age: draft.age ?? 25, r: { ...(draft.r || {}) }, hgt: draft.hgt, wing: draft.wing, pers: { ...(draft.pers || {}) }, intg: { ...(draft.intg || {}) } };
+  q.ovr = Math.round(ovrExact(q)); q.pot = Math.max(q.ovr, draft.pot ?? q.ovr);
+  if (draft.ten) { q.ten = { ...draft.ten }; q.tenQ = {}; q.tenV = 3; } else if (draft.tend) q.tend = { ...draft.tend };
+  ensureTen(q);
+  return q;
+}
+function CardStyle({ gm, draft, set }: { gm: any; draft: any; set: (f: (d: any) => void) => void }) {
+  const q = cardPlayer(draft), roles = gm.rolesOf(q), norms = gm.db.norms, own = !!draft.ten || !!draft.tend;
+  const put = (k: TenKey, score: number) => set(d => { d.ten = { ...q.ten, [k]: Math.round(score * 10) / 10 }; delete d.tend; });
+  const row = (label: string, v: number, lo: number, hi: number, onV: (v: number) => void, suffix: string) => (
+    <label key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: '13px', padding: '2px 0' }}><span>{label}</span><NumInput value={v} min={lo} max={Math.max(lo + 1, hi)} onValue={onV} width={66} suffix={suffix} /></label>);
+  const rows = TEN_KEYS.map(k => {
+    if (k === 'usage') return row('Usage rate', Math.round(expUsg(q, norms, roles)), Math.ceil(expUsg(q, norms, roles, 2)), Math.floor(expUsg(q, norms, roles, 98)), v => put(k, usageScoreFor(q, norms, roles, v)), '% USG');
+    if ((ZONE_TEN as readonly string[]).includes(k)) { const z = k as ZoneTen; return row(TEN_LABEL[k], Math.round(zoneShares(q, norms, roles)[z]), Math.ceil(zoneShares(q, norms, roles, { [z]: 2 })[z]), Math.floor(zoneShares(q, norms, roles, { [z]: 98 })[z]), v => put(k, zoneScoreFor(q, norms, roles, z, v)), '% shots'); }
+    if (k === 'cns' || k === 'pullup') return row(TEN_LABEL[k], Math.round(jumpShares(q, norms, roles)[k]), Math.ceil(jumpShares(q, norms, roles, { [k]: 2 })[k]), Math.floor(jumpShares(q, norms, roles, { [k]: 98 })[k]), v => put(k, jumpScoreFor(q, norms, roles, k, v)), '% shots');
+    return row(TEN_LABEL[k], Math.round(tenUnit('ftr', q.ten.ftr) * 100), Math.ceil(tenUnit('ftr', 2) * 100), Math.floor(tenUnit('ftr', 98) * 100), v => put(k, tenScore('ftr', v / 100)), 'per 100 FGA');
+  });
+  return (
+    <div style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 10px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+        <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>Playing style</span>
+        <span style={{ ...muted, fontSize: '12px' }}>{own ? 'Set on this card.' : 'From his ratings (change any number to set your own).'}</span>
+        {own && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto' }} onClick={() => set(d => { delete d.ten; delete d.tend; })} title="Drop the card's own tendencies: he plays the way his ratings point">Match his ratings</button>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: '0 18px' }}>{rows}</div>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', marginTop: 6 }}><input type="checkbox" checked={!!draft.tenLock} onChange={e => set(d => { if (e.target.checked) d.tenLock = true; else delete d.tenLock; })} /> Lock them (they don’t evolve after the card is applied)</label>
+      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>The five zones always add up to 100% of his shots, so raising one makes room in the others. The numbers follow the ratings above: change his skills and the same tendencies give a slightly different mix. Applied to a player, the card plays these until they drift toward what his game and role ask for (unless locked).</div>
+    </div>);
 }
