@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-CXu4cfkM.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-CFz03e0t.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-07
 
 ### Changed
+- **No more 0.2-assist rotation players.** Players with real minutes who can't pass, rebound or steal were averaging lines like 0.2 assists, under a rebound or 0.2 steals a game, which nobody in NBA history has done. The engine gave almost all the credit to the best player on the floor. The weakest players now get their share of loose balls, long rebounds and kick-out passes: a non-passing big in 20+ minutes averages about half an assist to one, a small guard about two rebounds, a slow big about half a steal. Team totals don't change (the league still averages the same assists, rebounds, steals and blocks), so good passers and rebounders lose only a sliver.
 - **The salary cap grows more slowly.** It used to grow about 6% a year early on (a $165M cap reached about $7 billion after 100 seasons). Now it grows about 4% a year for the first decade and settles near 2–2.5%, and new TV deals give smaller jumps. After 100 seasons the cap is about $1.8 billion. Existing leagues follow the new pace from next season on.
 - **Bench players ask for much less in free agency.** A 48 overall was asking for $5M+; now he asks for about the minimum, like a real end-of-bench player. Pay climbs quickly for real rotation players, starters and stars:
 
