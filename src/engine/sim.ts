@@ -134,6 +134,13 @@ export const rebSkill = (r: any) => r.reb * 0.6 + r.hgt * 0.25 + r.jmp * 0.15 + 
 // Team rebounding also counts box-outs: a great boxer wins the glass for his team without
 // grabbing many rebounds himself.
 export const glassSkill = (r: any) => rebSkill(r) * 0.75 + (r.box ?? r.reb) * 0.25;
+// Floors for handing out assists, steals, blocks and rebounds. Anyone playing real minutes picks
+// up some of each just by being on the floor (a kick-out, a loose ball, a long rebound), so the
+// worst passers, rebounders and defenders count as these skill levels when the credit is shared
+// out. The team totals don't change, only who gets them; the best players lose a sliver.
+// Without them a weak passer in 20+ minutes a night averaged 0.2 assists, a small guard under a
+// rebound, a slow big 0.2 steals; nobody in NBA history with real minutes posts lines like that.
+const PASS_FLOOR = 30, REB_FLOOR = 36, STEAL_FLOOR = 32, BLOCK_FLOOR = 30;
 
 export interface Norms {
   season: number;
@@ -459,7 +466,7 @@ export class GameSim {
       const x = Math.random();
       const stealShare = cl(RATE.stealShare * Math.exp(handsD / 160), 0.35, 0.8);
       if (x < stealShare) {
-        const s2 = wpick(onD, p => Math.pow(Math.max(1, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
+        const s2 = wpick(onD, p => Math.pow(Math.max(STEAL_FLOOR, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
         D.box[s2.id].stl++;
         ev([s2.id, handler.id], () => s2.name + ' steals the ball from ' + handler.name, () => '(' + D.box[s2.id].stl + ' STL)');
       } else if (x < stealShare + RATE.offFoul) {
@@ -513,7 +520,7 @@ export class GameSim {
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
         if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(1, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
@@ -523,7 +530,7 @@ export class GameSim {
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
         const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1); // small finishers get blocked more
         if (Math.random() < blkP) {
-          const bl = wpick(onD, p => Math.pow(Math.max(1, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
+          const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
         } else ev([sh.id], () => sh.name + ' misses ' + lab());
@@ -582,7 +589,7 @@ export class GameSim {
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
-      const rb = wpick(pool, p => Math.pow(rebSkill(p.r), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120));
+      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }
