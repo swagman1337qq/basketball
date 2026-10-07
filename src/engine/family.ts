@@ -72,7 +72,7 @@ function inherit(g: Game, p: any, rel: any, rnd: () => number) {
   // Tribal nations: a relative's family decides where he grew up too (tribal members are U.S. citizens
   // and can only represent the United States).
   if (rel.her === 'XN' || p.born === 'XN') { const C = g.db.C, home = rel.her === 'XN' ? (rel.mix && rel.born === 'US' ? 'US' : 'XN') : 'US', towns = (C[home]?.cities || []) as string[];
-    p.born = home; p.raised = home; if (towns.length) p.city = towns[Math.floor(rnd() * towns.length)];
+    p.born = home; p.raised = home; if (towns.length) p.city = towns[Math.floor(rnd() * towns.length)]; if (home !== 'US') delete p.state;
     if (rel.her === 'XN') { p.rep = 'US'; p.elig = [{ c: 'US', why: 'U.S. citizen (tribal nation)' }]; } }
   if (NO_SURNAME.test(rel.heritage || '')) { p.name = nm.name; p.native = nm.native; p.last = nm.last; }
   else setSurname(p, rel.last ?? String(rel.name).split(' ').slice(-1)[0], rel.nativeLast || '');

@@ -235,6 +235,8 @@ export class Game {
     // 2026-10: seven more ready-made rookie cards (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard) join saved card libraries, once.
     if (g.state.cards && !g.state.cardsV) { const have = new Set(g.state.cards.map((c: any) => c.id)); g.state = { ...g.state, cardsV: 2, cards: [...g.state.cards, ...PRESET_CARDS.map((x, i) => ({ id: 'preset' + i, card: { ...JSON.parse(JSON.stringify(x.card)), label: x.label } })).filter(c => c.id !== 'preset0' && !have.has(c.id))] }; }
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
+    // A U.S. state left on a player now born elsewhere (changing his nationality used to keep it).
+    if (!g.db.stateV) { Object.values(g.db.P).forEach((p: any) => { if (p.state && p.born !== 'US') delete p.state; }); g.db.stateV = 1; }
     // Re-price the free agents already on the market after the new value curve (bench players near the minimum).
     if ((g.db.askV || 0) < 2) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 2; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.

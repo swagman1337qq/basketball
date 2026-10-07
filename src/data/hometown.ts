@@ -2,6 +2,6 @@
 // for the big cities), then the country.
 import { regionOf } from './world';
 export function hometownOf(p: any, C: any): string {
-  const region = p.state || regionOf(p.city) || '';
+  const region = (p.born === 'US' && p.state) || regionOf(p.city) || ''; // the State field is a U.S. state: it only counts for U.S.-born players
   return [p.city, region, C[p.born]?.n].filter(Boolean).join(', ');
 }
