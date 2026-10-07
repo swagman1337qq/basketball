@@ -26,9 +26,10 @@ const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min
 const td: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' }, tdr: React.CSSProperties = { ...td, textAlign: 'right' };
 
 export function RosterScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, open, openTeam, isMine } = vm.ctx, P = gm.db.P;
-  const [view, setView] = useState<{ tid: number; season: number }>(() => s.rosterAt || { tid: s.me, season: gm.Y }); // rosterAt: opened on a team and season (Team history)
-  useEffect(() => { if (s.rosterAt) gm.setState({ rosterAt: null }); }, []); // used once, on opening
+  const { gm, s, T, logo, open, openTeamPage, isMine } = vm.ctx, P = gm.db.P;
+  // The team and season on show live in the game state (rosterView), so clicking a team anywhere opens
+  // its roster here and Back from a player returns to the same team. The Roster tab starts on yours.
+  const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y }, setView = (v: { tid: number; season: number }) => gm.setState({ rosterView: v });
   const [advice, setAdvice] = useState<Advice | null>(null);
   const tid = T[view.tid] ? view.tid : s.me, season = view.season, cur = season === gm.Y, mine = isMine(tid) && cur;
   const t = T[tid], first = gm.db.firstSeason || 2027, seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);
@@ -132,6 +133,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+        {(s.pageStack || []).length > 0 && <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginRight: 6 }}>← Back</button>}
         <button className="btn btn-secondary" onClick={() => step(-1)} style={{ padding: '3px 9px' }} aria-label="Previous team">‹</button>
         <button className="btn btn-secondary" onClick={() => step(1)} style={{ padding: '3px 9px' }} aria-label="Next team">›</button>
         <select className="input" value={tid} onChange={e => { setView({ tid: +e.target.value, season }); setAdvice(null); }} style={{ width: 'auto', minWidth: 220 }}>{AT.map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{isMine(x.tid) ? ' (yours)' : ''}</option>)}</select>
@@ -141,9 +143,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {tid !== s.me && <Link onClick={() => setView({ tid: s.me, season: gm.Y })} style={{ marginLeft: 6, fontSize: '12.5px' }}>Back to my team</Link>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) minmax(0,1fr)', gap: '22px', alignItems: 'start', marginBottom: '14px' }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => openTeam(tid)}>{logo(tid, 110)}</div>
+        <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">{logo(tid, 110)}</div>
         <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{t.region} {t.name}</div>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{t.region} {t.name} <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12.5px', marginLeft: 6 }}>Team overview</Link></div>
           <div>Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>{hist?.fin ? ' · ' + hist.fin : ''}</div>
           {cur && <div>{rank}{['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}{gb ? ', ' + gb : ''}</div>}
           {cur && <div>Team rating: <b>{tr}</b>/100 <span style={muted}>({trRank}{['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})</span></div>}

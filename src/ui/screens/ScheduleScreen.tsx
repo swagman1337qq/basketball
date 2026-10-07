@@ -1,10 +1,12 @@
 // Your schedule as a calendar, a month at a time: every game day with the opponent, and the score
 // (green win, red loss; click it for the box score) or, for games still to come, their record.
 // Your next game is highlighted with Watch and Quick sim. Play-in and playoff games are listed
-// below; the plain list view is one click away.
+// below; the plain list view is one click away. God Mode: games still to come have two small tick
+// boxes (ForceWin) to make either team win.
 import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { muted, Seg } from '../kit';
+import { ForceWin } from '../ForceWin';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -44,6 +46,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
               : <span style={{ fontSize: '12.5px', fontWeight: 700, color: r.win ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{r.win ? 'W' : 'L'} {r.us}–{r.them}</span>)
             : isNext ? <span style={{ display: 'flex', gap: 4 }}><button className="btn btn-primary" onClick={vm.watch1} style={{ fontSize: '11px', padding: '1px 6px' }}>Watch</button><button className="btn btn-secondary" onClick={vm.quick1} style={{ fontSize: '11px', padding: '1px 6px' }}>Sim</button></span>
             : <span style={{ ...muted, fontSize: '11.5px' }}>{T[x.g.opp].w}–{T[x.g.opp].l}</span>}
+          {!r && <ForceWin vm={vm} day={x.d} h={x.g.home ? me : x.g.opp} a={x.g.home ? x.g.opp : me} small />}
         </>}
       </div>);
   };
@@ -97,6 +100,7 @@ function ListView({ vm }: { vm: VM }) {
             <td style={{ padding: "5px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>{r.rec}</td>
             <td style={{ padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
               {!!r.notNext && (r.openBox ? <button className="hv4" onClick={r.openBox} title="Box score" style={{ all: "unset", cursor: "pointer", color: r.resColor, fontWeight: 600, textDecoration: "underline dotted", textUnderlineOffset: 3 }}>{r.res}</button> : <span style={{ color: r.resColor, fontWeight: 600 }}>{r.res}</span>)}
+              {r.day != null && <span style={{ marginRight: 10 }}><ForceWin vm={vm} day={r.day} h={r.h} a={r.a} /></span>}
               {!!r.isNext && <span style={{ display: "inline-flex", gap: "6px" }}>
                 <button className="btn btn-primary" onClick={vm.watch1} style={{ fontSize: "12px", padding: "3px 12px" }}>Watch</button>
                 <button className="btn btn-secondary" onClick={vm.quick1} style={{ fontSize: "12px", padding: "3px 12px" }}>Quick sim</button>

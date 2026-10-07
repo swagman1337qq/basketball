@@ -67,7 +67,7 @@ const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 
 
 // UI-only keys that should not survive a reload.
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }), MONTH_YR = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' });
-const TRANSIENT = { navArrange: false, tour: null, tourMode: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null, rosterAt: null };
+const TRANSIENT = { navArrange: false, tour: null, tourMode: null, modal: false, dialog: null, teamModal: null, listModal: null, q: '', dragId: null, overId: null, showJson: false, tMsg: null, extMsg: null, rosterAt: null, rosterView: null };
 
 export interface SaveData { db: any; state: any }
 

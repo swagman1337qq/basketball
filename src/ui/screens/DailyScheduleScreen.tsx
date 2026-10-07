@@ -1,45 +1,71 @@
-// God Mode: the league's schedule day by day, with the power to pick who wins any game.
-// A picked game is still played out (real box score); the picked team just ends up winning.
+// The league's schedule day by day: every game on a day, with the final score and box score once
+// it's played, or both teams' records before. Your team's game is highlighted. In God Mode each game
+// still to come has two small tick boxes (ForceWin): tick a team and it wins when that day is simmed.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { GOD_PINK, godBox, muted } from '../kit';
+import { GOD_PINK, muted } from '../kit';
+import { ForceWin } from '../ForceWin';
 
 export function DailyScheduleScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, openTeam } = vm.ctx;
-  const [off, setOff] = useState(0);
-  if (!s.god) return null;
-  const regular = s.phase === 'regular', played = gm.gamesPlayed(s), left = Math.max(0, 82 - played);
-  if (!regular || !left) return <p style={{ ...muted, fontStyle: 'italic' }}>The daily schedule is for the regular season{regular ? ', and it’s over' : ''}. Picks for the play-in and playoffs aren’t supported yet.</p>;
-  const day = s.day + Math.min(off, left - 1), days = gm.db.days, games: [number, number][] = days[day % days.length] || [];
-  const key = (h: number, a: number) => gm.Y + ':' + day + ':' + h + ':' + a, picks = s.godWin || {};
-  const setPick = (h: number, a: number, w: number | null) => gm.setState(st => { const g = { ...(st.godWin || {}) }; if (w == null) delete g[key(h, a)]; else g[key(h, a)] = w; return { godWin: g }; });
-  const nPicked = games.filter(([h, a]) => picks[key(h, a)] != null).length;
-  const rec = (tid: number) => T[tid].w + '–' + T[tid].l;
-  const side = (tid: number, h: number, a: number) => { const on = picks[key(h, a)] === tid; return (
-    <button onClick={() => setPick(h, a, on ? null : tid)} title={on ? 'Picked to win (click to undo)' : 'Pick ' + T[tid].name + ' to win'} className="hv4"
-      style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 'var(--radius-md)', border: '1px solid ' + (on ? GOD_PINK : 'var(--color-divider)'), background: on ? 'color-mix(in srgb, ' + GOD_PINK + ' 14%, transparent)' : 'transparent', minWidth: 0, flex: 1 }}>
-      {logo(tid, 22)}<span style={{ fontWeight: on ? 700 : 500, color: on ? GOD_PINK : undefined, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{T[tid].region} {T[tid].name}</span><span style={{ ...muted, fontSize: '12px' }}>{rec(tid)}</span>{on && <b style={{ marginLeft: 'auto', color: GOD_PINK, fontSize: '11px' }}>WINS</b>}
-    </button>); };
+  const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
+  const days: [number, number][][] = gm.db.days || [], n = days.length;
+  const results = (s.games || []).filter((g: any) => !g.po);
+  // The next day to be played: the current day in the regular season, the first before it, none after.
+  const next = s.phase === 'regular' ? s.day : s.phase === 'preseason' || !results.length ? 0 : n;
+  const [d0, setD] = useState<number>(Math.min(Math.max(0, n - 1), next));
+  if (!n) return <p style={{ ...muted, fontStyle: 'italic' }}>There’s no schedule yet.</p>;
+  const d = Math.max(0, Math.min(n - 1, d0)), games = days[d] || [];
+  const resOf = (h: number, a: number) => results.find((g: any) => g.day === d && g.h === h && g.a === a);
+  const played = games.filter(([h, a]) => resOf(h, a)).length;
+  const picks = s.godWin || {}, nPicked = s.god ? games.filter(([h, a]) => picks[gm.Y + ':' + d + ':' + h + ':' + a] != null).length : 0;
+  const fmt = (x: number) => gm.dateOf(x).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const td: React.CSSProperties = { padding: '6px 8px', borderBottom: '1px solid var(--color-divider)', whiteSpace: 'nowrap' };
+  const team = (tid: number, won: boolean | null) => (
+    <button className="hv4" onClick={() => openTeam(tid)} title={T[tid].region + ' ' + T[tid].name} style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: won ? 700 : 500, opacity: won === false ? 0.75 : 1 }}>
+      {logo(tid, 22)}<span>{T[tid].region} {T[tid].name}</span>
+    </button>);
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-        <button className="btn btn-ghost" disabled={off <= 0} onClick={() => setOff(off - 1)} style={{ fontSize: 18, padding: '2px 10px' }}>‹</button>
-        <b style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{gm.dateOf(day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</b>
-        <button className="btn btn-ghost" disabled={off >= left - 1} onClick={() => setOff(off + 1)} style={{ fontSize: 18, padding: '2px 10px' }}>›</button>
-        <span style={muted}>{off === 0 ? 'Next up' : 'In ' + off + ' day' + (off === 1 ? '' : 's')} · {games.length} game{games.length === 1 ? '' : 's'} · {nPicked} picked</span>
+        <button className="btn btn-secondary" disabled={d <= 0} onClick={() => setD(d - 1)} style={{ width: 34, padding: '2px 0' }} aria-label="Previous day">‹</button>
+        <select className="input" value={d} onChange={e => setD(+e.target.value)} style={{ width: 'auto', fontWeight: 600 }}>
+          {days.map((_, i) => <option key={i} value={i}>{fmt(i)}{i === next && s.phase === 'regular' ? ' (next)' : ''}</option>)}
+        </select>
+        <button className="btn btn-secondary" disabled={d >= n - 1} onClick={() => setD(d + 1)} style={{ width: 34, padding: '2px 0' }} aria-label="Next day">›</button>
+        {s.phase === 'regular' && d !== next && next < n && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => setD(next)}>Today</button>}
+        <span style={{ ...muted, fontSize: '12.5px' }}>Day {d + 1} of {n} · {games.length} games{played ? played === games.length ? ' · final' : ' · ' + played + ' played' : ''}{nPicked ? ' · ' : ''}{nPicked > 0 && <b style={{ color: GOD_PINK }}>{nPicked} forced</b>}</span>
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          {nPicked > 0 && <button className="btn btn-ghost" style={{ fontSize: '12.5px', color: GOD_PINK }} onClick={() => gm.setState(st => { const g = { ...(st.godWin || {}) }; games.forEach(([h, a]) => delete g[key(h, a)]); return { godWin: g }; })}>Clear this day’s picks</button>}
-          {off === 0 && <button className="btn btn-primary" style={{ fontSize: '12.5px', background: GOD_PINK, borderColor: GOD_PINK }} onClick={() => gm.sim(1)}>Sim this day</button>}
+          {nPicked > 0 && <button className="btn btn-ghost" style={{ fontSize: '12.5px', color: GOD_PINK }} onClick={() => gm.setState((st: any) => { const g = { ...(st.godWin || {}) }; games.forEach(([h, a]) => delete g[gm.Y + ':' + d + ':' + h + ':' + a]); return { godWin: g }; })}>Clear this day’s picks</button>}
+          {s.phase === 'regular' && d === next && <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => gm.sim(1)}>Sim this day</button>}
         </span>
       </div>
-      <div style={{ display: 'grid', gap: 8 }}>
-        {games.map(([h, a]) => (
-          <div key={h + '-' + a} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, ...godBox }}>
-            {side(a, h, a)}<span style={{ ...muted, fontSize: '12px' }}>at</span>{side(h, h, a)}
-            <button className="btn btn-ghost" onClick={() => openTeam(h)} style={{ fontSize: '11.5px', display: 'none' }}>·</button>
-          </div>))}
-      </div>
-      <p style={{ ...muted, fontSize: '12px', marginTop: 12 }}>Click a team to make it win (click again to let the game decide). Picked games are still played out with a real box score; the picked team just ends up on top. Your own team’s games included. Picks work for any day ahead, however you sim.</p>
+      <table className="table" style={{ fontSize: '13px' }}>
+        <thead><tr>
+          <th style={td}>Away</th><th style={{ ...td, textAlign: 'right' }} /><th style={td} /><th style={td}>Home</th><th style={{ ...td, textAlign: 'right' }} /><th style={{ ...td, textAlign: 'right' }}>{s.god && d >= next && s.phase === 'regular' ? <span style={{ color: GOD_PINK }}>Force a win</span> : ''}</th>
+        </tr></thead>
+        <tbody>
+          {games.map(([h, a]) => {
+            const r = resOf(h, a), hw = r ? r.hp > r.ap : null, mine = isMine(h) || isMine(a), box = r?.bid && (gm.db as any).boxes?.[r.bid];
+            const num = (v: string, b: boolean) => <td style={{ ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: b ? 700 : 400, color: r ? undefined : 'var(--color-neutral-700)' }}>{v}</td>;
+            return (
+              <tr key={h + '-' + a} style={{ background: mine ? 'var(--color-accent-100)' : undefined }}>
+                <td style={td}>{team(a, hw == null ? null : !hw)}</td>
+                {num(r ? String(r.ap) : T[a].w + '–' + T[a].l, hw === false)}
+                <td style={{ ...td, ...muted, fontSize: '12px' }}>at</td>
+                <td style={td}>{team(h, hw)}</td>
+                {num(r ? String(r.hp) + (r.ot ? ' (' + (r.ot > 1 ? r.ot : '') + 'OT)' : '') : T[h].w + '–' + T[h].l, hw === true)}
+                <td style={{ ...td, textAlign: 'right' }}>
+                  {box ? <button className="btn btn-ghost" style={{ fontSize: '12px', padding: '2px 8px' }} onClick={() => gm.setState({ boxId: r.bid, boxTeam: isMine(a) ? a : h })}>Box score</button>
+                    : <ForceWin vm={vm} day={d} h={h} a={a} />}
+                </td>
+              </tr>);
+          })}
+        </tbody>
+      </table>
+      <p style={{ ...muted, fontSize: '12px', marginTop: 10 }}>
+        Records before the game are each team’s current record. Click a team for its roster.
+        {s.god ? ' God Mode: tick a team’s box to make it win that game when the day is simmed (untick to let the game decide). The game is still played out with a real box score. Your own games too, and you can tick them on your Team schedule as well.' : ''}
+      </p>
     </>
   );
 }

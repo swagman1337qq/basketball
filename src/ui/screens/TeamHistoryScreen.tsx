@@ -74,7 +74,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   const byPct = done.slice().sort((a, b) => b.w / Math.max(1, b.w + b.l) - a.w / Math.max(1, a.w + a.l) || b.w - a.w), best = byPct[0], worst = byPct[byPct.length - 1];
   const champYears = done.filter(x => x.champ).map(x => x.year).sort((a, b) => a - b);
   // A season's roster: the Roster screen opens on this team and year.
-  const openRoster = (y: number) => gm.setState((st: any) => ({ screen: 'roster', rosterAt: { tid, season: y }, modal: false, teamModal: null, pageStack: [], navTick: (st.navTick || 0) + 1 }));
+  const openRoster = (y: number) => gm.setState((st: any) => ({ screen: 'roster', rosterView: { tid, season: y }, modal: false, teamModal: null, pageStack: [], navTick: (st.navTick || 0) + 1 }));
   const tile = (k: string, v: ReactNode, sub?: ReactNode) => (
     <div key={k} style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 6 }}>
       <div style={kickerStyle}>{k}</div>
