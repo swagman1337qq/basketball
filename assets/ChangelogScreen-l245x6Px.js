@@ -1,6 +1,24 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-C2ijK2dF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-CXu4cfkM.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-07
+
+### Changed
+- **The salary cap grows more slowly.** It used to grow about 6% a year early on (a $165M cap reached about $7 billion after 100 seasons). Now it grows about 4% a year for the first decade and settles near 2–2.5%, and new TV deals give smaller jumps. After 100 seasons the cap is about $1.8 billion. Existing leagues follow the new pace from next season on.
+- **Bench players ask for much less in free agency.** A 48 overall was asking for $5M+; now he asks for about the minimum, like a real end-of-bench player. Pay climbs quickly for real rotation players, starters and stars:
+
+  | Overall | Old ask | New ask |
+  |---|---|---|
+  | 48 | ~$5.7M | about the minimum |
+  | 50 | ~$7.9M | ~$4.4M |
+  | 52 | ~$10.7M | ~$7.4M |
+  | 55 | ~$16M | ~$14M |
+  | 60 | ~$29M | ~$32M |
+  | 65 | ~$47M | the max |
+
+  (at a $186M cap). Free agents already on the market are re-priced when you load your league.
+- **One-year deals are much more common.** Minimum contracts are now one-year deals (young players 23 and under sometimes get two). Fringe players want short deals: players below 48 sign for one season, below 52 for one or two, below 56 for up to three. Your signing screen suggests those lengths too.
 
 ## 2026-10-05
 
