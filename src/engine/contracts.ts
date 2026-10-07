@@ -10,7 +10,12 @@ export interface Terms { method: string; amt: number; years: number; opt?: 'play
 // First season a new contract covers: next season during the offseason, else this one.
 export const firstSeason = (g: Game, s: any) => (['fa', 'draft', 'lottery', 'playoffs', 'playin'].includes(s.phase) && s.phase !== 'regular' && s.phase !== 'preseason' ? g.Y + 1 : g.Y);
 
-export function prefYears(p: any) { return p.age <= 24 ? 4 : p.age <= 29 ? 3 : p.age <= 32 ? 2 : 1; }
+// Contract length a player wants: young players lock in years, veterans go shorter, and fringe
+// players go year to year (minimum-level guys sign for one season, bench players for one or two).
+export function prefYears(p: any) {
+  const byAge = p.age <= 24 ? 4 : p.age <= 29 ? 3 : p.age <= 32 ? 2 : 1, byRole = p.ovr < 48 ? 1 : p.ovr < 52 ? 2 : p.ovr < 56 ? 3 : 5;
+  return Math.max(1, Math.min(byAge, p.age <= 22 ? byRole + 1 : byRole));
+}
 
 // Does the player sign? He wants at least his asking price per year; options, kickers and
 // no-trade clauses sweeten a deal, years far from what he wants sour it.
@@ -96,7 +101,7 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   if (pick('bird') && ask <= pick('bird')!.maxFirst) return { method: 'bird', amt: ask, years: Math.min(yrs + 1, pick('bird')!.maxYears) };
   if (room >= ask && pick('cap')) return { method: 'cap', amt: ask, years: Math.min(yrs, 4) };
   for (const k of ['ntmle', 'tpmle', 'bae', 'room']) { const m = pick(k); if (m && ask <= m.maxFirst) return { method: k, amt: ask, years: Math.min(yrs, m.maxYears) }; }
-  if (ask <= minS * 1.25 && pick('min')) return { method: 'min', amt: minS, years: Math.min(2, yrs) };
+  if (ask <= minS * 1.25 && pick('min')) return { method: 'min', amt: minS, years: p.age <= 23 ? Math.min(2, yrs) : 1 }; // minimum deals are almost always one year
   return null;
 }
 

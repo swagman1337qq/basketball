@@ -7,8 +7,8 @@
 // (+44% in 1995-96, +34% in 2016-17, which is why the 2023 CBA caps growth at 10%).
 //
 // Projection, each season:
-//   growth = inflation (2.3%)
-//          + real revenue growth, fading as the league matures (0.9% + 3.2%·e^(−years/40))
+//   growth = inflation (1.8%)
+//          + real revenue growth, fading as the league matures (0.4% + 1.8%·e^(−years/40))
 //          + a new national media deal every 11 years (next: 2036-37), spread over three
 //            seasons by the 10% smoothing rule, slightly smaller each cycle
 //          − a soft final season before each new deal
@@ -38,9 +38,9 @@ export function capProjection(): CapYear[] {
   out.push({ season: FIRST_SEASON, growth: +((165.0 / 154.647 - 1) * 100).toFixed(2), cap, note: 'League projection' });
   for (let y = FIRST_SEASON + 1; y <= LAST_SEASON; y++) {
     const t = y - FIRST_SEASON, notes: string[] = [];
-    let g = 2.3 + 0.9 + 3.2 * Math.exp(-t / 40);
+    let g = 1.8 + 0.4 + 1.8 * Math.exp(-t / 40);
     const since = y - MEDIA_START, cycle = Math.floor(since / MEDIA_CYCLE), inCycle = ((since % MEDIA_CYCLE) + MEDIA_CYCLE) % MEDIA_CYCLE;
-    if (since >= 0) { const size = Math.pow(0.985, cycle); if (inCycle === 0) { g += 4.5 * size; notes.push('New national media deal'); } else if (inCycle === 1) g += 3.0 * size; else if (inCycle === 2) g += 1.5 * size; else if (inCycle === MEDIA_CYCLE - 1) { g -= 1.0; notes.push('Final year of the media deal'); } }
+    if (since >= 0) { const size = Math.pow(0.985, cycle); if (inCycle === 0) { g += 3.0 * size; notes.push('New national media deal'); } else if (inCycle === 1) g += 2.0 * size; else if (inCycle === 2) g += 1.0 * size; else if (inCycle === MEDIA_CYCLE - 1) { g -= 1.0; notes.push('Final year of the media deal'); } }
     else if (y === MEDIA_START - 1) { g -= 1.0; notes.push('Final year of the media deal'); }
     const x = r();
     if (pendingRecovery) { g -= 1.5; notes.push('Slow recovery'); pendingRecovery = false; }

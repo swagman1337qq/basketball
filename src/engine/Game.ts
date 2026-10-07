@@ -56,6 +56,10 @@ import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult,
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
 export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221.7, VMIN: 3.87, MLE: 15.0, MAXC: 57.7 };
+// What a player of a given overall is worth per year at the 2026-27 scale ($M, before the league's
+// salary scale and cap growth). Bench players sit at the minimum; the money goes to starters and stars:
+// 46 → 1.5 · 48 → 2.0 · 50 → 3.4 · 52 → 5.8 · 55 → 11.2 · 58 → 18.8 · 60 → 25 · 63 → 36 · 65 → 45.
+export const valueCurve = (ovr: number) => 1.5 + 0.12 * Math.pow(Math.max(0, ovr - 46), 2);
 
 const POS = [['PG', 'G'], ['SG', 'G'], ['G', 'G'], ['SF', 'W'], ['GF', 'W'], ['F', 'W'], ['PF', 'B'], ['FC', 'B'], ['C', 'B']];
 const BIAS = { G: { spd: 8, acc: 9, drb: 10, pss: 10, tp: 8, lay: 4, hgt: -14, ins: -10, reb: -10, box: -12, stre: -6 }, W: { tp: 5, fg: 4, spd: 3, acc: 3, jmp: 4, diq: 3, lay: 2 }, B: { hgt: 14, ins: 12, reb: 12, box: 12, stre: 10, dnk: 6, drb: -12, pss: -8, tp: -12, spd: -6, acc: -9 } };
@@ -231,6 +235,8 @@ export class Game {
     // 2026-10: seven more ready-made rookie cards (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard) join saved card libraries, once.
     if (g.state.cards && !g.state.cardsV) { const have = new Set(g.state.cards.map((c: any) => c.id)); g.state = { ...g.state, cardsV: 2, cards: [...g.state.cards, ...PRESET_CARDS.map((x, i) => ({ id: 'preset' + i, card: { ...JSON.parse(JSON.stringify(x.card)), label: x.label } })).filter(c => c.id !== 'preset0' && !have.has(c.id))] }; }
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
+    // Re-price the free agents already on the market after the new value curve (bench players near the minimum).
+    if ((g.db.askV || 0) < 2) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 2; }
     // Older saves: give everyone Feel and Poise, and young players their chance at being a hidden gem.
     (Object.values(g.db.P) as any[]).forEach(p => { if (!p.intg) { ensureIntg(p); rollGem(p, seeded(p.id * 31 + 5), 0.05); } });
     // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
@@ -374,7 +380,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -545,7 +551,7 @@ export class Game {
     // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
     const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
     const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 95), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
-      amt: Math.min(this.MAXC, 2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
+      amt: Math.min(this.MAXC, valueCurve(ovr)), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08, flashy: rnd() < .08, heat: rnd() < .1, villain: rnd() < .05, fearless: rnd() < .07 };
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
@@ -1309,7 +1315,7 @@ export class Game {
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
-  fair(ovr) { return Math.min(this.MAXC, (2.4 + Math.pow(Math.max(0, ovr - 42) / 28, 2.1) * 52) * this.db.sf * this.CAP / CAPS0.CAP); }
+  fair(ovr) { return Math.min(this.MAXC, valueCurve(ovr) * this.db.sf * this.CAP / CAPS0.CAP); }
   // Where each AI team is headed (`all`: the teams you run too): contending, the middle, rebuilding.
   strategies(T, s = this.state, all = false) {
     const sc = t => this.pct(t) * 0.65 + (t.str - 45) / 12 * 0.35;

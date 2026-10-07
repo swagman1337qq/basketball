@@ -6,7 +6,7 @@ What Basketball Manager has today, how the pieces fit together, and where each o
 - `docs/HANDOFF.md`: the product spec and the rules the engine follows.
 - `CHANGELOG.md`: what changed and when (shown in the game as "What's new").
 
-_Last reviewed: 2026-10-05 (playoffs banner under the Finals, smooth scrolling; true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
+_Last reviewed: 2026-10-07 (slower cap growth; new player value curve, bench players near the minimum; one-year minimum deals; playoffs banner under the Finals, smooth scrolling; true potential fixed and a hard cap, growth calibration; ratings max 99, 99 improbable for every rating; box score starters/bench bar; smaller saves, faster long leagues; 99s extremely rare, diminishing returns; free throws at both ends, 100 = 98%; FA Last team column; roster Starters / Bench bar; size at the rim; Selfish trait rebalance; movable menu tabs; AI ticket prices by owner type)._
 
 ## How it fits together
 
@@ -120,7 +120,8 @@ Screens: Roster, Depth chart, Development, Tactics. Code: `assistants.ts`, `coac
 - Trades: both rosters filter by position (PG/SG/SF/PF/C, hybrids count for both spots; players in the deal stay listed) and sort by a Pos column (`TradeScreen.tsx`); salary matching by apron, trade exceptions, kickers, no-trade clauses, pick protections and swaps, assistant GM advice, shopping a player for offers.
 - Pre-Free Agency: options, qualifying offers, re-sign or renounce, extensions.
 - Free agency on the NBA calendar: moratorium, restricted free agency and offer sheets. The free agent list has a sortable Last team column (`txlog.ts` `lastTeam`: the latest of his transactions and the seasons he played; "(drafted)" when only his draft rights were there; — if he was never on an NBA team), with the team's logo, linking to the team.
-- Cap outlook: real cap history since 1984-85 and a 500-season projection.
+- Cap outlook: real cap history since 1984-85 and a 500-season projection (`capModel.ts`: about 4% a year early on, settling near 2–2.5%; smaller media-deal bumps).
+- What players ask for: `valueCurve` in `Game.ts` (used by `Game.fair`, scaled by the league's salary scale `db.sf` and the cap): bench players (48 and below) ask about the minimum, the money goes to starters and stars. `askOf` (`cbaFlow.ts`) adds age and mood. Contract length: `prefYears` (`contracts.ts`) by age and role (under 48 one year, under 52 up to two, under 56 up to three); AI minimum deals are one year (two for 23 and under).
 
 Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook. Code: `cba.ts`, `cbaFlow.ts`, `contracts.ts`, `capModel.ts`, `pickRules.ts`, `tradeAdvice.ts`, `tradeOffers.ts`, `preFA.ts`.
 
