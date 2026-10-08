@@ -160,7 +160,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                   {sc.tag(p.id)}
                   {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
                   {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
-                  {advPick.has(p.id) && <span title={advPick.get(p.id)!.why} style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--color-accent)', whiteSpace: 'nowrap', fontWeight: 600 }}>{advPick.get(p.id)!.kind === 'twoWay' ? 'Assistant: two-way' : 'Assistant pick'}</span>}
+                  {advPick.has(p.id) && <span title={advPick.get(p.id)!.why} style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--accent-ink)', whiteSpace: 'nowrap', fontWeight: 600 }}>{advPick.get(p.id)!.kind === 'twoWay' ? 'Assistant: two-way' : 'Assistant pick'}</span>}
                   {p.glT && <span title={p.glLine} style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid #6b8fd6", color: "#6b8fd6", whiteSpace: "nowrap" }}>CCP · {p.glT}</span>}
                 </span>
               </td>

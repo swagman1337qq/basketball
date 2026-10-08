@@ -16,6 +16,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Many more Chinese names.** Chinese players now draw from about 175 given names (up from 30), each with its Chinese characters, so new Chinese players repeat far less. Family names still come from China's 100 most common, by how common each one really is.
 
 ### Changed
+- **White text instead of gold in dark mode.** Links, buttons, labels and headings that were gold are now white and easier to read. Gold stays only for lines and borders, and for colors that mean something: rating colors and Gold badges.
 - **Your league moves over by itself.** Every player keeps the shot mix he was playing; his stepbacks and fadeaways come from his game. Player cards made before today (including the Thabeet and Yang cards) still work and play the same mix. The ready-made rookie cards now include each player's real stepback and fadeaway habits (Luka's rookie stepbacks, Dwight's turnarounds).
 - **A few more assists.** A test season came out at 23 assists a team per game against the NBA's 26.7, so assisted baskets are a little more common now.
 
