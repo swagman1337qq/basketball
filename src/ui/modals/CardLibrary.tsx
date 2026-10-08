@@ -9,6 +9,7 @@ import { applyCard, BLANK_CARD, exportCard } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
 import { TRAITS } from '../../engine/traits';
 import { TendencyEditor } from '../TendencyEditor';
+import { targetTen } from '../../engine/tendencies';
 
 // The card's ratings in three blocks, like a scouting sheet.
 const BLOCKS: [string, [string, string][]][] = [
@@ -157,7 +158,7 @@ function CardStyle({ gm, draft, set }: { gm: any; draft: any; set: (f: (d: any) 
         <span style={{ ...muted, fontSize: '12px' }}>{own ? 'Set on this card.' : 'From his ratings (change any number to set your own).'}</span>
         {own && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto' }} onClick={() => set(d => { delete d.ten; delete d.tend; })} title="Drop the card's own tendencies: he plays the way his ratings point">Match his ratings</button>}
       </div>
-      <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} />
+      <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} auto={() => targetTen(q, { roles: gm.rolesOf(q) })} />
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', marginTop: 6 }}><input type="checkbox" checked={!!draft.tenLock} onChange={e => set(d => { if (e.target.checked) d.tenLock = true; else delete d.tenLock; })} /> Lock them (they don’t evolve after the card is applied)</label>
       <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>What you set is what he takes once the card is applied; his ratings decide how many go in. Unless locked, they drift toward what his game and role ask for.</div>
     </div>);

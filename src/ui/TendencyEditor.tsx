@@ -6,7 +6,9 @@ import type { Game } from '../engine/Game';
 import { CRE_TEN, expUsg, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
 import { muted, NumInput } from './kit';
 
-export function TendencyEditor({ p, gm, onTen }: { p: any; gm: Game; onTen: (ten: Record<string, number>) => void }) {
+// `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
+// for the Auto button.
+export function TendencyEditor({ p, gm, onTen, auto }: { p: any; gm: Game; onTen: (ten: Record<string, number>) => void; auto?: () => Record<string, number> }) {
   const t = p.ten || {}, roles = gm.rolesOf(p), norms = gm.db.norms;
   const head = (txt: string) => <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', margin: '8px 0 2px' }}>{txt}</div>;
   const row = (key: string, label: string, v: number, lo: number, hi: number, set: (v: number) => void, suffix: string, note: string, desc?: string) => (
@@ -19,6 +21,10 @@ export function TendencyEditor({ p, gm, onTen }: { p: any; gm: Game; onTen: (ten
   const fLo = Math.ceil(tenUnit('ftr', 2) * 100), fHi = Math.floor(tenUnit('ftr', 98) * 100);
   return (
     <div>
+      {auto && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>
+        <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => onTen(auto())} title="Set every number to what fits him now: his ratings, personality, age and role on his team">Auto (let the AI set them)</button>
+        <span style={{ ...muted, fontSize: '11.5px' }}>What the game would pick for him from his ratings, personality, age and role.</span>
+      </div>}
       {head('Shot volume')}
       {row('usage', 'Usage rate', Math.round(expUsg(p, norms, roles)), uLo, uHi, v => onTen({ ...t, usage: usageScoreFor(p, norms, roles, v) }), '% USG', 'typical 20% (his game sets his range: ' + uLo + '–' + uHi + ')', TEN_DESC.usage)}
       {head('Where his shots come from (% of his shots)')}

@@ -17,7 +17,7 @@ import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
-import { ensureTen } from '../../engine/tendencies';
+import { ensureTen, optionRanks, targetTen } from '../../engine/tendencies';
 import { TendencyEditor } from '../TendencyEditor';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 import { addBrother, addSon, relateBlock, relOf, setFather, unrelate } from '../../engine/family';
@@ -244,7 +244,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           </span>
         </div>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Playing style</h4>
-        <TendencyEditor p={p} gm={gm} onTen={ten => mut(q => { ensureTen(q); q.ten = ten; })} />
+        <TendencyEditor p={p} gm={gm} onTen={ten => mut(q => { ensureTen(q); q.ten = ten; })} auto={() => { const tid = gm.tidOf(s.rosters, p.id); return targetTen(p, { rank: optionRanks(gm.db.P, s.rosters).get(p.id) ?? null, mode: tid >= 0 ? gm.strategies(s.teams, s, true)[tid] : undefined, roles: gm.rolesOf(p) }); }} />
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving)</label>
         <p style={{ ...muted, fontSize: '11.5px' }}>The way the NBA reports it: usage rate (USG%); where his shots come from (restricted area, the paint outside it, mid-range, corner three, above-the-break three) and how he creates his jump shots (catch & shoot, pull-up, stepback, fadeaway), each adding up to 100%; and free throw rate. What you set is what he takes; his ratings decide whether the shots go in, and stepbacks and fadeaways are harder to make (less so with the skills for them) but rarely blocked. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer) unless locked.</p>
         <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
