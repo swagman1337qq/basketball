@@ -608,6 +608,9 @@ export class Game {
   }
   get Y() { return (this.state && this.state.season) || 2027; }
   seasonLbl() { return (this.Y - 1) + '–' + String(this.Y).slice(2); }
+  // His age in season y. A retired player's age stops at retirement (p.retired.age in p.retired.season),
+  // so count back from there, not from this season (which made a 2027 season read as age 9 decades on).
+  ageIn(p: any, y: number) { return p.retired?.age != null && p.retired.season != null ? p.retired.age - (p.retired.season - y) : p.age - (this.Y - y); }
   // Game days are spread over the real calendar: opening night Oct 21, game 82 in mid-April.
   dateOf(off) { return this.db.midStart && this.Y === 2027 ? new Date(2027, 0, 14 + Math.round(off * 1.1)) : new Date(this.Y - 1, 9, 21 + Math.round(off * 2.14)); }
   // Play-in and playoff games are simulated in full; their stats go on the playoff line.

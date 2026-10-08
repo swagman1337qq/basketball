@@ -52,7 +52,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
   const career: any = {}; lines.forEach(({ t }) => Object.keys(t || {}).forEach(k => { if (typeof t[k] === 'number') career[k] = (career[k] || 0) + t[k]; }));
   // Career with each team (NBA): "DAL (7 Yrs)".
   const byTeam = ccp ? [] : ([...new Set((p.stats || []).filter((r: any) => !!r.po === po).map((r: any) => r.tid))] as number[]).map(tid => { const rs = (p.stats || []).filter((r: any) => !!r.po === po && r.tid === tid); return { tid, yrs: new Set(rs.map((r: any) => r.season)).size, t: sumRows(rs) }; }).filter(x => x.t.gp);
-  const lbl = (y: number) => (y - 1) + '–' + String(y).slice(2), ageIn = (y: number) => p.age - (gm.Y - y);
+  const lbl = (y: number) => (y - 1) + '–' + String(y).slice(2), ageIn = (y: number) => gm.ageIn(p, y);
   const v = (t: any, x: number) => (mode === 'tot' ? String(Math.round(x)) : mode === 'p36' ? f1(t.min ? (x / t.min) * 36 : 0) : f1(t.gp ? x / t.gp : 0));
   const tradRow = (t: any, first: ReactNode, team: string, age: ReactNode, bold = false) => (
     <tr>

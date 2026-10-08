@@ -43,7 +43,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const gb = cur && rank > 1 ? ((lead.w - t.w + t.l - lead.l) / 2).toFixed(1).replace('.0', '') + ' GB' : '';
   const games = (s.games || []).filter((x: any) => !x.po && (x.h === tid || x.a === tid)), mov = cur && games.length ? games.reduce((a: number, x: any) => a + (x.h === tid ? x.hp - x.ap : x.ap - x.hp), 0) / games.length : null;
   const ids: number[] = cur ? s.rosters[tid] || [] : (Object.values(P) as any[]).filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po)).map(p => p.id);
-  const ageOf = (p: any) => (cur ? p.age : p.age - (gm.Y - season));
+  const ageOf = (p: any) => (cur ? p.age : gm.ageIn(p, season));
   const avgAge = ids.length ? ids.reduce((a, id) => a + ageOf(P[id]), 0) / ids.length : 0;
   const tr = teamRating(P, cur ? ids : []), trRank = cur ? 1 + T.filter(x => teamRating(P, s.rosters[x.tid] || []) > tr).length : 0;
   const N = nums(gm), std = stdIds(gm, ids), tw = twoWayIds(gm, ids), lim = rosterMax(s), fin = cur ? financesOf(gm, s, tid) : null;
