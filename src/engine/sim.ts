@@ -40,12 +40,46 @@ export const BASE = {
 // (and touch around the rim counts for them); mid-range a little less, so the tier's average holds.
 export const PAINT_SHARE = 0.52;
 const PAINT_D = 0.02;
+// ── Creating jump shots (tendencies.ts: catch & shoot, pull-up, stepback, fadeaway) ──────────────────
+export type Cre = 'cns' | 'pullup' | 'step' | 'fade';
+export const CRES: Cre[] = ['cns', 'pullup', 'step', 'fade'];
+export type JumpZone = 'mid' | 'c3' | 'atb';
+// League shares of jump shots: about half off the catch, a third pulled up, stepbacks and fadeaways the rest.
+export const CRE_BASE: Record<Cre, number> = { cns: 0.52, pullup: 0.32, step: 0.09, fade: 0.07 };
+// Where each is taken: corner threes are nearly all catch-and-shoot, fadeaways are mid-range shots.
+const CRE_Z: Record<JumpZone, Record<Cre, number>> = { mid: { cns: 0.75, pullup: 1, step: 0.8, fade: 1.9 }, c3: { cns: 1, pullup: 0.3, step: 0.35, fade: 0.05 }, atb: { cns: 1, pullup: 1, step: 1.15, fade: 0.25 } };
+export function creMix(cre: Record<Cre, number> | undefined, z: JumpZone): Record<Cre, number> {
+  const c = cre || CRE_BASE, w = {} as Record<Cre, number>; let t = 0;
+  for (const k of CRES) { w[k] = Math.max(0, c[k] ?? 0) * CRE_Z[z][k]; t += w[k]; }
+  for (const k of CRES) w[k] = t > 0 ? w[k] / t : CRE_BASE[k];
+  return w;
+}
+// Make rate by type (re-centred on the league below): off the catch is the cleanest look; his handle
+// makes pull-ups, his handle and quickness stepbacks, and mid-range touch, size and strength fadeaways.
+export function creAdj(r: any, c: Cre): number {
+  const drb = r.drb ?? 50, acc = r.acc ?? r.spd ?? 50;
+  return c === 'cns' ? 0.022 : c === 'pullup' ? -0.015 + 0.0006 * (drb - 55) : c === 'step' ? -0.045 + 0.0012 * ((drb + acc) / 2 - 55)
+    : -0.035 + 0.001 * ((r.fg ?? 50) * 0.5 + (r.hgt ?? 50) * 0.25 + (r.stre ?? 50) * 0.25 - 52);
+}
+// Assisted (a catch-and-shoot make nearly always is, a stepback almost never) and blocked (fades and stepbacks create space).
+const CRE_AST: Record<Cre, number> = { cns: 1.5, pullup: 0.22, step: 0.12, fade: 0.55 };
+const CRE_BLK: Record<Cre, number> = { cns: 1, pullup: 1.1, step: 0.45, fade: 0.3 };
+export interface CreMean { pct: number; ast: number; blk: number }
+export function creMeanOf(r: any, cre: Record<Cre, number> | undefined, z: JumpZone): CreMean {
+  const m = creMix(cre, z); let pct = 0, ast = 0, blk = 0;
+  for (const k of CRES) { pct += m[k] * creAdj(r, k); ast += m[k] * CRE_AST[k]; blk += m[k] * CRE_BLK[k]; }
+  return { pct, ast, blk };
+}
+const TYP_R = { drb: 55, acc: 55, spd: 55, fg: 52, hgt: 52, stre: 52 };
+const DEFAULT_CRE: Record<JumpZone, CreMean> = { mid: creMeanOf(TYP_R, undefined, 'mid'), c3: creMeanOf(TYP_R, undefined, 'c3'), atb: creMeanOf(TYP_R, undefined, 'atb') };
+const CRE_KEY: Record<Cre, [keyof BoxLine, keyof BoxLine]> = { cns: ['qm', 'qa'], pullup: ['um', 'ua'], step: ['sm', 'sa'], fade: ['dm', 'da'] };
+const CRE_LABEL: Record<Cre, string> = { cns: 'a catch-and-shoot', pullup: 'a pull-up', step: 'a stepback', fade: 'a fadeaway' };
 
 // Per offensive trip at league average (≈115 trips a game: 89 FGA, 14.5 TOV, FT-only trips).
 // How much a lineup's ball-handling, feel and IQ (offense) and pressure, feel and hands (defense) move
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
 const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
-const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.17, dt: 1.032 };
+const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.032 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
 const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
@@ -152,6 +186,7 @@ export interface Norms {
   perimD: number; interiorD: number; reb: number; pss: number; handle: number;
   rimHgt?: number; // the league's typical height rating at the rim, weighted by rim attempts
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
+  cre?: Record<JumpZone, CreMean>; // the league's jump-shot creation, per tier: keeps a typical mix on the league's make rate, assists and blocks
 }
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
 
@@ -160,7 +195,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number } // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number; zs?: Record<Zone, number>; cre?: Record<Cre, number> } // zs: his shot mix as fractions (tendencies.ts, version 4: what he takes, used as is); cre: how he creates his jump shots // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
 // Players carry evolving playing-style tendencies (tendencies.ts, effTend) that fill these in; autoTend
 // below is only the fallback for a player without them.
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
@@ -186,6 +221,9 @@ export function autoTend(p: any): Record<Zone, number> {
   return t;
 }
 export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend; pers?: any; grp?: string }, n: Norms, mult?: Partial<Record<Zone, number>>) {
+  // His own shot mix (tendencies.ts): what he takes, as set; only the game situation tilts it (tactics, a run-out).
+  const zs = p.tend?.zs;
+  if (zs) { let t = 0; const w = {} as Record<Zone, number>; for (const z of ZONES) { w[z] = Math.max(0, zs[z]) * (mult?.[z] ?? 1); t += w[z]; } for (const z of ZONES) w[z] = t > 0 ? w[z] / t : BASE.zone[z].share; return w; }
   const sk = zoneSkill(p.r), roles = p.roles || [], auto = autoTend(p);
   const w = {} as Record<Zone, number>;
   let tot = 0;
@@ -233,6 +271,7 @@ export interface BoxLine {
   ast: number; tov: number; stl: number; blk: number; pf: number; pts: number; pm: number; gs: number;
   rm: number; ra: number; mm: number; ma: number; cm: number; ca: number; bm: number; ba: number; // made/att: rim, mid, corner 3, above-the-break 3
   km: number; ka: number; // made/att in the paint outside the restricted area (floaters, hooks): part of the mid tier (mm/ma count them too)
+  qm: number; qa: number; um: number; ua: number; sm: number; sa: number; dm: number; da: number; // jump shots made/att by how he created them: catch & shoot, pull-up, stepback, fadeaway
 }
 export interface SideState { pts: number; qs: number[]; box: Record<number, BoxLine>; tiers: Record<string, [number, number]>; poss: number; fouls: number }
 export interface SideResult { tid: number; pts: number; qs: number[]; box: Record<number, BoxLine>; poss: number }
@@ -240,7 +279,7 @@ export interface GameResult { home: SideResult; away: SideResult; ot: number }
 export interface PbpEvent { side: Side; time: string; text: string; sub: string; score: string; ids?: number[] }
 
 export const TIER_KEY: Record<Zone, ['rm' | 'mm' | 'cm' | 'bm', 'ra' | 'ma' | 'ca' | 'ba']> = { rim: ['rm', 'ra'], mid: ['mm', 'ma'], c3: ['cm', 'ca'], atb: ['bm', 'ba'] };
-export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, km: 0, ka: 0 });
+export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, km: 0, ka: 0, qm: 0, qa: 0, um: 0, ua: 0, sm: 0, sa: 0, dm: 0, da: 0 });
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const other = (s: Side): Side => (s === 'home' ? 'away' : 'home');
 const avg = (arr: SimPlayer[], f: (p: SimPlayer) => number) => arr.reduce((s, p) => s + f(p), 0) / arr.length;
@@ -486,7 +525,11 @@ export class GameSim {
       const z = wpick(ZONES, k => prof[k]);
       const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
       const sk = cs[z] + (paint ? 0.5 * ((cs.rim - n.skill.rim) - (cs.mid - n.skill.mid)) : 0), subD = z !== 'mid' ? 0 : paint ? PAINT_D : -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE);
-      const lab = () => (paint ? (sh.grp === 'B' ? 'a hook shot' : 'a floater') : LABEL[z](sh));
+      // A jump shot (mid-range or a three): how he creates it. A heat check comes off the dribble.
+      const jz: JumpZone | null = z === 'rim' || paint ? null : (z as JumpZone), cm = jz ? n.cre?.[jz] ?? DEFAULT_CRE[jz] : null;
+      const cre: Cre | null = jz ? (() => { const m = creMix(sh.tend?.cre, jz); return wpick(CRES, k => m[k] * (md === 'heat' && k === 'cns' ? 0.2 : 1)); })() : null;
+      const creD = cre && cm ? creAdj(sh.r, cre) - cm.pct : 0;
+      const lab = () => (paint ? (sh.grp === 'B' ? 'a hook shot' : 'a floater') : cre && cre !== 'cns' ? CRE_LABEL[cre] + (z === 'mid' ? (cre === 'fade' ? '' : ' jumper') : z === 'c3' ? ' corner three' : ' three') : LABEL[z](sh));
       const bigs = onD.slice().sort((a, b) => b.r.hgt - a.r.hgt).slice(0, 2);
       const intD = avg(bigs, p => interiorD(p.r));
       const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
@@ -508,18 +551,18 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
-      b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++;
+      b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
       if (Math.random() < cl(pct, 0.1, 0.9)) {
-        b.fgm++; b[mk]++; if (three) b.tpm++; if (paint) b.km++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
+        b.fgm++; b[mk]++; if (three) b.tpm++; if (paint) b.km++; if (cre) (b as any)[CRE_KEY[cre][0]]++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
         const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.pss) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
-        if (!putback && Math.random() < cl(aRate * (sh.tend?.ast ?? 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
+        if (!putback && Math.random() < cl(aRate * (cre && cm ? CRE_AST[cre] / cm.ast : 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
           passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
           O.box[passer.id].ast++;
         }
@@ -528,7 +571,7 @@ export class GameSim {
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
-        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1); // small finishers get blocked more
+        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1); // small finishers get blocked more; stepbacks and fadeaways rarely
         if (Math.random() < blkP) {
           const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
           D.box[bl.id].blk++;

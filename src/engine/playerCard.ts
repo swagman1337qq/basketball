@@ -3,7 +3,7 @@
 // who he is in this league: his ID, team, contract, stats and history.
 import { syncOvr } from './ratings';
 import { setTruePot } from './potential';
-import { applyMult, initTendencies, TEN_KEYS } from './tendencies';
+import { CRE_TEN, ensureTen, initTendencies, quirkOf, round100, tenTargets, ZONE_TEN } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 
@@ -43,11 +43,20 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   syncOvr(p);
   delete p.ceil; delete p.ph; p.perr = 0; // a fresh build: his potential is the card's, exactly (potential.ts)
   setTruePot(p, cl(card.pot ?? p.pot, p.ovr, 100), true); // exactly the card's, up to 100, whatever his ratings can show
-  // His shot tendencies: the card's (the NBA's categories, 0–100 scores), or from his game; older cards'
-  // multipliers become the same change on his tendencies (tendencies.ts applyMult).
+  // His shot tendencies: the card's, or from his game. A card's zones and creation are shares (each group
+  // is scaled to add up to 100); usage and free throw rate are 0–100 scores. Cards from before 2026-10-08
+  // (every tendency a 0–100 score, or older multipliers) play the shot mix they played then (fromLegacy).
   initTendencies(p);
-  if (card.ten && typeof card.ten === 'object') TEN_KEYS.forEach(k => { const v = card.ten[k]; if (typeof v === 'number' && isFinite(v)) p.ten[k] = Math.max(2, Math.min(98, v)); });
-  else if (card.tend) applyMult(p, card.tend);
+  const ct = card.ten && typeof card.ten === 'object' ? card.ten : null, num = (v: any) => typeof v === 'number' && isFinite(v);
+  if (ct && (num(ct.step) || num(ct.fade))) {
+    (['usage', 'ftr'] as const).forEach(k => { if (num(ct[k])) p.ten[k] = Math.max(2, Math.min(98, ct[k])); });
+    for (const keys of [ZONE_TEN, CRE_TEN] as readonly (readonly string[])[]) { const g = Object.fromEntries(keys.map(k => [k, num(ct[k]) ? Math.max(0, ct[k]) : p.ten[k]])); if (keys.some(k => num(ct[k]))) Object.assign(p.ten, round100(g)); }
+  } else if (ct || card.tend) {
+    const tg = tenTargets(p, null), v3 = ['usage', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'ftr'] as const;
+    p.ten = Object.fromEntries(v3.map(k => [k, num(ct?.[k]) ? Math.max(2, Math.min(98, ct[k])) : Math.round(Math.max(2, Math.min(98, tg[k] + quirkOf(p, k))))])); p.tenV = 3;
+    if (!ct && card.tend) p.tend = card.tend;
+    ensureTen(p);
+  }
   if (card.tenLock) p.tenLock = true; else delete p.tenLock; // a card can lock its playing style
   return '';
 }
@@ -64,10 +73,13 @@ export const BLANK_CARD = {
 // exactly these was never edited and takes the new tendencies (upgradePresetCard). The multipliers were
 // tuned against the old engine and, read by today's tendency system, gave Klay Thompson 39% usage.
 const OLD_PRESET_TEND = [{ rim: 1.05, mid: 0.23, c3: 0.9, atb: 1.02, draw: 2.8, tov: 1.2, ast: 0.4 }, { rim: 0.69, mid: 1.34, c3: 2.51, atb: 1.3, draw: 0.27, tov: 0.31, ast: 1.35, usg: 0.97 }, { rim: 0.9, mid: 4.92, c3: 0.02, atb: 0.46, draw: 0.74, tov: 1.31, ast: 0.62, usg: 0.63 }, { rim: 0.94, mid: 1.51, c3: 0.02, atb: 0.15, draw: 0.72, tov: 1.11, ast: 1.15, usg: 0.72 }, { rim: 1.54, mid: 1.26, c3: 0.64, atb: 1.38, draw: 2.2, tov: 1.55, ast: 0.38, usg: 0.53 }, { rim: 1.74, mid: 4.38, c3: 0.62, atb: 0.42, draw: 0.12, tov: 0.48, ast: 1.2, usg: 1.25 }, { rim: 1.17, mid: 2.35, c3: 2.13, atb: 0.8, draw: 0.34, tov: 0.61, ast: 1.05, usg: 0.66 }, { rim: 0.95, mid: 3.39, c3: 0.02, atb: 0.18, draw: 1.39, tov: 0.64, ast: 0.95, usg: 0.73 }];
-// A saved copy of a ready-made card (id 'presetN') that still has its old playing style gets the new one.
+// Their 0–100 scores of 2026-10-08 (version 3), before tendencies became shares.
+const OLD_PRESET_TEN3 = [{ usage: 52, ra: 62, paint: 48, mid: 66, c3: 43, atb: 84, cns: 28, pullup: 72, ftr: 67 }, { usage: 51, ra: 46, paint: 45, mid: 44, c3: 69, atb: 66, cns: 64, pullup: 36, ftr: 25 }, { usage: 43, ra: 24, paint: 52, mid: 43, c3: 2, atb: 2, cns: 27, pullup: 73, ftr: 62 }, { usage: 48, ra: 48, paint: 62, mid: 71, c3: 2, atb: 2, cns: 53, pullup: 47, ftr: 67 }, { usage: 45, ra: 16, paint: 25, mid: 44, c3: 11, atb: 18, cns: 21, pullup: 79, ftr: 70 }, { usage: 53, ra: 42, paint: 58, mid: 94, c3: 43, atb: 43, cns: 61, pullup: 39, ftr: 22 }, { usage: 32, ra: 62, paint: 65, mid: 79, c3: 79, atb: 39, cns: 64, pullup: 36, ftr: 53 }, { usage: 51, ra: 56, paint: 79, mid: 48, c3: 2, atb: 2, cns: 49, pullup: 51, ftr: 90 }];
+// A saved copy of a ready-made card (id 'presetN') that still has an old playing style gets the new one.
 export function upgradePresetCard(row: { id: string; card: any }): boolean {
-  const m = /^preset(\d+)$/.exec(row.id || ''), i = m ? +m[1] : -1, c = row.card;
-  if (i < 0 || !PRESET_CARDS[i] || !c || c.ten || !c.tend || JSON.stringify(c.tend) !== JSON.stringify(OLD_PRESET_TEND[i])) return false;
+  const m = /^preset(\d+)$/.exec(row.id || ''), i = m ? +m[1] : -1, c = row.card, same = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+  if (i < 0 || !PRESET_CARDS[i] || !c) return false;
+  if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return false;
   delete c.tend; c.ten = { ...PRESET_CARDS[i].card.ten }; return true;
 }
 
@@ -82,8 +94,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 48, dnk: 30, lay: 42, ft: 42, fg: 95, tp: 51, oiq: 70, diq: 44, blk: 30, stl: 62, drb: 85, pss: 58, reb: 61, box: 56 },
     pot: 83, intg: { feel: 90, poise: 85 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: true, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, work: 58, loyalty: 60, ambition: 80 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
-    ten: { usage: 52, ra: 62, paint: 48, mid: 66, c3: 43, atb: 84, cns: 28, pullup: 72, ftr: 67 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
+    ten: { usage: 52, ftr: 67, ra: 20, paint: 14, mid: 25, c3: 3, atb: 38, cns: 10, pullup: 50, step: 30, fade: 10 },
   } },
   // The rookie cards below were tuned the same way, against each player's real rookie season (Basketball-
   // Reference: per game, advanced, shooting by distance, splits) translated to today's league: volume per
@@ -103,8 +115,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 47, stre: 46, spd: 66, acc: 80, jmp: 86, endu: 56, ins: 48, dnk: 66, lay: 81, ft: 49, fg: 59, tp: 62, oiq: 43, diq: 25, blk: 20, stl: 15, drb: 46, pss: 41, reb: 40, box: 46 },
     pot: 51, intg: { feel: 57, poise: 62 },
     pers: { mot: 'Playing time', alpha: false, touches: false, pro: false, volatile: false, flashy: false, heat: true, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: true, work: 74, loyalty: 50, ambition: 62 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 21%: 22% at the rim, 9% paint, 8% mid-range, 61% threes (27% of them corners); mostly catch-and-shoot; .14 FTA per FGA.
-    ten: { usage: 51, ra: 46, paint: 45, mid: 44, c3: 69, atb: 66, cns: 64, pullup: 36, ftr: 25 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 21%: 22% at the rim, 9% paint, 8% mid-range, 61% threes (27% of them corners); mostly catch-and-shoot; .14 FTA per FGA.
+    ten: { usage: 51, ftr: 25, ra: 22, paint: 9, mid: 8, c3: 16.5, atb: 44.5, cns: 75, pullup: 18, step: 5, fade: 2 },
   } },
   { label: 'Ben Simmons – Rookie year (2017–18)', card: {
     card: 1, name: 'Ben Simmons', first: 'Ben', last: 'Simmons', pos: 'PG', age: 21, dob: '1996-07-20', hgt: '6′10″', wt: 240, wing: 84,
@@ -116,8 +128,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 64, stre: 72, spd: 86, acc: 78, jmp: 70, endu: 72, ins: 91, dnk: 91, lay: 91, ft: 16, fg: 42, tp: 8, oiq: 62, diq: 66, blk: 70, stl: 60, drb: 74, pss: 78, reb: 59, box: 58 },
     pot: 69, intg: { feel: 70, poise: 40 },
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: true, padder: false, team: false, legacy: false, streaky: false, work: 45, loyalty: 30, ambition: 72 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 22.5%: 46% at the rim, 33% from 3–10 ft, 21% jumpers, no threes; .34 FTA per FGA.
-    ten: { usage: 43, ra: 24, paint: 52, mid: 43, c3: 2, atb: 2, cns: 27, pullup: 73, ftr: 62 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 22.5%: 46% at the rim, 33% from 3–10 ft, 21% jumpers, no threes; .34 FTA per FGA.
+    ten: { usage: 43, ftr: 62, ra: 46, paint: 33, mid: 20.5, c3: 0.2, atb: 0.3, cns: 20, pullup: 50, step: 5, fade: 25 },
   } },
   { label: 'Al Horford – Rookie year (2007–08)', card: {
     card: 1, name: 'Al Horford', first: 'Al', last: 'Horford', pos: 'C', age: 21, dob: '1986-06-03', hgt: '6′10″', wt: 245, wing: 85,
@@ -129,8 +141,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 62, stre: 86, spd: 40, acc: 38, jmp: 62, endu: 66, ins: 79, dnk: 60, lay: 75, ft: 46, fg: 58, tp: 12, oiq: 60, diq: 62, blk: 65, stl: 53, drb: 36, pss: 45, reb: 82, box: 70 },
     pot: 68, intg: { feel: 64, poise: 76 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 75, ambition: 45 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 17.5%: 41% at the rim, 26% hooks and short shots, 33% from 10 ft out, no threes; .38 FTA per FGA.
-    ten: { usage: 48, ra: 48, paint: 62, mid: 71, c3: 2, atb: 2, cns: 53, pullup: 47, ftr: 67 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 41% at the rim, 26% hooks and short shots, 33% from 10 ft out, no threes; .38 FTA per FGA.
+    ten: { usage: 48, ftr: 67, ra: 41, paint: 26, mid: 33, c3: 0, atb: 0, cns: 45, pullup: 25, step: 2, fade: 28 },
   } },
   { label: 'Chris Paul – Rookie year (2005–06)', card: {
     card: 1, name: 'Chris Paul', first: 'Chris', last: 'Paul', pos: 'PG', age: 20, dob: '1985-05-06', hgt: '6′0″', wt: 175, wing: 76,
@@ -142,8 +154,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 24, stre: 52, spd: 82, acc: 88, jmp: 70, endu: 88, ins: 39, dnk: 25, lay: 57, ft: 76, fg: 47, tp: 26, oiq: 84, diq: 66, blk: 10, stl: 83, drb: 88, pss: 70, reb: 53, box: 34 },
     pot: 85, intg: { feel: 79, poise: 86 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 92, loyalty: 45, ambition: 86 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 23.5%: 25% at the rim, 20% paint, 43% mid-range, 12% threes; mostly pull-ups; .41 FTA per FGA.
-    ten: { usage: 45, ra: 16, paint: 25, mid: 44, c3: 11, atb: 18, cns: 21, pullup: 79, ftr: 70 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 23.5%: 25% at the rim, 20% paint, 43% mid-range, 12% threes; mostly pull-ups; .41 FTA per FGA.
+    ten: { usage: 45, ftr: 70, ra: 25, paint: 20, mid: 43, c3: 2, atb: 10, cns: 12, pullup: 70, step: 8, fade: 10 },
   } },
   { label: 'Klay Thompson – Rookie year (2011–12)', card: {
     card: 1, name: 'Klay Thompson', first: 'Klay', last: 'Thompson', pos: 'SG', age: 21, dob: '1990-02-08', hgt: '6′7″', wt: 205, wing: 81,
@@ -155,8 +167,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 48, stre: 46, spd: 62, acc: 58, jmp: 46, endu: 76, ins: 49, dnk: 56, lay: 72, ft: 88, fg: 51, tp: 93, oiq: 52, diq: 42, blk: 57, stl: 47, drb: 46, pss: 58, reb: 42, box: 30 },
     pot: 71, intg: { feel: 58, poise: 82 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: true, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 76, loyalty: 80, ambition: 60 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 24.7%: 14% at the rim, 11% paint, 37% mid-range (32% long twos), 38% threes (a quarter from the corners); mostly catch-and-shoot; .13 FTA per FGA.
-    ten: { usage: 53, ra: 42, paint: 58, mid: 94, c3: 43, atb: 43, cns: 61, pullup: 39, ftr: 22 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 24.7%: 14% at the rim, 11% paint, 37% mid-range (32% long twos), 38% threes (a quarter from the corners); mostly catch-and-shoot; .13 FTA per FGA.
+    ten: { usage: 53, ftr: 22, ra: 14, paint: 11, mid: 37, c3: 9, atb: 29, cns: 70, pullup: 24, step: 3, fade: 3 },
   } },
   { label: 'Kawhi Leonard – Rookie year (2011–12)', card: {
     card: 1, name: 'Kawhi Leonard', first: 'Kawhi', last: 'Leonard', pos: 'SF', age: 20, dob: '1991-06-29', hgt: '6′7″', wt: 227, wing: 87,
@@ -168,8 +180,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 50, stre: 70, spd: 70, acc: 62, jmp: 56, endu: 72, ins: 62, dnk: 87, lay: 87, ft: 55, fg: 53, tp: 60, oiq: 54, diq: 70, blk: 38, stl: 73, drb: 44, pss: 43, reb: 61, box: 58 },
     pot: 86, intg: { feel: 71, poise: 86 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 99, loyalty: 40, ambition: 72 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 15.5%: 38% at the rim, 14% paint, 21% mid-range, 27% threes (most from the corners); mostly catch-and-shoot; .27 FTA per FGA.
-    ten: { usage: 32, ra: 62, paint: 65, mid: 79, c3: 79, atb: 39, cns: 64, pullup: 36, ftr: 53 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 15.5%: 38% at the rim, 14% paint, 21% mid-range, 27% threes (most from the corners); mostly catch-and-shoot; .27 FTA per FGA.
+    ten: { usage: 32, ftr: 53, ra: 38, paint: 14, mid: 21, c3: 17, atb: 10, cns: 75, pullup: 18, step: 2, fade: 5 },
   } },
   { label: 'Dwight Howard – Rookie year (2004–05)', card: {
     card: 1, name: 'Dwight Howard', first: 'Dwight', last: 'Howard', pos: 'C', age: 18, dob: '1985-12-08', hgt: '6′10″', wt: 240, wing: 88,
@@ -181,7 +193,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     r: { hgt: 70, stre: 80, spd: 64, acc: 58, jmp: 86, endu: 72, ins: 95, dnk: 95, lay: 70, ft: 35, fg: 35, tp: 1, oiq: 38, diq: 55, blk: 67, stl: 54, drb: 26, pss: 45, reb: 67, box: 76 },
     pot: 82, intg: { feel: 47, poise: 45 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: false, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: false, work: 62, loyalty: 50, ambition: 70 },
-    // Playing style from his real rookie numbers, in the game's NBA categories: USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
-    ten: { usage: 51, ra: 56, paint: 79, mid: 48, c3: 2, atb: 2, cns: 49, pullup: 51, ftr: 90 },
+    // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
+    ten: { usage: 51, ftr: 90, ra: 65, paint: 27, mid: 8, c3: 0, atb: 0, cns: 20, pullup: 20, step: 0, fade: 60 },
   } },
 ];

@@ -8,7 +8,7 @@ import { Combo, CountryPicker, FtInInput, muted, NumInput, ruleH4 } from '../kit
 import { applyCard, BLANK_CARD, exportCard } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
 import { TRAITS } from '../../engine/traits';
-import { ensureTen, expUsg, jumpScoreFor, jumpShares, TEN_KEYS, TEN_LABEL, tenScore, tenUnit, usageScoreFor, ZONE_TEN, zoneScoreFor, zoneShares, type TenKey, type ZoneTen } from '../../engine/tendencies';
+import { TendencyEditor } from '../TendencyEditor';
 
 // The card's ratings in three blocks, like a scouting sheet.
 const BLOCKS: [string, [string, string][]][] = [
@@ -138,37 +138,27 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
   </>);
 }
 
-// The card's playing style, in the NBA's units like a player's God Mode editor: usage rate, his shots by
-// zone, catch-and-shoot and pull-up jumpers, free throw rate. Each number becomes a tendency score for
-// the card's ratings (the same number means a different score for a different build). A card with no
-// tendencies of its own plays the way its ratings point; either way they evolve from there unless locked.
+// The card's playing style, edited like a player's (TendencyEditor): usage rate, his shots by zone and how
+// he creates his jumpers (each adding up to 100%), free throw rate. Shown on a stand-in player built from
+// the card, so usage reads in USG% for these ratings; older cards (0–100 scores) show the mix they play.
+// A card with no tendencies of its own plays the way its ratings point; either way they evolve unless locked.
 function cardPlayer(draft: any) {
   const q: any = { id: 0, pos: draft.pos || 'SF', grp: GRP[draft.pos] || 'W', age: draft.age ?? 25, r: { ...(draft.r || {}) }, hgt: draft.hgt, wing: draft.wing, pers: { ...(draft.pers || {}) }, intg: { ...(draft.intg || {}) } };
   q.ovr = Math.round(ovrExact(q)); q.pot = Math.max(q.ovr, draft.pot ?? q.ovr);
-  if (draft.ten) { q.ten = { ...draft.ten }; q.tenQ = {}; q.tenV = 3; } else if (draft.tend) q.tend = { ...draft.tend };
-  ensureTen(q);
+  applyCard(q, { r: q.r, ten: draft.ten, tend: draft.tend }, {});
   return q;
 }
 function CardStyle({ gm, draft, set }: { gm: any; draft: any; set: (f: (d: any) => void) => void }) {
-  const q = cardPlayer(draft), roles = gm.rolesOf(q), norms = gm.db.norms, own = !!draft.ten || !!draft.tend;
-  const put = (k: TenKey, score: number) => set(d => { d.ten = { ...q.ten, [k]: Math.round(score * 10) / 10 }; delete d.tend; });
-  const row = (label: string, v: number, lo: number, hi: number, onV: (v: number) => void, suffix: string) => (
-    <label key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: '13px', padding: '2px 0' }}><span>{label}</span><NumInput value={v} min={lo} max={Math.max(lo + 1, hi)} onValue={onV} width={66} suffix={suffix} /></label>);
-  const rows = TEN_KEYS.map(k => {
-    if (k === 'usage') return row('Usage rate', Math.round(expUsg(q, norms, roles)), Math.ceil(expUsg(q, norms, roles, 2)), Math.floor(expUsg(q, norms, roles, 98)), v => put(k, usageScoreFor(q, norms, roles, v)), '% USG');
-    if ((ZONE_TEN as readonly string[]).includes(k)) { const z = k as ZoneTen; return row(TEN_LABEL[k], Math.round(zoneShares(q, norms, roles)[z]), Math.ceil(zoneShares(q, norms, roles, { [z]: 2 })[z]), Math.floor(zoneShares(q, norms, roles, { [z]: 98 })[z]), v => put(k, zoneScoreFor(q, norms, roles, z, v)), '% shots'); }
-    if (k === 'cns' || k === 'pullup') return row(TEN_LABEL[k], Math.round(jumpShares(q, norms, roles)[k]), Math.ceil(jumpShares(q, norms, roles, { [k]: 2 })[k]), Math.floor(jumpShares(q, norms, roles, { [k]: 98 })[k]), v => put(k, jumpScoreFor(q, norms, roles, k, v)), '% shots');
-    return row(TEN_LABEL[k], Math.round(tenUnit('ftr', q.ten.ftr) * 100), Math.ceil(tenUnit('ftr', 2) * 100), Math.floor(tenUnit('ftr', 98) * 100), v => put(k, tenScore('ftr', v / 100)), 'per 100 FGA');
-  });
+  const q = cardPlayer(draft), own = !!draft.ten || !!draft.tend;
   return (
     <div style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '8px 10px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 2 }}>
         <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>Playing style</span>
         <span style={{ ...muted, fontSize: '12px' }}>{own ? 'Set on this card.' : 'From his ratings (change any number to set your own).'}</span>
         {own && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto' }} onClick={() => set(d => { delete d.ten; delete d.tend; })} title="Drop the card's own tendencies: he plays the way his ratings point">Match his ratings</button>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: '0 18px' }}>{rows}</div>
+      <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} />
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', marginTop: 6 }}><input type="checkbox" checked={!!draft.tenLock} onChange={e => set(d => { if (e.target.checked) d.tenLock = true; else delete d.tenLock; })} /> Lock them (they don’t evolve after the card is applied)</label>
-      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>The five zones always add up to 100% of his shots, so raising one makes room in the others. The numbers follow the ratings above: change his skills and the same tendencies give a slightly different mix. Applied to a player, the card plays these until they drift toward what his game and role ask for (unless locked).</div>
+      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>What you set is what he takes once the card is applied; his ratings decide how many go in. Unless locked, they drift toward what his game and role ask for.</div>
     </div>);
 }

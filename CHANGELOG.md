@@ -5,7 +5,18 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-08
 
 ### Added
+- **Playing style the way the NBA reports it.** A player's tendencies are now simple percentages that add up to 100%, and what you set is what he takes:
+  - **Where his shots come from** (% of his shots): Restricted Area, Paint (Non-RA), Mid-Range, Corner 3, Above the Break 3.
+  - **How he creates his jump shots** (% of his mid-range jumpers and threes): Catch & Shoot, Pull-Up, **Stepback** and **Fadeaway** (new).
+  - **Usage rate** and **free throw rate** stay as they were.
+  - Change one number and the others in its group make room in proportion, so it always adds up to 100%. Same in God Mode's player editor and the player-card editor.
+- **Stepbacks and fadeaways play differently in games.** Catch-and-shoot jumpers are the easiest shot and almost always assisted. Pull-ups are a bit harder (a good handle helps). Stepbacks are harder still unless he has the handle and quickness for them, and they're almost never blocked or assisted. Fadeaways are hard too (mid-range touch, size and strength help) and rarely blocked. A league-typical mix scores the same as before, so the league's shooting stays at NBA levels; players who live on stepbacks and fadeaways need the skills to make them pay. Play-by-play now says "a stepback three", "a fadeaway" and so on.
+- **The profile shows this season's real numbers** for each of the four ways he creates jumpers, next to his tendencies.
 - **Many more Chinese names.** Chinese players now draw from about 175 given names (up from 30), each with its Chinese characters, so new Chinese players repeat far less. Family names still come from China's 100 most common, by how common each one really is.
+
+### Changed
+- **Your league moves over by itself.** Every player keeps the shot mix he was playing; his stepbacks and fadeaways come from his game. Player cards made before today (including the Thabeet and Yang cards) still work and play the same mix. The ready-made rookie cards now include each player's real stepback and fadeaway habits (Luka's rookie stepbacks, Dwight's turnarounds).
+- **A few more assists.** A test season came out at 23 assists a team per game against the NBA's 26.7, so assisted baskets are a little more common now.
 
 ### Fixed
 - **Retired players' ages on stats pages are right again.** A retired player's age stops when he retires, but his season-by-season stats still counted back from the current season, so decades later a 36-year-old's earlier seasons showed him as 9. His stats page, the Stats screen and past rosters now count back from the season he retired.

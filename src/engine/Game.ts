@@ -92,7 +92,7 @@ export class Game {
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
-    { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k] }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
+    { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k], roles: g.rolesOf(g.db.P[id]) }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
     g.db.usgV = 1; g.db.ten3 = 1; // shot volume follows the offensive game and role; tendencies are the NBA's shot categories (tendencies.ts)
     g.refreshNorms(g.state);
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
@@ -265,6 +265,11 @@ export class Game {
     // pull-ups, free throw rate, usage): every player moves over (hand-set multipliers too), and the
     // league's shot-mix norms are recomputed for the new mix.
     if (!g.db.ten3) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r && (p.ten || !p.retired)) ensureTen(p); }); g.refreshNorms(g.state); g.db.ten3 = 1; }
+    // 2026-10-08: tendencies the way the NBA reports them (tendencies.ts, version 4): the shot zones and the
+    // ways he creates jumpers (catch & shoot, pull-up, stepback, fadeaway) as shares adding up to 100. Each
+    // player keeps the shot mix he played (with the league's norms and his roles); stepbacks and fadeaways
+    // come from his game. Then the league's norms (jump-shot creation included) are recomputed.
+    if (!g.db.ten4) { const norms = g.db.norms; (Object.values(g.db.P) as any[]).forEach(p => { if (p.r && p.ten && p.tenV !== 4) ensureTen(p, norms, p.retired ? [] : g.rolesOf(p)); }); g.refreshNorms(g.state); g.db.ten4 = 1; }
     if (!g.db.usgV) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
       Object.values(g.db.P).forEach((p: any) => { if (!p.r || p.retired || !p.ten || p.tenLock) return; const nx = Math.round(Math.max(2, Math.min(98, tenTargets(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number] }).usage + quirkOf(p, 'usage')))); if (p.tenPrev?.usage != null) p.tenPrev.usage += nx - p.ten.usage; p.ten.usage = nx; });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
@@ -383,7 +388,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -568,7 +573,7 @@ export class Game {
     setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); // his height rating mostly follows his listed height (ratings.ts)
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
-    initTendencies(p); // his playing style: where his game points, plus his own quirks (tendencies.ts)
+    initTendencies(p, { roles: this.rolesOf(p) }); // his playing style: where his game points, plus his own quirks (tendencies.ts)
     if (!cls && age <= 23) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
     initCeil(p, p.pot); rollPerr(p, age <= 22 ? 2.5 : age <= 26 ? 1.2 : 0); refreshPot(p); // potential is a ceiling (potential.ts); p.pot is the league's read
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
@@ -1194,7 +1199,7 @@ export class Game {
       // His playing style catches up with his game: a summer's step toward what his new skills and role
       // point to (not every tendency moves every year), and hand-set tendencies fade (tendencies.ts).
       { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
-        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number] }, 1, 0.8); }); }
+        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }, 1, 0.8); }); }
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -1543,7 +1548,7 @@ export class Game {
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true);
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
-      evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k] }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
+      evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k], roles: this.rolesOf(p) }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
       if (p.frozen) return; // God Mode's Freeze attributes: no growth or decline (he still ages, gets hurt, heals and has moods)
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? (p.godPot != null ? Math.max(0, p.dy ?? 1) : p.dy ?? 1) : 1) : annual0, wk = p.pers?.work ?? 50; // God Mode's potential (potential.ts): a down year is no growth, not a slide as big as the plan
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;
