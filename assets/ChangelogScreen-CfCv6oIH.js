@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-qWpwTMND.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-wWm6fBQe.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -11,6 +11,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - **Usage rate** and **free throw rate** stay as they were.
   - Change one number and the others in its group make room in proportion, so it always adds up to 100%. Same in God Mode's player editor and the player-card editor.
 - **Stepbacks and fadeaways play differently in games.** Catch-and-shoot jumpers are the easiest shot and almost always assisted. Pull-ups are a bit harder (a good handle helps). Stepbacks are harder still unless he has the handle and quickness for them, and they're almost never blocked or assisted. Fadeaways are hard too (mid-range touch, size and strength help) and rarely blocked. A league-typical mix scores the same as before, so the league's shooting stays at NBA levels; players who live on stepbacks and fadeaways need the skills to make them pay. Play-by-play now says "a stepback three", "a fadeaway" and so on.
+- **Auto button for tendencies.** In God Mode's player editor and the card editor, **Auto (let the AI set them)** fills in every tendency the way the game would for him: from his ratings, personality, age and his role on his team. Then tweak from there if you like.
 - **The profile shows this season's real numbers** for each of the four ways he creates jumpers, next to his tendencies.
 - **Many more Chinese names.** Chinese players now draw from about 175 given names (up from 30), each with its Chinese characters, so new Chinese players repeat far less. Family names still come from China's 100 most common, by how common each one really is.
 
