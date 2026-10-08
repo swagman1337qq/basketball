@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-C5D0TFDZ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-DdocwuhA.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-08
+
+### Fixed
+- **The ready-made rookie cards play like their real rookie years again.** Their playing style was stored the old way and read wrong by the newer tendency system: Klay Thompson took 39% of his team's plays (he really used 24.7%) and scored about 26 a game, Luka 40% (really about 30%), while Horford, Chris Paul and Dwight Howard barely shot. Every ready-made card now carries its real rookie usage rate, shot zones, catch-and-shoot vs pull-up mix and free throw rate (Klay: 24.7% usage, 38% threes, lots of long twos). Copies in your card library that you never edited update by themselves; a player you already applied a card to keeps his old style, so apply the card again.
 
 ## 2026-10-07
 
