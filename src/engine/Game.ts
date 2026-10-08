@@ -709,13 +709,26 @@ export class Game {
     // Play through injuries: a managed club's setting (days of injury he'll play through,
     // regular season and postseason); he plays at reduced strength.
     const thr = user && !s.easy?.injuries ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
-    let ids = s.rosters[tid].filter(id => { const p = P[id]; return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y); });
-    if (!user) { const k = (id: number) => P[id].ovr + devMinutes(this, s, tid, P[id]); ids = ids.slice().sort((a, b) => k(b) - k(a)); } // AI: best first, and real minutes for a young high pick (rosterAI)
+    let ids = s.rosters[tid].filter(id => this.canPlay1(s, P[id], post, hurt));
+    if (!user) ids = this.aiOrder(s, tid).filter(id => ids.includes(id)); // AI: best first, and real minutes for a young high pick (rosterAI)
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       tactics: club ? club.tactics : null, situ: club ? club.situ || null : null, tempo: club ? undefined : this.tempoOf(s, tid),
       players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0) }; }) };
+  }
+
+  // Can he play tonight: healthy (or playing through it), not in the development league, a two-way player
+  // with games left (none in the postseason), not barred from this postseason.
+  canPlay1(s, p: any, post = s.phase === 'playoffs' || s.phase === 'playin', hurt: (p: any) => boolean = () => false) {
+    return (!p.inj || p.inj.dtd || hurt(p)) && !p.dev && !(p.ctype === 'twoWay' && (post || (p.twoWay?.games || 0) >= DAY.TWO_WAY_GAMES)) && !(post && p.poIneligible === this.Y);
+  }
+  // An AI team's rotation as its coach sets it before every game: the best available players first (and
+  // real minutes for a young high pick, rosterAI devMinutes), then anyone who can't play. The Roster page
+  // shows AI teams in this order, so its starting five is the one that takes the floor.
+  aiOrder(s, tid) {
+    const P = this.db.P, k = (id: number) => P[id].ovr + devMinutes(this, s, tid, P[id]), ok = (id: number) => (this.canPlay1(s, P[id]) ? 1 : 0);
+    return (s.rosters[tid] || []).filter((id: number) => P[id]).slice().sort((a: number, b: number) => ok(b) - ok(a) || k(b) - k(a));
   }
 
   // An AI team's pace (a multiplier on the length of its trips): its coach's taste, new each season, plus

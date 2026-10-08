@@ -42,7 +42,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w), rank = conf.indexOf(t) + 1, lead = conf[0];
   const gb = cur && rank > 1 ? ((lead.w - t.w + t.l - lead.l) / 2).toFixed(1).replace('.0', '') + ' GB' : '';
   const games = (s.games || []).filter((x: any) => !x.po && (x.h === tid || x.a === tid)), mov = cur && games.length ? games.reduce((a: number, x: any) => a + (x.h === tid ? x.hp - x.ap : x.ap - x.hp), 0) / games.length : null;
-  const ids: number[] = cur ? s.rosters[tid] || [] : (Object.values(P) as any[]).filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po)).map(p => p.id);
+  const ids: number[] = cur ? (gm.isUser(s, tid) ? s.rosters[tid] || [] : gm.aiOrder(s, tid)) : (Object.values(P) as any[]).filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po)).map(p => p.id);
   const ageOf = (p: any) => (cur ? p.age : gm.ageIn(p, season));
   const avgAge = ids.length ? ids.reduce((a, id) => a + ageOf(P[id]), 0) / ids.length : 0;
   const tr = teamRating(P, cur ? ids : []), trRank = cur ? 1 + T.filter(x => teamRating(P, s.rosters[x.tid] || []) > tr).length : 0;
@@ -55,7 +55,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { rosters: { ...st.rosters, [tid]: o }, dragId: null, overId: null }; });
   const [drag, setDrag] = useState<number | null>(null);
   const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
-  const startersSet = new Set(cur ? mainIds.slice(0, 5) : []);
+  const startersSet = new Set(cur ? (gm.isUser(s, tid) ? mainIds.slice(0, 5) : ids.filter(id => gm.canPlay1(s, P[id])).slice(0, 5)) : []); // an AI team: the five who start its next game
   const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
     const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id);
