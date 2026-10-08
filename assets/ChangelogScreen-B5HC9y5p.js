@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-DQLEYoFY.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-Csp29lQF.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-08
+
+### Added
+- **Many more Chinese names.** Chinese players now draw from about 175 given names (up from 30), each with its Chinese characters, so new Chinese players repeat far less. Family names still come from China's 100 most common, by how common each one really is.
 
 ### Fixed
 - **Retired players' ages on stats pages are right again.** A retired player's age stops when he retires, but his season-by-season stats still counted back from the current season, so decades later a 36-year-old's earlier seasons showed him as 9. His stats page, the Stats screen and past rosters now count back from the season he retired.
