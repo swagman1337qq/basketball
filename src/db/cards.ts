@@ -3,7 +3,7 @@
 // deleting a card never changes a player anywhere. Each league keeps its own players (and its undo).
 // Stored in IndexedDB next to the saves (meta row 'cards'); the ready-made cards seed it once each.
 import { db } from './saves';
-import { PRESET_CARDS } from '../engine/playerCard';
+import { PRESET_CARDS, upgradePresetCard } from '../engine/playerCard';
 
 export interface CardRow { id: string; card: any }
 interface Stored { cards: CardRow[]; presets: string[] } // presets: ready-made card ids already offered (a deleted one stays deleted)
@@ -22,8 +22,9 @@ export function loadCards(): Promise<void> {
     let got: Stored | null = null;
     try { got = (await db.meta.get('cards'))?.value ?? null; } catch { /* no storage: the presets, in memory */ }
     lib = got || { cards: [], presets: [] };
+    const upgraded = lib.cards.filter(r => upgradePresetCard(r)).length; // unedited ready-made cards take their new playing style
     const fresh = presetRows().filter(r => !lib!.presets.includes(r.id));
-    if (fresh.length || !got) { lib = { cards: [...lib.cards, ...fresh.filter(r => !lib!.cards.some(c => c.id === r.id))], presets: [...lib.presets, ...fresh.map(r => r.id)] }; try { await persist(); } catch { /* in memory */ } }
+    if (fresh.length || !got || upgraded) { lib = { cards: [...lib.cards, ...fresh.filter(r => !lib!.cards.some(c => c.id === r.id))], presets: [...lib.presets, ...fresh.map(r => r.id)] }; try { await persist(); } catch { /* in memory */ } }
     bump();
   })();
   return ready;

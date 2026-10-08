@@ -1,7 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
-import { PRESET_CARDS } from './playerCard';
+import { PRESET_CARDS, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
@@ -231,9 +231,10 @@ export class Game {
     // Luka's ready-made card: a road villain and fearless, not crowd-fed (saved libraries included).
     (g.state.cards || []).forEach((c: any) => { const p = c.card?.pers; if (c.id === 'preset0' && p && p.crowd && p.villain === undefined) Object.assign(p, { crowd: false, villain: true, fearless: true }); });
     // ...and retuned to his real 2018–19 shooting splits: an unedited saved copy takes the new build.
-    (g.state.cards || []).forEach((c: any) => { if (c.id === 'preset0' && c.card?.r?.fg === 45 && c.card?.r?.tp === 56 && c.card?.r?.oiq === 82) { const nw = PRESET_CARDS[0].card; c.card = { ...c.card, r: { ...nw.r }, tend: { ...nw.tend }, intg: { ...nw.intg } }; } });
+    (g.state.cards || []).forEach((c: any) => { if (c.id === 'preset0' && c.card?.r?.fg === 45 && c.card?.r?.tp === 56 && c.card?.r?.oiq === 82) { const nw = PRESET_CARDS[0].card; c.card = { ...c.card, r: { ...nw.r }, ten: { ...nw.ten }, intg: { ...nw.intg } }; delete c.card.tend; } });
     // 2026-10: seven more ready-made rookie cards (Knecht, Simmons, Horford, Paul, Thompson, Leonard, Howard) join saved card libraries, once.
     if (g.state.cards && !g.state.cardsV) { const have = new Set(g.state.cards.map((c: any) => c.id)); g.state = { ...g.state, cardsV: 2, cards: [...g.state.cards, ...PRESET_CARDS.map((x, i) => ({ id: 'preset' + i, card: { ...JSON.parse(JSON.stringify(x.card)), label: x.label } })).filter(c => c.id !== 'preset0' && !have.has(c.id))] }; }
+    (g.state.cards || []).forEach((c: any) => upgradePresetCard(c)); // ready-made cards' playing style, 2026-10-08
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // A U.S. state left on a player now born elsewhere (changing his nationality used to keep it).
     if (!g.db.stateV) { Object.values(g.db.P).forEach((p: any) => { if (p.state && p.born !== 'US') delete p.state; }); g.db.stateV = 1; }
