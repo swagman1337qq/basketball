@@ -2,6 +2,21 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-09
+
+### Added
+- **Mailbox** (Management menu). Everything that crosses your desk, newest first, so nothing is lost when you sim several days at once:
+  - **Trade offers**, each marked as still on the table (with a View trade offer button) or not.
+  - Your **owner's year-end letters** (read them again any time).
+  - **Offer sheets** on your restricted free agents, with Match and Decline right there.
+  - **Moves by players on your shortlists**: signings, trades, waivers, extensions, retirements.
+  - **Retirements** from this season and last (the notable ones one by one, the rest in a list).
+  - **Every other update** that popped up: signings, offer outcomes, options and so on.
+  - The menu tab shows how many are new.
+
+### Fixed
+- **No more pop-ups for trade offers that have already expired.** Sim several days (say, to the trade deadline) and an offer could lapse before its pop-up showed. Those now go straight to the Mailbox, marked as no longer on the table.
+
 ## 2026-10-08
 
 ### Added

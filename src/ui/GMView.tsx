@@ -17,6 +17,7 @@ import { DraftScreen } from './screens/DraftScreen';
 import { LiveGameScreen } from './screens/LiveGameScreen';
 import { ScheduleScreen } from './screens/ScheduleScreen';
 import { TransactionsScreen } from './screens/TransactionsScreen';
+import { MailboxScreen } from './screens/MailboxScreen';
 import { ShortlistScreen } from './screens/ShortlistScreen';
 import { PlayoffsScreen } from './screens/PlayoffsScreen';
 import { PlayinScreen } from './screens/PlayinScreen';
@@ -119,6 +120,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.game && <LiveGameScreen vm={vm} />}
             {!!vm.is.schedule && <ScheduleScreen vm={vm} />}
             {!!vm.is.tx && <TransactionsScreen vm={vm} />}
+            {!!vm.is.mail && <MailboxScreen vm={vm} />}
             {!!vm.is.short && <ShortlistScreen vm={vm} />}
             {!!vm.is.playoffs && <PlayoffsScreen vm={vm} />}
             {!!vm.is.playin && <PlayinScreen vm={vm} />}

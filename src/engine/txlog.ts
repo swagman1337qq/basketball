@@ -8,7 +8,7 @@ import type { Game } from './Game';
 export interface Tx { k: 'draft' | 'sign' | 'waive' | 'trade' | 'expansion' | 'retire' | 'abroad' | 'extend' | 'god'; season: number; date: string; tid?: number; from?: number; to?: number; trade?: number; n?: number; rd?: number; orig?: number; text?: string }
 export interface Trade { id: number; season: number; date: string; a: number; b: number; aP: number[]; bP: number[]; aK: string[]; bK: string[]; note?: string }
 
-const dateOf = (g: Game, s: any) => {
+export const dateOf = (g: Game, s: any) => {
   const ph = s.phase, Y = g.Y;
   if (ph === 'regular' || ph === 'preseason') return g.dateOf(s.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   if (ph === 'fa' && s.faStart != null) return g.faDate(s, Math.max(0, s.day - s.faStart)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

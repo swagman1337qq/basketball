@@ -51,7 +51,7 @@ import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator
 import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
-import { addTx, recordTrade } from './txlog';
+import { addTx, dateOf as txDate, recordTrade } from './txlog';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -321,7 +321,15 @@ export class Game {
   setState(u: any, cb?: () => void) {
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
+      const prevNotices = this.state.notices;
       this.state = { ...this.state, ...patch };
+      // Every pop-up also goes to the Mailbox (s.mail, newest first, the last 250), dated and numbered so
+      // the Mailbox tab can count what's new.
+      if (patch.notices && patch.notices !== prevNotices && patch.notices.length && !this.state.spectator) {
+        const mail: any[] = this.state.mail || [], seen = new Set(mail.map((m: any) => m.id)), add = patch.notices.filter((n: any) => !seen.has(n.id));
+        if (add.length) { let seq = this.state.mailSeq || 0; const date = txDate(this, this.state);
+          this.state.mail = [...add.map((n: any) => ({ ...n, season: this.Y, date, seq: ++seq })).reverse(), ...mail].slice(0, 250); this.state.mailSeq = seq; }
+      }
       if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch, retiredNums(this.state.teams)); this._rosterRef = patch.rosters; }
       this.version++;
       // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
@@ -1768,6 +1776,8 @@ export class Game {
     // ten days, and goes away if the players in it move.
     let inOffers = (s.inOffers || []).filter((o: any) => day - o.day <= 10 && day < DAY.TRADE_DEADLINE && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
     let notices = patch.notices ?? s.notices;
+    // A pop-up for an offer that has since lapsed (several days simmed at once) isn't shown; it stays in the Mailbox, marked expired.
+    if ((notices || []).some((n: any) => n.offerId && !inOffers.some((o: any) => o.id === n.offerId))) notices = notices.filter((n: any) => !n.offerId || inOffers.some((o: any) => o.id === n.offerId));
     let offerPast: string[] = s.offerPast || []; const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
     if (!s.spectator && day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
       const st2 = { ...s, rosters: box.rosters, cap: box.cap, assets: box.assets }; let x: any = null;
