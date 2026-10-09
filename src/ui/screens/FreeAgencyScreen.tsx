@@ -99,7 +99,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
       </div>
       <div className="card" style={{ padding: '10px 12px', margin: '0 0 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button className={F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: true })} title="Hide players you can’t sign right now: no cap room or exception that fits, roster full, hard cap, two-way limit…">Players you can sign now · {nCan}</button>
+          <button className={F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: true })} title="Only players you can sign right now: your cap room, an exception or his Bird rights reaches what he asks of you, and he’d sign on those terms (roster spots, hard caps and the two-way limit count too)">Players you can sign now · {nCan}</button>
           <button className={!F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: false })}>Show every player in free agency · {all.length}</button>
           <span style={{ flex: 1 }} />
           <button className={adv ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px', background: adv ? 'color-mix(in srgb, var(--color-accent) 22%, transparent)' : undefined }} onClick={toggleAsk} aria-pressed={!!adv} title={adv ? 'Turn off the assistant GM’s picks' : 'Ask your assistant GM who to sign for the season'}>{adv ? '✓ Assistant GM’s picks · turn off' : 'Ask the assistant GM'}</button>

@@ -6,13 +6,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
-import { answerOfferSheet } from '../../engine/cbaFlow';
+import { answerAgentCall, answerOfferSheet, callFits } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 
-type Kind = 'trade' | 'owner' | 'sheet' | 'shortlist' | 'retire' | 'update';
+type Kind = 'agent' | 'trade' | 'owner' | 'sheet' | 'shortlist' | 'retire' | 'update';
 interface Item { key: string; kind: Kind; ms: number; date: string; title: ReactNode; lines: ReactNode[]; pids?: number[]; actions?: { label: string; go: () => void; primary?: boolean }[]; status?: [string, string]; isNew?: boolean }
-const KINDS: [Kind | 'all', string][] = [['all', 'Everything'], ['trade', 'Trade offers'], ['owner', 'Owner'], ['sheet', 'Offer sheets'], ['shortlist', 'Shortlist moves'], ['retire', 'Retirements'], ['update', 'Other updates']];
-const TAG: Record<Kind, string> = { trade: 'Trade offer', owner: 'Owner', sheet: 'Offer sheet', shortlist: 'Shortlist', retire: 'Retirement', update: 'Update' };
+const KINDS: [Kind | 'all', string][] = [['all', 'Everything'], ['agent', 'Agent calls'], ['trade', 'Trade offers'], ['owner', 'Owner'], ['sheet', 'Offer sheets'], ['shortlist', 'Shortlist moves'], ['retire', 'Retirements'], ['update', 'Other updates']];
+const TAG: Record<Kind, string> = { agent: 'Agent call', trade: 'Trade offer', owner: 'Owner', sheet: 'Offer sheet', shortlist: 'Shortlist', retire: 'Retirement', update: 'Update' };
 const when = (d: string, season: number) => { const t = Date.parse(d); return isFinite(t) ? t : Date.parse('Jul 1, ' + season); };
 
 export function MailboxScreen({ vm }: { vm: VM }) {
@@ -24,6 +24,13 @@ export function MailboxScreen({ vm }: { vm: VM }) {
 
   // Pop-ups, archived.
   for (const m of s.mail || []) {
+    if (m.callId) { // an agent's last call on one of your free agents: answer it here while it's open
+      const c = (s.agentCalls || []).find((x: any) => x.id === m.callId), p = c ? P[c.pid] : null;
+      items.push({ key: 'm' + m.id, kind: 'agent', ms: when(m.date, m.season), date: m.date, title: m.title, lines: m.lines || [], pids: m.pids, isNew: (m.seq || 0) > readTo || !!c,
+        status: c ? ['Waiting on you', 'var(--accent-ink)'] : ['Answered', 'var(--color-neutral-600)'],
+        actions: c && p ? [{ label: 'Keep him: ' + fmtMoney(c.ask.amt) + ' × ' + c.ask.years + (callFits(gm, s, c) ? '' : ' (doesn’t fit your cap)'), primary: true, go: () => answerAgentCall(gm, c.id, true) }, { label: 'Let him go', go: () => answerAgentCall(gm, c.id, false) }] : [] });
+      continue;
+    }
     const live = m.offerId ? vm.inOffersV.has(m.offerId) : false;
     items.push({ key: 'm' + m.id, kind: m.offerId ? 'trade' : 'update', ms: when(m.date, m.season), date: m.date, title: m.title, lines: m.lines || [], pids: m.pids, isNew: (m.seq || 0) > readTo,
       ...(m.offerId ? { status: live ? ['On the table', 'var(--gm-good)'] as [string, string] : ['No longer on the table', 'var(--color-neutral-600)'] as [string, string], actions: live ? [{ label: 'View trade offer', go: () => vm.inOffersV.openId(m.offerId), primary: true }] : [] } : {}) });
@@ -62,6 +69,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
         {KINDS.map(([k, label]) => <button key={k} className={kind === k ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setKind(k)}>{label} · {count(k)}</button>)}
       </div>
+      {!!s.offerMsg && <p style={{ color: 'var(--gm-bad)', margin: '0 0 10px' }}>{s.offerMsg}</p>}
       {!shown.length && <p style={{ ...muted, fontStyle: 'italic' }}>Nothing here yet.</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {shown.slice(0, 200).map(x => (
@@ -73,7 +81,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
             </div>
             <div style={{ fontWeight: 600 }}>{x.title}</div>
             {x.lines.length > 0 && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{x.lines.map((l, i) => <div key={i}>{l}</div>)}</div>}
-            {(x.kind === 'trade' || x.kind === 'update') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
+            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
             {!!x.actions?.length && <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>{x.actions.map(a => <button key={a.label} className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '3px 10px' }} onClick={a.go}>{a.label}</button>)}</div>}
           </div>))}
       </div>

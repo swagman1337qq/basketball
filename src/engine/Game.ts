@@ -20,7 +20,7 @@ import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
+import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, retiredNums } from './jerseys';
@@ -1122,16 +1122,16 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'fa') return null;
       const fd0 = this.faDayOf(s), n = Math.max(0, Math.min(days, Game.FA_END - fd0)); if (!n) return null;
-      const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice(), sheets0 = offerSheets.length;
+      const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice(), sheets0 = offerSheets.length, calls = (s.agentCalls || []).slice(), calls0 = calls.length;
       let done = 0;
       // Players you're watching: ones who turned down your offer, and your own free agents.
       const P = this.db.P, watch = box.fa.filter(id => s.offered?.[id] || (P[id].birdTid != null && this.isUser(s, P[id].birdTid)));
       for (let d = 0; d < n; d++) { const fd = fd0 + d, pace = Game.faPace(fd), moves = Math.floor(pace) + (Math.random() < pace % 1 ? 1 : 0), st = { ...s, day: s.day + d };
-        aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99); easyFreeAgency(this, st, box, lgLog); done++;
+        aiFreeAgencyDay(this, st, box, lgLog, offerSheets, moves, fd < 3 ? .94 : fd < 7 ? .96 : fd <= 20 ? .98 : .99, calls); easyFreeAgency(this, st, box, lgLog); done++;
         // The summer trade market (tradeLogic.ts): AI teams deal for a reason here too.
         if (Math.random() < 0.3) { const bx: any = box; bx.assets = bx.assets || s.assets; const st3 = { ...st, rosters: box.rosters, cap: box.cap, assets: bx.assets }; for (let i = 0; i < 4; i++) { const x = aiTradeIdea(this, st3); if (x) { lgLog.unshift(this.execTrade(st3, bx, x, st.day)); break; } } }
         if (fd === 10) lgLog.unshift(...aiExtensions(this, { ...st, rosters: box.rosters, cap: box.cap }, 0.45)); // July: the first extension window
-        if (offerSheets.length > sheets0 && !s.easy?.cap) break; } // stop the clock: one of your restricted free agents got an offer sheet
+        if ((offerSheets.length > sheets0 && !s.easy?.cap) || calls.length > calls0) break; } // stop the clock: an offer sheet for one of your restricted free agents, or an agent's call about one of your own
       // Easy mode answers offer sheets for your restricted free agents.
       const easyLines: string[] = [];
       if (s.easy?.cap) for (const o of offerSheets.slice()) { if (!this.isUser(s, o.to)) continue; const m = easyMatch(this, { ...s, rosters: box.rosters, cap: box.cap }, o), p = this.db.P[o.pid];
@@ -1139,22 +1139,23 @@ export class Game {
         if (o.to === s.me) easyLines.push(m ? 'Your assistant matched the ' + s.teams[o.from].abbr + ' offer sheet for ' + p.name + ' (' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + '): he stays.' : 'Your assistant declined to match the ' + s.teams[o.from].abbr + ' offer sheet for ' + p.name + ': he signed there (' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + ').'); }
       let notices = s.notices; const T = s.teams, lines: string[] = [], pids: number[] = [];
       watch.forEach(id => { if (box.fa.includes(id)) return; const t = this.tidOf(box.rosters, id); if (t < 0 || this.isUser(s, t)) return; const p = P[id], o = s.offered?.[id];
-        lines.push(p.name + (o ? ', who turned down your offer (' + fmtMoney(o.amt) + ' × ' + o.years + '),' : ', your free agent,') + ' signed with the ' + T[t].region + ' ' + T[t].name + ': ' + contractLine(this, p) + '.'); pids.push(id); });
+        lines.push(o ? p.name + ', who turned down your offer (' + fmtMoney(o.amt) + ' × ' + o.years + '), signed with the ' + T[t].region + ' ' + T[t].name + ': ' + contractLine(this, p) + '.' : p.name + '’s agent: “He’s moving on. He signed with the ' + T[t].region + ' ' + T[t].name + ': ' + contractLine(this, p) + '.”'); pids.push(id); });
       if (easyLines.length) notices = addNotice({ notices }, { tone: 'info', title: 'Offer sheets answered (easy mode)', lines: easyLines });
       if (lines.length) notices = addNotice({ notices }, { tone: 'bad', title: lines.length === 1 ? 'Signed elsewhere' : lines.length + ' players signed elsewhere', lines, pids });
       offerSheets.slice(sheets0).forEach(o => { if (o.to !== s.me) return; const p = P[o.pid]; notices = addNotice({ notices }, { tone: 'info', title: 'Offer sheet for ' + p.name, lines: ['The ' + T[o.from].region + ' ' + T[o.from].name + ' signed your restricted free agent ' + p.name + ' to an offer sheet: ' + fmtMoney(o.terms.amt) + ' × ' + o.terms.years + '.', 'Match it to keep him, or decline and he goes there. Answer on the Cap sheet; free agency is paused until you do.'], pids: [o.pid] }); });
       if (fd0 < 6 && fd0 + done >= 6 && (s.extPlan || []).length) { const xs = s.extPlan.filter(id => (box.rosters[s.me] || []).includes(id)).map(id => P[id]); if (xs.length) notices = addNotice({ notices }, { tone: 'info', title: 'The extension window is open', lines: ['It’s July 6: you planned to extend ' + xs.map(p => p.name).join(', ') + '. Open each player’s Contract tab to make an offer.'], pids: xs.map(p => p.id) }); }
       this.healIdle({ ...s, ...box, day: s.day + done }); // unsigned players heal over the summer
-      return { ...box, notices, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, day: s.day + done, faPrev: s.day };
+      calls.slice(calls0).forEach(c => { notices = addNotice({ notices }, agentCallNotice(this, s, c)); });
+      return { ...box, notices, lgLog: this.stampFA(s, lgLog, s.lgLog.length), offerSheets, agentCalls: calls, day: s.day + done, faPrev: s.day };
     });
     offseasonMandates(this); // the owner's payroll order follows your payroll through the summer
   }
   startPreseason() {
     // Training camp: play out what's left of free agency first (stops if one of your restricted
     // free agents gets an offer sheet you need to answer).
-    if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
+    if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length && !(this.state.agentCalls || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
     this.setState(s => {
-      if (s.phase !== 'fa' || (s.offerSheets || []).length) return null;
+      if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];

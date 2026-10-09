@@ -21,7 +21,7 @@ export function enterSpectator(g: Game) {
     const had = (s.managed || []).map((t: number) => s.teams[t].abbr).join(' · ');
     return {
       spectator: true, managed: [], clubs: {}, clubArchive: archive, rosters, notices: [], dialog: null, letterOpen: null, letterUnread: null, gmOffer: null, unemployed: false,
-      inOffers: [], offers: null, offerSheets: [], decide: {}, extPlan: [], offered: {}, gmSetup: false, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null, screen: 'dash', modal: false, teamModal: null, boxId: null,
+      inOffers: [], offers: null, offerSheets: [], agentCalls: [], decide: {}, extPlan: [], offered: {}, gmSetup: false, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null, screen: 'dash', modal: false, teamModal: null, boxId: null,
       lgLog: [{ day: s.day, type: 'Career', teams: had, text: 'Spectator Mode: the AI runs every team' + (had && s.gm ? ' (' + s.gm.name + ' stepped away from the ' + had + ')' : '') }, ...(s.lgLog || [])],
     };
   });

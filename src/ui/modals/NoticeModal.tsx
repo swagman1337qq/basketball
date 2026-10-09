@@ -3,6 +3,8 @@
 // the offer). Queued in s.notices; one popup shows them all.
 import type { VM } from '../vm';
 import { Kicker, Link, muted } from '../kit';
+import { answerAgentCall } from '../../engine/cbaFlow';
+import { fmtMoney } from '../../engine/capModel';
 
 const TONE: Record<string, [string, string]> = { good: ['var(--gm-good)', '✓'], bad: ['var(--gm-bad)', '✗'], info: ['var(--color-accent-700)', '•'] };
 
@@ -21,6 +23,10 @@ export function NoticeModal({ vm }: { vm: VM }) {
             {n.offerId && (vm.inOffersV.has(n.offerId)
               ? <button className="btn btn-primary" onClick={() => vm.inOffersV.openId(n.offerId)} style={{ marginTop: 8, fontSize: '12.5px' }}>View Trade Offer</button>
               : <div style={{ ...muted, fontSize: '12px', marginTop: 6, fontStyle: 'italic' }}>This offer is off the table now.</div>)}
+            {n.callId && (() => { const c = (s.agentCalls || []).find((x: any) => x.id === n.callId); return c
+              ? <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}><button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => answerAgentCall(gm, c.id, true)}>Keep him: {fmtMoney(c.ask.amt)} × {c.ask.years}</button><button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => answerAgentCall(gm, c.id, false)}>Let him go</button></div>
+              : <div style={{ ...muted, fontSize: '12px', marginTop: 6, fontStyle: 'italic' }}>Answered.</div>; })()}
+            {!!s.offerMsg && n.callId && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', marginTop: 4 }}>{s.offerMsg}</div>}
             {(n.pids || []).filter((id: number) => P[id] && !P[id].gone).length > 0 && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4, fontSize: '12px' }}>
               <span style={muted}>Profile:</span>{n.pids.filter((id: number) => P[id] && !P[id].gone).map((id: number) => <Link key={id} onClick={() => { close(); open(id); }} style={{ textDecoration: 'underline' }}>{P[id].name}</Link>)}
             </div>}

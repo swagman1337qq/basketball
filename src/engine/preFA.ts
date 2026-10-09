@@ -11,7 +11,7 @@ import { BIRD_LABEL, birdOf, capHold, extWindow, qoEligible, qoFor } from './cba
 import { fmtMoney as money } from './capModel';
 
 // ── Notices: the popup that tells you how a move turned out ──────────────────────
-export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string } // offerId: an AI team's trade offer (s.inOffers)
+export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string; callId?: string } // offerId: an AI team's trade offer (s.inOffers); callId: an agent's last call on your free agent (s.agentCalls)
 let seq = 0;
 // Spectator Mode: nothing stops to tell you anything (the notices would be about a team you don't run).
 export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { if (s.spectator) return s.notices || []; return [...(s.notices || []), { ...n, id: 'n' + Date.now() + '-' + seq++ }].slice(-30); }

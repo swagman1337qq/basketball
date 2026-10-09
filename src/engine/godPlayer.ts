@@ -39,7 +39,7 @@ export function deletePlayer(g: Game, pid: number): boolean {
     return {
       ...club(s), clubs: Object.fromEntries(Object.entries(s.clubs || {}).map(([k, c]) => [k, club(c)])),
       rosters: Object.fromEntries(Object.entries(s.rosters).map(([k, v]) => [k, drop(v)])), fa: drop(s.fa), overseas: drop(s.overseas || []),
-      inOffers: (s.inOffers || []).filter((o: any) => !has(o)), offers, offered, offerSheets: (s.offerSheets || []).filter((o: any) => o.pid !== pid),
+      inOffers: (s.inOffers || []).filter((o: any) => !has(o)), offers, offered, offerSheets: (s.offerSheets || []).filter((o: any) => o.pid !== pid), agentCalls: (s.agentCalls || []).filter((o: any) => o.pid !== pid),
       tMine: drop(s.tMine), tTheirs: drop(s.tTheirs), lists: (s.lists || []).map((l: any) => ({ ...l, ids: drop(l.ids) })),
       notices: (s.notices || []).map((n: any) => (n.pids?.includes(pid) ? { ...n, pids: drop(n.pids) } : n)),
       hof: (s.hof || []).filter((h: any) => h.pid !== pid),

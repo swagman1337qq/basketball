@@ -120,6 +120,72 @@ export function answerOfferSheet(g: Game, id: string, match: boolean) {
   });
 }
 
+// ── Agent calls ────────────────────────────────────────────────────────────────────
+// Your own unrestricted free agents (you hold his Bird rights): before one signs with another team, his
+// agent calls you with the offer and what it would take to keep him. How much he wants to stay
+// (stayWith): his mood, loyalty, how your team did, the role he'd have, your market for a fame-seeker, an
+// offer of yours he turned down. Keen to stay: match the offer and he's yours. Lukewarm: it costs more,
+// and the years bend to what he cares about (money, a ring, security, a long deal while he's young).
+// Done with you: no call, he just signs (and the agent lets you know).
+export function stayWith(g: Game, s: any, tid: number, p: any): { x: number; why: string[] } {
+  const T = s.teams[tid], mot = p.pers?.mot, why: string[] = [], wp = g.pct(T);
+  let x = p.mood === 'Eager' ? 0.35 : p.mood === 'Reluctant' ? -0.3 : 0;
+  if (p.mood === 'Eager') why.push('He enjoyed his time with you.'); else if (p.mood === 'Reluctant') why.push('He wasn’t happy with you last season.');
+  if (mot === 'Loyalty') { x += 0.35; why.push('Loyalty matters to him.'); }
+  x += ((p.pers?.loyalty ?? 50) - 50) / 200 + Math.min(0.2, (p.yrsWith || 0) * 0.05);
+  const w = (wp - 0.5) * (mot === 'Winning' ? 1.4 : 0.5); x += w;
+  if (mot === 'Winning') why.push(wp >= 0.55 ? 'He wants to win, and you did (' + T.w + '–' + T.l + ').' : 'He wants to win, and your ' + T.w + '–' + T.l + ' season worries him.');
+  const P = g.db.P, rank = (s.rosters[tid] || []).filter((id: number) => P[id]).map((id: number) => P[id].ovr).filter((o: number) => o > p.ovr).length;
+  if (mot === 'Playing time') { const r = rank < 5 ? 0.25 : rank > 8 ? -0.3 : 0; x += r; why.push(rank < 5 ? 'He’d be a starter with you, which is what he wants.' : rank > 8 ? 'He wants minutes, and he wouldn’t get many with you.' : 'He’d be in your rotation.'); }
+  if (mot === 'Fame') { x += (T.mkt - 1) * 0.6; why.push(T.mkt >= 1.1 ? 'He likes your big market.' : 'He wants a bigger stage than yours.'); }
+  if (mot === 'Money') why.push('Money is what he cares about most.');
+  if (s.offered?.[p.id]) { x -= 0.15; why.push('He already turned down an offer from you.'); }
+  if (p.pers?.volatile) x -= 0.05;
+  return { x: Math.max(-1, Math.min(1, x)), why };
+}
+export function agentCall(g: Game, s: any, tid: number, from: number, p: any, terms: Terms) {
+  const { x, why } = stayWith(g, s, tid, p); if (x < -0.3) return null; // he's done with you
+  const N = nums(g), yos = yosOf(g, p), mot = p.pers?.mot;
+  let mult = x >= 0.35 ? 1 : x >= 0 ? 1.06 + (0.35 - x) * 0.3 : 1.17 + -x * 0.45, years = terms.years, how = '';
+  if (x < 0.35) {
+    if (mot === 'Money') { mult += 0.07; how = 'He wants to be paid: more money a year.'; }
+    else if (mot === 'Winning' && p.age >= 30) { years = Math.max(1, years - 1); mult += 0.03; how = 'He wants a shorter deal, so he can chase a ring elsewhere if this doesn’t work.'; }
+    else if (p.age >= 31) { years = Math.min(5, years + 1); how = 'At his age he wants security: an extra year.'; }
+    else if (p.age <= 25) { years = Math.min(5, years + 1); mult -= 0.03; how = 'He’d take a little less a year for a longer deal.'; }
+    else how = 'It’ll cost you more than their offer.';
+  }
+  const amt = +Math.max(N.min(yos), Math.min(N.max(yos), terms.amt * mult)).toFixed(2);
+  return { id: 'ac' + p.id + '-' + g.Y + '-' + s.day, pid: p.id, from, to: tid, day: s.day, terms: { ...terms }, ask: { amt, years }, stance: x >= 0.35 ? 'match' : x >= 0 ? 'more' : 'much', why: [...why, ...(how ? [how] : [])] };
+}
+// The agent's email, for the pop-up and the Mailbox.
+export function agentCallNotice(g: Game, s: any, c: any) {
+  const p = g.db.P[c.pid], T = s.teams, F = T[c.from], same = c.ask.amt === c.terms.amt && c.ask.years === c.terms.years;
+  const lead = c.stance === 'match' ? 'He’d rather stay with you: match it and he re-signs.' : c.stance === 'more' ? 'He’s open to coming back, but it’ll take a better deal.' : 'He’s leaning toward leaving. Only a clearly better deal keeps him.';
+  return { tone: 'info' as const, title: 'From ' + p.name + '’s agent: an offer from the ' + F.region + ' ' + F.name, callId: c.id, pids: [p.id],
+    lines: ['The ' + F.region + ' ' + F.name + ' offered ' + p.name + ' ' + money(c.terms.amt) + ' a year for ' + c.terms.years + ' year' + (c.terms.years === 1 ? '' : 's') + '. Before he signs: ' + lead, ...c.why,
+      'To keep him: ' + money(c.ask.amt) + ' × ' + c.ask.years + ' year' + (c.ask.years === 1 ? '' : 's') + (same ? ' (their offer, matched).' : '.'), 'Answer in the Mailbox, or here. Free agency waits for your answer.'] };
+}
+// The best way you can pay him: his Bird rights first, then room or an exception.
+function callMethod(g: Game, s: any, c: any, p: any): { t?: Terms; why?: string } {
+  const st = { ...s, fa: s.fa.includes(p.id) ? s.fa : [...s.fa, p.id] }; let why = '';
+  for (const method of ['bird', 'cap', 'room', 'ntmle', 'tpmle', 'bae', 'min']) { const t: Terms = { method, amt: c.ask.amt, years: c.ask.years }, v = validateSigning(g, st, c.to, p, t); if (v.ok) return { t }; if (method === 'bird') why = v.why || ''; }
+  return { why: why || 'No way to fit his salary.' };
+}
+export const callFits = (g: Game, s: any, c: any) => !callMethod(g, s, c, g.db.P[c.pid]).why || !!s.god;
+export function answerAgentCall(g: Game, id: string, keep: boolean) {
+  g.setState(s => {
+    const c = (s.agentCalls || []).find((x: any) => x.id === id); if (!c) return null;
+    const P = g.db.P, p = P[c.pid], T = s.teams, box = boxOf(s), F = T[c.from];
+    let tid = c.from, t: Terms = c.terms;
+    if (keep) { const m = callMethod(g, s, c, p); if (!m.t && !s.god) return { offerMsg: 'You can’t re-sign ' + p.name + ' on those terms: ' + m.why }; tid = c.to; t = m.t || { method: 'bird', amt: c.ask.amt, years: c.ask.years }; }
+    const line = applySigning(g, { ...s, rosters: box.rosters, cap: box.cap }, box, tid, p, t);
+    const notices = addNotice(s, keep ? { tone: 'good', title: 'Re-signed: ' + p.name + ' stays', lines: ['You kept him over the offer from the ' + F.region + ' ' + F.name + ': ' + money(t.amt) + ' × ' + t.years + '.'], pids: [p.id] }
+      : { tone: 'info', title: p.name + ' signed with the ' + F.region + ' ' + F.name, lines: ['His agent: “Thanks for the call. He’s taking their offer: ' + money(c.terms.amt) + ' × ' + c.terms.years + '.”'], pids: [p.id] });
+    return { ...unbox(box), notices, agentCalls: s.agentCalls.filter((x: any) => x.id !== id), offerMsg: null, lgLog: [{ day: s.day, type: 'Signing', teams: T[tid].abbr, pids: [p.id], text: line + (keep ? ' (kept him over ' + F.abbr + '’s offer)' : '') }, ...s.lgLog],
+      ...clubLogs(g, s, { [c.to]: [keep ? 'Re-signed ' + p.name + ' over ' + F.abbr + '’s offer' : 'Let ' + p.name + ' sign with ' + F.abbr] }) };
+  });
+}
+
 // ── Releases ────────────────────────────────────────────────────────────────────
 // How much of what he's owed a player will give back in a buyout: veterans who want to
 // join a contender give more; young players and stars give little.
@@ -262,7 +328,7 @@ export function openFreeAgency(g: Game, s: any) {
 }
 
 // ── AI free agency, one day at a time ─────────────────────────────────────────────
-export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12, decay = 0.97) {
+export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12, decay = 0.97, calls?: any[]) {
   const P = g.db.P, N = nums(g), T = s.teams;
   // Unsigned players lower their asks as the market dries up.
   box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, (p.ask || minS) * decay).toFixed(2); });
@@ -282,6 +348,11 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
         const orig = p.rfa.tid, sheet = { ...terms, method: terms.method };
         if (g.isUser(s, orig)) { offerSheets.push({ id: 'os' + id + '-' + s.day + '-' + k, pid: id, from: t, to: orig, terms: sheet, day: s.day }); box.fa.splice(box.fa.indexOf(id), 1); lgLog.unshift({ day: s.day, type: 'Signing', teams: T[t].abbr + ' · ' + T[orig].abbr, pids: [id], text: T[t].region + ' ' + T[t].name + ' signed restricted free agent ' + p.name + ' to an offer sheet ($' + terms.amt.toFixed(2) + 'M × ' + terms.years + '). ' + T[orig].abbr + ' can match.' }); break; }
         if (aiMatches(g, st, orig, p, sheet)) { lgLog.unshift({ day: s.day, type: 'Signing', teams: T[orig].abbr, pids: [id], text: applySigning(g, st, box, orig, p, { ...sheet, method: 'bird' }) + ' (matched ' + T[t].abbr + '’s offer sheet)' }); break; }
+      }
+      // Your own unrestricted free agent: before he signs elsewhere his agent gives you a last call (agentCall).
+      if (calls && !p.rfa && p.birdTid != null && p.birdTid !== t && g.isUser(s, p.birdTid) && !s.easy?.fa && p.called !== g.Y) {
+        p.called = g.Y; const c = agentCall(g, st, p.birdTid, t, p, terms);
+        if (c) { calls.push(c); box.fa.splice(box.fa.indexOf(id), 1); break; } // he waits for your answer
       }
       lgLog.unshift({ day: s.day, type: 'Signing', teams: T[t].abbr, pids: [id], text: applySigning(g, st, box, t, p, terms) });
       break;
