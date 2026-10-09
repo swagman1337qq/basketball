@@ -1,10 +1,15 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-Cc-fkBFl.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-C8-8D8Rr.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-09
 
 ### Added
+- **Agents call before your free agents sign elsewhere.** When another team is about to sign one of your own unrestricted free agents, his agent sends you an email (pop-up and Mailbox) with their offer and what it would take to keep him. Free agency waits for your answer.
+  - **He wants to stay** (happy with you, loyal, a winner you're keeping, a big role for him): match their offer and he's yours.
+  - **He's lukewarm**: it costs more, shaped by what he cares about. Money players want more a year, veterans chasing a ring want fewer years, older players want an extra year of security, and young players take a bit less a year for a longer deal.
+  - **He's done with you**: no call. He signs elsewhere and his agent lets you know.
+  - Keep him (his Bird rights let you go over the cap, within the aprons) or let him go, from the email or the Mailbox's new **Agent calls** filter.
 - **Mailbox** (Management menu). Everything that crosses your desk, newest first, so nothing is lost when you sim several days at once:
   - **Trade offers**, each marked as still on the table (with a View trade offer button) or not.
   - Your **owner's year-end letters** (read them again any time).
@@ -15,6 +20,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The menu tab shows how many are new.
 
 ### Fixed
+- **"Players you can sign now" in free agency really means it.** It now lists only players you can afford and who'd sign with you: your cap room, an exception or his Bird rights reaches what he asks of your team, on terms he'd accept. For everyone else the list says what he asks and the most you can offer.
 - **No more pop-ups for trade offers that have already expired.** Sim several days (say, to the trade deadline) and an offer could lapse before its pop-up showed. Those now go straight to the Mailbox, marked as no longer on the table.
 
 ## 2026-10-08
