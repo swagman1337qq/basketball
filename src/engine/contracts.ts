@@ -21,6 +21,7 @@ export function prefYears(p: any) {
 // no-trade clauses sweeten a deal, years far from what he wants sour it.
 export function acceptance(g: Game, s: any, tid: number, p: any, t: Terms) {
   const N = nums(g), yos = yosOf(g, p), minS = N.min(yos);
+  if (p.noResign?.tid === tid && p.noResign.season === g.Y) return { ok: false, ask: p.ask || minS, why: 'He asked for a trade and you kept him: he won’t re-sign with you.' }; // tradeRequests.ts
   const askBase = s.me === tid ? g.askFor(p, s) : p.ask || minS;
   if (['twoWay', 'ex10', 'tenDay', 'hardship'].includes(t.method)) return { ok: p.ovr < 52 || askBase <= minS * 1.3, ask: minS, why: p.ovr >= 52 ? 'He expects a real NBA contract.' : '' };
   const pref = prefYears(p), yrGap = Math.abs(t.years - pref);

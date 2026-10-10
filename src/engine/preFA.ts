@@ -11,7 +11,7 @@ import { BIRD_LABEL, birdOf, capHold, extWindow, qoEligible, qoFor } from './cba
 import { fmtMoney as money } from './capModel';
 
 // ── Notices: the popup that tells you how a move turned out ──────────────────────
-export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string; callId?: string } // offerId: an AI team's trade offer (s.inOffers); callId: an agent's last call on your free agent (s.agentCalls)
+export interface Notice { id: string; tone: 'good' | 'bad' | 'info'; title: string; lines: string[]; pids?: number[]; offerId?: string; callId?: string; reqPid?: number } // offerId: an AI team's trade offer (s.inOffers); callId: an agent's last call on your free agent (s.agentCalls); reqPid: a player's trade request (p.treq)
 let seq = 0;
 // Spectator Mode: nothing stops to tell you anything (the notices would be about a team you don't run).
 export function addNotice(s: any, n: Omit<Notice, 'id'>): Notice[] { if (s.spectator) return s.notices || []; return [...(s.notices || []), { ...n, id: 'n' + Date.now() + '-' + seq++ }].slice(-30); }
@@ -60,6 +60,7 @@ export function preFARows(g: Game, s: any, tid: number): PreRow[] {
       const bird = birdOf({ ...p, birdTid: tid }, tid), hold = capHold(g, s, { ...p, birdTid: tid, prevAmt: p.amt, ...(qoOk ? { rfa: { tid, qo } } : {}) });
       const two = p.ctype === 'twoWay', canNow = xw.ok && !two, worth = g.fair(p.ovr), keep = worth >= p.amt * 0.8 || p.ovr >= 55;
       if (ext) { out.push({ pid: id, kind: 'expiring', head: 'Re-signed', detail: ext.yrs + ' years from ' + money(ext.amt) + ' (8% raises), starting ' + yl(Y + 1) + '.', status: 'Re-signed', choices: [], decided: true, required: true }); return; }
+      if (p.noResign?.tid === tid && p.noResign.season === Y) { out.push({ pid: id, kind: 'expiring', head: 'Contract expires June 30 · ' + money(p.amt) + ' this season', detail: 'He asked for a trade and you kept him: he won’t re-sign with you. He becomes an unrestricted free agent and his cap hold comes off your books.', status: 'Leaving', choices: [], decided: true, required: true }); return; }
       const q = dec['qo' + id], re = dec['re' + id], let_ = dec['let' + id];
       const choices: Choice[] = [];
       if (canNow) choices.push({ k: 'resignNow', label: 'Re-sign now', on: false, rec: keep && !qoOk, title: 'Open his Contract tab and negotiate an extension now (before he hits the market)' });

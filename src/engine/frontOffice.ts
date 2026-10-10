@@ -233,6 +233,7 @@ function contractOptions(s: any, tid: number, rep: number) {
 
 // ── Season-end review: incentives, owner verdicts, career record, job market ───────
 export function seasonReview(g: Game) {
+  if (g.mailWaiting()) return;
   g.setState(s => {
     if (s.phase !== 'playoffs' || !s.po || s.po.champ == null || s.reviewed === g.Y) return null;
     const P = g.db.P, T = s.teams, Y = g.Y, news = (s.news || []).slice(), lgLog = s.lgLog.slice();

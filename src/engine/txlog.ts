@@ -5,7 +5,7 @@
 // Lives in the database (with the players), so it's saved with the league.
 import type { Game } from './Game';
 
-export interface Tx { k: 'draft' | 'sign' | 'waive' | 'trade' | 'expansion' | 'retire' | 'abroad' | 'extend' | 'god'; season: number; date: string; tid?: number; from?: number; to?: number; trade?: number; n?: number; rd?: number; orig?: number; text?: string }
+export interface Tx { k: 'draft' | 'sign' | 'waive' | 'trade' | 'expansion' | 'retire' | 'abroad' | 'extend' | 'request' | 'god'; season: number; date: string; tid?: number; from?: number; to?: number; trade?: number; n?: number; rd?: number; orig?: number; text?: string }
 export interface Trade { id: number; season: number; date: string; a: number; b: number; aP: number[]; bP: number[]; aK: string[]; bK: string[]; note?: string }
 
 export const dateOf = (g: Game, s: any) => {

@@ -2,6 +2,28 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-10
+
+### Added
+- **Players can ask for a trade.** It only happens when a player is really unhappy (his mood is low), mostly because of one thing that matters to him:
+  - **A winner after years of losing.** A player who cares about winning, after four straight losing seasons with you (three for a veteran or a legacy-chaser), asks to go to one of the best teams.
+  - **A player stuck in a small role.** A playing-time player who's on the bench, or a player who wants to be the first option or wants the ball, asks to go where he'd start or be a top option.
+  - **A money player who feels underpaid** asks to go to the teams with the most cap room.
+  - **A fame-seeker in a small market** asks to go to a bigger city.
+  - **No extension in his contract year.** He names his price: extend him at it (his Contract tab), or he walks in free agency.
+  - He only names teams that would actually want him.
+  - The request lands in your Mailbox, with buttons to shop him to those teams.
+  - **If you keep him past the trade deadline** (for an extension demand, past the end of the regular season), his mood drops hard for this season and next. If his contract is expiring, he won't re-sign with you: no extension, no re-signing in free agency, no agent call.
+  - One request per player per season.
+- **Two new mood factors.**
+  - **Years of losing** wears on players, most of all on those who care about winning.
+  - **No extension offered** weighs more on a player as his contract year goes on.
+
+### Changed
+- **No more pop-ups.** Everything that used to pop up now goes straight to your Mailbox: trade offers, signings, agent calls, offer outcomes and the rest.
+- **You have to read your mail before the game moves on.** New mail, or an unread owner letter, pauses the game. The sim buttons become "Open your Mailbox (N new)" until you've opened it.
+- **Sims stop when mail arrives.** A multi-day sim stops as soon as something lands in your Mailbox, so trade offers no longer expire while you sim.
+
 ## 2026-10-09
 
 ### Added

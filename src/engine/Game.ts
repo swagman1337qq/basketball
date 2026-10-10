@@ -52,6 +52,7 @@ import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, o
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
+import { losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -182,6 +183,7 @@ export class Game {
     const g = new Game();
     g.db = { ...data.db, C: countries() };
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
+    if (g.state.notices?.length) { const n = g.state.notices; g.state.notices = []; g.setState({ notices: n }); } // pop-ups from older saves go to the Mailbox
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};
     // Teams renamed in 2026 to fit their cities: saves that kept the old default nicknames update.
@@ -323,12 +325,13 @@ export class Game {
     if (patch) {
       const prevNotices = this.state.notices;
       this.state = { ...this.state, ...patch };
-      // Every pop-up also goes to the Mailbox (s.mail, newest first, the last 250), dated and numbered so
-      // the Mailbox tab can count what's new.
+      // Nothing pops up: every notice goes straight to the Mailbox (s.mail, newest first, the last 250),
+      // dated and numbered so the Mailbox tab can count what's new; unread mail holds the game (mailWaiting).
       if (patch.notices && patch.notices !== prevNotices && patch.notices.length && !this.state.spectator) {
         const mail: any[] = this.state.mail || [], seen = new Set(mail.map((m: any) => m.id)), add = patch.notices.filter((n: any) => !seen.has(n.id));
         if (add.length) { let seq = this.state.mailSeq || 0; const date = txDate(this, this.state);
           this.state.mail = [...add.map((n: any) => ({ ...n, season: this.Y, date, seq: ++seq })).reverse(), ...mail].slice(0, 250); this.state.mailSeq = seq; }
+        this.state.notices = [];
       }
       if (patch.rosters && this.db?.P) { const prev = this._rosterRef || {}, ch = Object.keys(patch.rosters).map(Number).filter(t => patch.rosters[t] !== prev[t]); assignNumbers(this.db.P, patch.rosters, ch, retiredNums(this.state.teams)); this._rosterRef = patch.rosters; }
       this.version++;
@@ -340,6 +343,9 @@ export class Game {
     if (cb) cb();
   }
   private quiet = false; private lastEmit = 0; private pendingEmit = false;
+  // Mail you haven't read (new Mailbox items, an unopened owner letter) holds the game: no sims, no next
+  // phase, until you open the Mailbox. Not in Spectator Mode.
+  mailWaiting(s = this.state): number { return s.spectator ? 0 : Math.max(0, (s.mailSeq || 0) - (s.mailRead || 0)) + (s.letterUnread ? 1 : 0); }
   private stopReq = false;
   stopSim() { this.stopReq = true; this.specStop = true; }
   // Spectator Mode (spectator.ts): the AI runs every team; the driver runs the season toward a goal.
@@ -922,6 +928,7 @@ export class Game {
   // winner B for the 8 seed. Then four best-of-7 rounds, East and West separately, with
   // the conference champions meeting in the Finals. Home court: 2-2-1-1-1 to the higher seed.
   startPlayin() {
+    if (this.mailWaiting()) return;
     this.setState(s => {
       if (s.phase !== 'regular' || this.gamesPlayed(s) < 82) return null;
       ccpPlay(this, s, 999); // the CCP finishes its season (playoffs in early April)
@@ -957,7 +964,7 @@ export class Game {
     return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind, bid } };
   }
   simPlayin(forced?: GameResult) {
-    if (this.state.phase === 'playin' && !this.canPlay()) return;
+    if (this.mailWaiting() || (this.state.phase === 'playin' && !this.canPlay())) return;
     this.setState(s => {
       if (s.phase !== 'playin') return null;
       const pi = JSON.parse(JSON.stringify(s.playin)), todo = this.playinPending(pi);
@@ -975,6 +982,7 @@ export class Game {
     });
   }
   startPlayoffs() {
+    if (this.mailWaiting()) return;
     this.setState(s => {
       if (s.phase !== 'playin' || this.playinPending(s.playin).length) return null;
       const rounds = [[]];
@@ -986,7 +994,7 @@ export class Game {
     });
   }
   simPo(mode, forced?: GameResult) {
-    if (this.state.phase === 'playoffs' && !this.canPlay()) return;
+    if (this.mailWaiting() || (this.state.phase === 'playoffs' && !this.canPlay())) return;
     this.setState(s => {
       if (s.phase !== 'playoffs' || !s.po || s.po.champ != null) return null;
       const po = { ...s.po, finals: { ...(s.po.finals || {}) }, cf: { ...(s.po.cf || {}) }, rounds: s.po.rounds.map(r => r.map(x => ({ ...x, g: (x.g || []).slice() }))) };
@@ -1060,6 +1068,7 @@ export class Game {
     return null;
   }
   runLottery() {
+    if (this.mailWaiting()) return;
     this.setState(s => {
       if (s.unemployed) return null;
       if (s.phase !== 'lottery') return null;
@@ -1077,8 +1086,9 @@ export class Game {
       return { phase: 'draft', picks, pi: 0, lotto, lotHist, assets: pr.assets, swaps: pr.swaps, lotReveal: 0, dClass: this.Y, lgLog: [...lgLog0, { day: s.day, type: 'Draft', teams: s.teams[lotto[0].t].abbr, text: s.teams[lotto[0].t].region + ' won the draft lottery with ' + lotto[0].balls + ' ball' + (lotto[0].balls === 1 ? '' : 's') + ' in the drum (' + (lotto[0].odds1 * 100).toFixed(1) + '% odds)' + (jump.length > 1 ? '. ' + jump.length + ' teams beat their expected slot.' : '') }, ...s.lgLog] };
     });
   }
-  startPreFA() { startPreFA(this); }
+  startPreFA() { if (!this.mailWaiting()) startPreFA(this); }
   startFA() {
+    if (this.mailWaiting()) return;
     if (this.state.god && this.state.gmOffer?.kind === 'expiring' && !this.state.unemployed) answerOffer(this, true); // God Mode: your contract renews itself
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
@@ -1119,6 +1129,7 @@ export class Game {
   // Log entries made during free agency carry their real calendar date.
   stampFA(s, lgLog: any[], oldLen: number) { const n = lgLog.length - oldLen; if (n <= 0 || s.faStart == null) return lgLog; return lgLog.map((e, i) => i < n && !e.date && e.day >= s.faStart ? { ...e, date: new Date(this.Y, 5, 30 + e.day - s.faStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) } : e); }
   advanceFA(days) {
+    if (this.mailWaiting()) return;
     this.setState(s => {
       if (s.phase !== 'fa') return null;
       const fd0 = this.faDayOf(s), n = Math.max(0, Math.min(days, Game.FA_END - fd0)); if (!n) return null;
@@ -1153,9 +1164,10 @@ export class Game {
   startPreseason() {
     // Training camp: play out what's left of free agency first (stops if one of your restricted
     // free agents gets an offer sheet you need to answer).
+    if (this.mailWaiting()) return;
     if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length && !(this.state.agentCalls || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
     this.setState(s => {
-      if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length) return null;
+      if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
@@ -1307,6 +1319,7 @@ export class Game {
   // Opening night: at most 15 standard contracts (the season limit) and 3 two-ways, at least 14. Exhibit 10
   // players still on the roster become standard contracts; short clubs sign minimum deals.
   startSeason() {
+    if (this.mailWaiting()) return;
     this.healIdle(this.state);
     this.setState(st => ({ assets: this.ensureAssets(st) })); // a new year of picks joins the trading horizon
     // Safety net: every overall matches its ratings on opening night (ratings.ts).
@@ -1697,15 +1710,17 @@ export class Game {
   // Play n days. Every game is simulated in full; `forced` is the finished Live Game
   // for the user's game on the first day. Yields between days so the page stays responsive.
   async sim(n, forced?: GameResult) {
-    if (this.busy || this.state.phase !== 'regular' || !this.canPlay()) return;
+    if (this.busy || this.state.phase !== 'regular' || this.mailWaiting() || !this.canPlay()) return;
     if (this.state.inbox?.some(x => x.block)) return;
     this.busy = true; this.quiet = n > 1; this.stopReq = false;
     try {
       for (let i = 0; i < n; i++) {
         if (this.stopReq) break; // Stop pressed: finish the day in progress and halt
         const v = this.version;
+        const mail0 = this.state.mailSeq || 0;
         this.setState(s => this.simDay(s, i === 0 ? forced : undefined, n - i - 1));
         if (this.version === v) break;
+        if ((this.state.mailSeq || 0) > mail0 && this.mailWaiting()) break; // new mail (a trade offer, an injury…): stop so you can read it
         if (!(this.state.allStars || {})[this.Y] && this.state.day >= allStarDay(this)) runAllStar(this); // All-Star Weekend
         if (i < n - 1) await new Promise(r => setTimeout(r, 0));
       }
@@ -1777,8 +1792,6 @@ export class Game {
     // ten days, and goes away if the players in it move.
     let inOffers = (s.inOffers || []).filter((o: any) => day - o.day <= 10 && day < DAY.TRADE_DEADLINE && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
     let notices = patch.notices ?? s.notices;
-    // A pop-up for an offer that has since lapsed (several days simmed at once) isn't shown; it stays in the Mailbox, marked expired.
-    if ((notices || []).some((n: any) => n.offerId && !inOffers.some((o: any) => o.id === n.offerId))) notices = notices.filter((n: any) => !n.offerId || inOffers.some((o: any) => o.id === n.offerId));
     let offerPast: string[] = s.offerPast || []; const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
     if (!s.spectator && day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
       const st2 = { ...s, rosters: box.rosters, cap: box.cap, assets: box.assets }; let x: any = null;
@@ -1789,7 +1802,9 @@ export class Game {
         inOffers = [...inOffers, { ...x, id: oid, day }];
         notices = addNotice({ notices }, { tone: 'info', title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name, lines: [x.why, 'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.', 'Accept, negotiate or decline it from the offer (also under Trade → Offers to you). It stands for about ten days.'], pids: [...x.aP, ...x.bP], offerId: oid }); }
     }
-    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, inOffers, offerPast, notices, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
+    // Players on your teams who've had enough ask for a trade, or for an extension at their price (tradeRequests.ts).
+    const rq = tradeRequestTick(this, { ...s, teams, rosters: box.rosters, games: gameLog }, day, notices); notices = rq.notices;
+    return { ...patch, clubs, news, tstats, teams, favBench, mandateFails, treqs: rq.treqs, games: gameLog, day: day + 1, rosters: box.rosters, fa: box.fa, cap: box.cap, assets: box.assets, lgLog, inOffers, offerPast, notices, simming: left > 0 ? { left } : null, tTheirs: s.tTheirs.filter(id => rosters[s.tTid].includes(id)) };
   }
 
   // Rotation order by rating: healthy players first, two-way players after the standard contracts.
@@ -1805,6 +1820,7 @@ export class Game {
   // Draft picks by the AI. Stops at a managed team's pick when untilMine; otherwise auto-picks for them too.
   // AI picks until it's a managed team's turn (untilMine), for everyone, or for `limit` picks.
   aiDraft(untilMine, limit = Infinity) {
+    if (this.mailWaiting()) return;
     this.setState(s => {
       if (s.phase !== 'draft') return null;
       const picks = s.picks.map(p => ({ ...p })); let pi = s.pi; const taken = new Set(picks.filter(p => p.pid).map(p => p.pid));
@@ -1881,7 +1897,11 @@ export class Game {
     if (!p.pers.pro && !p.pers.padder && s.rosters[tid].some(id => id !== p.id && P[id].pers?.padder && (P[id].min || 0) >= 15)) f.push(['Selfish teammate', -3]);
     if (p.pers.legacy) { if (wp >= .55 && rank <= 1) f.push(['Chasing a legacy', 5]); else if (wp < .4 && (s.games || []).length > 20) f.push(['Chasing a legacy', -5]); }
     const fair = this.fair(p.ovr); if (!p.rookie && p.amt < fair * .75) f.push(['Feels underpaid', -8 * w('Money')]); else if (p.amt > fair * 1.1) f.push(['Well paid', 4 * w('Money')]);
-    if (p.exp === this.Y && !p.ext && p.ovr >= 52) f.push(['No extension offered', -6 * (m === 'Money' || m === 'Loyalty' ? 1.5 : 1)]);
+    // In his contract year with no extension: it eats at him more as the season goes on.
+    if (p.exp === this.Y && !p.ext && p.ovr >= 52) { const prog = s.phase === 'regular' ? Math.min(1, this.gamesPlayed(s) / 82) : s.phase === 'preseason' || s.phase === 'fa' ? 0 : 1; f.push(['No extension offered', -(6 + 10 * prog) * (m === 'Money' || m === 'Loyalty' ? 1.5 : 1)]); }
+    // Years of losing here wear on a player who wants to win.
+    { const ly = losingYears(this, s, tid, p); if (ly >= 2) f.push(['Years of losing', -(ly - 1) * 4 * (m === 'Winning' ? 2 : p.pers.legacy ? 1.5 : 0.5)]); }
+    f.push(...requestFactors(this, p, tid));
     if (m === 'Fame') f.push(['Market size', (me.mkt - 1) * 40]);
     if (m === 'Loyalty') f.push(['Years with the team', p.yrsWith * 3]);
     { const c = this.clubOf(s, tid), fac = c?.budget?.Facilities; if (fac != null && Math.abs(fac - 14) >= 3) f.push(['Team facilities', Math.round((fac - 14) / 3)]); }

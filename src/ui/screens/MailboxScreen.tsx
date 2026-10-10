@@ -2,17 +2,18 @@
 // are simmed at once. Every pop-up (s.mail, archived by Game.setState): trade offers (with whether each
 // is still on the table), signings, offer outcomes, options and the rest; your owner's year-end letters;
 // offer sheets on your restricted free agents (match or decline right here); every move made by players
-// on your shortlists; and this season's and last season's retirements (the notable ones one by one).
+// on your shortlists; players asking for a trade (shop him from here); and this season's and last season's retirements (the notable ones one by one).
 import { useEffect, useState, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
 import { answerAgentCall, answerOfferSheet, callFits } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
+import { DAY } from '../../engine/cba';
 
-type Kind = 'agent' | 'trade' | 'owner' | 'sheet' | 'shortlist' | 'retire' | 'update';
+type Kind = 'agent' | 'request' | 'trade' | 'owner' | 'sheet' | 'shortlist' | 'retire' | 'update';
 interface Item { key: string; kind: Kind; ms: number; date: string; title: ReactNode; lines: ReactNode[]; pids?: number[]; actions?: { label: string; go: () => void; primary?: boolean }[]; status?: [string, string]; isNew?: boolean }
-const KINDS: [Kind | 'all', string][] = [['all', 'Everything'], ['agent', 'Agent calls'], ['trade', 'Trade offers'], ['owner', 'Owner'], ['sheet', 'Offer sheets'], ['shortlist', 'Shortlist moves'], ['retire', 'Retirements'], ['update', 'Other updates']];
-const TAG: Record<Kind, string> = { agent: 'Agent call', trade: 'Trade offer', owner: 'Owner', sheet: 'Offer sheet', shortlist: 'Shortlist', retire: 'Retirement', update: 'Update' };
+const KINDS: [Kind | 'all', string][] = [['all', 'Everything'], ['agent', 'Agent calls'], ['request', 'Trade requests'], ['trade', 'Trade offers'], ['owner', 'Owner'], ['sheet', 'Offer sheets'], ['shortlist', 'Shortlist moves'], ['retire', 'Retirements'], ['update', 'Other updates']];
+const TAG: Record<Kind, string> = { agent: 'Agent call', request: 'Trade request', trade: 'Trade offer', owner: 'Owner', sheet: 'Offer sheet', shortlist: 'Shortlist', retire: 'Retirement', update: 'Update' };
 const when = (d: string, season: number) => { const t = Date.parse(d); return isFinite(t) ? t : Date.parse('Jul 1, ' + season); };
 
 export function MailboxScreen({ vm }: { vm: VM }) {
@@ -29,6 +30,14 @@ export function MailboxScreen({ vm }: { vm: VM }) {
       items.push({ key: 'm' + m.id, kind: 'agent', ms: when(m.date, m.season), date: m.date, title: m.title, lines: m.lines || [], pids: m.pids, isNew: (m.seq || 0) > readTo || !!c,
         status: c ? ['Waiting on you', 'var(--accent-ink)'] : ['Answered', 'var(--color-neutral-600)'],
         actions: c && p ? [{ label: 'Keep him: ' + fmtMoney(c.ask.amt) + ' × ' + c.ask.years + (callFits(gm, s, c) ? '' : ' (doesn’t fit your cap)'), primary: true, go: () => answerAgentCall(gm, c.id, true) }, { label: 'Let him go', go: () => answerAgentCall(gm, c.id, false) }] : [] });
+      continue;
+    }
+    if (m.reqPid != null) { // a player asking out (tradeRequests.ts): shop him to the teams he named, or meet his price
+      const p = P[m.reqPid], r = p?.treq, open1 = r?.status === 'open' && r.season === m.season, mineNow = open1 && r.tid === s.me && (s.rosters[s.me] || []).includes(p.id);
+      const st: [string, string] | undefined = !r || r.season !== m.season ? undefined : r.status === 'open' ? ['Waiting on you', 'var(--accent-ink)'] : r.status === 'traded' ? ['Traded' + (r.by != null && r.by >= 0 ? ' to ' + abbr(r.by) : ''), 'var(--color-neutral-600)'] : r.status === 'extended' ? ['Extended', 'var(--gm-good)'] : ['You kept him', 'var(--gm-bad)'];
+      items.push({ key: 'm' + m.id, kind: 'request', ms: when(m.date, m.season), date: m.date, title: m.title, lines: m.lines || [], pids: m.pids, isNew: (m.seq || 0) > readTo, status: st,
+        actions: !mineNow ? [] : [...(r.cause === 'ext' ? [{ label: 'Open his contract', primary: true, go: () => { open(p.id); gm.setState({ ptab: 'contract' }); } }] : []),
+          ...(gm.state.day < DAY.TRADE_DEADLINE ? r.teams.map((t: number, i: number) => ({ label: 'Shop him to ' + abbr(t), primary: i === 0 && r.cause !== 'ext', go: () => gm.setState({ modal: false, teamModal: null, screen: 'trade', tTid: t, tMine: [p.id], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }) })) : [])] });
       continue;
     }
     const live = m.offerId ? vm.inOffersV.has(m.offerId) : false;
@@ -81,7 +90,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
             </div>
             <div style={{ fontWeight: 600 }}>{x.title}</div>
             {x.lines.length > 0 && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{x.lines.map((l, i) => <div key={i}>{l}</div>)}</div>}
-            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
+            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
             {!!x.actions?.length && <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>{x.actions.map(a => <button key={a.label} className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '3px 10px' }} onClick={a.go}>{a.label}</button>)}</div>}
           </div>))}
       </div>

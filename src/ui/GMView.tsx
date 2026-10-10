@@ -57,7 +57,6 @@ import { ContractDialog } from './modals/ContractDialog';
 import { PlayerSearch } from './PlayerSearch';
 const TourOverlay = lazy(() => import('./Tour').then(m => ({ default: m.TourOverlay })));
 import { OwnerLetterModal } from './modals/OwnerLetterModal';
-import { NoticeModal } from './modals/NoticeModal';
 import { PreFAScreen } from './screens/PreFAScreen';
 import { BoxScoreModal } from './modals/BoxScoreModal';
 import { SimMenu } from './SimMenu';
@@ -157,7 +156,6 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && !vm.spec.on && <OwnerLetterModal vm={vm} />}
-        {!vm.ctx.s.letterOpen && !vm.hasDialog && !!(vm.ctx.s.notices || []).length && !vm.ctx.s.simming && !vm.spec.on && <NoticeModal vm={vm} />}
         {!!vm.ctx.s.specPick && vm.spec.on && <SpectatorPicker vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
         {vm.ctx.s.tour != null && <Suspense fallback={null}><TourOverlay vm={vm} /></Suspense>}

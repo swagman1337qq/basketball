@@ -128,6 +128,7 @@ export function answerOfferSheet(g: Game, id: string, match: boolean) {
 // and the years bend to what he cares about (money, a ring, security, a long deal while he's young).
 // Done with you: no call, he just signs (and the agent lets you know).
 export function stayWith(g: Game, s: any, tid: number, p: any): { x: number; why: string[] } {
+  if (p.noResign?.tid === tid && p.noResign.season === g.Y) return { x: -1, why: ['He asked for a trade and you kept him. He’s done with you.'] };
   const T = s.teams[tid], mot = p.pers?.mot, why: string[] = [], wp = g.pct(T);
   let x = p.mood === 'Eager' ? 0.35 : p.mood === 'Reluctant' ? -0.3 : 0;
   if (p.mood === 'Eager') why.push('He enjoyed his time with you.'); else if (p.mood === 'Reluctant') why.push('He wasn’t happy with you last season.');
@@ -299,7 +300,8 @@ export function openFreeAgency(g: Game, s: any) {
         else { delete p.opt; p.exp = Y; p.optDeclined = true; note(t, 'Declined the team option on ' + p.name); lg(t, 'The ' + s.teams[t].region + ' ' + s.teams[t].name + ' declined their option on ' + p.name, [id]); } }
       if (p.exp > Y) return true;
       // Contract up. Restricted free agency for rookie-scale players and young veterans.
-      const qo = qoEligible(g, p) && !p.optDeclined ? qoFor(g, p) : 0, wantQo = qo > 0 && (user ? (dec['qo' + id] ?? g.fair(p.ovr) >= qo * 0.8) : g.fair(p.ovr) >= qo * 0.85);
+      const gone = user && p.noResign?.tid === t && p.noResign.season === Y; // asked for a trade and you kept him (tradeRequests.ts): he walks
+      const qo = qoEligible(g, p) && !p.optDeclined && !gone ? qoFor(g, p) : 0, wantQo = qo > 0 && (user ? (dec['qo' + id] ?? g.fair(p.ovr) >= qo * 0.8) : g.fair(p.ovr) >= qo * 0.85);
       p.prevAmt = p.amt; p.birdTid = t; p.ask = askOf(g, p); p.exp = Y + prefYears(p); delete p.optDeclined; delete p.capOverride;
       if (['tenDay', 'hardship', 'ex10'].includes(p.ctype)) p.birdTid = null;
       if (wantQo) { p.rfa = { tid: t, qo }; note(t, 'Extended a ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' (restricted free agent)'); }
@@ -307,7 +309,8 @@ export function openFreeAgency(g: Game, s: any) {
       if (!user && p.birdTid === t) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
         const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
-      if (user) { if (t === s.me && dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
+      if (gone) { p.birdTid = null; delete p.rfa; note(t, p.name + '’s contract expired. He asked for a trade and you kept him, so he won’t re-sign: he’s an unrestricted free agent'); }
+      else if (user) { if (t === s.me && dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
       p.rookie = false; box.fa.push(id); return false; }); });
   // CCP contracts run for the season: last season's players become free again, and their
   // CCP teams keep returning rights.
