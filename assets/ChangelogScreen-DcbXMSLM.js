@@ -1,10 +1,18 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-D5b2t2G3.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-BgFNvNdR.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-10
 
 ### Added
+- **More choices when you create your GM.**
+  - **Man or woman.** A woman gets a woman's name from her nationality and her own look in the headshot.
+  - **Age, from 18 to 77.** You age a year every season. At 100 you stay 100. Your headshot is drawn from your age, not your experience.
+  - **Experience in two parts**, and any experience goes with any age:
+    - **Front office:** none, scout or analyst, assistant GM, GM, or championship GM.
+    - **Playing:** never played, college, pro overseas or in the CCP, NBA All-Star, or Hall of Famer.
+  - **What your experience gets you.** Both parts add to your starting reputation, and that sets your first contract. A star playing career adds a year to that contract.
+  - **A background for your headshot:** plain, team colors, arena lights, press conference, front office, hardwood or skyline at dusk.
 - **Players can ask for a trade.** It only happens when a player is really unhappy (his mood is low), mostly because of one thing that matters to him:
   - **A winner after years of losing.** A player who cares about winning, after four straight losing seasons with you (three for a veteran or a legacy-chaser), asks to go to one of the best teams.
   - **A player stuck in a small role.** A playing-time player who's on the bench, or a player who wants to be the first option or wants the ball, asks to go where he'd start or be a top option.
