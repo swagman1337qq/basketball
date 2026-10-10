@@ -98,6 +98,12 @@ export const HAIR_STYLES: Record<string, any> = {
   shag: { label: 'Shag', ear: 2.4, side: 3.4, top: 5.2, fringe: 'messy', back: 'shag', curtain: 0.5 },
   hightop: { label: 'High-top fade', fade: 'high', box: 14 },
   flattop: { label: 'Flat-top', fade: 'mid', box: 7.5 },
+  // Mostly women's styles (a female face, makeFace's fem).
+  bob: { label: 'Bob', ear: 2.8, side: 3.2, top: 4.8, fringe: 'long', back: 'shag' },
+  longPart: { label: 'Long, middle part', ear: 2.6, side: 3, top: 4.6, fringe: 'curtains', back: 'long', curtain: 1 },
+  longCurls: { label: 'Long curls', ear: 3.2, side: 4.4, top: 7, bump: 1.1, fringe: 'curls', back: 'long', curtain: 1 },
+  bun: { label: 'Bun', ear: 0.4, side: 1.1, top: 2.4, flow: 'back', back: 'bun' },
+  pixie: { label: 'Pixie cut', ear: 0.8, side: 1.8, top: 3.8, fringe: 'crop', sweep: 1, part: 1 },
 };
 export const FACE_OPTS = {
   expr: [['serious', 'Serious'], ['slight', 'Slight smile'], ['smile', 'Smile'], ['relaxed', 'Relaxed'], ['mean', 'Mean mug'], ['smirk', 'Smirk']],
@@ -133,12 +139,18 @@ const STYLE_W: Record<string, Record<string, number>> = {
   wavy: { crop: 8, sidepart: 7, messy: 7, quiff: 6, slick: 5, fringe: 5, curtains: 5, crew: 7, fade: 7, buzz: 6, undercut: 5, long: 3, manbun: 3, mullet: 1.5, shag: 3, shaved: 4, bald: 3, curlyTop: 2, spiky: 1, braids: 0.5, cornrows: 0.5, locsShort: 0.5 },
   straight: { crop: 9, sidepart: 8, fringe: 7, spiky: 5, messy: 6, quiff: 6, slick: 5, curtains: 5, crew: 7, fade: 7, buzz: 7, undercut: 6, long: 2.5, manbun: 2.5, mullet: 1.5, shaved: 4, bald: 3, mohawk: 0.6, cornrows: 0.5, braids: 0.5, shag: 1.5 },
 };
+const FEM_STYLE_W: Record<string, Record<string, number>> = {
+  coily: { afro: 12, shortAfro: 8, braids: 16, locsLong: 10, locsUp: 8, twists: 8, bun: 8, longCurls: 6, cornrows: 3, buzz: 2, bob: 4, pixie: 3 },
+  curly: { longCurls: 22, curlyMop: 8, bun: 10, bob: 8, long: 10, shag: 6, pixie: 4, braids: 3 },
+  wavy: { long: 20, longPart: 14, bob: 12, bun: 10, shag: 8, pixie: 5, slick: 4, longCurls: 4, sidepart: 3 },
+  straight: { long: 22, longPart: 16, bob: 14, bun: 10, shag: 6, pixie: 5, fringe: 5, slick: 3 },
+};
 const SHAPEUP_STYLES = new Set(['fade', 'caesar', 'waves', 'buzz', 'crew', 'twists', 'flattop', 'hightop', 'frohawk', 'curlyTop', 'crop', 'cornrows', 'shortAfro']);
 const TIPS_OK = new Set(['fade', 'crew', 'crop', 'spiky', 'twists', 'flattop', 'hightop', 'curlyTop', 'shortAfro', 'messy', 'frohawk', 'mohawk', 'quiff']);
 
 export function makeFace(p: any, salt = 0, kin?: any) {
   const base = Math.floor(p.faceSeed ?? p.id ?? 0) | 0, seed = (Math.imul(base, 7919) + 13 + Math.imul(salt | 0, 104729)) | 0;
-  const rnd = mulberry32(seed), race = RACES.includes(p.race) ? p.race : 'white', age = p.age ?? 25; // a missing look never breaks a page
+  const rnd = mulberry32(seed), race = RACES.includes(p.race) ? p.race : 'white', age = p.age ?? 25, fem = !!p.fem; // a missing look never breaks a page
   const k = kin && kin.v === 3 ? kin : null, same = !!k && k.race === race;
   // Build: heavier for his height → a fuller face and neck.
   const hm = /(\d+)\D+(\d+)/.exec(p.hgt || ''), hIn = hm ? +hm[1] * 12 + +hm[2] : 0;
@@ -148,15 +160,16 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   if (k) { tone = cl(same ? k.skin.tone + 0.03 * bell(rnd) : (tone + k.skin.tone) / 2); if (rnd() < 0.8) under = k.skin.under; }
   const blend = (a: any, b: any, keys: string[], t: number) => { if (b) keys.forEach(x => { if (typeof b[x] === 'number') a[x] = r2(a[x] * (1 - t) + b[x] * t); }); };
   const head: any = { w: r2(0.9 + 0.2 * rnd() + build * 0.03), h: r2(0.94 + 0.13 * rnd()), sq: r2(rnd()), cheek: r2(0.97 + 0.07 * rnd()), jaw: r2(cl(0.78 + 0.19 * rnd() + build * 0.04, 0.74, 0.99)), jawY: r2(0.62 + 0.2 * rnd()), chin: r2(rnd()), chinW: r2(cl(0.3 + 0.2 * rnd() + build * 0.04, 0.26, 0.54)), cleft: rnd() < 0.07 };
+  if (fem) { head.jaw = r2(Math.min(head.jaw, 0.74 + 0.1 * rnd())); head.chinW = r2(Math.min(head.chinW, 0.26 + 0.08 * rnd())); head.sq = r2(head.sq * 0.4); head.cleft = false; } // a softer, narrower jaw
   const ears: any = { size: r2(0.85 + 0.3 * rnd()), out: r2(rnd()) };
   const eShape = wpick(rnd, race === 'asian' ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 } : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 });
   const lightEyes = rnd() < ({ white: 0.55, brown: 0.07, asian: 0.015, black: 0.02 } as any)[race];
   const eyes: any = { shape: eShape, size: r2(0.9 + 0.22 * rnd()), spacing: r2(0.93 + 0.14 * rnd()), tilt: r2(eShape === 'upturned' ? 0.12 + 0.06 * rnd() : eShape === 'downturned' ? -0.07 - 0.05 * rnd() : (rnd() - 0.45) * 0.14), lid: r2(rnd()), color: lightEyes ? wpick(rnd, { amber: 12, hazel: 22, green: 20, grey: 10, blue: 26, lightBlue: 10 }) : wpick(rnd, { dark: 55, brown: 45 }) };
   const bShape = wpick(rnd, { straight: 24, soft: 26, arched: 14, angled: 12, flat: 12, bushy: 12 });
-  const brows: any = { shape: bShape, thick: r2(0.85 + 0.7 * rnd() + (bShape === 'bushy' ? 0.4 : 0)), len: r2(rnd()), gap: r2(rnd()), tilt: r2((rnd() - 0.5) * 0.4), slit: rnd() < 0.035 ? (rnd() < 0.7 ? 1 : 2) : 0 };
+  const brows: any = { shape: fem && bShape === 'bushy' ? 'arched' : bShape, thick: r2(fem ? 0.6 + 0.35 * rnd() : 0.85 + 0.7 * rnd() + (bShape === 'bushy' ? 0.4 : 0)), len: r2(rnd()), gap: r2(rnd()), tilt: r2((rnd() - 0.5) * 0.4), slit: rnd() < 0.035 ? (rnd() < 0.7 ? 1 : 2) : 0 };
   const nb = ({ black: 0.2, brown: 0.08, asian: 0.05 } as any)[race] || 0, lb = race === 'black' ? 0.22 : race === 'brown' ? 0.08 : 0;
   const nose: any = { w: r2(cl(rnd() * 0.85 + nb + build * 0.08)), len: r2(rnd()), bridge: r2(rnd()), tip: r2(rnd()), flare: r2(rnd()), crook: rnd() < 0.03 ? (rnd() < 0.5 ? -1 : 1) : 0 };
-  const mouth: any = { w: r2(rnd()), upper: r2(cl(rnd() * 0.8 + lb)), lower: r2(cl(rnd() * 0.8 + lb + 0.05)), bow: r2(rnd()) };
+  const mouth: any = { w: r2(rnd()), upper: r2(cl(rnd() * 0.8 + lb + (fem ? 0.2 : 0))), lower: r2(cl(rnd() * 0.8 + lb + 0.05 + (fem ? 0.2 : 0))), bow: r2(rnd()) };
   if (k) {
     blend(head, k.head, ['w', 'h', 'sq', 'cheek', 'jaw', 'jawY', 'chin', 'chinW'], 0.5); blend(nose, k.nose, ['w', 'len', 'bridge', 'tip', 'flare'], 0.6);
     blend(mouth, k.mouth, ['w', 'upper', 'lower', 'bow'], 0.5); blend(ears, k.ears, ['size', 'out'], 0.6); blend(eyes, k.eyes, ['size', 'spacing', 'tilt'], 0.5);
@@ -164,13 +177,14 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   }
   const expr = wpick(rnd, { serious: 28, slight: 24, relaxed: 16, smile: 13, mean: 12, smirk: 7 });
   // Age: lines, grey and a receding hairline arrive at different ages for different people.
-  const lines = r2(cl((age - 27) / 14) * (0.6 + 0.4 * rnd())), greyAt = 27 + 26 * rnd(), grey = r2(cl((age - greyAt) / 12, 0, 0.9));
-  const beardGrey = r2(cl((age - greyAt + 3 - 4 * rnd()) / 10, 0, 0.9)), recAt = 22 + 32 * rnd(), recede = r2(cl((age - recAt) / 12) * (rnd() < 0.55 ? 1 : 0.35));
+  const lines = r2(cl((age - 27) / 14) * (0.6 + 0.4 * rnd())), greyAt = 27 + 26 * rnd() + (fem ? 12 : 0), /* many women color theirs */ grey = r2(cl((age - greyAt) / 12, 0, 0.9));
+  const beardGrey = r2(cl((age - greyAt + 3 - 4 * rnd()) / 10, 0, 0.9)), recAt = 22 + 32 * rnd(), recede = fem ? 0 : r2(cl((age - recAt) / 12) * (rnd() < 0.55 ? 1 : 0.35));
   const bags = r2(cl(lines * 0.7 + rnd() * 0.15));
   let tex = wpick(rnd, TEX_W[race]), natural = wpick(rnd, NAT_W[race]);
   if (k) { if (rnd() < 0.8) tex = k.hair.tex; if (rnd() < 0.75) natural = k.hair.natural; }
-  const sw = { ...STYLE_W[tex] || STYLE_W.straight };
-  sw.bald = (sw.bald || 0) * (1 + Math.max(0, age - 29) * 0.25) * (1 + recede * 3); sw.shaved = (sw.shaved || 0) * (1 + recede * 2);
+  const sw = fem ? { ...FEM_STYLE_W[tex] || FEM_STYLE_W.straight } : { ...STYLE_W[tex] || STYLE_W.straight };
+  if (fem && age > 50) ['long', 'longPart', 'longCurls', 'braids', 'locsLong'].forEach(x => { if (sw[x]) sw[x] *= 0.45; }); // shorter styles later in life
+  if (!fem) sw.bald = (sw.bald || 0) * (1 + Math.max(0, age - 29) * 0.25) * (1 + recede * 3); sw.shaved = (sw.shaved || 0) * (1 + recede * 2);
   if (age > 32) ['long', 'manbun', 'mullet', 'locsLong'].forEach(x => { if (sw[x]) sw[x] *= 0.6; });
   const style = wpick(rnd, sw);
   const hairline = wpick(rnd, SHAPEUP_STYLES.has(style) ? { shapeup: 45, natural: 30, straight: 13, peak: 6, round: 6 } : { natural: 50, straight: 16, peak: 10, round: 18, shapeup: 6 });
@@ -181,24 +195,24 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   const fw = age < 20 ? { none: 50, patchy: 18, stubble: 18, mustache: 4, soulpatch: 4, chinpuff: 6 }
     : age < 23 ? { none: 34, stubble: 18, patchy: 8, heavyStubble: 6, goatee: 6, circle: 6, mustache: 4, shortBeard: 8, chinstrap: 3, soulpatch: 3, chinpuff: 3, fullBeard: 1 }
     : { none: 26, stubble: 14, heavyStubble: 9, mustache: 4, goatee: 6, circle: 8, vandyke: 2, chinstrap: 3, chinstrapMustache: 3, shortBeard: 10, fullBeard: 8, thickBeard: 3, soulpatch: 2, chinpuff: 2, patchy: 2 };
-  const fStyle = wpick(rnd, fw), fDen = rnd();
+  const fStyle = fem ? 'none' : wpick(rnd, fw), fDen = rnd();
   const facial: any = { style: fStyle, density: r2(fStyle === 'patchy' ? 0.45 : 0.65 + 0.35 * fDen), grey: beardGrey };
   // Accessories, each drawn on its own: headbands are common, earrings fairly common, nose studs
   // uncommon, lip and eyebrow rings rare, glasses and face shields exceptionally rare.
   const metal = () => wpick(rnd, { diamond: 45, gold: 22, silver: 18, black: 15 }), side = () => (rnd() < 0.5 ? -1 : 1);
   const a = Array.from({ length: 9 }, () => rnd());
   const acc: any = {
-    headband: a[0] < 0.13 ? { color: wpick(rnd, { team: 30, team2: 18, white: 22, black: 20, red: 4, navy: 3, grey: 3 }), kind: wpick(rnd, { standard: 60, thin: 25, wide: 12, tied: 3 }) } : null,
-    earrings: a[1] < 0.19 ? { kind: wpick(rnd, { stud: 80, hoop: 20 }), metal: metal(), both: rnd() < 0.62 } : null,
+    headband: !fem && a[0] < 0.13 ? { color: wpick(rnd, { team: 30, team2: 18, white: 22, black: 20, red: 4, navy: 3, grey: 3 }), kind: wpick(rnd, { standard: 60, thin: 25, wide: 12, tied: 3 }) } : null,
+    earrings: a[1] < (fem ? 0.75 : 0.19) ? { kind: wpick(rnd, { stud: 80, hoop: 20 }), metal: metal(), both: rnd() < 0.62 } : null,
     nose: a[2] < 0.035 ? { kind: 'stud', metal: metal(), side: side() } : a[2] < 0.047 ? { kind: wpick(rnd, { ring: 60, septum: 40 }), metal: metal(), side: side() } : null,
     lip: a[3] < 0.007 ? { kind: wpick(rnd, { ring: 70, labret: 30 }), metal: metal(), side: side() } : null,
     brow: a[4] < 0.007 ? { metal: metal(), side: side() } : null,
     glasses: a[5] < 0.004 ? { kind: wpick(rnd, { rect: 30, round: 20, goggles: 30, rimless: 10, browline: 10 }), color: wpick(rnd, { black: 40, tortoise: 20, metal: 20, clear: 20 }) } : null,
     shield: a[5] >= 0.004 && a[6] < 0.003 ? { kind: wpick(rnd, { clear: 60, black: 40 }) } : null,
-    undershirt: a[7] < 0.05 ? wpick(rnd, { white: 40, black: 40, team: 20 }) : null,
+    undershirt: !fem && a[7] < 0.05 ? wpick(rnd, { white: 40, black: 40, team: 20 }) : null,
   };
   const marks: any = { freckles: a[8] < (tone < 0.35 ? 0.075 : 0.025) ? r2(0.4 + 0.6 * rnd()) : 0, mole: rnd() < 0.1 ? [r2(rnd() * 2 - 1), r2(rnd())] : null, tattoo: rnd() < 0.06 ? { side: side(), kind: rnd() < 0.5 ? 'script' : 'design' } : null, dimples: rnd() < 0.14 };
-  const face: any = { v: 3, generator: 'Basketball Manager faces', seed: seed >>> 0, race, skin: { tone: r2(tone), under }, build, head, ears, eyes, brows, nose, mouth, expr, hair, facial, acc, marks, age: { years: age, lines, bags } };
+  const face: any = { v: 3, generator: 'Basketball Manager faces', seed: seed >>> 0, race, ...(fem ? { fem: true } : {}), skin: { tone: r2(tone), under }, build, head, ears, eyes, brows, nose, mouth, expr, hair, facial, acc, marks, age: { years: age, lines, bags } };
   if (p.faceX) applyFaceX(face, p.faceX);
   return finishFace(face);
 }
@@ -268,7 +282,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   const rightHalf = [...upR, ...lowR.slice(1)], outline = [...rightHalf, ...mir(rightHalf).reverse().slice(1, -1)];
   const ey = cy + rh * 0.03, nl = (chinY - ey) * (0.42 + 0.08 * f.nose.len), noseY = ey + nl, my = noseY + (chinY - noseY) * 0.35;
   const ex = rw * 0.415 * f.eyes.spacing, ea = 3.9 * f.eyes.size;
-  const nW = rw * (0.52 + 0.07 * build), shY = chinY + 10.5;
+  const nW = rw * (0.52 + 0.07 * build) * (f.fem ? 0.84 : 1), shY = chinY + 10.5;
   const sk = f.skin.color, tone = f.skin.tone, shd = mixC(sk, '#2a120a', 0.45), hil = mixC(sk, '#fff6ee', 0.5);
   const so = 0.15 + 0.07 * tone, ho = 0.1 + 0.16 * tone; // shading and highlight strength (sheen shows more on darker skin)
   const N = f.nose, nhw = 3.3 + 1.8 * N.w + build * 0.2, crook = (N.crook || 0) * 0.8;
@@ -404,7 +418,8 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   // ── Eye lines: lashes, crease, lower lid, crow's feet ──
   const lash = mixC('#170f0b', sk, 0.12);
   [-1, 1].forEach(s => { const g = eyeG(s), cg = 1.1 + 0.6 * (1 - (Ey.lid ?? 0.5));
-    S(g.up, lash, 0.8 + 0.15 * Ey.size); S(`M${pt(g.ecx + s * ea * 0.3, ey - U * 1.12)}Q${pt(g.xo - s * ea * 0.15, ey - U * 0.9)} ${pt(g.xo + s * 0.35, g.yo - 0.2)}`, lash, 1.1);
+    S(g.up, lash, 0.8 + 0.15 * Ey.size + (f.fem ? 0.45 : 0));
+    if (f.fem) [0.55, 0.75, 0.95].forEach((t, i) => { const x = g.xi + (g.xo - g.xi) * t, y = ey - U * (1.05 - 0.5 * t * t); S(`M${pt(x, y)}l${n2(s * (0.5 + 0.3 * i))} ${n2(-0.9 - 0.2 * i)}`, lash, 0.45); }); // lashes S(`M${pt(g.ecx + s * ea * 0.3, ey - U * 1.12)}Q${pt(g.xo - s * ea * 0.15, ey - U * 0.9)} ${pt(g.xo + s * 0.35, g.yo - 0.2)}`, lash, 1.1);
     if (Ey.shape === 'monolid') S(`M${pt(g.xi + s * 0.4, g.yi - 0.5)}C${pt(g.xi + s * ea * 0.4, ey - U * 1.3)} ${pt(g.xo - s * ea * 0.5, ey - U * 1.25)} ${pt(g.xo, g.yo - 0.3)}`, shd, 0.5, 0.3);
     else S(`M${pt(g.xi + s * ea * 0.25, g.yi - 1.3)}C${pt(g.xi + s * ea * 0.45, ey - U * 1.28 - cg)} ${pt(g.xo - s * ea * 0.5, ey - U * 1.2 - cg)} ${pt(g.xo + s * 0.2, g.yo - 1)}`, shd, 0.55, Ey.shape === 'hooded' ? 0.3 : 0.5);
     if (Ey.shape === 'hooded') P(`M${pt(g.ecx, ey - U * 1.25 - 0.4)}Q${pt(g.xo - s * ea * 0.2, ey - U * 1.1 - 0.8)} ${pt(g.xo + s * 0.6, g.yo - 0.4)}Q${pt(g.xo - s * ea * 0.3, ey - U * 1.05)} ${pt(g.ecx, ey - U * 1.25 - 0.4)}Z`, mixC(sk, shd, 0.3));
@@ -471,7 +486,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   if (fs === 'chinpuff') { const d = poly(crc([[cx - 2.6, chinY - 3.4], [cx + 2.6, chinY - 3.4], [cx + 2.2, chinY - 0.6], [cx, chinY + 1.2], [cx - 2.2, chinY - 0.6]], 4)); P(d, fc, 0.3 * den); P(poly(crc([[cx - 2.2, chinY - 3.1], [cx + 2.2, chinY - 3.1], [cx + 1.8, chinY - 0.8], [cx, chinY + 0.8], [cx - 1.8, chinY - 0.8]], 4)), fc, 0.82 * den); }
 
   // ── Mouth ──
-  { const lip = mixC(dk(sk, 0.1 + 0.14 * tone), '#a14a48', 0.24 - 0.12 * tone), lipU = dk(lip, 0.08 + 0.08 * tone), lipL = mixC(lip, '#b0625c', 0.06 + 0.06 * tone);
+  { const lip = mixC(dk(sk, 0.1 + 0.14 * tone), f.fem ? '#b04a5a' : '#a14a48', (f.fem ? 0.4 : 0.24) - 0.12 * tone), lipU = dk(lip, 0.08 + 0.08 * tone), lipL = mixC(lip, '#b0625c', 0.06 + 0.06 * tone);
     const mid = (g: number) => `C${pt(cx + mhw * 0.5, my + 0.35 + cR * 0.35 + g)} ${pt(cx - mhw * 0.5, my + 0.35 + cL * 0.35 + g)} ${pt(cx - mhw, my + cL)}`;
     const upper = `M${pt(cx - mhw, my + cL)}C${pt(cx - mhw * 0.62, my - ut * 0.55 + cL * 0.5)} ${pt(cx - 2.6, my - ut * 1.05)} ${pt(cx - 1.15, my - ut)}Q${pt(cx, my - ut * (0.62 + 0.18 * (1 - f.mouth.bow)))} ${pt(cx + 1.15, my - ut)}C${pt(cx + 2.6, my - ut * 1.05)} ${pt(cx + mhw * 0.62, my - ut * 0.55 + cR * 0.5)} ${pt(cx + mhw, my + cR)}${mid(0)}Z`;
     const g2 = gap || part, lower = `M${pt(cx - mhw, my + cL)}C${pt(cx - mhw * 0.5, my + 0.35 + cL * 0.35 + g2)} ${pt(cx + mhw * 0.5, my + 0.35 + cR * 0.35 + g2)} ${pt(cx + mhw, my + cR)}C${pt(cx + mhw * 0.72, my + lt * 0.95 + g2 + cR * 0.3)} ${pt(cx + 2.4, my + lt * 1.12 + g2)} ${pt(cx, my + lt * 1.12 + g2)}C${pt(cx - 2.4, my + lt * 1.12 + g2)} ${pt(cx - mhw * 0.72, my + lt * 0.95 + g2 + cL * 0.3)} ${pt(cx - mhw, my + cL)}Z`;

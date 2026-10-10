@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { acceptJob, applyForJob, reputation } from '../../engine/frontOffice';
-import { EXPERIENCE, GENEROSITY, MAX_COUNTERS, answerOffer, askExtension, contractOf, counterOffer, givenName, isFamilyFirst } from '../../engine/gmCareer';
+import { GENEROSITY, gmAge, resumeOf, MAX_COUNTERS, answerOffer, askExtension, contractOf, counterOffer, givenName, isFamilyFirst } from '../../engine/gmCareer';
 import { Headshot } from '../modals/GMSetupModal';
 import { h4Style, Kicker, Link, muted, ruleH4, Stat, td, th } from '../kit';
 
@@ -29,9 +29,9 @@ export function CareerScreen({ vm }: { vm: VM }) {
         const k = contractOf(gm, s), kt = T[k.tid], left = k.thru - gm.Y, o = s.gmOffer, G = GENEROSITY[kt.arch], yr = (y: number) => (y - 1) + '–' + String(y).slice(2);
         return (
           <section className="card" style={{ padding: '14px 16px', marginBottom: '22px', display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {s.gm && <Headshot gm={s.gm} size={72} />}
+            {s.gm && <Headshot gm={s.gm} team={T[s.me]} size={72} year={gm.Y} />}
             <div style={{ flex: 1, minWidth: 240 }}>
-              <Kicker>{s.gm ? s.gm.name + ' · ' + gm.db.C[s.gm.nat].n + ' · ' + EXPERIENCE[s.gm.exp].label : 'Your contract'}</Kicker>
+              <Kicker>{s.gm ? s.gm.name + ' · ' + gm.db.C[s.gm.nat].n + ' · age ' + gmAge(s.gm, gm.Y) + ' · ' + resumeOf(s.gm).label : 'Your contract'}</Kicker>
               <div style={{ fontSize: '20px', fontWeight: 600, margin: '2px 0' }}>{s.unemployed ? 'No contract' : '$' + k.salary.toFixed(2) + 'M a season with the ' + kt.name + ', through ' + yr(k.thru)}</div>
               {s.gm && <div style={{ fontSize: '12px', margin: '2px 0 4px', display: 'flex', gap: 6, alignItems: 'center' }}><span style={muted}>Name order</span><select className="input" value={isFamilyFirst(s.gm) ? 'f' : 'g'} onChange={e => gm.setState(st => ({ gm: { ...st.gm, familyFirst: e.target.value === 'f' } }))} style={{ width: 'auto', minHeight: 26, fontSize: '12px', padding: '1px 6px' }}><option value="g">Given name first</option><option value="f">Family name first</option></select><span style={muted}>· the owner calls you {givenName(s.gm)}</span></div>}
               {!s.unemployed && <div style={{ ...muted, fontSize: '12.5px' }}>{left > 0 ? left + ' more season' + (left === 1 ? '' : 's') + ' after this one.' : 'This is the final season of your deal.'} {kt.owner} is a {kt.arch} and {G.note}.{k.assumed ? ' (Terms estimated for a league started before GM contracts.)' : ''}</div>}

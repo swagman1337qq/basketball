@@ -18,6 +18,7 @@ import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
 import { US_CENSUS } from './usCensusNames';
 import { NATIVE_POOLS } from './nativeScripts';
+import { femaleGiven } from './femaleNames';
 
 type Race = Record<string, number>;
 export interface Group { k: string; w: number; f: string | string[]; l: string | string[]; race: Race }
@@ -239,7 +240,7 @@ const NATIVE_SEP: Record<string, string> = { ug: '·', mgl: '·', bo: '', mm: ''
 const MIX_OK = new Set(['usb', 'usw', 'us', 'nan', 'gb', 'au', 'jm', 'bah', 'car', 'mi', 'pi', 'la', 'fc', 'fr', 'dk', 'no']);
 
 // A name (Romanized + native script) and a look from a heritage group.
-export function nameFromGroup(country: string, grp: Group, rnd: () => number = Math.random) {
+export function nameFromGroup(country: string, grp: Group, rnd: () => number = Math.random, fem = false) {
   const NP: any = allPools(), NM: any = allNative();
   const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)];
   const pool = (x: string | string[]) => (Array.isArray(x) ? pick(x) : x);
@@ -259,6 +260,7 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   else if (same && fp === 'cn') { first = NM.cnT[f] || f; last = NM.cnT[l] || l; if (ok) { nativeFirst = NM.cn[f] || ''; nativeLast = NM.cn[l] || ''; } }
   else if (ok) { nativeFirst = fp === 'rs' ? cyr(f) : NM[fp]?.[f] || ''; nativeLast = lp === 'rs' ? cyr(l) : NM[lp]?.[l] || ''; }
   // Pool keys that disambiguate same-spelled surnames (e.g. Xu许) display as plain Latin.
+  if (fem) { first = femaleGiven(fp, rnd); nativeFirst = ''; } // a woman's given name from the same language (femaleNames.ts); no native script for it
   first = first.replace(/[^\x00-ɏḀ-ỿ' ’-]+$/u, ''); last = last.replace(/[^\x00-ɏḀ-ỿ' ’-]+$/u, '');
   const familyFirst = same && FAMILY_FIRST.has(fp);
   const name = familyFirst ? last + ' ' + first : first + ' ' + last;
@@ -272,9 +274,9 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
 
 // A random real name for a country: a heritage group drawn by population share (or the
 // one asked for), then a name and look from it.
-export function randomName(country: string, rnd: () => number = Math.random, groupKey?: string) {
+export function randomName(country: string, rnd: () => number = Math.random, groupKey?: string, fem = false) {
   const grp = (groupKey && groupsOf(country).find(x => x.k === groupKey)) || pickGroup(country, rnd) || g('Default', 1, 'us', 'us', B);
-  return nameFromGroup(country, grp, rnd);
+  return nameFromGroup(country, grp, rnd, fem);
 }
 
 // Hometowns for each tribal nation (tribal capitals and reservation towns).

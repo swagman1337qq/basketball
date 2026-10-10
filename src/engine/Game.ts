@@ -183,6 +183,7 @@ export class Game {
     const g = new Game();
     g.db = { ...data.db, C: countries() };
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
+    if (g.state.gm && g.state.gm.y0 == null) g.state.gm = { ...g.state.gm, y0: g.Y - ((g.state.career?.seasons || []).length || 0) }; // older saves: your age counts from your first season (gmCareer.gmAge)
     if (g.state.notices?.length) { const n = g.state.notices; g.state.notices = []; g.setState({ notices: n }); } // pop-ups from older saves go to the Mailbox
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};

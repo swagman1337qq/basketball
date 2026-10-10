@@ -6,8 +6,30 @@
 import type { Game } from './Game';
 import { ownerReview, reputation } from './frontOffice';
 
+// Your résumé, in two parts: front-office experience and playing experience. Each adds to your
+// starting reputation (FRONT_OFFICE rep + PLAYING rep); front-office experience also sets your first
+// contract's length, and a star playing career adds a year. Any résumé goes with any age.
+export interface ResumeItem { k: number; label: string; desc: string; rep: number; years?: number }
+export const FRONT_OFFICE: ResumeItem[] = [
+  { k: 0, label: 'No front-office experience', desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.', rep: 26, years: 2 },
+  { k: 1, label: 'Scout or analyst', desc: 'You worked your way up through scouting or analytics.', rep: 34, years: 3 },
+  { k: 2, label: 'Assistant GM', desc: 'You were the No. 2 in a front office: trades, the cap, the draft board.', rep: 44, years: 3 },
+  { k: 3, label: 'General manager', desc: 'You’ve run a front office before, with mixed results.', rep: 56, years: 4 },
+  { k: 4, label: 'Championship GM', desc: 'You’ve built a champion. Owners call you first.', rep: 72, years: 4 },
+];
+export const PLAYING: ResumeItem[] = [
+  { k: 0, label: 'Never played', desc: 'You came up on the business side.', rep: 0 },
+  { k: 1, label: 'College player', desc: 'You played college ball.', rep: 3 },
+  { k: 2, label: 'Pro overseas or in the CCP', desc: 'You played professionally, overseas or in the CCP.', rep: 5 },
+  { k: 3, label: 'NBA All-Star', desc: 'A big name from your playing days: owners like the headlines, players listen.', rep: 9 },
+  { k: 4, label: 'Hall of Famer', desc: 'A Hall of Fame playing career. Everyone knows your name.', rep: 14 },
+];
+export const GM_AGE = { min: 18, max: 77, cap: 100 }; // you can start at 18 to 77; you age each season and stay 100 from then on
+// Headshot backdrops (Headshot in GMSetupModal).
+export const GM_BACKDROPS: [string, string][] = [['plain', 'Plain'], ['team', 'Team colors'], ['arena', 'Arena lights'], ['press', 'Press conference'], ['office', 'Front office'], ['court', 'Hardwood'], ['dusk', 'Skyline at dusk']];
+// Older saves: one experience level (0–5).
 export interface Experience { k: number; label: string; desc: string; rep: number; years: number; age: number }
-export const EXPERIENCE: Experience[] = [
+const EXPERIENCE: Experience[] = [
   { k: 0, label: 'No experience', desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.', rep: 30, years: 2, age: 33 },
   { k: 1, label: 'Some experience', desc: 'A few years as an assistant GM or head of scouting.', rep: 40, years: 3, age: 38 },
   { k: 2, label: 'Experienced', desc: 'You’ve run a front office before, with mixed results.', rep: 52, years: 3, age: 45 },
@@ -33,18 +55,29 @@ export function gmSalary(rep: number, arch: string, happy = 60) {
   const G = gen(arch), v = (0.8 + Math.pow(rep / 30, 2)) * G.mult * (0.85 + happy / 400);
   return r2(G.cap != null ? Math.min(G.cap, v) : v);
 }
-export const expOf = (s: any) => EXPERIENCE[s.gm?.exp ?? 2];
+// Your résumé: the two parts, the reputation and first-contract length they give, and a label.
+export function resumeOf(gm: Partial<GMProfile> | null | undefined) {
+  const old = EXPERIENCE[gm?.exp ?? 2] ?? EXPERIENCE[2], fo = gm?.fo ?? [0, 1, 3, 3, 4, 4][gm?.exp ?? 2] ?? 3, play = gm?.play ?? 0;
+  const F = FRONT_OFFICE[fo] ?? FRONT_OFFICE[2], Pl = PLAYING[play] ?? PLAYING[0];
+  const rep = gm?.fo == null ? old.rep : Math.min(90, F.rep + Pl.rep), years = gm?.fo == null ? old.years : Math.min(5, (F.years || 3) + (play >= 3 ? 1 : 0));
+  return { fo, play, rep, years, label: F.label + (play ? ' · ' + Pl.label : '') };
+}
+// Your age in season Y: you start at your chosen age and age a year a season, to 100 at most.
+export function gmAge(gm: Partial<GMProfile> | null | undefined, Y?: number) {
+  const a0 = gm?.age ?? (EXPERIENCE[gm?.exp ?? 2] ?? EXPERIENCE[2]).age;
+  return Math.min(GM_AGE.cap, a0 + (Y != null && gm?.y0 != null ? Math.max(0, Y - gm.y0) : 0));
+}
 
 // The contract you start a league with.
-export function startingContract(g: Game, s: any, tid: number, exp: number) {
-  const E = EXPERIENCE[exp] ?? EXPERIENCE[2], arch = s.teams[tid].arch, years = Math.max(2, E.years + Math.min(0, gen(arch).yrs));
-  return { tid, years, salary: gmSalary(E.rep, arch), from: g.Y, thru: g.Y + years - 1 };
+export function startingContract(g: Game, s: any, tid: number, gm: Partial<GMProfile> | null | undefined) {
+  const R = resumeOf(gm), arch = s.teams[tid].arch, years = Math.max(2, R.years + Math.min(0, gen(arch).yrs));
+  return { tid, years, salary: gmSalary(R.rep, arch), from: g.Y, thru: g.Y + years - 1 };
 }
 export function contractOf(g: Game, s: any) {
   const c = s.career?.contract;
   if (c && c.thru != null && s.teams[c.tid] && g.isUser(s, c.tid)) return c;
   if (c && c.years && c.from != null && s.teams[c.tid] && g.isUser(s, c.tid)) return { ...c, thru: c.from + c.years - 1 };
-  return { ...startingContract(g, s, s.me, s.gm?.exp ?? 2), from: g.Y - 1, thru: g.Y + 1, assumed: true };
+  return { ...startingContract(g, s, s.me, s.gm), from: g.Y - 1, thru: g.Y + 1, assumed: true };
 }
 
 export interface GMOffer { tid: number; years: number; salary: number; kind: 'expiring' | 'early'; season: number; quote: string; base?: { years: number; salary: number }; counters?: number; final?: boolean; reply?: string }
@@ -142,7 +175,9 @@ export function counterOffer(g: Game, years: number, salary: number) {
 }
 
 // Finishing the "Create your GM" step at the start of a league.
-export interface GMProfile { name: string; nat: string; exp: number; race: string; seed: number; img?: string; familyFirst?: boolean }
+// fem: a woman (her face and name); age: your age when the league started (y0); fo/play: your résumé
+// (FRONT_OFFICE, PLAYING); bg: your headshot's backdrop (GM_BACKDROPS); exp: older saves' one experience level.
+export interface GMProfile { name: string; nat: string; race: string; seed: number; img?: string; familyFirst?: boolean; fem?: boolean; age?: number; y0?: number; fo?: number; play?: number; bg?: string; exp?: number }
 // Countries whose names are written family name first (Nguyễn Văn Hùng, Wang Xiaoming, Kim Min-jun, Nagy László).
 export const FAMILY_FIRST_NATS = ['VN', 'CN', 'TW', 'HK', 'MO', 'KR', 'KP', 'KH', 'HU', 'MN'];
 export const isFamilyFirst = (gm: Partial<GMProfile> | null | undefined) => gm?.familyFirst ?? FAMILY_FIRST_NATS.includes(gm?.nat || '');
@@ -156,9 +191,9 @@ export function givenName(gm: Partial<GMProfile> | null | undefined) {
 }
 export function finishGMSetup(g: Game, gm: GMProfile) {
   g.setState(s => {
-    const E = EXPERIENCE[gm.exp] ?? EXPERIENCE[2];
-    return { gm, gmSetup: false, career: { ...(s.career || { seasons: [] }), repBase: E.rep, contract: startingContract(g, s, s.me, gm.exp) } };
+    const me = { ...gm, y0: g.Y };
+    return { gm: me, gmSetup: false, career: { ...(s.career || { seasons: [] }), repBase: resumeOf(me).rep, contract: startingContract(g, s, s.me, me) } };
   });
 }
-// Your headshot: the same face generator as the players, aged by experience.
-export const gmFaceInput = (gm: GMProfile) => ({ id: 900000 + (gm.seed % 90000), race: gm.race, age: (EXPERIENCE[gm.exp] ?? EXPERIENCE[2]).age });
+// Your headshot: the same face generator as the players, at your age (not your experience).
+export const gmFaceInput = (gm: GMProfile, Y?: number) => ({ id: 900000 + (gm.seed % 90000), race: gm.race, age: gmAge(gm, Y), fem: !!gm.fem });
