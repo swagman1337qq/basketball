@@ -12,6 +12,13 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - In God Mode you can tick the winner of postseason games still to come, just like regular-season ones.
 
 ### Changed
+- **Player faces look more lifelike.**
+  - Hair casts a soft shadow on the forehead, so it sits on the head.
+  - Eyes are a little larger, with shading under the lids and darker lashes at the corners.
+  - Eyebrows have visible hairs.
+  - Cheekbones and jaws have more shape, and lighter skin has a touch of color in the cheeks.
+  - Necks show their muscles.
+  - Heads are slightly narrower.
 - **Every team has a new, hand-drawn logo** (all but the Iŋaliq Ivories and Wazíbló Dragoons, which already had theirs).
   - **Each logo has a real mascot for its nickname.** A few examples:
     - Baltimore: a camel heading for an oasis.

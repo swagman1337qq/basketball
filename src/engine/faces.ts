@@ -271,7 +271,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   const J = jersey, X = EXPR[f.expr] || EXPR.serious;
 
   // ── Geometry: a superellipse cranium, then cheeks, jaw and chin ──
-  const Hd = f.head, cx = 50, cy = 59, rw = 23.4 * Hd.w, rh = 29.2 * Hd.h, sq = 2 + 0.9 * Hd.sq, build = f.build || 0;
+  const Hd = f.head, cx = 50, cy = 59, rw = 22.8 * Hd.w, rh = 29.2 * Hd.h, sq = 2 + 0.9 * Hd.sq, build = f.build || 0;
   const chinY = cy + rh * (0.97 + 0.12 * Hd.chin), crown = cy - rh;
   const cran = (th: number, off = 0): Pt => { const c = Math.cos(th), s = Math.sin(th); return [cx + (rw + off) * Math.sign(c) * Math.pow(Math.abs(c), 2 / sq), cy - (rh + off) * Math.pow(Math.abs(s), 2 / sq)]; };
   const halfW = (y: number) => { const t = Math.abs(cy - y) / rh; return t >= 1 ? 0 : rw * Math.pow(1 - Math.pow(t, sq), 1 / sq); };
@@ -281,7 +281,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   const mir = (a: Pt[]) => a.map(([x, y]) => [2 * cx - x, y] as Pt);
   const rightHalf = [...upR, ...lowR.slice(1)], outline = [...rightHalf, ...mir(rightHalf).reverse().slice(1, -1)];
   const ey = cy + rh * 0.03, nl = (chinY - ey) * (0.42 + 0.08 * f.nose.len), noseY = ey + nl, my = noseY + (chinY - noseY) * 0.35;
-  const ex = rw * 0.415 * f.eyes.spacing, ea = 3.9 * f.eyes.size;
+  const ex = rw * 0.425 * f.eyes.spacing, ea = 4.1 * f.eyes.size;
   const nW = rw * (0.52 + 0.07 * build) * (f.fem ? 0.84 : 1), shY = chinY + 10.5;
   const sk = f.skin.color, tone = f.skin.tone, shd = mixC(sk, '#2a120a', 0.45), hil = mixC(sk, '#fff6ee', 0.5);
   const so = 0.15 + 0.07 * tone, ho = 0.1 + 0.16 * tone; // shading and highlight strength (sheen shows more on darker skin)
@@ -362,7 +362,9 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   P(`M${pt(cx - nW, cy + rh * 0.5)}L${pt(cx - nW - 1.2, shY + 2)}L${pt(cx + nW + 1.2, shY + 2)}L${pt(cx + nW, cy + rh * 0.5)}Z`, sk);
   { const jaw = lowR.filter(p => p[1] > jawY - 2 && Math.abs(p[0] - cx) <= nW + 0.5), jw = [...jaw, ...mir(jaw).reverse().slice(1)].filter(p => Math.abs(p[0] - cx) <= nW + 0.5);
     if (jw.length > 2) P(poly([...jw.map(([x, y]) => [x, y + 4.8] as Pt), ...jw.slice().reverse()]), shd, 0.42);
-    [0.5, 0.72, 0.88].forEach(k => P(`M${pt(cx + nW * k, cy + rh * 0.55)}L${pt(cx + nW + 0.4, cy + rh * 0.55)}L${pt(cx + nW + 1.2, shY + 2)}L${pt(cx + nW * k + 0.3, shY + 2)}Z`, shd, so * 0.32)); }
+    [0.5, 0.72, 0.88].forEach(k => P(`M${pt(cx + nW * k, cy + rh * 0.55)}L${pt(cx + nW + 0.4, cy + rh * 0.55)}L${pt(cx + nW + 1.2, shY + 2)}L${pt(cx + nW * k + 0.3, shY + 2)}Z`, shd, so * 0.32));
+    [-1, 1].forEach(s => S(`M${pt(cx + s * nW * 0.9, chinY + 1.5)}Q${pt(cx + s * nW * 0.62, shY - 5)} ${pt(cx + s * 2.6, shY - 0.6)}`, shd, 0.8, so * (s > 0 ? 0.75 : 0.45)));
+    if (!f.fem) { SE(cx + 0.3, chinY + 5.6, 1.5, 1.9, hil, ho * 0.7); S(`M${pt(cx - 1.3, chinY + 7.4)}Q${pt(cx + 0.3, chinY + 8.2)} ${pt(cx + 1.7, chinY + 7.2)}`, shd, 0.5, 0.16); } }
   const shW = 43 + 3 * build, under = f.acc?.undershirt, shirt = under ? (under === 'team' ? dk(J[0], 0.18) : under === 'black' ? '#1c1c1e' : '#f1f1ef') : null;
   P(`M${pt(cx - nW, shY - 6)}C${pt(cx - nW - 4, shY + 1)} ${pt(cx - shW + 8, shY + 3)} ${pt(cx - shW + 2, shY + 14)}L${pt(cx - shW - 2, 150)}L${pt(cx + shW + 2, 150)}L${pt(cx + shW - 2, shY + 14)}C${pt(cx + shW - 8, shY + 3)} ${pt(cx + nW + 4, shY + 1)} ${pt(cx + nW, shY - 6)}Z`, shirt || sk);
   if (!shirt) { SE(cx + shW - 13, shY + 18, 6, 11, shd, so * 0.9); SE(cx - shW + 12, shY + 12, 4.5, 6, hil, ho * 0.5); }
@@ -398,6 +400,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   [-1, 1].forEach(s => { const g = eyeG(s), ri = 1.95 * Ey.size, ix = g.ecx + s * 0.1, iy = ey + 0.15;
     P(g.up + g.lo + 'Z', sclera); C(ix, iy, ri, Ey.hex); add('circle', { cx: n2(ix), cy: n2(iy), r: n2(ri - 0.18), fill: 'none', stroke: dk(Ey.hex, 0.45), strokeWidth: 0.35 });
     C(ix, iy, ri * 0.44, '#0b0908'); C(ix - 0.65, iy - 0.75, 0.5, '#ffffff', 0.9); C(ix + 0.55, iy + 0.5, 0.22, '#ffffff', 0.5);
+    add('path', { d: g.up, fill: 'none', stroke: shd, strokeWidth: 1.5, strokeLinecap: 'round', opacity: 0.3, transform: 'translate(0 0.7)' }); // the lid's shadow on the eye
     P(`${g.up}L${pt(g.xo, ey - 7)}L${pt(g.xi, ey - 7)}Z`, sk); P(`M${pt(g.xo, g.yo)}${g.lo}L${pt(g.xi, ey + 6)}L${pt(g.xo, ey + 6)}Z`, sk); });
 
   // ── Light and shade on the face ──
@@ -405,9 +408,13 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   [1, 0.64, 0.34].forEach(k => { P(poly(band(1, rw * 0.26 * k)), shd, so * 0.42); P(poly(band(-1, rw * 0.12 * k)), shd, so * 0.2); });
   [-1, 1].forEach(s => { SE(cx + s * rw * 0.86, cy - rh * 0.25, rw * 0.14, rh * 0.22, shd, so * 0.5); SE(cx + s * rw * 0.55, ey + nl * 0.42, rw * 0.22, nl * 0.18, hil, ho * (s < 0 ? 0.9 : 0.45), s * -12);
     if (build < 0.15) SE(cx + s * rw * 0.6, ey + nl * 0.82, rw * 0.18, nl * 0.34, shd, (0.15 - build) * 0.1 * (s > 0 ? 1.3 : 0.8), s * -20);
+    SE(cx + s * rw * 0.66, ey + nl * 0.95, rw * 0.13, nl * 0.3, shd, so * (s > 0 ? 0.32 : 0.18), s * -24); // under the cheekbone
+    SE(cx + s * rw * 0.62, ey + nl * 0.34, rw * 0.2, nl * 0.14, hil, ho * (s < 0 ? 0.55 : 0.25), s * -14); // on the cheekbone
+    SE(cx + s * jawX * 0.78, jawY - 1.6, rw * 0.16, 1.4, hil, ho * (s < 0 ? 0.35 : 0.15), s * 32); // along the jaw
     const g = eyeG(s); SE(g.ecx, ey - 2.7, ea * 1.35, 2.7, shd, 0.12 + (Ey.shape === 'deepset' ? 0.14 : 0)); S(`M${pt(g.xi + s * 0.6, ey + Lw + 1.5)}Q${pt(g.ecx, ey + Lw + 2.6)} ${pt(g.xo, ey + Lw + 0.9)}`, shd, 0.8, 0.08 + (f.age?.bags || 0) * 0.16);
     if (X.cheek) SE(g.ecx + s * 0.6, ey + Lw + 2.9, ea * 0.95, 1.4, hil, 0.12 * X.cheek); });
   SE(cx - rw * 0.14, cy - rh * 0.42, rw * 0.46, rh * 0.17, hil, ho * 0.8);
+  { const warm = Math.max(0, 0.75 - tone); if (warm > 0) { [-1, 1].forEach(s => SE(cx + s * rw * 0.5, ey + nl * 0.66, rw * 0.19, nl * 0.2, '#e0705e', warm * (f.fem ? 0.13 : 0.09))); SE(cx + (N.crook || 0) * 0.8, noseY - 2, 1.8, 1.4, '#e0705e', warm * 0.08); } }
   SE(cx - 0.6, chinY - 3.2, chinX * 0.55 + 1.2, 1.8, hil, ho * 0.9);
   if (Hd.cleft) S(`M${pt(cx, chinY - 3.6)}L${pt(cx, chinY - 1.4)}`, shd, 0.55, 0.3);
   // Freckles and a mole.
@@ -419,6 +426,7 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   const lash = mixC('#170f0b', sk, 0.12);
   [-1, 1].forEach(s => { const g = eyeG(s), cg = 1.1 + 0.6 * (1 - (Ey.lid ?? 0.5));
     S(g.up, lash, 0.8 + 0.15 * Ey.size + (f.fem ? 0.45 : 0));
+    S(`M${pt(g.ecx + s * ea * 0.2, ey - U * 1.17)}Q${pt(g.xo - s * ea * 0.18, ey - U * 0.98)} ${pt(g.xo + s * (f.fem ? 0.7 : 0.35), g.yo - (f.fem ? 0.45 : 0.2))}`, lash, f.fem ? 1.3 : 0.95); // the outer corner
     if (f.fem) [0.55, 0.75, 0.95].forEach((t, i) => { const x = g.xi + (g.xo - g.xi) * t, y = ey - U * (1.05 - 0.5 * t * t); S(`M${pt(x, y)}l${n2(s * (0.5 + 0.3 * i))} ${n2(-0.9 - 0.2 * i)}`, lash, 0.45); }); // lashes S(`M${pt(g.ecx + s * ea * 0.3, ey - U * 1.12)}Q${pt(g.xo - s * ea * 0.15, ey - U * 0.9)} ${pt(g.xo + s * 0.35, g.yo - 0.2)}`, lash, 1.1);
     if (Ey.shape === 'monolid') S(`M${pt(g.xi + s * 0.4, g.yi - 0.5)}C${pt(g.xi + s * ea * 0.4, ey - U * 1.3)} ${pt(g.xo - s * ea * 0.5, ey - U * 1.25)} ${pt(g.xo, g.yo - 0.3)}`, shd, 0.5, 0.3);
     else S(`M${pt(g.xi + s * ea * 0.25, g.yi - 1.3)}C${pt(g.xi + s * ea * 0.45, ey - U * 1.28 - cg)} ${pt(g.xo - s * ea * 0.5, ey - U * 1.2 - cg)} ${pt(g.xo + s * 0.2, g.yo - 1)}`, shd, 0.55, Ey.shape === 'hooded' ? 0.3 : 0.5);
@@ -433,6 +441,9 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
     const yi = by + X.brIn * 0.9 + Br.tilt * 1.5 - raise, yp = by - BS[0] - raise * 0.8, yo = by + BS[1] - Br.tilt * 1.5 - raise * 0.5, t = 1.25 * Br.thick, tp = t * 0.85;
     const d = `M${pt(xi, yi)}Q${pt((xi + xp) / 2, yp + 0.25)} ${pt(xp, yp)}Q${pt((xp + xo) / 2, yp - 0.1)} ${pt(xo, yo)}Q${pt((xp + xo) / 2, yp - tp * 0.92)} ${pt(xp, yp - tp)}Q${pt((xi + xp) / 2, yp - tp * 0.85 + 0.2)} ${pt(xi, yi - t)}Z`;
     P(d, bc, 0.93); P(`M${pt(xi, yi)}L${pt(xi + s * 1.6, yi - 0.2)}L${pt(xi + s * 1.6, yi - t)}L${pt(xi, yi - t)}Z`, sk, 0.3);
+    { let hs = ''; const nH = 7 + Math.round(3 * Br.thick); for (let i = 0; i < nH; i++) { const u = (i + 0.5) / nH, x = xi + (xo - xi) * u, yb2 = u < 0.42 ? yi + (yp - yi) * (u / 0.42) : yp + (yo - yp) * ((u - 0.42) / 0.58), up = u < 0.3 ? 1.1 : 0.35;
+        hs += `M${pt(x, yb2 - 0.15)}l${n2(s * (0.35 + 0.5 * u))} ${n2(-t * (0.55 + 0.35 * up))}`; }
+      S(hs, mixC(bc, sk, 0.12), 0.32, 0.5); S(`M${pt(xi + s * 0.3, yi - 0.2)}l${n2(s * 0.2)} ${n2(-t * 0.8)}M${pt(xi + s * 0.9, yi - 0.25)}l${n2(s * 0.15)} ${n2(-t * 0.9)}`, bc, 0.35, 0.45); }
     if (Br.shape === 'bushy') for (let i = 0; i < 5; i++) { const x = xi + ((xo - xi) * (i + 0.5)) / 5; S(`M${pt(x, yp - tp * 0.6)}l${n2(s * 0.9)} -0.9`, bc, 0.35, 0.7); }
     const slit = Br.slit || 0; if (slit && s > 0) for (let i = 0; i < slit; i++) { const x = xp + s * (1.2 + i * 1.1); S(`M${pt(x, yp - tp - 0.4)}L${pt(x + s * 0.35, yo + 0.6)}`, sk, 0.55); }
     const brw = f.acc?.brow; if (brw && brw.side === s) { const mc = METALS[brw.metal] || METALS.silver, x = xo - s * 1.1; C(x, yo - t * 0.4 - 1.1, 0.42, mc); C(x, yo + 0.8, 0.42, mc); S(`M${pt(x, yo - t * 0.4 - 1.1)}L${pt(x, yo + 0.8)}`, mc, 0.25, 0.8); }
@@ -505,6 +516,9 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
     P(must(th, wd), fc, (fs === 'shortBeard' ? 0.82 : 0.93) * den); }
   // Forehead lines.
   { const al = f.age?.lines || 0; if (al > 0.05) for (let i = 0; i < (al > 0.5 ? 3 : 2); i++) S(`M${pt(cx - rw * 0.42, by - 4.4 - i * 2.2)}Q${pt(cx, by - 5.6 - i * 2.2)} ${pt(cx + rw * 0.42, by - 4.4 - i * 2.2)}`, shd, 0.45, 0.22 * al); }
+
+  // The hair's shadow on the forehead and temples, so it sits on the head rather than on top of it.
+  if (!spec.bald && !spec.strip) { const sh2 = F.filter(p => Math.abs(p[0] - cx) <= xS + 0.5); [[2.6, 0.12], [1.5, 0.16]].forEach(([w, o]) => S(poly(sh2.map(([x, y]) => [x, y + w * 0.55] as Pt), false), shd, w, o * (spec.fade === 'skin' ? 0.5 : 1))); }
 
   // ── Hair on the head ──
   const st = HR.style;
