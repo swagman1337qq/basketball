@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-C6b0CtUQ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BmRB7f6Q.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-11
+
+### Fixed
+- **Turning League expansion on or off in Settings no longer blanks the screen.**
 
 ### Added
 - **Conferences follow the map.** Every team west of Lebanon, Kansas (the middle of the country) plays in the West, every team east of it in the East. If that leaves one conference bigger, the teams closest to the line switch over until the two are even. Today's 30 teams already line up that way; when expansion teams join, the league realigns at the start of the season, and any team that switches conference shows up in the league transactions. Divisions stay the same, and new or moved teams join the nearest one with room.
