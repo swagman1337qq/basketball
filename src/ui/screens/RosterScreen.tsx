@@ -53,16 +53,27 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const g = tot.gp || 1; return { gp: tot.gp || 0, min: tot.min / g, pts: tot.pts / g, reb: ((tot.orb || 0) + (tot.drb || 0)) / g, ast: tot.ast / g, per: gm.perOf(tot, season) }; };
   const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = (id: number) => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
   const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { rosters: { ...st.rosters, [tid]: o }, dragId: null, overId: null }; });
-  const [drag, setDrag] = useState<number | null>(null);
   const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
+  // Drag to reorder, live: while you drag, the list re-sorts under the cursor (the players you pass slide
+  // out of the way), and the order is saved when you drop. Let go outside the table to cancel.
+  const [drag, setDrag] = useState<number | null>(null), [order, setOrder] = useState<number[] | null>(null);
+  const listOf = (id: number) => (mainIds.includes(id) ? mainIds : tw.includes(id) ? tw : ex10);
+  const shown = (list: number[]) => (order && drag != null && list.includes(drag) && order.length === list.length ? order : list);
+  const place = (at: number) => { if (!order || drag == null) return; const o = order.filter(x => x !== drag); o.splice(Math.max(0, Math.min(o.length, at)), 0, drag); if (o.join() !== order.join()) setOrder(o); };
+  const dragOver = (e: React.DragEvent, target: number) => { if (!mine || drag == null || !order) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (target === drag || !order.includes(target)) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), o = order.filter(x => x !== drag); place(o.indexOf(target) + (e.clientY > r.top + r.height / 2 ? 1 : 0)); };
+  const endDrag = () => { setDrag(null); setOrder(null); };
+  const commit = () => { if (drag == null || !order) return endDrag(); const ord = order, d = drag;
+    gm.setState(st => { delete P[d]?.preInj; /* you placed him: he stays there when he heals */ const inList = new Set(ord); let k = 0; return { rosters: { ...st.rosters, [tid]: (st.rosters[tid] || []).map((x: number) => (inList.has(x) ? ord[k++] : x)) } }; }); endDrag(); };
   const startersSet = new Set(cur ? (gm.isUser(s, tid) ? mainIds.slice(0, 5) : ids.filter(id => gm.canPlay1(s, P[id])).slice(0, 5)) : []); // an AI team: the five who start its next game
   const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
     const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id);
     const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
     return (
-      <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setDrag(id); }} onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== id) move(drag, id); setDrag(null); }}
-        style={{ cursor: 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined }}>
+      <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); setDrag(id); setOrder(listOf(id).slice()); }}
+        onDragOver={e => dragOver(e, id)} onDrop={e => { e.preventDefault(); commit(); }} onDragEnd={endDrag}
+        style={{ cursor: mine ? 'grab' : 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined, opacity: drag === id ? 0.75 : 1, outline: drag === id ? '2px dashed var(--color-accent)' : undefined, outlineOffset: -2 }}>
         <td style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }} title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'} />
         {mine && <td style={{ ...td, whiteSpace: 'nowrap', padding: '2px 3px' }} onClick={e => e.stopPropagation()}>
           <span style={{ cursor: 'grab', color: 'var(--color-neutral-500)', padding: '0 3px' }}>⋮⋮</span>
@@ -112,7 +123,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   };
   // The line between the starting five and the bench. Drop a player on it to make him the first man off the bench.
   const BenchBar = () => (
-    <tr aria-hidden onDragOver={e => { if (mine) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag != null && drag !== mainIds[5]) move(drag, mainIds[5]); setDrag(null); }}>
+    <tr aria-hidden onDragOver={e => { if (!mine || drag == null || !order || !mainIds.includes(drag)) return; e.preventDefault(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); place(e.clientY < r.top + r.height / 2 ? 4 : 5); }} onDrop={e => { e.preventDefault(); commit(); }}>
       <td colSpan={100} style={{ padding: 0, borderBottom: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 10px', borderTop: '3px solid var(--color-accent-700)', background: 'color-mix(in srgb, var(--color-accent-700) 9%, transparent)', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
           <span>▲ Starters</span><span style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-accent-700) 35%, transparent)' }} /><span>Bench ▼</span>
@@ -189,12 +200,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
-          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{mainIds.map((id, i) => <Fragment key={id}>{Row({ id, i, list: mainIds })}{i === 4 && cur && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
+          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(mainIds).map((id, i) => <Fragment key={id}>{Row({ id, i, list: mainIds })}{i === 4 && cur && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
-                    {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{tw.map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
+                    {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(tw).map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>
             <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Press To two-way or Make standard, or waive him by opening night.</span></div>
-            <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{ex10.map((id, i) => Row({ id, i, list: ex10 }))}</tbody></table></div>
+            <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(ex10).map((id, i) => Row({ id, i, list: ex10 }))}</tbody></table></div>
           </>}
         </>
       ) : (
