@@ -76,11 +76,20 @@ const OLD_PRESET_TEND = [{ rim: 1.05, mid: 0.23, c3: 0.9, atb: 1.02, draw: 2.8, 
 // Their 0–100 scores of 2026-10-08 (version 3), before tendencies became shares.
 const OLD_PRESET_TEN3 = [{ usage: 52, ra: 62, paint: 48, mid: 66, c3: 43, atb: 84, cns: 28, pullup: 72, ftr: 67 }, { usage: 51, ra: 46, paint: 45, mid: 44, c3: 69, atb: 66, cns: 64, pullup: 36, ftr: 25 }, { usage: 43, ra: 24, paint: 52, mid: 43, c3: 2, atb: 2, cns: 27, pullup: 73, ftr: 62 }, { usage: 48, ra: 48, paint: 62, mid: 71, c3: 2, atb: 2, cns: 53, pullup: 47, ftr: 67 }, { usage: 45, ra: 16, paint: 25, mid: 44, c3: 11, atb: 18, cns: 21, pullup: 79, ftr: 70 }, { usage: 53, ra: 42, paint: 58, mid: 94, c3: 43, atb: 43, cns: 61, pullup: 39, ftr: 22 }, { usage: 32, ra: 62, paint: 65, mid: 79, c3: 79, atb: 39, cns: 64, pullup: 36, ftr: 53 }, { usage: 51, ra: 56, paint: 79, mid: 48, c3: 2, atb: 2, cns: 49, pullup: 51, ftr: 90 }];
 // A saved copy of a ready-made card (id 'presetN') that still has an old playing style gets the new one.
+// Ready-made cards retuned since (2026-10-11: Kawhi Leonard's rookie card was too strong for a 7.9-point
+// rookie, 61 overall with 86 potential): a library copy still holding exactly the old ratings takes the new
+// ratings, potential, intangibles and work ethic.
+const RETUNED: Record<string, any> = {
+  'Kawhi Leonard': { hgt: 50, stre: 70, spd: 70, acc: 62, jmp: 56, endu: 72, ins: 62, dnk: 87, lay: 87, ft: 55, fg: 53, tp: 60, oiq: 54, diq: 70, blk: 38, stl: 73, drb: 44, pss: 43, reb: 61, box: 58 },
+};
 export function upgradePresetCard(row: { id: string; card: any }): boolean {
   const m = /^preset(\d+)$/.exec(row.id || ''), i = m ? +m[1] : -1, c = row.card, same = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
   if (i < 0 || !PRESET_CARDS[i] || !c) return false;
-  if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return false;
-  delete c.tend; c.ten = { ...PRESET_CARDS[i].card.ten }; return true;
+  let changed = false;
+  const P0 = PRESET_CARDS[i].card, old = RETUNED[P0.name];
+  if (old && c.name === P0.name && c.r && same(c.r, old)) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; changed = true; }
+  if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return changed;
+  delete c.tend; c.ten = { ...P0.ten }; return true;
 }
 
 // Ready-made cards (the starting library; every one is editable).
@@ -176,10 +185,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Real (All-Rookie First Team): 64 games (39 starts), 24.0 min, 7.9 pts, 5.1 reb, 1.3 stl, .493 FG, .376 from
     // three (45% of them from the corners, .469), .773 FT, PER 16.6, WS/48 .171, BPM +3.4, DRtg 101. A low-usage
     // finisher and corner shooter who guarded the other team's best wing: 7-3 wingspan, the biggest hands at the
-    // combine. Quiet, humble, legendary work ethic.
-    r: { hgt: 50, stre: 70, spd: 70, acc: 62, jmp: 56, endu: 72, ins: 62, dnk: 87, lay: 87, ft: 55, fg: 53, tp: 60, oiq: 54, diq: 70, blk: 38, stl: 73, drb: 44, pss: 43, reb: 61, box: 58 },
-    pot: 86, intg: { feel: 71, poise: 86 },
-    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 99, loyalty: 40, ambition: 72 },
+    // combine. Quiet, humble, legendary work ethic. Retuned 2026-10-11 to a role player's ratings (he started at 61
+    // overall, a rookie star's): 57 overall, 80 potential, the work ethic high but not maxed.
+    r: { hgt: 50, stre: 64, spd: 64, acc: 58, jmp: 54, endu: 70, ins: 54, dnk: 72, lay: 70, ft: 55, fg: 50, tp: 58, oiq: 48, diq: 64, blk: 34, stl: 64, drb: 40, pss: 40, reb: 66, box: 62 },
+    pot: 80, intg: { feel: 64, poise: 80 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 88, loyalty: 40, ambition: 72 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 15.5%: 38% at the rim, 14% paint, 21% mid-range, 27% threes (most from the corners); mostly catch-and-shoot; .27 FTA per FGA.
     ten: { usage: 32, ftr: 53, ra: 38, paint: 14, mid: 21, c3: 17, atb: 10, cns: 75, pullup: 18, step: 2, fade: 5 },
   } },
