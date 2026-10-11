@@ -206,4 +206,18 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
     ten: { usage: 51, ftr: 90, ra: 65, paint: 27, mid: 8, c3: 0, atb: 0, cns: 20, pullup: 20, step: 0, fade: 60 },
   } },
+  { label: 'John Wall – Rookie year (2010–11)', card: {
+    card: 1, name: 'John Wall', first: 'John', last: 'Wall', pos: 'PG', age: 20, dob: '1990-09-06', hgt: '6′4″', wt: 195, wing: 81,
+    rep: 'US', born: 'US', raised: 'US', city: 'Raleigh', state: 'NC', her: 'US', race: 'black',
+    // Real (No. 1 pick, All-Rookie First Team, Rookie of the Year runner-up): 69 starts, 37.8 min, 16.4 pts on 14.6
+    // FGA, 8.3 ast, 4.6 reb, 1.8 stl, 3.8 tov, .409 FG, .296 on 1.7 threes, .766 FT on 5.1 attempts, TS .487, PER
+    // 15.8. The fastest end-to-end guard in the league: lived at the rim and in transition, pull-up jumpers he
+    // hadn't found yet, loose with the ball. Played at 38 minutes, the card gives about 17 pts, 8.3 ast, 4.5 reb,
+    // 2 stl, .417 FG and .28 from three. Became a five-time All-Star.
+    r: { hgt: 40, stre: 50, spd: 97, acc: 95, jmp: 80, endu: 84, ins: 48, dnk: 72, lay: 68, ft: 54, fg: 36, tp: 39, oiq: 40, diq: 44, blk: 45, stl: 66, drb: 74, pss: 72, reb: 30, box: 24 },
+    pot: 78, intg: { feel: 74, poise: 50 },
+    pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 55, loyalty: 70, ambition: 75 },
+    // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): 32% at the rim, 16% paint, 40% mid-range, 12% threes; mostly pull-ups; .35 FTA per FGA.
+    ten: { usage: 40, ftr: 61, ra: 32, paint: 16, mid: 40, c3: 2, atb: 10, cns: 12, pullup: 75, step: 5, fade: 8 },
+  } },
 ];
