@@ -341,8 +341,11 @@ export class Game {
   setState(u: any, cb?: () => void) {
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
-      const prevNotices = this.state.notices;
+      const prevNotices = this.state.notices, prevPhase = this.state.phase;
       this.state = { ...this.state, ...patch };
+      // A new phase moves the calendar on (the lottery, the draft, free agency, camp, opening night): anyone
+      // whose recovery is over by then is healthy, and the rest's games left follow the days (healCal).
+      if (patch.phase && patch.phase !== prevPhase && this.db?.P && this.state.rosters && !['playin', 'playoffs'].includes(patch.phase)) { const rosters = { ...this.state.rosters }; if (this.healCal(this.state, rosters).length) { this.state.rosters = rosters; patch.rosters = rosters; } }
       // Nothing pops up: every notice goes straight to the Mailbox (s.mail, newest first, the last 250),
       // dated and numbered so the Mailbox tab can count what's new; unread mail holds the game (mailWaiting).
       if (patch.notices && patch.notices !== prevNotices && patch.notices.length && !this.state.spectator) {
@@ -1001,6 +1004,8 @@ export class Game {
         [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (x.w === t ? 'Won' : 'Lost') + ' the play-in (' + x.label + ') vs ' + s.teams[x.w === t ? x.l : x.w].abbr + ', ' + Math.max(x.hp, x.ap) + '–' + Math.min(x.hp, x.ap)); });
         if (x.id === 'B' || x.id === 'A') { const [A, B, C] = pi[c]; if (A.done && B.done) Object.assign(C, { a: A.l, sa: A.l === A.a ? 7 : 8, b: B.w, sb: B.w === B.a ? 9 : 10 }); }
       });
+      const alive = new Set<number>(['East', 'West'].flatMap(c => (s.seeds?.[c] || []).slice(0, 10))); // still playing: the top six and the play-in
+      this.healCal({ ...s, day: s.day + 1, rosters }, rosters, alive);
       return { ...st, clubs, playin: pi, games, rosters, day: s.day + 1 };
     });
   }
@@ -1053,6 +1058,7 @@ export class Game {
       let g = 0;
       if (mode === 'game') playDay(); else if (mode === 'round') { const n0 = po.rounds.length; while (po.rounds.length === n0 && po.champ == null && g++ < 10) playDay(); } else while (po.champ == null && g++ < 40) playDay();
       const out: any = { ...st, clubs, po, games, day, rosters: poRosters };
+      { const last = po.rounds[po.rounds.length - 1], alive = new Set<number>(po.champ == null ? last.filter(x => !done(x)).flatMap(x => [x.a, x.b]) : []); this.healCal({ ...s, day, rosters: poRosters }, poRosters, alive); } // knocked-out teams heal on the calendar
       if (po.champ != null) {
         const T = s.teams, defs = awardDefs(s), fd = defs.find(d => d.statRange === -1), sd = defs.find(d => d.statRange === -2);
         const fin = po.rounds[3][0], fm = fd ? seriesMvp(this, s, fd, po.finals, { a: fin.a, b: fin.b, winner: po.champ }) : null;
@@ -1507,10 +1513,11 @@ export class Game {
     return { st, recv, give, diff: recv - give - thr, ok: recv - give >= thr };
   }
   // ── Injury countdowns: games and days ──────────────────────────────────────────────
-  // An injury is the games he'll miss (inj.games, one fewer each game his team plays) and the day he's
-  // back (inj.until, a calendar day: the date of his first game back, on this season's schedule and then
-  // next season's). Days run on the calendar, summer included; games only when there are games.
-  // A player without a team heals on the calendar alone.
+  // An injury is a recovery time on the calendar: the day he's back (inj.until). He's healthy when that day
+  // comes, whatever his team is doing: playing, knocked out of the playoffs, or off for the summer. The games
+  // he'll miss (inj.games) count down one per game his team plays; while it isn't playing they follow the
+  // days (how many of next season's games fall before he's back). Injuries are set in games at the season's
+  // pace (a game every ~2.14 days), so 10 games is about three weeks, and a torn ACL 9 to 12 months.
   // Today, as a day number: game days spread over the real calendar (dateOf), fixed dates in the summer.
   calNow(s = this.state) {
     const dn = (d: Date) => Math.floor(d.getTime() / 864e5), Y = s.season || this.Y, ph = s.phase;
@@ -1522,18 +1529,36 @@ export class Game {
   }
   // The day he's back after `games` more of his team's games. last: the last game day played; gp: games
   // played through it (between game days: the defaults; inside a day's injury tick: that day).
-  injUntil(s, games, last = s.day - 1, gp = this.gamesPlayed(s)) {
-    const dn = (d: Date) => Math.floor(d.getTime() / 864e5), Y = s.season || this.Y;
-    if (s.phase === 'regular') { const left = Math.max(0, 82 - gp); if (games < left) return dn(this.dateOf(last + games + 1)); games -= left; } // the day of his first game back
-    const open = s.phase === 'preseason' ? Y - 1 : Y; // next opening night: Oct 21
-    return dn(new Date(open, 9, 21 + Math.round(Math.max(0, games) * 2.14)));
+  injUntil(s, games, last = s.day - 1, _gp?: number) {
+    const dn = (d: Date) => Math.floor(d.getTime() / 864e5);
+    // In season the game days run on through the playoffs and into the summer on the same calendar (dateOf):
+    // the day of his first game back, or that much time later. Out of season: that much time from today.
+    if (s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs') return dn(this.dateOf(last + Math.max(0, games) + 1));
+    return this.calNow(s) + Math.round(Math.max(0, games) * 2.14);
+  }
+  // Next season's games that fall before a day (out of season, or while his team isn't playing).
+  injGamesNext(s, until) { const dn = (d: Date) => Math.floor(d.getTime() / 864e5), Y = s.season || this.Y, open = dn(new Date(s.phase === 'preseason' ? Y - 1 : Y, 9, 21)); return until <= open ? 0 : 1 + Math.floor((until - open) / 2.14); }
+  // Everyone heals on the calendar (rosters, free agents, players abroad): when his day comes he's back,
+  // whether or not his team played. Teams in `alive` are still playing (the play-in, the playoffs): their
+  // players miss the postseason games before that day; everyone else's games are next season's. Returns who healed.
+  healCal(s, rosters = s.rosters, alive?: Set<number>) {
+    const now = this.calNow(s), P = this.db.P, healed: number[] = [];
+    const step = (id: number, tid: number) => { const p = P[id]; if (!p?.inj) return; if (p.inj.until == null) p.inj.until = this.injUntil(s, p.inj.games);
+      if (p.inj.until <= now) { delete p.inj; if (tid >= 0) this.injBack(s, rosters, tid, p); else delete p.preInj; healed.push(id); return; }
+      if (s.phase === 'regular') { if (tid < 0) p.inj.games = this.injGamesTo(s, p.inj.until); }
+      else if (alive && tid >= 0 && alive.has(tid)) p.inj.games = Math.max(1, Math.ceil((p.inj.until - now) / 2.14)); // a postseason game every ~2.14 days
+      else p.inj.games = this.injGamesNext(s, p.inj.until); };
+    Object.keys(rosters || {}).forEach(k => (rosters[k] || []).slice().forEach((id: number) => step(id, +k)));
+    [...(s.fa || []), ...(s.overseas || [])].forEach((id: number) => step(id, -1));
+    return healed;
   }
   // Games and days left (null if healthy).
   injLeft(p, s = this.state) { const i = p?.inj; if (!i) return null; if (i.until == null) i.until = this.injUntil(s, i.games); return { games: Math.max(0, i.games), days: Math.max(0, i.until - this.calNow(s)) }; }
   // "5 games / 12 days" (short: "5g / 12d").
-  injText(p, short = false, s = this.state) { const l = this.injLeft(p, s); if (!l) return ''; return short ? l.games + 'g / ' + l.days + 'd' : l.games + ' game' + (l.games === 1 ? '' : 's') + ' / ' + l.days + ' day' + (l.days === 1 ? '' : 's'); }
+  injText(p, short = false, s = this.state) { const l = this.injLeft(p, s); if (!l) return ''; const d = l.days + (short ? 'd' : ' day' + (l.days === 1 ? '' : 's'));
+    return !l.games && s.phase !== 'regular' ? d + (short ? '' : ' (back before next season)') : short ? l.games + 'g / ' + d : l.games + ' game' + (l.games === 1 ? '' : 's') + ' / ' + d; }
   // Free agents and players abroad heal on the calendar; in season their games left follow the days.
-  healIdle(s) { const now = this.calNow(s), P = this.db.P; [...(s.fa || []), ...(s.overseas || [])].forEach((id: number) => { const p = P[id]; if (!p?.inj) return; if (p.inj.until == null) p.inj.until = this.injUntil(s, p.inj.games); const left = p.inj.until - now; if (left <= 0) { delete p.inj; delete p.preInj; } else if (s.phase === 'regular') p.inj.games = this.injGamesTo(s, p.inj.until); }); }
+  healIdle(s) { this.healCal(s, s.rosters); }
   // In season: how many of a team's games fall before that day (this season's, then next season's).
   injGamesTo(s, until) { const dn = (d: Date) => Math.floor(d.getTime() / 864e5), gp = this.gamesPlayed(s), left = Math.max(0, 82 - gp), now = this.calNow(s), end = dn(this.dateOf(s.day - 1 + left)); if (until <= end) return Math.max(1, Math.round((until - now) / 2.14)); return left + Math.max(0, Math.round((until - dn(new Date(s.season || this.Y, 9, 21))) / 2.14)); }
   // A team you run: an injured player who won't play through it drops to the end of the roster (out of
@@ -1571,7 +1596,7 @@ export class Game {
       const x = Math.random(); let inj;
       // ~0.7% career-altering tears (about six a season league-wide), ~7% multi-week injuries,
       // ~28% short absences, and the rest (~64%) day-to-day knocks he plays through.
-      if (x < .007) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 70 + Math.floor(Math.random() * 60), major: true }; if (!p.frozen) { ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); } }
+      if (x < .007) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 126 + Math.floor(Math.random() * 45), major: true }; /* 9 to 12 months */ if (!p.frozen) { ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); } }
       else if (x < .077) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain', 'Fractured hand', 'Torn meniscus', 'Calf strain', 'Patellar tendinopathy']), games: 8 + Math.floor(Math.random() * 18) };
       else if (x < .36) { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Knee soreness', 'Back spasms', 'Groin strain', 'Hip contusion', 'Concussion protocol', 'Sprained wrist']), games: 1 + Math.floor(Math.random() * 8) }; p.minorCount = (p.minorCount || 0) + 1; }
       else inj = { name: pk(['Ankle sprain', 'Sore knee', 'Bruised thigh', 'Jammed finger', 'Back tightness', 'Sore wrist', 'Hip soreness', 'Tweaked hamstring']), games: 1 + Math.floor(Math.random() * 5), dtd: true }; // plays through it, at reduced strength
@@ -1823,7 +1848,7 @@ export class Game {
     this.refreshAverages(touched);
     touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) { const c = this.clubOf(s, this.tidOf(rosters, id)); q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (c && c.budget.Coaching >= 25 ? 0.25 : 0)); } });
     this.fatigueTick(rosters, mins);
-    this.injTick(rosters, day, s, inj, mins); this.healIdle(s); // free agents heal on the calendar
+    this.injTick(rosters, day, s, inj, mins); this.healCal({ ...s, rosters }, rosters); // anyone whose day has come (free agents and players abroad too)
     const cbaLog: Record<number, string[]> = {};
     seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj);
     let clubs = { ...(s.clubs || {}) }, patch: any = {};

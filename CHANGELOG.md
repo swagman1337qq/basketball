@@ -5,6 +5,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-11
 
 ### Fixed
+- **Injuries heal on the calendar, all year.** Before, a player only got better when his team played, so injuries froze during the playoffs (if his team was out) and all summer: a 20-game injury picked up near the end of the season still cost 15 games the next season. Now every injury is a real recovery time and he's back when it's up, whether his team is playing, knocked out or off for the summer.
+  - **Days are the recovery time.** Games out are the games his team plays before then: postseason games while his team is still alive, next season's games otherwise. If he'll be back before next season, it shows just the days.
+  - **A torn ACL or ruptured Achilles takes 9 to 12 months**, like the real thing.
 - **John Wall's rookie card is rebuilt and now ready-made.** Tuned against his real 2010–11 season like the other rookie cards: at his 38 minutes he plays almost exactly his real line (about 16–17 points, 8.3 assists, 4.6 rebounds, 1.7 steals, 3.6 turnovers, .41–.42 from the field, .30 from three, .76 at the line). Blazing speed, a loose handle and a jumper still to come; 59 overall, 78 potential (he became a five-time All-Star). It's in Player cards for every league; if you made your own John Wall card earlier, it's still there too.
 - **Kawhi Leonard's rookie card is no longer overpowered.** He started at 61 overall with 86 potential and a maxed work ethic, rated like a star for a rookie who scored 7.9 a game. He's now 57 overall with 80 potential: a tough defender, rebounder and corner shooter who plays like his real rookie year (about 7 points, 5 rebounds and 1.3 steals in 24 minutes) and still has room to grow. Your card library updates on its own unless you edited the card; players you already gave the card keep their ratings.
 - **Turning League expansion on or off in Settings no longer blanks the screen.**
