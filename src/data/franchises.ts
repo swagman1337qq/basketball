@@ -54,7 +54,8 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Tulsa', name: 'Gushers', abbr: 'TUL', conf: 'West', div: 'Southwest', colors: ['#161616', '#e0b04a'], icon: 'Fuel', pop: 1.03, known: 'The Oil Capital of the World and Route 66' },
   { region: 'Tucson', name: 'Stargazers', abbr: 'TUC', conf: 'West', div: 'Southwest', colors: ['#1a1446', '#e98a4f'], icon: 'Telescope', pop: 1.07, known: 'Dark skies and its observatories' },
   { region: 'Fresno', name: 'Harvesters', abbr: 'FRE', conf: 'West', div: 'Pacific', colors: ['#5a3d74', '#a7c957'], icon: 'Grape', pop: 1.18, known: 'The Central Valley’s raisin and grape harvest' },
-  { region: 'Minneapolis', name: 'Loons', abbr: 'MIN', conf: 'West', div: 'Northwest', colors: ['#16323b', '#9ed8db'], icon: 'Bird', pop: 3.7, known: 'Ten thousand lakes and the state bird' },
+  // Brooklyn left the league for Minneapolis (2026-10); the Squares can come back as an expansion team.
+  { region: 'Brooklyn', name: 'Squares', abbr: 'BKN', conf: 'East', div: 'Atlantic', colors: ['#2b2b2b', '#c9894f'], icon: 'BrickWall', pop: 2.6, known: 'Brownstones and its street grid', mkt: 1.2 },
   { region: 'Calgary', name: 'Stampede', abbr: 'CGY', conf: 'West', div: 'Northwest', colors: ['#8a1c1c', '#f2c14e'], icon: 'Star', pop: 1.6, known: 'The Calgary Stampede rodeo' },
   { region: 'Edmonton', name: 'Roughnecks', abbr: 'EDM', conf: 'West', div: 'Northwest', colors: ['#16325c', '#f08a24'], icon: 'Drill', pop: 1.5, known: 'The oil sands workers' },
   { region: 'Mexico City', name: 'Águilas', abbr: 'MEX', conf: 'West', div: 'Southwest', colors: ['#0b5d3b', '#d4af37'], icon: 'Bird', pop: 22.3, known: 'The eagle on the cactus of the city’s founding', mkt: 1.3 },

@@ -5,7 +5,7 @@ import { PRESET_CARDS, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
-import { LOUD_COLORS, PALETTE_V } from '../data/palette';
+import { LOUD_COLORS, LOUD_V2, PALETTE_V } from '../data/palette';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
@@ -224,9 +224,19 @@ export class Game {
     if (!g.db.topV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || !p.ceil || p.gone || p.retired || p.godPot != null) return; SKILLS.forEach(k => { const c = p.ceil[k]; if (c > 85) p.ceil[k] = +Math.max(p.r[k], Math.min(ceilMax(p, k), softTop(c))).toFixed(1); }); refreshPot(p); }); g.db.topV = 1; }
     if (!g.db.dxV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) ensureTranslation(p); }); }); g.db.dxV = 1; }
     if (!g.db.ownerBgV) { g.state = { ...g.state, teams: stampOwnerBgs(g.state.teams) }; g.db.ownerBgV = 1; }
-    // 2026-09 repaint: teams still in their original default colors get the new, louder ones.
+    // 2026-10: Brooklyn's franchise moves to Minneapolis (the Marauders, in the Central; Cleveland moves to
+    // the Atlantic). Its players, picks, owner and records go with it; past seasons keep the Brooklyn name.
+    // Only while the team still has its default name, and once.
+    if (!g.db.minV) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
+      const has = (ts: any[]) => ts.some(t => t?.abbr === 'MIN');
+      const move = (t: any) => { if (t?.abbr !== 'BKN' || t.name !== 'Squares') return t; const dflt = [CLASSIC_COLORS.BKN, TEAM_STYLE.BKN?.colors, LOUD_V2.BKN].some(c => same(t.colors, c));
+        return { ...t, region: 'Minneapolis', name: 'Marauders', abbr: 'MIN', icon: teamStyle('MIN').icon, conf: 'East', div: 'Central', mkt: 1.0, ...(dflt ? { colors: LOUD_COLORS.MIN } : {}) }; };
+      const cle = (t: any) => (t?.abbr === 'CLE' && t.div === 'Central' && t.conf === 'East' ? { ...t, div: 'Atlantic' } : t);
+      if (!has(g.state.teams) && g.state.teams.some((t: any) => t.abbr === 'BKN' && t.name === 'Squares')) { g.state.teams = g.state.teams.map(move).map(cle); g.db.teams = (g.db.teams || []).map(move).map(cle); }
+      g.db.minV = 1; }
+    // Repaints (2026-09 louder, 2026-10 brighter without clashes): teams still in a default palette get the new one.
     if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
-      const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors))) t.colors = nw; };
+      const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors) || same(t.colors, LOUD_V2[t.abbr]))) t.colors = nw; };
       g.db.teams.forEach(repaint); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; repaint(c); return c; }); g.db.paletteV = PALETTE_V; }
     // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
     if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }

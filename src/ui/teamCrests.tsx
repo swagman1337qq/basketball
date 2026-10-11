@@ -7,12 +7,52 @@
 //    rider) at full gallop over the eight-pointed morning star of the Lakota star quilt, above a ridge
 //    of pines. Red, gold, black and white, the colors of the four directions. No headdress, weapon or
 //    caricature: the horse culture and the star quilt carry it.
+//  - Portland Pines (POR): three Douglas firs (Oregon's state tree) in front of snow-capped Mount Hood,
+//    on a cool Pacific Northwest sky. Pine green, snow cream and a deep forest green.
 // Small sizes drop the lettering and the scenery so the mark stays legible.
 import type { ReactNode } from 'react';
 
 const IV = { navy: '#0b2545', ivory: '#f1e9d2', teal: '#2ec4b6', green: '#7be495', line: '#9c8a63', deep: '#081b33', sea: '#0d3157' };
 const DR = { red: '#c8102e', gold: '#ffc72c', black: '#141414', white: '#fbf7ee' };
+const PN = { green: '#1f9d55', deep: '#0b4a2a', snow: '#f2e8cf', sky: '#8fd0ea', sky2: '#d9f0f7', rock: '#4f6d7a' };
 const HEAD = "'Oswald', 'Arial Narrow', Impact, sans-serif";
+
+// A fir: three stacked tiers on a short trunk, `h` tall, standing at (x, y).
+const fir = (x: number, y: number, h: number) => { const w = h * 0.5, t = (k: number, top: number, bot: number) => `M${x} ${y - h * top} L${x + w * k} ${y - h * bot} L${x - w * k} ${y - h * bot} Z`;
+  return t(0.55, 1, 0.62) + t(0.78, 0.8, 0.36) + t(1, 0.56, 0.1) + `M${x - h * 0.05} ${y - h * 0.1} H${x + h * 0.05} V${y} H${x - h * 0.05} Z`; };
+
+function pines(uid: string, sm: boolean) {
+  const { green, deep, snow, sky, sky2, rock } = PN;
+  if (sm) return (<>
+    <circle cx="50" cy="50" r="48" fill={green} stroke={deep} strokeWidth="4" />
+    <path d="M18 66 L40 34 L50 46 L62 28 L84 66 Z" fill={rock} opacity=".55" />
+    <path d="M55 36 L62 28 L69 38 L64 36 L60 40 Z" fill={snow} />
+    <path d={fir(50, 84, 62)} fill={snow} stroke={deep} strokeWidth="2.5" strokeLinejoin="round" />
+  </>);
+  return (<>
+    <defs>
+      <linearGradient id={'pns' + uid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={sky} /><stop offset="1" stopColor={sky2} /></linearGradient>
+      <clipPath id={'pnc' + uid}><circle cx="50" cy="50" r="37" /></clipPath>
+      <path id={'pnu' + uid} d="M13 50 A37 37 0 0 1 87 50" fill="none" />
+    </defs>
+    <circle cx="50" cy="50" r="49" fill={deep} />
+    <circle cx="50" cy="50" r="46" fill={green} stroke={snow} strokeWidth="1.4" />
+    <text fontFamily={HEAD} fontWeight="700" fontSize="8.6" fill={snow} letterSpacing="2.2"><textPath href={`#pnu${uid}`} startOffset="50%" textAnchor="middle">PORTLAND</textPath></text>
+    <g clipPath={`url(#pnc${uid})`}>
+      <circle cx="50" cy="50" r="37" fill={`url(#pns${uid})`} />
+      {/* Mount Hood: the peak, its snowfield and a ridge either side. */}
+      <path d="M8 70 L30 52 L40 58 L56 30 L72 54 L80 50 L96 70 Z" fill={rock} />
+      <path d="M50 40.5 L56 30 L62.5 40 L59 38.5 L56.5 42 L53.5 38.5 Z" fill={snow} />
+      <path d="M0 72 Q25 64 50 70 T100 68 V100 H0 Z" fill={deep} />
+      <path d={fir(32, 80, 30)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
+      <path d={fir(68, 80, 30)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
+      <path d={fir(50, 82, 42)} fill={green} stroke={deep} strokeWidth="1" strokeLinejoin="round" />
+    </g>
+    <circle cx="50" cy="50" r="37" fill="none" stroke={snow} strokeWidth="1.6" />
+    <path d="M10 76 L24 72 H76 L90 76 L84 82 L90 88 L76 84 H24 L10 88 L16 82 Z" fill={snow} stroke={deep} strokeWidth="1.4" strokeLinejoin="round" />
+    <text x="50" y="81.6" textAnchor="middle" fontFamily={HEAD} fontWeight="700" fontSize="9" fill={deep} letterSpacing="2">PINES</text>
+  </>);
+}
 
 function ivories(uid: string, sm: boolean) {
   const { navy, ivory, teal, green, line, deep, sea } = IV, r = sm ? 47 : 39;
@@ -93,4 +133,6 @@ function dragoons(uid: string, sm: boolean) {
 }
 
 // abbr → crest contents for a 100×100 viewBox (uid keeps gradient ids unique on a page).
-export const CRESTS: Record<string, (uid: string, sm: boolean) => ReactNode> = { INL: ivories, WAZ: dragoons };
+export const CRESTS: Record<string, (uid: string, sm: boolean) => ReactNode> = { INL: ivories, WAZ: dragoons, POR: pines };
+// The nickname each crest belongs to: a club renamed in the League editor falls back to the templates.
+export const CREST_NAMES: Record<string, string> = { INL: 'Ivories', WAZ: 'Dragoons', POR: 'Pines' };

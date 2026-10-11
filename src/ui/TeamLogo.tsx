@@ -5,7 +5,7 @@
 // from Lucide, ISC license); small sizes drop the lettering so the mark stays legible. A few
 // clubs have their own hand-drawn crest instead (teamCrests.tsx).
 import { useId } from 'react';
-import { CRESTS } from './teamCrests';
+import { CRESTS, CREST_NAMES } from './teamCrests';
 import { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
 
 const GLYPHS: Record<string, LucideIcon> = { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
@@ -16,7 +16,7 @@ const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',
   BKN: 'roundel', NWK: 'roundel', DET: 'roundel', PIT: 'roundel', BHM: 'shield', SEA: 'roundel', VAN: 'roundel', SAC: 'roundel', KC: 'roundel', STL: 'roundel', MEX: 'roundel',
   ATL: 'script', NSH: 'script', LV: 'script', SD: 'script', HNL: 'script', SA: 'script', PHX: 'script', AUS: 'script', CHA: 'script',
-  CLE: 'badge', SLC: 'badge', DAL: 'shield', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
+  MIN: 'shield', CLE: 'badge', SLC: 'badge', DAL: 'shield', DEN: 'badge', ABQ: 'badge', SJ: 'badge',
 };
 
 export interface CrestTeam { region?: string; name?: string; abbr?: string; colors?: [string, string]; icon?: string; logoImg?: string; logoStyle?: string }
@@ -48,12 +48,14 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   const Glyph = GLYPHS[team.icon || ''] || Circle;
   const [c1, c2] = team.colors || ['#605d5d', '#eae7e7'];
   const dk = shade(c1, 0.42), lt = shade(c2, 1.08);
+  const lum = (hex: string) => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return 0; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+  const onC2 = lum(c2) < 0.35 ? c1 : dk; // the emblem on a secondary-colored disc: light on a dark accent
   const key = team.abbr || team.name || 'X', h = hash(key);
   const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % 4];
   const sm = size < 46, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58);
   const svg = (children: any) => <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={label} style={{ display: 'block', flex: 'none', overflow: 'visible' }}>{children}</svg>;
   // Clubs with their own hand-drawn crest (teamCrests.tsx), unless a style was picked in the League editor.
-  const crest = !team.logoStyle && team.abbr ? CRESTS[team.abbr] : undefined;
+  const crest = !team.logoStyle && team.abbr && (!team.name || !CREST_NAMES[team.abbr] || team.name === CREST_NAMES[team.abbr]) ? CRESTS[team.abbr] : undefined;
   if (crest) return svg(crest(uid, sm));
 
   if (style === 'shield') {
@@ -95,7 +97,7 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
       </>}
       <circle cx="50" cy="50" r={sm ? 36 : 27} fill={c2} stroke={dk} strokeWidth={sm ? 3 : 2} />
       <Ball cx={50} cy={50} r={sm ? 34 : 25} color={c1} op={0.28} w={sm ? 2.6 : 1.6} />
-      <Glyph x={sm ? 24 : 32} y={sm ? 24 : 32} width={sm ? 52 : 36} height={sm ? 52 : 36} color={dk} strokeWidth={sm ? 2.8 : 2.4} />
+      <Glyph x={sm ? 24 : 32} y={sm ? 24 : 32} width={sm ? 52 : 36} height={sm ? 52 : 36} color={onC2} strokeWidth={sm ? 2.8 : 2.4} />
     </>);
   }
 
