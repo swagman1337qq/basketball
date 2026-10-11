@@ -8,6 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Turning League expansion on or off in Settings no longer blanks the screen.**
 
 ### Added
+- **Save lineups on your Roster.** Press Save lineup to keep the current order (who starts, who's next off the bench) and everyone's minutes targets. Name it in the pop-up, or just press Create and it's called Lineup 1, Lineup 2 and so on. Your saved lineups are listed with their starting five; Load puts one back (players who've left are skipped, newcomers go to the end) and ✕ deletes it. Each team you run keeps its own.
 - **Player names in the Mailbox are clickable.** Any player named in a message, in its title or its text, opens his profile. The same goes for your owner's year-end letter.
 - **Conferences follow the map.** Every team west of Lebanon, Kansas (the middle of the country) plays in the West, every team east of it in the East. If that leaves one conference bigger, the teams closest to the line switch over until the two are even. Today's 30 teams already line up that way; when expansion teams join, the league realigns at the start of the season, and any team that switches conference shows up in the league transactions. Divisions stay the same, and new or moved teams join the nearest one with room.
 - **Play-in and playoff games are on the schedules.**

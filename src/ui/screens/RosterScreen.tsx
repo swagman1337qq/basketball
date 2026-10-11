@@ -36,6 +36,18 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const AT = alphaTeams(T), step = (d: number) => { const i = AT.findIndex(x => x.tid === tid); setView({ tid: AT[(i + d + AT.length) % AT.length].tid, season }); setAdvice(null); };
   const club = gm.clubOf(s, tid), pti = club?.ptInj || { reg: 0, po: 4 };
   const setClub = (f: any) => gm.setState(st => gm.clubPatch(st, tid, f));
+  // Saved lineups (per team you run, in its club): the roster order and every manual minutes target.
+  const lineups: { id: string; name: string; order: number[]; rot: Record<number, number>; date: string }[] = club?.lineups || [];
+  const [naming, setNaming] = useState<string | null>(null);
+  const autoName = () => { let n = lineups.length + 1; while (lineups.some(l => l.name === 'Lineup ' + n)) n++; return 'Lineup ' + n; };
+  const saveLineup = (name: string) => { const order = (s.rosters[tid] || []).slice(), rot: Record<number, number> = {}; order.forEach((id: number) => { if (P[id]?.rot != null) rot[id] = P[id].rot; });
+    setClub({ lineups: [...lineups, { id: 'L' + Date.now().toString(36), name: name.trim() || autoName(), order, rot, date: gm.fmtS(s.day) }] }); setNaming(null); };
+  const loadLineup = (L: { order: number[]; rot: Record<number, number> }) => {
+    const now: number[] = s.rosters[tid] || [], here = new Set(now), saved = new Set(L.order);
+    const order = [...L.order.filter(id => here.has(id)), ...now.filter(id => !saved.has(id))]; // players gone since are skipped; new ones keep their place at the end
+    order.forEach(id => { if (!saved.has(id)) return; if (L.rot[id] != null) P[id].rot = L.rot[id]; else delete P[id].rot; delete P[id].preInj; });
+    gm.setState(st => ({ ...gm.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: order }, gv: (st.gv || 0) + 1 })); };
+  const delLineup = (id: string) => setClub({ lineups: lineups.filter(l => l.id !== id) });
   // ── Header numbers ──
   const hist = (s.history || []).find((h: any) => h.year === season)?.teams?.[tid];
   const rec = cur ? t.w + '–' + t.l : hist?.rec || '—';
@@ -183,6 +195,21 @@ export function RosterScreen({ vm }: { vm: VM }) {
             <button data-tour="advice" className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>Ask the assistant coaches</button>
           </div>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}><input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto sorted (re-sorts before every game)</label>
+          {mine && <div style={{ marginTop: 10 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setNaming('')} title="Save this order and everyone's minutes targets under a name, to load again later">Save lineup</button>
+              {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
+            </div>
+            {lineups.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+              {lineups.map(L => { const five = L.order.filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10').slice(0, 5); return (
+                <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
+                  <b style={{ minWidth: 90 }}>{L.name}</b>
+                  <span style={{ ...muted, fontSize: '11.5px', flex: 1, minWidth: 160 }} title={'Saved ' + L.date + ' · ' + Object.keys(L.rot).length + ' manual minutes targets'}>{five.map(id => P[id].name.split(' ').slice(-1)[0]).join(', ')}{Object.keys(L.rot).length ? ' · ' + Object.keys(L.rot).length + ' set minutes' : ''}</span>
+                  <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => loadLineup(L)}>Load</button>
+                  <button className="btn btn-ghost hv4" style={{ fontSize: '12px', padding: '2px 6px', color: 'var(--gm-bad)' }} title="Delete this lineup" onClick={() => delLineup(L.id)}>✕</button>
+                </div>); })}
+            </div>}
+          </div>}
         </div>}
       </div>
       {s.god && cur && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
@@ -194,6 +221,18 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {!noteOpen && <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} onClick={() => setNoteOpen(true)}>{note ? '✎ Team note: ' + (note.length > 80 ? note.slice(0, 80) + '…' : note) : '+ Add team note'}</button>}
         {noteOpen && <div><textarea className="input" defaultValue={note} rows={3} style={{ width: '100%', maxWidth: 640, fontSize: '13px' }} placeholder="Notes about this team: targets, plans, who to watch…" onBlur={e => { const v = e.target.value; gm.setState(st => ({ teamNotes: { ...(st.teamNotes || {}), [tid]: v } })); setNoteOpen(false); }} autoFocus /></div>}
       </div>
+      {naming != null && <div onClick={() => setNaming(null)} style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 50%, transparent)' }}>
+        <div className="card" onClick={e => e.stopPropagation()} style={{ width: 'min(420px, 92vw)', padding: '18px 20px', gap: 10, background: 'var(--color-surface)', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '19px' }}>Save lineup</div>
+          <div style={{ ...muted, fontSize: '12.5px' }}>Starting: {mainIds.slice(0, 5).map(id => P[id].name).join(', ')}{ids.some(id => P[id].rot != null) ? ' · ' + ids.filter(id => P[id].rot != null).length + ' players with set minutes' : ' · automatic minutes'}</div>
+          <input className="input" autoFocus value={naming} placeholder={autoName()} onChange={e => setNaming(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveLineup(naming); if (e.key === 'Escape') setNaming(null); }} />
+          <div style={{ ...muted, fontSize: '11.5px' }}>Leave it blank and it's called “{autoName()}”.</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-ghost" onClick={() => setNaming(null)}>Cancel</button>
+            <button className="btn btn-primary" onClick={() => saveLineup(naming)}>Create</button>
+          </div>
+        </div>
+      </div>}
       {advice && <AdvicePanel vm={vm} advice={advice} onApply={() => { applyAdvice(gm, tid, advice); setAdvice(null); }} onClose={() => setAdvice(null)} />}
       {cur ? (
         <>
