@@ -1,6 +1,6 @@
 // Hand-drawn logos for the expansion franchises in the East (data/franchises.ts): a mascot for each
 // nickname, set in a layout of its own with the city and nickname (markKit.tsx).
-//  - Washington Monuments: the Washington Monument between cherry blossoms.   - Boston Colonials: a tricorn hat.
+//  - Washington Blossoms: a cherry blossom branch by the Monument.           - Boston Colonials: a tricorn hat.
 //  - Miami Flamingos: a flamingo on one leg at an Art Deco sunset.            - Orlando Citrus: an orange with leaves and a blossom.
 //  - Jacksonville Navigators: a compass rose.                                  - Indianapolis Crossroads: crossed checkered flags.
 //  - Milwaukee Brewmasters: a foaming stein and barley, on a bottle cap.       - Louisville Thoroughbreds: a racehorse in Derby roses, in a horseshoe.
@@ -20,30 +20,36 @@ import { Arc, Arch, Diamond, Disc, dk, f2, fluff, HEAD, Hexagon, INK, Line2, lit
 const BARK = '#5b3d26', LEAF = '#3c8d4f', STONE = '#ece6d8', STONE_D = '#c9c1af';
 const blossom = (x: number, y: number, r: number, k: string | number) => <g key={k}><path d={fluff(x, y, r, 5, 0.45)} fill="#f7b6cf" stroke={INK} strokeWidth=".7" /><circle cx={x} cy={y} r={r * 0.32} fill="#e05780" /></g>;
 
-// ── Washington Monuments
-function monumentArt(c: Pal, sm: boolean) {
-  const w = sm ? 6.6 : 4.4;
+// ── Washington Blossoms
+const PETAL = 'M0 0 C-6.4 -3.6 -7.4 -11.6 -3.2 -15 L0 -12.6 L3.2 -15 C7.4 -11.6 6.4 -3.6 0 0 Z';
+const flower = (x: number, y: number, s: number, rot: number, petal: string, k: string | number, sw = 1.1) => (
+  <g key={k} transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+    {[0, 72, 144, 216, 288].map(a => <path key={a} d={PETAL} transform={`rotate(${a})`} fill={petal} stroke={INK} strokeWidth={sw / s} strokeLinejoin="round" />)}
+    {[0, 72, 144, 216, 288].map(a => <path key={'v' + a} d="M0 -2 L0 -9" transform={`rotate(${a})`} stroke={dk(petal, 0.18)} strokeWidth={0.9 / s} />)}
+    <circle r="3.4" fill="#d6336c" stroke={INK} strokeWidth={0.8 / s} />
+    {[36, 108, 180, 252, 324].map(a => <circle key={'s' + a} cx="0" cy="-5.4" r="1.1" fill="#ffd43b" transform={`rotate(${a})`} />)}
+  </g>);
+function blossomArt(c: Pal, sm: boolean) {
+  const petal = lt(c[0], 0.55), petalD = lt(c[0], 0.3);
   return (<>
-    {!sm && <>
-      <path d="M2 24 C14 28 22 32 30 42 M98 24 C86 28 78 32 70 42" fill="none" stroke={BARK} strokeWidth="2.2" strokeLinecap="round" />
-      {[[10, 25, 3.6], [18, 28, 3], [25, 34, 3.4], [14, 33, 2.6], [90, 25, 3.6], [82, 28, 3], [75, 34, 3.4], [86, 33, 2.6]].map(([x, y, r], i) => blossom(x, y, r, i))}
-    </>}
-    {sm && [[24, 38, 6], [76, 38, 6], [30, 50, 4.6], [70, 50, 4.6]].map(([x, y, r], i) => blossom(x, y, r, i))}
-    <path d={`M${50 - w} 92 L${50 + w} 92 L${50 + w * 0.62} 22 L50 12 L${50 - w * 0.62} 22 Z`} fill={STONE} stroke={INK} strokeWidth={sm ? 2.4 : 1.6} strokeLinejoin="round" />
-    <path d={`M50 12 L${50 + w * 0.62} 22 L${50 + w} 92 L50 92 Z`} fill={STONE_D} />
-    <path d={`M${50 - w * 0.62} 22 L${50 + w * 0.62} 22`} stroke={INK} strokeWidth=".9" />
-    <circle cx="50" cy="20.6" r=".9" fill="#e63946" />
-    {[36, 42, 58, 64].map((x, i) => <g key={x}><path d={`M${x} 92 V80`} stroke={INK} strokeWidth="1" /><rect x={x} y="80" width="5" height="3.4" fill={i % 2 ? '#e63946' : c[0]} stroke={INK} strokeWidth=".5" /></g>)}
-    <path d="M28 92 H72" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+    <Line2 d="M4 86 C22 76 34 70 46 60 C56 52 66 40 92 30" c={BARK} w={sm ? 5.4 : 4.6} o={2.2} />
+    <Line2 d="M46 60 C44 50 46 40 52 30" c={BARK} w={sm ? 3.4 : 2.8} o={2} />
+    {!sm && <Line2 d="M66 42 C72 46 78 54 80 62" c={BARK} w={2.4} o={1.8} />}
+    {!sm && [[20, 76, 30], [86, 28, 0], [80, 62, 20]].map(([x, y, r], i) => <g key={'b' + i} transform={`translate(${x} ${y}) rotate(${r})`}><path d="M0 0 C-3 -3 -3 -7 0 -9 C3 -7 3 -3 0 0 Z" fill={petalD} stroke={INK} strokeWidth="1" /></g>)}
+    {!sm && [[60, 20, 0.5, 20], [30, 60, 0.55, -15]].map(([x, y, s, r], i) => flower(x, y, s, r, petalD, 'm' + i))}
+    {flower(52, 30, sm ? 1.25 : 1, 10, petal, 'big', sm ? 1.6 : 1.2)}
+    {flower(sm ? 26 : 30, sm ? 74 : 72, sm ? 0.85 : 0.72, -20, petal, 'lo', sm ? 1.6 : 1.1)}
+    {!sm && flower(76, 46, 0.66, 30, petal, 'r')}
   </>);
 }
-function monuments(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[0], place(monumentArt(c, true), 50, 50, 0.92));
-  return Tag({ uid, k: 'wa', c: [lt(c[0], 0.55), c[0]], city: 'WASHINGTON', nick: 'MONUMENTS', bg: lt(c[0], 0.62) }, monumentArt(c, false), <>
-    <path d="M0 21 H100 V60 C70 54 30 54 0 60 Z" fill={lt(c[1], 0.55)} opacity=".7" />
-    <rect x="0" y="62" width="100" height="40" fill={lt(c[0], 0.3)} />
-    <path d="M46 62 L54 62 L52 70 L48 70 Z" fill={STONE_D} opacity=".6" />
-  </>, { artY: 45, artS: 0.6, plate: c[1] });
+function blossoms(uid: string, sm: boolean, c: Pal) {
+  if (sm) return Disc(c[1], place(blossomArt(c, true), 50, 50, 0.92));
+  return Tag({ uid, k: 'wa', c: [lt(c[1], 0.7), c[1]], city: 'WASHINGTON', nick: 'BLOSSOMS', bg: lt(c[1], 0.72) }, blossomArt(c, false), <>
+    <path d={`M${50 - 3.4} 64 L${50 + 3.4} 64 L${50 + 2.2} 30 L50 25 L${50 - 2.2} 30 Z`} fill="#ffffff" opacity=".8" />
+    <path d="M0 60 C30 56 70 56 100 60 V100 H0 Z" fill={lt(c[1], 0.45)} />
+    <path d="M10 64 H34 M60 66 H88" stroke="#ffffff" strokeWidth="1.2" opacity=".6" />
+    {[[16, 30, 20], [86, 52, -30], [24, 52, 60], [82, 26, 10]].map(([x, y, r], i) => <path key={i} d="M0 0 C-2 -1.6 -2 -4 0 -5 C2 -4 2 -1.6 0 0 Z" fill={lt(c[0], 0.45)} stroke={INK} strokeWidth=".4" transform={`translate(${x} ${y}) rotate(${r})`} />)}
+  </>, { artY: 45, artS: 0.56, plate: c[0] });
 }
 
 // ── Boston Colonials
@@ -741,7 +747,7 @@ function squares(uid: string, sm: boolean, c: Pal) {
 }
 
 export const EAST_MARKS: Record<string, { name: string; draw: (uid: string, sm: boolean, c: Pal) => ReactNode }> = {
-  WAS: { name: 'Monuments', draw: monuments }, BOS: { name: 'Colonials', draw: colonials }, MIA: { name: 'Flamingos', draw: flamingos },
+  WAS: { name: 'Blossoms', draw: blossoms }, BOS: { name: 'Colonials', draw: colonials }, MIA: { name: 'Flamingos', draw: flamingos },
   ORL: { name: 'Citrus', draw: citrus }, JAX: { name: 'Navigators', draw: navigators }, IND: { name: 'Crossroads', draw: crossroads },
   MKE: { name: 'Brewmasters', draw: brewmasters }, LOU: { name: 'Thoroughbreds', draw: thoroughbreds }, BUF: { name: 'Falls', draw: falls },
   ROC: { name: 'Shutters', draw: shutters }, RAL: { name: 'Gondolas', draw: gondolas }, NOR: { name: 'Shipwrights', draw: shipwrights },

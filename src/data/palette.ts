@@ -34,7 +34,7 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   MIN: ['#9b2226', '#e9d8a6'],  // marauder red and bone
   BKN: ['#f7e733', '#2b2b2b'],  // squares: yellow and black (expansion)
   // Expansion franchises (data/franchises.ts), 2026-10: same rules, colors from the logo.
-  WAS: ['#3a6fd8', '#f7a8c8'],  // monument blue and cherry blossoms
+  WAS: ['#ee5d9a', '#2f5fc4'],  // cherry blossom pink and Potomac blue
   BOS: ['#1d3d8f', '#e9c98f'],  // Continental blue and buff
   MIA: ['#ff6f9f', '#16b5ad'],  // flamingo pink and Biscayne teal
   ORL: ['#ff8a1c', '#2f9e44'],  // orange and leaf green
@@ -124,5 +124,5 @@ export const LOUD_V2: Record<string, [string, string]> = {
   HOU: ['#e4002b', '#ffb81c'],
 };
 // Defaults replaced since (2026-10): saves still wearing one get the new pair.
-export const LOUD_V4: Record<string, [string, string]> = { RIC: ['#e34234', '#1a1a1d'] }; // the Samurai's vermilion and black
-export const PALETTE_V = 5;
+export const LOUD_V4: Record<string, [string, string]> = { RIC: ['#e34234', '#1a1a1d'], WAS: ['#3a6fd8', '#f7a8c8'] }; // the Samurai's vermilion and black; the Monuments' blue and pink
+export const PALETTE_V = 6;

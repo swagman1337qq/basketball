@@ -10,7 +10,7 @@ export const FRANCHISES: Franchise[] = [
   // ── East ──
   { region: 'New York', name: 'Hermits', abbr: 'NY', conf: 'East', div: 'Atlantic', colors: ['#1c2541', '#c9a227'], icon: 'Tent', pop: 19.5, known: 'The Empire State and the skyline', mkt: 1.55 },
   { region: 'Philadelphia', name: 'Koalas', abbr: 'PHI', conf: 'East', div: 'Atlantic', colors: ['#3b2a1a', '#d9a441'], icon: 'TreeDeciduous', pop: 6.2, known: 'The Liberty Bell', mkt: 1.2 },
-  { region: 'Washington', name: 'Monuments', abbr: 'WAS', conf: 'East', div: 'Southeast', colors: ['#1d2f55', '#e5e1d8'], icon: 'Landmark', pop: 6.3, known: 'The monuments on the National Mall' },
+  { region: 'Washington', name: 'Blossoms', abbr: 'WAS', conf: 'East', div: 'Southeast', colors: ['#1d2f55', '#e5e1d8'], icon: 'Sparkles', pop: 6.3, known: 'The cherry blossoms by the Tidal Basin, and the monuments on the National Mall' },
   { region: 'Boston', name: 'Colonials', abbr: 'BOS', conf: 'East', div: 'Atlantic', colors: ['#6b1e27', '#f0e2c4'], icon: 'Flag', pop: 4.9, known: 'Colonial history and the Freedom Trail' },
   { region: 'Miami', name: 'Flamingos', abbr: 'MIA', conf: 'East', div: 'Southeast', colors: ['#ef6f94', '#12b5b0'], icon: 'Bird', pop: 6.2, known: 'Art Deco, pink flamingos and South Beach' },
   { region: 'Orlando', name: 'Citrus', abbr: 'ORL', conf: 'East', div: 'Southeast', colors: ['#f28c1f', '#2f6b3b'], icon: 'Citrus', pop: 2.8, known: 'The orange groves Central Florida grew up on' },
