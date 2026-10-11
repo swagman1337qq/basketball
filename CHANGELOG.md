@@ -12,6 +12,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - In God Mode you can tick the winner of postseason games still to come, just like regular-season ones.
 
 ### Changed
+- **Player portraits wear the team's name and their number.** The jersey shows the nickname across the chest with the player's number underneath, in the team's trim color. Free agents and draft prospects still wear a plain grey jersey.
 - **Player faces look more lifelike.**
   - Hair casts a soft shadow on the forehead, so it sits on the head.
   - Eyes are a little larger, with shading under the lids and darker lashes at the corners.

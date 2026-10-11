@@ -7,7 +7,8 @@
 // editor is stored on the player (p.faceX) and laid over the generated face.
 // Looks are drawn independently of each other: hair style follows hair texture rather than race, and dyed
 // hair, beards, accessories and expressions can show up on anyone.
-// faceSvg(face, jersey) draws it in layers, lit softly from the upper left. Shading uses translucent
+// faceSvg(face, jersey, label) draws it in layers, lit softly from the upper left, the team's nickname and
+// the player's number across the jersey when he's shown with a team. Shading uses translucent
 // shapes, never gradients or clip paths, so one face can appear many times on a page without id clashes.
 import { createElement } from 'react';
 import { mulberry32 } from './rng';
@@ -252,9 +253,9 @@ const METALS: Record<string, string> = { diamond: '#eef4f9', gold: '#d6a92e', si
 const BAND: Record<string, string> = { white: '#f4f4f2', black: '#1b1b1d', red: '#c8202f', navy: '#1d2f5e', grey: '#8d9196' };
 const FRAME: Record<string, string> = { black: '#161616', tortoise: '#5b3a20', metal: '#a9adb2', clear: '#cfd6dc' };
 
-export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6']) {
+export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
   const out: any[] = []; let kk = 0;
-  const add = (t: string, a: Record<string, any>) => { out.push(createElement(t, { key: kk++, ...a })); };
+  const add = (t: string, a: Record<string, any>, child?: string) => { out.push(createElement(t, { key: kk++, ...a }, child)); };
   const opa = (op?: number) => (op != null && op < 1 ? { opacity: n2(Math.max(0, op)) } : null);
   const P = (d: string, fill: string, op?: number, ex?: Record<string, any>) => add('path', { d, fill, ...opa(op), ...ex });
   const S = (d: string, c: string, w: number, op?: number) => add('path', { d, fill: 'none', stroke: c, strokeWidth: n2(w), strokeLinecap: 'round', strokeLinejoin: 'round', ...opa(op) });
@@ -375,7 +376,13 @@ export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'
   { const sw2 = nW + 8; const jd = `M${pt(cx - nW - 1.5, shY - 2.5)}L${pt(cx - sw2, shY - 1)}C${pt(cx - 29, shY + 6)} ${pt(cx - 30, shY + 18)} ${pt(cx - 33, 150)}L${pt(cx + 33, 150)}C${pt(cx + 30, shY + 18)} ${pt(cx + 29, shY + 6)} ${pt(cx + sw2, shY - 1)}L${pt(cx + nW + 1.5, shY - 2.5)}Q${pt(cx, shY + 13)} ${pt(cx - nW - 1.5, shY - 2.5)}Z`;
     P(jd, J[0]); [12, 18].forEach(x0 => P(`M${pt(cx + x0 - 4, shY + 8)}L${pt(cx + 29, shY + 6)}C${pt(cx + 30, shY + 18)} ${pt(cx + 33, 150)} ${pt(cx + 33, 150)}L${pt(cx + x0, 150)}Z`, '#000000', 0.06)); P(`M${pt(cx - nW - 1, shY - 1.5)}Q${pt(cx, shY + 15)} ${pt(cx + nW + 1, shY - 1.5)}Q${pt(cx, shY + 19)} ${pt(cx - nW - 1, shY - 1.5)}Z`, '#000000', 0.12);
     S(`M${pt(cx - nW - 1.5, shY - 2.5)}Q${pt(cx, shY + 13)} ${pt(cx + nW + 1.5, shY - 2.5)}`, J[1], 2.2);
-    [-1, 1].forEach(s => S(`M${pt(cx + s * sw2, shY - 1)}C${pt(cx + s * 29, shY + 6)} ${pt(cx + s * 30, shY + 18)} ${pt(cx + s * 33, 150)}`, J[1], 1.8)); }
+    [-1, 1].forEach(s => S(`M${pt(cx + s * sw2, shY - 1)}C${pt(cx + s * 29, shY + 6)} ${pt(cx + s * 30, shY + 18)} ${pt(cx + s * 33, 150)}`, J[1], 1.8));
+    // The team's nickname across the chest and the number under it, in the trim color with an outline.
+    if (label?.name || label?.num) { const ink = lumOf(J[1]) > 0.55 ? dk(J[0], 0.45) : mixC(J[0], '#ffffff', 0.85), font = "'Oswald', 'Arial Narrow', Impact, sans-serif", y0 = Math.max(shY + 21, 118);
+      const txt = (t: string, y: number, size: number, max: number, ls: number, sw3: number) => { const est = t.length * (size * 0.5 + ls);
+        add('text', { x: cx, y: n2(y), textAnchor: 'middle', fontFamily: font, fontWeight: 700, fontSize: size, letterSpacing: ls, fill: J[1], stroke: ink, strokeWidth: sw3, strokeLinejoin: 'round', paintOrder: 'stroke', ...(est > max ? { textLength: max, lengthAdjust: 'spacingAndGlyphs' } : null) }, t); };
+      if (label.name) txt(label.name.toUpperCase(), y0, 7.6, 40, 0.5, 0.9);
+      if (label.num) txt(String(label.num), y0 + (label.name ? 21 : 16), label.num.length > 1 ? 19 : 20, 30, 0.3, 1.3); } }
 
   // ── Ears (and earrings) ──
   const Er = f.ears, eo = 2.4 + 2 * Er.out, earTop = ey - 1 - 2.2 * Er.size, earBot = noseY - 1 + 2 * Er.size, earC = mixC(sk, '#c46a5a', 0.07);

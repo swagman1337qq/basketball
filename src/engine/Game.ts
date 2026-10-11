@@ -24,7 +24,7 @@ import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, season
 import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
-import { assignNumbers, retiredNums } from './jerseys';
+import { assignNumbers, numsWith, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
 import { dropOldSplits, removeUnplayed, slimRetired } from './prune';
 import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
@@ -411,8 +411,11 @@ export class Game {
   // Jersey in the team's colors; free agents and prospects wear grey.
   // Faces are drawn once per look (face + team colors) and reused: drawing them is slow.
   private faceElCache = new WeakMap<object, Map<string, any>>(); // per face (replaced when the face changes) and team colors
-  faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid], f = this.face(pid), cols = t && t.colors ? t.colors : undefined, key = cols ? cols.join() : '';
-    let m = this.faceElCache.get(f); if (!m) { m = new Map(); this.faceElCache.set(f, m); } let el = m.get(key); if (!el) { el = faceSvg(f, cols); m.set(key, el); } return el; }
+  // With a team, the jersey carries its nickname and his number with that team (the one he wears now, else
+  // his last there).
+  faceEl(pid, tid) { const p = this.db.P[pid]; if (p?.faceImg) return createElement('img', { src: p.faceImg, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }); const t = tid >= 0 && this.state?.teams[tid], f = this.face(pid), cols = t && t.colors ? t.colors : undefined;
+    const label = t ? { name: t.name, num: p ? numsWith(p, tid)[0] : undefined } : undefined, key = (cols ? cols.join() : '') + '|' + (label ? label.name + '#' + (label.num ?? '') : '');
+    let m = this.faceElCache.get(f); if (!m) { m = new Map(); this.faceElCache.set(f, m); } let el = m.get(key); if (!el) { el = faceSvg(f, cols, label); m.set(key, el); } return el; }
   downloadFaces() {
     const out = (Object.values(this.db.P) as any[]).map((p: any) => ({ id: p.id, name: p.name, heritage: this.db.C[p.her].n, face: this.face(p.id) }));
     const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
