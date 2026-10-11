@@ -16,7 +16,6 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
   const { gm, s, T } = vm.ctx;
   const [q, setQ] = useState(''), [conf, setConf] = useState<'all' | 'East' | 'West'>('all'), [big, setBig] = useState(true), [mode, setMode] = useState<'db' | 'custom'>('db');
   const [draft, setDraft] = useState<any>(() => ({ ...genExpansionTeam('Your City', Math.random, T.map(t => t.abbr)), region: '', name: '', abbr: '', conf: 'East', div: 'Atlantic', mkt: 1, logoStyle: 'shield' }));
-  if (!s.expansion) return null;
   const pend: any[] = s.expTeams || [], taken = new Set([...T.map(t => t.abbr), ...pend.map(t => t.abbr)]), inLeague = new Set(T.map(t => t.region + '|' + t.name));
   const setPend = (list: any[]) => gm.setState({ expTeams: list });
   const fold = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -26,6 +25,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
   const dOk = draft.region.trim() && draft.name.trim() && /^[A-Z]{2,4}$/.test(draft.abbr) && !taken.has(draft.abbr);
   const set = (p: any) => setDraft((d: any) => ({ ...d, ...p }));
   const pg = usePaged(list, 'cities', 24, conf + '|' + big + '|' + q);
+  if (!s.expansion) return null; // after every hook: turning expansion on and off must not change the hooks React sees
   return (
     <div style={{ padding: '10px 0 16px', borderBottom: '1px solid var(--color-divider)' }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Joining next preseason ({pend.length || 'none picked: two default teams'})</div>
