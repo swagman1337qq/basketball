@@ -8,6 +8,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Turning League expansion on or off in Settings no longer blanks the screen.**
 
 ### Added
+- **Auto set lineup on your Roster**, with three choices in the drop-down:
+  - **Best lineup**: your strongest starting five, then the strongest second unit, with automatic minutes.
+  - **Play young prospects**: players under 26 start and get the minutes. Everyone 26 and older goes to the bottom with a few minutes each, fewer the older he is.
+  - **Play bench players**: your bench becomes the starting five and the starters go to the bottom of the rotation.
+  - **Every choice builds a lineup that makes sense on the floor.** Positions are flexible: two guards, two forwards and a center works, and so does a guard, two wings, a power forward and a big. Five centers never start together just because they're your best players. If your roster can't make a sensible five (no guards at all, say), it simply plays your best players.
+  - A line under the button shows the starting five it picked and where each one plays.
 - **Save lineups on your Roster.** Press Save lineup to keep the current order (who starts, who's next off the bench) and everyone's minutes targets. Name it in the pop-up, or just press Create and it's called Lineup 1, Lineup 2 and so on. Your saved lineups are listed with their starting five; Load puts one back (players who've left are skipped, newcomers go to the end) and ✕ deletes it. Each team you run keeps its own.
 - **Player names in the Mailbox are clickable.** Any player named in a message, in its title or its text, opens his profile. The same goes for your owner's year-end letter.
 - **Conferences follow the map.** Every team west of Lebanon, Kansas (the middle of the country) plays in the West, every team east of it in the East. If that leaves one conference bigger, the teams closest to the line switch over until the two are even. Today's 30 teams already line up that way; when expansion teams join, the league realigns at the start of the season, and any team that switches conference shows up in the league transactions. Divisions stay the same, and new or moved teams join the nearest one with room.

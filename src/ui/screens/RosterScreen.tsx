@@ -19,6 +19,7 @@ import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
+import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
 import { alphaTeams, godBtn, Link, muted, NumInput, PN } from '../kit';
 
 const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
@@ -48,6 +49,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
     order.forEach(id => { if (!saved.has(id)) return; if (L.rot[id] != null) P[id].rot = L.rot[id]; else delete P[id].rot; delete P[id].preInj; });
     gm.setState(st => ({ ...gm.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: order }, gv: (st.gv || 0) + 1 })); };
   const delLineup = (id: string) => setClub({ lineups: lineups.filter(l => l.id !== id) });
+  // Auto set lineup (engine/autoLineup.ts): best, young prospects or bench players, always a sensible five.
+  const [autoMode, setAutoMode] = useState<AutoMode>('best'), [autoMsg, setAutoMsg] = useState('');
+  const runAuto = () => { const r = autoLineup(gm, s, tid, autoMode);
+    Object.entries(r.rot).forEach(([id, v]) => { const p = P[+id]; if (!p) return; delete p.preInj; if (v == null) delete p.rot; else p.rot = v; });
+    gm.setState(st => ({ ...gm.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: r.order }, gv: (st.gv || 0) + 1 }));
+    setAutoMsg((AUTO_MODES.find(m => m[0] === autoMode) || [, ''])[1] + ': ' + r.starters.map((id, i) => slotName(i) + ' ' + P[id].name.split(' ').slice(-1)[0] + (P[id].pos !== slotName(i) ? ' (' + P[id].pos + ')' : '')).join(', ')); };
   // ── Header numbers ──
   const hist = (s.history || []).find((h: any) => h.year === season)?.teams?.[tid];
   const rec = cur ? t.w + '–' + t.l : hist?.rec || '—';
@@ -198,8 +205,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
           {mine && <div style={{ marginTop: 10 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setNaming('')} title="Save this order and everyone's minutes targets under a name, to load again later">Save lineup</button>
+              <span style={{ display: 'inline-flex', gap: 0 }}>
+                <button className="btn btn-secondary" style={{ fontSize: '12.5px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }} onClick={runAuto} title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C.">Auto set lineup</button>
+                <select className="input" value={autoMode} onChange={e => setAutoMode(e.target.value as AutoMode)} style={{ fontSize: '12.5px', width: 'auto', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginLeft: -1 }}>{AUTO_MODES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+              </span>
               {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
             </div>
+            {autoMsg && <div style={{ fontSize: '12px', marginTop: 6, color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
             {lineups.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
               {lineups.map(L => { const five = L.order.filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10').slice(0, 5); return (
                 <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
