@@ -21,7 +21,7 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Louisville', name: 'Thoroughbreds', abbr: 'LOU', conf: 'East', div: 'Central', colors: ['#5c1a2e', '#d4b16a'], icon: 'Trophy', pop: 1.36, known: 'The Kentucky Derby' },
   { region: 'Buffalo', name: 'Falls', abbr: 'BUF', conf: 'East', div: 'Atlantic', colors: ['#1e4d6b', '#bfe6f0'], icon: 'Droplets', pop: 1.16, known: 'Niagara Falls next door' },
   { region: 'Rochester', name: 'Shutters', abbr: 'ROC', conf: 'East', div: 'Atlantic', colors: ['#b8860b', '#1f1f1f'], icon: 'Camera', pop: 1.06, known: 'The birthplace of the Kodak camera' },
-  { region: 'Richmond', name: 'Samurai', abbr: 'RIC', conf: 'East', div: 'Southeast', colors: ['#2a2f5c', '#c8a24a'], icon: 'Flag', pop: 1.35, known: 'Patrick Henry’s “Give me liberty, or give me death!” speech at St. John’s Church, 1775', mkt: 0.8 },
+  { region: 'Richmond', name: 'Opossums', abbr: 'RIC', conf: 'East', div: 'Southeast', colors: ['#2a2f5c', '#c8a24a'], icon: 'Moon', pop: 1.35, known: 'Patrick Henry’s “Give me liberty, or give me death!” speech at St. John’s Church, 1775', mkt: 0.8 },
   { region: 'Raleigh', name: 'Gondolas', abbr: 'RAL', conf: 'East', div: 'Southeast', colors: ['#35573a', '#e8dcc0'], icon: 'Ship', pop: 1.59, known: 'The City of Oaks', mkt: 0.8 },
   { region: 'Norfolk', name: 'Shipwrights', abbr: 'NOR', conf: 'East', div: 'Southeast', colors: ['#0d2c4a', '#c5a15a'], icon: 'ShipWheel', pop: 1.79, known: 'Shipbuilding and the world’s largest naval base' },
   { region: 'Birmingham', name: 'Vulcans', abbr: 'BHM', conf: 'East', div: 'Southeast', colors: ['#7a2e14', '#f0a13a'], icon: 'Hammer', pop: 1.18, known: 'Steel, the Magic City and its Vulcan statue' },

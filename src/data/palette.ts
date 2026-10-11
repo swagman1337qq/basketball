@@ -14,7 +14,7 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   CHA: ['#00a6a6', '#ff7b54'],  // bohemian teal and coral
   ATL: ['#ffd000', '#22252a'],  // snowplow yellow and asphalt
   INL: ['#0b2545', '#f1e9d2'],  // Arctic navy and walrus ivory (its own crest)
-  RIC: ['#e34234', '#1a1a1d'],  // vermilion and black lacquer armor
+  RIC: ['#8892b0', '#ff5d8f'],  // opossum grey and a pink nose
   NSH: ['#0e4d64', '#e6af2e'],  // library teal and brass reading lamps
   SEA: ['#39d98a', '#141414'],  // venom green and black scorpion
   POR: ['#1f9d55', '#f2e8cf'],  // pine green and Mount Hood snow
@@ -123,4 +123,6 @@ export const LOUD_V2: Record<string, [string, string]> = {
   SA: ['#6cd4ff', '#0a1f44'],
   HOU: ['#e4002b', '#ffb81c'],
 };
-export const PALETTE_V = 4;
+// Defaults replaced since (2026-10): saves still wearing one get the new pair.
+export const LOUD_V4: Record<string, [string, string]> = { RIC: ['#e34234', '#1a1a1d'] }; // the Samurai's vermilion and black
+export const PALETTE_V = 5;

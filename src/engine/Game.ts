@@ -5,7 +5,7 @@ import { PRESET_CARDS, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
-import { LOUD_COLORS, LOUD_V2, PALETTE_V } from '../data/palette';
+import { LOUD_COLORS, LOUD_V2, LOUD_V4, PALETTE_V } from '../data/palette';
 import { realign } from '../data/geo';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -237,7 +237,7 @@ export class Game {
       g.db.minV = 1; }
     // Repaints (2026-09 louder, 2026-10 brighter without clashes): teams still in a default palette get the new one.
     if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
-      const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors) || same(t.colors, LOUD_V2[t.abbr]))) t.colors = nw; };
+      const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors) || same(t.colors, LOUD_V2[t.abbr]) || same(t.colors, LOUD_V4[t.abbr]))) t.colors = nw; };
       g.db.teams.forEach(repaint); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; repaint(c); return c; }); g.db.paletteV = PALETTE_V; }
     // 2026-10: conferences by geography (data/geo.ts). Saves between seasons realign now; saves in the
     // middle of a season wait for the next preseason (the rollover realigns every season).

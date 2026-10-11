@@ -15,7 +15,7 @@
 //  - Cincinnati Narwhals: a narwhal leaping out of an Arctic sea, its tusk breaking out of the frame.
 //  - Charlotte Bohemians: a painter's palette and brush.
 //  - Atlanta Snowplows: a plow truck, beacon on, throwing snow.
-//  - Richmond Samurai: a lacquered kabuto with its golden crest over crossed swords (the armor, no face).
+//  - Richmond Opossums: a grinning opossum peeking over a trash can under the moon.
 //  - Nashville Librarians: an owl in reading glasses on a stack of books.
 //  - Seattle Scorpions: a black scorpion, stinger raised.
 //  - Vancouver Drought: a sun in sunglasses over cracked earth (in famously rainy Vancouver).
@@ -443,46 +443,45 @@ function snowplows(uid: string, sm: boolean, c: Pal) {
   </>, { artY: 46, artS: 0.52 });
 }
 
-// Richmond Samurai
-function kabutoArt(c: Pal, sm: boolean) {
-  const red = c[0], lac = c[1], lacL = lt(lac, 0.22), gold = '#e8b931', goldD = '#a47a12', sw = sm ? 2.6 : 1.8;
-  const tier = (y: number, w0: number, w1: number) => `M${50 - w0} ${y} L${50 + w0} ${y} L${50 + w1} ${y + 10} L${50 - w1} ${y + 10} Z`;
-  const HORN = 'M48 40 C44 30 36 18 23 5 C29 18 35.4 30 41.4 42 Z', WING = 'M28.4 40 C22 35.6 15.6 37.6 13.6 44 L21.6 50 L30 46.4 Z';
+// Richmond Opossums
+function opossumArt(c: Pal, sm: boolean, can = true) {
+  const fur = '#a3a3ad', furD = '#6e6e79', face = '#f6f3ee', ear = '#2e292c', pink = mix(c[1], '#f4a7b9', 0.55), sw = sm ? 2.6 : 1.8;
+  const EAR = 'M33 33 C24 35 17 29 18 21 C19 13 28 10 34 15 C38 19 38 28 33 33 Z';
   return (<>
-    {[[44, 26, 32], [53, 30, 37], [62, 35, 42]].map(([y, a, b], i) => <g key={i}><path d={tier(y, a, b)} fill={lac} stroke={INK} strokeWidth={sw * 0.8} strokeLinejoin="round" />
-      {!sm && Array.from({ length: 9 }, (_, j) => { const x = 50 - a + 4 + j * ((a * 2 - 8) / 8); return <path key={j} d={`M${f2(x)} ${y + 1.6} L${f2(x + (x - 50) * 0.12)} ${y + 8.4}`} stroke={red} strokeWidth="1.3" />; })}</g>)}
-    <path d="M28 46 C28 26 38 15.6 50 15.6 C62 15.6 72 26 72 46 Z" fill={lac} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && <path d="M39 18.6 C36.4 26 35.6 36 36 45 M50 15.6 V45 M61 18.6 C63.6 26 64.4 36 64 45" fill="none" stroke={lacL} strokeWidth="1" />}
-    <path d="M34 34 C34.6 26 39 20.4 44.6 18.4" fill="none" stroke={lacL} strokeWidth="2.4" strokeLinecap="round" opacity=".8" />
-    <path d={WING} fill={red} stroke={INK} strokeWidth="1.4" strokeLinejoin="round" /><path d={mirror(WING)} fill={red} stroke={INK} strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M26 44 C36 40 64 40 74 44 L72.4 48.4 C62 45.4 38 45.4 27.6 48.4 Z" fill={lac} stroke={INK} strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M27 44.6 C37 41 63 41 73 44.6" fill="none" stroke={gold} strokeWidth="1" />
-    <path d={HORN} fill={gold} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" /><path d={mirror(HORN)} fill={gold} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-    <circle cx="50" cy="36.4" r="5.2" fill={gold} stroke={INK} strokeWidth="1.3" /><circle cx="50" cy="36.4" r="2.6" fill={red} />
-    <path d="M34 49 C34 66 42 76.4 50 78.4 C58 76.4 66 66 66 49 Z" fill={red} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M34.6 49.6 L65.4 49.6 L64 55.6 L36 55.6 Z" fill={INK} />
-    <path d="M38.6 53 L46 51.6 M61.4 53 L54 51.6" stroke={goldD} strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M50 55.6 L52.4 63.4 L47.6 63.4 Z" fill={dk(red, 0.25)} />
-    <path d="M40 66.4 C44 63.4 48 64.4 50 66.4 C52 64.4 56 63.4 60 66.4 C56 70.4 52 68.4 50 68.4 C48 68.4 44 70.4 40 66.4 Z" fill="#f2efe6" stroke={INK} strokeWidth=".9" />
-    <path d="M44 72.4 Q50 74.6 56 72.4" fill="none" stroke={INK} strokeWidth="1.2" />
-    <path d="M38.4 77 L61.6 77 L65.6 88.6 L34.4 88.6 Z" fill={lac} stroke={INK} strokeWidth={sw * 0.8} strokeLinejoin="round" />
-    {!sm && <path d="M40 80.6 H60 M39 84.6 H61" stroke={red} strokeWidth="1.2" />}
+    {can && <>
+      <Line2 d="M20 96 C8 92 4 80 10 73 C15 68 22 72 19 78 C17 81 13 80 13 77" c={pink} w={sm ? 3.6 : 3} o={2} />
+      <path d="M17 88 L83 88 L80 104 L20 104 Z" fill={STEEL} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+      {!sm && [28, 39, 50, 61, 72].map(x => <path key={x} d={`M${x} 90 V104`} stroke={STEEL_D} strokeWidth="1.6" />)}
+      <rect x="12" y="81" width="76" height="8" rx="3" fill={STEEL_L} stroke={INK} strokeWidth={sw} />
+    </>}
+    <path d={EAR} fill={ear} stroke={INK} strokeWidth={sw} strokeLinejoin="round" /><path d={mirror(EAR)} fill={ear} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M31 30 C26 30 22 26 23 21 C24 17 29 16 32 19 C34 22 34 27 31 30 Z" fill={pink} /><path d={mirror('M31 30 C26 30 22 26 23 21 C24 17 29 16 32 19 C34 22 34 27 31 30 Z')} fill={pink} />
+    <path d="M27 46 C25 32 36 23 50 23 C64 23 75 32 73 46 C71 55 62 62 57 71 C55 75 53 79 50 79 C47 79 45 75 43 71 C38 62 29 55 27 46 Z" fill={face} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M27.4 43 C27 31 37 23.6 50 23.6 C63 23.6 73 31 72.6 43 C68 37 61 34.6 56 37.4 C54 32 46 32 44 37.4 C39 34.6 32 37 27.4 43 Z" fill={fur} />
+    <path d="M50 24 C48.6 29 48.6 33 50 36.6 C51.4 33 51.4 29 50 24 Z" fill={furD} />
+    {!sm && <path d="M33 31 C36 28 40 26.4 44 26" fill="none" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" opacity=".55" />}
+    <ellipse cx="40" cy="46" rx="5" ry="4.2" fill={furD} opacity=".35" /><ellipse cx="60" cy="46" rx="5" ry="4.2" fill={furD} opacity=".35" />
+    <circle cx="40.4" cy="46" r={sm ? 3.4 : 3} fill={INK} /><circle cx="59.6" cy="46" r={sm ? 3.4 : 3} fill={INK} />
+    <circle cx="39.4" cy="45" r="1" fill="#ffffff" /><circle cx="58.6" cy="45" r="1" fill="#ffffff" />
+    {!sm && <path d="M41 62 L30 59 M41 64.6 L30 65.4 M59 62 L70 59 M59 64.6 L70 65.4" stroke={INK} strokeWidth=".7" strokeLinecap="round" opacity=".7" />}
+    <path d="M43.6 69 Q50 75 56.4 69 Q50 71.6 43.6 69 Z" fill="#5a2a33" stroke={INK} strokeWidth=".9" strokeLinejoin="round" />
+    {!sm && [45.6, 48, 50.4, 52.8].map(x => <path key={x} d={`M${x} 70.4 l1 1.6 l1 -1.6 Z`} fill="#ffffff" />)}
+    <ellipse cx="50" cy="77" rx="4.4" ry="3.2" fill={pink} stroke={INK} strokeWidth="1.2" />
+    <ellipse cx="48.6" cy="76.2" rx="1.2" ry=".7" fill="#ffffff" opacity=".7" />
+    {can && <>
+      <path d="M22 84 C22 79 27 77 31 79 C33 80 34 83 33 86 L23 86 C22 86 22 85 22 84 Z" fill={pink} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+      <path d={mirror('M22 84 C22 79 27 77 31 79 C33 80 34 83 33 86 L23 86 C22 86 22 85 22 84 Z')} fill={pink} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+      {!sm && <path d="M25.6 84.6 V86 M28.6 84 V86 M74.4 84.6 V86 M71.4 84 V86" stroke={INK} strokeWidth=".7" />}
+    </>}
   </>);
 }
-function samurai(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[0], place(kabutoArt(c, true), 50, 50, 0.92));
-  const sword = (s: number) => (
-    <g transform={`rotate(${s * 38} 50 50)`}>
-      <path d="M48.6 -2 L51.4 -2 L51.4 58 L48.6 58 Z" fill={STEEL_L} stroke={INK} strokeWidth="1.1" />
-      <path d="M50 -6 L51.4 -2 L48.6 -2 Z" fill={STEEL_L} stroke={INK} strokeWidth="1" />
-      <ellipse cx="50" cy="59.4" rx="5.4" ry="1.8" fill="#e8b931" stroke={INK} strokeWidth="1" />
-      <rect x="48.2" y="61" width="3.6" height="17" rx="1.4" fill={c[1]} stroke={INK} strokeWidth="1" />
-      <path d="M48.4 64 L51.6 66.4 M48.4 68 L51.6 70.4 M48.4 72 L51.6 74.4" stroke="#f2efe6" strokeWidth=".8" />
-    </g>);
-  return Ring({ uid, k: 'sa', band: c[1], inner: c[0], city: 'RICHMOND', nick: 'SAMURAI', text: PAPER, trim: '#e8b931' }, <>
-    <circle cx="50" cy="44" r="21" fill={lt(c[0], 0.18)} />
-    {sword(-1)}{sword(1)}
-    {place(kabutoArt(c, false), 50, 50, 0.66)}
+function opossums(uid: string, sm: boolean, c: Pal) {
+  const night = mix(c[0], '#121733', 0.6);
+  if (sm) return Disc(night, place(opossumArt(c, true, false), 50, 54, 1.08));
+  return Ring({ uid, k: 'op', band: c[0], inner: night, city: 'RICHMOND', nick: 'OPOSSUMS', text: PAPER, trim: c[1] }, <>
+    <circle cx="70" cy="30" r="8" fill="#f6e7b0" /><circle cx="74" cy="27" r="7" fill={night} />
+    {[[26, 26, 1.6], [38, 20, 1.1], [58, 22, 1], [80, 44, 1.2], [22, 44, 1]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.6)} fill="#fff6d6" />)}
+    {place(opossumArt(c, false), 50, 51, 0.62)}
   </>);
 }
 
@@ -938,7 +937,7 @@ export const MARKS: Record<string, { name: string; draw: (uid: string, sm: boole
   NWK: { name: 'Monocles', draw: monocles }, PHI: { name: 'Koalas', draw: koalas }, CLE: { name: 'Parasols', draw: parasols },
   DET: { name: 'Oxcarts', draw: oxcarts }, CHI: { name: 'Sloths', draw: sloths }, BHM: { name: 'Vulcans', draw: vulcans },
   CIN: { name: 'Narwhals', draw: narwhals }, CHA: { name: 'Bohemians', draw: bohemians }, ATL: { name: 'Snowplows', draw: snowplows },
-  RIC: { name: 'Samurai', draw: samurai }, NSH: { name: 'Librarians', draw: librarians }, SEA: { name: 'Scorpions', draw: scorpions },
+  RIC: { name: 'Opossums', draw: opossums }, NSH: { name: 'Librarians', draw: librarians }, SEA: { name: 'Scorpions', draw: scorpions },
   VAN: { name: 'Drought', draw: drought }, STL: { name: 'Puffins', draw: puffins }, DEN: { name: 'Deep', draw: deep },
   SD: { name: 'Mittens', draw: mittens }, OAK: { name: 'Barons', draw: barons }, LV: { name: 'Monks', draw: monks },
   LA: { name: 'Strollers', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Hush', draw: hush },
