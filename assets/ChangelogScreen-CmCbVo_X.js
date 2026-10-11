@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DkcXAqdx.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CZp965VR.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-11
 
 ### Added
+- **Conferences follow the map.** Every team west of Lebanon, Kansas (the middle of the country) plays in the West, every team east of it in the East. If that leaves one conference bigger, the teams closest to the line switch over until the two are even. Today's 30 teams already line up that way; when expansion teams join, the league realigns at the start of the season, and any team that switches conference shows up in the league transactions. Divisions stay the same, and new or moved teams join the nearest one with room.
 - **Play-in and playoff games are on the schedules.**
   - The Daily schedule carries on after the regular season, one day at a time. Each game shows its round and the series score ("East · Game 3 · CHA leads 2–1"), with a box score once it's played. The next day's games appear as soon as they're set, and Sim this day plays them.
   - Your Team schedule's calendar runs into April, May and June with your play-in and playoff games, tagged with the round and game number ("Round 1 G3"). Your next one has Watch and Sim buttons, and the list view includes them too.
