@@ -11,7 +11,10 @@
 //    lit on one face, on a cool Pacific Northwest sky with a passing cloud. In the club's colors.
 // Small sizes drop the lettering and the scenery so the mark stays legible.
 import type { ReactNode } from 'react';
-import { MARKS, type Pal } from './teamMarks';
+import { MARKS } from './teamMarks';
+import { EAST_MARKS } from './expansionMarksEast';
+import { WEST_MARKS } from './expansionMarksWest';
+import type { Pal } from './markKit';
 import { LOUD_COLORS as DEFAULT_PAL } from '../data/palette';
 
 const IV = { navy: '#0b2545', ivory: '#f1e9d2', teal: '#2ec4b6', green: '#7be495', line: '#9c8a63', deep: '#081b33', sea: '#0d3157' };
@@ -150,9 +153,11 @@ function dragoons(uid: string, sm: boolean) {
 
 // abbr → crest contents for a 100×100 viewBox (uid keeps gradient ids unique on a page; the club's
 // colors for the logos drawn in them, teamMarks.tsx).
+// League clubs (teamMarks.tsx) and the expansion franchises (expansionMarksEast/West.tsx).
+const ALL_MARKS = { ...MARKS, ...EAST_MARKS, ...WEST_MARKS };
 export const CRESTS: Record<string, (uid: string, sm: boolean, c?: Pal) => ReactNode> = {
   INL: ivories, WAZ: dragoons, POR: (uid: string, sm: boolean, c?: Pal) => pines(uid, sm, c && c.length >= 2 ? c : DEFAULT_PAL.POR),
-  ...Object.fromEntries(Object.entries(MARKS).map(([k, m]) => [k, (uid: string, sm: boolean, c?: Pal) => m.draw(uid, sm, c && c.length >= 2 ? c : DEFAULT_PAL[k])])),
+  ...Object.fromEntries(Object.entries(ALL_MARKS).map(([k, m]) => [k, (uid: string, sm: boolean, c?: Pal) => m.draw(uid, sm, c && c.length >= 2 ? c : DEFAULT_PAL[k])])),
 };
 // The nickname each crest belongs to: a club renamed in the League editor falls back to the templates.
-export const CREST_NAMES: Record<string, string> = { INL: 'Ivories', WAZ: 'Dragoons', POR: 'Pines', ...Object.fromEntries(Object.entries(MARKS).map(([k, m]) => [k, m.name])) };
+export const CREST_NAMES: Record<string, string> = { INL: 'Ivories', WAZ: 'Dragoons', POR: 'Pines', ...Object.fromEntries(Object.entries(ALL_MARKS).map(([k, m]) => [k, m.name])) };

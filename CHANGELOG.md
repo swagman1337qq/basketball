@@ -14,10 +14,20 @@ Every change to Basketball Manager, newest first. The game shows this page under
     - Denver: an anglerfish seen through a porthole.
     - Los Angeles: a vintage pram rolling past the palms.
     - Austin: a crescent moon going "shh."
-  - **Each logo carries its city and nickname**, on a roundel, a shield or a badge.
+  - **Each logo carries its city and nickname**, set in a design of its own: a roundel, a shield, a pennant, a diamond, a varsity arch, an embroidered patch, a tag, a sunburst, a seal, an arched window, a hexagon or a script wordmark, so neighbors in the standings look different.
   - **The Portland Pines logo is refined**: snow-dusted firs, and Mount Hood lit on one side.
   - **Small logos show the mascot alone** (in standings, schedules and lists), so you can tell teams apart at a glance.
   - **Logos use the team's colors.** If you recolor a team in the League editor, its logo follows.
+- **Every expansion franchise has a hand-drawn logo and new colors too**, all 47 of them, each with its city and nickname. A few examples:
+  - Washington Monuments: the Washington Monument between cherry blossoms.
+  - Miami Flamingos: a flamingo against an Art Deco sunset.
+  - Pittsburgh Ballerinas: pointe shoes hanging by their ribbons.
+  - Memphis Blues: a guitar on a vinyl record.
+  - Phoenix Chill: an ice pop in sunglasses.
+  - San Francisco Fog: a Golden Gate tower over a sleepy fog bank.
+  - Omaha Stockyards: a snorting Hereford bull with a nose ring.
+  - Albuquerque Roadrunners: a roadrunner at full tilt.
+- **Teams you create get more logo styles.** Besides the shield, roundel, script and varsity badge, a club you make up (or rename) can wear a wordmark, pennant, diamond, varsity arch, patch, tag, sunburst, seal, arched window or hexagon, all with its emblem, city and nickname. Pick one when you create the team or in the League editor.
 - **New team colors.** Every team has a new bright, colorful pair that goes together and fits the nickname: camel tan and oasis teal for Baltimore, pine green and snow for Portland, axolotl pink and teal for Dallas, saffron and maroon for the Las Vegas Monks, and so on. The three deliberately ugly palettes are gone, and no two teams look alike. Leagues still using a default palette switch over automatically; colors you set yourself stay.
 - **The Portland Sultans are now the Portland Pines**, with a new hand-drawn logo: fir trees in front of snow-capped Mount Hood.
 - **The Minneapolis Marauders replace the Brooklyn Squares.** Minneapolis plays in the East's Central division, and Cleveland moves to the Atlantic.

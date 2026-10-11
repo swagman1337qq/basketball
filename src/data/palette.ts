@@ -33,6 +33,53 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   HOU: ['#457b9d', '#f4a261'],  // tundra blue and caribou antler
   MIN: ['#9b2226', '#e9d8a6'],  // marauder red and bone
   BKN: ['#f7e733', '#2b2b2b'],  // squares: yellow and black (expansion)
+  // Expansion franchises (data/franchises.ts), 2026-10: same rules, colors from the logo.
+  WAS: ['#3a6fd8', '#f7a8c8'],  // monument blue and cherry blossoms
+  BOS: ['#1d3d8f', '#e9c98f'],  // Continental blue and buff
+  MIA: ['#ff6f9f', '#16b5ad'],  // flamingo pink and Biscayne teal
+  ORL: ['#ff8a1c', '#2f9e44'],  // orange and leaf green
+  JAX: ['#364fc7', '#ff922b'],  // navy indigo and the compass's north point
+  IND: ['#e03131', '#ffd43b'],  // racing red and yellow
+  MKE: ['#f5a524', '#2b8a3e'],  // lager gold and hops
+  LOU: ['#c2255c', '#40c057'],  // Derby roses and bluegrass
+  BUF: ['#1c5fc8', '#74d7ef'],  // deep river blue and falls spray
+  ROC: ['#ffc20e', '#e03a3e'],  // film-box yellow and red
+  RAL: ['#f03e3e', '#3b5bdb'],  // gondolier stripes and the lagoon
+  NOR: ['#0c8599', '#f4b740'],  // harbor teal and brass
+  PIT: ['#ffc72c', '#c2255c'],  // stage-light gold and raspberry
+  MEM: ['#1c7ed6', '#ffd43b'],  // blues blue and a gold record label
+  TOR: ['#ff4d4f', '#5f3dc4'],  // tower red and night violet
+  MTL: ['#e03131', '#4dabf7'],  // voyageur sash red and river blue
+  OTT: ['#e8364f', '#8fd3ff'],  // skate red and canal ice
+  GRR: ['#f59f00', '#0b7285'],  // oak amber and deep teal
+  LDN: ['#c1121f', '#ffb703'],  // Yeoman red and gold
+  PAR: ['#4338ca', '#ffd166'],  // night indigo and lamplight
+  MAD: ['#c9184a', '#ffd6a5'],  // Madrid crimson and sand
+  BER: ['#2a9d8f', '#ffd166'],  // quadriga patina and gold
+  NOL: ['#7b2cbf', '#ffd23f'],  // Mardi Gras purple and brass
+  HFD: ['#9c36b5', '#12b886'],  // jester purple and green
+  PRV: ['#6741d9', '#f1f3f5'],  // amethyst and pearl
+  CBS: ['#2f9e44', '#e9c46a'],  // alpine green and horn tan
+  TPA: ['#15aabf', '#ffe066'],  // Gulf cyan and beach sand
+  PHX: ['#ff6b35', '#4cc9f0'],  // desert orange and ice-pop blue
+  SAC: ['#6f42c1', '#ffc845'],  // purple and Gold Rush gold
+  KC: ['#1971c2', '#ff6b6b'],   // river blue and a coral hull
+  IE: ['#2f9e44', '#ff922b'],   // grove green and orange
+  SF: ['#f0592a', '#cfd8e3'],   // International Orange and fog
+  SLC: ['#3a86ff', '#ffbe0b'],  // lake blue and gull-beak yellow
+  OKC: ['#5a4fcf', '#ffd60a'],  // storm violet and lightning
+  TUL: ['#ffc300', '#1f1f2e'],  // black gold
+  TUC: ['#3c096c', '#ff9e00'],  // desert night and sunset orange
+  FRE: ['#7b2cbf', '#80b918'],  // grape and vine
+  CGY: ['#d00000', '#ffba08'],  // rodeo red and buckle gold
+  EDM: ['#f76707', '#1c3faa'],  // hard-hat orange and steel blue
+  MEX: ['#06a77d', '#f2c14e'],  // jade green and eagle gold
+  GDL: ['#d6336c', '#ffd43b'],  // mariachi magenta and gold braid
+  MTY: ['#3a6ea5', '#ff8c42'],  // mountain blue and sunrise
+  TIJ: ['#e63946', '#2ec4b6'],  // border red and Pacific teal
+  OMA: ['#c2410c', '#fde68a'],  // Hereford rust and wheat
+  HNL: ['#00b4d8', '#ff8fab'],  // ocean and hibiscus
+  ABQ: ['#ef3e36', '#ffd23f'],  // Zia red and yellow
 };
 // The palette before (2026-09), to spot saves still wearing it.
 // Team colors, 2026-09 repaint: louder. Fifteen teams wear loud, neon-bright colors, three wear
@@ -76,4 +123,4 @@ export const LOUD_V2: Record<string, [string, string]> = {
   SA: ['#6cd4ff', '#0a1f44'],
   HOU: ['#e4002b', '#ffb81c'],
 };
-export const PALETTE_V = 3;
+export const PALETTE_V = 4;

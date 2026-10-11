@@ -11,6 +11,7 @@ import { KIND_LABEL, OWNER_BGS, ownerProfile } from '../../engine/owners';
 import { forceTeamSale } from '../../engine/frontOffice';
 import { processImage } from '../upload';
 import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
+import { LOGO_STYLES, LOGO_STYLE_LABELS } from '../TeamLogo';
 
 const GLYPHS = ['Drama', 'Footprints', 'Glasses', 'Hand', 'Palette', 'Square', 'Tent', 'Anchor', 'Anvil', 'Award', 'Axe', 'Bird', 'Castle', 'Circle', 'CloudRainWind', 'Cog', 'Compass', 'Crown', 'Feather', 'Fish', 'Flame', 'Gem', 'Guitar', 'Hammer', 'Moon', 'Mountain', 'MountainSnow', 'Origami', 'Rainbow', 'Ship', 'Spade', 'Sparkles', 'Star', 'Sun', 'Sunset', 'TreeDeciduous', 'TreePalm', 'TreePine', 'Waves', 'Wind'];
 
@@ -54,7 +55,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             <span style={muted}>Abbreviation</span><input className="input" defaultValue={t.abbr} key={'ab' + tid} onBlur={e => setAbbr(e.target.value)} />
             <span style={muted}>Colors</span>
             <span style={{ display: 'flex', gap: '8px' }}>{[0, 1].map(i => <input key={i} type="color" value={(t.colors || ['#444444', '#eeeeee'])[i]} onChange={e => { const c = [...(t.colors || ['#444444', '#eeeeee'])]; c[i] = e.target.value; setT({ colors: c }); }} style={{ width: 48, height: 30, border: 'none', background: 'none' }} />)}</span>
-            <span style={muted}>Logo style</span><select className="input" value={t.logoStyle || ''} onChange={e => setT({ logoStyle: e.target.value || undefined })}><option value="">Default</option><option value="shield">Shield (soccer crest)</option><option value="roundel">Roundel (classic)</option><option value="script">Script wordmark (70s)</option><option value="badge">Varsity badge</option></select>
+            <span style={muted}>Logo style</span><select className="input" value={t.logoStyle || ''} onChange={e => setT({ logoStyle: e.target.value || undefined })}><option value="">Default</option>{LOGO_STYLES.map(x => <option key={x} value={x}>{LOGO_STYLE_LABELS[x]}</option>)}</select>
             <span style={muted}>Crest</span><select className="input" value={t.icon || 'Circle'} onChange={e => setT({ icon: e.target.value })}>{GLYPHS.map(g => <option key={g}>{g}</option>)}</select>
             <span style={muted}>Logo image</span>
             <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>

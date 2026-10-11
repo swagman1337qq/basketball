@@ -1,16 +1,22 @@
-// Team logos. Original crests for the league's fictional clubs, drawn in SVG in four
-// classic styles: a soccer-style shield (banner, stripes, ribbon), an old-school roundel
-// with the name wrapped around the ring, a 70s script wordmark over a basketball, and a
-// varsity octagon badge with a sunburst. Each uses the club's colors and emblem (glyphs
-// from Lucide, ISC license); small sizes drop the lettering so the mark stays legible. A few
-// clubs have their own hand-drawn crest instead (teamCrests.tsx).
+// Team logos. Every league club and expansion franchise has its own hand-drawn logo (teamCrests.tsx).
+// Clubs made up in the expansion screen or renamed in the League editor get a template instead,
+// drawn in SVG with the club's colors, emblem (glyphs from Lucide, ISC license), city and nickname:
+// the four classic styles (a soccer-style shield, an old-school roundel, a 70s script wordmark, a
+// varsity octagon badge) or one of the layouts the hand-drawn logos use (markKit.tsx). Small sizes
+// drop the lettering so the mark stays legible.
 import { useId } from 'react';
 import { CRESTS, CREST_NAMES } from './teamCrests';
+import { Arch, Diamond, Disc, Hexagon, INK, lum as lumK, on, PAPER, Patch, Pennant, place, Seal, Sunburst, Tag, Varsity, Wordmark, lt as ltK, dk as dkK, type LayO } from './markKit';
 import { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind, type LucideIcon } from 'lucide-react';
 
 const GLYPHS: Record<string, LucideIcon> = { Tent, Armchair, Beer, Bell, Building2, Camera, Citrus, Clapperboard, CloudFog, Cpu, Drill, Droplets, Fuel, Grape, Landmark, Music, Rocket, ShipWheel, Snowflake, Telescope, Tornado, TowerControl, Trophy, Wheat, BrickWall, CableCar, Coffee, Dice5, Flag, Pickaxe, Sailboat, Shell, Skull, Speaker, TramFront, Umbrella, Anchor, Anvil, Award, Axe, Bird, Castle, Circle, CloudRainWind, Cog, Compass, Crown, Feather, Fish, Flame, Gem, Guitar, Hammer, Moon, Mountain, MountainSnow, Origami, Rainbow, Ship, Spade, Sparkles, Star, Sun, Sunset, TreeDeciduous, TreePalm, TreePine, Waves, Wind };
 export const GLYPH_NAMES = Object.keys(GLYPHS).sort();
-export const LOGO_STYLES = ['shield', 'roundel', 'script', 'badge'] as const;
+export const LOGO_STYLES = ['shield', 'roundel', 'script', 'badge', 'wordmark', 'pennant', 'diamond', 'varsity', 'patch', 'tag', 'sunburst', 'seal', 'arch', 'hexagon'] as const;
+export const LOGO_STYLE_LABELS: Record<(typeof LOGO_STYLES)[number], string> = {
+  shield: 'Shield (soccer crest)', roundel: 'Roundel (classic)', script: 'Script wordmark (70s)', badge: 'Varsity badge', wordmark: 'Wordmark (emblem over the name)',
+  pennant: 'Pennant', diamond: 'Diamond', varsity: 'Varsity arch', patch: 'Embroidered patch', tag: 'Tag', sunburst: 'Sunburst', seal: 'Seal', arch: 'Arched window', hexagon: 'Hexagon',
+};
+const LAYOUTS: Record<string, true> = { wordmark: true, pennant: true, diamond: true, varsity: true, patch: true, tag: true, sunburst: true, seal: true, arch: true, hexagon: true };
 const BY_TEAM: Record<string, (typeof LOGO_STYLES)[number]> = {
   RIC: 'shield', NY: 'badge', PHI: 'shield', CHI: 'roundel', LA: 'script', HOU: 'badge',
   BAL: 'shield', HFD: 'shield', PRV: 'shield', CIN: 'shield', RAL: 'shield', CBS: 'shield', POR: 'shield', OAK: 'shield', TPA: 'shield', LOU: 'shield',
@@ -51,12 +57,32 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   const lum = (hex: string) => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return 0; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
   const onC2 = lum(c2) < 0.35 ? c1 : dk; // the emblem on a secondary-colored disc: light on a dark accent
   const key = team.abbr || team.name || 'X', h = hash(key);
-  const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % 4];
-  const sm = size < 60, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58); // under 60px the lettering is too small to read: the emblem alone
+  const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % LOGO_STYLES.length];
+  const sm = size < 30, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58); // under 30px (list icons) lettering can't be read: the emblem alone
   const svg = (children: any) => <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={label} style={{ display: 'block', flex: 'none', overflow: 'visible' }}>{children}</svg>;
   // Clubs with their own hand-drawn crest (teamCrests.tsx), unless a style was picked in the League editor.
   const crest = !team.logoStyle && team.abbr && (!team.name || !CREST_NAMES[team.abbr] || team.name === CREST_NAMES[team.abbr]) ? CRESTS[team.abbr] : undefined;
   if (crest) return svg(crest(uid, sm, team.colors));
+
+  // The hand-drawn logos' layouts, with the club's emblem as the mascot.
+  if (LAYOUTS[style]) {
+    const ink = (bg: string) => [c2, c1, dk, PAPER, INK].find(x => Math.abs(lumK(x) - lumK(bg)) > 0.38) || on(bg); // the emblem's color on a background
+    const emblem = (bg: string, r = 30) => { const col = ink(bg); return <><Ball cx={50} cy={50} r={r + 4} color={col} op={0.22} w={2.2} /><Glyph x={50 - r} y={50 - r} width={r * 2} height={r * 2} color={col} strokeWidth={2.3} /></>; };
+    const medal = (bg: string) => <><circle cx="50" cy="50" r="42" fill={bg} stroke={INK} strokeWidth="4" />{emblem(bg, 28)}</>;
+    if (sm) return svg(Disc(c1, emblem(c1, 32)));
+    const o: LayO = { uid, k: 'tl', c: [c1, c2], city, nick: nick.toUpperCase() };
+    return svg(
+      style === 'wordmark' ? Wordmark(o, emblem(c2, 34), undefined, { artS: 0.6, size: nick.length > 9 ? 14 : 18 }) :
+      style === 'pennant' ? Pennant(o, emblem(c2, 34), { artS: 0.4 }) :
+      style === 'diamond' ? Diamond(o, emblem(c1, 30), undefined, { artY: 46, artS: 0.5 }) :
+      style === 'varsity' ? Varsity(o, emblem(c1, 30), undefined, { artY: 58, artS: 0.5 }) :
+      style === 'patch' ? Patch({ ...o, nick }, medal(c2), undefined, { artY: 33, artS: 0.46 }) :
+      style === 'tag' ? Tag(o, emblem(c1, 30), undefined, { artY: 46, artS: 0.6 }) :
+      style === 'sunburst' ? Sunburst(o, emblem(ltK(c2, 0.3), 30), { artY: 46, artS: 0.6 }) :
+      style === 'seal' ? Seal(o, emblem(ltK(c2, 0.4), 30), undefined, { artS: 0.62 }) :
+      style === 'arch' ? Arch(o, emblem(c1, 30), undefined, { artY: 46, artS: 0.66, plate: dkK(c1, 0.45) }) :
+      Hexagon(o, emblem(c1, 30), undefined, { artY: 50, artS: 0.6 }));
+  }
 
   if (style === 'shield') {
     const shield = 'M50 3 L93 13 V48 C93 73 74 88 50 97 C26 88 7 73 7 48 V13 Z';

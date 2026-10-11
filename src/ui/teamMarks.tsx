@@ -31,113 +31,7 @@
 //  - Dallas Axolotls: a smiling axolotl with its feathery gills.
 //  - Houston Caribou: a caribou with its great antlers and white mane.
 import type { ReactNode } from 'react';
-
-export type Pal = [string, string];
-const INK = '#1b1a21', PAPER = '#fffaf0', SKIN = '#e2b18a', WOOD = '#7a5230', STEEL = '#a7b0ba', STEEL_D = '#68727d', STEEL_L = '#dfe5ea';
-const HEAD = "'Oswald', 'Arial Narrow', Impact, sans-serif", SCRIPT = "'Yellowtail', 'Brush Script MT', cursive";
-
-// ── Colors ──
-const rgb = (h: string) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0x808080; return [n >> 16, (n >> 8) & 255, n & 255]; };
-const mix = (a: string, b: string, t: number) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
-const dk = (c: string, t = 0.4) => mix(c, '#000000', t), lt = (c: string, t = 0.45) => mix(c, '#ffffff', t);
-const lum = (c: string) => { const [r, g, b] = rgb(c); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
-const on = (c: string) => (lum(c) > 0.6 ? INK : PAPER); // text on a color
-
-// ── Drawing helpers ──
-const f2 = (n: number) => +n.toFixed(2);
-// A line drawn twice, ink under color, so it reads as an outlined shape (legs, handles, antlers).
-const Line2 = ({ d, c, w, o = 2.6 }: { d: string; c: string; w: number; o?: number }) => (<>
-  <path d={d} fill="none" stroke={INK} strokeWidth={w + o} strokeLinecap="round" strokeLinejoin="round" />
-  <path d={d} fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
-</>);
-// A fluffy circle: n bumps around (cx, cy).
-const fluff = (cx: number, cy: number, r: number, n: number, bump = 0.16) => {
-  let d = '';
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * Math.PI * 2, x = f2(cx + Math.cos(a) * r), y = f2(cy + Math.sin(a) * r);
-    if (!i) { d += `M${x} ${y}`; continue; }
-    const am = ((i - 0.5) / n) * Math.PI * 2, rr = r * (1 + bump);
-    d += `Q${f2(cx + Math.cos(am) * rr)} ${f2(cy + Math.sin(am) * rr)} ${x} ${y}`;
-  }
-  return d + 'Z';
-};
-const mirror = (d: string) => d.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g, (_, x, y) => `${f2(100 - +x)} ${y}`); // flip a path of absolute M/L/C/Q/Z commands left↔right
-// A 4-point sparkle.
-const sparkle = (x: number, y: number, r: number) => `M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
-const star5 = (x: number, y: number, R: number, r: number) => Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5, q = i % 2 ? r : R; return f2(x + Math.cos(a) * q) + ',' + f2(y + Math.sin(a) * q); }).join(' ');
-// Place a mascot (drawn on 0–100) centered at (x, y), scaled by s.
-const place = (art: ReactNode, x: number, y: number, s: number, rot = 0) => <g transform={`translate(${x} ${y}) scale(${s})${rot ? ` rotate(${rot})` : ''} translate(-50 -50)`}>{art}</g>;
-
-// Text along an arc of radius r around the center: over the top, or under the bottom (reading left to right).
-// Oswald capitals run about half an em wide; long names are squeezed to fit.
-function Arc({ id, text, r, top, size, fill, ls = 1.3, room }: { id: string; text: string; r: number; top: boolean; size: number; fill: string; ls?: number; room?: number }) {
-  const d = top ? `M${50 - r} 50 A${r} ${r} 0 0 1 ${50 + r} 50` : `M${50 - r} 50 A${r} ${r} 0 0 0 ${50 + r} 50`;
-  const max = room ?? Math.PI * r * (top ? 0.72 : 0.6), est = text.length * (size * 0.5 + ls);
-  return (<>
-    <path id={id} d={d} fill="none" />
-    <text fontFamily={HEAD} fontWeight="700" fontSize={size} fill={fill} letterSpacing={ls}>
-      <textPath href={'#' + id} startOffset="50%" textAnchor="middle" {...(est > max ? { textLength: f2(max), lengthAdjust: 'spacingAndGlyphs' as const } : {})}>{text}</textPath>
-    </text>
-  </>);
-}
-// A banner with folded tails, gently arched, the text following the arch.
-function Ribbon({ id, y, w, h = 12, fill, text, tfill, size = 8.4, ls = 1.4, arch = 2.4, font = HEAD }: { id: string; y: number; w: number; h?: number; fill: string; text: string; tfill?: string; size?: number; ls?: number; arch?: number; font?: string }) {
-  const x0 = 50 - w / 2, x1 = 50 + w / 2, y0 = y - h / 2, y1 = y + h / 2, t = 8.5, back = dk(fill, 0.3);
-  const tail = (s: number) => { const xa = s < 0 ? x0 : x1, xo = xa + s * t; return `M${f2(xa - s * 3)} ${f2(y0 + 3.6)} L${f2(xo)} ${f2(y0 + 3.6)} L${f2(xo - s * 3.4)} ${f2(y + 3.6)} L${f2(xo)} ${f2(y1 + 3.6)} L${f2(xa - s * 3)} ${f2(y1 + 3.6)} Z`; };
-  const mid = y + size * 0.36, est = text.length * (size * (font === HEAD ? 0.5 : 0.42) + ls), max = w - 7;
-  return (<>
-    <path d={tail(-1)} fill={back} stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d={tail(1)} fill={back} stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d={`M${f2(x0)} ${f2(y0)} Q50 ${f2(y0 - arch * 2)} ${f2(x1)} ${f2(y0)} L${f2(x1)} ${f2(y1)} Q50 ${f2(y1 - arch * 2)} ${f2(x0)} ${f2(y1)} Z`} fill={fill} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-    <path id={id} d={`M${f2(x0 + 3)} ${f2(mid)} Q50 ${f2(mid - arch * 2)} ${f2(x1 - 3)} ${f2(mid)}`} fill="none" />
-    <text fontFamily={font} fontWeight={font === HEAD ? 700 : 400} fontSize={size} fill={tfill ?? on(fill)} letterSpacing={ls}>
-      <textPath href={'#' + id} startOffset="50%" textAnchor="middle" {...(est > max ? { textLength: f2(max), lengthAdjust: 'spacingAndGlyphs' as const } : {})}>{text}</textPath>
-    </text>
-  </>);
-}
-
-// ── Frames ──
-// A roundel: ink rim, a band in `band` with the city over the top and the nickname under the bottom,
-// stars at 3 and 9 o'clock, and an inner disc (clipped) for the scene and the mascot. `over` draws on
-// top of everything, unclipped (a tusk or sword breaking out of the frame).
-interface RingO { uid: string; k: string; band: string; inner: string; city: string; nick: string; text?: string; trim?: string; R?: number }
-function Ring(o: RingO, inside: ReactNode, over?: ReactNode) {
-  const R = o.R ?? 33.6, cid = o.k + 'c' + o.uid, tx = o.text ?? on(o.band), trim = o.trim ?? tx;
-  return (<>
-    <defs><clipPath id={cid}><circle cx="50" cy="50" r={R} /></clipPath></defs>
-    <circle cx="50" cy="50" r="49.3" fill={INK} />
-    <circle cx="50" cy="50" r="47.3" fill={o.band} />
-    <circle cx="50" cy="50" r="45.6" fill="none" stroke={trim} strokeWidth=".7" opacity=".55" />
-    <Arc id={o.k + 't' + o.uid} text={o.city} r={R + 4.2} top size={8.2} fill={tx} />
-    <Arc id={o.k + 'b' + o.uid} text={o.nick} r={R + 10.4} top={false} size={8.2} fill={tx} />
-    <polygon points={star5(R + 8.3 > 45 ? 8.6 : 50 - R - 8.3, 50, 2.7, 1.15)} fill={trim} />
-    <polygon points={star5(R + 8.3 > 45 ? 91.4 : 50 + R + 8.3, 50, 2.7, 1.15)} fill={trim} />
-    <circle cx="50" cy="50" r={R + 1.7} fill={INK} />
-    <g clipPath={`url(#${cid})`}><circle cx="50" cy="50" r={R} fill={o.inner} />{inside}</g>
-    {over}
-  </>);
-}
-// A heraldic shield with a top band for the city and a ribbon for the nickname.
-const SHIELD = 'M50 3.5 L91 13 V46 C91 71.5 73.5 86.5 50 96.5 C26.5 86.5 9 71.5 9 46 V13 Z';
-function Shield(o: { uid: string; k: string; field: string; band: string; city: string; nick: string; ribbon: string; ribbonY?: number }, inside: ReactNode, over?: ReactNode) {
-  const cid = o.k + 'c' + o.uid;
-  return (<>
-    <defs><clipPath id={cid}><path d={SHIELD} /></clipPath></defs>
-    <path d={SHIELD} fill={o.field} stroke={INK} strokeWidth="2.8" strokeLinejoin="round" />
-    <g clipPath={`url(#${cid})`}>
-      {inside}
-      <path d="M9 13 L50 3.5 L91 13 V25 H9 Z" fill={o.band} />
-      <path d="M9 25 H91" stroke={INK} strokeWidth="1.4" />
-    </g>
-    <text x="50" y="21.4" textAnchor="middle" fontFamily={HEAD} fontWeight="700" fontSize="8.2" fill={on(o.band)} letterSpacing="1.4" {...(o.city.length * 5.5 > 62 ? { textLength: 62, lengthAdjust: 'spacingAndGlyphs' as const } : {})}>{o.city}</text>
-    <path d={SHIELD} fill="none" stroke={INK} strokeWidth="2.8" strokeLinejoin="round" />
-    <path d="M50 7.4 L87.2 16 V46 C87.2 69 71.5 82.6 50 92.4 C28.5 82.6 12.8 69 12.8 46 V16 Z" fill="none" stroke={lt(o.band, 0.15)} strokeWidth="1" opacity=".75" />
-    {over}
-    <Ribbon id={o.k + 'r' + o.uid} y={o.ribbonY ?? 80} w={70} fill={o.ribbon} text={o.nick} />
-  </>);
-}
-// Small sizes: the mascot alone on a disc.
-const Disc = (bg: string, art: ReactNode, ring = INK) => (<><circle cx="50" cy="50" r="48.5" fill={bg} stroke={ring} strokeWidth="3" />{art}</>);
+import { Arc, Arch, Diamond, Tag, Disc, dk, f2, fluff, HEAD, INK, Line2, lt, mirror, mix, Octagon, on, PAPER, Patch, Pennant, place, Ribbon, Ring, SCRIPT, Script, Seal, Shield, SKIN, sparkle, star5, STEEL, STEEL_D, STEEL_L, Sunburst, Varsity, WOOD, Wordmark, type Pal } from './markKit';
 
 // ═════════════════════════════════════════════ Mascots ═════════════════════════════════════════════
 
@@ -167,20 +61,15 @@ function camelArt(c: Pal, sm: boolean) {
   </>);
 }
 function camels(uid: string, sm: boolean, c: Pal) {
-  const fur = c[0], sand = lt(fur, 0.42), sand2 = lt(fur, 0.24), sky1 = lt(fur, 0.8), sky2 = lt(fur, 0.55);
+  const fur = c[0], sand = lt(fur, 0.42), sand2 = lt(fur, 0.24);
   if (sm) return Disc(c[1], place(camelArt(c, true), 50, 51, 0.82));
-  return Ring({ uid, k: 'cm', band: c[1], inner: sky2, city: 'BALTIMORE', nick: 'CAMELS', text: PAPER }, <>
-    <defs><linearGradient id={'cms' + uid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={sky1} /><stop offset="1" stopColor={sky2} /></linearGradient></defs>
-    <rect x="0" y="0" width="100" height="100" fill={`url(#cms${uid})`} />
-    <circle cx="63" cy="43" r="13" fill={mix(fur, '#ffd23f', 0.62)} />
-    <circle cx="63" cy="43" r="17" fill="none" stroke={mix(fur, '#ffd23f', 0.62)} strokeWidth="1.2" opacity=".5" />
-    <path d="M10 66 C26 57 42 59 54 64 C66 58 80 58 92 62 V100 H10 Z" fill={sand} />
-    <path d="M18 60 C19 53 24 47 30 44" fill="none" stroke={WOOD} strokeWidth="2.2" strokeLinecap="round" />
-    {[[-1.2, -0.6], [-0.5, -1.2], [0.5, -1.1], [1.2, -0.4], [0.9, 0.5], [-1, 0.4]].map(([dx, dy], i) => <path key={i} d={`M30 44 Q${30 + dx * 6} ${44 + dy * 6 - 2} ${30 + dx * 10} ${44 + dy * 9}`} fill="none" stroke={dk(c[1], 0.1)} strokeWidth="2.6" strokeLinecap="round" />)}
-    <ellipse cx="25" cy="66.5" rx="11" ry="2.6" fill={c[1]} opacity=".9" />
-    <path d="M4 78 C26 71 48 73 64 79 C76 75 86 73 96 75 V100 H4 Z" fill={sand2} />
-    {place(camelArt(c, false), 51, 56, 0.66)}
-  </>);
+  return Patch({ uid, k: 'cm', c: [c[1], fur], city: 'BALTIMORE', nick: 'Camels', bg: lt(fur, 0.62) }, camelArt(c, false), <>
+    <circle cx="70" cy="50" r="12" fill={mix(fur, '#ffd23f', 0.62)} />
+    <path d="M0 66 C20 58 40 60 54 65 C66 59 82 59 100 63 V100 H0 Z" fill={sand} />
+    <path d="M0 74 C24 68 48 70 64 76 C76 72 88 70 100 72 V100 H0 Z" fill={sand2} />
+    <path d="M14 66 C15 58 19 53 24 50" fill="none" stroke={WOOD} strokeWidth="2" strokeLinecap="round" />
+    {[[-1.2, -0.6], [-0.5, -1.2], [0.5, -1.1], [1.2, -0.4], [0.9, 0.5]].map(([dx, dy], i) => <path key={i} d={`M24 50 Q${24 + dx * 5} ${50 + dy * 5 - 2} ${24 + dx * 8.4} ${50 + dy * 7.6}`} fill="none" stroke={c[1]} strokeWidth="2.2" strokeLinecap="round" />)}
+  </>, { artY: 40, artS: 0.56 });
 }
 
 // New York Hermits
@@ -367,12 +256,10 @@ function parasolArt(c: Pal, sm: boolean) {
 }
 function parasols(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[1], place(parasolArt(c, true), 50, 50, 0.9));
-  return Ring({ uid, k: 'pa', band: c[0], inner: lt(c[1], 0.6), city: 'CLEVELAND', nick: 'PARASOLS', text: PAPER }, <>
-    {Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2; return <path key={i} d={`M50 44 L${f2(50 + Math.cos(a - 0.12) * 50)} ${f2(44 + Math.sin(a - 0.12) * 50)} L${f2(50 + Math.cos(a + 0.12) * 50)} ${f2(44 + Math.sin(a + 0.12) * 50)} Z`} fill="#ffffff" opacity=".35" />; })}
-    <path d="M0 74 Q12 70 25 74 T50 74 T75 74 T100 74 V100 H0 Z" fill={c[1]} />
-    <path d="M0 80 Q12 76 25 80 T50 80 T75 80 T100 80" fill="none" stroke="#ffffff" strokeWidth="1.2" opacity=".6" />
-    {place(parasolArt(c, false), 50, 50, 0.7)}
-  </>);
+  return Script({ uid, k: 'pa', c: [lt(c[1], 0.62), c[0]], city: 'CLEVELAND', nick: 'Parasols' }, parasolArt(c, false), <>
+    {Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2; return <path key={i} d={`M50 40 L${f2(50 + Math.cos(a - 0.12) * 60)} ${f2(40 + Math.sin(a - 0.12) * 60)} L${f2(50 + Math.cos(a + 0.12) * 60)} ${f2(40 + Math.sin(a + 0.12) * 60)} Z`} fill="#ffffff" opacity=".4" />; })}
+    <path d="M0 64 Q12 60 25 64 T50 64 T75 64 T100 64 V100 H0 Z" fill={c[1]} />
+  </>, { artY: 40, artS: 0.56, swash: c[1] });
 }
 
 // Detroit Oxcarts
@@ -431,10 +318,9 @@ function slothArt(c: Pal, sm: boolean, arms = true) {
 }
 function sloths(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(slothArt(c, true, false), 50, 41, 1.1));
-  return Ring({ uid, k: 'sl', band: dk(c[0], 0.2), inner: lt(c[0], 0.55), city: 'CHICAGO', nick: 'SLOTHS', text: PAPER, trim: c[1] }, <>
-    {[[22, 70, 30], [78, 72, -30], [30, 82, 10], [70, 84, -10], [50, 88, 0]].map(([x, y, r], i) => <ellipse key={i} cx={x} cy={y} rx="9" ry="3.6" transform={`rotate(${r} ${x} ${y})`} fill={c[0]} stroke={INK} strokeWidth=".8" opacity=".9" />)}
-    {place(slothArt(c, false), 50, 50, 0.7)}
-  </>);
+  return Tag({ uid, k: 'sl', c: [lt(c[0], 0.5), dk(c[0], 0.25)], city: 'CHICAGO', nick: 'SLOTHS' }, slothArt(c, false), <>
+    {[[18, 64, 30], [82, 66, -30], [14, 46, 60], [86, 48, -60]].map(([x, y, r], i) => <ellipse key={i} cx={x} cy={y} rx="8" ry="3.2" transform={`rotate(${r} ${x} ${y})`} fill={c[0]} stroke={INK} strokeWidth=".8" />)}
+  </>, { artY: 46.4, artS: 0.6, plate: c[0] });
 }
 
 // Birmingham Vulcans
@@ -483,12 +369,11 @@ function narwhalArt(c: Pal, sm: boolean, tusk = true) {
 }
 function narwhals(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[1], place(narwhalArt(c, true), 49, 52, 0.84));
-  const sea = c[1];
-  return Ring({ uid, k: 'nw', band: sea, inner: dk(sea, 0.25), city: 'CINCINNATI', nick: 'NARWHALS', text: PAPER, trim: c[0] }, <>
-    {[[28, 30, 1.6], [70, 22, 1.2], [40, 18, 1], [80, 40, 1.4]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.4)} fill={lt(c[0], 0.5)} />)}
-    <path d="M0 70 Q12 64 25 70 T50 70 T75 70 T100 70 V100 H0 Z" fill={c[0]} />
-    <path d="M0 78 Q12 72 25 78 T50 78 T75 78 T100 78 V100 H0 Z" fill={dk(c[0], 0.2)} />
-  </>, place(narwhalArt(c, false, true), 48, 52, 0.62));
+  return Wordmark({ uid, k: 'nw', c: [c[0], c[1]], city: 'CINCINNATI', nick: 'NARWHALS', bg: dk(c[1], 0.2) }, narwhalArt(c, false, true), <>
+    {[[30, 20], [70, 16], [22, 34]].map(([x, y], i) => <path key={i} d={sparkle(x, y, 1.8)} fill={lt(c[0], 0.5)} />)}
+    <path d="M0 50 Q12 45 25 50 T50 50 T75 50 T100 50 V100 H0 Z" fill={c[0]} />
+    <path d="M0 57 Q12 52 25 57 T50 57 T75 57 T100 57 V100 H0 Z" fill={dk(c[0], 0.2)} />
+  </>, { artY: 37, artS: 0.5 });
 }
 
 // Charlotte Bohemians
@@ -552,11 +437,10 @@ function plowArt(u: string, c: Pal, sm: boolean) {
 }
 function snowplows(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[1], place(plowArt(uid + 's', c, true), 50, 51, 0.84));
-  return Ring({ uid, k: 'sp', band: c[0], inner: lt(c[1], 0.2), city: 'ATLANTA', nick: 'SNOWPLOWS', text: INK, trim: c[1] }, <>
-    {[[22, 28], [78, 26], [30, 46], [70, 44], [50, 22], [16, 60], [84, 58]].map(([x, y], i) => <path key={i} d={`M${x - 2.4} ${y} H${x + 2.4} M${x} ${y - 2.4} V${y + 2.4} M${x - 1.7} ${y - 1.7} L${x + 1.7} ${y + 1.7} M${x - 1.7} ${y + 1.7} L${x + 1.7} ${y - 1.7}`} stroke="#ffffff" strokeWidth=".9" opacity=".8" />)}
-    <path d="M0 76 Q25 70 50 74 T100 72 V100 H0 Z" fill="#f4f7fa" />
-    {place(plowArt(uid, c, false), 50, 50, 0.66)}
-  </>);
+  return Octagon({ uid, k: 'sp', c: [c[0], c[1]], city: 'ATLANTA', nick: 'SNOWPLOWS', bg: lt(c[1], 0.25) }, plowArt(uid, c, false), <>
+    {[[22, 32], [78, 30], [28, 50], [72, 48], [50, 26]].map(([x, y], i) => <path key={i} d={`M${x - 2.2} ${y} H${x + 2.2} M${x} ${y - 2.2} V${y + 2.2} M${x - 1.5} ${y - 1.5} L${x + 1.5} ${y + 1.5} M${x - 1.5} ${y + 1.5} L${x + 1.5} ${y - 1.5}`} stroke="#ffffff" strokeWidth=".9" opacity=".8" />)}
+    <path d="M0 64 Q25 58 50 62 T100 60 V100 H0 Z" fill="#f4f7fa" />
+  </>, { artY: 46, artS: 0.52 });
 }
 
 // Richmond Samurai
@@ -628,10 +512,9 @@ function owlArt(c: Pal, sm: boolean, books = true) {
 }
 function librarians(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(owlArt(c, true, false), 50, 52, 1.02));
-  return Ring({ uid, k: 'li', band: c[0], inner: lt(c[0], 0.14), city: 'NASHVILLE', nick: 'LIBRARIANS', text: c[1], trim: c[1] }, <>
-    <circle cx="50" cy="40" r="22" fill={c[1]} opacity=".18" />
-    {place(owlArt(c, false), 50, 51, 0.66)}
-  </>);
+  return Varsity({ uid, k: 'li', c: [c[0], c[1]], city: 'NASHVILLE', nick: 'LIBRARIANS' }, owlArt(c, false), <>
+    {[18, 30, 70, 82].map(x => <rect key={x} x={x - 3} y="40" width="6" height="46" fill={lt(c[0], 0.08)} />)}
+  </>, { artY: 58, artS: 0.47 });
 }
 
 // Seattle Scorpions
@@ -661,10 +544,9 @@ function scorpionArt(c: Pal, sm: boolean) {
 }
 function scorpions(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(scorpionArt(c, true), 50, 50, 0.92));
-  return Shield({ uid, k: 'sc', field: c[0], band: c[1], city: 'SEATTLE', nick: 'SCORPIONS', ribbon: c[1] }, <>
-    <path d="M50 25 L90 46 L90 25 Z M50 25 L10 46 L10 25 Z" fill={dk(c[0], 0.12)} />
-    {place(scorpionArt(c, false), 50, 54, 0.54)}
-  </>);
+  return Diamond({ uid, k: 'sc', c: [c[0], c[1]], city: 'SEATTLE', nick: 'SCORPIONS' }, scorpionArt(c, false), <>
+    {[-36, -24, -12, 0, 12, 24, 36].map(x => <path key={x} d={`M${50 + x} 0 L${50 + x + 30} 100`} stroke={dk(c[0], 0.1)} strokeWidth="5" />)}
+  </>, { artY: 46, artS: 0.48 });
 }
 
 // Vancouver Drought
@@ -686,12 +568,7 @@ function sunArt(c: Pal, sm: boolean) {
 }
 function drought(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(sunArt(c, true), 50, 51.4, 0.92));
-  const earth = '#c98a55';
-  return Ring({ uid, k: 'dr', band: dk(c[0], 0.25), inner: lt(c[0], 0.2), city: 'VANCOUVER', nick: 'DROUGHT', text: PAPER, trim: c[1] }, <>
-    <path d="M0 70 C20 66 34 68 50 67 C66 66 80 66 100 69 V100 H0 Z" fill={earth} />
-    <path d="M14 74 L22 78 L20 84 M22 78 L30 76 M40 72 L44 79 L52 80 L56 88 M44 79 L40 86 M64 72 L70 78 L80 76 M70 78 L68 86 M84 78 L90 84" fill="none" stroke={dk(earth, 0.45)} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
-    {place(sunArt(c, false), 50, 46, 0.66)}
-  </>);
+  return Sunburst({ uid, k: 'dr', c: [c[0], dk(c[0], 0.3)], city: 'VANCOUVER', nick: 'DROUGHT' }, sunArt(c, false), { artY: 45, artS: 0.52, core: '#c98a55' });
 }
 
 // St. Louis Puffins
@@ -715,11 +592,10 @@ function puffinArt(c: Pal, sm: boolean) {
 }
 function puffins(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(puffinArt(c, true), 47, 52, 0.94));
-  return Ring({ uid, k: 'pu', band: c[1], inner: '#cfe7f2', city: 'ST. LOUIS', nick: 'PUFFINS', text: c[0], trim: c[0] }, <>
-    <path d="M0 72 C16 68 30 70 44 72 L44 100 H0 Z" fill="#7b8794" />
-    <path d="M0 80 Q20 76 40 80 T100 80 V100 H0 Z" fill={lt(c[1], 0.3)} />
-    {place(puffinArt(c, false), 48, 50, 0.7)}
-  </>);
+  return Wordmark({ uid, k: 'pu', c: [c[0], c[1]], city: 'ST. LOUIS', nick: 'PUFFINS', bg: '#cfe7f2' }, puffinArt(c, false), <>
+    <path d="M0 52 C16 48 30 50 44 52 L44 100 H0 Z" fill="#7b8794" />
+    <path d="M0 58 Q20 54 40 58 T100 58 V100 H0 Z" fill={lt(c[1], 0.3)} />
+  </>, { artY: 38, artS: 0.58 });
 }
 
 // Denver Deep
@@ -785,11 +661,7 @@ function mittenArt(c: Pal, sm: boolean) {
 }
 function mittens(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[1], place(mittenArt(c, true), 50, 50, 0.92), c[0]);
-  return Ring({ uid, k: 'mi', band: c[0], inner: lt(c[1], 0.3), city: 'SAN DIEGO', nick: 'MITTENS', text: c[1], trim: c[1] }, <>
-    <circle cx="70" cy="30" r="10" fill="#ffd166" opacity=".8" />
-    <path d="M0 76 Q25 70 50 76 T100 74 V100 H0 Z" fill={lt(c[0], 0.65)} />
-    {place(mittenArt(c, false), 50, 50, 0.7)}
-  </>);
+  return Pennant({ uid, k: 'mi', c: [c[0], c[1]], city: 'SAN DIEGO', nick: 'MITTENS' }, mittenArt(c, false), { artS: 0.38 });
 }
 
 // Oakland Barons
@@ -860,10 +732,9 @@ function monkArt(c: Pal, sm: boolean) {
 }
 function monks(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(monkArt(c, true), 50, 50, 0.96));
-  return Ring({ uid, k: 'mo', band: c[1], inner: c[0], city: 'LAS VEGAS', nick: 'MONKS', text: c[0], trim: c[0] }, <>
-    {Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2; return <circle key={i} cx={f2(50 + Math.cos(a) * 30.6)} cy={f2(50 + Math.sin(a) * 30.6)} r=".9" fill={c[1]} opacity=".7" />; })}
-    {place(monkArt(c, false), 50, 51, 0.68)}
-  </>);
+  return Arch({ uid, k: 'mo', c: [c[0], c[1]], city: 'LAS VEGAS', nick: 'MONKS', bg: dk(c[0], 0.2) }, monkArt(c, false), <>
+    {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={22 + i * 7} cy={16 + Math.abs(4 - i) * 3.4} r="1" fill={c[1]} opacity=".7" />)}
+  </>, { artY: 48, artS: 0.6 });
 }
 
 // Los Angeles Strollers
@@ -943,10 +814,9 @@ function typewriterArt(c: Pal, sm: boolean) {
 }
 function typewriters(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[1], place(typewriterArt(c, true), 50, 51.4, 0.88), c[0]);
-  return Ring({ uid, k: 'ty', band: c[1], inner: lt(c[0], 0.55), city: 'SAN JOSE', nick: 'TYPEWRITERS', text: c[0], trim: c[0] }, <>
-    {[22, 34, 46, 58, 70, 82].map(y => <path key={y} d={`M0 ${y} H100`} stroke={c[0]} strokeWidth=".6" opacity=".5" />)}
-    {place(typewriterArt(c, false), 50, 51, 0.7)}
-  </>);
+  return Wordmark({ uid, k: 'ty', c: [c[0], c[1]], city: 'SAN JOSE', nick: 'TYPEWRITERS', bg: lt(c[0], 0.55) }, typewriterArt(c, false), <>
+    {[20, 30, 40, 50, 60].map(y => <path key={y} d={`M0 ${y} H100`} stroke={c[0]} strokeWidth=".6" opacity=".55" />)}
+  </>, { artY: 38, artS: 0.58, size: 15 });
 }
 
 // Austin Hush
@@ -965,10 +835,9 @@ function moonArt(c: Pal, sm: boolean) {
 }
 function hush(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(moonArt(c, true), 52, 50, 0.92));
-  return Ring({ uid, k: 'hu', band: dk(c[0], 0.3), inner: c[0], city: 'AUSTIN', nick: 'HUSH', text: c[1], trim: c[1] }, <>
-    {[[76, 26, 3.2], [82, 46, 2], [72, 66, 2.6], [64, 18, 1.6], [84, 62, 1.4]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.4)} fill={lt(c[1], 0.4)} />)}
-    {place(moonArt(c, false), 46, 50, 0.7)}
-  </>);
+  return Wordmark({ uid, k: 'hu', c: [c[1], c[0]], city: 'AUSTIN', nick: 'HUSH', bg: c[0] }, moonArt(c, false), <>
+    {[[72, 18, 2.6], [78, 36, 1.8], [70, 52, 2.2], [24, 22, 1.4]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.4)} fill={lt(c[1], 0.4)} />)}
+  </>, { artY: 37, artS: 0.56, size: 20 });
 }
 
 // San Antonio Frost
@@ -1058,12 +927,9 @@ function caribouArt(c: Pal, sm: boolean) {
 }
 function caribou(uid: string, sm: boolean, c: Pal) {
   if (sm) return Disc(c[0], place(caribouArt(c, true), 50, 50, 0.94));
-  return Ring({ uid, k: 'ca', band: c[0], inner: lt(c[0], 0.5), city: 'HOUSTON', nick: 'CARIBOU', text: PAPER, trim: c[1] }, <>
-    {[[22, 30], [78, 28], [30, 18], [70, 16]].map(([x, y], i) => <path key={i} d={sparkle(x, y, 1.8)} fill="#ffffff" />)}
-    <path d="M0 74 L18 60 L30 70 L44 56 L58 70 L72 58 L84 68 L100 60 V100 H0 Z" fill={lt(c[0], 0.2)} />
-    <path d="M14 63 L18 60 L22 63.4 M40.4 59.6 L44 56 L48 60 M68.6 61 L72 58 L76 61.4" fill="none" stroke="#ffffff" strokeWidth="1.6" strokeLinejoin="round" />
-    {place(caribouArt(c, false), 50, 52, 0.68)}
-  </>);
+  return Seal({ uid, k: 'ca', c: [c[0], c[1]], city: 'HOUSTON', nick: 'CARIBOU', bg: lt(c[0], 0.5) }, caribouArt(c, false), <>
+    <path d="M0 64 L18 52 L30 60 L44 48 L58 60 L72 50 L84 58 L100 52 V100 H0 Z" fill={lt(c[0], 0.2)} />
+  </>, { artY: 51, artS: 0.5 });
 }
 
 // ── The league's logos: abbreviation → nickname (a renamed club falls back to the templates) and drawing.

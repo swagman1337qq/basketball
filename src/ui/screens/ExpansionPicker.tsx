@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { FRANCHISES, marketOf, type Franchise } from '../../data/franchises';
 import { genExpansionTeam } from '../../data/world';
-import { GLYPH_NAMES, LOGO_STYLES, TeamLogo } from '../TeamLogo';
+import { GLYPH_NAMES, LOGO_STYLES, LOGO_STYLE_LABELS, TeamLogo } from '../TeamLogo';
 import { muted, NumInput, Seg, usePaged } from '../kit';
 
 const DIVS: Record<string, string[]> = { East: ['Atlantic', 'Central', 'Southeast'], West: ['Northwest', 'Pacific', 'Southwest'] };
@@ -70,7 +70,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
             <span style={muted}>Market size</span><NumInput value={draft.mkt} min={0.6} max={1.6} step={0.05} onValue={v => set({ mkt: v })} suffix="× (1 = average; 1.5 = New York)" />
             <span style={muted}>Colors</span><span style={{ display: 'flex', gap: 8 }}><input type="color" value={draft.colors[0]} onChange={e => set({ colors: [e.target.value, draft.colors[1]] })} /><input type="color" value={draft.colors[1]} onChange={e => set({ colors: [draft.colors[0], e.target.value] })} /></span>
             <span style={muted}>Crest</span><select className="input" value={draft.icon} onChange={e => set({ icon: e.target.value })} style={{ width: 'auto' }}>{GLYPH_NAMES.map(n => <option key={n}>{n}</option>)}</select>
-            <span style={muted}>Logo style</span><Seg<string> value={draft.logoStyle} options={LOGO_STYLES.map(x => [x, x[0].toUpperCase() + x.slice(1)] as [string, string])} onChange={v => set({ logoStyle: v })} />
+            <span style={muted}>Logo style</span><select className="input" value={draft.logoStyle} onChange={e => set({ logoStyle: e.target.value })} style={{ width: 'auto' }}>{LOGO_STYLES.map(x => <option key={x} value={x}>{LOGO_STYLE_LABELS[x]}</option>)}</select>
             <span />
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className="btn btn-primary" disabled={!dOk} onClick={() => { setPend([...pend, { ...draft, region: draft.region.trim(), name: draft.name.trim() }]); set({ region: '', name: '', abbr: '' }); }}>Add this team</button>
