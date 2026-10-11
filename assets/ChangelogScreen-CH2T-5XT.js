@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BmRB7f6Q.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bl9VgcEw.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -15,6 +15,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - In God Mode you can tick the winner of postseason games still to come, just like regular-season ones.
 
 ### Changed
+- **The Washington Monuments are now the Washington Blossoms**, named for the cherry blossoms. The expansion franchise has a new hand-drawn logo (a cherry blossom branch by the Washington Monument, with WASHINGTON and BLOSSOMS on a tall badge) and cherry-blossom pink and Potomac blue colors. If they've already joined your league, they switch over automatically.
 - **The Richmond Samurai are now the Richmond Opossums**, with a new hand-drawn logo (a grinning opossum peeking over a trash can under the moon) and new colors: opossum grey and a pink nose. Leagues you've already started switch over automatically; past seasons still show the Samurai.
 - **Player portraits wear the team's name and their number.** The jersey shows the nickname across the chest with the player's number underneath, in the team's trim color. Free agents and draft prospects still wear a plain grey jersey.
 - **Player faces look more lifelike.**
