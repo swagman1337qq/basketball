@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-viq9d-af.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BUDcPPfJ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-11
 
 ### Fixed
+- **Kawhi Leonard's rookie card is no longer overpowered.** He started at 61 overall with 86 potential and a maxed work ethic, rated like a star for a rookie who scored 7.9 a game. He's now 57 overall with 80 potential: a tough defender, rebounder and corner shooter who plays like his real rookie year (about 7 points, 5 rebounds and 1.3 steals in 24 minutes) and still has room to grow. Your card library updates on its own unless you edited the card; players you already gave the card keep their ratings.
 - **Turning League expansion on or off in Settings no longer blanks the screen.**
 
 ### Added
