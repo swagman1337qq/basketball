@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-CmI-O-uO.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DB5Z6eJU.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -14,10 +14,20 @@ Every change to Basketball Manager, newest first. The game shows this page under
     - Denver: an anglerfish seen through a porthole.
     - Los Angeles: a vintage pram rolling past the palms.
     - Austin: a crescent moon going "shh."
-  - **Each logo carries its city and nickname**, on a roundel, a shield or a badge.
+  - **Each logo carries its city and nickname**, set in a design of its own: a roundel, a shield, a pennant, a diamond, a varsity arch, an embroidered patch, a tag, a sunburst, a seal, an arched window, a hexagon or a script wordmark, so neighbors in the standings look different.
   - **The Portland Pines logo is refined**: snow-dusted firs, and Mount Hood lit on one side.
   - **Small logos show the mascot alone** (in standings, schedules and lists), so you can tell teams apart at a glance.
   - **Logos use the team's colors.** If you recolor a team in the League editor, its logo follows.
+- **Every expansion franchise has a hand-drawn logo and new colors too**, all 47 of them, each with its city and nickname. A few examples:
+  - Washington Monuments: the Washington Monument between cherry blossoms.
+  - Miami Flamingos: a flamingo against an Art Deco sunset.
+  - Pittsburgh Ballerinas: pointe shoes hanging by their ribbons.
+  - Memphis Blues: a guitar on a vinyl record.
+  - Phoenix Chill: an ice pop in sunglasses.
+  - San Francisco Fog: a Golden Gate tower over a sleepy fog bank.
+  - Omaha Stockyards: a snorting Hereford bull with a nose ring.
+  - Albuquerque Roadrunners: a roadrunner at full tilt.
+- **Teams you create get more logo styles.** Besides the shield, roundel, script and varsity badge, a club you make up (or rename) can wear a wordmark, pennant, diamond, varsity arch, patch, tag, sunburst, seal, arched window or hexagon, all with its emblem, city and nickname. Pick one when you create the team or in the League editor.
 - **New team colors.** Every team has a new bright, colorful pair that goes together and fits the nickname: camel tan and oasis teal for Baltimore, pine green and snow for Portland, axolotl pink and teal for Dallas, saffron and maroon for the Las Vegas Monks, and so on. The three deliberately ugly palettes are gone, and no two teams look alike. Leagues still using a default palette switch over automatically; colors you set yourself stay.
 - **The Portland Sultans are now the Portland Pines**, with a new hand-drawn logo: fir trees in front of snow-capped Mount Hood.
 - **The Minneapolis Marauders replace the Brooklyn Squares.** Minneapolis plays in the East's Central division, and Cleveland moves to the Atlantic.
@@ -821,4 +831,4 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - Scouting, overseas players and development.
 - Player profile tabs, tactics, league stats, God Mode editors, uploads and expansion teams.
 `,i=e(),a=e=>e.split(/(\*\*[^*]+\*\*)/).map((e,t)=>e.startsWith(`**`)?(0,i.jsx)(`b`,{children:e.slice(2,-2)},t):e),o={Added:`var(--gm-good)`,Changed:`#4a9fd8`,Fixed:`var(--gm-elite)`};function s(){let e=[],s=``;return r.split(`
-`).forEach(t=>{if(t.startsWith(`## `))e.push({date:t.slice(3).trim(),secs:[]});else if(t.startsWith(`### `))e[e.length-1]?.secs.push({name:t.slice(4).trim(),items:[],subs:[]});else if(t.startsWith(`- `)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r&&(r.items.push(t.slice(2)),r.subs.push([]))}else if(/^\s+- /.test(t)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r?.subs.length&&r.subs[r.subs.length-1].push(t.trim().slice(2))}else!e.length&&t.trim()&&!t.startsWith(`#`)&&(s=t.trim())}),(0,i.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:22,maxWidth:900},children:[s&&(0,i.jsx)(`p`,{style:{...n,margin:0,fontSize:`13px`},children:a(s.replace(` The game shows this page under **What's new**.`,``))}),e.map((e,n)=>(0,i.jsxs)(`section`,{children:[(0,i.jsx)(`h3`,{style:{margin:`0 0 8px`,fontSize:`19px`,borderBottom:`1px solid var(--color-divider)`,paddingBottom:4},children:e.date}),e.secs.map((e,n)=>(0,i.jsxs)(`div`,{style:{marginBottom:10},children:[(0,i.jsx)(t,{children:(0,i.jsx)(`span`,{style:{color:o[e.name]},children:e.name})}),(0,i.jsx)(`ul`,{style:{margin:`4px 0 0`,paddingLeft:20,display:`flex`,flexDirection:`column`,gap:5,fontSize:`13.5px`,lineHeight:1.5},children:e.items.map((t,n)=>(0,i.jsxs)(`li`,{children:[a(t),e.subs[n]?.length>0&&(0,i.jsx)(`ul`,{style:{margin:`3px 0 0`,paddingLeft:18,display:`flex`,flexDirection:`column`,gap:2},children:e.subs[n].map((e,t)=>(0,i.jsx)(`li`,{children:a(e)},t))})]},n))})]},n))]},n))]})}export{s as ChangelogScreen};
+`).forEach(t=>{if(t.startsWith(`## `))e.push({date:t.slice(3).trim(),secs:[]});else if(t.startsWith(`### `))e[e.length-1]?.secs.push({name:t.slice(4).trim(),items:[],subs:[]});else if(t.startsWith(`- `)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r&&(r.items.push(t.slice(2)),r.subs.push([]))}else if(/^\s+- /.test(t)){let n=e[e.length-1],r=n?.secs[n.secs.length-1];r?.subs.length&&r.subs[r.subs.length-1].push(t.trim().slice(2))}else!e.length&&t.trim()&&!t.startsWith(`#`)&&(s=t.trim())}),(0,i.jsxs)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:22,maxWidth:900},children:[s&&(0,i.jsx)(`p`,{style:{...t,margin:0,fontSize:`13px`},children:a(s.replace(` The game shows this page under **What's new**.`,``))}),e.map((e,t)=>(0,i.jsxs)(`section`,{children:[(0,i.jsx)(`h3`,{style:{margin:`0 0 8px`,fontSize:`19px`,borderBottom:`1px solid var(--color-divider)`,paddingBottom:4},children:e.date}),e.secs.map((e,t)=>(0,i.jsxs)(`div`,{style:{marginBottom:10},children:[(0,i.jsx)(n,{children:(0,i.jsx)(`span`,{style:{color:o[e.name]},children:e.name})}),(0,i.jsx)(`ul`,{style:{margin:`4px 0 0`,paddingLeft:20,display:`flex`,flexDirection:`column`,gap:5,fontSize:`13.5px`,lineHeight:1.5},children:e.items.map((t,n)=>(0,i.jsxs)(`li`,{children:[a(t),e.subs[n]?.length>0&&(0,i.jsx)(`ul`,{style:{margin:`3px 0 0`,paddingLeft:18,display:`flex`,flexDirection:`column`,gap:2},children:e.subs[n].map((e,t)=>(0,i.jsx)(`li`,{children:a(e)},t))})]},n))})]},t))]},t))]})}export{s as ChangelogScreen};
