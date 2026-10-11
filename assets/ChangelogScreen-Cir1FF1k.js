@@ -1,6 +1,15 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-BgFNvNdR.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{u as t,w as n}from"./index-BMTKam32.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-11
+
+### Changed
+- **New team colors.** Every team has a new bright, colorful pair that goes together and fits the nickname: camel tan and oasis teal for Baltimore, pine green and snow for Portland, axolotl pink and teal for Dallas, saffron and maroon for the Las Vegas Monks, and so on. The three deliberately ugly palettes are gone, and no two teams look alike. Leagues still using a default palette switch over automatically; colors you set yourself stay.
+- **The Portland Sultans are now the Portland Pines**, with a new hand-drawn logo: fir trees in front of snow-capped Mount Hood.
+- **The Minneapolis Marauders replace the Brooklyn Squares.** Minneapolis plays in the East's Central division, and Cleveland moves to the Atlantic.
+  - In leagues you've already started, Brooklyn's franchise moves to Minneapolis. Its players, picks, owner and records go with it, and past seasons still show Brooklyn.
+  - The Brooklyn Squares aren't deleted: you can add them back as an expansion team.
 
 ## 2026-10-10
 
