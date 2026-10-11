@@ -7,50 +7,66 @@
 //    rider) at full gallop over the eight-pointed morning star of the Lakota star quilt, above a ridge
 //    of pines. Red, gold, black and white, the colors of the four directions. No headdress, weapon or
 //    caricature: the horse culture and the star quilt carry it.
-//  - Portland Pines (POR): three Douglas firs (Oregon's state tree) in front of snow-capped Mount Hood,
-//    on a cool Pacific Northwest sky. Pine green, snow cream and a deep forest green.
+//  - Portland Pines (POR): three snow-dusted Douglas firs (Oregon's state tree) in front of Mount Hood,
+//    lit on one face, on a cool Pacific Northwest sky with a passing cloud. In the club's colors.
 // Small sizes drop the lettering and the scenery so the mark stays legible.
 import type { ReactNode } from 'react';
+import { MARKS, type Pal } from './teamMarks';
+import { LOUD_COLORS as DEFAULT_PAL } from '../data/palette';
 
 const IV = { navy: '#0b2545', ivory: '#f1e9d2', teal: '#2ec4b6', green: '#7be495', line: '#9c8a63', deep: '#081b33', sea: '#0d3157' };
 const DR = { red: '#c8102e', gold: '#ffc72c', black: '#141414', white: '#fbf7ee' };
 const PN = { green: '#1f9d55', deep: '#0b4a2a', snow: '#f2e8cf', sky: '#8fd0ea', sky2: '#d9f0f7', rock: '#4f6d7a' };
+const mix = (a: string, b: string, t: number) => { const h = (x: string) => { const n = parseInt(x.replace('#', ''), 16) || 0; return [n >> 16, (n >> 8) & 255, n & 255]; }, A = h(a), B = h(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
 const HEAD = "'Oswald', 'Arial Narrow', Impact, sans-serif";
 
-// A fir: three stacked tiers on a short trunk, `h` tall, standing at (x, y).
-const fir = (x: number, y: number, h: number) => { const w = h * 0.5, t = (k: number, top: number, bot: number) => `M${x} ${y - h * top} L${x + w * k} ${y - h * bot} L${x - w * k} ${y - h * bot} Z`;
-  return t(0.55, 1, 0.62) + t(0.78, 0.8, 0.36) + t(1, 0.56, 0.1) + `M${x - h * 0.05} ${y - h * 0.1} H${x + h * 0.05} V${y} H${x - h * 0.05} Z`; };
+// A fir: four stacked tiers, each drooping at the edges, `h` tall, standing at (x, y).
+const fir = (x: number, y: number, h: number) => {
+  const w = h * 0.52, tiers: [number, number, number][] = [[1, 0.7, 0.46], [0.84, 0.5, 0.66], [0.66, 0.28, 0.84], [0.46, 0.08, 1]];
+  return tiers.map(([top, bot, k]) => `M${x} ${(y - h * top).toFixed(2)} L${(x + w * k).toFixed(2)} ${(y - h * bot).toFixed(2)} Q${x} ${(y - h * bot - h * 0.1).toFixed(2)} ${(x - w * k).toFixed(2)} ${(y - h * bot).toFixed(2)} Z`).join(' ') + ` M${(x - h * 0.05).toFixed(2)} ${(y - h * 0.1).toFixed(2)} H${(x + h * 0.05).toFixed(2)} V${y} H${(x - h * 0.05).toFixed(2)} Z`;
+};
+// Snow along the drooping edge of each tier.
+const firSnow = (x: number, y: number, h: number) => {
+  const w = h * 0.52, tiers: [number, number][] = [[0.7, 0.46], [0.5, 0.66], [0.28, 0.84], [0.08, 1]];
+  return tiers.map(([bot, k]) => `M${(x + w * k * 0.94).toFixed(2)} ${(y - h * bot - h * 0.02).toFixed(2)} Q${x} ${(y - h * bot - h * 0.12).toFixed(2)} ${(x - w * k * 0.94).toFixed(2)} ${(y - h * bot - h * 0.02).toFixed(2)}`).join(' ');
+};
 
-function pines(uid: string, sm: boolean) {
-  const { green, deep, snow, sky, sky2, rock } = PN;
+function pines(uid: string, sm: boolean, c?: Pal) {
+  const green = c?.[0] || PN.green, snow = c?.[1] || PN.snow, deep = mix(green, '#000000', 0.55), { sky, sky2, rock } = PN, rockD = mix(rock, '#000000', 0.3), rockL = mix(rock, '#ffffff', 0.2);
   if (sm) return (<>
-    <circle cx="50" cy="50" r="48" fill={green} stroke={deep} strokeWidth="4" />
-    <path d="M18 66 L40 34 L50 46 L62 28 L84 66 Z" fill={rock} opacity=".55" />
-    <path d="M55 36 L62 28 L69 38 L64 36 L60 40 Z" fill={snow} />
-    <path d={fir(50, 84, 62)} fill={snow} stroke={deep} strokeWidth="2.5" strokeLinejoin="round" />
+    <circle cx="50" cy="50" r="48.5" fill={green} stroke={deep} strokeWidth="3" />
+    <path d="M14 70 L38 36 L48 48 L62 26 L88 70 Z" fill={rockL} opacity=".7" />
+    <path d="M55 37 L62 26 L69.4 38 L65 36 L61.6 40.6 L58.6 36.4 Z" fill={snow} />
+    <path d={fir(50, 88, 66)} fill={snow} stroke={deep} strokeWidth="2.6" strokeLinejoin="round" />
   </>);
   return (<>
     <defs>
       <linearGradient id={'pns' + uid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={sky} /><stop offset="1" stopColor={sky2} /></linearGradient>
-      <clipPath id={'pnc' + uid}><circle cx="50" cy="50" r="37" /></clipPath>
-      <path id={'pnu' + uid} d="M13 50 A37 37 0 0 1 87 50" fill="none" />
+      <clipPath id={'pnc' + uid}><circle cx="50" cy="50" r="33.6" /></clipPath>
+      <path id={'pnu' + uid} d="M12.2 50 A37.8 37.8 0 0 1 87.8 50" fill="none" />
+      <path id={'pnd' + uid} d="M6.4 50 A43.6 43.6 0 0 0 93.6 50" fill="none" />
     </defs>
-    <circle cx="50" cy="50" r="49" fill={deep} />
-    <circle cx="50" cy="50" r="46" fill={green} stroke={snow} strokeWidth="1.4" />
-    <text fontFamily={HEAD} fontWeight="700" fontSize="8.6" fill={snow} letterSpacing="2.2"><textPath href={`#pnu${uid}`} startOffset="50%" textAnchor="middle">PORTLAND</textPath></text>
+    <circle cx="50" cy="50" r="49.3" fill="#1b1a21" />
+    <circle cx="50" cy="50" r="47.3" fill={green} />
+    <circle cx="50" cy="50" r="45.6" fill="none" stroke={snow} strokeWidth=".7" opacity=".55" />
+    <text fontFamily={HEAD} fontWeight="700" fontSize="8.2" fill={snow} letterSpacing="1.3"><textPath href={`#pnu${uid}`} startOffset="50%" textAnchor="middle">PORTLAND</textPath></text>
+    <text fontFamily={HEAD} fontWeight="700" fontSize="8.2" fill={snow} letterSpacing="1.3"><textPath href={`#pnd${uid}`} startOffset="50%" textAnchor="middle">PINES</textPath></text>
+    {[8.4, 91.6].map(x => <circle key={x} cx={x} cy="50" r="1.6" fill={snow} />)}
+    <circle cx="50" cy="50" r="35.3" fill="#1b1a21" />
     <g clipPath={`url(#pnc${uid})`}>
-      <circle cx="50" cy="50" r="37" fill={`url(#pns${uid})`} />
-      {/* Mount Hood: the peak, its snowfield and a ridge either side. */}
-      <path d="M8 70 L30 52 L40 58 L56 30 L72 54 L80 50 L96 70 Z" fill={rock} />
-      <path d="M50 40.5 L56 30 L62.5 40 L59 38.5 L56.5 42 L53.5 38.5 Z" fill={snow} />
-      <path d="M0 72 Q25 64 50 70 T100 68 V100 H0 Z" fill={deep} />
-      <path d={fir(32, 80, 30)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
-      <path d={fir(68, 80, 30)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
-      <path d={fir(50, 82, 42)} fill={green} stroke={deep} strokeWidth="1" strokeLinejoin="round" />
+      <circle cx="50" cy="50" r="33.6" fill={`url(#pns${uid})`} />
+      <path d="M22 34 C22 30 26 28 29 30 C30 26 36 25 38 29 C41 28 44 30 43 33 Z" fill="#ffffff" opacity=".8" />
+      {/* Mount Hood: the lit face, the shadowed face and its snowfield. */}
+      <path d="M8 72 L30 54 L38 59 L56 30 L74 55 L82 51 L96 72 Z" fill={rock} />
+      <path d="M56 30 L74 55 L82 51 L96 72 L62 72 L60 56 Z" fill={rockD} />
+      <path d="M49.6 40.4 L56 30 L63.4 40.6 L59.4 38.6 L56.6 42.4 L53.2 38.4 Z" fill={snow} />
+      <path d="M38 59 L42 52.6 L45 56 Z" fill={rockL} opacity=".7" />
+      <path d="M0 73 Q25 65 50 71 T100 69 V100 H0 Z" fill={deep} />
+      <path d={fir(30, 81, 28)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
+      <path d={fir(70, 81, 28)} fill={green} stroke={deep} strokeWidth=".8" strokeLinejoin="round" />
+      <path d={fir(50, 84, 42)} fill={green} stroke={deep} strokeWidth="1" strokeLinejoin="round" />
+      <path d={firSnow(30, 81, 28) + ' ' + firSnow(70, 81, 28) + ' ' + firSnow(50, 84, 42)} fill="none" stroke={snow} strokeWidth="1.2" strokeLinecap="round" />
     </g>
-    <circle cx="50" cy="50" r="37" fill="none" stroke={snow} strokeWidth="1.6" />
-    <path d="M10 76 L24 72 H76 L90 76 L84 82 L90 88 L76 84 H24 L10 88 L16 82 Z" fill={snow} stroke={deep} strokeWidth="1.4" strokeLinejoin="round" />
-    <text x="50" y="81.6" textAnchor="middle" fontFamily={HEAD} fontWeight="700" fontSize="9" fill={deep} letterSpacing="2">PINES</text>
   </>);
 }
 
@@ -132,7 +148,11 @@ function dragoons(uid: string, sm: boolean) {
   </>);
 }
 
-// abbr → crest contents for a 100×100 viewBox (uid keeps gradient ids unique on a page).
-export const CRESTS: Record<string, (uid: string, sm: boolean) => ReactNode> = { INL: ivories, WAZ: dragoons, POR: pines };
+// abbr → crest contents for a 100×100 viewBox (uid keeps gradient ids unique on a page; the club's
+// colors for the logos drawn in them, teamMarks.tsx).
+export const CRESTS: Record<string, (uid: string, sm: boolean, c?: Pal) => ReactNode> = {
+  INL: ivories, WAZ: dragoons, POR: (uid: string, sm: boolean, c?: Pal) => pines(uid, sm, c && c.length >= 2 ? c : DEFAULT_PAL.POR),
+  ...Object.fromEntries(Object.entries(MARKS).map(([k, m]) => [k, (uid: string, sm: boolean, c?: Pal) => m.draw(uid, sm, c && c.length >= 2 ? c : DEFAULT_PAL[k])])),
+};
 // The nickname each crest belongs to: a club renamed in the League editor falls back to the templates.
-export const CREST_NAMES: Record<string, string> = { INL: 'Ivories', WAZ: 'Dragoons', POR: 'Pines' };
+export const CREST_NAMES: Record<string, string> = { INL: 'Ivories', WAZ: 'Dragoons', POR: 'Pines', ...Object.fromEntries(Object.entries(MARKS).map(([k, m]) => [k, m.name])) };

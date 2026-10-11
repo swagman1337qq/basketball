@@ -52,11 +52,11 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   const onC2 = lum(c2) < 0.35 ? c1 : dk; // the emblem on a secondary-colored disc: light on a dark accent
   const key = team.abbr || team.name || 'X', h = hash(key);
   const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % 4];
-  const sm = size < 46, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58);
+  const sm = size < 60, city = (team.region || '').toUpperCase(), nick = team.name || '', est = 1946 + (h % 58); // under 60px the lettering is too small to read: the emblem alone
   const svg = (children: any) => <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={label} style={{ display: 'block', flex: 'none', overflow: 'visible' }}>{children}</svg>;
   // Clubs with their own hand-drawn crest (teamCrests.tsx), unless a style was picked in the League editor.
   const crest = !team.logoStyle && team.abbr && (!team.name || !CREST_NAMES[team.abbr] || team.name === CREST_NAMES[team.abbr]) ? CRESTS[team.abbr] : undefined;
-  if (crest) return svg(crest(uid, sm));
+  if (crest) return svg(crest(uid, sm, team.colors));
 
   if (style === 'shield') {
     const shield = 'M50 3 L93 13 V48 C93 73 74 88 50 97 C26 88 7 73 7 48 V13 Z';

@@ -5,6 +5,19 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-11
 
 ### Changed
+- **Every team has a new, hand-drawn logo** (all but the Iŋaliq Ivories and Wazíbló Dragoons, which already had theirs).
+  - **Each logo has a real mascot for its nickname.** A few examples:
+    - Baltimore: a camel heading for an oasis.
+    - New York: a hermit raising his lantern.
+    - Newark: a top hat, monocle and mustache.
+    - Detroit: an ox in front of a cart wheel.
+    - Denver: an anglerfish seen through a porthole.
+    - Los Angeles: a vintage pram rolling past the palms.
+    - Austin: a crescent moon going "shh."
+  - **Each logo carries its city and nickname**, on a roundel, a shield or a badge.
+  - **The Portland Pines logo is refined**: snow-dusted firs, and Mount Hood lit on one side.
+  - **Small logos show the mascot alone** (in standings, schedules and lists), so you can tell teams apart at a glance.
+  - **Logos use the team's colors.** If you recolor a team in the League editor, its logo follows.
 - **New team colors.** Every team has a new bright, colorful pair that goes together and fits the nickname: camel tan and oasis teal for Baltimore, pine green and snow for Portland, axolotl pink and teal for Dallas, saffron and maroon for the Las Vegas Monks, and so on. The three deliberately ugly palettes are gone, and no two teams look alike. Leagues still using a default palette switch over automatically; colors you set yourself stay.
 - **The Portland Sultans are now the Portland Pines**, with a new hand-drawn logo: fir trees in front of snow-capped Mount Hood.
 - **The Minneapolis Marauders replace the Brooklyn Squares.** Minneapolis plays in the East's Central division, and Cleveland moves to the Atlantic.
