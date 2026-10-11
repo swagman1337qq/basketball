@@ -1,14 +1,14 @@
-// God Mode: force the winner of a regular-season game that's still to be played. Two small tick
+// God Mode: force the winner of a game that's still to be played (regular season, play-in or playoffs). Two small tick
 // boxes, one per team's abbreviation (away first); tick one and that team wins when the day is
 // simmed. The game is still played out with a real box score; the ticked team just ends up on top.
 import type { VM } from './vm';
 import { GOD_PINK } from './kit';
 
-export const godKey = (Y: number, day: number, h: number, a: number) => Y + ':' + day + ':' + h + ':' + a; // Game.simDay reads s.godWin by this key
+export const godKey = (Y: number, day: number, h: number, a: number) => Y + ':' + day + ':' + h + ':' + a; // Game.simDay and Game.postGame read s.godWin by this key
 
 export function ForceWin({ vm, day, h, a, small }: { vm: VM; day: number; h: number; a: number; small?: boolean }) {
   const { gm, s, T } = vm.ctx;
-  if (!s.god || s.phase !== 'regular' || day < s.day) return null;
+  if (!s.god || !['regular', 'playin', 'playoffs'].includes(s.phase) || day < s.day || h == null || a == null) return null;
   const k = godKey(gm.Y, day, h, a), w = (s.godWin || {})[k];
   const set = (tid: number) => gm.setState((st: any) => { const g = { ...(st.godWin || {}) }; if (g[k] === tid) delete g[k]; else g[k] = tid; return { godWin: g }; });
   const box = (tid: number) => (

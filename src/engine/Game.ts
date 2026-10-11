@@ -969,7 +969,8 @@ export class Game {
   }
   // One postseason game: simulated (or the finished Live Game), logged, stats on the playoff line.
   private postGame(s, home, away, forced, kind, finals?) {
-    const res = forced && forced.home.tid === home && forced.away.tid === away ? forced : this.playGame(s, home, away);
+    const pick = (s.godWin || {})[this.Y + ':' + s.day + ':' + home + ':' + away]; // God Mode: a winner ticked on the Daily or Team schedule
+    const res = forced && forced.home.tid === home && forced.away.tid === away ? forced : pick != null ? this.playFixed(s, home, away, pick) : this.playGame(s, home, away);
     this.addBox(res, true); const bid = this.keepBox(res, s.day, kind);
     if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
     return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind, bid } };
@@ -1077,6 +1078,39 @@ export class Game {
       return { home: aHome ? x.a : x.b, away: aHome ? x.b : x.a, label: ['First round', 'Conference semifinals', 'Conference finals', 'Finals'][ri] + ' · Game ' + (n + 1) };
     }
     return null;
+  }
+  // The postseason as schedule days, for the Daily and Team schedules: every play-in and playoff game
+  // played (s.games entries with po, labeled from the bracket), then the next day still to come: the
+  // play-in games waiting (and the 8-seed games, teams to be decided) or the next game of every open
+  // series. [{ day, stage, games: [{ h, a, stage, label, r?, tbd? }] }], in day order.
+  postSchedule(s) {
+    const RN = ['First round', 'Conference semifinals', 'Conference finals', 'Finals'], ab = (t: number) => s.teams[t]?.abbr || '?';
+    const info = new Map<string, { stage: string; label: string }>();
+    ['East', 'West'].forEach(c => (s.playin?.[c] || []).forEach(x => { if (x.bid) info.set(x.bid, { stage: 'Play-in', label: c + ' play-in · ' + x.label }); }));
+    (s.po?.rounds || []).forEach((r, ri) => r.forEach(x => {
+      let wa = 0, wb = 0;
+      (x.g || []).forEach((g, k) => {
+        const aWon = (g.hp > g.ap) === (g.h === x.a); if (aWon) wa++; else wb++;
+        const st = wa === 4 || wb === 4 ? ab(wa === 4 ? x.a : x.b) + ' wins ' + Math.max(wa, wb) + '–' + Math.min(wa, wb) : wa === wb ? 'Series tied ' + wa + '–' + wb : ab(wa > wb ? x.a : x.b) + ' leads ' + Math.max(wa, wb) + '–' + Math.min(wa, wb);
+        if (g.bid) info.set(g.bid, { stage: RN[ri], label: (ri < 3 ? x.conf + ' · ' : '') + 'Game ' + (k + 1) + ' · ' + st });
+      });
+    }));
+    const days = new Map<number, any>(), add = (day: number, g: any) => { if (!days.has(day)) days.set(day, { day, stage: g.stage, games: [] }); days.get(day).games.push(g); };
+    (s.games || []).forEach(g => { if (!g.po) return; const i = info.get(g.bid) || { stage: g.po === 'playin' ? 'Play-in' : 'Playoffs', label: '' }; add(g.day, { h: g.h, a: g.a, stage: i.stage, label: i.label, r: g }); });
+    if (s.phase === 'playin' && s.playin) {
+      const todo = this.playinPending(s.playin);
+      todo.forEach(({ c, x }) => add(s.day, { h: x.a, a: x.b, stage: 'Play-in', label: c + ' play-in · ' + x.label }));
+      if (todo.some(({ x }) => x.id !== 'C')) ['East', 'West'].forEach(c => add(s.day + 1, { h: null, a: null, stage: 'Play-in', label: c + ' play-in · For the 8 seed', tbd: 'Loser of 7 vs 8 hosts the winner of 9 vs 10' }));
+    }
+    if (s.phase === 'playoffs' && s.po && s.po.champ == null) {
+      const ri = s.po.rounds.length - 1;
+      s.po.rounds[ri].forEach(x => {
+        if (x.wa >= 4 || x.wb >= 4) return;
+        const n = x.wa + x.wb, aHome = [0, 1, 4, 6].includes(n);
+        add(s.day, { h: aHome ? x.a : x.b, a: aHome ? x.b : x.a, stage: RN[ri], label: (ri < 3 ? x.conf + ' · ' : '') + 'Game ' + (n + 1) + ' · ' + (x.wa === x.wb ? 'Series tied ' + x.wa + '–' + x.wb : ab(x.wa > x.wb ? x.a : x.b) + ' leads ' + Math.max(x.wa, x.wb) + '–' + Math.min(x.wa, x.wb)) });
+      });
+    }
+    return [...days.values()].sort((a, b) => a.day - b.day);
   }
   runLottery() {
     if (this.mailWaiting()) return;

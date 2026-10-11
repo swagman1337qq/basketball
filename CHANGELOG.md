@@ -4,6 +4,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-11
 
+### Added
+- **Play-in and playoff games are on the schedules.**
+  - The Daily schedule carries on after the regular season, one day at a time. Each game shows its round and the series score ("East · Game 3 · CHA leads 2–1"), with a box score once it's played. The next day's games appear as soon as they're set, and Sim this day plays them.
+  - Your Team schedule's calendar runs into April, May and June with your play-in and playoff games, tagged with the round and game number ("Round 1 G3"). Your next one has Watch and Sim buttons, and the list view includes them too.
+  - In God Mode you can tick the winner of postseason games still to come, just like regular-season ones.
+
 ### Changed
 - **Every team has a new, hand-drawn logo** (all but the Iŋaliq Ivories and Wazíbló Dragoons, which already had theirs).
   - **Each logo has a real mascot for its nickname.** A few examples:
