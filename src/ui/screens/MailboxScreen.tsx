@@ -3,9 +3,10 @@
 // is still on the table), signings, offer outcomes, options and the rest; your owner's year-end letters;
 // offer sheets on your restricted free agents (match or decline right here); every move made by players
 // on your shortlists; players asking for a trade (shop him from here); and this season's and last season's retirements (the notable ones one by one).
+// Any player's name in a message is a link to his profile (kit.ts linkNames).
 import { useEffect, useState, type ReactNode } from 'react';
 import type { VM } from '../vm';
-import { Link, muted } from '../kit';
+import { Link, linkNames, muted } from '../kit';
 import { answerAgentCall, answerOfferSheet, callFits } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { DAY } from '../../engine/cba';
@@ -72,6 +73,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
       lines: [<span key="n">{rest.slice(0, 25).map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>({p.ovr}, {p.retired.age})</span></span>)}{rest.length > 25 ? <span style={muted}> and {rest.length - 25} more</span> : null}</span>] }); });
 
   items.sort((a, b) => b.ms - a.ms);
+  const lk = (n: ReactNode) => (typeof n === 'string' ? linkNames(n, open, { P }) : n); // any player's name in the text opens his profile
   const shown = kind === 'all' ? items : items.filter(x => x.kind === kind), count = (k: Kind | 'all') => (k === 'all' ? items.length : items.filter(x => x.kind === k).length);
   return (
     <>
@@ -88,8 +90,8 @@ export function MailboxScreen({ vm }: { vm: VM }) {
               {x.isNew && <b style={{ color: 'var(--accent-ink)' }}>New</b>}
               {x.status && <b style={{ marginLeft: 'auto', color: x.status[1] }}>{x.status[0]}</b>}
             </div>
-            <div style={{ fontWeight: 600 }}>{x.title}</div>
-            {x.lines.length > 0 && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{x.lines.map((l, i) => <div key={i}>{l}</div>)}</div>}
+            <div style={{ fontWeight: 600 }}>{lk(x.title)}</div>
+            {x.lines.length > 0 && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{x.lines.map((l, i) => <div key={i}>{lk(l)}</div>)}</div>}
             {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
             {!!x.actions?.length && <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>{x.actions.map(a => <button key={a.label} className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '3px 10px' }} onClick={a.go}>{a.label}</button>)}</div>}
           </div>))}

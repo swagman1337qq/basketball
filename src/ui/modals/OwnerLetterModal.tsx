@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { givenName } from '../../engine/gmCareer';
-import { Kicker, muted } from '../kit';
+import { Kicker, linkNames, muted } from '../kit';
 
 const VERDICT: Record<string, [string, string]> = { extend: ['Full confidence', 'var(--gm-good)'], stay: ['Staying on', 'var(--color-text)'], warning: ['Final warning', 'var(--color-accent-700)'], fired: ['Fired', 'var(--gm-bad)'] };
 
@@ -14,6 +14,7 @@ export function OwnerLetterModal({ vm }: { vm: VM }) {
   if (!letters.length) return null;
   const L = letters[Math.min(i, letters.length - 1)], t = T[L.tid], [vl, vc] = VERDICT[L.verdict];
   const close = () => gm.setState({ letterOpen: null });
+  const lk = (x: string) => linkNames(x, id => { close(); vm.ctx.open(id); }, { P: gm.db.P }); // a player's name opens his profile
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 55%, transparent)', zIndex: 30, padding: '20px' }} onClick={close}>
       <div className="card" onClick={e => e.stopPropagation()} style={{ width: 'min(720px, 100%)', maxHeight: '92vh', overflowY: 'auto', padding: '26px 30px', gap: '12px', background: 'var(--color-surface)', boxShadow: 'var(--shadow-lg)' }}>
@@ -30,18 +31,18 @@ export function OwnerLetterModal({ vm }: { vm: VM }) {
         <p style={{ margin: '6px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', lineHeight: 1.45 }}>Dear {s.gm?.name ? givenName(s.gm) : 'GM'},</p>
         <div>
           <Kicker>What you did right</Kicker>
-          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.right.map((x, k) => <li key={k} style={{ color: 'var(--color-text)' }}><span style={{ color: 'var(--gm-good)' }}>✓ </span>{x}</li>)}</ul>
+          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.right.map((x, k) => <li key={k} style={{ color: 'var(--color-text)' }}><span style={{ color: 'var(--gm-good)' }}>✓ </span>{lk(x)}</li>)}</ul>
         </div>
         <div>
           <Kicker>What you did wrong</Kicker>
-          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.wrong.map((x, k) => <li key={k}><span style={{ color: 'var(--gm-bad)' }}>✗ </span>{x}</li>)}</ul>
+          <ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.wrong.map((x, k) => <li key={k}><span style={{ color: 'var(--gm-bad)' }}>✗ </span>{lk(x)}</li>)}</ul>
         </div>
         <div>
           <Kicker>How I feel about what you’re doing here</Kicker>
-          <p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{L.feel}</p>
+          <p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{lk(L.feel)}</p>
         </div>
-        {!!L.contract && <div><Kicker>About your contract</Kicker><p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{L.contract}</p>{s.gmOffer && s.gmOffer.tid === L.tid && <p style={{ ...muted, fontSize: '12px', margin: '4px 0 0' }}>Answer the offer on the Career screen{s.gmOffer.kind === 'expiring' ? ' before free agency opens' : ''}.</p>}</div>}
-        {L.next.length > 0 && <div><Kicker>Next season I expect</Kicker><ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.next.map((x, k) => <li key={k}>{x}</li>)}</ul></div>}
+        {!!L.contract && <div><Kicker>About your contract</Kicker><p style={{ margin: '4px 0 0', lineHeight: 1.55, fontSize: '14px' }}>{lk(L.contract)}</p>{s.gmOffer && s.gmOffer.tid === L.tid && <p style={{ ...muted, fontSize: '12px', margin: '4px 0 0' }}>Answer the offer on the Career screen{s.gmOffer.kind === 'expiring' ? ' before free agency opens' : ''}.</p>}</div>}
+        {L.next.length > 0 && <div><Kicker>Next season I expect</Kicker><ul style={{ margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.5 }}>{L.next.map((x, k) => <li key={k}>{lk(x)}</li>)}</ul></div>}
         <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-heading)', fontSize: '17px', fontStyle: 'italic' }}>— {L.owner}</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           {L.verdict === 'fired' && <span style={{ ...muted, fontSize: '12px', alignSelf: 'center' }}>This takes effect when you end the season.</span>}

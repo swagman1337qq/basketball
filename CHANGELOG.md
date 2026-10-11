@@ -8,6 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Turning League expansion on or off in Settings no longer blanks the screen.**
 
 ### Added
+- **Player names in the Mailbox are clickable.** Any player named in a message, in its title or its text, opens his profile. The same goes for your owner's year-end letter.
 - **Conferences follow the map.** Every team west of Lebanon, Kansas (the middle of the country) plays in the West, every team east of it in the East. If that leaves one conference bigger, the teams closest to the line switch over until the two are even. Today's 30 teams already line up that way; when expansion teams join, the league realigns at the start of the season, and any team that switches conference shows up in the league transactions. Divisions stay the same, and new or moved teams join the nearest one with room.
 - **Play-in and playoff games are on the schedules.**
   - The Daily schedule carries on after the regular season, one day at a time. Each game shows its round and the series score ("East · Game 3 · CHA leads 2–1"), with a box score once it's played. The next day's games appear as soon as they're set, and Sim this day plays them.
