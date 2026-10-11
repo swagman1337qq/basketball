@@ -36,6 +36,7 @@ export function ExpansionPicker({ vm }: { vm: VM }) {
           <button className="btn btn-ghost" style={{ fontSize: '13px', padding: '0 6px', color: 'var(--gm-bad)' }} title="Remove" onClick={() => setPend(pend.filter(x => x.abbr !== t.abbr))}>✕</button>
         </div>))}</div> : <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>If you don’t pick any, the two largest markets left in the database join (one per conference).</p>}
       {errs.map(e => <div key={e} style={{ fontSize: '12px', color: e.startsWith('Tip') ? 'var(--color-accent-800)' : 'var(--gm-bad)' }}>{e}</div>)}
+      <p style={{ ...muted, fontSize: '12px', margin: '6px 0 0' }}>Conferences follow geography: teams west of Lebanon, Kansas play in the West, teams east of it in the East. If that leaves one conference bigger, the teams nearest the line switch over until they’re even, so a new team can move a neighbor across. The conference shown is the side of the line a city is on; a city the game doesn’t know keeps the one you pick.</p>
       <div style={{ margin: '10px 0 8px' }}><Seg<'db' | 'custom'> value={mode} options={[['db', 'Franchise database'], ['custom', 'Create your own']]} onChange={setMode} /></div>
       {mode === 'db' ? (
         <>

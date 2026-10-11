@@ -6,6 +6,7 @@ import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
 import { LOUD_COLORS, LOUD_V2, PALETTE_V } from '../data/palette';
+import { realign } from '../data/geo';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
@@ -238,6 +239,12 @@ export class Game {
     if ((g.db.paletteV || 1) < PALETTE_V) { const same = (a: any, b: any) => a && b && a[0]?.toLowerCase() === b[0]?.toLowerCase() && a[1]?.toLowerCase() === b[1]?.toLowerCase();
       const repaint = (t: any) => { const nw = LOUD_COLORS[t?.abbr]; if (nw && (same(t.colors, CLASSIC_COLORS[t.abbr]) || same(t.colors, TEAM_STYLE[t.abbr]?.colors) || same(t.colors, LOUD_V2[t.abbr]))) t.colors = nw; };
       g.db.teams.forEach(repaint); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; repaint(c); return c; }); g.db.paletteV = PALETTE_V; }
+    // 2026-10: conferences by geography (data/geo.ts). Saves between seasons realign now; saves in the
+    // middle of a season wait for the next preseason (the rollover realigns every season).
+    if (!g.db.confV && !['regular', 'playin', 'playoffs'].includes(g.state.phase)) {
+      const x = realign(g.state.teams); g.state = { ...g.state, teams: g.state.teams.map((t: any, i: number) => ({ ...t, ...x[i] })) };
+      (g.db.teams || []).forEach((t: any) => { const i = g.state.teams.findIndex((y: any) => y.tid === t.tid); if (i >= 0) Object.assign(t, x[i]); });
+      g.db.confV = 1; }
     // Older saves: the overall becomes the ratings (position-weighted; ratings.ts), the ceiling moving with it.
     if (!g.db.ovrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p.r) syncOvr(p, true); }); g.db.ovrV = 1; }
     // Older saves: free agents' asks above their max, or not discounted for age (askOf).
@@ -420,6 +427,7 @@ export class Game {
     const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
     teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
     placeNamedOwners(teams); // Panny Macquiao, Mao Ying, Tanner Matthews and the Aurelian fund (owners.ts)
+    realign(teams).forEach((x, i) => Object.assign(teams[i], x)); // conferences by geography (data/geo.ts): west or east of Lebanon, Kansas
     const rosters = {};
     // Team situations, like the real league: contenders built on veteran stars, good teams, capped-out
     // teams paying above-average starters with no young stars and no room (think Sacramento), the
@@ -1296,6 +1304,7 @@ export class Game {
       // Expansion: any even number of new franchises (chosen from the franchise database or
       // designed in Settings) join now; the league can expand again later.
       let expanded = s.expanded, expansion = s.expansion, expTeams = s.expTeams;
+      const nBefore = teams.length;
       if (s.expansion) {
         const picks = (s.expTeams || []).filter(Boolean).filter(n => !teams.some(t => t.abbr === n.abbr || t.region + t.name === n.region + n.name));
         const dflt = ['East', 'West'].map(c => FRANCHISES.find(f => f.conf === c && f.pop >= 1 && !teams.some(t => t.region === f.region || t.abbr === f.abbr))).filter(Boolean).map((f: any) => ({ region: f.region, name: f.name, abbr: f.abbr, conf: f.conf, div: f.div, mkt: marketOf(f), colors: f.colors, icon: f.icon }));
@@ -1309,6 +1318,15 @@ export class Game {
         expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
         lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to ' + teams.length + ' teams: ' + NEW.map(n => n.region + ' ' + n.name).join(', ') + '.' }, ...lgLog];
       }
+      // Conferences by geography (data/geo.ts): every team west of Lebanon, Kansas in the West, east of it
+      // in the East, the teams nearest the line moving across to keep them even. New franchises join the
+      // nearest division with room; a team that changes conference joins the nearest one there.
+      { const fresh = new Set(teams.slice(nBefore).map(t => t.tid));
+        realign(teams.map(t => (fresh.has(t.tid) ? { ...t, div: undefined } : t))).forEach((x, i) => {
+          const t = teams[i]; if (t.conf === x.conf && t.div === x.div) return;
+          if (!fresh.has(t.tid) && t.conf !== x.conf) lgLog = [{ day: s.day, type: 'Team', teams: t.abbr, text: 'Realignment: the ' + t.region + ' ' + t.name + ' move to the ' + x.conf + 'ern Conference (' + x.div + ' division)' }, ...lgLog];
+          teams[i] = { ...t, ...x }; const dt = d.teams.find((y: any) => y.tid === t.tid); if (dt) Object.assign(dt, x);
+        }); }
       // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to the minimum
       // (14) with minimum deals and cut to the limit (15; guaranteed money they waive stays on their cap).
       const box = { rosters, fa, overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, byClub: Record<number, string[]> = {};

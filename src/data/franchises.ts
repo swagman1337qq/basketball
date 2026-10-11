@@ -1,4 +1,5 @@
 import { LOUD_COLORS } from './palette';
+import { nearestDiv, sideOf } from './geo';
 // Ready-made franchises for expansion: each nods to what its city is known for, with
 // colors, a crest glyph and the metro-area population (millions; latest census estimates:
 // U.S. Census Bureau 2023 metro estimates, Statistics Canada, INEGI 2020, Eurostat).
@@ -69,6 +70,9 @@ export const FRANCHISES: Franchise[] = [
 // The original palette (to spot saves still wearing it), then the 2026-09 loud repaint.
 export const CLASSIC_COLORS: Record<string, [string, string]> = Object.fromEntries(FRANCHISES.map(f => [f.abbr, f.colors]));
 FRANCHISES.forEach(f => { if (LOUD_COLORS[f.abbr]) f.colors = LOUD_COLORS[f.abbr]; });
+// Each franchise's side of Lebanon, Kansas and its nearest division there (data/geo.ts); the league
+// still evens the conferences out when franchises join.
+FRANCHISES.forEach(f => { const sd = sideOf(f.region); if (sd) { f.conf = sd; f.div = nearestDiv(sd, f.region); } });
 
 // Market size from metro population (a multiplier on revenue and free-agent appeal).
 export const marketOf = (f: Franchise) => f.mkt ?? +Math.max(0.65, Math.min(1.45, 0.65 + Math.log10(Math.max(1, f.pop)) * 0.55)).toFixed(2);
