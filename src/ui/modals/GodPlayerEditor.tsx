@@ -14,7 +14,7 @@ import { hometownOf } from '../../data/hometown';
 import { GOD_PINK, godText } from '../kit';
 import { randomTeamIn } from '../../data/randomTeam';
 import { setRating, setWing, wngOf } from '../../engine/ratings';
-import { leaguesIn } from '../../data/leagues';
+import { HIGH_SCHOOL, isPlainHS, leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
 import { ensureTen, optionRanks, targetTen } from '../../engine/tendencies';
@@ -181,11 +181,12 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
             <CountryPicker C={C} value={p.from.country} onPick={c => mut(q => { q.from = { team: '', lg: '', country: c }; })} width={150} />
             <Combo value={p.from.lg || ''} options={lgs.map(x => ({ v: x.lg, sub: 'Tier ' + x.tier + ' · ' + x.teams.length + ' teams' }))} placeholder="League" width={170}
               onChange={v => mut(q => { q.from = { ...q.from, lg: v }; })}
-              onPick={o => mut(q => { const L = lgs.find(x => x.lg === o.v); q.from = { ...q.from, lg: o.v, team: L && !L.teams.includes(q.from.team) ? '' : q.from.team }; })} />
+              onPick={o => mut(q => { const L = lgs.find(x => x.lg === o.v); q.from = { ...q.from, lg: o.v, team: L && !L.teams.includes(q.from.team) ? (L.teams.length === 1 ? L.teams[0] : '') : q.from.team }; })} />
             <Combo value={p.from.team || ''} options={teamOpts} placeholder="Team or school" width={200}
               onChange={v => mut(q => { q.from = { ...q.from, team: v }; })}
               onPick={o => mut(q => { q.from = { ...q.from, team: o.v, lg: o.sub || q.from.lg }; })} />
             <button className="btn btn-ghost" title="A random team in the country selected here (club, college or school)" onClick={() => mut(q => { q.from = randomTeamIn(C, q.from?.country || q.raised || q.born, q.cls && q.cls > gm.Y); })} style={{ fontSize: '12px' }}>🎲</button>
+            <button className="btn btn-ghost" title="Straight out of high school, no college (shows as his college)" onClick={() => mut(q => { q.from = { team: HIGH_SCHOOL, lg: HIGH_SCHOOL, country: q.from?.country || q.raised || q.born }; })} style={{ fontSize: '12px', fontWeight: isPlainHS(p.from) ? 600 : undefined }}>High school</button>
           </span></>}
         </div>
         <p style={{ ...muted, fontSize: '11.5px' }}>Box scores and play-by-play use the Romanized name; rosters and the profile header also show the native script. Height and weight nudge the related ratings. Wingspan is its own measurement: longer arms help contests, blocks, rebounds and steals. The team a prospect plays for decides which region’s scout covers him.</p>

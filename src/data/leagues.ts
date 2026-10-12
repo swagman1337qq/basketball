@@ -95,6 +95,9 @@ const TIER: Record<string, number> = {
   'Domestic league': 2, 'Super League 1': 2, 'Belarusian Premier League': 2, 'P. League+': 1, 'High school': 3, 'Prep school': 3, Junior: 4,
 };
 export const tierOf = (lg: string) => TIER[lg] ?? 1;
+// Straight out of high school, no college: an option in every country (the profile shows it as his college).
+export const HIGH_SCHOOL = 'High school';
+export const isPlainHS = (from?: { team?: string }) => from?.team === HIGH_SCHOOL;
 
 // The leagues in a country, each with its teams. Young (still in school) players get the
 // junior sides too.
@@ -109,6 +112,9 @@ export function leaguesIn(country: string): { lg: string; teams: string[]; tier:
   const list = [...(el.length ? [{ lg: 'EuroLeague', teams: el }] : []), ...Object.entries(out).filter(([, ts]) => ts.length).map(([lg, teams]) => ({ lg, teams }))];
   // Junior sides of the domestic clubs (the U18 teams prospects play for).
   if (country !== 'US') { const pro = uniq(list.filter(x => x.lg !== 'EuroLeague' && tierOf(x.lg) < 3).flatMap(x => x.teams)); if (pro.length) list.push({ lg: 'Junior', teams: pro.map(t => t + ' U18') }); }
+  // Straight out of high school, in every country (the U.S. also lists its prep powers).
+  const hs = list.find(x => x.lg === HIGH_SCHOOL);
+  if (hs) hs.teams = [HIGH_SCHOOL, ...hs.teams.filter(t => t !== HIGH_SCHOOL)]; else list.push({ lg: HIGH_SCHOOL, teams: [HIGH_SCHOOL] });
   // Top tier first, then down (the order within a tier is the order above).
   return list.map((x, i) => ({ ...x, tier: tierOf(x.lg), i })).sort((a, b) => a.tier - b.tier || a.i - b.i).map(({ i, ...x }) => x);
 }
