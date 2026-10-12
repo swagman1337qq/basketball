@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DLxRDxjA.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D9n0noDT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-12
+
+### Added
+- **"High school" as a college, for any country.** In God Mode's Edit player, the league picker for every country now has a High school option (and there's a High school button next to the dice), for players who went straight from high school to the pros. His profile then shows College: High school, and his bio and scouting report say he came out of high school.
 
 ### Changed
 - **CCP quick results now give real stat lines.** Quick results used to guess each game's score and hand out made-up box scores (40-point scorers, 19% three-point shooting, every player with one steal, guards who never blocked a shot). Now each CCP game is played out trip by trip in a light version of the game engine: each player shoots his own kind of shots at the rate his ratings earn against the other team's defense, gets to the line, turns it over, and grabs rebounds, assists, steals and blocks by his skills and minutes. A season's numbers now look like the full engine's (about 116 points a game, leading scorers in the mid-20s, the best rebounders 12–14 a game, real shooting percentages) while sims stay about ten times faster than the full engine.
