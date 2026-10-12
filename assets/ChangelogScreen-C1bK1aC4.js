@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CF81jgju.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CXtWQ3dO.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-12
 
 ### Added
+- **Jeremy Lin rookie card (2010–11), with his prime as his potential.** His rookie line (29 games off the Warriors' bench: 2.6 pts, 1.2 reb, 1.4 ast, 1.1 stl, .389 FG in 9.8 minutes) is matched by the card at the same minutes: 2.7 pts, 1.2 reb, 1.4 ast, 0.5 stl, .398 FG (his steals came in only 285 minutes). 49 overall. His potential, 56, is what the same player rates at his Linsanity peak (2011–12 Knicks: 14.6 pts, 6.2 ast, 3.6 turnovers, .446 FG in 27 minutes); built at that level he plays 15.3 pts, 6.4 ast, 2.9 turnovers, .457 FG. In Player cards for every league.
 - **Two new ready-made rookie cards: Yi Jianlian (2007–08) and Andrei Kirilenko (2001–02).** Both are tuned against every stat of their real rookie seasons and are in Player cards for every league.
   - **Yi Jianlian:** a 7-foot face-up shooter, light inside. Real: 8.6 pts, 5.2 reb, 0.8 ast, 0.5 stl, 0.8 blk, 1.4 turnovers, .421 FG, .286 from three (0.3 a game), .841 FT in 25 minutes. The card, at about 26 minutes over 300 games: 8.9 pts, 5.6 reb, 0.9 ast, 0.5 stl, 0.8 blk, 1.4 turnovers, .418 FG, .267 from three (0.3 a game), .840 FT. 44 overall, 62 potential.
   - **Andrei Kirilenko:** long, springy and everywhere on defense. Real: 10.7 pts, 4.9 reb, 1.1 ast, 1.4 stl, 1.9 blk, 1.3 turnovers, .450 FG, .250 from three (1.2 a game), .768 FT on 4.5 attempts in 26 minutes. The card, at about 28 minutes over 300 games: 11.0 pts, 5.4 reb, 1.2 ast, 1.4 stl, 2.0 blk, 1.1 turnovers, .485 FG, .282 from three (1.1 a game), .780 FT on 4.4. 51 overall, 79 potential.
