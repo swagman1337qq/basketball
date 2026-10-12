@@ -142,7 +142,8 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
 // The card's playing style, edited like a player's (TendencyEditor): usage rate, his shots by zone and how
 // he creates his jumpers (each adding up to 100%), free throw rate. Shown on a stand-in player built from
 // the card, so usage reads in USG% for these ratings; older cards (0–100 scores) show the mix they play.
-// A card with no tendencies of its own plays the way its ratings point; either way they evolve unless locked.
+// A card with no tendencies of its own plays the way its ratings point and the AI keeps them current; a card's
+// own are set by hand, so the AI leaves them alone once applied.
 function cardPlayer(draft: any) {
   const q: any = { id: 0, pos: draft.pos || 'SF', grp: GRP[draft.pos] || 'W', age: draft.age ?? 25, r: { ...(draft.r || {}) }, hgt: draft.hgt, wing: draft.wing, pers: { ...(draft.pers || {}) }, intg: { ...(draft.intg || {}) } };
   q.ovr = Math.round(ovrExact(q)); q.pot = Math.max(q.ovr, draft.pot ?? q.ovr);
@@ -159,7 +160,6 @@ function CardStyle({ gm, draft, set }: { gm: any; draft: any; set: (f: (d: any) 
         {own && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto' }} onClick={() => set(d => { delete d.ten; delete d.tend; })} title="Drop the card's own tendencies: he plays the way his ratings point">Match his ratings</button>}
       </div>
       <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} auto={() => targetTen(q, { roles: gm.rolesOf(q) })} />
-      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', marginTop: 6 }}><input type="checkbox" checked={!!draft.tenLock} onChange={e => set(d => { if (e.target.checked) d.tenLock = true; else delete d.tenLock; })} /> Lock them (they don’t evolve after the card is applied)</label>
-      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>What you set is what he takes once the card is applied; his ratings decide how many go in. Unless locked, they drift toward what his game and role ask for.</div>
+      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>What you set is what he takes once the card is applied; his ratings decide how many go in. {own ? 'Set by hand on this card, so the AI leaves them alone once it’s applied (Auto in Edit player hands them back to the AI).' : 'With none set here, the AI sets them from his game and keeps them current.'}</div>
     </div>);
 }

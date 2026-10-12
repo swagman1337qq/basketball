@@ -22,7 +22,7 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
   return (
     <div>
       <h4 style={{ ...ruleH4, marginTop: '14px' }}>Playing style</h4>
-      <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{styleLine(p)} His shot tendencies, the way the NBA reports them: they drift toward what his skills, role and team ask of him, a bit each month and more each summer.{p.tenLock ? ' Locked in God Mode: they don’t change.' : ''}</p>
+      <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{styleLine(p)} His shot tendencies, the way the NBA reports them: {p.tenLock ? 'set by hand in God Mode, so the AI leaves them alone.' : 'the AI sets them from his skills, personality, role and team, and updates them every month and every summer.'}</p>
       {ORDER.map(k => {
         const v = t[k] ?? 0, typ = isScore(k) ? 50 : typShare(k as any), d = prev && prev[k] != null ? v - prev[k] : 0;
         const hi = isScore(k) ? v >= 65 : v >= typ * 1.5 && v >= 8, lo = isScore(k) ? v <= 35 : v <= typ * 0.5, c = hi ? 'var(--color-accent-700)' : lo ? 'var(--color-neutral-600)' : 'var(--color-text)';

@@ -18,7 +18,7 @@ import { setRating, setWing, wngOf } from '../../engine/ratings';
 import { HIGH_SCHOOL, isPlainHS, leaguesIn } from '../../data/leagues';
 import { syncOvr } from '../../engine/ratings';
 import { refreshElig } from '../../engine/eligibility';
-import { ensureTen, optionRanks, targetTen } from '../../engine/tendencies';
+import { autoTen, ensureTen, optionRanks, targetTen } from '../../engine/tendencies';
 import { TendencyEditor } from '../TendencyEditor';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
 import { addBrother, addSon, relateBlock, relOf, setFather, unrelate } from '../../engine/family';
@@ -80,8 +80,11 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const [usCities, setUsCities] = useState<Record<string, string> | null>(null);
   useEffect(() => { if (p?.born === 'US' && !usCities) import('../../data/usCities').then(m => setUsCities(m.US_CITIES)); }, [p?.born, usCities]);
   if (!p) return null;
-  // Changing where he was born or raised, or his heritage, redoes his national-team eligibility.
-  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); liftCeil(p); refreshPot(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
+  // His team context for the AI's playing style (tendencies.ts): his place among its options, its direction, his roles.
+  const aiCtx = (q: any) => { const tid = gm.tidOf(s.rosters, q.id); return { rank: optionRanks(gm.db.P, s.rosters).get(q.id) ?? null, mode: tid >= 0 ? gm.strategies(s.teams, s, true)[tid] : undefined, roles: gm.rolesOf(q) }; };
+  // Changing where he was born or raised, or his heritage, redoes his national-team eligibility. Unless his
+  // tendencies were set by hand, the AI resets them to fit whatever changed (ratings, traits, age, position).
+  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); liftCeil(p); refreshPot(p); autoTen(p, aiCtx(p)); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
   // league, or every team in the country when the league is blank or typed by hand.
   const lgs = p.from ? leaguesIn(p.from.country || p.raised || p.born) : [], curL = lgs.find(x => x.lg === p.from?.lg);
@@ -246,8 +249,8 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           </span>
         </div>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Playing style</h4>
-        <TendencyEditor p={p} gm={gm} onTen={ten => mut(q => { ensureTen(q); q.ten = ten; })} auto={() => { const tid = gm.tidOf(s.rosters, p.id); return targetTen(p, { rank: optionRanks(gm.db.P, s.rosters).get(p.id) ?? null, mode: tid >= 0 ? gm.strategies(s.teams, s, true)[tid] : undefined, roles: gm.rolesOf(p) }); }} />
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Lock his tendencies (they stop evolving)</label>
+        <TendencyEditor p={p} gm={gm} onTen={ten => mut(q => { ensureTen(q); q.ten = ten; q.tenLock = true; })} auto={() => targetTen(p, aiCtx(p))} onAuto={() => mut(q => { delete q.tenLock; })} />
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', margin: '6px 0' }}><input type="checkbox" checked={!!p.tenLock} onChange={e => mut(q => { if (e.target.checked) q.tenLock = true; else delete q.tenLock; })} /> Set by hand: the AI leaves his tendencies alone (changing any number ticks this; Auto unticks it)</label>
         <p style={{ ...muted, fontSize: '11.5px' }}>The way the NBA reports it: usage rate (USG%); where his shots come from (restricted area, the paint outside it, mid-range, corner three, above-the-break three) and how he creates his jump shots (catch & shoot, pull-up, stepback, fadeaway), each adding up to 100%; and free throw rate. What you set is what he takes; his ratings decide whether the shots go in, and stepbacks and fadeaways are harder to make (less so with the skills for them) but rarely blocked. They evolve on their own toward what his skills, role and team ask of him (a bigger step each summer) unless locked.</p>
         <ContractEditor vm={vm} p={p} mut={mut} grid={grid} />
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Locked</h4>

@@ -13,7 +13,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
-import { effTend, ensureTen, evolveTendencies, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
+import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
@@ -293,6 +293,11 @@ export class Game {
     if (!g.db.usgV) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
       Object.values(g.db.P).forEach((p: any) => { if (!p.r || p.retired || !p.ten || p.tenLock) return; const nx = Math.round(Math.max(2, Math.min(98, tenTargets(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number] }).usage + quirkOf(p, 'usage')))); if (p.tenPrev?.usage != null) p.tenPrev.usage += nx - p.ten.usage; p.ten.usage = nx; });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.usgV = 1; }
+    // 2026-10-12: the AI sets every player's tendencies outright (tendencies.ts autoTen) unless they were set by
+    // hand, instead of drifting toward them: bring everyone up to date once.
+    if (!g.db.tenAuto) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
+      Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.retired && !p.gone) autoTen(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number], roles: g.rolesOf(p) }); });
+      const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.tenAuto = 1; }
     // 2026-10: height and length count for more at the rim (sim.ts zoneSkill): re-center the league's rim norms once.
     if (!g.db.rimV) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 1; }
     // 2026-10: free throws fall off faster below a 40 rating and the best shooters reach 90%+ (sim.ts curve): re-center the league's free throw norm once.
@@ -1292,10 +1297,10 @@ export class Game {
         if (Math.abs(x.to - x.from) >= 7) lgLog = [{ day: s.day, type: 'Team', teams: teams[k].abbr, pids: [id], text: 'Training camp: ' + p.name + ' looks ' + (x.to > x.from ? 'far better' : 'far worse') + ' than the scouts saw (' + x.from + ' → ' + x.to + ')' }, ...lgLog]; }));
       Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const from = grow(P[id], +k, focusOf(k, id)); P[id].yrsWith = (P[id].yrsWith || 0) + 1; if (this.isUser(s, +k)) (progBy[+k] = progBy[+k] || []).push({ id, from, to: P[id].ovr }); }));
       fa.forEach(id => grow(P[id])); (s.overseas || []).forEach(id => { if (P[id]?.r && !P[id].retired) grow(P[id]); }); // free agents and players abroad: their summer too
-      // His playing style catches up with his game: a summer's step toward what his new skills and role
-      // point to (not every tendency moves every year), and hand-set tendencies fade (tendencies.ts).
+      // His playing style catches up with his game: the AI sets it to what his new skills and role point to
+      // (tendencies.ts autoTen; hand-set tendencies stay). tenPrev keeps last season's for the arrows.
       { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
-        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }, 1, 0.8); }); }
+        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; autoTen(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }); }); }
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -1674,7 +1679,7 @@ export class Game {
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true);
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
-      evolveTendencies(p, { rank: rk.get(id) ?? null, mode: md[k], roles: this.rolesOf(p) }, 0.12, 0.35); // a small monthly step: a new role (a trade, an injury to the star) shows up gradually
+      autoTen(p, { rank: rk.get(id) ?? null, mode: md[k], roles: this.rolesOf(p) }); // the AI resets his playing style each month to what his game, role and team ask (not if set by hand)
       if (p.frozen) return; // God Mode's Freeze attributes: no growth or decline (he still ages, gets hurt, heals and has moods)
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? (p.godPot != null ? Math.max(0, p.dy ?? 1) : p.dy ?? 1) : 1) : annual0, wk = p.pers?.work ?? 50; // God Mode's potential (potential.ts): a down year is no growth, not a slide as big as the plan
       const injF = p.inj ? (p.inj.major ? .2 : .7) : 1;

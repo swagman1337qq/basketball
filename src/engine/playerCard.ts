@@ -57,7 +57,9 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
     if (!ct && card.tend) p.tend = card.tend;
     ensureTen(p);
   }
-  if (card.tenLock) p.tenLock = true; else delete p.tenLock; // a card can lock its playing style
+  // A card's own playing style is set by hand: the AI leaves it alone (Auto in Edit player hands it back).
+  // A card without one plays the way its ratings point, and the AI keeps it current.
+  if (card.tenLock || ct || card.tend) p.tenLock = true; else delete p.tenLock;
   return '';
 }
 

@@ -18,10 +18,10 @@
 //
 // Each has a target: what his current abilities, role, team situation and personality point to,
 // plus a personal quirk that never changes (two players with the same ratings don't play alike).
-// Tendencies move toward the target gradually and probabilistically: a big step chance each summer
-// after development, a small one month to month in season, the shares always adding up to 100.
-// Young players adapt fastest; veterans keep their habits, except that a body that has lost its
-// burst has to adapt (fewer shots at the rim, fewer trips to the line).
+// The AI sets every player's tendencies to his target (autoTen): when he's created, at the start of
+// every month in season, every summer after development, and right after a God Mode edit. Only hand-set
+// tendencies (p.tenLock: changed by hand in God Mode, or a player card's own playing style) are left
+// alone; the Auto button in Edit player hands them back to the AI.
 //
 // Shot volume (usage) is a behavior too, not his overall. It moves toward what his offensive game,
 // his role and his personality point to: a player who becomes a better scorer or a more complete
@@ -227,30 +227,12 @@ export function ensureTen(p: any, norms?: Norms | null, roles?: string[]) {
   return p.ten;
 }
 
-// One step of evolution. `frac` is how big a step this is (1 = a summer, about 0.15 = a month);
-// `prob` the chance each tendency (each group of shares) moves at all this time. Returns the changes.
-export function evolveTendencies(p: any, ctx: number | null | TenCtx, frac: number, prob: number, rnd: () => number = Math.random): Record<string, number> {
-  if (!ensureTen(p) || p.tenLock) return {};
-  const tg = targetTen(p, ctx), age = p.age ?? 25, ageF = age <= 24 ? 1.25 : age <= 29 ? 1 : age <= 33 ? 0.8 : 0.65, before = { ...p.ten }, d: Record<string, number> = {};
-  (['usage', 'ftr'] as const).forEach(k => {
-    if (rnd() > prob) return;
-    const cur = p.ten[k], gap = tg[k] - cur;
-    let rate = (k === 'usage' ? 0.45 : 0.3) * ageF * (0.5 + rnd());
-    if (k === 'usage' && gap > 0 && age <= 25) rate *= 1.25; // a young player who's earned a bigger role grows into it quickly
-    if (k === 'usage' && gap < 0 && !(p.pers?.alpha || p.pers?.padder || p.pers?.touches)) rate *= 1.3; // a fading game loses its shots, unless his ego won't let go
-    if (gap < 0 && age >= 30 && k === 'ftr') rate *= 1.4; // the body forces it
-    p.ten[k] = Math.round(cl(cur + gap * Math.min(1, rate * frac) + (rnd() + rnd() - 1) * 1.5 * Math.sqrt(frac), 2, 98) * 10) / 10;
-  });
-  // The shares move as a group (they always add up to 100): toward his targets, with a little noise.
-  for (const keys of [ZONE_TEN, CRE_TEN] as readonly (readonly (ZoneTen | CreTen)[])[]) {
-    if (rnd() > prob) continue;
-    const nx = {} as Record<string, number>;
-    keys.forEach(k => { const cur = p.ten[k] ?? 0, gap = tg[k] - cur; let rate = 0.3 * ageF * (0.5 + rnd()); if (gap < 0 && age >= 30 && k === 'ra') rate *= 1.4;
-      nx[k] = Math.max(0, cur + gap * Math.min(1, rate * frac) + (rnd() + rnd() - 1) * 0.08 * Math.sqrt(frac) * Math.max(2, cur)); });
-    Object.assign(p.ten, round100(nx));
-  }
-  TEN_KEYS.forEach(k => { const x = Math.round((p.ten[k] - before[k]) * 10) / 10; if (x) d[k] = x; });
-  return d;
+// The AI's call: his tendencies set to his targets as they stand (his ratings, personality, age, role and
+// team), unless they were set by hand (p.tenLock). Returns whether it set them.
+export function autoTen(p: any, ctx?: number | null | TenCtx): boolean {
+  if (!ensureTen(p) || p.tenLock) return false;
+  p.ten = targetTen(p, ctx);
+  return true;
 }
 
 // What the engine plays (sim.ts): his shot mix and how he creates his jumpers as fractions, how often
