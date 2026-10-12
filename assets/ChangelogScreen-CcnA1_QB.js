@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CVPs5HJO.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-0lJdWBAH.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-12
 
 ### Added
+- **Jarrett Culver rookie card (2019–20).** Tested over 800 games against his real rookie line (23.9 min: 9.2 pts, 3.4 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.3 turnovers, .404 FG on 9.0 shots, .299 on 3.5 threes, .462 FT on 1.9). The card plays 9.3 pts, 3.2 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.4 turnovers, .417 FG on 8.8, .309 on 3.6 threes, .458 FT on 1.8. 47 overall, 54 potential.
 - **Four more rookie cards: Toney Douglas (2009–10), Jan Veselý (2011–12), Bismack Biyombo (2011–12) and Bronny James (2024–25).** Each is tuned against his real rookie line at his real minutes:
   - **Toney Douglas** (real: 8.6 pts, 2.0 ast, 1.9 reb, .458 FG, .389 on 3.1 threes in 19 min). Card: 8.5 pts, 1.8 ast, 2.1 reb, .431 FG, .376 on 3.6 threes. 55 overall, 58 potential.
   - **Jan Veselý** (real: 4.7 pts, 4.4 reb, .537 FG, .532 FT in 19 min). Card: 4.2 pts, 4.7 reb, .564 FG, .502 FT. 44 overall, 52 potential.
