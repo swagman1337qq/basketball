@@ -319,4 +319,18 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
     ten: { usage: 90, ftr: 34, ra: 20, paint: 8, mid: 8, c3: 18, atb: 48, cns: 50, pullup: 40, step: 6, fade: 4 },
   } },
+  { label: 'Jarrett Culver – Rookie year (2019–20)', card: {
+    card: 1, name: 'Jarrett Culver', first: 'Jarrett', last: 'Culver', pos: 'GF', age: 20, dob: '1999-02-20', hgt: '6′6″', wt: 195, wing: 82,
+    rep: 'US', born: 'US', raised: 'US', city: 'Lubbock', state: 'TX', her: 'US', race: 'black',
+    // Real (No. 6 pick out of Texas Tech, the 2019 Big 12 Player of the Year): 63 games (35 starts), 23.9 min, 9.2 pts,
+    // 3.4 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.3 tov, .404 FG on 9.0 shots, .299 on 3.5 threes, .462 FT on 1.9. A long,
+    // willing wing defender whose shot never came: one of the worst free-throw shooters in the league. Tested over 800
+    // games at about 23.5 minutes: 9.3 pts, 3.2 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.4 tov, .417 FG on 8.8, .309 on 3.6
+    // threes, .458 FT on 1.8.
+    r: { hgt: 46, stre: 46, spd: 70, acc: 70, jmp: 68, endu: 72, ins: 42, dnk: 48, lay: 30, ft: 8, fg: 30, tp: 36, oiq: 62, diq: 60, blk: 68, stl: 48, drb: 48, pss: 47, reb: 33, box: 30 },
+    pot: 54, intg: { feel: 50, poise: 45 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 85, loyalty: 65, ambition: 60 },
+    // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 82, ftr: 44, ra: 29, paint: 12, mid: 18, c3: 12, atb: 29, cns: 55, pullup: 35, step: 6, fade: 4 },
+  } },
 ];
