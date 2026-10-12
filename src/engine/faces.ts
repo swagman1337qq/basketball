@@ -47,7 +47,9 @@ const SKIN_RAMP = ['#f8e2d0', '#f1cfb6', '#e7bd9e', '#dbaa87', '#cc9772', '#b982
 const UNDERTONES: Record<string, string | null> = { neutral: null, warm: '#e3a35c', olive: '#9c9a5a', rosy: '#e3958a' };
 export const skinColor = (tone: number, under = 'neutral') => {
   const x = cl(tone) * (SKIN_RAMP.length - 1), i = Math.min(SKIN_RAMP.length - 2, Math.floor(x)), c = mixC(SKIN_RAMP[i], SKIN_RAMP[i + 1], x - i), u = UNDERTONES[under];
-  return u ? mixC(c, u, 0.09) : c;
+  // The darkest tones (very dark skin) deepen past the ramp's end toward a deep brown-black.
+  const d = tone > 0.88 ? mixC(c, '#24150d', Math.min(1, (tone - 0.88) / 0.12) * 0.65) : c;
+  return u ? mixC(d, u, 0.09) : d;
 };
 export const HAIR_COLORS: Record<string, [string, string]> = {
   black: ['Black', '#121010'], softBlack: ['Soft black', '#1e1814'], darkBrown: ['Dark brown', '#2d2119'], brown: ['Brown', '#4a3421'], lightBrown: ['Light brown', '#6c4b2d'],
@@ -124,9 +126,12 @@ const HAIR_LABELS = Object.keys(HAIR_STYLES).map(k => [k, HAIR_STYLES[k].label])
 export const hairStyleOpts = () => HAIR_LABELS;
 
 // ── Generation ──
-const RACES = ['white', 'black', 'asian', 'brown'];
+const RACES = ['white', 'black', 'dark', 'asian', 'brown'];
+// The looks the editors offer (p.race). 'dark' is very dark skin, as in much of Africa; 'black' is the
+// range of most Black Americans, many of whom also have European ancestry. Both share features and hair.
+export const FACE_LOOKS: [string, string][] = [['dark', 'Very dark skin'], ['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
 // Skin tone (0 lightest … 1 darkest): mean, spread and limits by look; the ranges overlap.
-const TONE: Record<string, number[]> = { white: [0.13, 0.085, 0, 0.37], asian: [0.21, 0.085, 0.04, 0.43], brown: [0.43, 0.125, 0.18, 0.72], black: [0.72, 0.135, 0.42, 1] };
+const TONE: Record<string, number[]> = { white: [0.13, 0.085, 0, 0.37], asian: [0.21, 0.085, 0.04, 0.43], brown: [0.43, 0.125, 0.18, 0.72], black: [0.67, 0.12, 0.42, 0.88], dark: [0.94, 0.045, 0.84, 1] };
 const UNDER_W: Record<string, Record<string, number>> = { white: { neutral: 35, rosy: 33, warm: 17, olive: 15 }, asian: { warm: 45, neutral: 30, olive: 25 }, brown: { warm: 40, olive: 34, neutral: 26 }, black: { neutral: 45, warm: 40, rosy: 15 } };
 const NAT_W: Record<string, Record<string, number>> = {
   white: { black: 6, softBlack: 8, darkBrown: 26, brown: 22, lightBrown: 12, darkBlonde: 9, blonde: 7, lightBlonde: 3, auburn: 3, red: 2, ginger: 2 },
@@ -152,23 +157,24 @@ const TIPS_OK = new Set(['fade', 'crew', 'crop', 'spiky', 'twists', 'flattop', '
 export function makeFace(p: any, salt = 0, kin?: any) {
   const base = Math.floor(p.faceSeed ?? p.id ?? 0) | 0, seed = (Math.imul(base, 7919) + 13 + Math.imul(salt | 0, 104729)) | 0;
   const rnd = mulberry32(seed), race = RACES.includes(p.race) ? p.race : 'white', age = p.age ?? 25, fem = !!p.fem; // a missing look never breaks a page
+  const fr = race === 'dark' ? 'black' : race; // features and hair: very dark skin shares the darker-skin tables
   const k = kin && kin.v === 3 ? kin : null, same = !!k && k.race === race;
   // Build: heavier for his height → a fuller face and neck.
   const hm = /(\d+)\D+(\d+)/.exec(p.hgt || ''), hIn = hm ? +hm[1] * 12 + +hm[2] : 0;
   const build = r2(cl((hIn && p.wt ? (p.wt - (hIn * 2.9 + 7.5)) / 14 : 0) + bell(rnd) * 0.18, -1, 1));
   const [tm, ts, tlo, thi] = TONE[race];
-  let tone = cl(tm + ts * bell(rnd), tlo, thi), under = wpick(rnd, UNDER_W[race]);
+  let tone = cl(tm + ts * bell(rnd), tlo, thi), under = wpick(rnd, UNDER_W[fr]);
   if (k) { tone = cl(same ? k.skin.tone + 0.03 * bell(rnd) : (tone + k.skin.tone) / 2); if (rnd() < 0.8) under = k.skin.under; }
   const blend = (a: any, b: any, keys: string[], t: number) => { if (b) keys.forEach(x => { if (typeof b[x] === 'number') a[x] = r2(a[x] * (1 - t) + b[x] * t); }); };
   const head: any = { w: r2(0.9 + 0.2 * rnd() + build * 0.03), h: r2(0.94 + 0.13 * rnd()), sq: r2(rnd()), cheek: r2(0.97 + 0.07 * rnd()), jaw: r2(cl(0.78 + 0.19 * rnd() + build * 0.04, 0.74, 0.99)), jawY: r2(0.62 + 0.2 * rnd()), chin: r2(rnd()), chinW: r2(cl(0.3 + 0.2 * rnd() + build * 0.04, 0.26, 0.54)), cleft: rnd() < 0.07 };
   if (fem) { head.jaw = r2(Math.min(head.jaw, 0.74 + 0.1 * rnd())); head.chinW = r2(Math.min(head.chinW, 0.26 + 0.08 * rnd())); head.sq = r2(head.sq * 0.4); head.cleft = false; } // a softer, narrower jaw
   const ears: any = { size: r2(0.85 + 0.3 * rnd()), out: r2(rnd()) };
-  const eShape = wpick(rnd, race === 'asian' ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 } : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 });
-  const lightEyes = rnd() < ({ white: 0.55, brown: 0.07, asian: 0.015, black: 0.02 } as any)[race];
+  const eShape = wpick(rnd, fr === 'asian' ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 } : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 });
+  const lightEyes = rnd() < ({ white: 0.55, brown: 0.07, asian: 0.015, black: 0.02 } as any)[fr];
   const eyes: any = { shape: eShape, size: r2(0.9 + 0.22 * rnd()), spacing: r2(0.93 + 0.14 * rnd()), tilt: r2(eShape === 'upturned' ? 0.12 + 0.06 * rnd() : eShape === 'downturned' ? -0.07 - 0.05 * rnd() : (rnd() - 0.45) * 0.14), lid: r2(rnd()), color: lightEyes ? wpick(rnd, { amber: 12, hazel: 22, green: 20, grey: 10, blue: 26, lightBlue: 10 }) : wpick(rnd, { dark: 55, brown: 45 }) };
   const bShape = wpick(rnd, { straight: 24, soft: 26, arched: 14, angled: 12, flat: 12, bushy: 12 });
   const brows: any = { shape: fem && bShape === 'bushy' ? 'arched' : bShape, thick: r2(fem ? 0.6 + 0.35 * rnd() : 0.85 + 0.7 * rnd() + (bShape === 'bushy' ? 0.4 : 0)), len: r2(rnd()), gap: r2(rnd()), tilt: r2((rnd() - 0.5) * 0.4), slit: rnd() < 0.035 ? (rnd() < 0.7 ? 1 : 2) : 0 };
-  const nb = ({ black: 0.2, brown: 0.08, asian: 0.05 } as any)[race] || 0, lb = race === 'black' ? 0.22 : race === 'brown' ? 0.08 : 0;
+  const nb = ({ black: 0.2, brown: 0.08, asian: 0.05 } as any)[fr] || 0, lb = fr === 'black' ? 0.22 : fr === 'brown' ? 0.08 : 0;
   const nose: any = { w: r2(cl(rnd() * 0.85 + nb + build * 0.08)), len: r2(rnd()), bridge: r2(rnd()), tip: r2(rnd()), flare: r2(rnd()), crook: rnd() < 0.03 ? (rnd() < 0.5 ? -1 : 1) : 0 };
   const mouth: any = { w: r2(rnd()), upper: r2(cl(rnd() * 0.8 + lb + (fem ? 0.2 : 0))), lower: r2(cl(rnd() * 0.8 + lb + 0.05 + (fem ? 0.2 : 0))), bow: r2(rnd()) };
   if (k) {
@@ -181,7 +187,7 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   const lines = r2(cl((age - 27) / 14) * (0.6 + 0.4 * rnd())), greyAt = 27 + 26 * rnd() + (fem ? 12 : 0), /* many women color theirs */ grey = r2(cl((age - greyAt) / 12, 0, 0.9));
   const beardGrey = r2(cl((age - greyAt + 3 - 4 * rnd()) / 10, 0, 0.9)), recAt = 22 + 32 * rnd(), recede = fem ? 0 : r2(cl((age - recAt) / 12) * (rnd() < 0.55 ? 1 : 0.35));
   const bags = r2(cl(lines * 0.7 + rnd() * 0.15));
-  let tex = wpick(rnd, TEX_W[race]), natural = wpick(rnd, NAT_W[race]);
+  let tex = wpick(rnd, TEX_W[fr]), natural = wpick(rnd, NAT_W[fr]);
   if (k) { if (rnd() < 0.8) tex = k.hair.tex; if (rnd() < 0.75) natural = k.hair.natural; }
   const sw = fem ? { ...FEM_STYLE_W[tex] || FEM_STYLE_W.straight } : { ...STYLE_W[tex] || STYLE_W.straight };
   if (fem && age > 50) ['long', 'longPart', 'longCurls', 'braids', 'locsLong'].forEach(x => { if (sw[x]) sw[x] *= 0.45; }); // shorter styles later in life

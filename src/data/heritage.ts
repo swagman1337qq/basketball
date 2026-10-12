@@ -12,7 +12,7 @@
 // U.S.-born players), not the census. Every other country and territory is in nations.ts.
 // Native American tribes are their own "country" (XN) of birth and heritage: tribal members are
 // U.S. citizens and can only represent the United States.
-import { cyr, namePools, nativeMaps } from './world';
+import { cyr, namePools, nativeMaps, regionOfCountry } from './world';
 import { FIRST_WEIGHT, MORE, NEW_POOLS } from './names';
 import { CN_SURNAMES, NATIONS, TW_POOL } from './nations';
 import { VN_GIVEN, VN_NATIVE, VN_SURNAME_LIST, VN_SURNAME_WEIGHT, vietnameseName } from './vietnamese';
@@ -192,7 +192,14 @@ function givenFrom(fp: string, rnd: () => number) {
   let r = rnd() * a.reduce((t, x) => t + (w[x] ?? 1), 0); for (const x of a) { if ((r -= w[x] ?? 1) < 0) return x; } return a[a.length - 1];
 }
 // An American given name for a player born in North America to immigrant parents (Game.bio).
-export const americanFirst = (race: string, rnd: () => number = Math.random) => givenFrom(race === 'black' ? 'usb' : 'usw', rnd);
+export const americanFirst = (race: string, rnd: () => number = Math.random) => givenFrom(race === 'black' || race === 'dark' ? 'usb' : 'usw', rnd);
+// Very dark skin: most Black players from Africa, and first-generation Africans abroad, get it; Black
+// Americans, Caribbeans and Black Europeans (often with some European ancestry) keep the darker-skin range.
+export const deepenLook = (race: string, country: string, groupKey: string | undefined, rnd: () => number) => {
+  if (race !== 'black') return race;
+  const k = groupKey || '', share = regionOfCountry(country) === 'AFR' ? 0.8 : /^(Black African|Sub-Saharan African|African$|Congolese)/.test(k) ? 0.7 : /^African (Greek|Italian|Austrian|Swiss)/.test(k) ? 0.4 : 0;
+  return share && rnd() < share ? 'dark' : race;
+};
 
 export function groupsOf(country: string): Group[] { return GROUPS[country] || []; }
 export function pickGroup(country: string, rnd: () => number = Math.random): Group | null {
@@ -268,6 +275,7 @@ export function nameFromGroup(country: string, grp: Group, rnd: () => number = M
   const native = !nativeFirst || !nativeLast ? '' : lf ? nativeLast + NATIVE_LF[fp] + nativeFirst : nativeFirst + sep + nativeLast;
   const ks = Object.keys(grp.race); let r = rnd() * ks.reduce((a, k) => a + grp.race[k], 0), race = ks[0];
   for (const k of ks) { if ((r -= grp.race[k]) < 0) { race = k; break; } }
+  race = deepenLook(race, country, grp.k, rnd);
   const nOrder = lf ? (NATIVE_LF[fp] ? 'lf ' : 'lf') : 'fl';
   return { first, last, name, native, nativeFirst: native ? nativeFirst : '', nativeLast: native ? nativeLast : '', familyFirst, race, heritage: grp.k, nOrder, nSep: sep, script: native ? script : '' };
 }

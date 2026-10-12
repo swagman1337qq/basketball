@@ -37,7 +37,7 @@ export function Headshot({ gm, team, size = 96, year }: { gm: GMProfile; team?: 
 
 export function GMSetupModal({ vm }: { vm: VM }) {
   const { gm, s, T } = vm.ctx, C = gm.db.C, team = T[s.me];
-  const look = (race?: string) => (['black', 'white', 'asian', 'brown'].includes(race || '') ? race! : 'white');
+  const look = (race?: string) => (['black', 'dark', 'white', 'asian', 'brown'].includes(race || '') ? race! : 'white');
   const fresh = (nat: string, fem = false): GMProfile => { const r = randomName(nat, Math.random, undefined, fem); return { name: r.name, familyFirst: !!r.familyFirst || FAMILY_FIRST_NATS.includes(nat), nat, race: look(r.race), seed: Math.floor(Math.random() * 1e6), fem, age: 45, fo: 3, play: 0, bg: 'team' }; };
   const [p, setP] = useState<GMProfile>(() => fresh('US'));
   const [err, setErr] = useState('');

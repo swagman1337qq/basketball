@@ -3,7 +3,7 @@
 // generated face, so everything else about him (age, family resemblance) keeps working.
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import { DYES, DYE_KINDS, EYE_COLORS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
+import { DYES, DYE_KINDS, EYE_COLORS, FACE_LOOKS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
 import { muted } from '../kit';
 
 type Opt = string[];
@@ -15,14 +15,16 @@ const named = (o: Record<string, [string, string]>): Opt[] => Object.keys(o).map
 const TEXTURES = [['straight', 'Straight'], ['wavy', 'Wavy'], ['curly', 'Curly'], ['coily', 'Coily']];
 
 export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () => void }) {
-  const [orig] = useState(() => ({ faceSeed: p.faceSeed, faceX: p.faceX ? { ...p.faceX } : undefined, faceImg: p.faceImg }));
+  const [orig] = useState(() => ({ faceSeed: p.faceSeed, faceX: p.faceX ? { ...p.faceX } : undefined, faceImg: p.faceImg, race: p.race }));
   const f = gm.face(p.id);
   const redraw = () => { gm.resetFace(p.id); gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 })); };
   const set = (path: string, v: any) => { p.faceX = { ...(p.faceX || {}), [path]: v }; delete p.faceImg; redraw(); };
   const setMany = (o: Record<string, any>) => { p.faceX = { ...(p.faceX || {}), ...o }; delete p.faceImg; redraw(); };
   const newFace = () => { p.faceSeed = Math.floor(Math.random() * 1e9); delete p.faceX; delete p.faceImg; redraw(); };
+  // A new look (skin tone range and features): his skin is drawn fresh from it, and New face rolls within it.
+  const setLook = (v: string) => { p.race = v; if (p.faceX) { const x = { ...p.faceX }; delete x['skin.tone']; delete x['skin.under']; p.faceX = Object.keys(x).length ? x : undefined; if (!p.faceX) delete p.faceX; } delete p.faceImg; redraw(); };
   const undoEdits = () => { delete p.faceX; redraw(); };
-  const cancel = () => { (['faceSeed', 'faceX', 'faceImg'] as const).forEach(k => (orig[k] === undefined ? delete p[k] : (p[k] = orig[k]))); redraw(); onClose(); };
+  const cancel = () => { (['faceSeed', 'faceX', 'faceImg', 'race'] as const).forEach(k => (orig[k] === undefined ? delete p[k] : (p[k] = orig[k]))); redraw(); onClose(); };
   const get = (path: string) => path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), f);
   // Plain functions that return elements (not components), so a slider being dragged isn't remounted.
   const sel = (label: string, value: any, opts: Opt[], on: (v: string) => void, none?: string) => (
@@ -56,6 +58,7 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px 18px' }}>
         <fieldset style={fs}><div style={lg}>Expression and skin</div>
           {pick('Expression', 'expr', FACE_OPTS.expr)}
+          {sel('Look', p.race || 'white', FACE_LOOKS, setLook)}
           {range('Skin tone', 'skin.tone', 0, 1)}
           {pick('Undertone', 'skin.under', FACE_OPTS.under)}
           {range('Build', 'build', -1, 1)}

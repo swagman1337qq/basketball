@@ -37,7 +37,7 @@ const EXPERIENCE: Experience[] = [
   { k: 4, label: 'Proven winner', desc: 'You’ve built a champion. Owners call you first.', rep: 76, years: 4, age: 56 },
   { k: 5, label: 'Legendary executive', desc: 'A Hall of Fame résumé, the Jerry West / R.C. Buford tier. Every owner wants you, and pays like it.', rep: 88, years: 5, age: 62 },
 ];
-export const RACES: [string, string][] = [['black', 'Black'], ['white', 'White'], ['asian', 'East Asian'], ['brown', 'Hispanic / Latino, Middle Eastern or South Asian']];
+export const RACES: [string, string][] = [['black', 'Black'], ['dark', 'Black, very dark skin (as in much of Africa)'], ['white', 'White'], ['asian', 'East Asian'], ['brown', 'Hispanic / Latino, Middle Eastern or South Asian']];
 
 // How each kind of owner pays a GM.
 export const GENEROSITY: Record<string, { mult: number; cap: number | null; raise: number; yrs: number; note: string }> = {

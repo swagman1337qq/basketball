@@ -11,7 +11,7 @@ import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
-import { americanFirst, applyNativeMix, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
+import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { effTend, ensureTen, evolveTendencies, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
 import { blendHeight, deriveDefense, deriveDefenseKeepOvr, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus } from './ratings';
@@ -534,7 +534,7 @@ export class Game {
     else if (her === 'CA' && x < .15) { raised = 'US'; }
     // Heritage group by the country's population shares: it sets the name and the look.
     const grp = pickGroup(her, rnd), nm = grp ? nameFromGroup(her, grp, rnd) : null;
-    let race = nm ? nm.race : wpick(C[her].race);
+    let race = nm ? nm.race : deepenLook(wpick(C[her].race), her, undefined, rnd);
     const amer = (born === 'US' || born === 'CA') && born !== her && rnd() < .35, pk = amer ? 'us' : C[her].pool, np = NP[pk] || NP.us;
     const f = pick(np.f), l = pick(np.l);
     const elig = [], add = (c, why) => { if (!elig.find(e => e.c === c)) elig.push({ c, why }); };

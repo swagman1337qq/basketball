@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-12
 
 ### Added
+- **Very dark skin for faces.** A new look, Very dark skin, for skin as dark as it is across much of Africa. The Darker skin look is now a little lighter on average, matching most Black Americans, many of whom also have European ancestry. Pick it in Edit face (a new Look option; New face then rolls a new face with that skin), in God Mode's Edit player, or for your GM. New leagues give it to most Black players from African countries and many first-generation Africans abroad.
 - **"High school" as a college, for any country.** In God Mode's Edit player, the league picker for every country now has a High school option (and there's a High school button next to the dice), for players who went straight from high school to the pros. His profile then shows College: High school, and his bio and scouting report say he came out of high school.
 
 ### Changed

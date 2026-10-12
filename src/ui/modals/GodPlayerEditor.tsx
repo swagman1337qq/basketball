@@ -3,6 +3,7 @@
 // injuries and a custom headshot; cloning or deleting him (godPlayer.ts) and his NBA family
 // (father, brothers, sons: real player records, linked both ways, family.ts). The player's ID and
 // past-season stats stay locked.
+import { FACE_LOOKS } from '../../engine/faces';
 import { useEffect, useState } from 'react';
 import { liftCeil, refreshPot } from '../../engine/potential';
 import type { VM } from '../vm';
@@ -68,7 +69,7 @@ const fillUS = (all: Record<string, string>, q: any, from: 'city' | 'state' = 'c
   if (st && m.some(o => o.v.toLowerCase() === city.toLowerCase())) return; // already a real town in his state
   const o = rnd(m); q.city = o.v; q.state = o.sub;
 };
-const LOOKS: [string, string][] = [['black', 'Darker skin'], ['brown', 'Medium skin'], ['white', 'Lighter skin'], ['asian', 'East Asian features']];
+const LOOKS = FACE_LOOKS;
 // A look for a heritage group, drawn by the group's mix (e.g. { brown: .6, white: .4 }).
 const pickRace = (r: Record<string, number>) => { const ks = Object.keys(r); let x = Math.random() * ks.reduce((a, k) => a + r[k], 0); for (const k of ks) if ((x -= r[k]) < 0) return k; return ks[0] || 'brown'; };
 
