@@ -254,4 +254,22 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots at the rim (cuts, transition, putbacks), 15% threes; .58 FTA per FGA.
     ten: { usage: 50, ftr: 90, ra: 42, paint: 14, mid: 29, c3: 9, atb: 6, cns: 70, pullup: 20, step: 2, fade: 8 },
   } },
+  { label: 'Jeremy Lin – Rookie year (2010–11)', card: {
+    card: 1, name: 'Jeremy Lin', first: 'Jeremy', last: 'Lin', native: '林書豪', nativeFirst: '書豪', nativeLast: '林', pos: 'PG', age: 22, dob: '1988-08-23', hgt: '6′3″', wt: 200, wing: 79,
+    rep: 'US', born: 'US', raised: 'US', city: 'Torrance', state: 'CA', her: 'TW', race: 'asian',
+    // Real (undrafted out of Harvard, signed by his hometown Warriors, three trips to the D-League): 29 games (no
+    // starts), 9.8 min, 2.6 pts, 1.2 reb, 1.4 ast, 1.1 stl, 0.3 blk, 0.6 tov, .389 FG on 2.5 shots, .200 on 0.2 threes,
+    // .760 FT on 0.9. Quick, smart and fearless, a jump shot still to build. Tested over 500 games at about 11 minutes:
+    // at his real 9.8 that is 2.7 pts, 1.2 reb, 1.4 ast, 0.5 stl, 0.2 blk, 0.5 tov, .398 FG on 2.5, .256 on 0.3 threes,
+    // .751 FT on 0.8 (his 1.1 steals came in only 285 minutes). 49 overall.
+    // Potential: his prime, Linsanity (2011–12 Knicks: 35 games, 26.9 min, 14.6 pts, 6.2 ast, 3.1 reb, 1.6 stl, 3.6 tov,
+    // .446 FG on 10.9, .320 on 2.1 threes, .798 FT on 5.2). The same player at that level, tested over 300 games and
+    // scaled to 26.9 minutes, plays 15.3 pts, 6.4 ast, 3.2 reb, 1.4 stl, 2.9 tov, .457 FG on 11.0, .304 on 2.2 threes,
+    // .823 FT on 5.5, and rates 56 overall (about the 40th-best guard in a league): that's his potential.
+    r: { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 34, dnk: 40, lay: 42, ft: 54, fg: 28, tp: 30, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
+    pot: 56, intg: { feel: 70, poise: 74 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: true, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 90, loyalty: 60, ambition: 70 },
+    // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): a low-usage backup who attacked the rim and pulled up from mid-range.
+    ten: { usage: 46, ftr: 70, ra: 36, paint: 12, mid: 40, c3: 4, atb: 8, cns: 25, pullup: 65, step: 4, fade: 6 },
+  } },
 ];
