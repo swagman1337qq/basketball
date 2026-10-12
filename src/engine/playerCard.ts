@@ -23,22 +23,17 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (!card || typeof card !== 'object' || !card.r || typeof card.r !== 'object') return 'That isn’t a player card (it needs at least his ratings, "r").';
   for (const [k, v] of Object.entries(card.r)) if (typeof v !== 'number' || !isFinite(v as number)) return 'Rating "' + k + '" isn’t a number.';
   if (card.pos && !GRP[card.pos]) return 'Unknown position "' + card.pos + '".';
-  for (const k of ['rep', 'born', 'raised', 'her']) if (card[k] && !C[card[k]]) return 'Unknown country code "' + card[k] + '" in "' + k + '".';
   const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, Math.round(v)));
-  // A new name replaces the whole name (no leftover native-script name); a new birthplace outside the
-  // U.S. drops a U.S. state; a new age without a birthday drops the old birthday.
-  if (card.name) for (const k of ['native', 'nativeFirst', 'nativeLast', 'first', 'last', 'familyFirst']) if (card[k] === undefined) delete p[k];
-  if (card.born && card.born !== 'US' && card.state === undefined) delete p.state;
-  if (card.age != null && !card.dob) delete p.dob;
-  KEEP.forEach(k => { if (card[k] !== undefined && k !== 'r' && k !== 'pers' && k !== 'intg' && k !== 'ten') p[k] = JSON.parse(JSON.stringify(card[k])); });
+  // A card is a build, not a person: his ratings, playing style, body (height, weight, wingspan), position,
+  // potential, personality and intangibles. Who he is stays his own: name, age and birthday, hometown, the
+  // country he represents, where he was born and raised, heritage and look (the card may still carry the real
+  // player's bio, shown in the card library, but it is never copied onto him).
+  (['pos', 'hgt', 'wt', 'wing'] as const).forEach(k => { if (card[k] !== undefined && card[k] !== '') p[k] = JSON.parse(JSON.stringify(card[k])); });
   p.r = { ...p.r }; Object.entries(card.r).forEach(([k, v]) => (p.r[k] = cl(v as number, 1, 99)));
   if (card.pers) p.pers = { ...p.pers, ...card.pers };
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
   delete p.tend; delete p.ten; // his playing style starts over from the new build (below; his quirks stay)
-  if (card.her && !card.heritage) { const gs = groupsOf(card.her); p.heritage = gs.length ? [...gs].sort((a, b) => b.w - a.w)[0].k : C[card.her]?.n; }
-  if (card.rep || card.born || card.raised || card.her) { refreshElig(p, C); if (card.rep && C[card.rep]) { if (!p.elig.some((e: any) => e.c === card.rep)) p.elig = [{ c: card.rep, why: 'citizen by birth' }, ...p.elig]; p.rep = card.rep; } } // eligibility follows the card's countries
   if (card.pos) p.grp = GRP[card.pos];
-  if (card.age != null) p.age = cl(card.age, 15, 45);
   p.rx = card._rx ?? {}; p.px = card._px ?? 0; if (card._gem !== undefined) p.gem = card._gem; else delete p.gem; // a fresh build: no leftover hidden growth (undo restores it)
   syncOvr(p);
   delete p.ceil; delete p.ph; p.perr = 0; // a fresh build: his potential is the card's, exactly (potential.ts)

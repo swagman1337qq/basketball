@@ -25,8 +25,8 @@ const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const clone = (x: any) => JSON.parse(JSON.stringify(x));
 const newId = () => 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
 
-// The library: shared by every league in this browser (db/cards.ts). Applying a card copies it onto a
-// player in this league only; editing or deleting a card never changes a player.
+// The library: shared by every league in this browser (db/cards.ts). Applying a card copies its build (never
+// the name or bio: playerCard.ts applyCard) onto a player in this league only; editing or deleting a card never changes a player.
 export function cardsOf(_s?: any): { id: string; card: any }[] { return cardLib(); }
 
 // Everyone in the league (rosters, free agents, overseas, prospects), for "New card from any player".
@@ -135,7 +135,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
         <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => { setDraft(null); setSel(''); }}>Close</button>
       </div>
     </div>}
-    <p style={{ ...muted, fontSize: '11.5px' }}>A card is a whole build: name, bio, ratings, potential, intangibles, personality and shot tendencies. Applying one keeps the player’s team, contract, stats and history; his overall comes from the ratings. Edits aren’t kept until you press Save card.</p>
+    <p style={{ ...muted, fontSize: '11.5px' }}>A card is a build: ratings, shot tendencies, height, weight, wingspan, position, potential, personality and intangibles. Applying one gives the player that build and nothing else: he keeps his own name, age, hometown, country, heritage and face, and his team, contract, stats and history; his overall comes from the ratings. A card’s name and bio are just its label. Edits aren’t kept until you press Save card.</p>
   </>);
 }
 
