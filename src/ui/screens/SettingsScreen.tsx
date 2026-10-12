@@ -41,7 +41,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             CCP games
           </div>
           <div style={{ color: "var(--color-neutral-700)" }}>
-            Quick results work out each development-league game from the clubs’ strength and each player’s ratings (sims run much faster). The full engine plays every CCP game possession by possession, like NBA games.
+            Quick results play each development-league game in a light version of the engine (each trip, shots, fouls, rebounds and turnovers from the players’ ratings and minutes, without lineups or play-by-play): real stat lines, about ten times faster. The full engine plays every CCP game exactly like NBA games.
           </div>
           <div style={{ display: "inline-flex", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
             {([[false, 'Quick results'], [true, 'Full engine']] as [boolean, string][]).map(([v, l]) => { const on = !!vm.ctx.s.ccpFull === v; return (

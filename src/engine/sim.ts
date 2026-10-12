@@ -82,7 +82,7 @@ const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands:
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.032 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
-const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
+export const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
 // Defenses key on a lineup of shot-makers and help off one that can't shoot, so part of a lineup's
 // shooting edge (its players' usage-weighted average against the league) is given back on every
 // shot; the differences between its own players stay. Without it, team shooting spread about twice
@@ -92,7 +92,7 @@ const LINEUP_REG = 0.66;
 // with urgency, so margins drift back a little, as in real games: NBA margins vary about 12–13 points
 // around what the two teams' strength predicts (independent trips alone would give about 18).
 const LEAD_K = 0.0018;
-const BLOCK_ON_MISS: Record<Zone, number> = { rim: 0.36, mid: 0.053, c3: 0.008, atb: 0.008 };
+export const BLOCK_ON_MISS: Record<Zone, number> = { rim: 0.36, mid: 0.053, c3: 0.008, atb: 0.008 };
 
 // ── The bell curve: rating → deviation from the baseline percentage ─────────────
 // Asymmetric on purpose: elite ratings add little (a 90 three-point shooter is ~40%),

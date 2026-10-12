@@ -2,6 +2,12 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-12
+
+### Changed
+- **CCP quick results now give real stat lines.** Quick results used to guess each game's score and hand out made-up box scores (40-point scorers, 19% three-point shooting, every player with one steal, guards who never blocked a shot). Now each CCP game is played out trip by trip in a light version of the game engine: each player shoots his own kind of shots at the rate his ratings earn against the other team's defense, gets to the line, turns it over, and grabs rebounds, assists, steals and blocks by his skills and minutes. A season's numbers now look like the full engine's (about 116 points a game, leading scorers in the mid-20s, the best rebounders 12–14 a game, real shooting percentages) while sims stay about ten times faster than the full engine.
+- **More CCP stats.** The CCP Players tab now shows minutes, steals, blocks, turnovers, FG%, 3P% and FT% as well as points, rebounds and assists (sort by any of them), and the club rosters add turnovers and FT%.
+
 ## 2026-10-11
 
 ### Fixed

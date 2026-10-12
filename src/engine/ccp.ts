@@ -6,12 +6,13 @@
 //  - Records reset for a 36-game regular season (Dec 27 – Mar 28).
 //  - Playoffs: the top eight in each conference, single games through the conference finals, then
 //    a best-of-three Finals (Apr 1–12).
-// Games are played by the same engine as the NBA. Rosters are players on CCP contracts (free agents
-// any NBA team can sign), plus each parent club's two-way players and anyone it sends down.
+// Games are played by a light possession model (quickGame) or, if Settings says so, the NBA engine.
+// Rosters are players on CCP contracts (free agents any NBA team can sign), plus each parent club's
+// two-way players and anyone it sends down.
 // There are no owners, coaches or finances: just teams, players and games.
 import type { Game } from './Game';
 import { effTend } from './tendencies';
-import { GameSim, blankLine } from './sim';
+import { GameSim, blankLine, BASE, BLOCK_ON_MISS, CAL, CURVE_OF, DEFAULT_NORMS, ZONES, blockSkill, curve, glassSkill, interiorD, perimD, rebSkill, shotProfile, stealSkill, usageRaw, zoneSkill, type Norms, type Zone } from './sim';
 import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
@@ -99,27 +100,82 @@ function simTeamOf(g: Game, s: any, t: CcpTeam) {
   return { tid: t.id, name: t.city + ' ' + t.name, abbr: t.abbr, rec: '', players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 }, roles: g.rolesOf(p), alpha: p.pers?.alpha, touches: p.pers?.touches, tend: effTend(p), flashy: !!p.pers?.flashy, heat: !!p.pers?.heat, volatile: !!p.pers?.volatile, villain: !!p.pers?.villain, fearless: !!p.pers?.fearless, target: ROT[i] ?? 0 }; }) };
 }
 
-// Quick results (the default): a score from each club's strength and plausible box-score lines
-// from each player's ratings and minutes, about 20x cheaper than the full engine. Settings can
-// switch CCP games to the full engine.
+// Quick results (the default): a light possession-by-possession game, far cheaper than the full
+// engine. Each trip one player ends it (picked by his usage and minutes) with a turnover or a shot
+// from his own shot mix, made at the rate his ratings give against the other side's defense (the
+// engine's own curves and league baselines); fouls send him to the line, a miss is blocked or
+// rebounded by players picked by their skills and minutes, makes are assisted by the passers. There
+// are no lineups, substitutions, fatigue, matchups, tactics or play-by-play, so it costs about a
+// tenth of the full engine while the box scores and season lines still look like basketball.
+// Settings can switch CCP games to the full engine.
+const Q_FOUL: Record<Zone, number> = { rim: 0.27, mid: 0.1, c3: 0.025, atb: 0.025 };
 function quickGame(g: Game, hT: any, aT: any) {
-  const R = Math.random, gauss = () => (R() + R() + R() + R() - 2) * 1.2;
-  const str = (t: any) => { const ps = t.players.filter((p: any) => p.target > 0); const m = ps.reduce((a: number, p: any) => a + p.target, 0) || 1; return ps.reduce((a: number, p: any) => a + p.ovr * p.target, 0) / m; };
-  const margin = (str(hT) - str(aT)) * 1.3 + 2.2 + gauss() * 10, total = 222 + gauss() * 16;
-  let hs = Math.round((total + margin) / 2), as = Math.round((total - margin) / 2), ot = 0; if (hs === as) { ot = 1; hs += R() < 0.5 ? 3 : 0; as += hs === as ? 3 : 0; }
-  const side = (t: any, pts: number) => {
-    const ps = t.players.filter((p: any) => p.target > 0), tot = ps.reduce((a: number, p: any) => a + p.target, 0) || 1, box: Record<number, any> = {};
-    const use = ps.map((p: any) => Math.pow(Math.max(5, p.ovr - 28), 1.6) * p.target), U = use.reduce((a: number, v: number) => a + v, 0) || 1;
-    ps.forEach((p: any, i: number) => { const r = p.r, min = +(p.target * 240 / tot * (0.85 + R() * 0.3)).toFixed(1), share = use[i] / U, pp = Math.max(0, Math.round(pts * share * (0.75 + R() * 0.5)));
-      const tpa = Math.round(pp * (r.tp / 100) * 0.55 * (0.6 + R() * 0.8)), tpm = Math.round(tpa * (0.26 + r.tp / 900)), fta = Math.round(pp * 0.22 * (0.5 + R())), ftm = Math.round(fta * (0.55 + r.ft / 400));
-      const fgm = Math.max(tpm, Math.round((pp - ftm - tpm) / 2)), fga = Math.max(fgm, Math.round(fgm / (0.38 + (r.fg + r.ins) / 1000)) );
-      const reb = Math.round(min / 48 * (4 + (r.reb - 40) / 6 + (p.grp === 'B' ? 4 : p.grp === 'W' ? 1.5 : 0)) * (0.6 + R() * 0.8)), orb = Math.round(reb * 0.25);
-      box[p.id] = { min, pts: fgm * 2 + tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb: reb - orb, ast: Math.round(min / 48 * (2 + (r.pss - 40) / 7 + (p.grp === 'G' ? 3 : 0)) * (0.6 + R() * 0.8)), stl: Math.round(min / 48 * (0.8 + (r.stl ?? r.diq) / 80) * R() * 2), blk: Math.round(min / 48 * (p.grp === 'B' ? 1.2 : 0.3) * (0.4 + (r.blk ?? 50) / 80) * R() * 2), tov: Math.round(min / 48 * 2.2 * R() * 2), pf: Math.round(min / 48 * 3.5 * R() * 1.5), pm: 0, gs: i < 5 ? 1 : 0 };
-    });
-    return box;
+  const R = Math.random, n: Norms = g.db.norms || DEFAULT_NORMS, gauss = () => (R() + R() + R() + R() - 2) * 1.7;
+  const cl = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+  const pick = (w: number[], tot: number) => { let x = R() * tot; for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) return i; } return w.length - 1; };
+  const side = (t: any) => {
+    const ps = t.players.filter((p: any) => p.target > 0);
+    const raw = ps.map((p: any) => p.target * (0.9 + R() * 0.2)), rt = raw.reduce((a: number, v: number) => a + v, 0) || 1;
+    const on = raw.map((v: number) => Math.min(1, (v / rt) * 5)); // share of the game on the floor
+    const avg = (f: (p: any) => number) => ps.reduce((a: number, p: any, i: number) => a + f(p) * on[i], 0) / 5;
+    const prof = ps.map((p: any) => shotProfile(p, n)), form = ps.map(() => gauss() * 0.012); // tonight's touch
+    const pct = ps.map((p: any, i: number) => { const sk = zoneSkill(p.r); return Object.fromEntries(ZONES.map(z => [z, BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk[z]) + n.offset[z] + (z === 'rim' ? 0.0009 * (p.r.hgt - (n.rimHgt ?? 55)) : 0) + form[i]])) as Record<Zone, number>; });
+    const use = ps.map((p: any, i: number) => usageRaw(p) * on[i] * Math.exp(gauss() * 0.15));
+    // A side full of shot-makers gets guarded tighter (the engine's lineup regression).
+    const uT = use.reduce((a: number, v: number) => a + v, 0) || 1, edge = ps.reduce((a: number, _: any, i: number) => a + use[i] * ZONES.reduce((b, z) => b + prof[i][z] * (pct[i][z] - BASE.zone[z].pct - CAL[z]), 0), 0) / uT;
+    const sec = (r: any) => 0.5 * r.drb + 0.3 * r.pss + 0.2 * r.oiq;
+    const w = (f: (p: any) => number) => { const a = ps.map((p: any, i: number) => f(p) * on[i]); return { a, t: a.reduce((x: number, v: number) => x + v, 0) || 1 }; };
+    return {
+      ps, on, prof, pct, use, uT, edge, box: ps.map((_: any, i: number) => ({ min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0, gs: i < 5 ? 1 : 0 })),
+      ft: ps.map((p: any) => (p.r.ft >= 98.5 ? 0.98 : BASE.ft + CAL.ft + curve('ft', p.r.ft) + n.ftOffset)),
+      tov: ps.map((p: any) => 0.1 * Math.exp((n.handle - sec(p.r)) / 70) * (p.tend?.tov ?? 1)),
+      draw: ps.map((p: any) => p.tend?.draw ?? 1),
+      astW: w(p => Math.pow(Math.max(30, p.r.pss) - 18, 1.3) * (p.tend?.pass ?? 1) * (p.grp === 'G' ? 1.15 : 1)),
+      rebW: w(p => Math.pow(Math.max(36, rebSkill(p.r)) - 22, 1.5)),
+      stlW: w(p => Math.pow(Math.max(32, stealSkill(p.r)) - 24, 1.6)),
+      blkW: w(p => Math.pow(Math.max(30, blockSkill(p.r)) - 22, 1.8)),
+      pfW: w(p => 1 + (60 - p.r.diq) / 80),
+      perim: avg(p => perimD(p.r)), inner: avg(p => interiorD(p.r)), glass: avg(p => glassSkill(p.r)),
+    };
   };
-  const hb = side(hT, hs), ab = side(aT, as), sum = (b: any) => Object.values(b).reduce((a: number, l: any) => a + l.pts, 0) as number;
-  return { home: { pts: sum(hb), box: hb }, away: { pts: sum(ab) === sum(hb) ? sum(ab) + 1 : sum(ab), box: ab }, ot };
+  const H = side(hT), A = side(aT);
+  const defAdj = (D: any, z: Zone) => (z === 'rim' ? 0.0021 * (D.inner - n.interiorD) : z === 'mid' ? 0.001 * (D.perim - n.perimD) : 0.0008 * (D.perim - n.perimD));
+  const fts = (O: any, i: number, k: number) => { let m = 0; for (let j = 0; j < k; j++) if (R() < O.ft[i]) m++; O.box[i].fta += k; O.box[i].ftm += m; O.box[i].pts += m; return m; };
+  // One trip down the floor; offensive rebounds keep it going. Returns the points scored. A side well
+  // ahead relaxes a little and one well behind presses, as in the engine, so margins stay realistic.
+  const trip = (O: any, D: any, home: boolean, lead: number) => {
+    let pts = 0;
+    if (R() < 0.035) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; if (R() < 0.45) return fts(O, pick(O.use, O.uT), 2); } // a foul away from the ball (in the bonus: two shots)
+    for (let chance = 0; chance < 5; chance++) {
+      const i = pick(O.use, O.uT), b = O.box[i];
+      if (R() < O.tov[i]) { b.tov++; if (R() < 0.52) D.box[pick(D.stlW.a, D.stlW.t)].stl++; return pts; }
+      const pr = O.prof[i]; let x = R(), z: Zone = 'atb'; for (const zz of ZONES) { x -= pr[zz]; if (x <= 0) { z = zz; break; } }
+      const three = z === 'c3' || z === 'atb', p = cl(O.pct[i][z] - 0.66 * O.edge - defAdj(D, z) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, 0.9);
+      const fouled = R() < Q_FOUL[z] * O.draw[i], made = R() < (fouled ? p * 0.45 : p);
+      if (fouled) D.box[pick(D.pfW.a, D.pfW.t)].pf++;
+      if (fouled && !made) return pts + fts(O, i, three ? 3 : 2);
+      b.fga++; if (three) b.tpa++;
+      if (made) {
+        const v = three ? 3 : 2; b.fgm++; if (three) b.tpm++; b.pts += v; pts += v;
+        if (R() < BASE.zone[z].ast * 0.8) for (let k = 0; k < 4; k++) { const j = pick(O.astW.a, O.astW.t); if (j !== i) { O.box[j].ast++; break; } }
+        if (fouled) pts += fts(O, i, 1);
+        return pts;
+      }
+      if (R() < BLOCK_ON_MISS[z]) D.box[pick(D.blkW.a, D.blkW.t)].blk++;
+      if (R() < cl(BASE.orbPct + 0.004 * (O.glass - D.glass), 0.12, 0.45)) { O.box[pick(O.rebW.a, O.rebW.t)].orb++; continue; }
+      D.box[pick(D.rebW.a, D.rebW.t)].drb++; return pts;
+    }
+    return pts;
+  };
+  let hs = 0, as = 0, ot = 0;
+  const period = (k: number) => { for (let j = 0; j < k; j++) { hs += trip(H, A, true, hs - as); as += trip(A, H, false, as - hs); } };
+  period(Math.round(BASE.pace + gauss() * 2));
+  while (hs === as && ot < 6) { ot++; period(Math.round(BASE.pace * 5 / 48 + R())); }
+  if (hs === as) hs++; // six overtimes and still level: settle it
+  const mins = 240 + 25 * ot;
+  [[H, hs - as], [A, as - hs]].forEach(([S, m]: any) => S.box.forEach((b: any, i: number) => { b.min = +(S.on[i] * mins / 5).toFixed(1); b.pm = Math.round(m * S.on[i] + gauss()); }));
+  const box = (S: any) => Object.fromEntries(S.ps.map((p: any, i: number) => [p.id, S.box[i]]));
+  return { home: { pts: hs, box: box(H) }, away: { pts: as, box: box(A) }, ot };
 }
 
 function play(g: Game, s: any, x: CcpGame) {
