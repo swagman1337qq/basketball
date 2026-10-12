@@ -40,7 +40,7 @@ import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
-import { clubs, COLLEGES, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
+import { clubs, COLLEGES, IVY_LEAGUE, countries, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './startRoster';
 import { mulberry32, nextRandom } from './rng';
@@ -596,7 +596,7 @@ export class Game {
       return { team: pick(C.US.cities) + ' ' + pick(['Prep', 'Academy', 'Christian']), lg: 'High school', country: 'US' };
     }
     const cp = ['US', 'CA', 'BS'].includes(raised) ? 1 : C[raised].eu ? .15 : ['AU', 'NZ'].includes(raised) ? .5 : .3;
-    if (!cc || rnd() < cp) return { team: pick(COLLEGES), lg: 'NCAA', country: 'US' };
+    if (!cc || rnd() < cp) return { team: pick(rnd() < 0.02 ? IVY_LEAGUE : COLLEGES), lg: 'NCAA', country: 'US' }; // now and then an Ivy Leaguer
     const k = pick(cc); return { team: k[0], lg: k[1], country: raised };
   }
   mkPlayer(base, age, Wt, cls, forceGrp?) {

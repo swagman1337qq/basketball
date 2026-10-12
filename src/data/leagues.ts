@@ -1,7 +1,7 @@
 // Leagues and their clubs, by country, for the God Mode "Playing for" picker: pick a league,
 // then one of its teams (or type any league or team by hand). Real top divisions with their
 // full club lists where we have them; clubs() in world.ts is merged in so nothing is missing.
-import { clubs, COLLEGES } from './world';
+import { clubs, COLLEGES, IVY_LEAGUE } from './world';
 
 // Teams in this season's EuroLeague.
 export const EUROLEAGUE = ['Real Madrid', 'FC Barcelona', 'Baskonia', 'Valencia Basket', 'Olympiacos', 'Panathinaikos', 'Fenerbahçe', 'Anadolu Efes', 'Crvena zvezda', 'Partizan', 'Žalgiris Kaunas', 'Paris Basketball', 'ASVEL', 'AS Monaco', 'Bayern Munich', 'Olimpia Milano', 'Virtus Bologna', 'Maccabi Tel Aviv', 'Hapoel Tel Aviv'];
@@ -10,7 +10,7 @@ const MORE_COLLEGES = ['Syracuse', 'Louisville', 'Ohio State', 'Wisconsin', 'Ill
 
 export const LEAGUES: Record<string, Record<string, string[]>> = {
   US: {
-    NCAA: [...COLLEGES, ...MORE_COLLEGES].sort(),
+    NCAA: [...COLLEGES, ...MORE_COLLEGES, ...IVY_LEAGUE].sort(),
     'High school': ['Montverde Academy', 'IMG Academy', 'Oak Hill Academy', 'Sierra Canyon', 'Link Academy', 'Prolific Prep', 'Brewster Academy', 'Columbus (FL)', 'La Lumiere', 'Wasatch Academy', 'AZ Compass Prep', 'Sunrise Christian Academy', 'Mater Dei', 'Duncanville', 'DeMatha Catholic', 'Paul VI', 'Archbishop Stepinac', 'Harvard-Westlake', 'Dynamic Prep', 'Long Island Lutheran'],
     'Overtime Elite': ['City Reapers', 'YNG Dreamerz', 'Cold Hearts', 'Blue Checks', 'Diamond Doves', 'Jelly Fam', 'RWE', 'Fear of God Athletics'],
   },
