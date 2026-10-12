@@ -267,4 +267,56 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): a low-usage backup who attacked the rim and pulled up from mid-range.
     ten: { usage: 46, ftr: 70, ra: 36, paint: 12, mid: 40, c3: 4, atb: 8, cns: 25, pullup: 65, step: 4, fade: 6 },
   } },
+  { label: 'Toney Douglas – Rookie year (2009–10)', card: {
+    card: 1, name: 'Toney Douglas', first: 'Toney', last: 'Douglas', pos: 'PG', age: 23, dob: '1986-03-16', hgt: '6′2″', wt: 190, wing: 78,
+    rep: 'US', born: 'US', raised: 'US', city: 'Jonesboro', state: 'GA', her: 'US', race: 'black',
+    // Real (No. 29 pick out of Florida State, ACC Defensive Player of the Year): 56 games (12 starts), 19.4 min, 8.6 pts,
+    // 1.9 reb, 2.0 ast, 0.8 stl, 0.1 blk, 1.0 tov, .458 FG on 7.0 shots, .389 on 3.1 threes, .809 FT on 1.2. A
+    // shoot-first combo guard and pesky on-ball defender. Tested over 300 games at about 20 minutes: 8.5 pts, 2.1 reb,
+    // 1.8 ast, 1.1 stl, 0.1 blk, 1.2 tov, .431 FG on 7.2, .376 on 3.6 threes, .827 FT on 1.1.
+    r: { hgt: 34, stre: 52, spd: 78, acc: 76, jmp: 62, endu: 74, ins: 40, dnk: 46, lay: 64, ft: 60, fg: 68, tp: 68, oiq: 46, diq: 62, blk: 22, stl: 62, drb: 56, pss: 58, reb: 30, box: 26 },
+    pot: 58, intg: { feel: 50, poise: 60 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 60, ambition: 55 },
+    // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 62, ftr: 30, ra: 20, paint: 8, mid: 22, c3: 16, atb: 36, cns: 55, pullup: 38, step: 4, fade: 3 },
+  } },
+  { label: 'Jan Veselý – Rookie year (2011–12)', card: {
+    card: 1, name: 'Jan Veselý', first: 'Jan', last: 'Veselý', pos: 'PF', age: 21, dob: '1990-04-24', hgt: '7′0″', wt: 240, wing: 85,
+    rep: 'CZ', born: 'CZ', raised: 'CZ', city: 'Ostrava', her: 'CZ', race: 'white',
+    // Real (No. 6 pick, from Partizan Belgrade): 57 games (20 starts), 18.9 min, 4.7 pts, 4.4 reb, 0.8 ast, 0.7 stl,
+    // 0.6 blk, 1.1 tov, .537 FG on 3.8 shots (lobs, dunks, putbacks), 0 for 1 from three, .532 FT on 1.1. An explosive
+    // leaper with no jumper and a broken free throw. Tested over 300 games at about 20 minutes: 4.2 pts, 4.7 reb,
+    // 0.7 ast, 0.6 stl, 0.5 blk, 0.7 tov, .564 FG on 3.4, .502 FT on 0.8 (a little fewer turnovers than his real 1.1).
+    r: { hgt: 66, stre: 50, spd: 74, acc: 66, jmp: 84, endu: 70, ins: 42, dnk: 50, lay: 44, ft: 12, fg: 28, tp: 12, oiq: 22, diq: 50, blk: 72, stl: 70, drb: 12, pss: 36, reb: 52, box: 46 },
+    pot: 52, intg: { feel: 40, poise: 40 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 70, loyalty: 60, ambition: 55 },
+    // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 44, ftr: 50, ra: 70, paint: 16, mid: 13, c3: 0, atb: 1, cns: 60, pullup: 25, step: 0, fade: 15 },
+  } },
+  { label: 'Bismack Biyombo – Rookie year (2011–12)', card: {
+    card: 1, name: 'Bismack Biyombo', first: 'Bismack', last: 'Biyombo', pos: 'C', age: 19, dob: '1992-08-28', hgt: '6′9″', wt: 255, wing: 90,
+    rep: 'CD', born: 'CD', raised: 'CD', city: 'Lubumbashi', her: 'CD', race: 'dark',
+    // Real (No. 7 pick, from Fuenlabrada in Spain): 63 games (41 starts), 23.1 min, 5.2 pts, 5.8 reb, 0.4 ast, 0.3 stl,
+    // 1.8 blk, 1.1 tov, .464 FG on 4.4 shots, .483 FT on 2.3. A 7-6 wingspan, all defense and energy, almost no
+    // offense beyond dunks. Tested over 300 games at about 24 minutes: 4.9 pts, 6.0 reb, 0.6 ast, 0.3 stl, 1.6 blk,
+    // 0.4 tov, .501 FG on 4.0, .505 FT on 1.7 (fewer turnovers than his real 1.1, as for every low-usage big).
+    r: { hgt: 60, stre: 72, spd: 62, acc: 56, jmp: 95, endu: 70, ins: 24, dnk: 30, lay: 16, ft: 8, fg: 16, tp: 1, oiq: 20, diq: 70, blk: 98, stl: 12, drb: 10, pss: 14, reb: 42, box: 50 },
+    pot: 60, intg: { feel: 35, poise: 45 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 85, loyalty: 60, ambition: 55 },
+    // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 48, ftr: 80, ra: 58, paint: 26, mid: 16, c3: 0, atb: 0, cns: 50, pullup: 20, step: 0, fade: 30 },
+  } },
+  { label: 'Bronny James – Rookie year (2024–25)', card: {
+    card: 1, name: 'Bronny James', first: 'Bronny', last: 'James', pos: 'SG', age: 20, dob: '2004-10-06', hgt: '6′2″', wt: 210, wing: 79,
+    rep: 'US', born: 'US', raised: 'US', city: 'Cleveland', state: 'OH', her: 'US', race: 'black',
+    // Real (No. 55 pick out of USC; most of the year with the G League's South Bay Lakers): 27 games (1 start), 6.7 min,
+    // 2.3 pts, 0.7 reb, 0.8 ast, 0.3 stl, 0.5 tov, .313 FG on 2.5 shots, .281 on 1.2 threes, .786 FT. Strong, a willing
+    // defender, the offense still raw. Tested over 500 games at about 7 minutes: 2.2 pts, 0.7 reb, 0.8 ast, 0.2 stl,
+    // 0.5 tov, .329 FG on 2.4, .282 on 1.5 threes, .750 FT.
+    r: { hgt: 34, stre: 60, spd: 66, acc: 64, jmp: 70, endu: 70, ins: 34, dnk: 30, lay: 14, ft: 56, fg: 10, tp: 36, oiq: 38, diq: 52, blk: 30, stl: 50, drb: 36, pss: 64, reb: 30, box: 30 },
+    pot: 52, intg: { feel: 55, poise: 55 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: true, streaky: false, work: 80, loyalty: 60, ambition: 55 },
+    // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 90, ftr: 34, ra: 20, paint: 8, mid: 8, c3: 18, atb: 48, cns: 50, pullup: 40, step: 6, fade: 4 },
+  } },
 ];
