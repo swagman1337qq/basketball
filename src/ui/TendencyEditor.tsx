@@ -8,12 +8,15 @@ import { muted, NumInput } from './kit';
 
 // `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
 // for the Auto button; `onAuto`, if given, runs instead of setting those numbers (the player editor hands him back to the AI).
-export function TendencyEditor({ p, gm, onTen, auto, onAuto }: { p: any; gm: Game; onTen: (ten: Record<string, number>) => void; auto?: () => Record<string, number>; onAuto?: () => void }) {
+// `onEdit` (the player editor): while the AI sets his tendencies the numbers are read-only, with an Edit tendencies
+// button that takes them over by hand; once set by hand they're editable and Auto hands them back.
+export function TendencyEditor({ p, gm, onTen, auto, onAuto, onEdit }: { p: any; gm: Game; onTen: (ten: Record<string, number>) => void; auto?: () => Record<string, number>; onAuto?: () => void; onEdit?: () => void }) {
+  const ro = !!onEdit && !p.tenLock; // the AI's: shown, not editable
   const t = p.ten || {}, roles = gm.rolesOf(p), norms = gm.db.norms;
   const head = (txt: string) => <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', margin: '8px 0 2px' }}>{txt}</div>;
   const row = (key: string, label: string, v: number, lo: number, hi: number, set: (v: number) => void, suffix: string, note: string, desc?: string) => (
     <label key={key} title={desc} style={{ display: 'grid', gridTemplateColumns: '150px auto minmax(0,1fr)', gap: 8, alignItems: 'center', fontSize: '13px', padding: '2px 0' }}>
-      <span>{label}</span><NumInput value={v} min={lo} max={Math.max(lo + 1, hi)} onValue={set} width={64} suffix={suffix} /><span style={{ ...muted, fontSize: '11.5px' }}>{note}</span>
+      <span>{label}</span><NumInput value={v} min={lo} max={Math.max(lo + 1, hi)} onValue={set} width={64} suffix={suffix} disabled={ro} /><span style={{ ...muted, fontSize: '11.5px' }}>{note}</span>
     </label>);
   const share = (k: ZoneTen | CreTen) => row(k, TEN_LABEL[k], Math.round(t[k] ?? 0), 0, 100, v => onTen(setShare(t, k, v)), '%', 'typical ' + typShare(k) + '%', TEN_DESC[k]);
   const total = (keys: readonly string[]) => <div style={{ ...muted, fontSize: '11.5px', paddingLeft: 158 }}>Total {Math.round(keys.reduce((a, k) => a + (t[k] ?? 0), 0))}% · change one and the others make room</div>;
@@ -21,7 +24,11 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto }: { p: any; gm: Gam
   const fLo = Math.ceil(tenUnit('ftr', 2) * 100), fHi = Math.floor(tenUnit('ftr', 98) * 100);
   return (
     <div>
-      {auto && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>
+      {ro && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>
+        <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={onEdit} title="Take his tendencies over by hand: the AI stops changing them until you press Auto">Edit tendencies</button>
+        <span style={{ ...muted, fontSize: '11.5px' }}>Set by the AI from his ratings, personality, age and role, and refreshed every month.</span>
+      </div>}
+      {auto && !ro && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>
         <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => (onAuto ? onAuto() : onTen(auto()))} title="Set every number to what fits him now: his ratings, personality, age and role on his team">Auto (let the AI set them)</button>
         <span style={{ ...muted, fontSize: '11.5px' }}>What the game would pick for him from his ratings, personality, age and role.</span>
       </div>}
