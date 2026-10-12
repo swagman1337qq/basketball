@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Amam3by5.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DokH0snX.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -15,6 +15,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **"High school" as a college, for any country.** In God Mode's Edit player, the league picker for every country now has a High school option (and there's a High school button next to the dice), for players who went straight from high school to the pros. His profile then shows College: High school, and his bio and scouting report say he came out of high school.
 
 ### Changed
+- **Player cards no longer turn a player into someone else.** Applying a card now gives the player only its build: ratings, shot tendencies, height, weight, wingspan, position, potential, personality and intangibles. He keeps his own name, age, hometown, country, heritage and face. This goes for every card, ready-made or your own; the card still shows its name and the real player's bio in the library, as a label.
 - **Height and wingspan matter more.** Two players with exactly the same skills:
   - **Overall:** a 6′5″ guard is now about 2.5 better than a 6′0″ guard (it was 1), a 6′9″ wing about 1.3 better than a 6′6″ one, and a 7-footer with a 7′10″ wingspan about 5.7 better than one with a 7′0″ wingspan (it was 4.8).
   - **In games:** taller players contest jumpers better, get their own jumper off a little more easily, finish better at the rim and rebound more; longer arms help more with contests, blocks, steals, rebounds and finishing. A whole team 2″ taller now wins by about 2 points a game more, and one with 4″ more wingspan by about 2 to 2.5 (it was about 1.5).
