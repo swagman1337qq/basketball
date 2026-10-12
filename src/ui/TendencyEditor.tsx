@@ -4,7 +4,7 @@
 // attempts per 100 shots. Used by the player editor and the card editor.
 import type { Game } from '../engine/Game';
 import { CRE_TEN, expUsg, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
-import { muted, NumInput } from './kit';
+import { GOD_PINK, muted, NumInput } from './kit';
 
 // `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
 // for the Auto button; `onAuto`, if given, runs instead of setting those numbers (the player editor hands him back to the AI).
@@ -28,7 +28,7 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto, onFreeze }: { p: an
         // Freeze tendencies toggles the freeze that keeps the AI's monthly refresh off them.
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>
           <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => (onAuto ? onAuto() : auto && onTen(auto()))} title="Set every number to what fits him now (his ratings, personality, age and role on his team) and unfreeze them">Auto (let the AI set them)</button>
-          <button className={'btn ' + (p.tenLock ? 'btn-primary' : 'btn-secondary')} style={{ fontSize: '12px', padding: '2px 10px' }} onClick={onFreeze} title={p.tenLock ? 'Let the AI refresh them every month again' : 'Keep them exactly as they are: the AI stops refreshing them'}>{p.tenLock ? 'Unfreeze tendencies' : 'Freeze tendencies'}</button>
+          <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px', borderColor: GOD_PINK, ...(p.tenLock ? { background: GOD_PINK, color: '#fff' } : { color: GOD_PINK }) }} onClick={onFreeze} title={p.tenLock ? 'Let the AI refresh them every month again' : 'Keep them exactly as they are: the AI stops refreshing them'}>{p.tenLock ? 'Unfreeze tendencies' : 'Freeze tendencies'}</button>
           <span style={{ ...muted, fontSize: '11.5px' }}>{p.tenLock ? 'Frozen: they stay as set until you unfreeze them or press Auto.' : 'The AI refreshes them every month (your edits last until then). Freeze them to keep them.'}</span>
         </div>
       ) : auto && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '2px 0 4px' }}>

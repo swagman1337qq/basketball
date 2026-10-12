@@ -118,9 +118,11 @@ export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: '
 // let a skilled small guard still finish well.
 // On top of that, a straight size edge on every rim shot: about 4 points of FG% between a 6'2" guard
 // and a 7-footer with the same skills (centered on the league, so overall scoring doesn't move).
-const RIM_SIZE = 0.0009;
+const RIM_SIZE = 0.0015;
 export function zoneSkill(r: any): Record<Zone, number> {
-  return { rim: 0.2 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.2 * r.ins + 0.25 * r.hgt + 0.1 * r.jmp + ape(r) * 0.8, mid: r.fg, c3: r.tp, atb: r.tp };
+  // A taller shooter gets his jumper off over the contest a little more easily (a few points of skill for
+  // half a foot); long arms help at the rim.
+  return { rim: 0.2 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.2 * r.ins + 0.25 * r.hgt + 0.1 * r.jmp + ape(r) * 1.0, mid: r.fg + 0.12 * (r.hgt - 50), c3: r.tp + 0.08 * (r.hgt - 50), atb: r.tp + 0.08 * (r.hgt - 50) };
 }
 // Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
 // and still not a scorer). Rotation players average about 57.
@@ -153,18 +155,18 @@ const ape = (r: any) => (r.ape ?? 4) - 4;
 // Blocks and Steals are separate skills: they decide who gets the blocks and steals. A defender whose
 // shot-blocking or steals run well ahead of his Defensive IQ gambles: he racks up the numbers but
 // leaves his spot, so the shots he doesn't get to are easier (the Hassan Whiteside effect).
-export const perimD = (r: any) => r.diq * 0.6 + r.spd * 0.2 + (r.acc ?? r.spd) * 0.2 + ape(r) * 0.6;
-export const interiorD = (r: any) => r.hgt * 0.4 + r.diq * 0.3 + (r.blk ?? r.hgt) * 0.15 + r.jmp * 0.15 + ape(r) * 1.2;
+export const perimD = (r: any) => r.diq * 0.5 + r.spd * 0.125 + (r.acc ?? r.spd) * 0.125 + r.hgt * 0.25 + ape(r) * 0.8; // size and length contest shots on the perimeter too
+export const interiorD = (r: any) => r.hgt * 0.4 + r.diq * 0.3 + (r.blk ?? r.hgt) * 0.15 + r.jmp * 0.15 + ape(r) * 1.5;
 // Piling up blocks takes everything at once: timing and leap (Blocks), height and length, the lift
 // to get up, the lateral quickness to rotate over in time, and the positioning (Defensive IQ) to be
 // there. A weighted geometric mean, so a weakness anywhere drags it down: a long, bouncy shot-blocker
 // who's slow or out of position still blocks some shots, just not a league-leading number.
 const g01 = (v: number) => Math.max(5, Math.min(100, v)) / 100;
-export const blockSkill = (r: any) => 100 * Math.pow(g01(r.blk ?? r.hgt), 0.32) * Math.pow(g01(r.hgt), 0.18) * Math.pow(g01(50 + ape(r) * 6), 0.12) * Math.pow(g01(r.jmp), 0.12) * Math.pow(g01((r.acc ?? r.spd) * 0.6 + r.spd * 0.4), 0.1) * Math.pow(g01(r.diq), 0.16);
-export const stealSkill = (r: any) => (r.stl ?? r.diq) * 0.7 + (r.acc ?? r.spd) * 0.15 + r.spd * 0.15 + ape(r) * 0.8;
+export const blockSkill = (r: any) => 100 * Math.pow(g01(r.blk ?? r.hgt), 0.32) * Math.pow(g01(r.hgt), 0.18) * Math.pow(g01(50 + ape(r) * 6), 0.15) * Math.pow(g01(r.jmp), 0.12) * Math.pow(g01((r.acc ?? r.spd) * 0.6 + r.spd * 0.4), 0.1) * Math.pow(g01(r.diq), 0.16);
+export const stealSkill = (r: any) => (r.stl ?? r.diq) * 0.7 + (r.acc ?? r.spd) * 0.15 + r.spd * 0.15 + ape(r) * 1.0;
 export const gambleB = (r: any) => Math.max(0, (r.blk ?? r.diq) - r.diq - 8);
 export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
-export const rebSkill = (r: any) => r.reb * 0.6 + r.hgt * 0.25 + r.jmp * 0.15 + ape(r) * 0.7;
+export const rebSkill = (r: any) => r.reb * 0.55 + r.hgt * 0.33 + r.jmp * 0.12 + ape(r) * 0.9;
 // Team rebounding also counts box-outs: a great boxer wins the glass for his team without
 // grabbing many rebounds himself.
 export const glassSkill = (r: any) => rebSkill(r) * 0.75 + (r.box ?? r.reb) * 0.25;

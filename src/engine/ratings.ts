@@ -90,18 +90,20 @@ export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }))
 
 // How much each rating counts toward a player's overall, by position group (G guards, W wings,
 // B bigs): guards live on handle, passing and shooting; bigs on size, rebounding and rim
-// protection. Used when a rating is edited in God Mode, so the overall moves with it.
+// protection. Used when a rating is edited in God Mode, so the overall moves with it. Height counts for
+// a lot at every position (2026-10-12: 2.6 for guards and bigs, 2.2 for wings): with the same skills a 6′5″
+// guard is about 2.5 better than a 6′0″ one, a 7′1″ center about 1.5 better than a 6′10″ one.
 export const OVR_W: Record<string, Record<string, number>> = {
-  G: { hgt: 1, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, blk: .2, stl: .6, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 1.1, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, blk: .4, stl: .6, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 1.8, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, blk: 1, stl: .3, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, blk: .2, stl: .6, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
+  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, blk: .4, stl: .6, drb: 1.1, pss: 1, reb: .8, box: .6 },
+  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, blk: 1, stl: .3, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
 };
 export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
 // The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
 // far more than a center's), plus his wingspan, on a scale shared by all positions. Bigs naturally
 // rate high in size skills and guards in speed and handle, so each position has a set adjustment
 // that keeps a typical 60 guard, wing and big all at 60. Hidden decimal progress (p.rx) counts.
-export const OVR_ADJ: Record<string, number> = { G: 2.7, W: 1.6, B: 4.1 };
+export const OVR_ADJ: Record<string, number> = { G: 1.76, W: 1.74, B: 4.76 };
 export function ovrExact(p: any): number {
   const W = OVR_W[p.grp] || OVR_W.W; let a = 0, t = 0;
   for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }
@@ -159,8 +161,9 @@ export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
 
 // Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is
 // tall); every inch longer or shorter is 6 points. It counts toward the overall at a set rate per
-// position: a great wingspan (+12″, about 98) is worth up to ~+4 for a big, +3 for a wing, +2 for
-// a guard, and a short one costs the same.
+// position: a great wingspan (+12″, about 98) is worth up to ~+4.6 for a big, +3.6 for a wing, +2.4
+// for a guard, and a short one costs the same (a 7-footer with a 7′10″ span is about 5.7 better than
+// one whose arms are as long as he is tall).
 // The height rating: mostly his size (about 4 points an inch: a 6′3″ guard ≈ 34, a 6′7″ wing ≈ 50, a
 // 6′11″ big ≈ 66), partly how he plays to it, kept from his old rating and a fixed lean of his own:
 // some players use their length and strength like a bigger man, some play small.
@@ -172,7 +175,7 @@ export function setHgtKeepOvr(p: any, v: number) {
   for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
 }
 export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
-export const WNG_W: Record<string, number> = { G: .04, W: .06, B: .08 };
+export const WNG_W: Record<string, number> = { G: .05, W: .075, B: .095 };
 export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(RMAX, 50 + (wing - hIn - 4) * 6)));
 export const wngRating = (p: any) => wngOf(p.wing ?? inchesOf(p.hgt) + 4, inchesOf(p.hgt));
 export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? .06);
