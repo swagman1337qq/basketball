@@ -7,7 +7,7 @@ import { CRE_TEN, ensureTen, initTendencies, quirkOf, round100, tenTargets, ZONE
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 
-const KEEP = ['name', 'first', 'last', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten', 'tenLock'] as const;
+const KEEP = ['name', 'first', 'last', 'familyFirst', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten', 'tenLock'] as const;
 
 export function exportCard(p: any) {
   const c: any = { card: 1 };
@@ -27,7 +27,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, Math.round(v)));
   // A new name replaces the whole name (no leftover native-script name); a new birthplace outside the
   // U.S. drops a U.S. state; a new age without a birthday drops the old birthday.
-  if (card.name) for (const k of ['native', 'nativeFirst', 'nativeLast', 'first', 'last']) if (card[k] === undefined) delete p[k];
+  if (card.name) for (const k of ['native', 'nativeFirst', 'nativeLast', 'first', 'last', 'familyFirst']) if (card[k] === undefined) delete p[k];
   if (card.born && card.born !== 'US' && card.state === undefined) delete p.state;
   if (card.age != null && !card.dob) delete p.dob;
   KEEP.forEach(k => { if (card[k] !== undefined && k !== 'r' && k !== 'pers' && k !== 'intg' && k !== 'ten') p[k] = JSON.parse(JSON.stringify(card[k])); });
@@ -221,5 +221,37 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 55, loyalty: 70, ambition: 75 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): 32% at the rim, 16% paint, 40% mid-range, 12% threes; mostly pull-ups; .35 FTA per FGA.
     ten: { usage: 40, ftr: 61, ra: 32, paint: 16, mid: 40, c3: 2, atb: 10, cns: 12, pullup: 75, step: 5, fade: 8 },
+  } },
+  { label: 'Yi Jianlian – Rookie year (2007–08)', card: {
+    card: 1, name: 'Yi Jianlian', first: 'Jianlian', last: 'Yi', familyFirst: true, native: '易建联', nativeFirst: '建联', nativeLast: '易', pos: 'PF', age: 20, dob: '1987-10-27', hgt: '7′0″', wt: 245, wing: 86,
+    rep: 'CN', born: 'CN', raised: 'CN', city: 'Heshan', her: 'CN', race: 'asian',
+    // Real (No. 6 pick, from the Guangdong Southern Tigers): 66 games (49 starts), 25.0 min, 8.6 pts, 5.2 reb
+    // (1.6 offensive), 0.8 ast, 0.5 stl, 0.8 blk, 1.4 tov, .421 FG on 7.9 shots, .286 on 0.3 threes, .841 FT on
+    // 2.2 attempts, TS .485. A 7-footer who played like a wing: a soft face-up jumper from 15–20 feet, quick off
+    // the floor for dunks and putbacks, but light and pushed around inside, a thin passer, a step slow on rotations.
+    // Tested over 300 games at about 26 minutes: 8.9 pts, 5.6 reb, 0.9 ast, 0.5 stl, 0.8 blk, 1.4 tov, .418 FG on 8.1
+    // shots, .840 FT on 2.4, TS .485 (at his real 25 minutes, about 8.3 pts and 5.2 reb). 44 overall, 62 potential.
+    r: { hgt: 68, stre: 42, spd: 70, acc: 58, jmp: 78, endu: 78, ins: 36, dnk: 60, lay: 42, ft: 70, fg: 46, tp: 30, oiq: 28, diq: 40, blk: 72, stl: 36, drb: 18, pss: 36, reb: 42, box: 32 },
+    pot: 62, intg: { feel: 40, poise: 48 },
+    pers: { mot: 'Fame', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 70, loyalty: 70, ambition: 60 },
+    // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots long twos, a quarter at the rim; almost no threes; .28 FTA per FGA.
+    ten: { usage: 60, ftr: 58, ra: 26, paint: 18, mid: 52, c3: 1, atb: 3, cns: 55, pullup: 20, step: 3, fade: 22 },
+  } },
+  { label: 'Andrei Kirilenko – Rookie year (2001–02)', card: {
+    card: 1, name: 'Andrei Kirilenko', first: 'Andrei', last: 'Kirilenko', native: 'Андрей Кириленко', nativeFirst: 'Андрей', nativeLast: 'Кириленко', pos: 'SF', age: 20, dob: '1981-02-18', hgt: '6′9″', wt: 215, wing: 85,
+    rep: 'RU', born: 'RU', raised: 'RU', city: 'Izhevsk', her: 'RU', race: 'white',
+    // Real (No. 24 pick in 1999, from CSKA Moscow; All-Rookie First Team): all 82 games (40 starts), 26.2 min,
+    // 10.7 pts, 4.9 reb (1.8 offensive), 1.1 ast, 1.4 stl, 1.9 blk, 1.3 tov, .450 FG on 7.7 shots, .250 on 1.2
+    // threes, .768 FT on 4.5 attempts (a huge .58 per shot), TS .553. "AK-47": long, springy and everywhere on
+    // defense, blocking shots from the weak side and jumping passing lanes; on offense he cut, ran the floor and got
+    // fouled; the jumper came later. Became an All-Star (2004) and led the league in blocks (2005).
+    // Tested over 300 games at about 28 minutes: 11.0 pts, 5.4 reb, 1.2 ast, 1.4 stl, 2.0 blk, 1.1 tov, .485 FG on
+    // 7.5 shots, .282 on 1.1 threes, .780 FT on 4.4, TS .585 (at his real 26 minutes, about 10.2 pts and 5.0 reb).
+    // 51 overall (his value was defense, which the box score undersells), 79 potential.
+    r: { hgt: 60, stre: 54, spd: 84, acc: 80, jmp: 88, endu: 86, ins: 36, dnk: 40, lay: 40, ft: 52, fg: 34, tp: 22, oiq: 34, diq: 86, blk: 97, stl: 48, drb: 22, pss: 34, reb: 36, box: 38 },
+    pot: 79, intg: { feel: 70, poise: 62 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 75, ambition: 55 },
+    // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots at the rim (cuts, transition, putbacks), 15% threes; .58 FTA per FGA.
+    ten: { usage: 50, ftr: 90, ra: 42, paint: 14, mid: 29, c3: 9, atb: 6, cns: 70, pullup: 20, step: 2, fade: 8 },
   } },
 ];
