@@ -1,10 +1,16 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DokH0snX.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CVPs5HJO.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-12
 
 ### Added
+- **Four more rookie cards: Toney Douglas (2009–10), Jan Veselý (2011–12), Bismack Biyombo (2011–12) and Bronny James (2024–25).** Each is tuned against his real rookie line at his real minutes:
+  - **Toney Douglas** (real: 8.6 pts, 2.0 ast, 1.9 reb, .458 FG, .389 on 3.1 threes in 19 min). Card: 8.5 pts, 1.8 ast, 2.1 reb, .431 FG, .376 on 3.6 threes. 55 overall, 58 potential.
+  - **Jan Veselý** (real: 4.7 pts, 4.4 reb, .537 FG, .532 FT in 19 min). Card: 4.2 pts, 4.7 reb, .564 FG, .502 FT. 44 overall, 52 potential.
+  - **Bismack Biyombo** (real: 5.2 pts, 5.8 reb, 1.8 blk, .464 FG, .483 FT in 23 min). Card: 4.9 pts, 6.0 reb, 1.6 blk, .501 FG, .505 FT. 45 overall, 60 potential.
+  - **Bronny James** (real: 2.3 pts, 0.8 ast, .313 FG, .281 on 1.2 threes in 7 min). Card: 2.2 pts, 0.8 ast, .329 FG, .282 on 1.5 threes. 43 overall, 52 potential.
+  - Low-usage big men (Veselý, Biyombo) commit a few fewer turnovers in the game than they did for real.
 - **Many more colleges, and players spread across them.** The college list grew from about 80 schools to about 240: the Ivy League, plus 151 mid-major and small-conference schools (Belmont, Murray State, Davidson, Saint Mary’s rivals, HBCUs like Howard and Jackson State, and many more). Prospects are spread like the NBA's: about 45% from the 28 big programs, a third from the other major schools, a fifth from mid-majors and small schools, 2% from the Ivy League. A new league's players now come from about 190 schools (it was 36), and no school has more than about 20 (it was over 40). Your current league's players keep their schools; new prospects use the wider spread.
 - **Jeremy Lin rookie card (2010–11), with his prime as his potential.** His rookie line (29 games off the Warriors' bench: 2.6 pts, 1.2 reb, 1.4 ast, 1.1 stl, .389 FG in 9.8 minutes) is matched by the card at the same minutes: 2.7 pts, 1.2 reb, 1.4 ast, 0.5 stl, .398 FG (his steals came in only 285 minutes). 49 overall. His potential, 56, is what the same player rates at his Linsanity peak (2011–12 Knicks: 14.6 pts, 6.2 ast, 3.6 turnovers, .446 FG in 27 minutes); built at that level he plays 15.3 pts, 6.4 ast, 2.9 turnovers, .457 FG. In Player cards for every league.
 - **Two new ready-made rookie cards: Yi Jianlian (2007–08) and Andrei Kirilenko (2001–02).** Both are tuned against every stat of their real rookie seasons and are in Player cards for every league.
