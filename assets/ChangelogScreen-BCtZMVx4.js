@@ -1,10 +1,14 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-lwElf9CP.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CF81jgju.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-12
 
 ### Added
+- **Two new ready-made rookie cards: Yi Jianlian (2007–08) and Andrei Kirilenko (2001–02).** Both are tuned against every stat of their real rookie seasons and are in Player cards for every league.
+  - **Yi Jianlian:** a 7-foot face-up shooter, light inside. Real: 8.6 pts, 5.2 reb, 0.8 ast, 0.5 stl, 0.8 blk, 1.4 turnovers, .421 FG, .286 from three (0.3 a game), .841 FT in 25 minutes. The card, at about 26 minutes over 300 games: 8.9 pts, 5.6 reb, 0.9 ast, 0.5 stl, 0.8 blk, 1.4 turnovers, .418 FG, .267 from three (0.3 a game), .840 FT. 44 overall, 62 potential.
+  - **Andrei Kirilenko:** long, springy and everywhere on defense. Real: 10.7 pts, 4.9 reb, 1.1 ast, 1.4 stl, 1.9 blk, 1.3 turnovers, .450 FG, .250 from three (1.2 a game), .768 FT on 4.5 attempts in 26 minutes. The card, at about 28 minutes over 300 games: 11.0 pts, 5.4 reb, 1.2 ast, 1.4 stl, 2.0 blk, 1.1 turnovers, .485 FG, .282 from three (1.1 a game), .780 FT on 4.4. 51 overall, 79 potential.
+  - Cards now carry family-name-first order, so Yi Jianlian shows his name the Chinese way (易建联).
 - **Very dark skin for faces.** A new look, Very dark skin, for skin as dark as it is across much of Africa. The Darker skin look is now a little lighter on average, matching most Black Americans, many of whom also have European ancestry. Pick it in Edit face (a new Look option; New face then rolls a new face with that skin), in God Mode's Edit player, or for your GM. New leagues give it to most Black players from African countries and many first-generation Africans abroad.
 - **"High school" as a college, for any country.** In God Mode's Edit player, the league picker for every country now has a High school option (and there's a High school button next to the dice), for players who went straight from high school to the pros. His profile then shows College: High school, and his bio and scouting report say he came out of high school.
 
