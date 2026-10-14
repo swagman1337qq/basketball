@@ -1,8 +1,9 @@
 // Tactics: every setting a coach can pick, what it does in the game engine (sim.ts applies the
 // effects each possession), how well it suits a roster ("fit") and what it needs to unlock.
 //
-// Only teams you manage run tactics; the rest of the league plays Balanced, which keeps league
-// stats on the 2026 baselines. Every option is a trade-off: it helps one thing and costs another,
+// Every team runs tactics. Each setting is either yours or the coaching staff's (coach.ts): the staff
+// builds an identity from the roster, a game plan for each opponent, and adjusts during the game (the
+// defense reads who is on the floor every trip). Every option is a trade-off: it helps one thing and costs another,
 // and shots a team forces beyond its natural mix go in a little less often, so an option pays
 // off only when it suits your players (or hurts the opponent's).
 //
@@ -23,10 +24,11 @@ export interface TacGroup { k: keyof Tactics; label: string; desc: string; opts:
 
 export const TACTIC_GROUPS: TacGroup[] = [
   { k: 'pace', label: 'Pace', desc: 'How fast you play. More possessions reward speed, stamina and the better team.', opts: [
-    { v: 'Slow', desc: 'Walk it up and use the shot clock: about 8% fewer possessions and closer games, an underdog’s friend.' },
-    { v: 'Balanced', desc: 'League-average tempo.' },
-    { v: 'Fast', desc: 'Push the ball after every miss: about 8% more possessions.' },
-    { v: 'Seven seconds or less', desc: 'Run on everything, makes included, and shoot early in the clock (Phoenix, 2004–08): about 14% more possessions, more layups and early threes, a few more turnovers.' },
+    { v: 'Very slow', desc: 'Walk it up and run the shot clock down every trip: about 12% fewer possessions and much closer games, an underdog’s best friend.' },
+    { v: 'Slow', desc: 'Set up the half-court offense and use the clock: about 6% fewer possessions.' },
+    { v: 'Average', desc: 'League-average tempo.' },
+    { v: 'Fast', desc: 'Push the ball after every miss: about 6% more possessions.' },
+    { v: 'Very fast', desc: 'Run on everything, makes included, and shoot early in the clock: about 12% more possessions, more layups and early threes, a few more turnovers.' },
   ] },
   { k: 'off', label: 'Offense', desc: 'Your half-court system: who shoots, from where, and how the ball moves.', opts: [
     { v: 'Balanced', desc: 'A bit of everything: players take the shots their skills suggest.' },
@@ -42,7 +44,8 @@ export const TACTIC_GROUPS: TacGroup[] = [
     { v: 'Moreyball', desc: 'Only layups and threes, no mid-range at all, with the star isolating (Houston 2018–20): about half your shots are threes. Great with shooters and a star; brutal without them.' },
   ] },
   { k: 'def', label: 'Defense', desc: 'How you guard: a man-to-man scheme against the pick and roll, a zone, or a junk defense.', opts: [
-    { v: 'Switch', label: 'Switch everything', desc: 'Every screen is switched, so nobody is left open: takes away threes, but slow bigs get attacked on switches and the rim is softer.', how: 'Man-to-man' },
+    { v: 'Man', label: 'Man-to-man', desc: 'Plain man-to-man: everyone guards his man and helps by the book, nothing given up on purpose and nothing taken away.', how: 'Man-to-man' },
+        { v: 'Switch', label: 'Switch everything', desc: 'Every screen is switched, so nobody is left open: takes away threes, but slow bigs get attacked on switches and the rim is softer.', how: 'Man-to-man' },
     { v: 'Drop', label: 'Drop coverage', desc: 'The big sags into the paint on the pick and roll: protects the rim, gives up pull-up mid-range jumpers and some threes. Best with a rim protector.', how: 'Man-to-man' },
     { v: 'Hedge', label: 'Hedge and recover', desc: 'The big jumps out at the ball handler, then races back: a few more turnovers, slightly more open threes. Needs mobile bigs.', how: 'Man-to-man' },
     { v: 'Blitz', desc: 'Trap the ball handler with two defenders off every screen: many more turnovers and their stars shoot less, but a 4-on-3 behind it leaks open threes.', how: 'Man-to-man' },
@@ -90,28 +93,16 @@ export const TACTIC_GROUPS: TacGroup[] = [
   ] },
 ];
 
-// One-click playbooks from famous teams (they set several options at once; tweak from there).
-export const PLAYBOOKS: { name: string; era: string; t: Tactics }[] = [
-  { name: 'Seven seconds or less', era: 'Phoenix, 2004–08', t: { pace: 'Seven seconds or less', off: 'Pick and roll', def: 'Switch', press: 'Off', reb: 'Get back', lineup: 'Small ball', focus: 'Offense first' } },
-  { name: 'Moreyball', era: 'Houston, 2018–20', t: { pace: 'Balanced', off: 'Moreyball', def: 'Switch', press: 'Off', reb: 'Get back', lineup: 'Small ball', focus: 'Balanced' } },
-  { name: 'Death lineup', era: 'Golden State, 2015–19', t: { pace: 'Fast', off: 'Motion', def: 'Switch', press: 'Off', reb: 'Balanced', lineup: 'Small ball', focus: 'Balanced' } },
-  { name: 'The beautiful game', era: 'San Antonio, 2013–14', t: { pace: 'Balanced', off: 'Motion', def: 'Ice', press: 'Off', reb: 'Get back', lineup: 'Standard', focus: 'Balanced' } },
-  { name: 'Triangle', era: 'Chicago, 1991–98', t: { pace: 'Balanced', off: 'Triangle', def: 'Aggressive', press: 'Off', reb: 'Balanced', lineup: 'Standard', focus: 'Balanced' } },
-  { name: 'Showtime', era: 'L.A., 1980s', t: { pace: 'Fast', off: 'Motion', def: 'Aggressive', press: 'Off', reb: 'Get back', lineup: 'Standard', focus: 'Offense first' } },
-  { name: 'Grit and grind', era: 'Memphis, 2011–17', t: { pace: 'Slow', off: 'Post-up', def: 'Pack line', press: 'Off', reb: 'Crash the glass', lineup: 'Twin towers', focus: 'Defense first' } },
-  { name: 'Bad Boys', era: 'Detroit, 1988–90', t: { pace: 'Slow', off: 'Post-up', def: 'Aggressive', press: 'Off', reb: 'Crash the glass', lineup: 'Standard', focus: 'Defense first' } },
-  { name: 'Princeton', era: 'Princeton; Sacramento, 2000s', t: { pace: 'Slow', off: 'Princeton', def: 'Pack line', press: 'Off', reb: 'Get back', lineup: 'Standard', focus: 'Balanced' } },
-  { name: 'Zone and bombs', era: 'Syracuse; Miami, 2020', t: { pace: 'Balanced', off: 'Pace and space', def: '2-3 zone', press: 'Off', reb: 'Get back', lineup: 'Standard', focus: 'Balanced' } },
-  { name: 'Grinnell system', era: 'Grinnell College (a college style: brutal in the NBA)', t: { pace: 'Seven seconds or less', off: 'Pace and space', def: 'Aggressive', press: '1-2-1-1 press', reb: 'Crash the glass', lineup: 'Small ball', focus: 'Offense first' } },
-];
-
-export const TAC_DEFAULT: Required<Tactics> = { pace: 'Balanced', off: 'Balanced', def: 'Switch', press: 'Off', reb: 'Balanced', lineup: 'Standard', focus: 'Balanced', foul: 'Normal', clutch: 'Motion' };
+export const TAC_DEFAULT: Required<Tactics> = { pace: 'Average', off: 'Balanced', def: 'Man', press: 'Off', reb: 'Balanced', lineup: 'Standard', focus: 'Balanced', foul: 'Normal', clutch: 'Motion' };
 export const optOf = (k: keyof Tactics, v?: string) => TACTIC_GROUPS.find(g => g.k === k)?.opts.find(x => x.v === v);
 export const optLabel = (k: keyof Tactics, v?: string) => { const o = optOf(k, v); return o ? o.label || o.v : v || ''; };
 
-// Older saves used Inside / Perimeter; they're Post-up and Five-out now.
+// Older saves used Inside / Perimeter (now Post-up and Five-out) and Balanced / Seven seconds or less pace
+// (now Average / Very fast).
 export function migrateTactics(t: any) {
   if (!t || typeof t !== 'object') return t;
+  if (t.pace === 'Balanced') t.pace = 'Average';
+  if (t.pace === 'Seven seconds or less') t.pace = 'Very fast';
   if (t.off === 'Inside') t.off = 'Post-up';
   if (t.off === 'Perimeter') t.off = 'Pace and space';
   return t;
@@ -133,7 +124,7 @@ export function tacticUnlocks(n: (role: string) => number) {
     '1-2-1-1 press': [poa >= 2, '2+ point-of-attack defenders'],
     'Full-court man': [poa >= 2, '2+ point-of-attack defenders'],
     Fast: [n('Slasher') + cr >= 2, '2+ slashers or creators'],
-    'Seven seconds or less': [n('Slasher') + cr >= 2 && sh >= 2, '2+ slashers or creators and 2+ shooters'],
+    'Very fast': [n('Slasher') + cr >= 2 && sh >= 2, '2+ slashers or creators and 2+ shooters'],
     Drop: [n('Rim protector') >= 1, 'a rim protector'],
     'Twin towers': [n('Rim protector') + n('Rebounder') >= 2, '2+ rim protectors or rebounders'],
   } as Record<string, [boolean, string]>;
@@ -159,14 +150,15 @@ export function tacticEffects(tO: Tactics, tD: Tactics, onO: any[], onD: any[], 
   const roller = (bigsO.length ? bigsO : onO.filter(p => p !== handler)).reduce((a, p) => ((p.r.dnk + (p.r.lay ?? p.r.dnk)) > (a.r.dnk + (a.r.lay ?? a.r.dnk)) ? p : a));
 
   // Pace (the offense's clock).
-  if (tO.pace === 'Slow') fx.dt *= 1.08;
-  if (tO.pace === 'Fast') fx.dt *= 0.92;
-  if (tO.pace === 'Seven seconds or less') { fx.dt *= 0.87; mul(fx.prof, { rim: 1.06, atb: 1.06, mid: 0.9 }); fx.tov += 0.004; }
+  if (tO.pace === 'Very slow') fx.dt *= 1.13;
+  if (tO.pace === 'Slow') fx.dt *= 1.06;
+  if (tO.pace === 'Fast') fx.dt *= 0.94;
+  if (tO.pace === 'Very fast') { fx.dt *= 0.88; mul(fx.prof, { rim: 1.06, atb: 1.06, mid: 0.9 }); fx.tov += 0.004; }
 
   // Offensive system.
   switch (tO.off) {
     case 'Motion': fx.ast *= 1.1; fx.useExp = 0.75; fx.tov += -0.003 - 0.0006 * (pss - 55); add(fx.pct, { rim: 1, mid: 1, c3: 1, atb: 1 }, -0.001 + 0.0004 * (oiq - 55)); fx.dt *= 1.03; break;
-    case 'Pick and roll': mul(fx.prof, { rim: 1.12, mid: 1.1, c3: 0.9 }); um(handler, 1.2); um(roller, 1.15);
+    case 'Pick and roll': mul(fx.prof, { rim: 1.12, mid: 1.05, atb: 1.03 }); // the roll man at the rim, pull-ups and kick-outs above the break um(handler, 1.2); um(roller, 1.15);
       add(fx.pct, { rim: 0.004 + 0.0004 * (handler.r.pss - 60) + 0.0004 * (roller.r.dnk - 60), mid: 0.0003 * (handler.r.fg - 60) }); break;
     case 'Isolation': um(star, 1.7); fx.ast *= 0.8; fx.tov -= 0.005; mul(fx.prof, { mid: 1.2, c3: 0.85 }); pm(star, 0.0005 * (star.ovr - 70)); fx.dt *= 1.06; break;
     case 'Post-up': mul(fx.prof, { rim: 1.2, mid: 1.15, atb: 0.8, c3: 0.85 }); bigsO.forEach(p => um(p, 1.35)); fx.trip *= 1.15; fx.ast *= 0.92; fx.dt *= 1.06;
@@ -187,7 +179,7 @@ export function tacticEffects(tO: Tactics, tD: Tactics, onO: any[], onD: any[], 
   // built on spreading the floor (a Moreyball team without shooters gets nothing at the rim).
   const tpO = avgOf(onO, p => p.r.tp), cramp = Math.max(0, 52 - tpO) / 10;
   if (cramp > 0 && ['Pace and space', 'Moreyball', 'Dribble drive', 'Pick and roll', 'Motion'].includes(tO.off || '')) add(fx.pct, { rim: -0.014 * cramp, c3: -0.006 * cramp, atb: -0.006 * cramp, mid: -0.004 * cramp }, tO.off === 'Pick and roll' || tO.off === 'Motion' ? 0.5 : tO.off === 'Moreyball' ? 1.5 : 1);
-  if (tO.pace === 'Seven seconds or less' && cramp > 0) add(fx.pct, { rim: -0.006 * cramp, atb: -0.004 * cramp });
+  if (tO.pace === 'Very fast' && cramp > 0) add(fx.pct, { rim: -0.006 * cramp, atb: -0.004 * cramp });
   // Lineups: small ball gives up the glass and the rim; twin towers crowd the paint and close out slowly.
   if (tO.lineup === 'Small ball') fx.orb -= 0.02;
   if (tD.lineup === 'Small ball') { fx.orb += 0.03; add(fx.pct, { rim: 0.015 }); }
@@ -216,7 +208,7 @@ export function tacticEffects(tO: Tactics, tD: Tactics, onO: any[], onD: any[], 
     case 'Triangle-and-two': byUse.slice(0, 2).forEach(p => { um(p, 0.7); pm(p, -0.022); }); byUse.slice(2).forEach(p => pm(p, 0.014)); zoneOrb(0.015); break;
   }
   // Better defenders run any scheme a little better.
-  if (tD.def && tD.def !== 'Switch') add(fx.pct, { rim: 1, mid: 1, c3: 1, atb: 1 }, -0.0002 * (diqD - 55));
+  if (tD.def && tD.def !== 'Switch' && tD.def !== 'Man') add(fx.pct, { rim: 1, mid: 1, c3: 1, atb: 1 }, -0.0002 * (diqD - 55));
 
   // Press (the defense's), scaled by how quick the pressing team is.
   const qk = (avgOf(onD, p => (p.r.spd + (p.r.acc ?? p.r.spd)) / 2) - 55) / 10;
@@ -256,7 +248,7 @@ export function tacticFitParts(top: any[], t: Tactics): Record<string, number> {
   const ape = top.reduce((a, p) => a + (p.r.ape ?? 4), 0) / top.length;
   const c = (x: number) => Math.max(-1.5, Math.min(1.5, x));
   const out: Record<string, number> = {};
-  out.pace = c(({ Fast: (spd - 55) / 10 * .4, 'Seven seconds or less': (spd - 57) / 10 * .5 + (tp - 57) / 10 * .3, Slow: (55 - spd) / 10 * .3 } as any)[t.pace || ''] ?? 0);
+  out.pace = c(({ Fast: (spd - 55) / 10 * .4, 'Very fast': (spd - 57) / 10 * .5 + (tp - 57) / 10 * .3, Slow: (55 - spd) / 10 * .3, 'Very slow': (53 - spd) / 10 * .4 } as any)[t.pace || ''] ?? 0);
   out.off = c(({
     Motion: (pss - 55) / 10 * .5 + (oiq - 55) / 10 * .3 - (star.ovr - 72) / 10 * .2,
     'Pick and roll': ((star.r.drb + star.r.pss) / 2 - 60) / 10 * .4 + (avIn(bigs, 'dnk') - 58) / 10 * .3,
@@ -309,7 +301,7 @@ export function bestTacticsFor(top: any[], cur: Tactics) {
 // uses (a Moreyball team gets up thousands of threes). Extra growth share per rating, on top of
 // the training focus; only when a player is improving, and less for players who barely play.
 const REPS: Record<string, Record<string, number>> = {
-  'Seven seconds or less': { endu: .3, spd: .15, tp: .1 }, Fast: { endu: .2, spd: .1 }, Slow: { oiq: .1 },
+  'Very fast': { endu: .3, spd: .15, tp: .1 }, Fast: { endu: .2, spd: .1 }, Slow: { oiq: .1 }, 'Very slow': { oiq: .15 },
   Motion: { pss: .25, oiq: .25 }, 'Pick and roll': { drb: .2, pss: .2, dnk: .15 }, Isolation: { drb: .3, fg: .2 }, 'Post-up': { ins: .35, stre: .15 },
   Triangle: { oiq: .25, fg: .25, pss: .15 }, Princeton: { oiq: .3, pss: .25, lay: .1 }, Flex: { ins: .15, fg: .15, oiq: .1 }, 'Dribble drive': { acc: .2, lay: .25, drb: .15 },
   'Pace and space': { tp: .35 }, Moreyball: { tp: .35, lay: .2, dnk: .1 },

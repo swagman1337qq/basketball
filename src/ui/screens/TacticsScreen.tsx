@@ -8,14 +8,14 @@ import { Kicker, muted, NumInput, ruleH4 } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
 import { badgesOf } from '../../engine/ratings';
-import { bestTacticsFor, optLabel, PLAYBOOKS, repAffinity, TAC_DEFAULT, TACTIC_GROUPS, tacticFitParts, tacticReps, type Tactics } from '../../engine/tactics';
+import { repAffinity, TAC_DEFAULT, TACTIC_GROUPS, tacticFitParts, tacticReps, type Tactics } from '../../engine/tactics';
 
 const PRESETS: Record<string, any> = {
   None: null,
   'Milk the clock': { pace: 'Slow', off: 'Post-up', reb: 'Get back' },
   'Protect the paint': { pace: 'Slow', def: 'Drop' },
   'Press and push': { pace: 'Fast', def: 'Aggressive', press: 'Full-court man' },
-  'Bombs away': { pace: 'Seven seconds or less', off: 'Moreyball' },
+  'Bombs away': { pace: 'Very fast', off: 'Moreyball' },
   'Feed the star': { clutch: 'Isolate the star', off: 'Isolation' },
   'Zone change-up': { def: '2-3 zone' },
   'Hack-a-Shaq': { foul: 'Hack-a-Shaq' },
@@ -32,34 +32,47 @@ export function TacticsScreen({ vm }: { vm: VM }) {
   const move = (from: number, to: number) => { if (from === to) return; gm.setState(st => { const r = st.rosters[st.me].slice(), i = r.indexOf(from), j = r.indexOf(to); r.splice(i, 1); r.splice(j, 0, from); return { rosters: { ...st.rosters, [st.me]: r } }; }); };
   const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = id => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
   const total = ids.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0);
-  const fit = gm.tacFit(ids, tac), top8 = ids.slice(0, 8).map(id => P[id]).filter(Boolean), parts = tacticFitParts(top8, tac);
+  // Who controls each setting: the coaching staff (coach.ts), you, or a mix (each setting ticked "Let AI control").
+  const mode: 'ai' | 'manual' | 'mix' = s.tacMode || 'ai', tacAI = s.tacAI || {};
+  const isAI = (k: string) => mode === 'ai' || (mode === 'mix' && tacAI[k] !== false);
+  const staff: any = gm.coachTactics(s, s.me);
+  const eff: any = Object.fromEntries(TACTIC_GROUPS.map(g => [g.k, isAI(g.k) ? staff[g.k] : (tac as any)?.[g.k] ?? (TAC_DEFAULT as any)[g.k]]));
+  const top8 = ids.slice(0, 8).map(id => P[id]).filter(Boolean), parts = tacticFitParts(top8, eff), fit = gm.tacFit(ids, eff);
   const setTac = (t: Tactics) => gm.setState({ tactics: { ...t } });
-  const sameAs = (t: Tactics) => Object.entries(t).every(([k, v]) => (tac as any)[k] === v);
+  // Taking a setting over starts from the staff's call, so nothing jumps.
+  const setMode = (m: 'ai' | 'manual' | 'mix') => gm.setState(st => ({ tacMode: m, tactics: { ...(st.tactics || {}), ...Object.fromEntries(TACTIC_GROUPS.filter(g => isAI(g.k)).map(g => [g.k, staff[g.k]])) } }));
+  const toggleAI = (k: string) => gm.setState(st => { const on = (st.tacAI || {})[k] !== false; return { tacAI: { ...(st.tacAI || {}), [k]: !on }, ...(on ? { tactics: { ...(st.tactics || {}), [k]: staff[k] } } : {}) }; });
   const setSitu = (k: 'lead' | 'trail', name: string) => gm.setState(st => ({ situ: { ...(st.situ || {}), [k]: PRESETS[name] } }));
   const focus = (s.train || {})[trainee?.id] || 'Balanced';
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.05fr)', gap: '36px', alignItems: 'start' }}>
         <section>
-          <h4 style={ruleH4}>Playbooks</h4>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>One click sets a famous team's style; change anything after. Or let your staff pick what suits your roster.</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-            <button className="btn btn-primary" style={{ fontSize: '12px' }} onClick={() => setTac(bestTacticsFor(top8, tac))} title="The staff picks the option in each setting that best fits your top eight players">Let the staff choose</button>
-            {PLAYBOOKS.map(b => <button key={b.name} className="btn btn-secondary" style={{ fontSize: '12px', boxShadow: sameAs(b.t) ? 'inset 0 0 0 1px var(--color-accent)' : undefined }} onClick={() => setTac({ ...tac, ...b.t })} title={b.era + ': ' + Object.values(b.t).join(' · ')}>{b.name} <span style={{ ...muted, fontSize: '11px' }}>{b.era}</span></button>)}
+          <h4 style={ruleH4}>Who runs your tactics</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 6 }}>
+            {([['ai', 'Let the AI control', 'Your coaching staff runs every setting: an identity built from your roster that updates as it changes, a game plan for each opponent, and adjustments during games (the defense reads who is on the floor every trip).'],
+               ['manual', 'I control everything', 'Every setting is yours and stays as you set it all game (your situational presets still take over late).'],
+               ['mix', 'Pick and choose', 'Tick "Let AI control" on the settings the staff should run; untick the ones you want to set yourself.']] as const).map(([m, label, desc]) => (
+              <label key={m} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: 'pointer', padding: '6px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid ' + (mode === m ? 'var(--color-accent)' : 'var(--color-divider)') }}>
+                <input type="radio" name="tacMode" checked={mode === m} onChange={() => setMode(m)} style={{ marginTop: 3 }} />
+                <span><b>{label}</b><span style={{ ...muted, fontSize: '12px', display: 'block' }}>{desc}</span></span>
+              </label>))}
           </div>
 
           <h4 style={{ ...ruleH4, marginTop: '18px' }}>Tactical identity</h4>
-          {TACTIC_GROUPS.map(gr => { const cur = (tac as any)[gr.k] ?? (TAC_DEFAULT as any)[gr.k], o = gr.opts.find(x => x.v === cur) || gr.opts[0], f = parts[gr.k], u = unl[cur], hows = [...new Set(gr.opts.map(x => x.how).filter(Boolean))] as string[];
+          {TACTIC_GROUPS.map(gr => { const ai = isAI(gr.k), cur = eff[gr.k], o = gr.opts.find(x => x.v === cur) || gr.opts[0], f = parts[gr.k], u = unl[cur], hows = [...new Set(gr.opts.map(x => x.how).filter(Boolean))] as string[];
             const reps = Object.entries(tacticReps({ [gr.k]: cur } as Tactics)).sort((a, b) => b[1] - a[1]);
             return (
             <div key={gr.k} style={{ padding: '10px 0', borderBottom: '1px solid var(--color-divider)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <span style={{ width: '120px', fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600 }} title={gr.desc}>{gr.label}</span>
-                <select className="input" value={cur} onChange={e => setTac({ ...tac, [gr.k]: e.target.value })} style={{ flex: 1, minWidth: 180, maxWidth: 280 }}>
+                <select className="input" value={cur} disabled={ai} onChange={e => setTac({ ...tac, [gr.k]: e.target.value })} style={{ flex: 1, minWidth: 180, maxWidth: 280, opacity: ai ? 0.75 : 1 }} title={ai ? 'Your staff\u2019s call for now: it changes with each opponent and during games' : undefined}>
                   {hows.length ? hows.map(h => <optgroup key={h} label={h}>{gr.opts.filter(x => x.how === h).map(x => <option key={x.v} value={x.v}>{x.label || x.v}</option>)}</optgroup>) : gr.opts.map(x => <option key={x.v} value={x.v}>{x.label || x.v}</option>)}
                 </select>
                 {f != null && Math.abs(f) >= 0.05 && <span style={{ fontSize: '12px', fontWeight: 600, color: f >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }} title="How well this suits your top eight players">{f >= 0 ? 'Suits your roster' : 'Poor fit'} ({(f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1)})</span>}
               </div>
+              {mode === 'mix' && <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '12px', marginTop: 5, cursor: 'pointer' }}><input type="checkbox" checked={ai} onChange={() => toggleAI(gr.k)} /> Let AI control</label>}
+              {ai && <div style={{ fontSize: '11.5px', color: 'var(--color-accent-700)', marginTop: 4 }}>Your staff runs this: {o.label || o.v} is its everyday choice for this roster{gr.k === 'def' ? ', but it changes trip by trip with who is on the floor and with tonight\u2019s game plan' : gr.k === 'pace' || gr.k === 'press' || gr.k === 'reb' || gr.k === 'foul' ? ', and the score late in games changes it' : gr.k === 'lineup' ? ', adjusted to each opponent' : ''}.</div>}
               <div style={{ fontSize: '12.5px', marginTop: '5px' }}>{o.desc}</div>
               {u && <div style={{ fontSize: '11.5px', marginTop: '3px', color: u[0] && !(f != null && f < -0.05) ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{u[0] ? (f != null && f < -0.05 ? 'You have ' + u[1] + ', but the rest of your top eight doesn\u2019t suit it.' : 'You have what it needs: ' + u[1] + '.') : 'Works best with ' + u[1] + ', which you don\u2019t have: expect it to cost you games.'}</div>}
               {reps.length > 0 && <div style={{ fontSize: '11.5px', ...muted, marginTop: '3px' }}>Practice reps: {reps.map(([k, v]) => { const who = top8.filter(p => repAffinity(p, k) >= 0.6).length; return LB[k] + ' +' + Math.round(v * 100) + '%' + (who < 3 ? ' (few players have the feel for it)' : ''); }).join(' · ')}</div>}
@@ -82,12 +95,11 @@ export function TacticsScreen({ vm }: { vm: VM }) {
                 ); })}
               </div>
             ))}
-            <div style={{ fontWeight: 700, fontSize: '14px', borderBottom: '1px solid var(--color-divider)', paddingBottom: 2 }}>Playbooks</div>
-            {PLAYBOOKS.map(b => <div key={b.name} style={{ padding: '4px 0 4px 10px', fontSize: '12.5px' }}><b>{b.name}</b> <span style={{ ...muted }}>({b.era})</span>: {Object.entries(b.t).map(([k, v]) => optLabel(k as keyof Tactics, v as string)).join(' · ')}</div>)}
           </details>
 
+          {mode !== 'ai' && <>
           <h4 style={{ ...ruleH4, marginTop: '24px' }}>Situational presets</h4>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>Take over automatically in the last 5 minutes of the 4th quarter and overtime.</p>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>Take over automatically in the last 5 minutes of the 4th quarter and overtime, for the settings you control (the staff handles late-game situations for its own).</p>
           {([['lead', 'Leading by 6+'], ['trail', 'Trailing by 6+']] as const).map(([k, label]) => (
             <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0', borderBottom: '1px solid var(--color-divider)' }}>
               <span style={{ width: '120px' }}>{label}</span>
@@ -98,6 +110,7 @@ export function TacticsScreen({ vm }: { vm: VM }) {
               <span style={{ fontSize: '11.5px', ...muted, width: '150px' }}>{s.situ?.[k] ? Object.values(s.situ[k]).join(' · ') : 'Your normal tactics'}</span>
             </div>
           ))}
+          </>}
 
           <h4 style={{ ...ruleH4, marginTop: '24px' }}>Training focus preview</h4>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>

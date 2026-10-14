@@ -8,6 +8,16 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Roster filters.** Filter your roster (or any team's) by position (guards, wings, bigs, or one position), minimum overall and minimum potential, with a count of how many players match and a Clear button.
 - **Expiring contracts in emerald green.** A contract that ends after the season you're playing shows its final year in an emerald-green tag (#115d55) on the Roster, the team pop-up and the Contracts page.
 
+### Changed
+- **Tactics now change during games and from opponent to opponent, for every team.** Each team has a coaching staff that runs its tactics in three layers:
+  - **An identity from the roster**, which updates as the roster changes: shooters spread the floor, a quick young team runs, a big front line owns the glass.
+  - **A game plan for each opponent:** the underdog slows the game down and the favorite pushes it; a team that can't shoot gets dared to shoot and one that can gets switched on; a lone star sees a box-and-one or a wall; a slow front line gets beaten with small ball.
+  - **Reads during the game:** the defense changes trip by trip with who is on the floor (a zone against a lineup with no shooters, the box-and-one only while the star plays). Every six minutes the staff checks the box score (a team hot from three gets run off the line, one living at the rim meets a drop big). Late in games the score decides the pace, the press and the glass.
+  - A better-paid coaching staff makes more of these reads. Your games' box scores now list what each staff did.
+- **You choose who runs your tactics**, at the top of Tactics: **Let the AI control** (the default; your staff runs everything), **I control everything**, or **Pick and choose**, where each setting has a "Let AI control" tick (all ticked to start; untick the ones you want to set yourself). Your league starts on Let the AI control: switch to I control everything to keep your old settings.
+- **Pace has five plain steps:** Very slow, Slow, Average, Fast, Very fast (Seven seconds or less is now Very fast).
+- **The famous-team playbooks are gone.** There's a plain Man-to-man defense now, the default when nothing special is called for.
+
 ### Fixed
 - **Twin towers and Small ball no longer run one big into the ground.** When the lineup style needed another big, it always sent in the one with the highest minutes target, however long he had already played, so a starting big set to 20 minutes played 44–46 a night while two healthy bigs sat. The style now brings in whoever is most due for minutes, and a player whose minutes you set by hand only gets extra once the others have had theirs. On the save that showed it: the starting FC now plays 21 minutes (set to 20) and the three other bigs 24–27 each, instead of 46, 45, 5 and 2.
 - **A player's potential no longer changes when you open him.** In God Mode the player page shows his true potential, but the Roster and Contracts tables showed the league's estimate, so the number seemed to change when you clicked him (Ethan Jackson: 71 on the roster, 82 on his page). Every table now shows the same potential as his page: the true one in God Mode, your staff's read of your players, your scouts' read of everyone else.

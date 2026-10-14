@@ -124,6 +124,11 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           </table>)}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}><Seg<'trad' | 'adv' | 'both'> value={mode} options={[['trad', 'Traditional'], ['adv', 'Advanced'], ['both', 'Both']]} onChange={setMode} />{mode !== 'trad' && <span style={{ ...muted, fontSize: '11.5px' }}>Advanced stats from this game alone (Basketball-Reference formulas). GmSc = Hollinger’s Game Score.</span>}</div>
         {sides.map(team)}
+        {bx.coach && (bx.coach.home.length + bx.coach.away.length > 0) && (
+          <div style={{ fontSize: '12.5px' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Coaching</div>
+            {(['away', 'home'] as const).map(k => bx.coach[k].length > 0 && <div key={k} style={{ marginBottom: 4 }}><b>{T[bx[k].tid].abbr}</b> <span style={muted}>staff:</span> {bx.coach[k].join(' · ')}</div>)}
+          </div>)}
       </div>
     </div>
   );

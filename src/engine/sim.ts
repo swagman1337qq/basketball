@@ -8,6 +8,7 @@
 // God Mode can edit them.
 
 import { tacticEffects, type TacFx, type Tactics } from './tactics';
+import { gamePlan, liveTactics, type CoachPlan, type LiveMemory, type TacKey } from './coach';
 export type { Tactics } from './tactics';
 
 export type Side = 'home' | 'away';
@@ -265,7 +266,9 @@ export interface SimTeam {
   tactics?: Tactics | null; situ?: { lead?: Tactics | null; trail?: Tactics | null } | null;
   ff?: FourFactors; // season Four Factors (regressed early on) for the clutch tiebreaker
   chem?: number; // locker room 0–100: a good room shoots a little better, a toxic one worse
-  tempo?: number; // an AI team's pace, as a multiplier on its trips' length (about 0.96–1.04; tactics.ts sets yours)
+  tempo?: number; // an extra pace multiplier on its trips' length (unused now that every team's staff sets the pace)
+  aiKeys?: TacKey[]; // the settings its coaching staff runs (coach.ts); the rest come from `tactics` as set
+  coach?: number; // the staff's quality, 0.35–0.95 (coach.ts coachQuality): how often it makes its reads
 }
 export interface SimOpts { pbp?: boolean; norms?: Norms }
 
@@ -278,7 +281,7 @@ export interface BoxLine {
 }
 export interface SideState { pts: number; qs: number[]; box: Record<number, BoxLine>; tiers: Record<string, [number, number]>; poss: number; fouls: number }
 export interface SideResult { tid: number; pts: number; qs: number[]; box: Record<number, BoxLine>; poss: number }
-export interface GameResult { home: SideResult; away: SideResult; ot: number }
+export interface GameResult { home: SideResult; away: SideResult; ot: number; coach?: { home: string[]; away: string[] } } // coach: the staffs' game plans and adjustments
 export interface PbpEvent { side: Side; time: string; text: string; sub: string; score: string; ids?: number[] }
 
 export const TIER_KEY: Record<Zone, ['rm' | 'mm' | 'cm' | 'bm', 'ra' | 'ma' | 'ca' | 'ba']> = { rim: ['rm', 'ra'], mid: ['mm', 'ma'], c3: ['cm', 'ca'], atb: ['bm', 'ba'] };
@@ -328,6 +331,8 @@ export class GameSim {
     const side = (t: SimTeam): SideState => ({ pts: 0, qs: [0, 0, 0, 0], box: Object.fromEntries(t.players.map(p => [p.id, blankLine()])), tiers: {}, poss: 0, fouls: 0 });
     this.home = side(home);
     this.away = side(away);
+    // Each coaching staff's plan for tonight's opponent (coach.ts).
+    (['home', 'away'] as Side[]).forEach(k => { const T = this.teams[k]; if (T.aiKeys?.length) this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65); });
     (['home', 'away'] as Side[]).forEach(k => {
       this.teams[k].players.forEach(p => {
         const use = usageRaw(p), rel = use / this.norms.usage;
@@ -384,10 +389,12 @@ export class GameSim {
   private shape(k: Side, on: SimPlayer[], ps: SimPlayer[], need?: (p: SimPlayer) => number) {
     // A player whose minutes you set by hand and who has had them goes to the back of the queue: the
     // extra minutes a lineup style needs go to the players on automatic minutes first.
-    const owed = (p: SimPlayer) => (need ? need(p) - (p.manual && need(p) < 0 ? 1e5 : 0) : p.target);
-    const due = (a: SimPlayer, b: SimPlayer) => owed(b) - owed(a); // most due first
     const lu = this.teams[k].tactics ? this.tac(k).lineup : null;
     if (lu !== 'Small ball' && lu !== 'Twin towers') return on;
+    const nb0 = on.filter(p => p.grp === 'B').length;
+    if ((lu === 'Small ball' && nb0 <= 1) || (lu === 'Twin towers' && nb0 >= 2)) return on; // already the right shape
+    const ow = new Map<SimPlayer, number>(ps.map(p => { const d = need ? need(p) : 0; return [p, need ? d - (p.manual && d < 0 ? 1e5 : 0) : p.target]; }));
+    const due = (a: SimPlayer, b: SimPlayer) => ow.get(b)! - ow.get(a)!; // most due first
     const big = (p: SimPlayer) => p.grp === 'B';
     for (let guard = 0; guard < 3; guard++) {
       const nb = on.filter(big).length, bench = ps.filter(p => !on.includes(p));
@@ -402,16 +409,32 @@ export class GameSim {
     return on;
   }
 
-  // Tactics in force for a side right now (situational presets take over late in games).
+  plan: Partial<Record<Side, CoachPlan>> = {};
+  mem: Record<Side, LiveMemory> = { home: { cp: -1, def: null }, away: { cp: -1, def: null } };
+  // Tactics in force for a side right now: the settings you set (and your situational presets, late in
+  // games), and for the rest the coaching staff's call for this trip (coach.ts liveTactics).
   tac(k: Side): Tactics {
-    const T = this.teams[k], base = T.tactics || {};
+    const T = this.teams[k], lead = this[k].pts - this[other(k)].pts;
+    let t: Tactics = T.tactics || {};
     if (T.situ && this.q >= 4 && this.t < 300) {
-      const lead = this[k].pts - this[other(k)].pts;
-      if (lead >= 6 && T.situ.lead) return { ...base, ...T.situ.lead };
-      if (lead <= -6 && T.situ.trail) return { ...base, ...T.situ.trail };
+      if (lead >= 6 && T.situ.lead) t = { ...t, ...T.situ.lead };
+      if (lead <= -6 && T.situ.trail) t = { ...t, ...T.situ.trail };
     }
-    return base;
+    const plan = this.plan[k];
+    if (!plan || !T.aiKeys?.length) return t;
+    const key = (this.home.poss + this.away.poss) * 16 + this.q, c = this.tacCache[k]; // one call per side per trip
+    if (c && c.key === key) return c.t;
+    const O = this[other(k)], ob = () => { const b = { tpm: 0, tpa: 0, rm: 0, ra: 0 }; for (const id in O.box) { const l = O.box[id]; b.tpm += l.tpm; b.tpa += l.tpa; b.rm += l.rm; b.ra += l.ra; } return b; };
+    const m = this.mem[k], before = m.note;
+    const live: any = liveTactics(plan, { q: this.q, t: this.t, lead, oppOn: this.on[other(k)] || [], oppBox: ob, ftPct: p => this.ftPct(p) }, m, T.coach ?? 0.65);
+    if (m.note && m.note !== before) this.notes[k].push(m.note + ' (' + (this.q <= 4 ? 'Q' + this.q : 'OT') + ')');
+    const out: any = { ...t };
+    for (const ak of T.aiKeys) out[ak] = live[ak];
+    this.tacCache[k] = { key, t: out };
+    return out;
   }
+  private tacCache: Partial<Record<Side, { key: number; t: Tactics }>> = {};
+  notes: Record<Side, string[]> = { home: [], away: [] };
 
   step() {
     if (this.done) return;
@@ -611,8 +634,14 @@ export class GameSim {
     const m: Partial<Record<Zone, number>> = { ...(fx ? fx.prof : {}) };
     if (fb) m.rim = (m.rim || 1) * 2.2; // a run-out ends at the rim
     if (p.protect) Object.assign(m, { c3: (m.c3 || 1) * 0.5, atb: (m.atb || 1) * 0.5 });
-    return Object.keys(m).length ? shotProfile(p, this.norms, m) : this.cache.get(p)!.prof;
+    if (!Object.keys(m).length) return this.cache.get(p)!.prof;
+    // The same system tilts the same player the same way all night: cache each tilt (a big share of a game's time otherwise).
+    const key = (m.rim ?? 1) + ',' + (m.mid ?? 1) + ',' + (m.c3 ?? 1) + ',' + (m.atb ?? 1);
+    let pc = this.profCache.get(p); if (!pc) this.profCache.set(p, (pc = new Map()));
+    let pr = pc.get(key); if (!pr) pc.set(key, (pr = shotProfile(p, this.norms, m)));
+    return pr;
   }
+  private profCache = new Map<SimPlayer, Map<string, Record<Zone, number>>>();
   // A perfect 99 is a different animal: 98% every season, José Calderón's record year (98.1% in
   // 2008–09) as his normal. Everyone else follows the curve (a 98 is about 92%).
   private ftPct(p: SimPlayer) { return p.r.ft >= FT_PERFECT ? 0.98 : BASE.ft + CAL.ft + curve('ft', p.r.ft) + this.norms.ftOffset; }
@@ -655,6 +684,7 @@ export class GameSim {
 
   result(): GameResult {
     const pack = (k: Side): SideResult => ({ tid: this.teams[k].tid, pts: this[k].pts, qs: this[k].qs.slice(), box: this[k].box, poss: this[k].poss });
-    return { home: pack('home'), away: pack('away'), ot: Math.max(0, this.q - 4) };
+    const cn = (k: Side) => [...(this.plan[k]?.notes || []), ...this.notes[k]];
+    return { home: pack('home'), away: pack('away'), ot: Math.max(0, this.q - 4), ...(this.plan.home || this.plan.away ? { coach: { home: cn('home'), away: cn('away') } } : {}) };
   }
 }

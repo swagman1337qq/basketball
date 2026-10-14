@@ -11,6 +11,7 @@ import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
+import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
@@ -691,7 +692,7 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto', 'lineups'];
+  static CLUB_KEYS = ['tactics', 'tacMode', 'tacAI', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto', 'lineups'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return s.spectator ? null : tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; } // Spectator Mode: no club is yours
   defaultClub(i = 0) {
@@ -765,7 +766,8 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.rotationFor(s, tid);
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
-      tactics: club ? club.tactics : null, situ: club ? club.situ || null : null, tempo: club ? undefined : this.tempoOf(s, tid),
+      // Tactics: yours where you set them, the coaching staff's everywhere else (coach.ts); AI teams' staffs run all of it.
+      tactics: club ? club.tactics : {}, situ: club ? club.situ || null : null, aiKeys: this.aiTacKeys(club), coach: coachQuality(teamBudget(this, s, tid).Coaching),
       players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
   }
 
@@ -785,6 +787,17 @@ export class Game {
   // An AI team's pace (a multiplier on the length of its trips): its coach's taste, new each season, plus
   // its roster: quick, young teams run, veteran teams grind. About 95 to 104 possessions a game, as in the
   // NBA (2025-26: Boston 94.8, Miami 103.4). Teams you run set theirs in Tactics.
+  // The settings a team's coaching staff controls: all of them for an AI team, or for yours if you let the AI
+  // control your tactics (the default); none if you control everything; the ticked ones if you pick and choose.
+  aiTacKeys(club: any): TacKey[] {
+    if (!club) return TAC_KEYS.slice();
+    const mode = club.tacMode || 'ai';
+    return mode === 'manual' ? [] : mode === 'mix' ? TAC_KEYS.filter(k => club.tacAI?.[k] !== false) : TAC_KEYS.slice();
+  }
+  // A team's tactics as they stand: yours where you set them, the staff's identity elsewhere (practice reps follow them).
+  effTactics(s, tid) { const club = this.clubOf(s, tid), ai = this.aiTacKeys(club), st: any = ai.length ? this.coachTactics(s, tid) : {}, t: any = { ...TAC_DEFAULT, ...(club?.tactics || {}) }; ai.forEach(k => (t[k] = st[k])); return t; }
+  // The staff's current call for a team (its identity, before a game plan or in-game reads): shown on Tactics.
+  coachTactics(s, tid) { const P = this.db.P, ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id])); return coachBase(ids.slice(0, 8).map(id => P[id]).filter(Boolean)); }
   tempoOf(s, tid) {
     const P = this.db.P, top = (s.rosters[tid] || []).map(id => P[id]).filter(Boolean).sort((a, b) => b.ovr - a.ovr).slice(0, 8); if (!top.length) return 1;
     const quick = top.reduce((a, p) => a + (p.r.spd + (p.r.acc ?? p.r.spd)) / 2 - p.r.stre * 0.3, 0) / top.length, age = top.reduce((a, p) => a + p.age, 0) / top.length;
@@ -852,7 +865,8 @@ export class Game {
   keepBox(res: GameResult, day: number, kind?: string) {
     const d: any = this.db, id = this.Y + '-' + (d.boxSeq = (d.boxSeq || 0) + 1), boxes = (d.boxes = d.boxes || {});
     const side = (sd: any) => ({ tid: sd.tid, pts: sd.pts, qs: sd.qs, lines: Object.entries(sd.box).filter(([, b]: any) => b.min > 0).map(([pid, b]: any) => [+pid, ...Game.BOX_F.map(f => f === 'min' ? +(b.min || 0).toFixed(1) : b[f] || 0)]) });
-    boxes[id] = { season: this.Y, day, kind: kind || 'reg', ot: res.ot, home: side(res.home), away: side(res.away) };
+    const mine = (this.state?.managed || []).some((t: number) => t === res.home.tid || t === res.away.tid); // coaching notes: kept for your teams' games
+    boxes[id] = { season: this.Y, day, kind: kind || 'reg', ot: res.ot, home: side(res.home), away: side(res.away), ...(mine && res.coach ? { coach: res.coach } : {}) };
     return id;
   }
   addBox(res: GameResult, po: boolean, touched?: number[], mins?: Record<number, number>, s?: any) {
@@ -1625,7 +1639,7 @@ export class Game {
     const a = p.age, club = this.clubOf(s, tid), coach = coachMult(teamBudget(this, s, tid).Coaching), wk = p.pers?.work ?? 50, annual = this.devRate(p), env = envOf(this, s, p, tid);
     const stunt = a < 24 && (p.minorCount || 0) >= 2 ? Math.max(.4, 1 - .12 * p.minorCount) : 1;
     const monthly = annual / 12 * (annual > 0 ? env.mult * stunt * (0.85 + wk / 333) : coachAging(coach)), keys = Game.FOCUS[focus] || [];
-    const tReps = monthly > 0 ? tacticReps(club?.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
+    const tReps = monthly > 0 && club ? tacticReps(this.effTactics(s, tid)) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4;
     const dl = develop(p, monthly * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1), rnd: () => .5, dry: true });
     const out: Record<string, number> = {}; Object.keys(p.r).forEach(r => { if (r !== 'hgt') out[r] = dl[r] || 0; }); // height only changes in a rare growth spurt
     return { monthly, per: out };
@@ -1704,7 +1718,7 @@ export class Game {
       // feel for them (a center with no touch shooting a thousand threes won't become a shooter). The
       // month's change lands his own way (development.ts): his body on its own track, the rest into his
       // skills by his development profile and training focus.
-      const tReps = mine && monthly > 0 ? tacticReps(club.tactics) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4, role = roleReps(this.seasonTotals(p, this.Y));
+      const tReps = mine && monthly > 0 ? tacticReps(this.effTactics(s, +k)) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4, role = roleReps(this.seasonTotals(p, this.Y));
       const mo = monthly > 0 ? Math.min(monthly, Math.max(0, trueT(p) - ovrExact(p))) : monthly; // never past his true potential
       Object.assign(dl, develop(p, mo * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl); capToT(p);
       // A hidden gem's extra ceiling surfaces (intangibles.ts), and his potential is re-read (potential.ts).
