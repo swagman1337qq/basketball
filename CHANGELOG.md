@@ -2,6 +2,12 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-14
+
+### Fixed
+- **Jeremy Lin's card took too few threes and shot too well.** The AI resets every player's shot tendencies each month, and for his old ratings it sent 81% of his shots to the rim (.536 from the field, almost no threes). His ratings are retuned so the AI's own choice fits him: about a third of his shots from three, .399 from the field off the bench and .409 as a starter (his real rookie year: .389). Your card library updates on its own unless you edited the card.
+- **Players near a 40 three-point rating no longer flip from no threes to lots of them.** The AI's shot choice jumped at 40 (a 39 took almost no threes, a 41 nearly half his shots); it now ramps up gradually between 40 and 50. League-wide three-point volume is about the same (37.6 attempts a team per game, the NBA's is 37).
+
 ## 2026-10-12
 
 ### Added

@@ -94,7 +94,10 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   const r = p.r || {}, f = p.pers || {}, g = p.grp, big = g === 'B', guard = g === 'G', wing = !big && !guard, age = p.age ?? 25, { rank, mode } = ctxOf(ctx);
   const t = (v: number) => cl(v, 2, 98), acc = r.acc ?? r.spd, finish = Math.max(r.dnk, r.lay ?? r.dnk), lay = r.lay ?? r.dnk;
   const L = (r.drb + r.pss + r.fg + r.tp + r.ins + finish + acc + r.oiq) / 8, rel = (x: number) => x - L + 0.3 * (L - 52);
-  const shoot3 = r.tp < 40 ? 50 + (r.tp - 50) * 2.2 : 50 + rel(r.tp) * 0.7; // non-shooters stop taking threes
+  // Non-shooters stop taking threes; between 40 and 50 a player grows into the shot gradually (it used to jump
+  // from almost none at 39 to a full share at 40). `ramp` blends a below-par score into his game-relative one.
+  const ramp = (lo: (v: number) => number, hi: number) => (r.tp < 40 ? lo(r.tp) : r.tp < 50 ? lo(r.tp) + (Math.max(lo(r.tp), hi) - lo(r.tp)) * ((r.tp - 40) / 10) : hi);
+  const shoot3 = ramp(v => 50 + (v - 50) * 2.2, 50 + rel(r.tp) * 0.7);
   const handle = (r.drb + acc) / 2, postSk = r.ins * 0.5 + r.stre * 0.25 + r.hgt * 0.25, offA = offAbility(r);
   // At the rim: drives and cuts for a guard or wing; rolls, lobs, putbacks and deep post seals for a big.
   const rimSk = big ? r.dnk * 0.3 + r.hgt * 0.25 + r.jmp * 0.2 + r.ins * 0.25 : finish * 0.4 + acc * 0.3 + r.drb * 0.15 + r.spd * 0.15;
@@ -106,7 +109,7 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
     mid: t(46 + rel(r.fg) * 1.2 + (f.alpha ? 4 : 0) + (f.touches ? 4 : 0) + (f.volatile ? 3 : 0) + (age >= 31 ? 4 : 0) - (big && r.fg < 50 ? 6 : 0)),
     c3: t(5 + shoot3 + (wing ? 6 : guard ? -3 : -6) - (handle - L) * 0.4 + (f.team ? 4 : 0)), // spot-up shooters wait in the corners
     atb: t(5 + shoot3 + (guard ? 4 : big ? -8 : 0) + (handle - L) * 0.3 + (f.heat ? 4 : 0) + (f.alpha ? 2 : 0)), // ball handlers pull up from the top
-    cns: t((r.tp < 40 ? 50 + (r.tp - 50) * 1.8 : 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0)),
+    cns: t(ramp(v => 50 + (v - 50) * 1.8, 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0)),
     pullup: t(50 + rel((r.drb + (r.fg + r.tp) / 2) / 2) * 1.3 + (f.heat ? 6 : 0) + (f.flashy ? 3 : 0) + (f.alpha ? 3 : 0) + (f.touches ? 3 : 0) + (big ? -10 : 0)),
     // Stepbacks take a handle, quickness and range; showmen, heat checkers and alphas love them; bigs rarely.
     step: t(50 + rel((r.drb + acc + Math.max(r.tp, r.fg)) / 3) * 1.3 + (f.flashy ? 5 : 0) + (f.heat ? 4 : 0) + (f.alpha ? 3 : 0) + (big ? -16 : wing ? -2 : 2) - (age >= 32 ? (age - 31) * 1.5 : 0)),

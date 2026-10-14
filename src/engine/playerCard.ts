@@ -77,6 +77,7 @@ const OLD_PRESET_TEN3 = [{ usage: 52, ra: 62, paint: 48, mid: 66, c3: 43, atb: 8
 // rookie, 61 overall with 86 potential): a library copy still holding exactly the old ratings takes the new
 // ratings, potential, intangibles and work ethic.
 const RETUNED: Record<string, any> = {
+  'Jeremy Lin': { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 34, dnk: 40, lay: 42, ft: 54, fg: 28, tp: 30, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
   'Kawhi Leonard': { hgt: 50, stre: 70, spd: 70, acc: 62, jmp: 56, endu: 72, ins: 62, dnk: 87, lay: 87, ft: 55, fg: 53, tp: 60, oiq: 54, diq: 70, blk: 38, stl: 73, drb: 44, pss: 43, reb: 61, box: 58 },
 };
 export function upgradePresetCard(row: { id: string; card: any }): boolean {
@@ -84,7 +85,7 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
   if (i < 0 || !PRESET_CARDS[i] || !c) return false;
   let changed = false;
   const P0 = PRESET_CARDS[i].card, old = RETUNED[P0.name];
-  if (old && c.name === P0.name && c.r && same(c.r, old)) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; changed = true; }
+  if (old && c.name === P0.name && c.r && same(c.r, old)) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; } changed = true; }
   if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return changed;
   delete c.tend; c.ten = { ...P0.ten }; return true;
 }
@@ -254,18 +255,19 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     rep: 'US', born: 'US', raised: 'US', city: 'Torrance', state: 'CA', her: 'TW', race: 'asian',
     // Real (undrafted out of Harvard, signed by his hometown Warriors, three trips to the D-League): 29 games (no
     // starts), 9.8 min, 2.6 pts, 1.2 reb, 1.4 ast, 1.1 stl, 0.3 blk, 0.6 tov, .389 FG on 2.5 shots, .200 on 0.2 threes,
-    // .760 FT on 0.9. Quick, smart and fearless, a jump shot still to build. Tested over 500 games at about 11 minutes:
-    // at his real 9.8 that is 2.7 pts, 1.2 reb, 1.4 ast, 0.5 stl, 0.2 blk, 0.5 tov, .398 FG on 2.5, .256 on 0.3 threes,
-    // .751 FT on 0.8 (his 1.1 steals came in only 285 minutes). 49 overall.
+    // .760 FT on 0.9. Quick, smart and fearless, a jump shot still to build. Retuned 2026-10-14 so the AI's own tendencies (which
+    // replace a card's every month) give him real threes and a rookie's efficiency: with them, at about 11 minutes,
+    // 2.1 pts, 1.3 ast, .399 FG on 2.1 shots, .271 on 0.7 threes (a third of his shots); as a 27-minute starter,
+    // 6.0 pts, 3.5 ast, .409 FG on 5.7, .278 on 2.0 threes (900 games each). 50 overall.
     // Potential: his prime, Linsanity (2011–12 Knicks: 35 games, 26.9 min, 14.6 pts, 6.2 ast, 3.1 reb, 1.6 stl, 3.6 tov,
     // .446 FG on 10.9, .320 on 2.1 threes, .798 FT on 5.2). The same player at that level, tested over 300 games and
     // scaled to 26.9 minutes, plays 15.3 pts, 6.4 ast, 3.2 reb, 1.4 stl, 2.9 tov, .457 FG on 11.0, .304 on 2.2 threes,
     // .823 FT on 5.5, and rates 56 overall (about the 40th-best guard in a league): that's his potential.
-    r: { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 34, dnk: 40, lay: 42, ft: 54, fg: 28, tp: 30, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
+    r: { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 22, dnk: 22, lay: 26, ft: 54, fg: 46, tp: 41, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
     pot: 56, intg: { feel: 70, poise: 74 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: true, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 90, loyalty: 60, ambition: 70 },
-    // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): a low-usage backup who attacked the rim and pulled up from mid-range.
-    ten: { usage: 46, ftr: 70, ra: 36, paint: 12, mid: 40, c3: 4, atb: 8, cns: 25, pullup: 65, step: 4, fade: 6 },
+    // Playing style: what the AI sets for these ratings (it refreshes it every month), a slasher who pulls up from mid-range and takes about a third of his shots from three.
+    ten: { usage: 33, ftr: 47, ra: 39, paint: 5, mid: 21, c3: 4, atb: 31, cns: 28, pullup: 33, step: 31, fade: 8 },
   } },
   { label: 'Toney Douglas – Rookie year (2009–10)', card: {
     card: 1, name: 'Toney Douglas', first: 'Toney', last: 'Douglas', pos: 'PG', age: 23, dob: '1986-03-16', hgt: '6′2″', wt: 190, wing: 78,
