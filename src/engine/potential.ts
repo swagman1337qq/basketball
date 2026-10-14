@@ -10,7 +10,7 @@
 //    rest of his plan at a pace a quarter above normal, never past his full ceiling). For a prospect
 //    that's his full ceiling; it shrinks when years go by without the growth.
 //  • What the league sees (p.pot): the scouting consensus of his true potential. It's a few points off
-//    for a prospect and sharpens every season he plays. AI teams draft and trade on it; your staff reads
+//    either way (above or below) for a prospect and sharpens every season he plays. AI teams draft and trade on it; your staff reads
 //    your own players more closely; God Mode shows the truth.
 //  • God Mode's word (p.godPot): a true potential set in God Mode or by a player card holds exactly, up
 //    to 100 and at any age, even past what his ratings can show (skills stop at 100, his height and
@@ -118,10 +118,10 @@ export function moveTruePot(_p: any, _d: number) { /* fixed */ }
 // God Mode raised a rating past its ceiling: that's his new ceiling there.
 export function liftCeil(p: any) { if (!p.ceil) return; SKILLS.forEach(k => { if (p.ceil[k] < p.r[k]) p.ceil[k] = p.r[k]; }); }
 
-// The consensus: true potential plus the league's miss (p.perr), never below his overall.
-// The league's read: what he could still reach plus the scouts' miss, never above his true potential
-// (the scouts can sell a player short, never oversell him) and never below his overall.
-export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); if (p.tpot == null) p.tpot = trueT(p); if (p.ovr > p.tpot) p.tpot = p.ovr; p.pot = Math.max(p.ovr, Math.min(p.tpot, Math.round(reachOf(p) + (p.perr || 0)))); }
+// The league's read: what he could still reach plus the scouts' miss, which goes either way (they
+// sell some players short and oversell others, a bust they rate above anything he can reach), never
+// below his overall.
+export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); if (p.tpot == null) p.tpot = trueT(p); if (p.ovr > p.tpot) p.tpot = p.ovr; p.pot = Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0)))); }
 // The scouts' miss on a new player (points of potential, either way; fixed from his id).
 export function rollPerr(p: any, sd: number) { const r = mulberry32(((p.id * 40503) ^ 0x9e11) >>> 0); p.perr = +((r() + r() + r() - 1.5) * 2 * sd).toFixed(2); }
 // Every summer the league learns more: the miss shrinks (gone by 27).
@@ -133,11 +133,11 @@ export const scoutSd = (budget = 4, easy = false) => Math.max(0.6, Math.min(4, 4
 // team and player (scouts hold their opinions), smaller for older players whose game is known.
 export function teamRead(p: any, tid: number, sd: number) {
   const r = mulberry32((((tid + 3) * 2246822519) ^ (p.id * 3266489917)) >>> 0), youth = Math.max(0.25, Math.min(1, (27 - p.age) / 8));
-  return Math.max(p.ovr, Math.min(p.tpot ?? 99, Math.round(p.pot + (r() + r() + r() - 1.5) * 2 * sd * youth)));
+  return Math.max(p.ovr, Math.min(99, Math.round(p.pot + (r() + r() + r() - 1.5) * 2 * sd * youth))); // either way, like the league's
 }
 // What a viewer sees: God Mode the truth; your staff your own players almost exactly; anyone else your
 // scouts' read (tid/sd) or, without them, the league's read.
-export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.min(t, Math.round(reachOf(p) + (p.perr || 0) * 0.3))) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
+export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) { if (!p) return 0; const t = p.tpot ?? p.pot; return o.god ? t : o.own ? Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0) * 0.3))) : o.tid != null ? teamRead(p, o.tid, o.sd ?? 2) : p.pot; }
 // Where he stands against his development plan (for reports): 'behind', 'ahead', or null (on track, or done).
 export function planStatus(p: any): 'behind' | 'ahead' | null {
   const d = p.dv0; if (!d || (p.age > 27 && !d.n)) return null; const W = wRemP(d, d.a), gap = trueT(p) - d.o; if (W <= 0 || gap < 4) return null;

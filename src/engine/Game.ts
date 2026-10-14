@@ -307,6 +307,8 @@ export class Game {
       const oldOvr = (p: any) => { const W = { ...(OVR_W[p.grp] || OVR_W.W), hgt: OH[p.grp] ?? 1.1 }; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + (wngRating(p) - 50) * (OWG[p.grp] ?? .06) - (OA[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = Math.round(ovrExact(p) - oldOvr(p)); if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + d)); syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.hwV = 1; }
+    // 2026-10-14: the scouts' miss on potential goes either way (potential.ts refreshPot, teamRead): re-read everyone once.
+    if (!g.db.perrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.r && !p.gone && !p.retired) refreshPot(p); }); g.db.perrV = 1; }
     if (!g.db.tenAuto) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
       Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.retired && !p.gone) autoTen(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number], roles: g.rolesOf(p) }); });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.tenAuto = 1; }
@@ -443,7 +445,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
