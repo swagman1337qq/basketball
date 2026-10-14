@@ -20,7 +20,7 @@ import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
-import { alphaTeams, godBtn, Link, muted, NumInput, PN } from '../kit';
+import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
 
 const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
@@ -76,6 +76,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
   // Drag to reorder, live: while you drag, the list re-sorts under the cursor (the players you pass slide
   // out of the way), and the order is saved when you drop. Let go outside the table to cancel.
   const [drag, setDrag] = useState<number | null>(null), [order, setOrder] = useState<number[] | null>(null);
+  // Filters: position (a group or one position), minimum overall and potential (the potential shown, God Mode's true one).
+  const [fPos, setFPos] = useState(''), [fOvr, setFOvr] = useState(0), [fPot, setFPot] = useState(0);
+  const filtering = !!(fPos || fOvr || fPot);
+  const vis = (id: number) => { const p = P[id]; return (!fPos || (fPos.startsWith('grp:') ? p.grp === fPos.slice(4) : p.pos === fPos)) && p.ovr >= fOvr && vm.ctx.potOf(p) >= fPot; };
   const listOf = (id: number) => (mainIds.includes(id) ? mainIds : tw.includes(id) ? tw : ex10);
   const shown = (list: number[]) => (order && drag != null && list.includes(drag) && order.length === list.length ? order : list);
   const place = (at: number) => { if (!order || drag == null) return; const o = order.filter(x => x !== drag); o.splice(Math.max(0, Math.min(o.length, at)), 0, drag); if (o.join() !== order.join()) setOrder(o); };
@@ -118,10 +122,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
           const mark = (x: number, dec: number, what: string) => b && <div title={what + (x > 0 ? ' up ' : x < 0 ? ' down ' : ' unchanged ') + (x ? Math.abs(x).toFixed(dec) + ' ' : '') + 'since ' + b.label} style={{ fontSize: '10.5px', fontWeight: 700, lineHeight: 1, marginTop: 1, color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</div>;
           return (<>
             <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>{p.ovr}{d && mark(d.ovr, 1, 'Overall')}</td>
-            <td style={{ ...tdr, color: vm.ctx.tone(p.pot) }}>{p.pot}{d && mark(d.pot, 0, 'Potential')}</td>
+            <td style={{ ...tdr, color: vm.ctx.tone(vm.ctx.potOf(p)) }}>{vm.ctx.potOf(p)}{d && !s.god && mark(d.pot, 0, 'Potential')}</td>
           </>); })()}
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
-        {cur && <td style={tdr}>{p.exp}</td>}
+        {cur && <td style={tdr}><ExpYear y={p.exp} cur={gm.Y} /></td>}
         {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (
           <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him' : 'Automatic: minutes come from his rotation slot'}>
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
@@ -246,23 +250,34 @@ export function RosterScreen({ vm }: { vm: VM }) {
         </div>
       </div>}
       {advice && <AdvicePanel vm={vm} advice={advice} onApply={() => { applyAdvice(gm, tid, advice); setAdvice(null); }} onClose={() => setAdvice(null)} />}
+      {(() => { const all = cur ? ids : pastIds, nShow = all.filter(vis).length, sel = { fontSize: '12.5px', padding: '3px 6px', width: 'auto', flex: '0 0 auto' };
+        return (<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: '12.5px' }}>
+          <span style={{ fontWeight: 600 }}>Filter</span>
+          <select className="input" value={fPos} onChange={e => setFPos(e.target.value)} style={sel} title="Position">
+            <option value="">All positions</option><option value="grp:G">Guards</option><option value="grp:W">Wings</option><option value="grp:B">Bigs</option>
+            {['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'].map(x => <option key={x} value={x}>{x}</option>)}
+          </select>
+          <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>Overall ≥ <NumInput value={fOvr} min={0} max={99} onValue={setFOvr} width={52} /></label>
+          <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>Potential ≥ <NumInput value={fPot} min={0} max={99} onValue={setFPot} width={52} /></label>
+          {filtering && <><span style={muted}>Showing {nShow} of {all.length}</span><button className="btn btn-ghost" style={{ fontSize: '12px', padding: '2px 8px' }} onClick={() => { setFPos(''); setFOvr(0); setFPot(0); }}>Clear</button></>}
+        </div>); })()}
       {cur ? (
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
-          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(mainIds).map((id, i) => <Fragment key={id}>{Row({ id, i, list: mainIds })}{i === 4 && cur && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
+          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(mainIds).map((id, i) => <Fragment key={id}>{vis(id) && Row({ id, i, list: mainIds })}{i === 4 && cur && !filtering && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
-                    {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(tw).map((id, i) => Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
+                    {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(tw).map((id, i) => vis(id) && Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
           {ex10.length > 0 && <>
             <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Press To two-way or Make standard, or waive him by opening night.</span></div>
-            <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(ex10).map((id, i) => Row({ id, i, list: ex10 }))}</tbody></table></div>
+            <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(ex10).map((id, i) => vis(id) && Row({ id, i, list: ex10 }))}</tbody></table></div>
           </>}
         </>
       ) : (
         <>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>{season - 1}–{String(season).slice(2)} roster: everyone who played for {t.abbr} that season</div>
-          {pastIds.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 760 }}>{Head()}<tbody>{pastIds.map((id, i) => Row({ id, i, list: pastIds }))}</tbody></table></div> : <p style={muted}>No games recorded for this team that season.</p>}
+          {pastIds.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 760 }}>{Head()}<tbody>{pastIds.map((id, i) => vis(id) && Row({ id, i, list: pastIds }))}</tbody></table></div> : <p style={muted}>No games recorded for this team that season.</p>}
         </>
       )}
     </>

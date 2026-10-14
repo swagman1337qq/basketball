@@ -5,7 +5,7 @@ import type { VM } from '../vm';
 import { BIRD_LABEL, capHold, describeContract, extWindow, qoFor, yosOf } from '../../engine/cba';
 import { decisionsFor } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
-import { Link, muted, ratingTier, ruleH4 } from '../kit';
+import { ExpYear, Link, muted, ratingTier, ruleH4 } from '../kit';
 
 const tdc: React.CSSProperties = { padding: '5px 8px', verticalAlign: 'top' }, tdr: React.CSSProperties = { ...tdc, textAlign: 'right', whiteSpace: 'nowrap' };
 const th: React.CSSProperties = { padding: '5px 8px', textAlign: 'left', fontWeight: 600, fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' };
@@ -37,7 +37,7 @@ export function ContractsScreen({ vm }: { vm: VM }) {
   const extBtn = (p: any) => <button className="btn btn-primary" style={{ fontSize: '11.5px', padding: '2px 10px' }} onClick={() => extend(p.id)} title={extWindow(gm, s, p).why}>Extend…</button>;
   const who = (p: any) => (
     <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span>{tid === s.me && ids.includes(p.id) && <button className="btn btn-ghost hv4" onClick={() => gm.setState({ dialog: { type: 'release', pid: p.id } })} title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', marginLeft: 6, color: 'var(--gm-bad)' }}>Cut</button>}</td>);
-  const rat = (p: any) => <td style={tdr}><b style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</b> <span style={muted}>/</span> <span style={{ color: ratingTier(p.pot).color }}>{p.pot}</span></td>;
+  const rat = (p: any) => <td style={tdr}><b style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</b> <span style={muted}>/</span> <span style={{ color: ratingTier(vm.ctx.potOf(p)).color }}>{vm.ctx.potOf(p)}</span></td>;
 
   // Summer-by-summer groups: deals ending, and options to decide (the option year starts that fall).
   const groups = summers.map(y => {
@@ -96,7 +96,7 @@ export function ContractsScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: '12.5px' }}>
             <thead><tr><th style={th}>Player</th><th style={{ ...th, textAlign: 'right' }}>Ovr / Pot</th><th style={th}>Contract</th><th style={{ ...th, textAlign: 'right' }}>Salary</th><th style={th}>Deal ends</th><th style={th}>Window</th><th style={th}></th></tr></thead>
             <tbody>{extNowL.map(p => (
-              <tr key={p.id}>{who(p)}{rat(p)}<td style={tdc}>{describeContract(gm, p).split(' · ')[0]}</td><td style={tdr}>{fmtMoney(p.amt)}</td><td style={tdc}>Summer {p.exp}</td>
+              <tr key={p.id}>{who(p)}{rat(p)}<td style={tdc}>{describeContract(gm, p).split(' · ')[0]}</td><td style={tdr}>{fmtMoney(p.amt)}</td><td style={tdc}><ExpYear y={p.exp} cur={gm.Y} label={'Summer ' + p.exp} /></td>
                 <td style={{ ...tdc, ...muted, fontSize: '11.5px', maxWidth: 360 }}>{extWindow(gm, s, p).why}</td><td style={tdc}>{extBtn(p)}</td></tr>))}</tbody>
           </table>
         </section>

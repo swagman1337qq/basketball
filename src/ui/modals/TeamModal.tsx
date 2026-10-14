@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { VM } from '../vm';
-import { godBox, godBtn, godText } from '../kit';
+import { ExpYear, godBox, godBtn, godText } from '../kit';
 
 export function TeamModal({ vm }: { vm: VM }) {
   useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.teamModal]);
@@ -135,7 +135,7 @@ export function TeamModal({ vm }: { vm: VM }) {
                     {p.contract}
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.exp}
+                    <ExpYear y={p.exp} cur={vm.ctx.gm.Y} />
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.pts}

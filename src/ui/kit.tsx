@@ -7,6 +7,9 @@ export const accentKicker: CSSProperties = { ...kickerStyle, color: 'var(--color
 export const h4Style: CSSProperties = { margin: '0 0 4px', fontSize: '19px' };
 export const ruleH4: CSSProperties = { margin: '0 0 6px', fontSize: '18px', borderBottom: '1px solid var(--color-text)', paddingBottom: '4px' };
 export const muted: CSSProperties = { color: 'var(--color-neutral-700)' };
+// A contract that runs out at the end of the season being played: its final year in emerald green.
+export const EXPIRING = '#115d55';
+export const ExpYear = ({ y, cur, label }: { y: number; cur: number; label?: string }) => (y <= cur ? <span title="Expiring: his contract ends after this season" style={{ background: EXPIRING, color: '#fff', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>{label ?? y}</span> : <>{label ?? y}</>);
 export const GOD_PINK = '#ff3fa4'; // God Mode's own color: its tools stand out, and you always know you're in it
 // God Mode styling, shared by every God-Mode-only control (they aren't rendered at all when it's off).
 export const godBtn: CSSProperties = { color: GOD_PINK, borderColor: GOD_PINK };
