@@ -489,9 +489,9 @@ export class Game {
     const os = []; for (let k = 0; k < 22; k++) { const p = mk(44 + rnd() * 12, 22 + Math.floor(rnd() * 8), W_NBA, 0); const cc0 = CLUBS[p.raised] ? p.raised : pick(['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT']), k2 = pick(CLUBS[cc0]), out = rnd() < .45;
       p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: +(8 + (p.ovr - 44) * 1.1 + rnd() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + rnd() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + rnd() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? .3 + rnd() * .7 : 1.5 + rnd() * 3.5).toFixed(1) }; os.push(p.id); }
     const cls = { 2027: [], 2028: [], 2029: [] };
-    for (let k = 0; k < 105; k++) { const p = mk(29 + rnd() * 14, 19 + Math.floor(rnd() * 3), W_NBA, 2027); p.pot = this.prospectPot(p, rnd); cls[2027].push(p.id); }
-    for (let k = 0; k < 100; k++) { const p = mk(24 + rnd() * 11, 17 + Math.floor(rnd() * 2), W_NBA, 2028); p.pot = this.prospectPot(p, rnd); cls[2028].push(p.id); }
-    for (let k = 0; k < 100; k++) { const p = mk(21 + rnd() * 10, 16 + Math.floor(rnd() * 2), W_NBA, 2029); p.pot = this.prospectPot(p, rnd); cls[2029].push(p.id); }
+    for (let k = 0; k < 105; k++) { const p = this.mkProspect(29 + rnd() * 14, 2027, 0, W_NBA); p.pot = this.prospectPot(p, rnd); cls[2027].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = this.mkProspect(25 + rnd() * 11, 2028, 1, W_NBA); p.pot = this.prospectPot(p, rnd); cls[2028].push(p.id); }
+    for (let k = 0; k < 100; k++) { const p = this.mkProspect(22 + rnd() * 10, 2029, 2, W_NBA); p.pot = this.prospectPot(p, rnd); cls[2029].push(p.id); }
     (Object.values(P) as any[]).filter(p => p.cls).forEach(p => { p.exp = p.cls + 3; });
     // Real draft slots for today's players: each past class gets unique picks 1–60
     // (best prospects first, with some noise); the rest went undrafted.
@@ -636,10 +636,41 @@ export class Game {
   // 100: roughly 15–20 future starters (56+), 3–4 All-Stars (63+) and about one franchise player (70+),
   // plus a rare generational talent; hidden gems add to it later. (Ceilings set as "today plus a big
   // gap" made a third of every class a future star, and the league inflated for a decade.)
+  // Age on draft night, the NBA's mix (both rounds, recent drafts): most are 19 or 20 (one-and-done
+  // freshmen and sophomores), a few 18-year-olds straight from high school or a junior team, and a long
+  // tail of juniors, seniors and overseas pros up to 24 (a 23-year-old who turns 24 as the season opens).
+  static DRAFT_AGE: Record<string, number> = { 18: 7, 19: 33, 20: 22, 21: 15, 22: 12, 23: 8, 24: 3 };
+  // A draft prospect in class `cls`, `ahead` drafts away. His draft-night age is drawn from DRAFT_AGE, and his
+  // path matches it: an 18-year-old comes straight from high school (or a junior team abroad), a younger
+  // American plays high school ball and then college until he's drafted, a player abroad moves from his
+  // club's junior team to its senior side (some come over to college). Older prospects arrive more polished
+  // (higher overall now) with a little less ceiling (prospectPot).
+  mkProspect(base: number, cls: number, ahead: number, Wt) {
+    const rnd = () => this.rnd(), da = +this.wpick(Game.DRAFT_AGE);
+    const p = this.mkPlayer(base + (da - 19) * 3, Math.max(15, da - ahead), Wt, cls);
+    p.dAge = da;
+    const home = p.raised || p.born, cc = ['US', 'CA', 'BS'].includes(home) ? [] : clubs()[home] || [], intl = cc.length > 0;
+    const youth = intl ? { team: cc[Math.floor(rnd() * cc.length)][0] + ' U18', lg: 'Junior', country: home } : { team: this.db.C.US.cities[Math.floor(rnd() * this.db.C.US.cities.length)] + ' ' + ['Prep', 'Academy', 'Christian', 'High'][Math.floor(rnd() * 4)], lg: 'High school', country: 'US' };
+    let k: 'hs' | 'col' | 'club', to: any = null;
+    if (da === 18) k = 'hs';
+    else if (intl && rnd() < 0.75) { const c = cc[Math.floor(rnd() * cc.length)]; k = 'club'; to = { team: c[0], lg: c[1], country: p.raised || p.born }; }
+    else { k = 'col'; to = { team: pickCollege(rnd), lg: 'NCAA', country: 'US' }; }
+    p.pth = { k, youth, to };
+    p.from = this.prospectFrom(p);
+    return p;
+  }
+  // Where a prospect plays at his age now: high school or a junior team until he's 18, then his college or
+  // his club's senior side (a prep-to-pro prospect stays in high school until the draft).
+  prospectFrom(p) {
+    const t = p.pth; if (!t) return p.from;
+    if (t.k === 'hs' || !t.to) return t.youth;
+    return p.age <= (t.k === 'club' ? 17 : 18) ? t.youth : t.to;
+  }
   prospectPot(p, rnd: () => number = Math.random) {
-    const z = (rnd() + rnd() + rnd() + rnd() - 2) * 1.732, gen = rnd() < 0.01 ? 7 : 0;
+    const z = (rnd() + rnd() + rnd() + rnd() - 2) * 1.732 - Math.max(0, (p.dAge ?? 19) - 19) * 0.35, gen = rnd() < 0.01 ? 7 : 0; // older draftees: a little less ceiling
     // The top of the scale stretches: a one-in-a-hundred prospect becomes a 75+ superstar.
-    const pot = Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + 6), 40, 95));
+    const room = Math.max(1, 6 - Math.max(0, (p.dAge ?? 19) - 19)); // a polished senior has less growth left than a teenager
+    const pot = Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + room), 40, 95));
     bodyAhead(p, pot - p.ovr); syncOvr(p); // his body arrives ahead of his game (development.ts)
     // `pot` is his expected career peak; his ceilings sit above it (potential.ts) and the league's read
     // of them is a few points off either way. Returns that read.
@@ -1330,8 +1361,8 @@ export class Game {
       // sign as free agents (Exhibit 10s, two-ways, the CCP). The rest go overseas or back to school.
       const left = d.cls[this.Y].filter(id => !s.picks.some(x => x.pid === id)).slice(0, 45);
       left.forEach(id => { Object.assign(P[id], { undrafted: this.Y, cls: 0, dr: null, draft: this.Y, amt: nums(this).min(0), ask: nums(this).min(0), exp: Y + 1, yrsWith: 0, yos0: 0 }); fa.push(id); });
-      [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: pickCollege(), lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
-      d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkPlayer(22 + Math.random() * 12, 16 + Math.floor(Math.random() * 2), s.natW || natDefault(), Y + 2); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = this.prospectPot(p, Math.random); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
+      [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (p.pth) { if (yr === Y && p.pth.k === 'hs') p.pth = { ...p.pth, k: 'col', to: { team: pickCollege(), lg: 'NCAA', country: 'US' } }; p.from = this.prospectFrom(p); return; } if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: pickCollege(), lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
+      d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkProspect(23 + Math.random() * 12, Y + 2, 2, s.natW || natDefault()); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = this.prospectPot(p, Math.random); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
       d.cls[Y + 2].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       // Picks two years out, unless the trading horizon already made them (it usually has: adding them
       // again duplicated every one of them).
@@ -1349,7 +1380,7 @@ export class Game {
         // Expansion draft: each existing AI club loses one player outside its top eight.
         for (let t = 0; t < first; t++) { if (this.isUser(s, t)) continue; const ids = rosters[t].slice().sort((a, b) => P[b].ovr - P[a].ovr).slice(8); if (!ids.length) continue; const id = ids[Math.floor(Math.random() * ids.length)]; rosters[t] = rosters[t].filter(x => x !== id); const nt = newT[t % newT.length]; rosters[nt] = [...rosters[nt], id]; addTx(this, s, P[id], { k: 'expansion', from: t, to: nt }); }
         newT.forEach(nt => { while (rosters[nt].length < rosterMin(s) && fa.length) { const id = fa.sort((a, b) => P[b].ovr - P[a].ovr).shift(); P[id].amt = P[id].ask; rosters[nt] = [...rosters[nt], id]; } });
-        for (let k = 0; k < NEW.length; k++) { const p = this.mkPlayer(30 + Math.random() * 10, 18, s.natW || natDefault(), Y + 1); p.pot = this.prospectPot(p, Math.random); d.cls[Y + 1].push(p.id); }
+        for (let k = 0; k < NEW.length; k++) { const p = this.mkProspect(30 + Math.random() * 10, Y + 1, 1, s.natW || natDefault()); p.pot = this.prospectPot(p, Math.random); d.cls[Y + 1].push(p.id); }
         expanded = (typeof s.expanded === 'number' ? s.expanded : s.expanded ? 2 : 0) + NEW.length; expansion = false; expTeams = [];
         lgLog = [{ day: s.day, type: 'Signing', teams: NEW.map(n => n.abbr).join(' · '), text: 'The league expanded to ' + teams.length + ' teams: ' + NEW.map(n => n.region + ' ' + n.name).join(', ') + '.' }, ...lgLog];
       }
