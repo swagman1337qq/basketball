@@ -257,6 +257,7 @@ export interface SimPlayer {
   tend?: Tend; // shot tendencies: how often he takes each shot and draws fouls (1 = what his skills suggest)
   hot?: number; // a streaky shooter's current run, −1 (ice cold) to +1 (on fire); 0 for everyone else
   target: number; // minutes per 48 the coach wants him to play
+  manual?: boolean; // you set his minutes by hand (Roster: Manual): a lineup style doesn't push him far past them
 }
 export interface FourFactors { efg: number; tov: number; orb: number; ftr: number }
 export interface SimTeam {
@@ -371,23 +372,31 @@ export class GameSim {
       if (deficit(inP) <= deficit(outP) + SUB_MARGIN) break;
       on = on.map(p => (p === outP ? inP : p));
     }
-    this.on[k] = this.shape(k, on, ps);
+    this.on[k] = this.shape(k, on, ps, deficit);
   }
 
   // Lineup style: small ball keeps at most one big on the floor, twin towers two when available.
-  // Swaps use the minute targets (the big who'd play least goes out, the wing who'd play most comes in).
-  private shape(k: Side, on: SimPlayer[], ps: SimPlayer[]) {
+  // In the run of play the swaps follow the minutes (`need`: how far behind his minutes target each
+  // player is): the big most due for minutes comes in for the wing least due, so every big on the roster
+  // shares the time instead of the starter being sent straight back in (a 20-minute big played 46 a night
+  // under Twin towers while two healthy bigs sat). Without `need` (the second-half and closing lineups)
+  // they follow the targets.
+  private shape(k: Side, on: SimPlayer[], ps: SimPlayer[], need?: (p: SimPlayer) => number) {
+    // A player whose minutes you set by hand and who has had them goes to the back of the queue: the
+    // extra minutes a lineup style needs go to the players on automatic minutes first.
+    const owed = (p: SimPlayer) => (need ? need(p) - (p.manual && need(p) < 0 ? 1e5 : 0) : p.target);
+    const due = (a: SimPlayer, b: SimPlayer) => owed(b) - owed(a); // most due first
     const lu = this.teams[k].tactics ? this.tac(k).lineup : null;
     if (lu !== 'Small ball' && lu !== 'Twin towers') return on;
     const big = (p: SimPlayer) => p.grp === 'B';
     for (let guard = 0; guard < 3; guard++) {
       const nb = on.filter(big).length, bench = ps.filter(p => !on.includes(p));
       if (lu === 'Small ball' && nb > 1) {
-        const inP = bench.filter(p => !big(p)).sort((a, b) => b.target - a.target)[0]; if (!inP) break;
-        const outP = on.filter(big).sort((a, b) => a.target - b.target)[0]; on = on.map(p => (p === outP ? inP : p));
+        const inP = bench.filter(p => !big(p)).sort(due)[0]; if (!inP) break;
+        const outP = on.filter(big).sort(due).pop(); on = on.map(p => (p === outP ? inP : p));
       } else if (lu === 'Twin towers' && nb < 2) {
-        const inP = bench.filter(big).sort((a, b) => b.target - a.target)[0]; if (!inP) break;
-        const outP = on.filter(p => !big(p)).sort((a, b) => a.target - b.target)[0]; if (!outP) break; on = on.map(p => (p === outP ? inP : p));
+        const inP = bench.filter(big).sort(due)[0]; if (!inP) break;
+        const outP = on.filter(p => !big(p)).sort(due).pop(); if (!outP) break; on = on.map(p => (p === outP ? inP : p));
       } else break;
     }
     return on;
