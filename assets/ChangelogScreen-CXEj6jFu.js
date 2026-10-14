@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D3KEvM-K.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-B1MY-4tT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -9,6 +9,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Expiring contracts in emerald green.** A contract that ends after the season you're playing shows its final year in an emerald-green tag (#115d55) on the Roster, the team pop-up and the Contracts page.
 
 ### Changed
+- **Draft prospects come in every age, as in the NBA.** Draft classes were almost all 18- and 19-year-olds. Now about a third are 19, a fifth 20, and the rest spread from 18 (a few straight out of high school or a junior team abroad) to 23 or 24 (college seniors and overseas pros who turn 24 as the season opens). Where they play matches their age: high school, then college or a club's senior team abroad. Older prospects are more polished but have less room to grow, so the top of the draft is still mostly 19- and 20-year-olds. Your current league's next new draft class (and every one after) gets the new mix.
 - **Tactics now change during games and from opponent to opponent, for every team.** Each team has a coaching staff that runs its tactics in three layers:
   - **An identity from the roster**, which updates as the roster changes: shooters spread the floor, a quick young team runs, a big front line owns the glass.
   - **A game plan for each opponent:** the underdog slows the game down and the favorite pushes it; a team that can't shoot gets dared to shoot and one that can gets switched on; a lone star sees a box-and-one or a wall; a slow front line gets beaten with small ball.
