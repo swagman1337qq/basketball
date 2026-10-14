@@ -62,6 +62,10 @@ export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221
 // What a player of a given overall is worth per year at the 2026-27 scale ($M, before the league's
 // salary scale and cap growth). Bench players sit at the minimum; the money goes to starters and stars:
 // 46 → 1.5 · 48 → 2.0 · 50 → 3.4 · 52 → 5.8 · 55 → 11.2 · 58 → 18.8 · 60 → 25 · 63 → 36 · 65 → 45.
+// Draft picks in trades: a team's worth multiplier [receiving, giving] by strategy. A rebuilding team
+// prizes picks and a contender less, but a contender still won't give one away for under ~90% of
+// what it fetches around the league, and a rebuilding team won't pay more than ~115% for one.
+const PICK_M: Record<string, [number, number]> = { rebuild: [1.38, 1.6], middle: [1.05, 1.45], contend: [0.7, 1.08] };
 export const valueCurve = (ovr: number) => 1.5 + 0.12 * Math.pow(Math.max(0, ovr - 46), 2);
 
 const POS = [['PG', 'G'], ['SG', 'G'], ['G', 'G'], ['SF', 'W'], ['GF', 'W'], ['F', 'W'], ['PF', 'B'], ['FC', 'B'], ['C', 'B']];
@@ -1547,25 +1551,34 @@ export class Game {
     if (st === 'middle' && p.age <= 24 && pot >= 60) v += 8;
     return v + contractValue(this, p, tid == null ? 0.35 * M[2] : contractK(this, this.state, tid, st)); // tradeLogic: a bad contract costs more near the tax, less with room
   }
+  // A player's worth in a trade, to team tid with strategy st. Its timeline tilts the price (a
+  // contender pays a little more for help now, a rebuilding team for youth) but never far from what
+  // the player would fetch around the league (his worth to a team in the middle): no team gives a
+  // player away for less than 90% of that, or pays more than 115%, since it could flip him.
+  tradeP(p, st, tid, giving) {
+    const v = this.pVal(p, st, tid); if (st === 'middle' || !p) return v;
+    const m = this.pVal(p, 'middle', tid);
+    return giving ? Math.max(v, m - 0.1 * Math.abs(m)) : Math.min(v, m + 0.15 * Math.abs(m));
+  }
   kVal(k, st, giving, T) {
     // Draft rights are worth the player (on his rookie deal), not the slot.
     const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return Math.max(2, this.pVal({ ...p, amt: (r.rd || 1) === 1 ? this.rookieAmt(r.n) : nums(this).min(0), exp: this.Y + 4 }, st)); }
     // Expected value over where it could land (tradeLogic.ts: the team outlook, uncertainty growing by year).
     void T; const v = pickWorth(this, this.state, k);
-    return v * ({ rebuild: [1.6, 1.6], middle: [1.05, 1.45], contend: [0.7, 0.75] }[st][giving ? 1 : 0]);
+    return v * (PICK_M[st] || PICK_M.middle)[giving ? 1 : 0];
   }
   // A pick in a trade, with any protection you're attaching to it (s.tProt).
   tradeAsset(s, id) { const a = s.assets.find(x => x.id === id); if (!a) return null; const pr = (s.tProt || {})[id]; return pr && !a.prot && a.rd === 1 ? { ...a, prot: pr } : a; }
   // Swap rights ("swap:2028"): the holder may trade its own first for the grantor's that year if the
   // grantor's lands higher. Worth the expected gain (bigger when the grantor looks worse) plus a little.
-  swapVal(yr, holder, grantor, st, T, giving = false) { void T; return swapWorth(this, this.state, yr, holder, grantor) * ({ rebuild: [1.6, 1.6], middle: [1.05, 1.45], contend: [0.7, 0.75] } as any)[st || 'middle'][giving ? 1 : 0]; } // tradeLogic: expected gain under uncertainty
+  swapVal(yr, holder, grantor, st, T, giving = false) { void T; return swapWorth(this, this.state, yr, holder, grantor) * (PICK_M[st] || PICK_M.middle)[giving ? 1 : 0]; } // tradeLogic: expected gain under uncertainty
   static isSwap = (id: any) => typeof id === 'string' && id.startsWith('swap:');
   tradeItemVal(s, id, st, giving, holder, grantor) { if (Game.isSwap(id)) return this.swapVal(+id.slice(5), holder, grantor, st, s.teams, giving); const a = this.tradeAsset(s, id); return a ? this.kVal(a, st, giving, s.teams) : 0; }
   tradeItemLabel(s, id, T) { if (Game.isSwap(id)) return id.slice(5) + ' first-round swap rights'; const a = this.tradeAsset(s, id); return a ? this.pickLabel(a, T) : ''; }
   evalTrade(s, mine, theirs, kMine, kTheirs) {
     const P = this.db.P, st = this.strategies(s.teams)[s.tTid];
-    const recv = mine.reduce((a, id) => a + this.pVal(P[id], st, s.tTid), 0) + kMine.reduce((a, id) => a + this.tradeItemVal(s, id, st, false, s.tTid, s.me), 0);
-    const give = theirs.reduce((a, id) => a + this.pVal(P[id], st, s.tTid), 0) + kTheirs.reduce((a, id) => a + this.tradeItemVal(s, id, st, true, s.me, s.tTid), 0);
+    const recv = mine.reduce((a, id) => a + this.tradeP(P[id], st, s.tTid, false), 0) + kMine.reduce((a, id) => a + this.tradeItemVal(s, id, st, false, s.tTid, s.me), 0);
+    const give = theirs.reduce((a, id) => a + this.tradeP(P[id], st, s.tTid, true), 0) + kTheirs.reduce((a, id) => a + this.tradeItemVal(s, id, st, true, s.me, s.tTid), 0);
     const thr = Math.max(1, Math.abs(give) * 0.06);
     return { st, recv, give, diff: recv - give - thr, ok: recv - give >= thr };
   }

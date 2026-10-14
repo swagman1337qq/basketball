@@ -116,9 +116,9 @@ export const tradablePicks = (g: Game, s: any, tid: number) => (s.assets || []).
 // cap situation, its needs), less a small margin. ≥ 0 means it would say yes.
 export function teamGain(g: Game, s: any, tid: number, getP: number[], giveP: number[], getK: string[], giveK: string[], margin = 0.06) {
   const P = g.db.P, st = (g.strategies(s.teams, s) as any)[tid] || 'middle', T = s.teams, asset = (id: string) => (s.assets || []).find((a: any) => a.id === id);
-  const pv = (id: number) => g.pVal(P[id], st, tid);
-  const recv = getP.reduce((a, id) => a + pv(id), 0) + fitBonus(g, s, tid, st, getP) + getK.reduce((a, id) => a + g.kVal(asset(id), st, false, T), 0);
-  const give = giveP.reduce((a, id) => a + pv(id), 0) + giveK.reduce((a, id) => a + g.kVal(asset(id), st, true, T), 0);
+  const pv = (id: number, giving: boolean) => g.tradeP(P[id], st, tid, giving);
+  const recv = getP.reduce((a, id) => a + pv(id, false), 0) + fitBonus(g, s, tid, st, getP) + getK.reduce((a, id) => a + g.kVal(asset(id), st, false, T), 0);
+  const give = giveP.reduce((a, id) => a + pv(id, true), 0) + giveK.reduce((a, id) => a + g.kVal(asset(id), st, true, T), 0);
   return recv - give - Math.max(1, Math.abs(give) * margin);
 }
 // Subsets of up to `k` items (small lists only).
@@ -215,13 +215,14 @@ export function offerToUser(g: Game, s: any, myGain: (getP: number[], giveP: num
     const t = pick(ai.filter(x => strat[x] === 'rebuild')); if (t == null) return null;
     const vet = (s.rosters[t] || []).map((id: number) => P[id]).filter((p: any) => p.age >= 27 && p.ovr >= 54).sort((a: any, b: any) => b.ovr - a.ovr)[0]; if (!vet) return null;
     const youth = mine.filter(id => P[id].age <= 23).sort((a, b) => g.potRead(P[b], t, s) - g.potRead(P[a], t, s)).slice(0, 4), picks = tradablePicks(g, s, me).map((a: any) => a.id).slice(0, 4), filler = mine.filter(id => P[id].age > 23).sort((a, b) => P[b].amt - P[a].amt).slice(0, 4);
-    let best: TradeIdea | null = null, bestMine = -Infinity;
+    // Like any team making a call, it asks for the most it thinks you'd still say yes to.
+    let best: TradeIdea | null = null, bestG = -Infinity;
     for (const ys of subsets(youth, 1)) for (const ks of subsets(picks, 2)) for (const fs of subsets(filler, 1)) {
       const myP = [...ys, ...fs]; if (!myP.length && !ks.length) continue;
-      if (teamGain(g, s, t, myP, [vet.id], ks, []) < 0) continue;
-      const mg = myGain([vet.id], myP, [], ks); if (mg <= bestMine) continue;
+      const tg = teamGain(g, s, t, myP, [vet.id], ks, []); if (tg < 0 || tg <= bestG) continue;
+      if (myGain([vet.id], myP, [], ks) <= -3) continue;
       if (!checkTrade(g, gd, t, me, [vet.id], myP, [], ks).ok) continue;
-      bestMine = mg; best = { a: t, b: me, aP: [vet.id], bP: myP, aK: [], bK: ks, why: T[t].region + ' are rebuilding: they’d move ' + vet.name + ' for young talent or picks.' };
+      bestG = tg; best = { a: t, b: me, aP: [vet.id], bP: myP, aK: [], bK: ks, why: T[t].region + ' are rebuilding: they’d move ' + vet.name + ' for young talent or picks.' };
     }
     return ok(best);
   }

@@ -24,10 +24,10 @@ function combosOf(R: number[], picks: string[], seed: number) {
 // because offers try thousands of packages.
 function evaluator(g: Game, s: any, tid: number) {
   const st = g.strategies(s.teams)[tid] || 'middle', P = g.db.P, vp = new Map<number, number>(), vk = new Map<string, number>();
-  const pv = (id: number) => { let v = vp.get(id); if (v == null) { v = g.pVal(P[id], st, tid); vp.set(id, v); } return v; }; // through this team's own scouts
+  const pv = (id: number, giving: boolean) => { const key = giving ? -1 - id : id; let v = vp.get(key); if (v == null) { v = g.tradeP(P[id], st, tid, giving); vp.set(key, v); } return v; }; // through this team's own scouts
   const kv = (id: string, giving: boolean) => { const key = id + (giving ? '+' : '-'); let v = vk.get(key); if (v == null) { v = g.kVal(s.assets.find((a: any) => a.id === id), st, giving, s.teams); vk.set(key, v); } return v; };
   return (mine: number[], theirs: number[], kMine: string[], kTheirs: string[]) => {
-    const recv = mine.reduce((a, id) => a + pv(id), 0) + kMine.reduce((a, id) => a + kv(id, false), 0), give = theirs.reduce((a, id) => a + pv(id), 0) + kTheirs.reduce((a, id) => a + kv(id, true), 0);
+    const recv = mine.reduce((a, id) => a + pv(id, false), 0) + kMine.reduce((a, id) => a + kv(id, false), 0), give = theirs.reduce((a, id) => a + pv(id, true), 0) + kTheirs.reduce((a, id) => a + kv(id, true), 0);
     return recv - give >= Math.max(1, Math.abs(give) * 0.06);
   };
 }
