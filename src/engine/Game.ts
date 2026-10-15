@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, deriveDefense, deriveDefenseKeepOvr, OVR_W, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_W, OVR_W_V1, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -312,6 +312,14 @@ export class Game {
       const oldOvr = (p: any) => { const W = { ...(OVR_W[p.grp] || OVR_W.W), hgt: OH[p.grp] ?? 1.1 }; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + (wngRating(p) - 50) * (OWG[p.grp] ?? .06) - (OA[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = Math.round(ovrExact(p) - oldOvr(p)); if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + d)); syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.hwV = 1; }
+    // 2026-10-15: Offensive and Defensive IQ count for more in the overall, shooting, finishing, blocks and steals a
+    // little less (ratings.ts OVR_W). Every overall is recomputed (most move under a point); his potential, true
+    // potential and plan move by the same amount so his growth room is unchanged.
+    if (!g.db.iqV) { const oldOvr = (p: any) => { const W = OVR_W_V1[p.grp] || OVR_W_V1.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (OVR_ADJ_V1[p.grp] ?? 2.5))); };
+      (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
+        if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
+        syncOvr(p, true); if (!p.retired) refreshPot(p); });
+      g.refreshNorms(g.state); g.db.iqV = 1; }
     // 2026-10-14: the scouts' miss on potential goes either way (potential.ts refreshPot, teamRead): re-read everyone once.
     if (!g.db.perrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.r && !p.gone && !p.retired) refreshPot(p); }); g.db.perrV = 1; }
     if (!g.db.tenAuto) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
@@ -450,7 +458,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
