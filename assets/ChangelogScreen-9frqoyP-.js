@@ -1,8 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-MoaikZ9v.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-B4dsSKVa.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-15
+
+### Fixed
+- **Height ratings no longer shrink as a league ages.** A new player's height rating was partly tied to his overall, so every draft prospect (low overall) was rated about 7 points short for his listed height, for his whole career. As they replaced the original players, the league's height ratings sank while actual heights stayed the same: a 6′6″ player rated 46 in a new league, 43 after 7 seasons and 39 after 27. Height ratings now follow listed height for everyone. Your league's players who were rated short are brought up when you load it, with their overalls unchanged (their other ratings give back the difference).
+- **Scoring no longer creeps up over the seasons.** As a league ages, players' skills shift in ways the engine didn't fully adjust for, so scoring rose from about 117 a game to 120, and three-point shooting from .357 to .377 after 27 seasons. Now each new season looks at how the league actually shot and turned the ball over the season before, and nudges shooting and turnovers back toward NBA levels. Your league picks this up from last season as soon as you load it: in a test it went from 118 to 117 points, and a 27-season league from 117 to 115 with three-point shooting back to .364 within two seasons.
 
 ### Changed
 - **Fewer three-point gunners.** Stars could take more than 40% of their team's shots while on the floor, and a high-volume shooter kept a spot-up shooter's mix, so 20 players a season took 10+ threes a night and a few made 450–500 (the NBA record is 402). Now a star's share tops out around 33–35% (the NBA's heaviest-usage players), and the more of the offense a player carries, the more of his shots come off the dribble, at the rim and from mid-range instead of threes. In a full test season: 7 players attempt 10+ threes a game (was 20), nobody attempts 12+ (was 8), and the league leader makes about 350–400 in 82 healthy games. Team three-point attempts stay near the NBA's 37 a game, with more of them going to role players.
