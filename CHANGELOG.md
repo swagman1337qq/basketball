@@ -17,6 +17,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - **Brain freezes:** low-IQ players and teams sometimes botch it. They forget to foul, take a two when down 3, or make a free throw they meant to miss. A sharp player almost never does.
 
 ### Changed
+- **Endurance counts a little more in a player's overall.** Ten points of Endurance now add about 0.45 to his overall (was about 0.3); it's about 4.5% of the overall instead of 3%. Overalls are re-centered so a typical player stays where he was: in your league nearly everyone keeps his overall or moves by a point, with potential moving with it.
 - **Accolades summary is shorter.** The gold badges at the top of a player's Accolades tab now show counts and short names without the seasons, like "7× MVP", "3× DPOY", "2× FMVP", "4× All-League 1st" (All-Star stays spelled out: "7× All-Star"). Hover a badge for the full name and seasons; the tables below still list every season.
 - **"Scouting report" is now "Scouting"** in the player profile's tabs.
 - **Pace and free throws back on NBA levels.** Games ran a little fast (about 102 possessions a team against the NBA's 99.4). With the new late-game fouls, regular-play fouls are trimmed so free throws stay the same overall. A test season now averages 99.9 possessions, 114.5 points and 23.4 free throw attempts a team.
