@@ -80,7 +80,7 @@ const CRE_LABEL: Record<Cre, string> = { cns: 'a catch-and-shoot', pullup: 'a pu
 // How much a lineup's ball-handling, feel and IQ (offense) and pressure, feel and hands (defense) move
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
 const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
-const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.0705, nonShoot: 0.07, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.032 };
+const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.066, nonShoot: 0.066, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.075 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
 export const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
@@ -506,11 +506,14 @@ export class GameSim {
     const kind0 = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
     // Defensive three seconds: bigs who don't read the play camp in the lane (about 0.4 a game).
     const p3 = putback ? 0 : 0.0011 * onD.reduce((a, p) => a + (p.grp === 'B' ? Math.exp((52 - p.r.diq) / 12) : 0), 0);
-    const kind = kind0 === 'fga' && Math.random() < p3 ? 'd3' : kind0;
+    const kind1 = kind0 === 'fga' && Math.random() < p3 ? 'd3' : kind0;
+    // The end of a close game (the 4th or overtime): the score and the clock decide what each side does.
+    const eg = this.endgame(O, D, onO, onD, offK, defK, putback);
+    const kind = eg.foul ? 'ifoul' : eg.last ? (eg.hold ? 'hold' : 'fga') : eg.hold && kind1 !== 'tov' ? 'hold' : kind1;
 
     // Clock: a whistle, a quick putback, or a normal trip at the offense's pace.
     const paceF = (fx ? fx.dt : 1) * Math.pow(this.teams[offK].tempo ?? 1, 0.7) * Math.pow(this.teams[defK].tempo ?? 1, 0.3);
-    const dt = Math.min(this.t, kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
+    const t0 = this.t, dt = Math.min(this.t, eg.dt != null && kind !== 'nsf' && kind !== 'd3' ? eg.dt : (kind === 'nsf' || kind === 'd3') && this.q >= 4 && this.t <= 24 ? 0.4 + Math.random() * 1.6 : kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
     onO.forEach(p => (O.box[p.id].min += dt / 60));
     onD.forEach(p => (D.box[p.id].min += dt / 60));
     this.t -= dt;
@@ -524,7 +527,16 @@ export class GameSim {
     const foul = () => { const f = wpick(onD, p => 110 - p.r.diq); D.box[f.id].pf++; D.fouls++; return f; };
 
     let keep = false;
-    if (kind === 'hack' && hackT) {
+    if (kind === 'ifoul' && eg.foul) {
+      // A foul on purpose: the trailing team stops the clock, or the team up 3 fouls before a three can go up.
+      const f = foul(), tg = eg.foul;
+      if (D.fouls > 4) keep = this.freeThrows(O, D, onO, onD, tg, 2, score, ev, f, eg.up3 ? 'up3' : 'int', cAdv);
+      else { ev([f.id, tg.id], () => f.name + ' fouls ' + tg.name + (eg.up3 ? ' before he can shoot (up 3)' : ' on purpose'), () => 'A foul to give: side out'); keep = true; }
+    } else if (kind === 'hold') {
+      // Ahead with the shot clock off: dribble out the clock.
+      const h = onO.reduce((a, p) => (p.r.drb + p.r.pss > a.r.drb + a.r.pss ? p : a));
+      ev([h.id], () => (eg.last ? 'Time runs out' : this.t <= 0 ? h.name + ' dribbles out the clock' : 'No foul: ' + h.name + ' runs the clock'));
+    } else if (kind === 'hack' && hackT) {
       const f = foul();
       keep = this.freeThrows(O, D, onO, onD, hackT, 2, score, ev, f, 'hack', cAdv);
     } else if (kind === 'd3') {
@@ -553,7 +565,7 @@ export class GameSim {
       keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
-      const sh = wpick(onO, p => use(p));
+      const sh = wpick(onO, p => use(p) * (eg.need3 ? Math.exp((p.r.tp - 50) / 14) : 1)); // needing a three, it goes to a shooter
       const prof0 = this.profile(sh, tO, fx, fb), md = mood(sh);
       // A heat check is a deep pull-up; a frustrated shot is a contested jumper, rarely a drive.
       const prof = md === 'heat' ? { ...prof0, atb: prof0.atb * 2, c3: prof0.c3 * 0.6 } : md === 'tilt' ? { ...prof0, mid: prof0.mid * 1.5, atb: prof0.atb * 1.4, rim: prof0.rim * 0.6 } : prof0;
@@ -562,7 +574,11 @@ export class GameSim {
       // three-heavy mix (over 48% threes) bends back: 20+ shots a night at 75% threes becomes about 55%.
       const shS = use(sh) / onO.reduce((a, p) => a + use(p), 0), s3 = prof.c3 + prof.atb, sAll = s3 + prof.rim + prof.mid, f3 = sAll > 0 ? s3 / sAll : 0, hi3 = cl((shS - 0.17) / 0.15, 0, 1);
       const n3 = f3 > 0.48 && hi3 > 0 ? f3 - (f3 - 0.48) * 0.8 * hi3 : f3, k3 = f3 > 0 ? n3 / f3 : 1, kO = f3 < 1 ? (1 - n3) / (1 - f3) : 1;
-      const z = wpick(ZONES, k => prof[k] * (k === 'c3' || k === 'atb' ? k3 : kO));
+      // Late: needing a three he shoots one, unless he loses track of the score (a low Offensive IQ); needing two he attacks.
+      const egZ = eg.need3 ? (Math.random() < this.brainfart(sh.r.oiq) * 1.5 ? 'two' : 'three') : eg.go2 ? 'two' : null;
+      const z = wpick(ZONES, k => prof[k] * (k === 'c3' || k === 'atb' ? k3 * (egZ === 'two' ? 0.08 : 1) : kO * (egZ === 'three' ? 0 : 1)));
+      // A shot at the buzzer is rushed: a catch and heave with a second or less, a hurried one with two.
+      const rush = this.q >= 4 ? (eg.last ? 0.25 : putback ? 0 : t0 <= 1.2 ? 0.12 : t0 <= 2.5 ? 0.05 : 0) : 0;
       const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
       const sk = cs[z] + (paint ? 0.5 * ((cs.rim - n.skill.rim) - (cs.mid - n.skill.mid)) : 0), subD = z !== 'mid' ? 0 : paint ? PAINT_D : -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE);
       // A jump shot (mid-range or a three): how he creates it. A heat check comes off the dribble.
@@ -591,7 +607,7 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -661,14 +677,69 @@ export class GameSim {
     return null;
   }
 
+  // A late-game mental mistake (losing track of the score, the clock or the foul count): rare for a sharp
+  // player (under 1% at a 70), more common for a low-IQ one (about 3% at 50, 17% at 30).
+  private brainfart(iq: number) { return cl(0.05 * Math.exp((45 - iq) / 12), 0.004, 0.25); }
+  // The last 48 seconds of the 4th or overtime in a game within 12. From the offense's side (lead = its
+  // margin) it returns what the two teams do on this trip:
+  // - trailing on defense: foul on purpose to stop the clock, once the shot clock is off (24 seconds) in a
+  //   one-possession game, or with time to catch up in a two- or three-possession one; the ball goes to a sure
+  //   handler and good free throw shooter, so that's who gets fouled (foul);
+  // - leading on offense and not fouled: dribble out the clock with the shot clock off (hold), or work the
+  //   shot clock before that (dt);
+  // - up 3 on defense with 7 seconds or less: sometimes foul before a three can go up (up3; better staffs
+  //   more often), so the trailing team gets two free throws instead of a shot to tie;
+  // - tied or down 1–2: hold for the last shot and mostly attack for two (go2); down 3: a quick three
+  //   (need3); down more: hurry, mostly threes;
+  // - after an offensive rebound with seconds left: a quick putback or kick-out.
+  // Low-IQ teams and players botch some of it (brainfart): no foul, a quick shot when ahead, a two when down 3.
+  private endgame(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], _offK: Side, defK: Side, putback: boolean) {
+    const out: { foul?: SimPlayer; up3?: boolean; dt?: number; need3?: boolean; go2?: boolean; hold?: boolean; last?: boolean } = {};
+    const t = this.t, lead = O.pts - D.pts;
+    if (this.q < 4 || t > 48 || Math.abs(lead) > 12) return out;
+    // Under a second: no time to run anything. Ahead, the clock runs out; behind or tied, a catch and heave.
+    if (t < 1) { out.last = true; out.dt = t; out.hold = lead > 0; out.need3 = lead <= -3; return out; }
+    const diqD = avg(onD, p => p.r.diq), oiqO = avg(onO, p => p.r.oiq), coachD = this.teams[defK].coach ?? 0.65;
+    const target = () => wpick(onO, p => Math.max(10, p.r.drb + p.r.pss) * Math.exp((p.r.ft - 60) / 15));
+    if (lead > 0) {
+      if (putback) return out;
+      const need = Math.ceil(lead / 3), want = lead <= 3 ? t <= 24 : t <= 12 + lead * 5 && need <= t / 7 + 1;
+      if (want && Math.random() > this.brainfart(diqD)) { out.foul = target(); out.dt = 0.8 + Math.random() * 2.2; return out; }
+      // (Not fouled: the defense lost track. With more than six seconds left it gets another chance to foul.)
+      if (t <= 24) { if (Math.random() > this.brainfart(oiqO)) { out.hold = true; out.dt = t <= 6 ? t : 2 + Math.random() * 4; } return out; }
+      if (Math.random() > this.brainfart(oiqO)) out.dt = 14 + Math.random() * 9;
+      return out;
+    }
+    if (lead === -3 && !putback && t <= 7 && Math.random() < 0.15 + 0.35 * coachD) { out.foul = target(); out.up3 = true; out.dt = 0.6 + Math.random() * 1.2; return out; }
+    const d = -lead;
+    if (putback) { out.dt = Math.min(t, 0.6 + Math.random() * 1.6); out.need3 = d === 3 && t <= 10 && Math.random() < 0.7; return out; }
+    if (d <= 2) { if (t <= 24) { out.dt = Math.max(1, t - (0.8 + Math.random() * 3.5)); out.go2 = d > 0 && Math.random() < 0.75; } }
+    else if (d === 3) { if (t <= 24) out.dt = Math.min(t, 1.5 + Math.random() * 7); out.need3 = t <= 14 || Math.random() < 0.6; }
+    else { out.dt = Math.min(t, 1.5 + Math.random() * 5); out.need3 = d <= 9 && Math.random() < (t <= 20 ? 0.75 : 0.5); }
+    return out;
+  }
+
   // Free throws. Returns true if the offense keeps the ball (offensive rebound off a live miss).
-  private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack' | 'tech', cAdv: number) {
+  private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack' | 'tech' | 'int' | 'up3', cAdv: number) {
     const pct = cl(this.ftPct(sh) - (sh.adj ? 0.02 : 0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.3, sh.r.ft >= FT_PERFECT ? 0.99 : 0.95);
-    let made = 0, last = false;
-    for (let i = 0; i < n; i++) { O.box[sh.id].fta++; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; } }
+    let made = 0, last = false, miss: '' | 'rim' | 'air' | 'in' | 'forgot' = '';
+    for (let i = 0; i < n; i++) {
+      // The last one with seconds left, when making it can't tie or win (down 2 or more): miss it on purpose off
+      // the rim and fight for the rebound. It sometimes drops in anyway, or misses the rim (a violation); a
+      // low-IQ shooter can forget and make it.
+      if (i === n - 1 && kind !== 'tech' && this.q >= 4 && this.t <= 3.5 && this.t >= 0.6 && O.pts + made - D.pts <= -2) {
+        if (Math.random() < this.brainfart(sh.r.oiq)) miss = 'forgot';
+        else { O.box[sh.id].fta++; const x = Math.random(); miss = x < 0.05 ? 'in' : x < 0.12 ? 'air' : 'rim'; last = miss === 'in'; if (last) { made++; O.box[sh.id].ftm++; } continue; }
+      }
+      O.box[sh.id].fta++; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; }
+    }
     if (made) score(sh, made);
     if (kind === 'tech') { ev([sh.id, fouler.id], () => 'Defensive three seconds on ' + fouler.name, () => sh.name + (made ? ' makes' : ' misses') + ' the technical free throw', !!made); return true; }
-    ev([sh.id, fouler.id], () => (kind === 'and1' ? 'And one: ' + fouler.name + ' fouls ' + sh.name : fouler.name + ' fouls ' + sh.name + (kind === 'bonus' ? ' (bonus)' : kind === 'hack' ? ' on purpose (Hack-a-Shaq)' : ' on the shot')), () => sh.name + ' makes ' + made + ' of ' + n + ' free throw' + (n === 1 ? '' : 's'), made > 0);
+    const how = kind === 'bonus' ? ' (bonus)' : kind === 'hack' ? ' on purpose (Hack-a-Shaq)' : kind === 'int' ? ' on purpose to stop the clock' : kind === 'up3' ? ' before he can shoot (up 3)' : ' on the shot';
+    const after = miss === 'rim' ? ' and misses the last one on purpose' : miss === 'air' ? ', then misses the rim on purpose: a violation' : miss === 'in' ? ': he tried to miss the last one, but it dropped in' : miss === 'forgot' ? ' (he forgot to miss the last one on purpose)' : '';
+    ev([sh.id, fouler.id], () => (kind === 'and1' ? 'And one: ' + fouler.name + ' fouls ' + sh.name : fouler.name + ' fouls ' + sh.name + how), () => sh.name + ' makes ' + made + ' of ' + n + ' free throw' + (n === 1 ? '' : 's') + after, made > 0);
+    if (miss === 'air') return false;
+    if (miss === 'rim') return this.rebound(O, D, onO, onD, cAdv, ev, -0.08); // a scramble the defense usually wins
     if (!last && Math.random() < RATE.liveFt) return this.rebound(O, D, onO, onD, cAdv, ev);
     return false;
   }
