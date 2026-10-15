@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CUW-cZ-9.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Ba2txgXG.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-15
+
+### Changed
+- **The league's famous owners own different teams in every new league.** Panny "Mac-Pan" Macquiao, Mao Ying, Tanner Matthews and the Aurelian Public Investment Fund used to own the same four clubs every time. Now each new league hands them to random clubs. Their names, fortunes, personalities and life stories stay the same, and their biographies name whichever team they own. Leagues you've already started keep their owners.
 
 ## 2026-10-14
 
