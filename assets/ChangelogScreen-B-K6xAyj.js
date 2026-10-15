@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DzHqoUTu.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-0Oa1uuD5.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -17,6 +17,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - **Brain freezes:** low-IQ players and teams sometimes botch it. They forget to foul, take a two when down 3, or make a free throw they meant to miss. A sharp player almost never does.
 
 ### Changed
+- **Accolades summary is shorter.** The gold badges at the top of a player's Accolades tab now show counts and short names without the seasons, like "7× MVP", "3× DPOY", "2× FMVP", "4× All-League 1st" (All-Star stays spelled out: "7× All-Star"). Hover a badge for the full name and seasons; the tables below still list every season.
 - **"Scouting report" is now "Scouting"** in the player profile's tabs.
 - **Pace and free throws back on NBA levels.** Games ran a little fast (about 102 possessions a team against the NBA's 99.4). With the new late-game fouls, regular-play fouls are trimmed so free throws stay the same overall. A test season now averages 99.9 possessions, 114.5 points and 23.4 free throw attempts a team.
 - **Basketball IQ counts for more in a player's overall; shooting, finishing, blocks and steals a little less.** Raising a guard's Offensive IQ by 10 now adds about 1.2 points to his overall (was about 0.75), and Defensive IQ about 0.9 for a guard and 1.2 for a big (was about 0.5 and 0.75). Ten points of three-point shooting now add about 0.6 (was 0.75), and ten of blocks about 0.37 for a big (was 0.5). Overalls are re-centered so a typical player stays where he was: in your league most players keep their overall or move by one point, with potential moving with them so nobody's room to grow changes. (Raised a second time the same day, a little higher than the first step.)
