@@ -93,9 +93,15 @@ export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }))
 // protection. Used when a rating is edited in God Mode, so the overall moves with it. Height counts for
 // a lot at every position (2026-10-12: 2.6 for guards and bigs, 2.2 for wings): with the same skills a 6′5″
 // guard is about 2.5 better than a 6′0″ one, a 7′1″ center about 1.5 better than a 6′10″ one.
-// 2026-10-15: Offensive and Defensive IQ count for more (a guard's OIQ 7.7% → 10.5% of his overall), shooting,
-// finishing, blocks and steals a little less (OVR_W_V1 is the table before, for the save migration).
+// 2026-10-15: Offensive and Defensive IQ count for more (a guard's OIQ 7.7% → 12.2% of his overall), shooting,
+// finishing, blocks and steals a little less. OVR_W_V1 (before) and OVR_W_V2 (a first, smaller step the same day)
+// are kept for the save migration (Game.load iqV).
 export const OVR_W: Record<string, Record<string, number>> = {
+  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .3, dnk: .4, lay: .95, ft: .45, fg: .95, tp: 1.3, oiq: 2.6, diq: 1.95, blk: .12, stl: .45, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
+  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .55, dnk: .65, lay: .78, ft: .45, fg: .95, tp: 1.2, oiq: 2.25, diq: 2.35, blk: .3, stl: .45, drb: 1.1, pss: 1, reb: .8, box: .6 },
+  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.3, dnk: .88, lay: .65, ft: .4, fg: .55, tp: .45, oiq: 1.8, diq: 2.45, blk: .75, stl: .22, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+};
+export const OVR_W_V2: Record<string, Record<string, number>> = {
   G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .35, dnk: .45, lay: 1.05, ft: .5, fg: 1.05, tp: 1.4, oiq: 2.2, diq: 1.6, blk: .15, stl: .5, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
   W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .6, dnk: .7, lay: .85, ft: .5, fg: 1.05, tp: 1.3, oiq: 1.9, diq: 2.0, blk: .35, stl: .5, drb: 1.1, pss: 1, reb: .8, box: .6 },
   B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.4, dnk: .95, lay: .7, ft: .45, fg: .6, tp: .5, oiq: 1.5, diq: 2.1, blk: .85, stl: .25, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
@@ -106,12 +112,13 @@ export const OVR_W_V1: Record<string, Record<string, number>> = {
   B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, blk: 1, stl: .3, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
 };
 export const OVR_ADJ_V1: Record<string, number> = { G: 1.76, W: 1.74, B: 4.76 };
+export const OVR_ADJ_V2: Record<string, number> = { G: 1.65, W: 1.68, B: 4.58 };
 export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
 // The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
 // far more than a center's), plus his wingspan, on a scale shared by all positions. Bigs naturally
 // rate high in size skills and guards in speed and handle, so each position has a set adjustment
 // that keeps a typical 60 guard, wing and big all at 60. Hidden decimal progress (p.rx) counts.
-export const OVR_ADJ: Record<string, number> = { G: 1.65, W: 1.68, B: 4.58 };
+export const OVR_ADJ: Record<string, number> = { G: 1.6, W: 1.64, B: 4.44 };
 export function ovrExact(p: any): number {
   const W = OVR_W[p.grp] || OVR_W.W; let a = 0, t = 0;
   for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }
