@@ -7,13 +7,14 @@ import { Link, muted, ruleH4 } from '../kit';
 
 const ORD = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
 const TEAM_N = ['First', 'Second', 'Third', 'Fourth', 'Fifth'];
+const TEAM_AB: Record<string, string> = { ALL: 'All-League', DEF: 'All-Def', ALR: 'All-Rookie' }; // team awards in the summary chips: "3× All-League 1st"
 // Joke awards (the defaults, plus any you add with a name like these) go in their own box.
 const DUBIOUS = new Set(['LVP', 'AVG', 'LIP', 'LEP', 'WDP']), dubious = (sn: string, name: string) => DUBIOUS.has(sn) || /least|worst|perfectly average/i.test(name);
 const CLASSIC: Record<string, [string, string]> = { mvp: ['MVP', 'Most Valuable Player'], dpoy: ['DPOY', 'Defensive Player of the Year'], roy: ['ROY', 'Rookie of the Year'], smoy: ['SMOY', 'Sixth Man of the Year'], mip: ['MIP', 'Most Improved Player'] };
 const LEAD: [string, string, (t: any) => number][] = [['pts', 'Scoring', t => t.pts], ['trb', 'Rebounding', t => (t.orb || 0) + (t.drb || 0)], ['ast', 'Assists', t => t.ast], ['stl', 'Steals', t => t.stl], ['blk', 'Blocks', t => t.blk]];
 const MIN_GP = 58; // NBA stat titles: 70% of the schedule
 
-interface Row { season: number; label: string; tid?: number; line?: string; key: string }
+interface Row { season: number; label: string; tid?: number; line?: string; key: string; abbr?: string } // abbr: the summary chip's short name
 
 export function AccoladesTab({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid], T = s.teams, P = gm.db.P;
@@ -31,22 +32,22 @@ export function AccoladesTab({ vm }: { vm: VM }) {
         : Object.entries(CLASSIC).map(([k, [sn, nm]]) => [sn, nm, a[k] || []]);
       lists.forEach(([sn, name, l]) => {
         const i = l.findIndex((e: any) => e.pid === p.id); if (i < 0) return;
-        const e = l[i], bad = dubious(sn, name), row: Row = { season: y, tid: e.tid, line: e.line, key: sn, label: name };
+        const e = l[i], bad = dubious(sn, name), row: Row = { season: y, tid: e.tid, line: e.line, key: sn, label: name, abbr: sn };
         if (i === 0) (bad ? dub : won).push(row);
         else if (!bad) votes.push({ ...row, label: ORD(i + 1) + ' in ' + name + ' voting' + (e.share != null ? ' (' + (e.share * 100).toFixed(1) + '% share' + (e.first ? ', ' + e.first + ' first-place vote' + (e.first === 1 ? '' : 's') : '') + ')' : '') });
       });
       // Team awards (All-League, All-Defensive, All-Rookie, and any you added).
       const tms: [string, string, number[][]][] = a.teams ? (a.defs || []).filter((d: any) => d.numTeams).map((d: any) => [d.shortName, d.name, a.teams[d.shortName] || []])
         : [['ALL', 'All-League', a.allLeague || []], ['DEF', 'All-Defensive', a.allDef || []], ['ALR', 'All-Rookie', a.allRookie?.length ? [a.allRookie] : []]];
-      tms.forEach(([sn, name, t]) => t.forEach((tm, i) => { if (tm.includes(p.id)) teams.push({ season: y, key: sn + (i + 1), tid: tidIn(y), label: (t.length > 1 ? TEAM_N[i] + ' Team ' : '') + name }); }));
+      tms.forEach(([sn, name, t]) => t.forEach((tm, i) => { if (tm.includes(p.id)) teams.push({ season: y, key: sn + (i + 1), tid: tidIn(y), label: (t.length > 1 ? TEAM_N[i] + ' Team ' : '') + name, abbr: (TEAM_AB[sn] || sn) + (t.length > 1 ? ' ' + ORD(i + 1) : '') }); }));
       // Series MVPs.
-      if (a.fmvp?.pid === p.id) series.push({ season: y, key: 'FMVP', tid: a.fmvp.tid, line: a.fmvp.line, label: 'Finals MVP' });
-      Object.entries(a.sfmvp || {}).forEach(([c, e]: any) => { if (e?.pid === p.id) series.push({ season: y, key: 'SFMVP', tid: e.tid, line: e.line, label: c + ' Finals MVP' }); });
+      if (a.fmvp?.pid === p.id) series.push({ season: y, key: 'FMVP', tid: a.fmvp.tid, line: a.fmvp.line, label: 'Finals MVP', abbr: 'FMVP' });
+      Object.entries(a.sfmvp || {}).forEach(([c, e]: any) => { if (e?.pid === p.id) series.push({ season: y, key: 'SFMVP', tid: e.tid, line: e.line, label: c + ' Finals MVP', abbr: String(c)[0] + 'CF MVP' }); });
     });
     // All-Star selections and All-Star Game MVPs.
     const allStar: Row[] = [];
     Object.entries(s.allStars || {}).forEach(([y, a]: any) => { (['East', 'West'] as const).forEach(c => { const st = a[c].starters.includes(p.id), rs = a[c].reserves.includes(p.id); if (st || rs) allStar.push({ season: +y, key: 'AS', tid: tidIn(+y), label: 'All-Star', line: c + (st ? ' starter' : ' reserve') }); });
-      if (a.game?.mvp === p.id) series.push({ season: +y, key: 'ASMVP', tid: a.game.mvpTid, line: a.game.mvpLine, label: 'All-Star Game MVP' }); });
+      if (a.game?.mvp === p.id) series.push({ season: +y, key: 'ASMVP', tid: a.game.mvpTid, line: a.game.mvpLine, label: 'All-Star Game MVP', abbr: 'ASG MVP' }); });
     // Championships and Finals trips.
     const titles: Row[] = [];
     (s.history || []).forEach((h: any) => { const t = tidIn(h.year, true) ?? tidIn(h.year); if (t == null) return; // hurt all playoffs still gets the ring
@@ -59,7 +60,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
     mySeasons.filter(y => (s.awards || {})[y]).forEach(y => {
       const mine = gm.seasonTotals(p, y); if (!mine || mine.gp < MIN_GP) return;
       const pool = all.filter(q => (q.stats || []).some((r: any) => r.season === y && !r.po)).map(q => ({ q, t: gm.seasonTotals(q, y) })).filter(x => x.t && x.t.gp >= MIN_GP);
-      LEAD.forEach(([k, name, f]) => { const best = pool.reduce((b, x) => (f(x.t) / x.t.gp > f(b.t) / b.t.gp ? x : b), pool[0]); if (best?.q.id === p.id) leads.push({ season: y, key: 'LEAD' + k, tid: tidIn(y), label: 'Led the league in ' + name.toLowerCase(), line: (f(mine) / mine.gp).toFixed(1) + ' per game' }); });
+      LEAD.forEach(([k, name, f]) => { const best = pool.reduce((b, x) => (f(x.t) / x.t.gp > f(b.t) / b.t.gp ? x : b), pool[0]); if (best?.q.id === p.id) leads.push({ season: y, key: 'LEAD' + k, tid: tidIn(y), label: 'Led the league in ' + name.toLowerCase(), line: (f(mine) / mine.gp).toFixed(1) + ' per game', abbr: (k === 'trb' ? 'REB' : k.toUpperCase()) + ' leader' }); });
     });
     return { won, teams, votes, dub, series, titles, leads, allStar };
   }, [p?.id, nAw, (s.history || []).length, Object.keys(s.allStars || {}).length]);
@@ -68,10 +69,11 @@ export function AccoladesTab({ vm }: { vm: VM }) {
   const { won, teams, votes, dub, series, titles, leads, allStar } = data;
   const hof = (s.hof || []).find((h: any) => h.pid === p.id), no1 = p.dr?.rd === 1 && p.dr?.pick === 1, L = p.legacy;
 
-  // The summary chips: counts, biggest honors first.
-  const count = (rows: Row[]) => { const m = new Map<string, { label: string; n: number; years: number[] }>(); rows.forEach(r => { const e = m.get(r.label) || { label: r.label, n: 0, years: [] }; e.n++; e.years.push(r.season); m.set(r.label, e); }); return [...m.values()]; };
+  // The summary chips: "7× MVP", short names (All-Star stays spelled out), biggest honors first; the full
+  // name and the seasons are in the tooltip and the tables below.
+  const count = (rows: Row[]) => { const m = new Map<string, { label: string; ab: string; n: number; years: number[] }>(); rows.forEach(r => { const e = m.get(r.label) || { label: r.label, ab: r.abbr || r.label, n: 0, years: [] }; e.n++; e.years.push(r.season); m.set(r.label, e); }); return [...m.values()]; };
   const champs = titles.filter(t => t.key === 'CH');
-  const chips = [...(champs.length ? [{ label: 'League Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(allStar), ...count(series), ...count(teams), ...count(leads)];
+  const chips = [...(champs.length ? [{ label: 'League Champion', ab: 'Champion', n: champs.length, years: champs.map(c => c.season) }] : []), ...count(won), ...count(allStar), ...count(series), ...count(teams), ...count(leads)];
 
   const Team = ({ tid }: { tid?: number }) => tid != null && T[tid] ? <Link onClick={() => gm.setState({ teamModal: tid, modal: false })}>{T[tid].abbr}</Link> : <span style={muted}>—</span>;
   const Table = ({ title, rows, note }: { title: string; rows: Row[]; note?: ReactNode }) => rows.length ? (
@@ -90,7 +92,7 @@ export function AccoladesTab({ vm }: { vm: VM }) {
   return (
     <div style={{ marginTop: 22 }}>
       {chips.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-        {chips.map(c => <span key={c.label} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--gm-elite, var(--color-accent))', color: 'var(--gm-elite, var(--color-accent-700))', fontSize: '12.5px', fontWeight: 600 }}>{c.n > 1 ? c.n + '× ' : ''}{c.label} <span style={{ fontWeight: 400, opacity: 0.85 }}>({[...c.years].sort((a, b) => a - b).map(lbl).join(', ')})</span></span>)}
+        {chips.map(c => <span key={c.label} title={c.label + ': ' + [...c.years].sort((a, b) => a - b).map(lbl).join(', ')} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--gm-elite, var(--color-accent))', color: 'var(--gm-elite, var(--color-accent-700))', fontSize: '12.5px', fontWeight: 600 }}>{c.n > 1 ? c.n + '× ' : ''}{c.ab}</span>)}
       </div>}
       {(hof || no1 || L) && <section style={{ marginBottom: 18 }}>
         <h4 style={ruleH4}>Career milestones</h4>
