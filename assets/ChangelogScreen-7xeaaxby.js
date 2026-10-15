@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BFc9JsZ0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-gBUJrSTc.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-15
 
 ### Added
+- **Full injury history on the player's History tab.** Every injury a player has had, newest first: the date, the team he was with, the injury (major ones in red, with any skill it cost him), how long he was expected to be out, the games he actually missed and the day he was back. An injury he's still out with shows the games and days left. A summary line on top gives the number of injuries, the games missed and the longest. Injuries from before this update show their season, but no dates or games missed.
 - **Real end-of-game basketball.** Close games used to end like any other possession: a team down 3 with seconds left was as likely to take a layup as a three. Now, in the last 48 seconds of the 4th quarter or overtime:
   - **The trailing team fouls on purpose** to stop the clock once the shot clock is off in a one-possession game, or with time to catch up when down two or three possessions. Teams with fouls to give use them first, and the offense gets the ball to a good free throw shooter.
   - **The team ahead runs out the clock**: it works the shot clock, and dribbles out the clock when the shot clock is off.
@@ -16,6 +17,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - **Brain freezes:** low-IQ players and teams sometimes botch it. They forget to foul, take a two when down 3, or make a free throw they meant to miss. A sharp player almost never does.
 
 ### Changed
+- **"Scouting report" is now "Scouting"** in the player profile's tabs.
 - **Pace and free throws back on NBA levels.** Games ran a little fast (about 102 possessions a team against the NBA's 99.4). With the new late-game fouls, regular-play fouls are trimmed so free throws stay the same overall. A test season now averages 99.9 possessions, 114.5 points and 23.4 free throw attempts a team.
 - **Basketball IQ counts for more in a player's overall; shooting, finishing, blocks and steals a little less.** Raising a guard's Offensive IQ by 10 now adds about 1.2 points to his overall (was about 0.75), and Defensive IQ about 0.9 for a guard and 1.2 for a big (was about 0.5 and 0.75). Ten points of three-point shooting now add about 0.6 (was 0.75), and ten of blocks about 0.37 for a big (was 0.5). Overalls are re-centered so a typical player stays where he was: in your league most players keep their overall or move by one point, with potential moving with them so nobody's room to grow changes. (Raised a second time the same day, a little higher than the first step.)
 
