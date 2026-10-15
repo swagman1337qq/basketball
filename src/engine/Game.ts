@@ -1647,7 +1647,7 @@ export class Game {
   healCal(s, rosters = s.rosters, alive?: Set<number>) {
     const now = this.calNow(s), P = this.db.P, healed: number[] = [];
     const step = (id: number, tid: number) => { const p = P[id]; if (!p?.inj) return; if (p.inj.until == null) p.inj.until = this.injUntil(s, p.inj.games);
-      if (p.inj.until <= now) { delete p.inj; if (tid >= 0) this.injBack(s, rosters, tid, p); else delete p.preInj; healed.push(id); return; }
+      if (p.inj.until <= now) { this.injDone(p, s); delete p.inj; if (tid >= 0) this.injBack(s, rosters, tid, p); else delete p.preInj; healed.push(id); return; }
       if (s.phase === 'regular') { if (tid < 0) p.inj.games = this.injGamesTo(s, p.inj.until); }
       else if (alive && tid >= 0 && alive.has(tid)) p.inj.games = Math.max(1, Math.ceil((p.inj.until - now) / 2.14)); // a postseason game every ~2.14 days
       else p.inj.games = this.injGamesNext(s, p.inj.until); };
@@ -1655,6 +1655,11 @@ export class Game {
     [...(s.fa || []), ...(s.overseas || [])].forEach((id: number) => step(id, -1));
     return healed;
   }
+  // His injury is over: its entry in his injury history (p.injHist) gets the day he was back and the games
+  // he actually missed (his team's games he sat out; a day-to-day knock he played through misses none).
+  injDone(p, s = this.state) { const i = p?.inj, h = i?.h != null ? p.injHist?.[i.h] : null; if (!h || h.back != null) return; h.back = this.calNow(s); h.missed = i.miss || 0; }
+  // A day number (calNow) as a date: "Mar 4, 2031".
+  fmtDay(dn: number) { return new Date(dn * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
   // Games and days left (null if healthy).
   injLeft(p, s = this.state) { const i = p?.inj; if (!i) return null; if (i.until == null) i.until = this.injUntil(s, i.games); return { games: Math.max(0, i.games), days: Math.max(0, i.until - this.calNow(s)) }; }
   // "5 games / 12 days" (short: "5g / 12d").
@@ -1680,15 +1685,16 @@ export class Game {
     if (b && b.tid === tid) { if (b.rot == null) delete p.rot; else p.rot = b.rot; } else if (p.rot === 0) delete p.rot;
   }
   // A postseason game: his team played one, so his injury is one game shorter.
-  injGame(s, rosters, tid) { (rosters[tid] || []).forEach((id: number) => { const p = this.db.P[id]; if (!p?.inj) return; p.inj.games--; if (p.inj.games <= 0) { delete p.inj; this.injBack(s, rosters, tid, p); } }); }
+  injGame(s, rosters, tid) { (rosters[tid] || []).forEach((id: number) => { const p = this.db.P[id]; if (!p?.inj) return; p.inj.games--; if (!p.inj.dtd) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0) { this.injDone(p, s); delete p.inj; this.injBack(s, rosters, tid, p); } }); }
   injTick(rosters, day, s, out, mins: Record<number, number> = {}) {
     const P = this.db.P, pk = a => a[Math.floor(Math.random() * a.length)];
     const hbOf = k => 1 - (teamBudget(this, s, +k).Health - 10) / 40; // the medical staff: yours from Finances, an AI team's from its owner
+    const played = new Set(Object.keys(rosters).filter(k => rosters[k].some((id: number) => mins[id] > 0)).map(Number)); // teams that played today: their injured players missed a game
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
-      if (p.inj) { p.inj.games--; if (p.inj.games <= 0) { let lost = '';
+      if (p.inj) { p.inj.games--; if (played.has(+k) && !mins[id]) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0) { let lost = '';
           // A major injury can also cost skill once he's back (rust, lost feel).
           if (p.inj.major && !p.frozen && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
-          if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); delete p.inj; this.injBack(s, rosters, +k, p); }
+          if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); this.injDone(p, s); delete p.inj; this.injBack(s, rosters, +k, p); }
         if (!p.inj || !p.inj.dtd || !mins[id]) return; }
       // Injury rates from the NBA's own injury database (Mack et al., Sports Health 2024, seasons
       // 2013-14 to 2018-19): 34.7 injuries per 1,000 player-games, 6.2 game-loss injuries per 10,000
@@ -1706,7 +1712,10 @@ export class Game {
       inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
       inj.until = this.injUntil(s, inj.games, day, this.gamesPlayed(s) + 1);
       if (this.isUser(s, +k) && !inj.dtd && !p.preInj) { const c = this.clubOf(s, +k), thr = s.easy?.injuries ? 0 : ((c?.ptInj || { reg: 0 }).reg ?? 0); if (inj.games > thr) this.injAway(rosters, +k, p); }
-      p.inj = inj; (p.injHist = p.injHist || []).push({ name: inj.name, games: inj.games, season: this.seasonLbl(), ...(inj.dtd ? { dtd: true } : {}) });
+      if (p.inj) this.injDone(p, s); // a new injury on top of a knock he was playing through: that one's over
+      const H = (p.injHist = p.injHist || []); inj.h = H.length;
+      H.push({ name: inj.name, games: inj.games, season: this.seasonLbl(), day: this.calNow(s), tm: s.teams[k]?.abbr, days: Math.max(1, inj.until - this.calNow(s)), ...(inj.dtd ? { dtd: true } : {}), ...(inj.major ? { major: true } : {}) });
+      p.inj = inj;
       out.push({ mine: this.isUser(s, +k), major: !!inj.major, tid: +k, pid: id, text: p.name + ' (' + s.teams[k].abbr + '): ' + inj.name.toLowerCase() + (inj.dtd ? ', day-to-day for about ' : ', out ') + inj.games + ' game' + (inj.games === 1 ? '' : 's') + ' (about ' + Math.max(1, inj.until - this.calNow(s)) + ' days)' });
     }));
   }

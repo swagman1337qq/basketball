@@ -196,17 +196,48 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
             <tbody>{feed.map((f, i) => <tr key={i}><td style={td()}>{f.m}{f.dev ? <span style={{ color: good }}> · dev</span> : null}</td><td style={td('right', { color: f.o >= 0 ? good : bad, fontWeight: 600 })}>{f.o >= 0 ? '+' : ''}{f.o.toFixed(2)}</td><td style={td()}>{Object.entries(f.r).map(([k, v]: any) => LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2)).join(' · ')}</td></tr>)}</tbody>
           </table>
         )}
-        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Injury history</h4>
-        {(p.injHist || []).length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p> : (p.injHist || []).slice().reverse().map((x, i) => <Row key={i} k={x.season} v={x.name + ' · ' + x.games + ' games' + (x.lost || '')} c={x.lost ? bad : undefined} />)}
+        {(p.injHist || []).length > 0 && <p style={{ ...muted, fontSize: '12px', marginTop: '14px' }}>Injury history: on the History tab.</p>}
         {p.age < 24 && (p.minorCount || 0) >= 2 && <p style={{ color: bad, fontSize: '12px' }}>{p.minorCount} minor injuries this season: his growth is being stunted{p.minorCount >= 3 ? ' and his ceiling may drop' : ''}.</p>}
       </section>
     </div>
   </>);
 }
 
+// Every injury he's had, newest first: when, with whom, what, how long he was expected to be out, the games
+// he actually missed and the day he was back (older entries, from before dates were kept, show the season).
+function InjuryHistory({ vm, p }: { vm: VM; p: any }) {
+  const { gm } = vm.ctx, H: any[] = p.injHist || [];
+  const rows = H.map((x, i) => ({ x, i, now: p.inj?.h === i && x.back == null })).reverse();
+  const missed = H.reduce((a, x) => a + (x.missed ?? (x.dtd ? 0 : x.games || 0)), 0), sat = H.filter(x => !x.dtd).length, longest = H.filter(x => !x.dtd).sort((a, b) => (b.days ?? b.games * 2.14) - (a.days ?? a.games * 2.14))[0];
+  const dur = (x: any) => (x.dtd ? 'Day-to-day' : x.games + ' game' + (x.games === 1 ? '' : 's')) + (x.days ? ' · ~' + (x.days >= 60 ? Math.round(x.days / 30.4) + ' months' : x.days >= 14 ? Math.round(x.days / 7) + ' weeks' : x.days + ' days') : '');
+  return (
+    <section style={{ marginTop: '22px' }}>
+      <h4 style={ruleH4}>Injury history</h4>
+      {!H.length ? <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p> : <>
+        <p style={{ fontSize: '12.5px', margin: '0 0 8px' }}>{H.length} injur{H.length === 1 ? 'y' : 'ies'} ({sat} that kept him out) · about {missed} game{missed === 1 ? '' : 's'} missed{longest ? ' · longest: ' + longest.name.toLowerCase() + ' (' + longest.season + ')' : ''}{p.pers?.prone && gm.state.god ? ' · injury-prone' : ''}</p>
+        <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '12px', minWidth: 560 }}>
+          <thead><tr><th style={th()}>Date</th><th style={th()}>Team</th><th style={th()}>Injury</th><th style={th()}>Expected out</th><th style={th('right')}>Missed</th><th style={th()}>Back</th></tr></thead>
+          <tbody>{rows.map(({ x, i, now }) => <tr key={i}>
+            <td style={td()}>{x.day != null ? gm.fmtDay(x.day) : x.season}</td>
+            <td style={td()}>{x.tm || '—'}</td>
+            <td style={td('left', { color: x.major ? bad : undefined, fontWeight: x.major ? 600 : undefined })}>{x.name}{x.lost ? <span style={{ color: bad }}>{x.lost}</span> : null}</td>
+            <td style={td()}>{dur(x)}</td>
+            <td style={td('right')}>{x.missed != null ? x.missed : now ? (p.inj.miss || 0) + '…' : x.dtd ? '0' : '—'}</td>
+            <td style={td('left', now ? { color: bad } : undefined)}>{now ? 'Out now' + (gm.injLeft(p) ? ' (' + gm.injLeft(p)!.games + ' games, ' + gm.injLeft(p)!.days + ' days left)' : '') : x.back != null ? gm.fmtDay(x.back) : '—'}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </>}
+    </section>
+  );
+}
+
 export function HistoryExtras({ vm }: { vm: VM }) {
-  const { gm, money } = vm.ctx, { p } = useP(vm);
+  const { p } = useP(vm);
   if (!p) return null;
+  return <><InjuryHistory vm={vm} p={p} /><HistoryMore vm={vm} p={p} /></>;
+}
+function HistoryMore({ vm, p }: { vm: VM; p: any }) {
+  const { money } = vm.ctx;
   const arc = p.overseasArc, a = p.abroad, L = p.legacy;
   if (L) return (
     <section style={{ marginTop: '22px' }}>
