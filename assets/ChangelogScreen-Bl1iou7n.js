@@ -1,11 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-oBmAQcki.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-KGU_LD_b.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-15
 
 ### Changed
-- **Basketball IQ counts for more in a player's overall; shooting, finishing, blocks and steals a little less.** Raising a guard's Offensive IQ by 10 now adds about a full point to his overall (was about 0.75), and Defensive IQ about 0.75 for a guard and a full point for a big (was about 0.5 and 0.75). Ten points of three-point shooting now add about 0.65 (was 0.75), and ten of blocks about 0.4 for a big (was 0.5). Overalls are re-centered so a typical player stays where he was: in your league most players keep their overall and nearly all the rest move by one point, with potential moving with them so nobody's room to grow changes.
+- **Basketball IQ counts for more in a player's overall; shooting, finishing, blocks and steals a little less.** Raising a guard's Offensive IQ by 10 now adds about 1.2 points to his overall (was about 0.75), and Defensive IQ about 0.9 for a guard and 1.2 for a big (was about 0.5 and 0.75). Ten points of three-point shooting now add about 0.6 (was 0.75), and ten of blocks about 0.37 for a big (was 0.5). Overalls are re-centered so a typical player stays where he was: in your league most players keep their overall or move by one point, with potential moving with them so nobody's room to grow changes. (Raised a second time the same day, a little higher than the first step.)
 
 ### Fixed
 - **Height ratings no longer shrink as a league ages.** A new player's height rating was partly tied to his overall, so every draft prospect (low overall) was rated about 7 points short for his listed height, for his whole career. As they replaced the original players, the league's height ratings sank while actual heights stayed the same: a 6′6″ player rated 46 in a new league, 43 after 7 seasons and 39 after 27. Height ratings now follow listed height for everyone. Your league's players who were rated short are brought up when you load it, with their overalls unchanged (their other ratings give back the difference).
