@@ -10,7 +10,8 @@ export type OwnerKind = 'fan' | 'passionate' | 'profit' | 'fund';
 export const KIND_LABEL: Record<OwnerKind, string> = { fan: 'Fan first', passionate: 'Passionate', profit: 'Profit first', fund: 'Institutional investor' };
 export const KIND_DESC: Record<OwnerKind, string> = { fan: 'Enormously rich and a lifelong fan: community, players and fans before profit.', passionate: 'Rich enough to own a team, and it means everything to them.', profit: 'Owns the team as an investment. Basketball is a line on a balance sheet.', fund: 'An investment fund: patient, cautious, and answerable to its beneficiaries.' };
 
-// The hand-written owners: where they start, their type, their fortune ($B).
+// The hand-written owners: their type and fortune ($B); abbr is the club older saves had them at
+// (a new league deals them to random clubs).
 export const NAMED_OWNERS = [
   { key: 'mac', owner: 'Panny “Mac-Pan” Macquiao', abbr: 'CHI', arch: 'Hype Focus', kind: 'passionate' as OwnerKind, worth: 12 },
   { key: 'mao', owner: 'Mao Ying', abbr: 'LA', arch: 'Win-Now Spender', kind: 'fan' as OwnerKind, worth: 90 },
@@ -18,9 +19,11 @@ export const NAMED_OWNERS = [
   { key: 'fund', owner: 'Aurelian Public Investment Fund', abbr: 'VAN', arch: 'Asset Hoarder', kind: 'fund' as OwnerKind, worth: 640 },
 ];
 
-// New leagues (and older saves, except the teams you run): put the named owners in place.
-export function placeNamedOwners(teams: any[], skip: (tid: number) => boolean = () => false) {
-  NAMED_OWNERS.forEach(n => { const t = teams.find(x => x.abbr === n.abbr) || null; if (!t || skip(t.tid) || teams.some(x => x.owner === n.owner)) return; t.owner = n.owner; t.arch = n.arch; t.ownerKey = n.key; });
+// Put the named owners in place. A new league (rnd given) deals them to different clubs each time;
+// older saves get them at their original clubs (abbr), except the teams you run.
+export function placeNamedOwners(teams: any[], skip: (tid: number) => boolean = () => false, rnd?: () => number) {
+  const deal = rnd ? teams.filter(t => !skip(t.tid)).map(t => ({ t, k: rnd() })).sort((a, b) => a.k - b.k).map(x => x.t) : null;
+  NAMED_OWNERS.forEach((n, i) => { const t = deal ? deal[i] || null : teams.find(x => x.abbr === n.abbr) || null; if (!t || skip(t.tid) || teams.some(x => x.owner === n.owner)) return; t.owner = n.owner; t.arch = n.arch; t.ownerKey = n.key; });
 }
 
 const hash = (str: string) => { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return h >>> 0; };

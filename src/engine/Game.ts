@@ -451,7 +451,7 @@ export class Game {
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
     const teams: any[] = TEAMS.map((t, i) => ({ tid: i, region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], str: 45 + rnd() * 12, mkt: MARKETS[i], ...teamStyle(t[2]), seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 }));
     teams.forEach((t, i) => { t.owner = pick(NP.us.f) + ' ' + pick(OWNER_SURNAMES); t.arch = pick(OWNER_ARCHETYPES); t.gm = pick(NP.us.f) + ' ' + pick(NP.us.l); });
-    placeNamedOwners(teams); // Panny Macquiao, Mao Ying, Tanner Matthews and the Aurelian fund (owners.ts)
+    placeNamedOwners(teams, undefined, rnd); // Panny Macquiao, Mao Ying, Tanner Matthews and the Aurelian fund, each at a random club (owners.ts)
     realign(teams).forEach((x, i) => Object.assign(teams[i], x)); // conferences by geography (data/geo.ts): west or east of Lebanon, Kansas
     const rosters = {};
     // Team situations, like the real league: contenders built on veteran stars, good teams, capped-out
