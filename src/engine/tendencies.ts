@@ -154,7 +154,7 @@ export function round100<T extends string>(o: Record<T, number>, keep?: T): Reco
   return out;
 }
 // Calibration of the location targets: a league of target mixes lands on the NBA's shares (BASE).
-const TCAL: Record<ZoneTen, number> = { ra: 1.03, paint: 1.17, mid: 1.12, c3: 0.86, atb: 0.93 };
+const TCAL: Record<ZoneTen, number> = { ra: 1.03, paint: 1.17, mid: 1.12, c3: 0.91, atb: 0.985 }; // threes a little up since a high-usage player's three-heavy mix bends back in the engine (sim.ts)
 const CCAL: Record<CreTen, number> = { cns: 1.083, pullup: 1.016, step: 0.73, fade: 0.86 };
 // How far a score moves a share off the league's: [above 50, below 50] (non-shooters fall off fast).
 const ZK: Record<ZoneTen, [number, number]> = { ra: [28, 22], paint: [28, 22], mid: [28, 22], c3: [34, 14], atb: [38, 14] };
@@ -290,7 +290,7 @@ export function styleLine(p: any): string {
 export function expUsg(p: any, norms: Norms | null | undefined, roles: string[] = [], score?: number) {
   const t = ensureTen(p), e = effTend(p) || {};
   if (t && score != null) e.usg = (e.usg ?? 1) / ex(t.usage, USG_K) * ex(score, USG_K);
-  return Math.min(40, 20 * usageRaw({ ovr: p.ovr, r: p.r, alpha: p.pers?.alpha, touches: p.pers?.touches, roles, tend: e }) / (norms?.usage || 1)); // nobody sustains more than about 40%
+  return Math.min(36, 20 * usageRaw({ ovr: p.ovr, r: p.r, alpha: p.pers?.alpha, touches: p.pers?.touches, roles, tend: e }) / (norms?.usage || 1)); // the engine holds a star near 34–36% (sim.ts USG_CAP)
 }
 // The usage tendency that gives a USG% (God Mode editing).
 export function usageScoreFor(p: any, norms: Norms | null | undefined, roles: string[], usg: number) {

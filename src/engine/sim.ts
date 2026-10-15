@@ -486,7 +486,7 @@ export class GameSim {
     const trail = O.pts - D.pts <= -18, mood = (p: SimPlayer) => { const k = this.streak.get(p.id) || 0; return clutch ? '' : p.heat && k >= 2 ? 'heat' : p.volatile && (k <= -3 || (trail && k < 0)) ? 'tilt' : ''; };
     const useMood = (p: SimPlayer) => { const m = mood(p); return (m === 'heat' ? 1.45 : m === 'tilt' ? 1.3 : 1) * (awayOff && p.villain ? 1.08 : 1) * (clutch && p.fearless ? 1.6 : 1); };
     const uw = onO.map(p => useBase(p) * useMood(p)), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
-    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.38 + 0.2 * cl((gapO - 28) / 27, 0, 1);
+    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.33 + 0.17 * cl((gapO - 28) / 27, 0, 1);
     // A star far better than everyone around him has to take over: his share grows with the gap (up to the ceiling).
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
@@ -556,7 +556,12 @@ export class GameSim {
       const prof0 = this.profile(sh, tO, fx, fb), md = mood(sh);
       // A heat check is a deep pull-up; a frustrated shot is a contested jumper, rarely a drive.
       const prof = md === 'heat' ? { ...prof0, atb: prof0.atb * 2, c3: prof0.c3 * 0.6 } : md === 'tilt' ? { ...prof0, mid: prof0.mid * 1.5, atb: prof0.atb * 1.4, rim: prof0.rim * 0.6 } : prof0;
-      const z = wpick(ZONES, k => prof[k]);
+      // A high-usage player can't live on spot-up threes: the defense keys on him and his shots come off
+      // the dribble, at the rim and from mid-range too. The more of the offense he carries, the more a
+      // three-heavy mix (over 48% threes) bends back: 20+ shots a night at 75% threes becomes about 55%.
+      const shS = use(sh) / onO.reduce((a, p) => a + use(p), 0), s3 = prof.c3 + prof.atb, sAll = s3 + prof.rim + prof.mid, f3 = sAll > 0 ? s3 / sAll : 0, hi3 = cl((shS - 0.17) / 0.15, 0, 1);
+      const n3 = f3 > 0.48 && hi3 > 0 ? f3 - (f3 - 0.48) * 0.8 * hi3 : f3, k3 = f3 > 0 ? n3 / f3 : 1, kO = f3 < 1 ? (1 - n3) / (1 - f3) : 1;
+      const z = wpick(ZONES, k => prof[k] * (k === 'c3' || k === 'atb' ? k3 : kO));
       const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
       const sk = cs[z] + (paint ? 0.5 * ((cs.rim - n.skill.rim) - (cs.mid - n.skill.mid)) : 0), subD = z !== 'mid' ? 0 : paint ? PAINT_D : -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE);
       // A jump shot (mid-range or a three): how he creates it. A heat check comes off the dribble.

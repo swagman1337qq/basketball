@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-15
 
 ### Changed
+- **Fewer three-point gunners.** Stars could take more than 40% of their team's shots while on the floor, and a high-volume shooter kept a spot-up shooter's mix, so 20 players a season took 10+ threes a night and a few made 450–500 (the NBA record is 402). Now a star's share tops out around 33–35% (the NBA's heaviest-usage players), and the more of the offense a player carries, the more of his shots come off the dribble, at the rim and from mid-range instead of threes. In a full test season: 7 players attempt 10+ threes a game (was 20), nobody attempts 12+ (was 8), and the league leader makes about 350–400 in 82 healthy games. Team three-point attempts stay near the NBA's 37 a game, with more of them going to role players.
 - **The league's famous owners own different teams in every new league.** Panny "Mac-Pan" Macquiao, Mao Ying, Tanner Matthews and the Aurelian Public Investment Fund used to own the same four clubs every time. Now each new league hands them to random clubs. Their names, fortunes, personalities and life stories stay the same, and their biographies name whichever team they own. Leagues you've already started keep their owners.
 
 ## 2026-10-14
