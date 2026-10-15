@@ -190,6 +190,7 @@ export interface Norms {
   rimHgt?: number; // the league's typical height rating at the rim, weighted by rim attempts
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
   cre?: Record<JumpZone, CreMean>; // the league's jump-shot creation, per tier: keeps a typical mix on the league's make rate, assists and blocks
+  adj?: Record<Zone, number>; tovM?: number; adjFrom?: number; // the league's drift correction (Game.leagueDrift): make rates by tier and turnovers, from last season's results
 }
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
 
@@ -491,7 +492,7 @@ export class GameSim {
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
-    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
+    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
@@ -590,7 +591,7 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

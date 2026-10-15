@@ -219,6 +219,10 @@ export class Game {
     // the first, the one trades, protections and swaps found and updated.
     { const seen = new Set<string>(); g.state = { ...g.state, assets: (g.state.assets || []).filter((a: any) => !seen.has(a.id) && !!seen.add(a.id)) }; }
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon
+    // 2026-10-15: height ratings follow listed height for everyone (ratings.ts blendHeight). Players generated
+    // with the old blend (every prospect since the league began) rated short for their height: bring them up,
+    // keeping each overall (his other ratings give the difference back). Nobody is lowered.
+    if (!g.db.hgtV2) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; const v = blendHeight(p); if (v > p.r.hgt + 2) { setHgtKeepOvr(p, v); syncOvr(p); } }); if (g.db.norms) g.db.norms.season = -1; g.db.hgtV2 = 1; } // the league's norms are re-read below
     if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
     if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     // 2026-10: 99 is extremely hard to reach (potential.ts softTop): skill ceilings past 85 thin out, below
@@ -270,6 +274,7 @@ export class Game {
     // Tactics renamed in 2026 (Inside → Post-up, Perimeter → Five-out).
     [g.state, ...Object.values(g.state.clubs || {})].forEach((c: any) => { migrateTactics(c?.tactics); migrateTactics(c?.situ?.lead); migrateTactics(c?.situ?.trail); });
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
+    else if (g.db.norms.adjFrom == null) Object.assign(g.db.norms, g.leagueDrift(g.db.norms.season - 1, g.db.norms)); // 2026-10-15: older saves pick up the drift correction from last season now
     ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); dropOldSplits(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
@@ -445,7 +450,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -865,7 +870,25 @@ export class Game {
       const ids = s.rosters[k].slice().sort((a, b) => P[b].ovr - P[a].ovr);
       ids.forEach((id, i) => entries.push({ p: P[id], roles: this.rolesOf(P[id]), min: Game.ROTATION[i] ?? 0, tid: +k }));
     });
-    this.db.norms = computeNorms(entries, s.season || this.Y);
+    const prev = this.db.norms, n = (this.db.norms = computeNorms(entries, s.season || this.Y));
+    Object.assign(n, this.leagueDrift(n.season - 1, prev));
+  }
+  // The norms re-center the engine on the ratings, but as a league ages its ratings drift in ways they
+  // don't fully catch (skills grow over careers, the league gets shorter), and scoring crept up: 117 a
+  // game in a new league, 120 and .377 from three after 27 seasons. So each season also looks at last
+  // season's results: how the league shot from each tier and how often it turned the ball over, against
+  // the NBA's (BASE), and the correction in use moves most of the way to close the gap (each season
+  // only once). A league in its first season, or one too young to have played one, has none.
+  leagueDrift(season: number, prev?: any): { adj?: Record<string, number>; tovM?: number; adjFrom?: number } {
+    if (prev?.adjFrom === season) return { adj: prev.adj, tovM: prev.tovM, adjFrom: season };
+    const T: Record<string, number> = { rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, tov: 0, fga: 0, fta: 0 };
+    for (const p of Object.values(this.db.P) as any[]) for (const r of p.stats || []) if (r.season === season && !r.po) for (const k in T) T[k] += r[k] || 0;
+    if (T.fga < 20000) return prev?.adj ? { adj: prev.adj, tovM: prev.tovM, adjFrom: prev.adjFrom } : {};
+    const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v)), adj: Record<string, number> = {};
+    ([['rim', 'rm', 'ra'], ['mid', 'mm', 'ma'], ['c3', 'cm', 'ca'], ['atb', 'bm', 'ba']] as const).forEach(([z, m, a]) => {
+      const was = prev?.adj?.[z] ?? 0; adj[z] = T[a] > 500 ? +cl(was + 0.8 * (BASE.zone[z].pct - T[m] / T[a]), -0.06, 0.06).toFixed(4) : was; });
+    const tovPct = T.tov / Math.max(1, T.fga + 0.44 * T.fta + T.tov), tovM = +cl((prev?.tovM ?? 1) * Math.pow(BASE.tovPct / Math.max(0.01, tovPct), 0.8), 0.8, 1.25).toFixed(4);
+    return { adj, tovM, adjFrom: season };
   }
 
   // Team Four Factors for the clutch tiebreaker: season stats, regressed toward a

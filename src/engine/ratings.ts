@@ -164,11 +164,15 @@ export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
 // position: a great wingspan (+12″, about 98) is worth up to ~+4.6 for a big, +3.6 for a wing, +2.4
 // for a guard, and a short one costs the same (a 7-footer with a 7′10″ span is about 5.7 better than
 // one whose arms are as long as he is tall).
-// The height rating: mostly his size (about 4 points an inch: a 6′3″ guard ≈ 34, a 6′7″ wing ≈ 50, a
-// 6′11″ big ≈ 66), partly how he plays to it, kept from his old rating and a fixed lean of his own:
-// some players use their length and strength like a bigger man, some play small.
+// The height rating: his size (about 4 points an inch: a 6′3″ guard ≈ 34, a 6′7″ wing ≈ 50, a 6′11″
+// big ≈ 66) plus a fixed lean of his own (±5): some players use their length and strength like a bigger
+// man, some play small. It used to keep 40% of the rating he was generated with, which tracked his
+// overall, so every prospect (a low overall) rated about 7 points short for his height for good; as they
+// replaced the first generation the league's height ratings sank (6′6″: 46 in a new league, 39 after 27
+// seasons) with the same listed heights. `_old` is no longer used.
 export const hgtFromInches = (inches: number) => 34 + (inches - 75) * 4;
-export function blendHeight(p: any, old: number) { const lean = ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10; return Math.round(Math.max(4, Math.min(RMAX, 0.6 * (hgtFromInches(inchesOf(p.hgt)) + lean) + 0.4 * old))); }
+export const hgtLean = (p: any) => ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10;
+export function blendHeight(p: any, _old?: number) { return Math.round(Math.max(4, Math.min(RMAX, hgtFromInches(inchesOf(p.hgt)) + hgtLean(p)))); }
 // Set the height rating and move his other ratings the other way so his overall stays put.
 export function setHgtKeepOvr(p: any, v: number) {
   const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = T / (T - (W.hgt ?? 0)); p.r.hgt = v;
