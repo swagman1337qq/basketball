@@ -250,7 +250,7 @@ export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend; pers?: a
 export interface SimPlayer {
   id: number; name: string; pos: string; grp: string; ovr: number; r: any;
   crowd?: boolean; clutch?: boolean; padder?: boolean; selfish?: boolean; alpha?: boolean; touches?: boolean;
-  adj?: boolean; dtd?: boolean; fat?: number; protect?: boolean; flag?: string;
+  adj?: boolean; dtd?: boolean; fat?: number; age?: number; protect?: boolean; flag?: string;
   conf?: number; // hidden confidence 0–100 (50 neutral): a small shooting nudge either way
   roles?: string[];
   feel?: number; poise?: number; // intangibles (intangibles.ts): vision and anticipation; composure
@@ -305,6 +305,7 @@ export const ffScore = (f: FourFactors) => (0.4 * (f.efg - BASE.efg)) / 0.025 + 
 
 // Intangibles are measured from the NBA average (Feel ≈ 54, Poise ≈ 55), so only the unusual stand out.
 const FEEL_MID = 54, POISE_MID = 55;
+const TIRED0 = 0.13; // a typical player's tiredness on the floor: fatigue effects are measured from it, so league totals hold
 const SUB_MARGIN = 285; // seconds ahead of his minutes target before a bench player comes in
 
 interface PlayerCache { use: number; prof: Record<Zone, number>; skill: Record<Zone, number>; role: boolean; star: boolean; q: number } // q: his shot-making against the league, over his own shot mix
@@ -324,6 +325,17 @@ export class GameSim {
   private cache = new Map<SimPlayer, PlayerCache>();
   private afterOrb = false;
   private streak = new Map<number, number>(); // makes (+) or misses (−) in a row tonight, for heat checks and frustration
+  // Energy tonight (0–100). It drains on the floor (slower with Endurance, faster for players 33 and up),
+  // comes back on the bench and at the breaks, and starts lower for a player worn down by recent heavy
+  // minutes (p.fat). A tired player (below about 88) shoots, handles, defends and rebounds worse, and the
+  // rotation brings him out sooner.
+  en = new Map<SimPlayer, number>(); // read by the live game view
+  private tired(p: SimPlayer) { return cl((88 - (this.en.get(p) ?? 100)) / 60, 0, 1); }
+  private drain(sec: number) {
+    (['home', 'away'] as Side[]).forEach(k => this.teams[k].players.forEach(p => { const e = this.en.get(p) ?? 100, on = this.on[k].includes(p);
+      this.en.set(p, cl(on ? e - (sec / 60) * 3.7 * (1.55 - p.r.endu / 100) * (p.age >= 33 ? 1.1 : 1) : e + (sec / 60) * 2.8, 0, 100)); }));
+  }
+  private rest(x: number) { this.en.forEach((e, p) => this.en.set(p, Math.min(100, e + x))); }
   private fastBreak = false; // the defense crashed the glass and lost the rebound: this trip is a run-out
 
   constructor(home: SimTeam, away: SimTeam, public opts: SimOpts = {}) {
@@ -332,6 +344,7 @@ export class GameSim {
     const side = (t: SimTeam): SideState => ({ pts: 0, qs: [0, 0, 0, 0], box: Object.fromEntries(t.players.map(p => [p.id, blankLine()])), tiers: {}, poss: 0, fouls: 0 });
     this.home = side(home);
     this.away = side(away);
+    [...home.players, ...away.players].forEach(p => this.en.set(p, cl(100 - 0.35 * (p.fat || 0) - (p.dtd ? 5 : 0), 55, 100)));
     // Each coaching staff's plan for tonight's opponent (coach.ts).
     (['home', 'away'] as Side[]).forEach(k => { const T = this.teams[k]; if (T.aiKeys?.length) this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65); });
     (['home', 'away'] as Side[]).forEach(k => {
@@ -367,7 +380,7 @@ export class GameSim {
     if (this.q === 3 && this.t === 720) { this.on[k] = this.shape(k, ps.slice(0, 5), ps); return; }
     const el = this.elapsed();
     const trouble = (p: SimPlayer) => this.q <= 4 && S.box[p.id].pf >= this.q + 2 && !(this.q === 4 && this.t < 360);
-    const deficit = (p: SimPlayer) => (p.target * 60 * el) / 2880 - S.box[p.id].min * 60 - (trouble(p) ? 900 : 0);
+    const deficit = (p: SimPlayer) => (p.target * 60 * el) / 2880 - S.box[p.id].min * 60 - (trouble(p) ? 900 : 0) - Math.max(0, 72 - (this.en.get(p) ?? 100)) * 10; // a gassed player sits
     let on = this.on[k].filter(p => ps.includes(p));
     for (const p of ps) if (on.length < 5 && !on.includes(p)) on.push(p);
     for (let guard = 0; guard < 5; guard++) {
@@ -458,7 +471,7 @@ export class GameSim {
     const awayOff = offK === 'away', awayDef = defK === 'away';
     const roadPen = (p: SimPlayer) => (awayOff && !p.villain && C(p).role && !C(p).star ? (p.crowd ? 0.026 : 0.013) * cl(1 - ((p.poise ?? POISE_MID) - POISE_MID) / 60, 0.3, 1.6) : 0); // poise steadies him on the road
     const roadDef = awayDef ? onD.filter(p => C(p).role && !C(p).star).length * 0.002 : 0;
-    const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + Math.min(0.04, Math.max(0, (p.fat || 0) - 25) * 0.001) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
+    const condPen = (p: SimPlayer) => (p.adj ? 0.03 : 0) + (p.dtd ? 0.03 : 0) + (p.conf == null ? 0 : cl((50 - p.conf) * 0.0004, -0.012, 0.012));
 
     const handleO = avg(onO, p => p.r.drb * 0.45 + p.r.pss * 0.45 + (p.r.acc ?? p.r.drb) * 0.1), pressD = avg(onD, p => perimD(p.r));
     // Intangibles: Feel on the floor finds better shots and fewer turnovers (and reads passing lanes
@@ -492,7 +505,7 @@ export class GameSim {
     const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
-    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
+    const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * (1 + 0.3 * (avg(onO, p => this.tired(p)) - TIRED0)) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
@@ -516,6 +529,7 @@ export class GameSim {
     const t0 = this.t, dt = Math.min(this.t, eg.dt != null && kind !== 'nsf' && kind !== 'd3' ? eg.dt : (kind === 'nsf' || kind === 'd3') && this.q >= 4 && this.t <= 24 ? 0.4 + Math.random() * 1.6 : kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
     onO.forEach(p => (O.box[p.id].min += dt / 60));
     onD.forEach(p => (D.box[p.id].min += dt / 60));
+    this.drain(dt);
     this.t -= dt;
     const qi = Math.min(this.q, 5) - 1;
     const addQ = (S: SideState, x: number) => { while (S.qs.length <= qi) S.qs.push(0); S.qs[qi] += x; };
@@ -607,7 +621,7 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -647,6 +661,7 @@ export class GameSim {
         this.q++;
         this.t = this.q > 4 ? 300 : 720;
         this.home.fouls = 0; this.away.fouls = 0;
+        this.rest(this.q === 3 ? 18 : 6); // halftime, or a quarter break (before overtime too)
       }
     }
     if (this.pbp.length > 220) this.pbp.length = 220;
@@ -721,7 +736,7 @@ export class GameSim {
 
   // Free throws. Returns true if the offense keeps the ball (offensive rebound off a live miss).
   private freeThrows(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], sh: SimPlayer, n: number, score: (p: SimPlayer, x: number) => void, ev: Ev, fouler: SimPlayer, kind: 'shot' | 'bonus' | 'and1' | 'hack' | 'tech' | 'int' | 'up3', cAdv: number) {
-    const pct = cl(this.ftPct(sh) - (sh.adj ? 0.02 : 0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.3, sh.r.ft >= FT_PERFECT ? 0.99 : 0.95);
+    const pct = cl(this.ftPct(sh) - (sh.adj ? 0.02 : 0) - 0.03 * (this.tired(sh) - TIRED0) + (this.q >= 4 && this.t < 300 ? 0.0006 * ((sh.poise ?? POISE_MID) - POISE_MID) : 0), 0.3, sh.r.ft >= FT_PERFECT ? 0.99 : 0.95);
     let made = 0, last = false, miss: '' | 'rim' | 'air' | 'in' | 'forgot' = '';
     for (let i = 0; i < n; i++) {
       // The last one with seconds left, when making it can't tie or win (down 2 or more): miss it on purpose off
@@ -745,11 +760,11 @@ export class GameSim {
   }
 
   private rebound(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], cAdv: number, ev: Ev, tacOrb = 0) {
-    const orbP = cl(BASE.orbPct + 0.004 * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.015 * cAdv + tacOrb, 0.12, 0.45);
+    const orbP = cl(BASE.orbPct + 0.004 * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.03 * (avg(onD, p => this.tired(p)) - avg(onO, p => this.tired(p))) + 0.015 * cAdv + tacOrb, 0.12, 0.45);
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
-      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120));
+      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }

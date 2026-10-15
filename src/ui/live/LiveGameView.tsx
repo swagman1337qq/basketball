@@ -184,6 +184,7 @@ export function LiveGameView({ vm }: { vm: VM }) {
                             <button className="hv7" onClick={r.open} style={{ all: "unset", cursor: "pointer" }}>
                               {r.name}
                             </button>
+                            {r.en != null && <span title={'Energy ' + r.en + ' (drains on the floor, faster with low Endurance; a tired player shoots, defends and handles worse)'} style={{ display: "inline-block", width: "26px", height: "5px", borderRadius: "3px", background: "var(--color-divider)", overflow: "hidden" }}><span style={{ display: "block", width: r.en + "%", height: "100%", background: r.enColor }} /></span>}
                           </span>
                         </td>
                         <td style={{ padding: "3px 6px", borderBottom: r.line }}>
