@@ -172,6 +172,13 @@ They behave the way the real metrics do relative to each other:
 
 ---
 
+## 8b. Small implementation details
+
+- **DARKO's past seasons use this season's league pace and raw-box means** (`lgPace`, `boxO`, `boxD`) to turn minutes into possessions and to centre them, not the pace and means of the season they came from. Past seasons are also raw box: no team adjustment and no small-sample shrink. Only this season's part is team-adjusted.
+- **DARKO's history is always regular-season rows**, even when computing playoff values, and seasons are summed across teams if he was traded.
+- **A player with no three-point attempts** has an expected 3P% equal to the league's and zero luck points. A player with 0 possessions on the floor gets 0 for his luck-adjusted on/off.
+- **"League" in LEBRON's 3P%** means every team's threes that season (or that postseason, for playoff values).
+
 ## 9. Where they show up
 
 - **Player profile → Stats → Advanced:** EPM, LEBRON and DARKO columns, with tooltips.
