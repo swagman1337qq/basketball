@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D2uNBbVS.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DQVsCVCP.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-16
+
+### Changed
+- **Progress arrows are season by season.** The green and red arrows on the Roster and in player profiles used to compare against opening night of the season before, so they piled up more than a year of change. Now they cover one season: from the end of last season to today, so summer improvement or decline counts toward the new season. When the next summer starts they start over. A player who ends one season at 30 and the next at 35 shows ▲5, then starts fresh from 35.
 
 ## 2026-10-15
 
