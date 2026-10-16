@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DQVsCVCP.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-B7COLgXJ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-16
 
 ### Changed
+- **Fewer runaway breakout seasons.** Each season every player rolls how his development goes that year. The roll could reach 3× a normal year, and with a hard worker and a good staff growth could run at 2.5× his plan, so a young player could jump 12 overall in half a season. Breakout years now top out around 2×, growth at 1.8× his plan, and bad years are milder too. Average development is the same (careers end in the same place), only the extremes are smaller. This season's rolls in your league are brought into the new range when you load it.
 - **Progress arrows are season by season.** The green and red arrows on the Roster and in player profiles used to compare against opening night of the season before, so they piled up more than a year of change. Now they cover one season: from the end of last season to today, so summer improvement or decline counts toward the new season. When the next summer starts they start over. A player who ends one season at 30 and the next at 35 shows ▲5, then starts fresh from 35.
 
 ## 2026-10-15
