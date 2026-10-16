@@ -11,7 +11,7 @@ type Def = [string, string, Partial<Board>?];
 const BOX: Def[] = [['pts', 'Points'], ['trb', 'Rebounds'], ['ast', 'Assists'], ['stl', 'Steals'], ['blk', 'Blocks'], ['min', 'Minutes'], ['tpm', '3-pointers made'], ['ftm', 'Free throws made'], ['fgm', 'Field goals made'], ['orb', 'Offensive rebounds'], ['drb', 'Defensive rebounds'], ['tov', 'Turnovers']];
 const SHOOT: Def[] = [['fgp', 'Field goal %'], ['tpp', '3-point %'], ['ftp', 'Free throw %'], ['efg', 'Effective FG %'], ['twp', '2-point %']];
 const ADV: Def[] = [['per', 'Player efficiency rating'], ['tsp', 'True shooting %', { shots: true }], ['usgp', 'Usage %'], ['astp', 'Assist %'], ['trbp', 'Rebound %'], ['stlp', 'Steal %'], ['blkp', 'Block %'],
-  ['ws', 'Win shares', { sum: true }], ['ws48', 'Win shares per 48'], ['bpm', 'Box plus-minus'], ['vorp', 'Value over replacement', { sum: true }], ['ewa', 'Estimated wins added', { sum: true }]];
+  ['ws', 'Win shares', { sum: true }], ['ws48', 'Win shares per 48'], ['bpm', 'Box plus-minus'], ['epm', 'EPM (estimate)'], ['lebron', 'LEBRON (estimate)'], ['darko', 'DARKO (estimate)'], ['vorp', 'Value over replacement', { sum: true }], ['ewa', 'Estimated wins added', { sum: true }]];
 const BOARDS: Board[] = [...BOX, ...SHOOT].map(([k]) => ({ id: k, k })).concat(ADV.map(([k, , o]) => ({ id: 'a' + k, k, adv: true, ...o })));
 const THREE = new Set(['fgp', 'tpp', 'ftp', 'efg', 'twp', 'aws48']);
 const lbl = (y: number) => (y - 1) + '–' + String(y).slice(2);

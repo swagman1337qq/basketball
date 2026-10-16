@@ -8,7 +8,7 @@ import { awardDefs } from '../../engine/awards';
 import { compileFormula } from '../../engine/formula';
 import { muted } from '../kit';
 
-const VARS = 'pts trb ast stl blk tov pf orb drb fga (per game) · gp gs min · per ewa ws ows dws ws48 bpm obpm dbpm vorp · tsp efg usgp astp orbp drbp trbp stlp blkp tovp · ortg drtg pm100 onOff100 · winp teamWs seasonFraction · numWon.X numWonConsecutive.X · series awards: gmsc pm won';
+const VARS = 'pts trb ast stl blk tov pf orb drb fga (per game) · gp gs min · per ewa ws ows dws ws48 bpm obpm dbpm vorp · epm oepm depm lebron olebron dlebron darko odarko ddarko · tsp efg usgp astp orbp drbp trbp stlp blkp tovp · ortg drtg pm100 onOff100 · winp teamWs seasonFraction · numWon.X numWonConsecutive.X · series awards: gmsc pm won';
 const check = (f: string) => { try { compileFormula(f); return ''; } catch (e: any) { return e.message; } };
 
 export function AwardFormulas({ vm }: { vm: VM }) {

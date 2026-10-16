@@ -799,5 +799,10 @@ You can put `mal`, `loyalty` and `ambition` in a card's `pers`; they're copied l
 | VORP | (BPM + 2) × his share of team minutes × games/82 |
 | EWA | (PER − 11) × MIN / 67 / 30 |
 | On/Off | his +/− per 100 possessions − the team's per 100 without him |
+| EPM (estimate) | Box prior blended with on/off. O = OBPM × (1 − w) + ½·on/off × w (same for D, with DBPM), w = possessions / (possessions + 6000). Then centred on the league (minute-weighted 0) and ×0.6. |
+| LEBRON (estimate) | Same blend with luck-adjusted on/off: his own 3P% is regressed toward the league's with 750 attempts, and 3 × (made threes above that) per 100 is taken out of his on/off. w = possessions / (possessions + 5000). Centred, ×0.55. |
+| DARKO (estimate) | His current level: this season's OBPM/DBPM and his last three seasons' raw box per 100, weighted by possessions × 0.55 per year back, regressed toward −1.5 with a 1,500-possession prior, then +0.4 a year under 26 and −0.4 a year over 30. Centred, ×0.65. |
+
+The real EPM, LEBRON and DARKO use player-tracking data, play-by-play lineups and models that aren't public. These follow each one's published method with the data the game keeps, and are scaled so the league's best are about +7 to +10.
 
 That is everything that touches a player's ratings, development and stats. Contracts, mood, trade value and awards come from these same numbers but don't feed back into how he plays.

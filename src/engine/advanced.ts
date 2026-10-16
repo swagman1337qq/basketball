@@ -1,7 +1,8 @@
 // Advanced stats for a season, in Basketball-Reference style, from season totals and
 // team totals: shooting and rate stats (TS%, eFG%, USG%, AST%, ORB/DRB/TRB%, STL%, BLK%,
 // TOV%), individual offensive/defensive ratings, win shares (OWS/DWS/WS/WS48), box
-// plus-minus (OBPM/DBPM/BPM, team-adjusted), VORP, PER, EWA and on/off per 100.
+// plus-minus (OBPM/DBPM/BPM, team-adjusted), VORP, PER, EWA, on/off per 100, and estimates of EPM,
+// LEBRON and DARKO (offense, defense and total).
 // Award formulas read these by name; per-game stats (pts, trb, ast, …) are averages.
 import type { Game } from './Game';
 import { BASE } from './sim';
@@ -94,6 +95,8 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
   let a0 = 0, w0 = 0; rows.forEach(({ p }) => { const x = out[p.id]; a0 += x._pprod; w0 += x._totPoss; });
   const k = w0 ? lgPPP / (a0 / w0) : 1; // points produced sum to league scoring
   const stopMean = wmean('_stops');
+  const boxO = wmean('_obpm'), boxD = wmean('_dbpm'); // raw box per 100, league means (to centre past seasons for DARKO)
+  const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
   // Team BPM adjustments so each team's minute-weighted BPM matches its ratings.
   const adj: Record<number, { o: number; d: number }> = {};
   tids.forEach(tm0 => { const tm = { tid: tm0 }, T = teams[tm.tid]; let o = 0, d = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tm.tid) return; o += out[p.id]._obpm * t.min; d += out[p.id]._dbpm * t.min; w += t.min; });
@@ -117,6 +120,29 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
     const teamDiff = T.pts - T.oPts, possOff = Math.max(1, T.poss - x._possOn);
     x.pm = t.pm || 0; x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
     x.onOff100 = x.pm100 - (100 * (teamDiff - x.pm)) / possOff;
+    // EPM, LEBRON and DARKO (estimates: the real ones use tracking data and play-by-play lineups the game
+    // doesn't keep). All points per 100 possessions against an average player, offense + defense.
+    // EPM-style: the box estimate (BPM) as a strong prior, blended with his on/off as his possessions grow (6,000-possession prior).
+    // All three are centred on the league (minute-weighted 0) and scaled to their real spreads below.
+    const onOffO = x.onOff100 * 0.5, onOffD = x.onOff100 * 0.5, wE = x._possOn / (x._possOn + 6000);
+    x.oepm = x.obpm * (1 - wE) + onOffO * wE; x.depm = x.dbpm * (1 - wE) + onOffD * wE; x.epm = x.oepm + x.depm;
+    // LEBRON-style: on/off with his own three-point luck taken out (his 3P% regressed toward the league's by
+    // 750 attempts, the points he made above that removed), regularized toward the box prior (5,000 possessions).
+    const lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36, exp3 = t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3, luck = 3 * (t.tpm - t.tpa * exp3);
+    const onOffL = x._possOn ? x.onOff100 - (100 * luck) / x._possOn : 0, wL = x._possOn / (x._possOn + 5000);
+    x.olebron = x.obpm * (1 - wL) + onOffL * 0.5 * wL; x.dlebron = x.dbpm * (1 - wL) + onOffL * 0.5 * wL; x.lebron = x.olebron + x.dlebron;
+    // DARKO-style: his current level, not just this season's: this season's box estimate and his last three
+    // seasons' (raw box per 100, centred on this league), each weighted by possessions and older seasons
+    // less (×0.55 a year, like a Kalman filter's fading memory), regressed toward an average-ish prior
+    // (−1.5, worth 1,500 possessions), then moved for age (+0.4 a year under 26, −0.4 a year over 30).
+    { const hist = (p.stats || []).filter((r: any) => !r.po && r.season < season && r.season >= season - 3 && r.min > 0);
+      const by: Record<number, any> = {}; hist.forEach((r: any) => { const a = (by[r.season] = by[r.season] || {}); Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); });
+      let so = x.obpm * x._possOn, sd = x.dbpm * x._possOn, w = x._possOn;
+      Object.entries(by).forEach(([y, r]: any) => { const pOn = (r.min * lgPace) / 48, d = 0.55 ** (season - +y); if (pOn < 50) return;
+        const per = (v: number) => (v * 100) / pOn, o = 0.8 * per(0.86 * r.pts - 0.56 * r.fga - 0.246 * r.fta + 0.389 * r.tpm + 0.807 * r.ast - 0.964 * r.tov + 0.397 * r.orb) - boxO, dd = per(0.25 * r.drb + 1.6 * r.stl + 1.2 * r.blk - 0.3 * r.pf) - boxD;
+        so += o * pOn * d; sd += dd * pOn * d; w += pOn * d; });
+      const K = 1500, age = gAge(p, season), ageAdj = age < 26 ? (26 - age) * 0.4 : age > 30 ? -(age - 30) * 0.4 : 0;
+      x.odarko = (so + K * -0.9) / (w + K) + ageAdj * 0.6; x.ddarko = (sd + K * -0.6) / (w + K) + ageAdj * 0.4; x.darko = x.odarko + x.ddarko; }
     // Per-game and totals the formulas use.
     x.gp = gp; x.gs = t.gs || 0; x.min = t.min / gp; x.minTot = t.min;
     ['pts', 'ast', 'stl', 'blk', 'tov', 'pf', 'orb', 'drb', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta'].forEach(f => (x[f] = (t[f] || 0) / gp));
@@ -125,6 +151,13 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
     x.winp = recOf(tid); x.won = 0; x.tid = tid; x.age = p.age;
     x.seasonFraction = Math.min(1, (T.gp || 82) / 82);
     Object.keys(x).forEach(f => { if (f.startsWith('_')) delete x[f]; });
+  });
+  // EPM, LEBRON and DARKO: centred so the league's minute-weighted average is 0, and scaled to the spread
+  // of the real metrics (the league's best about +7 to +9; BPM here runs wider).
+  ([['epm', 'oepm', 'depm', 0.6], ['lebron', 'olebron', 'dlebron', 0.55], ['darko', 'odarko', 'ddarko', 0.65]] as [string, string, string, number][]).forEach(([k, ko, kd, sc]) => {
+    let mo = 0, md = 0, w = 0; rows.forEach(({ p, t }) => { const x = out[p.id]; mo += x[ko] * t.min; md += x[kd] * t.min; w += t.min; });
+    mo = w ? mo / w : 0; md = w ? md / w : 0;
+    rows.forEach(({ p }) => { const x = out[p.id]; x[ko] = (x[ko] - mo) * sc; x[kd] = (x[kd] - md) * sc; x[k] = x[ko] + x[kd]; });
   });
   // Win shares sum to the league's wins (as on Basketball-Reference).
   const wsSum = rows.reduce((a, { p }) => a + out[p.id].ws, 0);
