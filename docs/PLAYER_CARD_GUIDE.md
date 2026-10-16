@@ -586,3 +586,178 @@ Each month, unless you Freeze them, every player's tendencies are reset from his
 | Usage | 48 + level + weapon + scorer-vs-stopper + option rank (+6 first option … −6 seventh) + team situation + ego − pass-first + age effects |
 
 Each score becomes a share: league share × e^((score − 50)/k), where k is about 28–38 above 50 and 14–22 below. The zones are then scaled to add up to 100.
+
+## L. Loading a card: exactly what happens (`playerCard.ts` applyCard)
+
+The card is rejected if:
+- it has no `r` object;
+- any rating isn't a number;
+- `pos` isn't one of the nine positions.
+
+Otherwise, in this order:
+
+1. `pos`, `hgt`, `wt` and `wing` are copied as given. The group (G, W or B) is set from `pos`.
+2. **Every rating in `r` is rounded and kept between 1 and 99.** Ratings the card leaves out keep the player's own values.
+3. `pers`: the card's traits are laid over his own, so a missing trait keeps his value.
+4. `intg`: Feel and Poise are rounded and kept between 1 and 99. A missing one keeps his value, or 50.
+5. Hidden decimal progress is cleared (unless the card carries `_rx`, `_px` or `_gem`, which only an undo does). His overall is computed from the ratings.
+6. **His skill ceilings are rebuilt from scratch.** `pot` (kept between his overall and 100) becomes his exact true potential as God Mode's word. His ceilings may go up to 100, his growth plan restarts from today, and the league's read of his potential is reset to the truth (no scouting miss).
+7. **Tendencies:**
+   - With the current format (`step` or `fade` present): `usage` and `ftr` are kept between 2 and 98; each group of shares (zones, then creation) is scaled to add up to 100; missing shares come from his ratings.
+   - With an older format (0–100 scores per tendency, or multipliers in `tend`): the cards play the shot mix they played back then.
+   - Without `ten`: tendencies come from his ratings plus his personal quirks.
+8. **Freeze tendencies is turned off.** Press it again if you want the card's mix kept.
+
+**What a card does not change:**
+- His **work ethic** comes from the card if `pers.work` is set; otherwise he keeps his own.
+- His **hidden development factors** (pace, the hidden factor, his development profile and athletic peak) are seeded from his player ID. A card doesn't change them, so the same card grows differently on different players.
+- His **hidden gem** status is cleared (no gem).
+- His **injury, mood, contract and season fatigue** are untouched.
+
+## M. Hidden development factors (all fixed per player, from his ID)
+
+| Factor | Distribution | Effect |
+|---|---|---|
+| **Pace** (`paceOf`) | 11%: 0.1–0.3 ("barely develops"); 74%: 0.75–1.1 ("normal"); 15%: 1.1–1.3 ("fast") | Multiplies his yearly plan rate. |
+| **Hidden factor** (`devK`) | e^(±0.84 at the extremes), mostly 0.75–1.3 | Growth ×factor^0.6. Decline ÷√factor. |
+| **Work ethic** (`workEthicOf`) | 50 ± 18 (5–99) unless set | Growth ×(.7 + work/167). Decline ×(1.2 − work/250). Form roll +(work − 50)/200. Body growth ×(.85 + work/333). |
+| **Development profile** | 30% specialist, 20% two areas, 15% well-rounded, 35% organic | Where skill growth goes (section N). |
+| **Athletic peak** | age 26–29.5 | When speed, acceleration and jumping start to decline. |
+| **Frame** | quickness room 0.5–7 (each of speed, acceleration and jumping), strength +4–16, endurance +3–12 | How much each body rating can still grow from age 18. |
+
+## N. Where growth lands, rating by rating (`development.ts`)
+
+**Skill groups:**
+- **shooting:** tp, fg, ft
+- **finishing:** ins, lay, dnk
+- **playmaking:** pss, drb, oiq
+- **defense:** diq, stl, blk
+- **rebounding:** reb, box
+
+**Each skill's share of a month's growth** is:
+
+```
+group affinity (from his profile, scaled by how well the group fits his position)
+ × this year's emphasis (e^(0.25·N) per group, fixed for the season)
+ × his game role (roleReps: what he does on the court, from 0.75 to 1.5 by group)
+ × age: Offensive IQ, Defensive IQ and Box out grow more with age (×0.65 at 19 up to ×1.4);
+         Dunks and Blocks grow more young (×1.25 at 21, falling to ×0.5)
+ × training focus: ×2.2 for the focus's ratings, ×0.45 for everything else
+ × practice reps in your system's skills
+ × cl(1 + (skill − his average skill)/50, 0.6, 1.4)          what he's already good at grows faster
+ × cl((ceiling − skill)/12, 0.02, 1.4) × cl((100 − skill)/40, 0.05, 1.2)   slows near his ceiling
+```
+
+**More rules:**
+- **Neglect.** Skills he isn't working on can slip a little (up to 22% of an even share).
+- **Spill.** No skill grows more than about 1.6× faster than an even spread would need.
+- **Diminishing returns.** Above 70, only e^(−(skill − 70)/12) of the growth aimed at a skill lands there: about two thirds at 75, half at 78, 30% at 85, 12% at 95. A generational skill (`p.gen`) only starts slowing past 80. What doesn't land goes to his other skills.
+- **Caps.** Skills stop at 98.4, or 99.4 for a generational skill or a breakthrough. The overall can never pass true potential; anything over comes off all skills evenly.
+- **Decline order** (relative slip): Dunks 1.8, Blocks 1.5, Steals 1.2, Layups/Rebounding 1.0, Ball handling 0.9, Inside 0.9, 3PT 0.65, Box out/Mid-range 0.6, FT 0.55, Defensive IQ 0.5, Passing 0.45, Offensive IQ 0.35. Athleticism goes first; feel for the game lasts longest.
+
+**Training focus options** (your team only):
+
+| Focus | Ratings it targets |
+|---|---|
+| Balanced | none |
+| Shooting | tp, fg, ft |
+| Finishing | ins, dnk, lay |
+| Playmaking | drb, pss, oiq |
+| Defense | diq, blk, stl |
+| Rebounding | reb, box, plus strength ×1.2 on body growth |
+| Athleticism | speed, acceleration, jumping and strength grow ×1.5 (never past his frame) |
+| Conditioning | endurance grows ×1.5 |
+
+**Coaching budget:** growth ×(1 + up to .12) at the $40M maximum, ×(1 − .09) at the $5M minimum, with diminishing returns. Aging is slowed by 60% of that boost. All environment effects together (coaching, facilities, minutes for players 24 and under, the locker room, mentors) are capped at about ±25–30%, weighted toward fringe players.
+
+## O. The body (`bodyChange`)
+
+- **Growth.** Each year a body rating grows by the room left in his frame × this age's share. Speed, acceleration and jumping are done by about 22.5; strength by about 26.5; endurance by about 27. Each year is capped: speed, acceleration and jumping +2.5, strength and endurance +4. That's × focus (above) × (.85 + work/333) × random(0.5–1.5).
+- **Decline** per year, × slow (work ethic and `pro` reduce it):
+  - **Speed, acceleration, jumping:** 0.4 + 0.5t + 0.04t², where t = years past his athletic peak.
+  - **Endurance:** 0.4 + 0.45t, where t = age − 29.
+  - **Strength:** 0.3 + 0.35t, where t = age − 31.
+- **Young bodies arrive ready.** A new young player starts with his body ratings close to his peak, and his skills start lower by the same weight (the overall is unchanged). That's why prospects look athletic but raw.
+- **Height never changes**, apart from a rare one-inch growth spurt in young players.
+
+## P. Intangibles and hidden gems (`intangibles.ts`)
+
+- **Feel** for generated players ≈ .35·oiq + .15·pss + 30 ± 11 (15–99). League average is about 50.
+- **Poise** ≈ 52 + 1.2 × (age − 24) ± 11, +10 if `clutch`, −12 if `volatile`, +4 if `pro` (10–99).
+- **Neither one counts toward the overall.** In games:
+  - **Feel:** better shots for his lineup (+.00012 per point), fewer turnovers, more assists, more steals.
+  - **Poise:** clutch shooting (+.0005 per point over 55), late free throws, less road penalty.
+- **Hidden gems** (players under 25): base chance 5–7%, raised by Feel over 60, Poise over 60 and work over 60.
+  - 62% are role-player gems (+5–9 true potential).
+  - 31% are starter gems (+10–15).
+  - 7% are star gems (+16–24).
+  - The extra potential surfaces over about three seasons: faster with minutes and work ethic, and never after 29.
+
+## Q. Draft translation (`translation.ts`, prospects only)
+
+At his first training camp a prospect's real level shows:
+- About half are what the scouts saw (±2).
+- The rest are 3–6 worse or better.
+- About 1 in 8 is a bust (7–10 worse) or a steal (7–11 better).
+
+One skill group is often better and another worse ("he can really shoot, but he's no point guard"), and his ceiling moves partly with it.
+
+**A card loaded on a drafted prospect before camp** still gets his camp translation. Load the card after camp, or use Freeze attributes, to avoid it.
+
+## R. Injuries and the ratings
+
+- **Risk per game:**
+  ```
+  .05 × (1 + .05 × years over 27) × (1.45 − endu/100) × (1.25 − stre/200)
+      × minutes/30 × 1.8 if prone × (1 + season fatigue/80) × 1.5 if already hurt
+  ```
+  The medical staff budget shortens recovery.
+- **Torn ACL or ruptured Achilles** (0.7% of injuries): out 126–170 games (9–12 months), and speed, acceleration, jumping, strength and endurance each lose 3–7.
+- **Any major injury:** half the time he comes back 1–3 points down in one of ball handling, mid-range, 3PT, inside or passing.
+- **Under 24 with 2+ minor injuries in a season:** growth ×(1 − .12 per injury), at least .4. With 3+, there's a 20% chance a month to lose 1 point of true potential.
+- **Freeze attributes** blocks these rating losses too.
+
+## S. The remaining tendency formulas (`tenTargets`)
+
+L, rel(x) and shoot3 are defined in section K. "handle" = (drb + acc)/2, and "finishing" = max(dnk, lay).
+
+| Tendency | Score (then a personal quirk is added, and the result is kept between 2 and 98) |
+|---|---|
+| Catch and shoot | ramp(50 + 1.8·(tp − 50) → 50 + .85·rel(tp)) − .5·(handle − L) + 8 team player + 3 pro |
+| Pull-up | 50 + 1.3·rel(avg(drb, avg(fg, tp))) + 6 heat + 3 flashy + 3 alpha + 3 touches − 10 big |
+| Stepback | 50 + 1.3·rel((drb + acc + max(tp, fg))/3) + 5 flashy + 4 heat + 3 alpha − 16 big / −2 wing / +2 guard − 1.5 per year over 31 |
+| Fadeaway | 50 + 1.1·rel(.55·fg + .45·post) + 3 alpha + 3 touches + 3 big / −3 guard + 1.2 per year over 29 |
+| Free-throw rate | 41.5 + 1.1·rel(attack) + 3 big + 2 fearless + 1 flashy − 1 per year over 31 |
+
+**More definitions:**
+- **post** = .5·ins + .25·stre + .25·hgt.
+- **attack** for a big = .45·post + .3·dnk + .25·stre. For anyone else = .3·acc + .15·spd + .25·drb + .3·finishing.
+- **Usage** = 48 + level + weapon + scorer-vs-stopper + rank + situation + ego − pass-first + age, where:
+  - level = .55 × (offensive ability − 57), halved when negative for alpha or padder;
+  - weapon = cl((best scoring skill − 64)/4, 0, 4);
+  - scorer-vs-stopper = cl(.35 × (offensive ability − defensive ability), −6, 3);
+  - rank (offensive option on his team) = +6, +3, 0, −2, −4, −5, −6;
+  - situation = +3 for 24 and under on a rebuilding team, −2 for a young non-first option on a contender;
+  - ego = cl(alpha 6, touches 4, padder 3, heat 2, fearless 2, legacy 1.5, flashy 1, volatile 1, team −5; total −5 to 8);
+  - pass-first = cl((pss − offensive ability) × .12, −3, 4);
+  - age = −3 for a 20-year-old who isn't the first option, −3 at 33+.
+- **Personal quirks:** fixed per player, about ±7 on each score (±3.5 on usage).
+- **From scores to shares:** league share × calibration × e^((score − 50)/k), then each group is scaled to add up to 100. Calibration: ra 1.03, paint 1.17, mid 1.12, corner 0.91, above the break 0.985. For creation: cns 1.083, pullup 1.016, step 0.73, fade 0.86. k above 50 / below 50: ra, paint and mid 28/22; corner 34/14; above the break 38/14; creation 22, 20, 15 and 15 either way.
+- **Role multipliers:** Slasher rim ×1.3, Floor spacer threes ×1.25, 3-and-D wing corner ×1.4, Stretch big threes ×1.5.
+
+## T. Small things that still matter
+
+- **Hot and cold streaks** (`streaky`): each game day `hot` = .85 × yesterday's + a random amount, kept between −1 and 1. It moves every jump shot by up to ±9% (±2.5% at the rim).
+- **Heat check:** after 2 straight makes, usage ×1.45, above-the-break threes ×2 and −2% per shot.
+- **Tilt** (`volatile`): after 3 straight misses (or any miss while down 18+), usage ×1.3 and −4% per shot.
+- **Confidence:** ±1.2% on every shot, from his recent play.
+- **Adjusting** (back from overseas): −3% per shot until the adjustment games run out.
+- **Playing hurt** (day-to-day): −3% per shot, usage ×0.9, starts with 5 less energy.
+- **Selfish teammates** (`padder`): −1.5% on everyone else's shots; selfish defenders give the offense +1.2%.
+- **Defensive three seconds:** bigs with low Defensive IQ get called about 0.4 times a game. Each call is one technical free throw.
+- **Fouls:** who commits each foul is weighted by (110 − diq).
+- **Garbage time:** up 20+ with 5:00 left (or 24+ with 8:00, 15+ with 3:00), the deep bench plays.
+- **Tactics:** your team's schemes (pace, defense, focus) shift shot mixes and make rates, and add practice reps that steer growth toward the system's skills (sections D and N).
+- **Ratings shown in the game are rounded.** Hidden decimals (`rx`) keep counting, so a 74 can be 74.9.
+
+That is everything that touches a player's ratings, development and stats. Contracts, mood, trade value and awards come from these same numbers but don't feed back into how he plays.
