@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-gzeoBphf.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-hJaUdBK0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-16
+
+### Added
+- **EPM, LEBRON and DARKO** (estimates) in a player's Advanced stats, the league Stats page, League Leaders and award formulas, each with an offense and defense split. **EPM:** the box score blended with on/off as his minutes grow. **LEBRON:** a box score prior plus on/off with his three-point luck taken out. **DARKO:** his current level from this season and the last three, recent seasons weighted most, adjusted for age. All are points per 100 possessions over an average player, with the league's best around +7 to +10. The real ones use tracking data and lineup data the game doesn't keep, so these follow each one's published method with the data it has.
 
 ### Changed
 - **Guards and wings who can't shoot no longer live at the rim.** Defenses sag off a player whose best jump shot (three or mid-range) is weak and pack the paint: he finishes worse at the rim (up to 6% worse at the very worst), and no more than 58% of a guard's or wing's shots can come at the rim (the rest go to the jumpers the defense gives him). Shooters around him open the lane a little, and a lineup without them clogs it. Bigs are unaffected. A 6′5″ point guard with 35 three-point and 20 mid-range shooting went from .588 to about .500 from the field.
