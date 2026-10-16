@@ -10,6 +10,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Fewer runaway breakout seasons.** Each season every player rolls how his development goes that year. The roll could reach 3× a normal year, and with a hard worker and a good staff growth could run at 2.5× his plan, so a young player could jump 12 overall in half a season. Breakout years now top out around 2×, growth at 1.8× his plan, and bad years are milder too. Average development is the same (careers end in the same place), only the extremes are smaller. This season's rolls in your league are brought into the new range when you load it.
 - **Progress arrows are season by season.** The green and red arrows on the Roster and in player profiles used to compare against opening night of the season before, so they piled up more than a year of change. Now they cover one season: from the end of last season to today, so summer improvement or decline counts toward the new season. When the next summer starts they start over. A player who ends one season at 30 and the next at 35 shows ▲5, then starts fresh from 35.
 
+### Fixed
+- **Weak passers get a few assists again.** The last assist change went too far: bigs and wings who can't pass were down to 0.2–0.5 a game. They now get about one per 36 minutes, like the NBA's worst-passing bigs (a 24-passing center in 24 minutes: 0.7 instead of 0.3), point guards still lead, and a lineup short on passers loses less of its assist rate. Team assists stay at about 25 a game.
+
 ## 2026-10-15
 
 ### Added
