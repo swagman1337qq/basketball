@@ -305,6 +305,8 @@ export const ffScore = (f: FourFactors) => (0.4 * (f.efg - BASE.efg)) / 0.025 + 
 
 // Intangibles are measured from the NBA average (Feel ≈ 54, Poise ≈ 55), so only the unusual stand out.
 const FEEL_MID = 54, POISE_MID = 55;
+// Shots at the rim: the most of a guard's or wing's shots that can come there (see the shot choice).
+const RIM_CAP = 0.58;
 const TIRED0 = 0.13; // a typical player's tiredness on the floor: fatigue effects are measured from it, so league totals hold
 const SUB_MARGIN = 285; // seconds ahead of his minutes target before a bench player comes in
 
@@ -590,7 +592,12 @@ export class GameSim {
       const n3 = f3 > 0.48 && hi3 > 0 ? f3 - (f3 - 0.48) * 0.8 * hi3 : f3, k3 = f3 > 0 ? n3 / f3 : 1, kO = f3 < 1 ? (1 - n3) / (1 - f3) : 1;
       // Late: needing a three he shoots one, unless he loses track of the score (a low Offensive IQ); needing two he attacks.
       const egZ = eg.need3 ? (Math.random() < this.brainfart(sh.r.oiq) * 1.5 ? 'two' : 'three') : eg.go2 ? 'two' : null;
-      const z = wpick(ZONES, k => prof[k] * (k === 'c3' || k === 'atb' ? k3 * (egZ === 'two' ? 0.08 : 1) : kO * (egZ === 'three' ? 0 : 1)));
+      const zw = Object.fromEntries(ZONES.map(k => [k, prof[k] * (k === 'c3' || k === 'atb' ? k3 * (egZ === 'two' ? 0.08 : 1) : kO * (egZ === 'three' ? 0 : 1))])) as Record<Zone, number>;
+      // A guard or wing can't live at the rim: the defense walls off the paint and gives him the jumper instead.
+      // Past 58% of his shots at the rim, the rest go to his other shots (bigs, who score off rolls, lobs and
+      // putbacks, are exempt).
+      if (sh.grp !== 'B' && !putback && egZ !== 'three') { const tot = ZONES.reduce((a, k) => a + zw[k], 0), rs = tot > 0 ? zw.rim / tot : 0; if (rs > RIM_CAP) { const kr = RIM_CAP / rs, ko = (1 - RIM_CAP) / (1 - rs); ZONES.forEach(k => (zw[k] *= k === 'rim' ? kr : ko)); } }
+      const z = wpick(ZONES, k => zw[k]);
       // A shot at the buzzer is rushed: a catch and heave with a second or less, a hurried one with two.
       const rush = this.q >= 4 ? (eg.last ? 0.25 : putback ? 0 : t0 <= 1.2 ? 0.12 : t0 <= 2.5 ? 0.05 : 0) : 0;
       const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
@@ -621,7 +628,9 @@ export class GameSim {
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      // At the rim, a guard or wing who can't shoot (his best of 3PT and mid-range under 55) finds the paint packed:
+      // the defense sags off him (up to −6% at the worst); shooters around him open the lane a little (and vice versa).
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];

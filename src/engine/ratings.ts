@@ -200,6 +200,13 @@ export function setHgtKeepOvr(p: any, v: number) {
   const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = T / (T - (W.hgt ?? 0)); p.r.hgt = v;
   for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
 }
+// The least a player rebounds and boxes out just by his body: size, spring and strength (a 6′5″ guard with an average
+// body about 25, a 7-footer about 40). Generation used to leave raw young players far under it (a 6′5″ guard at 5).
+export const rebFloor = (p: any) => Math.round(Math.max(4, 0.3 * p.r.hgt + 0.2 * p.r.jmp + 0.15 * p.r.stre - 6));
+export function liftRebounding(p: any) { const f = rebFloor(p); let up = false;
+  if (p.r.reb < f) { p.r.reb = f; up = true; } if ((p.r.box ?? 0) < f - 4) { p.r.box = f - 4; up = true; }
+  if (up && p.ceil) { p.ceil.reb = Math.max(p.ceil.reb ?? 0, p.r.reb + 6); p.ceil.box = Math.max(p.ceil.box ?? 0, p.r.box + 6); }
+  return up; }
 export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 export const WNG_W: Record<string, number> = { G: .05, W: .075, B: .095 };
 export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(RMAX, 50 + (wing - hIn - 4) * 6)));

@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -320,6 +320,9 @@ export class Game {
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.iqV = 3; }
+    // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
+    // rises a little with it (true potential too, if it would pass it).
+    if (!g.db.rebV) { (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone || p.retired) return; if (liftRebounding(p)) { syncOvr(p); if (p.tpot != null && p.ovr > p.tpot) p.tpot = p.ovr; } }); g.refreshNorms(g.state); g.db.rebV = 1; }
     // 2026-10-16: breakout years narrowed (rollDevYear): this season's rolls come into the new range.
     if (!g.db.dyV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.dy != null) p.dy = Math.max(-0.5, Math.min(2.2, p.dy)); }); g.db.dyV = 1; }
     // 2026-10-14: the scouts' miss on potential goes either way (potential.ts refreshPot, teamRead): re-read everyone once.
@@ -460,7 +463,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 3, dyV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 3, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -644,6 +647,7 @@ export class Game {
     p.yrsWith = cls ? 0 : 1 + Math.floor(rnd() * Math.min(6, Math.max(1, 2026 - p.draft)));
     p.rookie = !cls && !!p.dr && p.dr.rd === 1 && 2026 - p.draft <= 3; if (p.rookie) p.exp = Math.max(2027, p.draft + 4);
     setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); // his height rating mostly follows his listed height (ratings.ts)
+    liftRebounding(p); // at least what his body gives him on the glass (ratings.ts rebFloor)
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     initTendencies(p, { roles: this.rolesOf(p) }); // his playing style: where his game points, plus his own quirks (tendencies.ts)
