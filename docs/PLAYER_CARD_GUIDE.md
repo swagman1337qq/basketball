@@ -479,7 +479,7 @@ usage  = e^(0.019 × (offensive ability − 57)) × e^((ten.usage − 50) / 60)
 | Feel | +.00012 × (offense's average Feel − 54) − .0001 × (defense's average Feel − 54) |
 | Clutch (last 5:00, within 6) | +.0005 × (Poise − 55) (fearless counts Poise as at least 80); +.03 if `clutch`; Four Factors edge ×.012 |
 | Venue | road role players −.013 (−.026 if `crowd`), scaled by Poise; villain on the road +.02; home team's defense slightly better |
-| Condition | adjusting to a new league −.03; playing hurt −.03; confidence ±.012 |
+| Condition | adjusting to a new league −.03; playing hurt −.03 (the engine has a confidence term of ±.012, but nothing sets it yet, so it's always 0) |
 | Streaks / moods | `streaky` hot or cold stretch ±(.025 rim, .09 jumpers) × hot; heat check −.02; tilt −.04 |
 | Score effect | −.0018 × his team's lead (±30 at most) |
 | Buzzer | 4th quarter or OT: −.05 with ≤ 2.5 s, −.12 with ≤ 1.2 s, −.25 for a last-second heave |
@@ -750,7 +750,6 @@ L, rel(x) and shoot3 are defined in section K. "handle" = (drb + acc)/2, and "fi
 - **Hot and cold streaks** (`streaky`): each game day `hot` = .85 × yesterday's + a random amount, kept between −1 and 1. It moves every jump shot by up to ±9% (±2.5% at the rim).
 - **Heat check:** after 2 straight makes, usage ×1.45, above-the-break threes ×2 and −2% per shot.
 - **Tilt** (`volatile`): after 3 straight misses (or any miss while down 18+), usage ×1.3 and −4% per shot.
-- **Confidence:** ±1.2% on every shot, from his recent play.
 - **Adjusting** (back from overseas): −3% per shot until the adjustment games run out.
 - **Playing hurt** (day-to-day): −3% per shot, usage ×0.9, starts with 5 less energy.
 - **Selfish teammates** (`padder`): −1.5% on everyone else's shots; selfish defenders give the offense +1.2%.
@@ -759,5 +758,46 @@ L, rel(x) and shoot3 are defined in section K. "handle" = (drb + acc)/2, and "fi
 - **Garbage time:** up 20+ with 5:00 left (or 24+ with 8:00, 15+ with 3:00), the deep bench plays.
 - **Tactics:** your team's schemes (pace, defense, focus) shift shot mixes and make rates, and add practice reps that steer growth toward the system's skills (sections D and N).
 - **Ratings shown in the game are rounded.** Hidden decimals (`rx`) keep counting, so a 74 can be 74.9.
+
+## U. Minutes, roles off the court, hidden traits and advanced stats
+
+**Minute targets by rotation spot.** Players are ranked by overall (or your order and minutes if you set them by hand):
+
+| Spot | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11+ |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Regular season | 34 | 33 | 32 | 30 | 28 | 24 | 20 | 17 | 14 | 6 | 2, then 0 |
+| Playoffs | 39 | 38 | 37 | 35 | 32 | 24 | 18 | 12 | 5 | 0 | 0 |
+| Elimination game | 41 | 40 | 38 | 36 | 34 | 27 | 21 | 3 | 0 | 0 | 0 |
+
+- A promised minimum (`minMin`, from a contract promise) raises his target to at least that.
+- Hand-set minutes (Roster → Manual) replace the target. A lineup style (Small ball, Twin towers) can't push a hand-set player far past his minutes.
+- In-game, fouls, fatigue, blowouts and the late-game rules move these.
+
+**"Protect his percentage."** A player on a three-point bonus clause can ask to take fewer threes. If you agree (`p.protect`), his threes are halved in his shot mix and −2% on the ones he still takes, for the rest of the season.
+
+**Hidden personality values** (not in cards unless you add them):
+- **`mal`** (malleability, 3–97, average 50): how open he is to his personality changing. Each month there's a small chance a trait flips. The chance is ×(mal/100)² × 2.5 (90 → 2.0, 50 → 0.63, 20 → 0.1), × age (1.3 at 22 or younger, 1.0 to 25, 0.6 to 29, 0.3 older), × his mentor, × the locker room. A good mentor can remove bad habits and pass on good ones; a bad locker room breeds egos.
+- **`loyalty`** and **`ambition`** (0–100): only used when a promised free agent decides whether to sign with a rival. If left out they come from `mot` (Loyalty 75, otherwise 45; ambition 75 for Money or Fame).
+
+You can put `mal`, `loyalty` and `ambition` in a card's `pers`; they're copied like the other traits.
+
+**Advanced stats** (`advanced.ts`; for reading results, they don't affect play). "Team" values are his team's; per-100 values are per 100 possessions while he's on the floor.
+
+| Stat | Formula |
+|---|---|
+| TS% | PTS / (2 × (FGA + .44 × FTA)) |
+| eFG% | (FGM + .5 × 3PM) / FGA |
+| USG% | (FGA + .44·FTA + TOV) × (team minutes/5) / (MIN × team (FGA + .44·FTA + TOV)) |
+| AST% | AST / (his share of team made shots − his own FGM) |
+| ORB%, DRB%, TRB% | his rebounds / available rebounds while he's on the floor |
+| STL% / BLK% | per opponent possession / per opponent two-point attempt, while on the floor |
+| TOV% | TOV / (FGA + .44·FTA + TOV) |
+| PER | 15 × (efficiency per minute) / league efficiency per minute, where efficiency = PTS + REB + AST + STL + BLK − missed FG − missed FT − TOV |
+| ORtg / DRtg | points produced per 100 possessions used (simplified Dean Oliver, scaled so the league adds up) / team DRtg − .5 × (his stops per 100 − league average) |
+| OWS / DWS / WS / WS/48 | marginal offense and defense over replacement, in wins |
+| BPM | Offense: .8 × per100(.86·PTS − .56·FGA − .246·FTA + .389·3PM + .807·AST − .964·TOV + .397·ORB). Defense: per100(.25·DRB + 1.6·STL + 1.2·BLK − .3·PF). Each adjusted so his team's minute-weighted BPM matches its ratings, then shrunk toward −1.5 / −0.5 under 500 minutes. |
+| VORP | (BPM + 2) × his share of team minutes × games/82 |
+| EWA | (PER − 11) × MIN / 67 / 30 |
+| On/Off | his +/− per 100 possessions − the team's per 100 without him |
 
 That is everything that touches a player's ratings, development and stats. Contracts, mood, trade value and awards come from these same numbers but don't feed back into how he plays.
