@@ -320,6 +320,8 @@ export class Game {
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.iqV = 3; }
+    // 2026-10-16: breakout years narrowed (rollDevYear): this season's rolls come into the new range.
+    if (!g.db.dyV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.dy != null) p.dy = Math.max(-0.5, Math.min(2.2, p.dy)); }); g.db.dyV = 1; }
     // 2026-10-14: the scouts' miss on potential goes either way (potential.ts refreshPot, teamRead): re-read everyone once.
     if (!g.db.perrV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.r && !p.gone && !p.retired) refreshPot(p); }); g.db.perrV = 1; }
     if (!g.db.tenAuto) { const st = g.state, R = st.rosters || {}, rk = optionRanks(g.db.P, R), md = g.strategies(st.teams, st, true), tOf = new Map<number, number>(); Object.keys(R).forEach(k => R[k].forEach((id: number) => tOf.set(id, +k)));
@@ -458,7 +460,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 3, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 3, dyV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -1273,7 +1275,7 @@ export class Game {
   // were reaching about 89% of their planned growth by their late 20s against a design of 77%, and the
   // league filled up with stars), and the most everything that speeds him up (work ethic, the hidden
   // factor, a breakout year, his environment) can stack to: outliers exist, but not 4–8× a normal pace.
-  static REALIZE = 0.94; static GROW_CAP = 2.5;
+  static REALIZE = 0.96; static GROW_CAP = 1.8; // 2026-10-16: breakout years narrowed (form roll −0.5…2.2, at most 1.8× the plan; was −1…3 and 2.5×), REALIZE up 2% to keep careers the same on average
   // The chance, each summer, that any rating in the league sitting at 98 breaks through to 99 (age 31 or
   // younger): about once in 150 seasons, however many 98s there are.
   static BREAK = 1 / 150;
@@ -1747,13 +1749,13 @@ export class Game {
   // skills) is his own development profile: development.ts.
   devK(p) { if (p.devK == null) { const h = (x: number) => (((p.id * x + 11) >>> 0) % 1000) / 1000; p.devK = +Math.exp((h(7919) + h(104729) + h(15485863) - 1.5) * 2 * 0.28).toFixed(2); } return p.devK; }
   // This season's development form, rolled on opening night: progress isn't linear. Most years
-  // are normal (about 1), some are breakouts (2+), and some go nowhere or backwards (0 or below:
+  // are normal (about 1), some are breakouts (up to about 2), and some go nowhere or slip back (0 or below:
   // a player who can't adapt, loses confidence, or just has a lost year). Hard workers lean up.
   rollDevYear(s = this.state) {
     const P = this.db.P, g3 = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
     // Timing too: growth that comes early (a breakout) is partly given back the next year, and a down
     // year is partly made up (a sophomore slump, then a bounce): bigger swings, same careers on average.
-    [...(Object.values(s.rosters).flat() as number[]), ...(s.fa || [])].forEach(id => { const p = P[id]; if (!p) return; const t = 0.5 * g3(); p.dy = +Math.max(-1, Math.min(3, 1 + 0.85 * g3() + t - 0.7 * (p.dyT || 0) + ((p.pers?.work ?? 50) - 50) / 200)).toFixed(2); p.dyT = +t.toFixed(2); p.dyS = this.Y; });
+    [...(Object.values(s.rosters).flat() as number[]), ...(s.fa || [])].forEach(id => { const p = P[id]; if (!p) return; const t = 0.35 * g3(); p.dy = +Math.max(-0.5, Math.min(2.2, 1 + 0.55 * g3() + t - 0.7 * (p.dyT || 0) + ((p.pers?.work ?? 50) - 50) / 200)).toFixed(2); p.dyT = +t.toFixed(2); p.dyS = this.Y; });
   }
   // Expected yearly change in overall before personality, minutes and luck.
   // His development plan (potential.ts): this age's share of the way from where he came into the league
