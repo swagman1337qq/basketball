@@ -402,3 +402,187 @@ Roles show on the profile and change how the engine uses him.
 | Offensive rebounds | ~11–12 |
 
 Every season the engine also corrects league-wide shooting and turnovers toward these baselines, so a league doesn't drift as it ages.
+
+---
+
+# Appendix: the exact formulas
+
+This appendix is for testing cards in detail. It lists every formula the engine uses for a player's stats, copied from the code (`src/engine/sim.ts` unless noted). In the formulas:
+
+- `r.x` is one of his ratings (for example `r.tp` is 3PT).
+- `n.x` is the league's norm for that quantity. The engine recomputes the norms from all rosters every season, so "above average" always means above *this* league's average.
+- `cl(v, a, b)` keeps `v` between `a` and `b`.
+- `avg(lineup, f)` averages `f` over the five players on the floor.
+
+## A. Composite skills
+
+| Name | Formula |
+|---|---|
+| wingspan edge `ape` | wingspan − height in inches − 4 (0 = league typical) |
+| rim skill | 0.2·dnk + 0.25·lay + 0.2·ins + 0.25·hgt + 0.1·jmp + 1.0·ape |
+| mid skill | fg + 0.12·(hgt − 50) |
+| three skill | tp + 0.08·(hgt − 50) |
+| offensive ability | 0.55·scoring + 0.17·drb + 0.15·oiq + 0.13·acc, where scoring = 0.5·best + 0.3·second + 0.1·third of {rim finishing, fg, tp} + 0.1·ft, and rim finishing = 0.25·dnk + 0.25·lay + 0.3·ins + 0.1·hgt + 0.1·jmp |
+| perimeter D | 0.5·diq + 0.125·spd + 0.125·acc + 0.25·hgt + 0.8·ape |
+| interior D | 0.4·hgt + 0.3·diq + 0.15·blk + 0.15·jmp + 1.5·ape |
+| rebound skill | 0.55·reb + 0.33·hgt + 0.12·jmp + 0.9·ape |
+| glass skill (team rebounding) | 0.75·rebound skill + 0.25·box |
+| steal skill | 0.7·stl + 0.15·acc + 0.15·spd + 1.0·ape |
+| block skill | 100 × blk^0.32 × hgt^0.18 × (50 + 6·ape)^0.15 × jmp^0.12 × (0.6·acc + 0.4·spd)^0.10 × diq^0.16, each as a fraction of 100. It's geometric, so a weakness anywhere drags it down. |
+| gambling | max(0, blk − diq − 8) for blocks, max(0, stl − diq − 8) for steals |
+
+## B. Shot volume (usage)
+
+```
+usage  = e^(0.019 × (offensive ability − 57)) × e^((ten.usage − 50) / 60)
+         × 1.05 if alpha × 1.06 if touches × 1.05 if Primary creator
+         × 1.3 if padder (selfish) × 0.9 if playing hurt (day-to-day)
+```
+
+- **Mood multipliers:** heat check ×1.45, tilt ×1.3, villain on the road ×1.08, fearless in clutch time ×1.6.
+- **Usage cap:** the top-usage player on the floor is held to **33%** of the lineup's shots. The cap rises toward 50% when he's 28 to 55 overall points better than the other four, and clutch time ignores it. A star far better than his teammates also gets a takeover boost of 1 + (gap − 25)/20.
+- **Who ends each trip:** the shooter is picked at random, weighted by usage. Who gets fouled on a drive is weighted by usage × (ins + avg(dnk, lay) + stre/2 + acc/4) × 1.2 for Slashers × `ten.ftr`.
+
+## C. Which shot
+
+1. **Zone** comes from his shot mix (`ten.ra + ten.paint`, `ten.mid`, `ten.c3`, `ten.atb`), tilted by tactics and the game situation:
+   - Heat check: above-the-break threes ×2, corner threes ×0.6.
+   - Tilt: mid-range ×1.5, threes ×1.4, rim ×0.6.
+   - Fast break: rim ×2.2.
+2. **High-usage bend.** When his share of the lineup's shots `s` is above 17%, a mix with more than 48% threes is pulled toward 48% by `0.8 × cl((s − 0.17)/0.15, 0, 1)` of the excess.
+3. **Rim cap.** A guard or wing (not on a putback) takes at most **58%** of his shots at the rim. Anything above that goes to his other zones in proportion.
+4. **Paint or mid-range.** A shot in the mid tier is in the paint with probability `ten.paint / (ten.paint + ten.mid)`.
+5. **Creation type** for a jump shot is picked from `ten.cns / pullup / step / fade`.
+
+## D. Make chance (every term)
+
+`P(make) = cl(sum of the terms below, 0.10, 0.90)`
+
+| Term | Value |
+|---|---|
+| Zone baseline | rim .696, mid tier .37, corner .388, above the break .351 |
+| Calibration | rim +.007, mid +.008, corner +.007, above the break +.005 |
+| Skill curve | zone skill `s` against the curve's midpoint `m`: if `s ≥ m`, up × (s − m) / (1 + (s − m)/40); else down × (s − m). Rim: m = 60, up .0025, down .0032. Mid-range: m = 55, up .0022, down .0028. Threes: m = 65, up .0016, down .0029. |
+| League re-centering | − the league's average curve value (keeps the league on its baselines), + last season's drift correction |
+| Paint vs mid-range | paint +.02 (plus half his rim-vs-mid skill gap); mid-range −.02 × .52/.48 |
+| Creation type | catch-and-shoot +.022; pull-up −.015 + .0006·(drb − 55); stepback −.045 + .0012·((drb + acc)/2 − 55); fadeaway −.035 + .001·(.5·fg + .25·hgt + .25·stre − 52); minus the league's average creation |
+| Shot selection (Offensive IQ) | +.0003 per point above the league's Offensive IQ, −.0005 per point below |
+| Usage burden | if his share `s` of the lineup's shots > 24%: −(s − .24) × .18 × cl(1 − (oiq − n.oiq)/60, 0.4, 1.5) (×1.1 flat for alphas and heat checks) |
+| Size at the rim | +.0015 × (hgt − league rim height) |
+| Sag off non-shooters (guards and wings at the rim) | −.15 × cl((55 − max(tp, fg))/100, 0, 0.4) |
+| Spacing at the rim | +.0006 × (teammates' average tp − 50) |
+| Lineup regression | −.66 × (lineup's usage-weighted shooting edge); hot lineups give part of their edge back |
+| Rim defense | −(size factor) × [.0021 × (interior D of his two tallest defenders − norm) + .007 if a Rim protector is on the floor] + .0005 × block gambling. Size factor = cl(1 + (55 − hgt)/100, .75, 1.3), so small finishers are hit harder. |
+| Jump-shot defense | −.001 (mid) / −.0008 (three) × (lineup perimeter D − norm) + .0003/.0004 × steal gambling |
+| Team defense | −.0008 × (defenders' average diq − norm) |
+| Fatigue | −.055 × (his tiredness − .13) × (.8 rim, 1.15 jumpers) + .025 × (defenders' average tiredness − .13) |
+| Feel | +.00012 × (offense's average Feel − 54) − .0001 × (defense's average Feel − 54) |
+| Clutch (last 5:00, within 6) | +.0005 × (Poise − 55) (fearless counts Poise as at least 80); +.03 if `clutch`; Four Factors edge ×.012 |
+| Venue | road role players −.013 (−.026 if `crowd`), scaled by Poise; villain on the road +.02; home team's defense slightly better |
+| Condition | adjusting to a new league −.03; playing hurt −.03; confidence ±.012 |
+| Streaks / moods | `streaky` hot or cold stretch ±(.025 rim, .09 jumpers) × hot; heat check −.02; tilt −.04 |
+| Score effect | −.0018 × his team's lead (±30 at most) |
+| Buzzer | 4th quarter or OT: −.05 with ≤ 2.5 s, −.12 with ≤ 1.2 s, −.25 for a last-second heave |
+| Tactics | scheme effects; forcing shots outside his natural mix costs extra for poor shooters; fast-break layups +.06 |
+
+**Blocks.** A missed shot was blocked with probability `1.18 × base × e^((avg of the defense's top-two block skill − norm)/22) × 1.3 if a Rim protector`. Base per zone: rim .36, mid .053, threes .008. Small finishers are blocked more at the rim. Stepbacks (×0.45) and fadeaways (×0.3) are rarely blocked.
+
+**Who gets the block:** weighted by max(30, block skill)³ × 1.6 for Rim protectors.
+
+## E. Free throws
+
+```
+FT% = cl(.783 + .019 + curve_ft(ft) + league FT offset − .02 if adjusting
+         − .03 × (tiredness − .13) + .0006 × (Poise − 55) in the last 5:00, .30, .95)
+curve_ft: m = 60, up .005 with softness 80, down .005, and an extra −.0025 per point under 40.
+A 98.5+ free-throw rating: 98% flat (cap .99).
+```
+
+- **Shooting fouls:** about 6.6% of trips. 8% of those are on a three (3 free throws).
+- **And-ones:** 7.2% of made shots.
+- **Bonus fouls:** 6.6% of trips are a non-shooting foul, which gives 2 free throws once the defense is in the bonus.
+- **Rebounds off free throws:** 90% of missed last free throws are live.
+
+## F. Turnovers and steals
+
+```
+P(turnover) = .118 × e^(−(handle − n)/200 + (pressure − n)/85 − (Feel_O − 54)/400 + (Feel_D − 54)/210
+              − (oiq − n)/350 + (hands − n)/420)
+              × (1 + .02 per flashy) × (1 + .3 × (tiredness − .13)) × (1 − .015 per Connector)
+              × (1 + .025 per Point-of-attack defender) × last season's correction
+```
+
+- **handle** = the lineup's average of .45·drb + .45·pss + .1·acc.
+- **pressure** = the defense's average perimeter D.
+- **hands** = the defense's average steal skill.
+- **oiq** = the lineup's average Offensive IQ.
+
+**Who commits the turnover:** weighted by usage^1.7 × (.5 + pss/100) × (1.25 − drb/220) × (1.35 − oiq/150) × 1.3 if flashy.
+
+**What kind of turnover:**
+- A steal, with probability cl(.573 × e^((hands − n)/160), .35, .8). The steal goes to a defender weighted by (max(32, steal skill + .4·(Feel − 54)))^1.2, ×1.5 for a Point-of-attack defender.
+- Otherwise an offensive foul 10% of the time, or the ball out of bounds.
+
+## G. Assists
+
+```
+P(assisted | make) = 1.39 × zone rate × e^((teammates' avg of max(pss, (pss + drb)/2) − n.pss)/60)
+                    × e^((Feel_O − 54)/120) × e^((teammates' oiq − n)/110) + .02 per Connector
+                    × creation factor (catch-and-shoot 1.5, pull-up .22, stepback .12, fadeaway .55)
+                    × .9 if a selfish teammate × .85 if the shooter is selfish     (kept between .05 and .97)
+zone rates: rim .55, mid .48, corner .95, above the break .82; no assists on putbacks
+```
+
+**Who gets the assist** (any teammate but the shooter), weighted by:
+
+```
+max(42, pss × (1 + (Feel − 54)/300 + (oiq − 50)/400))^2.4
+ × cl(.45 + drb/80, .75, 1.45) × 1.2 if Primary creator × .85 if selfish × 1.12 if flashy
+```
+
+## H. Rebounds
+
+```
+P(offensive rebound) = cl(.26 + .004 × (offense's avg glass skill − defense's) + .03 × (defense's
+                       avg tiredness − offense's) + .015 × clutch edge + tactics, .12, .45)
+```
+
+- 89% of rebounds are credited to a player (the rest are team rebounds).
+- **Who grabs it:** weighted by max(36, rebound skill)² × 1.3 for a Rebounder × (1 − max(0, box − 55)/120) × (1 − .35 × tiredness).
+- **Rebounding floor** (`ratings.ts`): reb ≥ round(.3·hgt + .2·jmp + .15·stre − 6), and box ≥ that − 4.
+
+## I. Minutes, fatigue and rotation
+
+- **Energy** starts at 100 − .35 × season fatigue (− 5 if playing hurt), kept between 55 and 100.
+- **On the floor:** −3.7 × (1.55 − endu/100) per minute (×1.1 at 33+).
+- **On the bench:** +2.8 per minute. Quarter breaks +6, halftime +18.
+- **Tiredness** = cl((88 − energy)/60, 0, 1).
+- **Subs:** each player's "minutes owed" is his target share of the time elapsed minus his minutes played. Subtract 15 minutes for foul trouble, and 10 seconds for each energy point under 72. A bench player comes in when he's owed at least 285 seconds more than the man he replaces.
+- **Season fatigue:** each game day it changes by −(8 + endu/10) + 1.1 × (minutes over 20) + .3 × (age − 30) for players over 30.
+
+## J. Development (`Game.ts` devTick and the summer)
+
+- **Yearly plan rate:** (true potential − overall at plan start) × this age's share of the plan, × hidden pace × .96. The age shares are 18: 14%, 19: 15%, 20: 15%, 21: 14%, 22: 13%, 23: 11%, 24: 9%, 25: 7%, 26: 5%, 27: 3%, 28: 1%.
+- **Monthly growth:** plan rate / 12 × min(1.8, form × environment × work) × injury factor × stunting × random(0.6–1.4).
+  - Work = (.7 + work/167) × 1.08 if legacy × 1.06 if pro × .94 if volatile × hidden factor^0.6.
+- **Form roll** each opening night: 1 + .55·N + .35·N′ − .7 × last year's timing + (work − 50)/200, kept between −0.5 and 2.2. N and N′ are bell-curve draws.
+- **Aging** (29+): (−.4 − .25t − .03t²)/.83 a year, where t = age − 29.
+
+## K. How the AI sets tendencies (`tendencies.ts` tenTargets)
+
+Each month, unless you Freeze them, every player's tendencies are reset from his ratings, personality, age, role and team.
+
+**Relative skill:** rel(x) = x − L + .3·(L − 52), where L is the average of drb, pss, fg, tp, ins, finishing, acc and oiq. A skill counts against the rest of his own game.
+
+**Three-point desire:** shoot3 = 50 + .7·rel(tp). Under 50 3PT it ramps down toward 50 + 2.2·(tp − 50), and under 40 it's that value only.
+
+| Tendency | Score |
+|---|---|
+| Restricted area | 41 + 1.1·rel(rim skill) + 10 big / −3 guard + .5 per 3PT point under 40 − 1.5 per year over 30 |
+| Paint | 42 + 1.0·rel(post or floater skill) + 8 big / −2 guard |
+| Mid-range | 46 + 1.2·rel(fg) + 4 alpha + 4 touches + 3 volatile + 4 if 31+ − 6 for a big under 50 fg |
+| Corner three | 5 + shoot3 + 6 wing / −3 guard / −6 big − .4 × (handle − L) + 4 team player |
+| Above-the-break three | 5 + shoot3 + 4 guard / −8 big + .3 × (handle − L) + 4 heat + 2 alpha |
+| Usage | 48 + level + weapon + scorer-vs-stopper + option rank (+6 first option … −6 seventh) + team situation + ego − pass-first + age effects |
+
+Each score becomes a share: league share × e^((score − 50)/k), where k is about 28–38 above 50 and 14–22 below. The zones are then scaled to add up to 100.
