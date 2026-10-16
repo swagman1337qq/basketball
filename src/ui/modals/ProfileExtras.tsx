@@ -157,7 +157,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
               <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>{y.why.length ? y.why.join(' · ') : <span style={muted}>—</span>}</td>
             </tr>))}</tbody>
         </table>) : <p style={{ ...muted, fontStyle: 'italic' }}>No history yet: ratings are recorded on opening night and at the end of every season.</p>}
-      <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>Overall and every rating are recorded on opening night and at the end of each season, before summer development. The Roster shows the change over the past year under Ovr and Pot.</p>
+      <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>Overall and every rating are recorded on opening night and at the end of each season, before summer development. The ▲▼ arrows (Roster, profile) show this season only: the change since the end of last season, summer development included; they start over each summer.</p>
     </section>
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
       <section>

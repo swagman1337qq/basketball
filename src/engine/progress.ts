@@ -23,12 +23,16 @@ export function snapEnd(g: Game, s: any, season = g.Y) {
   const P = g.db.P; everyone(s).forEach(id => { const p = P[id]; if (!p) return; const h = (p.rh = p.rh || {}); h[season] = { ...(h[season] || {}), e: snap(p) }; });
 }
 
-// What to compare a player against: opening night of last season (the past year), or of this
-// season if he has no earlier snapshot. null when there's no history yet.
+// What the ▲▼ arrows compare a player against: one season at a time, never cumulative. The window opens
+// at the end of the previous season (the summer's growth or decline counts toward the new season) and
+// runs to now; when the next summer starts it opens again from there. A player who ends one season at
+// 30 and the next at 35 shows ▲5, then starts again from 35. Before a league's first season has ended:
+// this season's opening night. null when there's no history yet.
 export function baseline(g: Game, p: any): { snap: Snap; label: string } | null {
   const h = p.rh || {}, Y = g.Y, lbl = (y: number) => 'opening night ' + (y - 1) + '–' + String(y).slice(2);
-  if (h[Y - 1]?.o) return { snap: h[Y - 1].o, label: lbl(Y - 1) };
+  if (h[Y - 1]?.e) return { snap: h[Y - 1].e, label: 'the end of the ' + (Y - 2) + '–' + String(Y - 1).slice(2) + ' season' };
   if (h[Y]?.o) return { snap: h[Y].o, label: lbl(Y) };
+  if (h[Y - 1]?.o) return { snap: h[Y - 1].o, label: lbl(Y - 1) };
   return null;
 }
 export function deltas(p: any, b: Snap) {
