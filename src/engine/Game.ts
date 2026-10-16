@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -315,11 +315,12 @@ export class Game {
     // 2026-10-15: Offensive and Defensive IQ count for more in the overall, shooting, finishing, blocks and steals a
     // little less (ratings.ts OVR_W). Every overall is recomputed (most move under a point); his potential, true
     // potential and plan move by the same amount so his growth room is unchanged.
-    if ((g.db.iqV || 0) < 3) { const v = g.db.iqV || 0, WV = v === 2 ? OVR_W_V3 : v === 1 ? OVR_W_V2 : OVR_W_V1, AV = v === 2 ? OVR_ADJ_V3 : v === 1 ? OVR_ADJ_V2 : OVR_ADJ_V1; const oldOvr = (p: any) => { const W = WV[p.grp] || WV.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (AV[p.grp] ?? 2.5))); };
+    // 2026-10-16 (iqV 4): weights measured from the engine (ratings.ts OVR_W); same recompute and shift.
+    if ((g.db.iqV || 0) < 4) { const v = g.db.iqV || 0, WV = v === 3 ? OVR_W_V4 : v === 2 ? OVR_W_V3 : v === 1 ? OVR_W_V2 : OVR_W_V1, AV = v === 3 ? OVR_ADJ_V4 : v === 2 ? OVR_ADJ_V3 : v === 1 ? OVR_ADJ_V2 : OVR_ADJ_V1; const oldOvr = (p: any) => { const W = WV[p.grp] || WV.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (AV[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 3; }
+      g.refreshNorms(g.state); g.db.iqV = 4; }
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
     if (!g.db.rebV) { (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone || p.retired) return; if (liftRebounding(p)) { syncOvr(p); if (p.tpot != null && p.ovr > p.tpot) p.tpot = p.ovr; } }); g.refreshNorms(g.state); g.db.rebV = 1; }
@@ -463,7 +464,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 3, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 4, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);

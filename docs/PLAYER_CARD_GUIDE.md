@@ -83,40 +83,42 @@ A card can still carry the real player's name and bio. The card library shows th
 
 **Overall weight** is that rating's share of the overall for a Guard / Wing / Big. Larger numbers move the overall more.
 
+The weights are measured from the game engine itself: every rating was nudged up and down for every rotation player across 160,000 simulated games, and each weight is how much +10 in that rating changes his team's net points per 100 possessions, as a share of the total for his position (minimum 1%). So the overall tracks how much a player actually helps his team win in this engine. Steals and blocks measure at or below zero: raising them past Defensive IQ makes a player gamble, which costs about as much as the extra steals and blocks gain. Rim finishing, mid-range, ball handling and strength also measure close to zero in this engine.
+
 ### Body
 
 | Key | Rating | What it does in games | Overall weight (G / W / B) |
 |---|---|---|---|
-| `hgt` | Height | Finishing at the rim (25% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | 12.0% / 10.6% / 12.6% |
-| `stre` | Strength | Post game (hooks, fadeaways), drawing fouls (bigs), injury resistance, rebounding floor. | 2.3% / 3.9% / 6.8% |
-| `spd` | Speed | Perimeter defense, steals, slashing, fatigue-free pace. | 6.9% / 5.8% / 2.9% |
-| `acc` | Acceleration | Creating separation (stepbacks), perimeter defense, steals, scoring/usage. | 6.9% / 5.3% / 2.4% |
-| `jmp` | Jumping | Rim finishing, rebounding, blocks. | 3.7% / 4.8% / 5.3% |
-| `endu` | Endurance | How fast his energy drains on the floor (section 7.9), how quickly fatigue from heavy minutes clears between games, injury risk. | 4.4% / 4.6% / 4.6% |
+| `hgt` | Height | Finishing at the rim (25% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | **12.5% / 15% / 18%** |
+| `stre` | Strength | Post game (hooks, fadeaways), drawing fouls (bigs), injury resistance, rebounding floor. | 1% / 1% / 1% |
+| `spd` | Speed | Perimeter defense, steals, slashing, fatigue-free pace. | 3% / 2% / 1% |
+| `acc` | Acceleration | Creating separation (stepbacks), perimeter defense, steals, scoring/usage. | 4.5% / 3.5% / 3% |
+| `jmp` | Jumping | Rim finishing, rebounding, blocks. | 2.5% / 3.5% / 3% |
+| `endu` | Endurance | How fast his energy drains on the floor (section 7.9), how quickly fatigue from heavy minutes clears between games, injury risk. | 7.5% / 8.5% / 6.5% |
 
 ### Scoring
 
 | Key | Rating | What it does | Overall weight (G / W / B) |
 |---|---|---|---|
-| `ins` | Inside | Post scoring and rim finishing (20% of rim skill), drawing fouls. | 1.4% / 2.7% / 6.3% |
-| `dnk` | Dunks | Rim finishing (20% of rim skill), slashing, lobs. | 1.9% / 3.1% / 4.3% |
-| `lay` | Layups | Rim finishing (25% of rim skill), floaters. | 4.4% / 3.8% / 3.1% |
-| `ft` | Free throws | Free-throw %, directly (section 7.5). | 2.1% / 2.2% / 1.9% |
-| `fg` | Mid-range | Mid-range and paint jump shots, fadeaways. | 4.4% / 4.6% / 2.7% |
-| `tp` | Three-pointers | Every three (corner and above the break). | 6.0% / 5.8% / 2.2% |
+| `ins` | Inside | Post scoring and rim finishing (20% of rim skill), drawing fouls. | 1% / 1% / 2% |
+| `dnk` | Dunks | Rim finishing (20% of rim skill), slashing, lobs. | 1% / 1% / 1% |
+| `lay` | Layups | Rim finishing (25% of rim skill), floaters. | 1% / 2% / 1% |
+| `ft` | Free throws | Free-throw %, directly (section 7.5). | 3.5% / 4.5% / 4.5% |
+| `fg` | Mid-range | Mid-range and paint jump shots, fadeaways. | 1% / 1% / 2% |
+| `tp` | Three-pointers | Every three (corner and above the break). | 8% / 8% / 4% |
 
 ### Skill and smarts
 
 | Key | Rating | What it does | Overall weight (G / W / B) |
 |---|---|---|---|
-| `oiq` | Offensive IQ | Decision-making: fewer turnovers, better shots (and a better shot when the defense keys on him), assists for teammates, avoiding late-game mental mistakes. | **12.0% / 10.9% / 8.7%** |
-| `diq` | Defensive IQ | Positioning and rotations: makes every shot the opponent takes harder, fewer fouls, no defensive three seconds. | **9.0% / 11.4% / 11.8%** |
-| `blk` | Blocks | Who gets the block (timing). Above his Defensive IQ he gambles: more blocks, easier shots for everyone else. | 0.6% / 1.5% / 3.6% |
-| `stl` | Steals | Who gets the steal (hands). Gambling works the same way as Blocks. | 2.1% / 2.2% / 1.1% |
-| `drb` | Ball handling | Fewer turnovers; part of how assists are shared out (the ball handler makes most plays); pull-ups and stepbacks. | 8.3% / 5.3% / 1.9% |
-| `pss` | Passing | Who gets the assist on a teammate's make, and how often his lineup's baskets are assisted. | 8.3% / 4.8% / 3.4% |
-| `reb` | Rebounding | Who grabs the rebound. | 1.9% / 3.9% / 8.2% |
-| `box` | Box out | Team rebounding (keeps the opponent off the glass) without grabbing as many himself. | 1.4% / 2.9% / 6.3% |
+| `oiq` | Offensive IQ | Decision-making: fewer turnovers, better shots (and a better shot when the defense keys on him), assists for teammates, avoiding late-game mental mistakes. | 7.5% / 9% / 8% |
+| `diq` | Defensive IQ | Positioning and rotations: makes every shot the opponent takes harder, fewer fouls, no defensive three seconds. | **22.5% / 21% / 23%** |
+| `blk` | Blocks | Who gets the block (timing). Above his Defensive IQ he gambles: more blocks, easier shots for everyone else. | 1% / 1% / 1% |
+| `stl` | Steals | Who gets the steal (hands). Gambling works the same way as Blocks. | 1% / 1% / 1% |
+| `drb` | Ball handling | Fewer turnovers; part of how assists are shared out (the ball handler makes most plays); pull-ups and stepbacks. | 1% / 3% / 3.5% |
+| `pss` | Passing | Who gets the assist on a teammate's make, and how often his lineup's baskets are assisted. | 3.5% / 1% / 2.5% |
+| `reb` | Rebounding | Who grabs the rebound. | 10.5% / 9% / 9% |
+| `box` | Box out | Team rebounding (keeps the opponent off the glass) without grabbing as many himself. | 6.5% / 4% / 5.5% |
 
 ### How ratings translate to quality
 
@@ -126,7 +128,7 @@ Across all rotation players, most ratings average about 54–57. As a rough guid
 
 ## 4. The overall, height and wingspan
 
-**Overall** = the weighted average of all 20 ratings (weights in section 3) + a wingspan bonus − a position adjustment (G 1.6, W 1.64, B 4.38). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
+**Overall** = the weighted average of all 20 ratings (weights in section 3) + a wingspan bonus − a position adjustment (G −2.2, W 1.58, B 3.49). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
 
 **The height rating should match the listed height:**
 
