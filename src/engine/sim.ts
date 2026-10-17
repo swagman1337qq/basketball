@@ -195,6 +195,8 @@ export interface Norms {
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
   cre?: Record<JumpZone, CreMean>; // the league's jump-shot creation, per tier: keeps a typical mix on the league's make rate, assists and blocks
   adj?: Record<Zone, number>; tovM?: number; adjFrom?: number; // the league's drift correction (Game.leagueDrift): make rates by tier and turnovers, from last season's results
+  paceM?: number; ftM?: number; zoneM?: Record<Zone, number>; // also (2026-10-17) trip length, free-throw trips and the shot mix by tier
+  quick?: number; // the league's typical speed and quickness (each team's top eight), the zero point for team tempo
 }
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
 
@@ -352,7 +354,7 @@ export class GameSim {
     this.away = side(away);
     [...home.players, ...away.players].forEach(p => this.en.set(p, cl(100 - 0.35 * (p.fat || 0) - (p.dtd ? 5 : 0), 55, 100)));
     // Each coaching staff's plan for tonight's opponent (coach.ts).
-    (['home', 'away'] as Side[]).forEach(k => { const T = this.teams[k]; if (T.aiKeys?.length) this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65); });
+    (['home', 'away'] as Side[]).forEach(k => { const T = this.teams[k]; if (T.aiKeys?.length) this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65, Math.random, this.norms.quick); });
     (['home', 'away'] as Side[]).forEach(k => {
       this.teams[k].players.forEach(p => {
         const use = usageRaw(p), rel = use / this.norms.usage;
@@ -512,7 +514,7 @@ export class GameSim {
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
     const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * (1 + 0.3 * (avg(onO, p => this.tired(p)) - TIRED0)) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
-    const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1);
+    const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1) * (n.ftM ?? 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
     // the last two minutes of a quarter, when that earns a free throw and the ball).
@@ -532,7 +534,7 @@ export class GameSim {
 
     // Clock: a whistle, a quick putback, or a normal trip at the offense's pace.
     const paceF = (fx ? fx.dt : 1) * Math.pow(this.teams[offK].tempo ?? 1, 0.7) * Math.pow(this.teams[defK].tempo ?? 1, 0.3);
-    const t0 = this.t, dt = Math.min(this.t, eg.dt != null && kind !== 'nsf' && kind !== 'd3' ? eg.dt : (kind === 'nsf' || kind === 'd3') && this.q >= 4 && this.t <= 24 ? 0.4 + Math.random() * 1.6 : kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt);
+    const t0 = this.t, dt = Math.min(this.t, eg.dt != null && kind !== 'nsf' && kind !== 'd3' ? eg.dt : (kind === 'nsf' || kind === 'd3') && this.q >= 4 && this.t <= 24 ? 0.4 + Math.random() * 1.6 : kind === 'nsf' || kind === 'hack' || kind === 'd3' ? 2 + Math.random() * 4 : putback ? 3 + Math.random() * 6 : fb ? 3 + Math.random() * 5 : (7 + Math.random() * 12.6) * paceF * RATE.dt * (n.paceM ?? 1));
     onO.forEach(p => (O.box[p.id].min += dt / 60));
     onD.forEach(p => (D.box[p.id].min += dt / 60));
     this.drain(dt);
@@ -596,7 +598,7 @@ export class GameSim {
       const n3 = f3 > 0.48 && hi3 > 0 ? f3 - (f3 - 0.48) * 0.8 * hi3 : f3, k3 = f3 > 0 ? n3 / f3 : 1, kO = f3 < 1 ? (1 - n3) / (1 - f3) : 1;
       // Late: needing a three he shoots one, unless he loses track of the score (a low Offensive IQ); needing two he attacks.
       const egZ = eg.need3 ? (Math.random() < this.brainfart(sh.r.oiq) * 1.5 ? 'two' : 'three') : eg.go2 ? 'two' : null;
-      const zw = Object.fromEntries(ZONES.map(k => [k, prof[k] * (k === 'c3' || k === 'atb' ? k3 * (egZ === 'two' ? 0.08 : 1) : kO * (egZ === 'three' ? 0 : 1))])) as Record<Zone, number>;
+      const zw = Object.fromEntries(ZONES.map(k => [k, prof[k] * (n.zoneM?.[k] ?? 1) * (k === 'c3' || k === 'atb' ? k3 * (egZ === 'two' ? 0.08 : 1) : kO * (egZ === 'three' ? 0 : 1))])) as Record<Zone, number>;
       // A guard or wing can't live at the rim: the defense walls off the paint and gives him the jumper instead.
       // Past 58% of his shots at the rim, the rest go to his other shots (bigs, who score off rolls, lobs and
       // putbacks, are exempt).

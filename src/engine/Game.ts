@@ -290,6 +290,10 @@ export class Game {
     [g.state, ...Object.values(g.state.clubs || {})].forEach((c: any) => { migrateTactics(c?.tactics); migrateTactics(c?.situ?.lead); migrateTactics(c?.situ?.trail); });
     if (!g.db.norms || g.db.norms.season !== g.state.season) g.refreshNorms(g.state);
     else if (g.db.norms.adjFrom == null) Object.assign(g.db.norms, g.leagueDrift(g.db.norms.season - 1, g.db.norms)); // 2026-10-15: older saves pick up the drift correction from last season now
+    // 2026-10-17: older saves pick up the pace, free-throw and shot-mix corrections (from last season, as a first step)
+    // and the league's quickness for team tempo now; the make-rate and turnover corrections they already have stay.
+    if (g.db.norms && g.db.norms.paceM == null) { const n = g.db.norms, d = g.leagueDrift(n.season - 1, { ...n, adjFrom: null, paceM: undefined, ftM: undefined, zoneM: undefined });
+      Object.assign(n, { paceM: d.paceM ?? 1, ftM: d.ftM ?? 1, zoneM: d.zoneM ?? { rim: 1, mid: 1, c3: 1, atb: 1 } }); const { adj, tovM, adjFrom } = n; g.refreshNorms(g.state); Object.assign(g.db.norms, { adj, tovM, adjFrom, paceM: n.paceM, ftM: n.ftM, zoneM: n.zoneM }); }
     ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); dropOldSplits(g); // older saves: remove retirees who never played here, trim the rest
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
@@ -891,12 +895,12 @@ export class Game {
   // A team's tactics as they stand: yours where you set them, the staff's identity elsewhere (practice reps follow them).
   effTactics(s, tid) { const club = this.clubOf(s, tid), ai = this.aiTacKeys(club), st: any = ai.length ? this.coachTactics(s, tid) : {}, t: any = { ...TAC_DEFAULT, ...(club?.tactics || {}) }; ai.forEach(k => (t[k] = st[k])); return t; }
   // The staff's current call for a team (its identity, before a game plan or in-game reads): shown on Tactics.
-  coachTactics(s, tid) { const P = this.db.P, ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id])); return coachBase(ids.slice(0, 8).map(id => P[id]).filter(Boolean)); }
+  coachTactics(s, tid) { const P = this.db.P, ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id])); return coachBase(ids.slice(0, 8).map(id => P[id]).filter(Boolean), this.db.norms?.quick); }
   tempoOf(s, tid) {
     const P = this.db.P, top = (s.rosters[tid] || []).map(id => P[id]).filter(Boolean).sort((a, b) => b.ovr - a.ovr).slice(0, 8); if (!top.length) return 1;
     const quick = top.reduce((a, p) => a + (p.r.spd + (p.r.acc ?? p.r.spd)) / 2 - p.r.stre * 0.3, 0) / top.length, age = top.reduce((a, p) => a + p.age, 0) / top.length;
     const coach = ((((tid + 1) * 2654435761) ^ (this.Y * 40503)) >>> 0) % 1000 / 1000 - 0.5;
-    return this.cl(1 - coach * 0.075 - (quick - 42) * 0.0012 + (age - 27) * 0.004, 0.945, 1.055);
+    return this.cl(1 - coach * 0.075 - (quick - (this.db.norms?.quick ?? 42)) * 0.0012 + (age - 27) * 0.004, 0.945, 1.055);
   }
   playGame(s, home, away): GameResult {
     return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms }).run();
@@ -923,6 +927,10 @@ export class Game {
       ids.forEach((id, i) => entries.push({ p: P[id], roles: this.rolesOf(P[id]), min: Game.ROTATION[i] ?? 0, tid: +k }));
     });
     const prev = this.db.norms, n = (this.db.norms = computeNorms(entries, s.season || this.Y));
+    // The league's typical quickness (each team's top eight): team tempo is measured from it, so a league whose
+    // speed ratings drift doesn't slow down (or speed up) as a whole.
+    const qk = Object.keys(s.rosters).map(k => { const top = s.rosters[k].map(id => P[id]).filter(Boolean).sort((a, b) => b.ovr - a.ovr).slice(0, 8); return top.length ? top.reduce((a, p) => a + (p.r.spd + (p.r.acc ?? p.r.spd)) / 2 - p.r.stre * 0.3, 0) / top.length : null; }).filter(v => v != null) as number[];
+    if (qk.length) n.quick = +(qk.reduce((a, b) => a + b, 0) / qk.length).toFixed(2);
     Object.assign(n, this.leagueDrift(n.season - 1, prev));
   }
   // The norms re-center the engine on the ratings, but as a league ages its ratings drift in ways they
@@ -931,17 +939,28 @@ export class Game {
   // season's results: how the league shot from each tier and how often it turned the ball over, against
   // the NBA's (BASE), and the correction in use moves most of the way to close the gap (each season
   // only once). A league in its first season, or one too young to have played one, has none.
-  leagueDrift(season: number, prev?: any): { adj?: Record<string, number>; tovM?: number; adjFrom?: number } {
-    if (prev?.adjFrom === season) return { adj: prev.adj, tovM: prev.tovM, adjFrom: season };
-    const T: Record<string, number> = { rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, tov: 0, fga: 0, fta: 0 };
+  leagueDrift(season: number, prev?: any): { adj?: Record<string, number>; tovM?: number; paceM?: number; ftM?: number; zoneM?: Record<string, number>; adjFrom?: number } {
+    const keep = (p: any) => (p ? { adj: p.adj, tovM: p.tovM, paceM: p.paceM, ftM: p.ftM, zoneM: p.zoneM } : {});
+    if (prev?.adjFrom === season) return { ...keep(prev), adjFrom: season };
+    const T: Record<string, number> = { rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, tov: 0, fga: 0, fta: 0, ftm: 0, orb: 0, min: 0 };
     for (const p of Object.values(this.db.P) as any[]) for (const r of p.stats || []) if (r.season === season && !r.po) for (const k in T) T[k] += r[k] || 0;
-    if (T.fga < 20000) return prev?.adj ? { adj: prev.adj, tovM: prev.tovM, adjFrom: prev.adjFrom } : {};
-    const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v)), adj: Record<string, number> = {};
-    ([['rim', 'rm', 'ra'], ['mid', 'mm', 'ma'], ['c3', 'cm', 'ca'], ['atb', 'bm', 'ba']] as const).forEach(([z, m, a]) => {
-      const was = prev?.adj?.[z] ?? 0; adj[z] = T[a] > 500 ? +cl(was + 0.8 * (BASE.zone[z].pct - T[m] / T[a]), -0.06, 0.06).toFixed(4) : was; });
+    if (T.fga < 20000) return prev?.adj ? { ...keep(prev), adjFrom: prev.adjFrom } : {};
+    const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v)), adj: Record<string, number> = {}, zoneM: Record<string, number> = {};
+    const ZT = [['rim', 'rm', 'ra'], ['mid', 'mm', 'ma'], ['c3', 'cm', 'ca'], ['atb', 'bm', 'ba']] as const, att = ZT.reduce((x, [, , a]) => x + T[a], 0);
+    ZT.forEach(([z, m, a]) => {
+      const was = prev?.adj?.[z] ?? 0; adj[z] = T[a] > 500 ? +cl(was + 0.8 * (BASE.zone[z].pct - T[m] / T[a]), -0.06, 0.06).toFixed(4) : was;
+      // The shot mix: each tier's share of shots back toward the NBA's (rim .31, mid .26, corner .105, above the break .325).
+      const wasM = prev?.zoneM?.[z] ?? 1; zoneM[z] = T[a] > 500 && att > 0 ? +cl(wasM * Math.pow(BASE.zone[z].share / (T[a] / att), 0.8), 0.75, 1.33).toFixed(4) : wasM; });
     const tovPct = T.tov / Math.max(1, T.fga + 0.44 * T.fta + T.tov), tovM = +cl((prev?.tovM ?? 1) * Math.pow(BASE.tovPct / Math.max(0.01, tovPct), 0.8), 0.8, 1.25).toFixed(4);
-    return { adj, tovM, adjFrom: season };
+    // Pace (possessions per 48 minutes of team play) and free-throw rate (FTM per FGA) back toward the NBA's.
+    // Pace from last season's team totals (the same estimate the league stats show, possOf), or from the player rows.
+    const TT = Object.values((this.state?.tstatsHist || {})[season] || (this.state?.season === season ? this.state.tstats : null) || {}) as any[], tg = TT.reduce((a, t) => a + (t.gp || 0), 0);
+    const games = T.min / 240, pace = tg > 300 ? TT.reduce((a, t) => a + (t.gp ? this.possOf(t) : 0), 0) / tg : games > 0 ? (T.fga + 0.4 * T.fta + T.tov - 1.07 * T.orb) / games : BASE.pace;
+    const paceM = +cl((prev?.paceM ?? 1) * Math.pow(pace / BASE.pace, 0.8), 0.85, 1.18).toFixed(4);
+    const ftM = +cl((prev?.ftM ?? 1) * Math.pow(BASE.ftr / Math.max(0.05, T.ftm / T.fga), 0.8), 0.8, 1.25).toFixed(4);
+    return { adj, tovM, paceM, ftM, zoneM, adjFrom: season };
   }
+
 
   // Team Four Factors for the clutch tiebreaker: season stats, regressed toward a
   // ratings-based expectation early in the season.

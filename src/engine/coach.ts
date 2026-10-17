@@ -41,14 +41,14 @@ export const coachQuality = (coachingBudget = 18) => Math.max(0.35, Math.min(0.9
 // 1. Identity from the roster (its top eight; sim or database players, both carry r, grp, ovr). Cached by
 // who the eight are and their overalls: it is worked out once and reused until the roster or ratings change.
 const BASE_CACHE = new Map<string, Required<Tactics>>();
-export function coachBase(top: any[]): Required<Tactics> {
-  const ck = top.map(p => p.id + ':' + p.ovr + ':' + (p.age ?? '')).join(',');
+export function coachBase(top: any[], quick0 = 42): Required<Tactics> {
+  const ck = top.map(p => p.id + ':' + p.ovr + ':' + (p.age ?? '')).join(',') + '|' + Math.round(quick0 * 10);
   const hit = BASE_CACHE.get(ck); if (hit) return { ...hit };
-  const res = coachBase0(top);
+  const res = coachBase0(top, quick0);
   if (BASE_CACHE.size > 600) BASE_CACHE.clear();
   BASE_CACHE.set(ck, res); return { ...res };
 }
-function coachBase0(top: any[]): Required<Tactics> {
+function coachBase0(top: any[], quick0 = 42): Required<Tactics> {
   const t: any = { pace: 'Average', off: 'Balanced', def: 'Man', press: 'Off', reb: 'Balanced', lineup: 'Standard', focus: 'Balanced', foul: 'Normal', clutch: 'Motion' };
   if (!top.length) return t;
   // An option replaces the plain one only when it suits this roster clearly better than it suits most.
@@ -67,7 +67,7 @@ function coachBase0(top: any[]): Required<Tactics> {
   // Pace: quick, young rosters run, big veteran ones grind (Very fast and Very slow are for game plans and
   // late-game situations; NBA teams' paces sit within about 5% of the average).
   const quick = avg(top, p => ((p.r.spd ?? 50) + (p.r.acc ?? p.r.spd ?? 50)) / 2 - (p.r.stre ?? 50) * 0.3), age = avg(top, p => p.age ?? 26);
-  const tempo = 1 - (quick - 42) * 0.0012 + (age - 27) * 0.004; // the length of its trips, about 0.97–1.03
+  const tempo = 1 - (quick - quick0) * 0.0012 + (age - 27) * 0.004; // the length of its trips, about 0.97–1.03 (quick0: the league's typical quickness, Norms.quick)
   t.pace = tempo < 0.985 ? 'Fast' : tempo > 1.012 ? 'Slow' : 'Average';
   // Crunch time: a real star gets the ball; a handler and a finishing big run the pick and roll.
   const by = top.slice().sort((a, b) => offScore(b) - offScore(a)), star = by[0], second = by[1];
@@ -85,9 +85,9 @@ export interface CoachPlan {
 }
 
 // 2. Tonight's plan against `them` (sim players with minutes targets). `q` is the coach's quality, `rnd` 0–1.
-export function gamePlan(us: any[], them: any[], q: number, rnd: () => number = Math.random): CoachPlan {
+export function gamePlan(us: any[], them: any[], q: number, rnd: () => number = Math.random, quick0 = 42): CoachPlan {
   const top = (ps: any[]) => ps.slice().sort((a, b) => (b.target ?? 0) - (a.target ?? 0)).slice(0, 8);
-  const U = top(us), T = top(them), base = coachBase(U), notes: string[] = [];
+  const U = top(us), T = top(them), base = coachBase(U, quick0), notes: string[] = [];
   const plan: CoachPlan = { base, junk: null, junkOn: [], zoneOk: rnd() < q, notes };
   const sees = () => rnd() < q; // does the staff make this read?
   const wavg = (ps: any[], f: (p: any) => number) => { const w = ps.reduce((a, p) => a + (p.target || 1), 0) || 1; return ps.reduce((a, p) => a + f(p) * (p.target || 1), 0) / w; };
