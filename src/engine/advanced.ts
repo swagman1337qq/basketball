@@ -46,11 +46,11 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
     rows.push({ p, t, tid });
   });
   const wins = cur ? s.teams.reduce((a, t) => a + t.w, 0) : s.teams.reduce((a, t) => a + (((s.teamHist || {})[t.tid] || []).find(h => h.season === season)?.w ?? 41), 0);
-  return computeAdvanced(g, season, teams, rows, recOf, s.teams.map((t: any) => t.tid), wins);
+  return computeAdvanced(g, season, teams, rows, recOf, s.teams.map((t: any) => t.tid), wins, po);
 }
 
 type Row = { p: any; t: StatLine; tid: number };
-function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number): SeasonAdvanced {
+function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number, po = true): SeasonAdvanced {
   // League context.
   const lg: StatLine = {}; Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
   const possT = (t: StatLine) => g.possOf(t);
@@ -59,6 +59,8 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
 
 
   const out: Record<number, StatLine> = {};
+  // Each team's on-floor totals (tracked seasons): the sums of its players' / 5, for on/off with him off the floor.
+  rows.forEach(({ t, tid }) => { const T = teams[tid]; if (!T || !(t.onPO > 0)) return; ['onPO', 'onPD', 'onF', 'onA', 'xF', 'xA'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0) / 5)); });
   // Pass 1: rate stats, points produced and raw box scores.
   rows.forEach(({ p, t, tid }) => {
     const T = teams[tid] || avgTeam(), m5 = T.min / 5, share = t.min / m5, possOn = T.poss * share;
@@ -120,29 +122,23 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
     const teamDiff = T.pts - T.oPts, possOff = Math.max(1, T.poss - x._possOn);
     x.pm = t.pm || 0; x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
     x.onOff100 = x.pm100 - (100 * (teamDiff - x.pm)) / possOff;
-    // EPM, LEBRON and DARKO (estimates: the real ones use tracking data and play-by-play lineups the game
-    // doesn't keep). All points per 100 possessions against an average player, offense + defense.
-    // EPM-style: the box estimate (BPM) as a strong prior, blended with his on/off as his possessions grow (6,000-possession prior).
-    // All three are centred on the league (minute-weighted 0) and scaled to their real spreads below.
-    const onOffO = x.onOff100 * 0.5, onOffD = x.onOff100 * 0.5, wE = x._possOn / (x._possOn + 6000);
-    x.oepm = x.obpm * (1 - wE) + onOffO * wE; x.depm = x.dbpm * (1 - wE) + onOffD * wE; x.epm = x.oepm + x.depm;
-    // LEBRON-style: on/off with his own three-point luck taken out (his 3P% regressed toward the league's by
-    // 750 attempts, the points he made above that removed), regularized toward the box prior (5,000 possessions).
-    const lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36, exp3 = t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3, luck = 3 * (t.tpm - t.tpa * exp3);
-    const onOffL = x._possOn ? x.onOff100 - (100 * luck) / x._possOn : 0, wL = x._possOn / (x._possOn + 5000);
-    x.olebron = x.obpm * (1 - wL) + onOffL * 0.5 * wL; x.dlebron = x.dbpm * (1 - wL) + onOffL * 0.5 * wL; x.lebron = x.olebron + x.dlebron;
-    // DARKO-style: his current level, not just this season's: this season's box estimate and his last three
-    // seasons' (raw box per 100, centred on this league), each weighted by possessions and older seasons
-    // less (×0.55 a year, like a Kalman filter's fading memory), regressed toward an average-ish prior
-    // (−1.5, worth 1,500 possessions), then moved for age (+0.4 a year under 26, −0.4 a year over 30).
-    { const hist = (p.stats || []).filter((r: any) => !r.po && r.season < season && r.season >= season - 3 && r.min > 0);
-      const by: Record<number, any> = {}; hist.forEach((r: any) => { const a = (by[r.season] = by[r.season] || {}); Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); });
-      let so = x.obpm * x._possOn, sd = x.dbpm * x._possOn, w = x._possOn;
-      Object.entries(by).forEach(([y, r]: any) => { const pOn = (r.min * lgPace) / 48, d = 0.55 ** (season - +y); if (pOn < 50) return;
-        const per = (v: number) => (v * 100) / pOn, o = 0.8 * per(0.86 * r.pts - 0.56 * r.fga - 0.246 * r.fta + 0.389 * r.tpm + 0.807 * r.ast - 0.964 * r.tov + 0.397 * r.orb) - boxO, dd = per(0.25 * r.drb + 1.6 * r.stl + 1.2 * r.blk - 0.3 * r.pf) - boxD;
-        so += o * pOn * d; sd += dd * pOn * d; w += pOn * d; });
-      const K = 1500, age = gAge(p, season), ageAdj = age < 26 ? (26 - age) * 0.4 : age > 30 ? -(age - 30) * 0.4 : 0;
-      x.odarko = (so + K * -0.9) / (w + K) + ageAdj * 0.6; x.ddarko = (sd + K * -0.6) / (w + K) + ageAdj * 0.4; x.darko = x.odarko + x.ddarko; }
+    // EPM, LEBRON and DARKO (2026-10-17 rework, docs/ADVANCED_ESTIMATES.md). Kept here: the unshrunk, team-adjusted
+    // box score (obpmU/dbpmU), his possessions on the floor, and the box-score luck LEBRON removes. The metrics are
+    // finished after this loop: RAPM per team where lineup data exists (current tracked seasons), else on/off.
+    x.obpmU = x._obpm + (adj[tid]?.o ?? 0); x.dbpmU = x._dbpm + (adj[tid]?.d ?? 0);
+    x.possO = t.onPO > 0 ? t.onPO : x._possOn; x.possD = t.onPD > 0 ? t.onPD : x._possOn;
+    // His own shooting luck on offense: actual minus expected points on his shots (tracked seasons), else his
+    // threes regressed toward the league's (750 attempts), turned into box-score points.
+    const lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36, exp3 = t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3;
+    x.luckBox = t.xP > 0 ? (0.8 * 0.86 * 100 * (t.pts - t.xP)) / Math.max(1, x.possO) : (2.375 * 100 * (t.tpm - t.tpa * exp3)) / Math.max(1, x.possO);
+    // On/off per 100, offense and defense apart where tracked (points for and against while on and off), with
+    // expected points for the luck-adjusted version; older seasons split the plus-minus on/off evenly.
+    if (t.onPO > 0 && t.onPD > 0 && T.onPO > 0) {
+      const offO = Math.max(1, T.onPO - t.onPO), offD = Math.max(1, T.onPD - t.onPD);
+      x.ooff = (100 * t.onF) / t.onPO - (100 * (T.onF - t.onF)) / offO; x.doff = (100 * (T.onA - t.onA)) / offD - (100 * t.onA) / t.onPD;
+      x.ooffX = (100 * t.xF) / t.onPO - (100 * (T.xF - t.xF)) / offO; x.doffX = (100 * (T.xA - t.xA)) / offD - (100 * t.xA) / t.onPD;
+      x.nOff = 1 / (1 / t.onPO + 1 / offO); x.nDef = 1 / (1 / t.onPD + 1 / offD);
+    } else { x.ooff = x.doff = x.ooffX = x.doffX = x.onOff100 * 0.5; const offP = Math.max(1, T.poss - x._possOn); x.nOff = x.nDef = x._possOn > 0 ? 1 / (1 / x._possOn + 1 / offP) : 0; }
     // Per-game and totals the formulas use.
     x.gp = gp; x.gs = t.gs || 0; x.min = t.min / gp; x.minTot = t.min;
     ['pts', 'ast', 'stl', 'blk', 'tov', 'pf', 'orb', 'drb', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta'].forEach(f => (x[f] = (t[f] || 0) / gp));
@@ -152,13 +148,7 @@ function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine
     x.seasonFraction = Math.min(1, (T.gp || 82) / 82);
     Object.keys(x).forEach(f => { if (f.startsWith('_')) delete x[f]; });
   });
-  // EPM, LEBRON and DARKO: centred so the league's minute-weighted average is 0, and scaled to the spread
-  // of the real metrics (the league's best about +7 to +9; BPM here runs wider).
-  ([['epm', 'oepm', 'depm', 0.6], ['lebron', 'olebron', 'dlebron', 0.55], ['darko', 'odarko', 'ddarko', 0.65]] as [string, string, string, number][]).forEach(([k, ko, kd, sc]) => {
-    let mo = 0, md = 0, w = 0; rows.forEach(({ p, t }) => { const x = out[p.id]; mo += x[ko] * t.min; md += x[kd] * t.min; w += t.min; });
-    mo = w ? mo / w : 0; md = w ? md / w : 0;
-    rows.forEach(({ p }) => { const x = out[p.id]; x[ko] = (x[ko] - mo) * sc; x[kd] = (x[kd] - md) * sc; x[k] = x[ko] + x[kd]; });
-  });
+  finishImpact(g, season, rows, out, teams, lg, po);
   // Win shares sum to the league's wins (as on Basketball-Reference).
   const wsSum = rows.reduce((a, { p }) => a + out[p.id].ws, 0);
   if (wsSum > 0 && wins > 0) { const f = wins / wsSum; rows.forEach(({ p, t }) => { const x = out[p.id]; x.ows *= f; x.dws *= f; x.ws = x.ows + x.dws; x.ws48 = (x.ws * 48) / t.min; }); }
@@ -181,7 +171,7 @@ export function ccpAdvanced(g: Game, s: any, season: number, po = false): Season
   ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (avgPg[k] = tids.reduce((a, id) => a + teams[id][k] / Math.max(1, teams[id].gp), 0) / n));
   tids.forEach(id => { const T = teams[id]; ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (T['o' + k[0].toUpperCase() + k.slice(1)] = avgPg[k] * T.gp)); });
   const wins = tids.reduce((a, id) => a + teams[id].gp / 2, 0);
-  return computeAdvanced(g, season, teams, rows, () => 0.5, tids, wins);
+  return computeAdvanced(g, season, teams, rows, () => 0.5, tids, wins, true);
 }
 
 // Playoff series stats (Finals / conference finals) for series-MVP formulas.
@@ -193,4 +183,95 @@ export function seriesLine(t: any): StatLine {
   x.trb = ((t.orb || 0) + (t.drb || 0)) / gp;
   x.tsp = t.fga + t.fta ? (100 * t.pts) / (2 * (t.fga + 0.44 * t.fta)) : 0;
   return x;
+}
+
+// ── EPM, LEBRON and DARKO (finished after the box score) ─────────────────────────────────────────────
+// Past seasons are fixed once played, so their results are kept (per league) for DARKO's history.
+const PAST = new WeakMap<object, Map<number, SeasonAdvanced>>();
+function pastSeason(g: Game, y: number): SeasonAdvanced | null {
+  if (y >= g.Y || y < (g.db.firstSeason ?? 2027) - 1) return null;
+  let m = PAST.get(g.db); if (!m) PAST.set(g.db, (m = new Map()));
+  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); m.set(y, seasonAdvanced(g, g.state, y)); }
+  return m.get(y)!;
+}
+// Solve a small dense system (Gaussian elimination with partial pivoting).
+function solve(A: number[][], b: number[]): number[] {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    const d = M[c][c] || 1e-9; for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / d; if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  return M.map((r, i) => r[n] / (r[i] || 1e-9));
+}
+// Ridge RAPM per team from the season's lineup stints (Game.addStints): (X'X + λI)β = X'y + λ·prior, points per
+// possession above the league's, his box score (per possession) as the prior. Offense from points scored with
+// him on, defense from points allowed (sign flipped). y = actual points (EPM) or expected points (LEBRON: every
+// shot's and free throw's luck removed, both teams). Teammates are adjusted for; opponents count as average.
+export const RAPM = { lambda: 10000 }; // ridge strength, in possessions of the box-score prior (picked by the prediction test, docs/ADVANCED_ESTIMATES.md)
+function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number } | null) {
+  let sp = 0, sx = 0, sn = 0; Object.values(R).forEach((T: any) => { for (const k in T.O.yp) { const n = T.O.xx[k + ',' + k] || 0; sp += T.O.yp[k]; sx += T.O.yx[k]; sn += n; } });
+  if (sn < 5000) return null;
+  const lgP = sp / sn, lgX = sx / sn, acc: Record<number, { w: number; o: number; d: number; oX: number; dX: number }> = {};
+  const block = (M: any, def: boolean) => {
+    const ids = Object.keys(M.yp).map(Number), m = ids.length; if (!m) return null;
+    const A = ids.map(a => ids.map(b => M.xx[Math.min(a, b) + ',' + Math.max(a, b)] || 0)), pr = ids.map(id => prior(id));
+    const L = RAPM.lambda, Ar = A.map((r, i) => r.map((v, j) => v + (i === j ? L : 0)));
+    const pO = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.o) / 100 : def ? 0.005 : -0.015), pX = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.oL) / 100 : def ? 0.005 : -0.015);
+    const bP = ids.map((id, i) => M.yp[id] - lgP * A[i][i] + L * pO(i)), bX = ids.map((id, i) => M.yx[id] - lgX * A[i][i] + L * pX(i));
+    return { ids, n: ids.map((_, i) => A[i][i]), P: solve(Ar, bP), X: solve(Ar, bX) };
+  };
+  Object.values(R).forEach((T: any) => {
+    const O = block(T.O, false), D = block(T.D, true);
+    O?.ids.forEach((id, i) => { const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 }); a.o += O.P[i] * 100 * O.n[i]; a.oX += O.X[i] * 100 * O.n[i]; a.w += O.n[i]; });
+    D?.ids.forEach((id, i) => { const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 }); a.d += -D.P[i] * 100 * D.n[i]; a.dX += -D.X[i] * 100 * D.n[i]; (a as any).wd = ((a as any).wd || 0) + D.n[i]; });
+  });
+  const out: Record<number, { o: number; d: number; oX: number; dX: number }> = {};
+  for (const id in acc) { const a: any = acc[id]; if (!a.w || !a.wd) continue; out[+id] = { o: a.o / a.w, oX: a.oX / a.w, d: a.d / a.wd, dX: a.dX / a.wd }; }
+  return out;
+}
+// The expected yearly change in BPM at each age, fitted from this league's own players (1,000+ possessions in two
+// straight completed seasons): Δ = a + b·(age − 27). Few pairs (a young league): an NBA-like default.
+function agingCurve(g: Game, season: number): (age: number) => number {
+  const def = (a: number) => Math.max(-1.5, Math.min(1.5, -0.17 * (a - 26.5)));
+  const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
+  const pairs: [number, number][] = [], top = Math.min(season, g.Y - 1);
+  for (let y = top; y > top - 4; y--) { const A = pastSeason(g, y - 1), B = pastSeason(g, y); if (!A || !B) continue;
+    for (const id in B.byPid) { const b = B.byPid[id], a = A.byPid[id]; if (!a || !(a.possO >= 1000) || !(b.possO >= 1000)) continue; const p = g.db.P[+id]; if (!p) continue;
+      pairs.push([gAge(p, y - 1) - 27, b.obpmU + b.dbpmU - a.obpmU - a.dbpmU]); } }
+  if (pairs.length < 40) return def;
+  const n = pairs.length, mx = pairs.reduce((s, [x]) => s + x, 0) / n, my = pairs.reduce((s, [, y]) => s + y, 0) / n;
+  const sxx = pairs.reduce((s, [x]) => s + (x - mx) ** 2, 0), sxy = pairs.reduce((s, [x, y]) => s + (x - mx) * (y - my), 0), b = sxx ? sxy / sxx : 0, a = my - b * mx;
+  return (age: number) => Math.max(-2, Math.min(2, a + b * (age - 27)));
+}
+export const IMPACT_SD = 2.7; // each metric's spread among the season's regulars, refit every season (2026-10-17)
+function finishImpact(g: Game, season: number, rows: Row[], out: Record<number, StatLine>, teams: Record<number, StatLine>, lg: StatLine, po: boolean) {
+  const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
+  // EPM and LEBRON: RAPM where the season's lineups were tracked (regular season), else the box score blended
+  // with on/off; the on/off weight counts how few possessions he had OFF the floor too (n = 1/(1/on + 1/off)).
+  const R = !po ? (g.db.rapm || {})[season] : null;
+  const RP = R ? rapm(R, id => { const x = out[id]; return x ? { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) } : null; }) : null;
+  rows.forEach(({ p }) => { const x = out[p.id], r = RP?.[p.id];
+    if (r) { x.oepm = r.o; x.depm = r.d; x.olebron = r.oX; x.dlebron = r.dX; return; }
+    const wO = x.nOff / (x.nOff + 6000), wD = x.nDef / (x.nDef + 6000), lO = x.nOff / (x.nOff + 5000), lD = x.nDef / (x.nDef + 5000);
+    x.oepm = x.obpm * (1 - wO) + x.ooff * wO; x.depm = x.dbpm * (1 - wD) + x.doff * wD;
+    x.olebron = (x.obpm - x.luckBox) * (1 - lO) + x.ooffX * lO; x.dlebron = x.dbpm * (1 - lD) + x.doffX * lD; });
+  // DARKO: his current level. This season's unshrunk box score and his last three (each in its own season's
+  // pace, league means and team context), older ones weighted less (×0.55 a year), each aged forward to now
+  // along the league's own aging curve, regressed toward a slightly-below-average prior worth 1,500 possessions.
+  const dA = agingCurve(g, season);
+  rows.forEach(({ p }) => { const x = out[p.id], now = gAge(p, season);
+    let so = x.obpmU * x.possO, sd = x.dbpmU * x.possD, wo = x.possO, wd = x.possD;
+    for (let k = 1; k <= 3; k++) { const y = season - k, r = pastSeason(g, y)?.byPid[p.id]; if (!r || !(r.possO >= 50)) continue;
+      const d = 0.55 ** k; let sh = 0; for (let a = gAge(p, y); a < now; a++) sh += dA(a);
+      so += (r.obpmU + 0.6 * sh) * r.possO * d; sd += (r.dbpmU + 0.4 * sh) * r.possD * d; wo += r.possO * d; wd += r.possD * d; }
+    const K = 1500; x.odarko = (so + K * -0.9) / (wo + K); x.ddarko = (sd + K * -0.6) / (wd + K); });
+  // Centre each on the league (minute-weighted 0) and scale it to a spread of IMPACT_SD among the season's regulars
+  // (at least a quarter of the most minutes anyone played, 100+), refit every season.
+  const maxMin = Math.max(1, ...rows.map(({ t }) => t.min)), reg = rows.filter(({ t }) => t.min >= Math.max(100, 0.25 * maxMin));
+  ([['epm', 'oepm', 'depm', 0.6], ['lebron', 'olebron', 'dlebron', 0.55], ['darko', 'odarko', 'ddarko', 0.65]] as [string, string, string, number][]).forEach(([k, ko, kd, sc0]) => {
+    let mo = 0, md = 0, w = 0; rows.forEach(({ p, t }) => { const x = out[p.id]; mo += x[ko] * t.min; md += x[kd] * t.min; w += t.min; });
+    mo = w ? mo / w : 0; md = w ? md / w : 0;
+    const v = reg.map(({ p }) => out[p.id][ko] - mo + out[p.id][kd] - md), mv = v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0, sdv = v.length ? Math.sqrt(v.reduce((a, b) => a + (b - mv) ** 2, 0) / v.length) : 0;
+    const sc = v.length >= 30 && sdv > 0.1 ? IMPACT_SD / sdv : sc0;
+    rows.forEach(({ p }) => { const x = out[p.id]; x[ko] = (x[ko] - mo) * sc; x[kd] = (x[kd] - md) * sc; x[k] = x[ko] + x[kd]; });
+  });
+  rows.forEach(({ p }) => { const x = out[p.id]; ['ooff', 'doff', 'ooffX', 'doffX', 'nOff', 'nDef', 'luckBox'].forEach(f => delete x[f]); });
 }

@@ -1017,6 +1017,17 @@ export class Game {
     boxes[id] = { season: this.Y, day, kind: kind || 'reg', ot: res.ot, home: side(res.home), away: side(res.away), ...(mine && res.coach ? { coach: res.coach } : {}) };
     return id;
   }
+  // Regression totals for RAPM (advanced.ts), from each game's lineup stints (sim.ts Stints): per season and
+  // team, offense (O) and defense (D) blocks of X'X (possessions two players shared on the floor, keyed
+  // 'a,b' with a <= b), and each player's points and expected points for (O) or allowed (D). Kept for this
+  // season and last.
+  addStints(Y: number, tid: number, stO?: Record<string, number[]>, stD?: Record<string, number[]>) {
+    const R = (this.db.rapm ||= {}), S = (R[Y] ||= {}), T = (S[tid] ||= { O: { xx: {}, yp: {}, yx: {} }, D: { xx: {}, yp: {}, yx: {} } });
+    const add = (M: any, st?: Record<string, number[]>) => { if (!st) return; for (const key in st) { const [n, pts, x] = st[key], ids = key.split(',').map(Number); if (!n && !pts) continue;
+      for (let i = 0; i < ids.length; i++) { M.yp[ids[i]] = (M.yp[ids[i]] || 0) + pts; M.yx[ids[i]] = +((M.yx[ids[i]] || 0) + x).toFixed(2); for (let j = i; j < ids.length; j++) { const a = Math.min(ids[i], ids[j]), b = Math.max(ids[i], ids[j]), kk = a + ',' + b; M.xx[kk] = (M.xx[kk] || 0) + n; } } } };
+    add(T.O, stO); add(T.D, stD);
+    Object.keys(R).forEach(y => { if (+y < Y - 1) delete R[y]; });
+  }
   addBox(res: GameResult, po: boolean, touched?: number[], mins?: Record<number, number>, s?: any) {
     const P = this.db.P, Y = this.Y, SPLIT = ['gp', 'min', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'tov', 'stl', 'blk'];
     const sum = side => { const t: any = blankLine(); Object.values(side.box).forEach((b: any) => Object.keys(t).forEach(k => (t[k] += b[k] || 0))); return t; };
@@ -1031,7 +1042,7 @@ export class Game {
         if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, ...blankLine(), h: {}, a: {} }; row.gs = 0; p.stats.push(row); }
         row.gp++;
         if (p.numTid === side.tid && p.num != null) row.num = p.num; // the number he wore for them (Team history)
-        Object.keys(b).forEach(f => { if (typeof row[f] === 'number' && f !== 'gp') row[f] += b[f]; });
+        Object.keys(b).forEach(f => { if (typeof b[f] === 'number' && f !== 'gp' && f !== 'season' && f !== 'tid') row[f] = f === 'xF' || f === 'xA' || f === 'xP' ? +((row[f] || 0) + b[f]).toFixed(2) : (row[f] || 0) + b[f]; });
         const sp = k === 'home' ? (row.h = row.h || {}) : (row.a = row.a || {});
         SPLIT.forEach(f => (sp[f] = (sp[f] || 0) + (f === 'gp' ? 1 : b[f] || 0)));
         if (!po) {
@@ -1041,6 +1052,7 @@ export class Game {
         if (touched) touched.push(id);
         if (mins) mins[id] = b.min;
       });
+      if (!po) this.addStints(Y, side.tid, side.stO, side.stD);
       if (!po && s) {
         const me = tot[k], op = tot[k === 'home' ? 'away' : 'home'], T = (s.tstats[side.tid] = s.tstats[side.tid] || { gp: 0 });
         T.gp++;

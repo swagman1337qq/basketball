@@ -2,7 +2,7 @@
 
 This document records everything that goes into the game's EPM, LEBRON and DARKO numbers: what data they use, every calculation step with its constants, how the scaling was chosen, and what was checked.
 
-The code is in `src/engine/advanced.ts` (`computeAdvanced`). The stats were added on 2026-10-16.
+The code is in `src/engine/advanced.ts` (`computeAdvanced`, `finishImpact`, `rapm`, `agingCurve`). The stats were added on 2026-10-16 and reworked on 2026-10-17 (tracked on-floor data, RAPM, DARKO aging, per-league scaling).
 
 ---
 
@@ -31,12 +31,18 @@ It doesn't keep lineup-by-lineup possession data or tracking data. So each estim
 
 ## 2. Data gathered
 
-**For each season** (`seasonAdvanced`):
+**Tracked by the game engine** (since 2026-10-17, `sim.ts`, stored in every box score and season row):
+- for each player, while he's on the floor: his team's points (`onF`) and the opponent's (`onA`), offensive and defensive possessions (`onPO`, `onPD`), and **expected points** for and against (`xF`, `xA`): every shot's make chance × its value plus every free throw's chance, for both teams;
+- his own expected points (`xP`), from his shots and free throws;
+- **lineup stints**: for every five-man unit in every game, its possessions, points and expected points on offense and allowed on defense. `Game.addStints` adds them into per-team regression totals (`db.rapm`, this season and last only, so saves stay small).
 
+Seasons played before this have none of it; for them the estimates fall back to the older method (sections 4–5, "without tracking").
+
+**For each season** (`seasonAdvanced`):
 1. **Every player who played that season.** His regular-season rows are summed across teams if he was traded, and he's credited to the team he played the most minutes for. Anyone with zero games or minutes is skipped.
-2. **Every team's season totals.** That's its own points, field goals, threes, free throws, rebounds, assists, steals, blocks, turnovers and fouls, and the same for its opponents. A past season with no team totals stored uses a league-average team.
+2. **Every team's season totals**, its opponents' too, and its on-floor totals (its players' sums / 5). A past season with no team totals stored uses a league-average team.
 3. **League totals:** the sum of all teams.
-4. **For DARKO only:** each player's own rows from the **three previous seasons**, regular season only.
+4. **For DARKO:** each player's **three previous seasons**, each computed in full in its own season's context (kept once computed: past seasons don't change).
 
 ---
 
@@ -63,121 +69,74 @@ These are computed for every player first and are also used by the existing adva
 
 ## 4. EPM (estimate)
 
-**Idea:** the box score is a strong prior. On/off counts for more the more possessions he's played, because on/off is very noisy in small samples.
+**Idea:** the real EPM is a regression on every possession (who was on the floor, what happened) with a box-score prior. This one is the same, within each team.
 
-**Steps:**
-1. Split his on/off evenly into offense and defense (the game doesn't keep on/off separately for each end): onOffO = onOffD = ½ × on/off.
-2. Weight: w = possOn / (possOn + **6000**). For example, 1,500 possessions gives 0.2, 3,000 gives 0.33, 6,000 gives 0.5.
-3. O-EPM (raw) = OBPM × (1 − w) + onOffO × w
-4. D-EPM (raw) = DBPM × (1 − w) + onOffD × w
-5. Centre and scale (section 7) with factor **0.6**.
-6. EPM = O-EPM + D-EPM
+**With tracking (regular seasons since 2026-10-17): ridge RAPM** (`rapm`).
+1. For each team, two small regressions: **offense** (possessions each pair of players shared, points scored with each on the floor) and **defense** (points allowed).
+2. Solve (X′X + λI)β = X′y + λ·prior for each, where y is points above the league's per-possession average, the prior is his box score (OBPM / −DBPM per possession), and **λ = 10,000** possessions (`RAPM.lambda`, chosen by the prediction test in section 8).
+3. O-EPM = β_offense × 100, D-EPM = −β_defense × 100 (fewer points allowed is better). A traded player's values from each team are averaged by possessions.
+4. **Teammates are adjusted for** (that's what the regression does); **opponents count as average** (a full league-wide regression would need either a 900 × 900 matrix or every stint stored in the save).
+
+**Without tracking (older seasons and the playoffs):** the box score blended with on/off.
+- On/off per 100: offense and defense apart where tracked (points for and against with him on vs off), else the plus-minus on/off split evenly.
+- Weight w = n / (n + 6000), with **n = 1 / (1/possessions on + 1/possessions off)**: a 36-minute starter has few possessions off the floor, so his on/off is noisy and gets about 0.2, not 0.5.
 
 ---
 
 ## 5. LEBRON (estimate)
 
-**Idea:** like EPM, but the on/off part has luck removed first. That's the "Luck-adjusted" in LEBRON. The real metric removes luck from every shot by both teams. The game only keeps his own season shooting, so this removes his own three-point luck.
+**Idea:** like EPM, with luck taken out (the "Luck-adjusted" in LEBRON).
 
-**Steps:**
-1. League 3P% = league 3PM / league 3PA (0.36 if there are none).
-2. Expected 3P% = (his 3PM + **750** × league 3P%) / (his 3PA + 750). His percentage is regressed toward the league's, with 750 attempts of league-average shooting added. A shooter with 750 attempts lands halfway between his own and the league's.
-3. Luck points = 3 × (his 3PM − his 3PA × expected 3P%): the points from threes made above (or below) what's expected.
-4. Luck-adjusted on/off = on/off − luck points × 100 / possOn.
-5. Weight: w = possOn / (possOn + **5000**). This is the "Regularized" part: ridge-style shrinkage toward the box prior.
-6. O-LEBRON (raw) = OBPM × (1 − w) + ½ × luck-adjusted on/off × w
-7. D-LEBRON (raw) = DBPM × (1 − w) + ½ × luck-adjusted on/off × w
-8. Centre and scale with factor **0.55**.
-9. LEBRON = O-LEBRON + D-LEBRON
+**With tracking:** the same RAPM with **expected points as y**: every shot's and free throw's luck is removed for both teams and every shot type, which is more than the real LEBRON can do. The box prior is luck-adjusted too: O-prior = OBPM − his own shooting luck, where his luck = 0.8 × 0.86 × (points − his expected points) per 100. Luck goes on **offense only**.
+
+**Without tracking:** his threes regressed toward the league's (750 attempts) give his luck in makes; the box prior loses 2.375 per extra make per 100 (offense only), and the on/off part uses expected points where tracked. Weight n / (n + 5000), n as for EPM.
 
 ---
 
 ## 6. DARKO (estimate)
 
-**Idea:** the player's current level, not one season's line. Recent seasons count most, older ones fade like a Kalman filter's memory, the estimate is regressed toward average when there's little data, and it's adjusted for where he is on the aging curve.
+**Idea:** his current level, not one season's line.
 
-**Steps:**
-1. **This season:** OBPM and DBPM (team-adjusted and shrunk, section 3), weighted by possOn.
-2. **His last three seasons**, regular season only, each season's rows summed:
-   - Estimated possessions on the floor = minutes × league pace / 48. Seasons under 50 possessions are skipped.
-   - Raw OBPM and DBPM for that season (the section 3 formulas with those possessions), minus this league's raw means (`boxO`, `boxD`).
-   - Weight = possessions × **0.55** ^ (seasons back): last season ×0.55, two back ×0.30, three back ×0.17.
-3. **Combine with a prior** worth **1,500** possessions:
-   - Offense: (Σ weight × O + 1500 × **−0.9**) / (Σ weight + 1500)
-   - Defense: (Σ weight × D + 1500 × **−0.6**) / (Σ weight + 1500)
-   - The prior totals −1.5, a little below average, because a player with almost no minutes is usually a fringe player.
-4. **Age adjustment** (the age in that season): +0.4 per year under 26, −0.4 per year over 30, 0 from 26 to 30. 60% of it goes to offense and 40% to defense.
-5. Centre and scale with factor **0.65**.
-6. DARKO = O-DARKO + D-DARKO
+1. **This season:** his **unshrunk**, team-adjusted box score (OBPM, DBPM before the small-sample shrink, which the prior below already does), weighted by his possessions.
+2. **His last three seasons,** each from that season's own full computation: its own pace, league means and team adjustment. Weight = possessions × **0.55** ^ (seasons back).
+3. **Each past season is aged forward to now** along the league's own aging curve: the expected yearly change in BPM at each age is fitted from this league's players with 1,000+ possessions in two straight completed seasons (Δ = a + b·(age − 27), `agingCurve`), and the changes from his age then to his age now are added (60% offense, 40% defense). With fewer than 40 such pairs (a young league) it uses an NBA-like default, Δ = −0.17 × (age − 26.5) a year, within ±1.5. **This season is not adjusted for age** (the old version added +0.4 a year under 26 to everything, which inflated young players).
+4. **Prior** worth **1,500** possessions: offense −0.9, defense −0.6.
 
 ---
 
 ## 7. Centering and scaling (all three)
 
-After every player's raw values are computed:
-
-1. **Centre.** Subtract the league's minute-weighted average of the offense part, and separately of the defense part. A league-average player is 0 on each.
-2. **Scale.** Multiply each part by the metric's factor (EPM 0.6, LEBRON 0.55, DARKO 0.65), then add the two parts for the total.
-
-**Why the scaling is needed:** the game's BPM runs wider than the real one (a spread of about 4.8 for players with 500+ minutes, against about 3.5 in the NBA, and a top of about +16). Real EPM, LEBRON and DARKO have spreads of about 2.5–3, and the league's best are about +7 to +9. Without scaling, the first version topped out at +18.
+1. **Centre.** Subtract the league's minute-weighted average of the offense part, and separately of the defense part.
+2. **Scale to the real metrics' spread, refit every season** (`IMPACT_SD` 2.7): the scale factor makes the spread (sd) of offense + defense equal 2.7 among the season's regulars (players with at least a quarter of the most minutes anyone played, 100+). With fewer than 30 regulars (the first days of a season) the old fixed factors apply (0.6 / 0.55 / 0.65).
 
 ---
 
 ## 8. How the constants were chosen, and what was checked
 
-**Test data:** the "my-league_5" save (season 2032, 7 seasons in), seasons 2031 and 2032, players with 500+ minutes (322–332 players).
+**Prediction test** (2026-10-17, 3 leagues, seasons 1 → 2): each team's season-2 net rating predicted from its players' season-1 metric, weighted by their season-2 minutes (newcomers as −2). Correlations:
 
-**First version** (on/off priors of 4,000 for EPM and 2,500 for LEBRON, no scaling):
-
-| | Spread | Best player |
-|---|---|---|
-| BPM (existing) | 4.8 | +16 |
-| EPM | 5.0–5.1 | +18.5 |
-| LEBRON | 5.2–5.4 | +18.9 |
-| DARKO | 3.8–3.9 | +15.1 |
-
-That was too wide: on/off was too influential, and the BPM base runs wide.
-
-**Changes:**
-- The on/off priors were raised to 6,000 (EPM) and 5,000 (LEBRON). This matches the real metrics, where on/off is a minority of the signal for most players.
-- Centering and scaling were added (factors 0.6, 0.55 and 0.65), chosen so each metric's spread lands at about 2.5–3 with the league's best around +8 to +10.
-
-**Final results:**
-
-| Season | Metric | Minute-weighted mean | Spread | Correlation with BPM |
-|---|---|---|---|---|
-| 2031 | EPM | 0.15 | 2.88 | 0.88 |
-| 2031 | LEBRON | 0.14 | 2.62 | 0.85 |
-| 2031 | DARKO | 0.06 | 2.54 | 0.97 |
-| 2032 | EPM | 0.19 | 2.94 | 0.88 |
-| 2032 | LEBRON | 0.17 | 2.70 | 0.85 |
-| 2032 | DARKO | 0.08 | 2.48 | 0.96 |
-
-The means are slightly above 0 because the check only counts players with 500+ minutes, who are better than average. Across everyone, centering puts them at 0.
-
-**2032 top players, as a sanity check:**
-
-| Player | Ovr | BPM | On/off | EPM | LEBRON | DARKO |
+| Metric | λ = 500 | 1,000 | 2,500 | 5,000 | 10,000 | 30,000 |
 |---|---|---|---|---|---|---|
-| Kevin Weiner | 74 | 13.3 | +22.8 | 10.3 | 9.4 | 6.2 |
-| Felix Scholz | 75 | 16.2 | +17.9 | 10.0 | 9.0 | 9.3 |
-| Rasheen Morgan | 71 | 16.2 | +15.2 | 9.3 | 8.4 | 7.4 |
-| Kyle Mortimer | 69 | 7.5 | +24.7 | 8.7 | 8.4 | 3.6 |
-| Jaylin Bostick | 79 | 13.7 | +13.9 | 8.0 | 7.4 | 7.1 |
+| EPM (RAPM) | 0.690 | 0.718 | 0.750 | 0.765 | **0.772** | 0.773 |
+| LEBRON (RAPM, expected points) | 0.736 | 0.746 | 0.756 | 0.761 | **0.764** | 0.766 |
 
-They behave the way the real metrics do relative to each other:
-- **Mortimer's** huge on/off lifts his EPM and LEBRON well above his box score.
-- **DARKO** stays close to his longer track record (3.6), because one season's on/off doesn't enter DARKO.
-- **DARKO** tracks BPM history most closely (correlation 0.96).
+BPM alone: 0.778; DARKO: 0.773. In this engine the box score is already about as predictive as anything, and one season of lineup data adds more noise than signal, so a strong prior works best: λ = 10,000 keeps EPM at the box score's level while still adjusting for teammates.
+
+**Spread:** in 2-season tests (2 leagues), the regulars' sd is 2.73–2.77 for all three every season; the league's best reach about +9 to +11.6 (a little above the real metrics' +7 to +10, because the game's star box scores run hot).
+
+**Tracking checks:** on-floor points sum to exactly 5 × team points, on-floor possessions match the team's possession estimate within about 1%, and expected points land within 1–3% of actual points.
+
+**First version (2026-10-16)**, for the record: on/off priors of 6,000 (EPM) and 5,000 (LEBRON) on 50/50-split on/off, fixed scale factors 0.6 / 0.55 / 0.65 fit on one save, DARKO with a +0.4-a-year age bonus under 26.
 
 ---
 
 ## 8b. Small implementation details
 
-- **DARKO's past seasons use this season's league pace and raw-box means** (`lgPace`, `boxO`, `boxD`) to turn minutes into possessions and to centre them, not the pace and means of the season they came from. Past seasons are also raw box: no team adjustment and no small-sample shrink. Only this season's part is team-adjusted.
-- **DARKO's history is always regular-season rows**, even when computing playoff values, and seasons are summed across teams if he was traded.
-- **A player with no three-point attempts** has an expected 3P% equal to the league's and zero luck points. A player with 0 possessions on the floor gets 0 for his luck-adjusted on/off.
-- **"League" in LEBRON's 3P%** means every team's threes that season (or that postseason, for playoff values).
+- **Past seasons are computed once and kept** per league in memory (`pastSeason`), and each is computed with its own DARKO history, so a 20-season league computes each season once.
+- **DARKO's history is always regular-season rows**, even when computing playoff values.
+- **A player with no three-point attempts** and no tracked expected points has zero luck.
+- **The RAPM prior** for a player the regression sees but who has no row (rare) is −1.5 on offense and −0.5 on defense.
+- **`db.rapm`** keeps only this season's and last season's totals.
 
 ## 9. Where they show up
 
@@ -192,8 +151,7 @@ They're computed for every season (and the CCP), the same way as the other advan
 
 ## 10. Known limits
 
-- **On/off is split evenly between offense and defense**, because the game doesn't keep offense and defense on/off separately.
-- **On/off isn't adjusted for teammates and opponents** (no RAPM). A bench player who always plays with the starters can look better than he is. The heavy priors limit this.
-- **LEBRON's luck adjustment only covers his own threes.** Opponent shooting luck while he's on the floor, and free-throw luck, aren't stored.
-- **DARKO works season by season, not game by game,** and goes back three seasons.
-- **The scaling factors were fit on one league** (seven seasons in). In a very different league (a brand-new one, or one with a very different talent spread), the spreads can come out a little wider or narrower.
+- **RAPM is per team:** teammates are adjusted for, opponents count as average (over 82 games they mostly even out).
+- **One season of lineup data is noisy,** so the box prior is strong (λ = 10,000); the regression mostly corrects players whose teammates make their box score misleading.
+- **Seasons before 2026-10-17 have no tracking,** so their values use the older on/off method (with the better weighting).
+- **The ground-truth test** (swap a player for an average one and sim a few hundred games) hasn't been run against these metrics; the overall's own weights come from that kind of test (`OVR_W`, `FEEL_W`).

@@ -87,6 +87,11 @@ const CRE_LABEL: Record<Cre, string> = { cns: 'a catch-and-shoot', pullup: 'a pu
 // Per offensive trip at league average (≈115 trips a game: 89 FGA, 14.5 TOV, FT-only trips).
 // Offensive-rebound chance per point of glass-skill edge between the lineups (2026-10-17: 0.004 → 0.0022).
 const ORB_K = 0.0022;
+// Assisted share of makes by tier, calibrated (2026-10-17) on measured runs toward the NBA's (rim 0.55–0.65 counting
+// putbacks, mid-range 0.45–0.50, corner three about 0.95, above the break 0.80–0.85): now 0.57 / 0.49 / 0.89 / 0.79
+// (it was 0.60 / 0.65 / 0.83 / 0.66; pull-ups and stepbacks are rarely assisted, which caps the threes), and
+// 0.62 of all makes assisted.
+const ZONE_AST: Record<Zone, number> = { rim: 0.94, mid: 0.68, c3: 2.2, atb: 2.1 };
 // How much a lineup's ball-handling, feel and IQ (offense) and pressure, feel and hands (defense) move
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
 // 2026-10-17: handle 200 → 240, press 85 → 110: team TOV% spread was wider than the NBA's (sd 0.011–0.014 vs about
@@ -289,17 +294,23 @@ export interface SimOpts { pbp?: boolean; norms?: Norms }
 export interface BoxLine {
   min: number; fgm: number; fga: number; tpm: number; tpa: number; ftm: number; fta: number; orb: number; drb: number;
   ast: number; tov: number; stl: number; blk: number; pf: number; pts: number; pm: number; gs: number;
+  // On the floor (2026-10-17): team points for and against, offensive and defensive possessions, and expected
+  // points for and against (each shot's make chance × its value, each free throw's chance), for real on/off and luck.
+  onF: number; onA: number; onPO: number; onPD: number; xF: number; xA: number; xP: number; // xP: expected points from his own shots and free throws
   rm: number; ra: number; mm: number; ma: number; cm: number; ca: number; bm: number; ba: number; // made/att: rim, mid, corner 3, above-the-break 3
   km: number; ka: number; // made/att in the paint outside the restricted area (floaters, hooks): part of the mid tier (mm/ma count them too)
   qm: number; qa: number; um: number; ua: number; sm: number; sa: number; dm: number; da: number; // jump shots made/att by how he created them: catch & shoot, pull-up, stepback, fadeaway
 }
-export interface SideState { pts: number; qs: number[]; box: Record<number, BoxLine>; tiers: Record<string, [number, number]>; poss: number; fouls: number }
-export interface SideResult { tid: number; pts: number; qs: number[]; box: Record<number, BoxLine>; poss: number }
+// Lineup stints (2026-10-17, for RAPM): each five's possessions, points and expected points on offense (stO) and
+// allowed on defense (stD), keyed by the five ids sorted and joined.
+export type Stints = Record<string, [number, number, number]>;
+export interface SideState { pts: number; qs: number[]; box: Record<number, BoxLine>; tiers: Record<string, [number, number]>; poss: number; fouls: number; stO?: Stints; stD?: Stints }
+export interface SideResult { tid: number; pts: number; qs: number[]; box: Record<number, BoxLine>; poss: number; stO?: Stints; stD?: Stints }
 export interface GameResult { home: SideResult; away: SideResult; ot: number; coach?: { home: string[]; away: string[] } } // coach: the staffs' game plans and adjustments
 export interface PbpEvent { side: Side; time: string; text: string; sub: string; score: string; ids?: number[] }
 
 export const TIER_KEY: Record<Zone, ['rm' | 'mm' | 'cm' | 'bm', 'ra' | 'ma' | 'ca' | 'ba']> = { rim: ['rm', 'ra'], mid: ['mm', 'ma'], c3: ['cm', 'ca'], atb: ['bm', 'ba'] };
-export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, km: 0, ka: 0, qm: 0, qa: 0, um: 0, ua: 0, sm: 0, sa: 0, dm: 0, da: 0 });
+export const blankLine = (): BoxLine => ({ min: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, tov: 0, stl: 0, blk: 0, pf: 0, pts: 0, pm: 0, gs: 0, onF: 0, onA: 0, onPO: 0, onPD: 0, xF: 0, xA: 0, xP: 0, rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, km: 0, ka: 0, qm: 0, qa: 0, um: 0, ua: 0, sm: 0, sa: 0, dm: 0, da: 0 });
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const other = (s: Side): Side => (s === 'home' ? 'away' : 'home');
 const avg = (arr: SimPlayer[], f: (p: SimPlayer) => number) => arr.reduce((s, p) => s + f(p), 0) / arr.length;
@@ -351,6 +362,8 @@ export class GameSim {
       this.en.set(p, cl(on ? e - (sec / 60) * 3.7 * (1.55 - p.r.endu / 100) * (p.age >= 33 ? 1.1 : 1) : e + (sec / 60) * 2.8, 0, 100)); }));
   }
   private rest(x: number) { this.en.forEach((e, p) => this.en.set(p, Math.min(100, e + x))); }
+  private curSt: [[number, number, number], [number, number, number]] = [[0, 0, 0], [0, 0, 0]]; // this trip's stint entries (free-throw expected points)
+  private newPoss = true; // the next step starts a new possession (on-floor possession counts)
   private fastBreak = false; // the defense crashed the glass and lost the rebound: this trip is a run-out
 
   constructor(home: SimTeam, away: SimTeam, public opts: SimOpts = {}) {
@@ -474,6 +487,9 @@ export class GameSim {
     const C = (p: SimPlayer) => this.cache.get(p)!;
     const pbp = !!this.opts.pbp;
     const putback = this.afterOrb;
+    const kO = onO.map(p => p.id).sort((a, b) => a - b).join(','), kD = onD.map(p => p.id).sort((a, b) => a - b).join(','), stO = ((O.stO ||= {})[kO] ||= [0, 0, 0]), stD = ((D.stD ||= {})[kD] ||= [0, 0, 0]); // this trip's two lineups
+    if (this.newPoss) { this.newPoss = false; onO.forEach(y => O.box[y.id].onPO++); onD.forEach(y => D.box[y.id].onPD++); stO[0]++; stD[0]++; } // a new trip: count it for everyone on the floor
+    this.curSt = [stO, stD];
     this.afterOrb = false;
 
     // Clutch: last 5:00 of the 4th or OT within 6 points → the Four Factors tiebreaker.
@@ -552,7 +568,7 @@ export class GameSim {
     const ev: Ev = (ids, text, sub, scoring) => {
       if (pbp) this.pbp.unshift({ side: offK, time, text: text(), sub: sub ? sub() : '', score: scoring ? this.away.pts + '–' + this.home.pts : '', ids });
     };
-    const score = (p: SimPlayer, x: number) => { O.pts += x; addQ(O, x); O.box[p.id].pts += x; onO.forEach(y => (O.box[y.id].pm += x)); onD.forEach(y => (D.box[y.id].pm -= x)); };
+    const score = (p: SimPlayer, x: number) => { O.pts += x; addQ(O, x); O.box[p.id].pts += x; stO[1] += x; stD[1] += x; onO.forEach(y => { O.box[y.id].pm += x; O.box[y.id].onF += x; }); onD.forEach(y => { D.box[y.id].pm -= x; D.box[y.id].onA += x; }); };
     const foul = () => { const f = wpick(onD, p => 110 - p.r.diq); D.box[f.id].pf++; D.fouls++; return f; };
 
     let keep = false;
@@ -647,12 +663,13 @@ export class GameSim {
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
+      { const xv = cl(pct, 0.1, 0.9) * (three ? 3 : 2); onO.forEach(y => (O.box[y.id].xF += xv)); onD.forEach(y => (D.box[y.id].xA += xv)); O.box[sh.id].xP += xv; stO[2] += xv; stD[2] += xv; } // expected points (xP: his own shots)
       if (Math.random() < cl(pct, 0.1, 0.9)) {
         b.fgm++; b[mk]++; if (three) b.tpm++; if (paint) b.km++; if (cre) (b as any)[CRE_KEY[cre][0]]++; this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
-        const aRate = RATE.astF * BASE.zone[z].ast * Math.exp((avg(onO.filter(p => p !== sh), p => Math.max(p.r.pss, (p.r.pss + p.r.drb) / 2)) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
+        const aRate = RATE.astF * BASE.zone[z].ast * ZONE_AST[z] * Math.exp((avg(onO.filter(p => p !== sh), p => Math.max(p.r.pss, (p.r.pss + p.r.drb) / 2)) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
         if (!putback && Math.random() < cl(aRate * (cre && cm ? CRE_AST[cre] / cm.ast : 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
           passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
@@ -673,7 +690,7 @@ export class GameSim {
         if (!keep && tO.reb === 'Crash the glass' && Math.random() < 0.35) this.fastBreak = true;
       }
     }
-    if (!keep) { this.pos = defK; this[defK].poss++; }
+    if (!keep) { this.pos = defK; this[defK].poss++; this.newPoss = true; }
     if (this.t <= 0) {
       if (this.q >= 4 && this.home.pts !== this.away.pts) {
         this.done = true;
@@ -768,7 +785,7 @@ export class GameSim {
         if (Math.random() < this.brainfart(sh.r.oiq)) miss = 'forgot';
         else { O.box[sh.id].fta++; const x = Math.random(); miss = x < 0.05 ? 'in' : x < 0.12 ? 'air' : 'rim'; last = miss === 'in'; if (last) { made++; O.box[sh.id].ftm++; } continue; }
       }
-      O.box[sh.id].fta++; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; }
+      O.box[sh.id].fta++; onO.forEach(y => (O.box[y.id].xF += pct)); onD.forEach(y => (D.box[y.id].xA += pct)); O.box[sh.id].xP += pct; this.curSt[0][2] += pct; this.curSt[1][2] += pct; last = Math.random() < pct; if (last) { made++; O.box[sh.id].ftm++; }
     }
     if (made) score(sh, made);
     if (kind === 'tech') { ev([sh.id, fouler.id], () => 'Defensive three seconds on ' + fouler.name, () => sh.name + (made ? ' makes' : ' misses') + ' the technical free throw', !!made); return true; }
@@ -798,7 +815,7 @@ export class GameSim {
   run() { let guard = 0; while (!this.done && guard++ < 8000) this.step(); return this.result(); }
 
   result(): GameResult {
-    const pack = (k: Side): SideResult => ({ tid: this.teams[k].tid, pts: this[k].pts, qs: this[k].qs.slice(), box: this[k].box, poss: this[k].poss });
+    const pack = (k: Side): SideResult => ({ tid: this.teams[k].tid, pts: this[k].pts, qs: this[k].qs.slice(), box: this[k].box, poss: this[k].poss, stO: this[k].stO, stD: this[k].stD });
     const cn = (k: Side) => [...(this.plan[k]?.notes || []), ...this.notes[k]];
     return { home: pack('home'), away: pack('away'), ot: Math.max(0, this.q - 4), ...(this.plan.home || this.plan.away ? { coach: { home: cn('home'), away: cn('away') } } : {}) };
   }
