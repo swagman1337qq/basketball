@@ -100,8 +100,13 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const room = capRoom(g, s, tid);
   const pick = (k: string) => ms.find(m => m.key === k);
   if (pick('bird') && ask <= pick('bird')!.maxFirst) return { method: 'bird', amt: ask, years: Math.min(yrs + 1, pick('bird')!.maxYears) };
-  if (room >= ask && pick('cap')) return { method: 'cap', amt: ask, years: Math.min(yrs, 4) };
-  for (const k of ['ntmle', 'tpmle', 'bae', 'room']) { const m = pick(k); if (m && ask <= m.maxFirst) return { method: k, amt: ask, years: Math.min(yrs, m.maxYears) }; }
+  // A team under the salary floor spends the gap on the players it signs (shorter deals) instead of paying it
+  // as a shortfall at season's end, like real teams with space they must use: up to 60% of the gap on top of
+  // his ask, within what the method allows.
+  const gap = N.FLOOR - teamSalary(g, s, tid), floorPay = (lim: number) => gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), ask + (gap - ask) * 0.6)).toFixed(2) : ask;
+  const yrsFor = (amt: number, maxY: number) => Math.min(amt > ask * 1.5 ? 2 : yrs, maxY);
+  if (room >= ask && pick('cap')) { const amt = floorPay(room); return { method: 'cap', amt, years: yrsFor(amt, 4) }; }
+  for (const k of ['ntmle', 'tpmle', 'bae', 'room']) { const m = pick(k); if (m && ask <= m.maxFirst) { const amt = floorPay(m.maxFirst); return { method: k, amt, years: yrsFor(amt, m.maxYears) }; } }
   if (ask <= minS * 1.25 && pick('min')) return { method: 'min', amt: minS, years: p.age <= 23 ? Math.min(2, yrs) : 1 }; // minimum deals are almost always one year
   return null;
 }

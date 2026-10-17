@@ -22,7 +22,7 @@ import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
+import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, renegotiateToFloor, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, numsWith, retiredNums } from './jerseys';
@@ -67,6 +67,13 @@ export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221
 // what it fetches around the league, and a rebuilding team won't pay more than ~115% for one.
 const PICK_M: Record<string, [number, number]> = { rebuild: [1.38, 1.6], middle: [1.05, 1.45], contend: [0.7, 1.08] };
 export const valueCurve = (ovr: number) => 1.5 + 0.12 * Math.pow(Math.max(0, ovr - 46), 2);
+// Salaries are priced by league rank (Game.priceOvr): a player is paid like the player at the same percentile
+// of the league's first season, so pay stays the same share of the cap when the league's talent drifts.
+// PRICE_PC: the percentiles kept (finer at the top, where pay is steep); PRICE_Q0: a typical first season's
+// overalls at those percentiles (rostered players, six new leagues), for leagues made before 2026-10-17.
+export const PRICE_PC = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 88, 90, 92, 94, 95, 96, 97, 98, 99, 99.5, 100];
+export const PRICE_Q0 = [22.3, 30.9, 33.5, 35.7, 37.4, 39.2, 41, 42.7, 44.1, 45.4, 46.8, 48.5, 50.1, 51.8, 53.4, 55.1, 57, 59.2, 60.8, 62, 63.4, 65.5, 67.1, 68.4, 70.2, 73, 76.4, 78.4, 82];
+export const priceQuantiles = (v: number[]) => { const a = v.slice().sort((x, y) => x - y); if (!a.length) return PRICE_Q0.slice(); return PRICE_PC.map(pc => { const x = pc / 100 * (a.length - 1), lo = Math.floor(x), hi = Math.min(a.length - 1, lo + 1); return +(a[lo] + (a[hi] - a[lo]) * (x - lo)).toFixed(2); }); };
 
 const POS = [['PG', 'G'], ['SG', 'G'], ['G', 'G'], ['SF', 'W'], ['GF', 'W'], ['F', 'W'], ['PF', 'B'], ['FC', 'B'], ['C', 'B']];
 const BIAS = { G: { spd: 8, acc: 9, drb: 10, pss: 10, tp: 8, lay: 4, hgt: -14, ins: -10, reb: -10, box: -12, stre: -6 }, W: { tp: 5, fg: 4, spd: 3, acc: 3, jmp: 4, diq: 3, lay: 2 }, B: { hgt: 14, ins: 12, reb: 12, box: 12, stre: 10, dnk: 6, drb: -12, pss: -8, tp: -12, spd: -6, acc: -9 } };
@@ -95,6 +102,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
+    g.db.priceQ0 = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = null; // salaries keep this season's pay scale by rank (priceOvr)
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
@@ -331,6 +339,8 @@ export class Game {
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
     if (!g.db.rebV) { (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone || p.retired) return; if (liftRebounding(p)) { syncOvr(p); if (p.tpot != null && p.ovr > p.tpot) p.tpot = p.ovr; } }); g.refreshNorms(g.state); g.db.rebV = 1; }
+    // 2026-10-17: salaries priced by league rank (priceOvr); an older league (after the migrations above) reads ranks off a typical first season.
+    if (g.db.priceQ0 === undefined) { g.db.priceQ0 = PRICE_Q0.slice(); g.refreshPrices(g.state.rosters || {}); }
     // 2026-10-16: breakout years narrowed (rollDevYear): this season's rolls come into the new range.
     if (!g.db.dyV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.dy != null) p.dy = Math.max(-0.5, Math.min(2.2, p.dy)); }); g.db.dyV = 1; }
     // 2026-10-14: the scouts' miss on potential goes either way (potential.ts refreshPot, teamRead): re-read everyone once.
@@ -1288,6 +1298,7 @@ export class Game {
       // outlook (at most +10% a year, as the CBA allows), and every number tied to it (tax,
       // aprons, exceptions, max and min salaries) moves with it.
       const d = this.db, Y = this.Y + 1, growth = capGrowthFor(Y), capsBefore = { ...d.caps };
+      this.refreshPrices(s.rosters); // salaries priced by league rank this year (priceOvr)
       ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'VMIN', 'MLE', 'MAXC'].forEach(k => (d.caps[k] = +(d.caps[k] * growth).toFixed(1)));
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
       const extPlan = Object.keys(s.decide || {}).filter(k => k.startsWith('ext') && s.decide[k]).map(k => +k.slice(3)), rePlan = Object.keys(s.decide || {}).filter(k => k.startsWith('re') && s.decide[k]).map(k => +k.slice(2));
@@ -1535,6 +1546,7 @@ export class Game {
       // Opening night: an owner's payroll order still unmet → his fire sale, before the first game
       // (after AI teams cut to 15, so the teams taking the contracts have room).
       const fsPatch = openingNightFireSales(this, s, box.rosters, lgLog, box.fa); s = { ...s, ...fsPatch };
+      s.teams.forEach(t => { if (!this.isUser(s, t.tid)) renegotiateToFloor(this, { ...s, rosters: box.rosters, cap: box.cap }, t.tid, lgLog); }); // AI teams reach the salary floor (cbaFlow.ts)
       // The league always has about 90 unsigned players on opening night: journeymen back from
       // overseas, CCP veterans and late bloomers join the pool if it has run low.
       for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
@@ -1561,7 +1573,18 @@ export class Game {
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
-  fair(ovr) { return Math.min(this.MAXC, valueCurve(ovr) * this.db.sf * this.CAP / CAPS0.CAP); }
+  fair(ovr) { return Math.min(this.MAXC, valueCurve(this.priceOvr(ovr)) * this.db.sf * this.CAP / CAPS0.CAP); }
+  // The overall a salary is priced at: his place in today's league (db.priceQ, rostered players, taken each
+  // summer as the league year turns) read off the league's first season (db.priceQ0). Before the first summer
+  // the two are the same.
+  priceOvr(ovr: number) {
+    const cur = this.db.priceQ, base = this.db.priceQ0 || PRICE_Q0; if (!cur) return ovr;
+    const n = cur.length - 1; if (ovr <= cur[0]) return base[0] + ovr - cur[0]; if (ovr >= cur[n]) return base[n] + ovr - cur[n];
+    let i = 0; while (i < n - 1 && cur[i + 1] <= ovr) i++;
+    const f = cur[i + 1] > cur[i] ? (ovr - cur[i]) / (cur[i + 1] - cur[i]) : 0.5;
+    return base[i] + (base[i + 1] - base[i]) * f;
+  }
+  refreshPrices(rosters: Record<number, number[]>) { this.db.priceQ = priceQuantiles((Object.values(rosters).flat() as number[]).map(id => this.db.P[id]).filter(p => p?.r).map(p => ovrExact(p))); }
   // Where each AI team is headed (`all`: the teams you run too): contending, the middle, rebuilding.
   strategies(T, s = this.state, all = false) {
     const sc = t => this.pct(t) * 0.65 + (t.str - 45) / 12 * 0.35;

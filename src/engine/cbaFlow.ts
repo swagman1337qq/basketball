@@ -341,7 +341,8 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
     // His own team (Bird rights) first, then the teams with the most cap room, then everyone else.
     // Each team's room, worked out once per move (nothing changes until someone signs).
     const roomOf = new Map<number, number>(T.filter(t => !g.isUser(s, t.tid)).map(t => [t.tid, N.CAP - teamSalary(g, st, t.tid, { holds: true })])), room = (t: number) => roomOf.get(t) ?? 0;
-    const teams = shuffle(T.map(t => t.tid).filter(t => !g.isUser(s, t))).sort((a, b) => (b === p.birdTid ? 1 : 0) - (a === p.birdTid ? 1 : 0) || Math.max(0, room(b)) - Math.max(0, room(a)));
+    const underOf = new Map<number, number>(T.map(t => [t.tid, teamSalary(g, st, t.tid) < N.FLOOR ? 1 : 0])), under = (t: number) => underOf.get(t) ?? 0; // teams under the salary floor bid first (after his own team)
+    const teams = shuffle(T.map(t => t.tid).filter(t => !g.isUser(s, t))).sort((a, b) => (b === p.birdTid ? 1 : 0) - (a === p.birdTid ? 1 : 0) || under(b) - under(a) || Math.max(0, room(b)) - Math.max(0, room(a)));
     for (const t of teams) {
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
       if (std >= seasonMax(s) || (std >= seasonMax(s) - 2 && !spare && p.ovr <= (depth[seasonMax(s) - 3] ?? 0) + 1 && p.birdTid !== t)) continue;
@@ -370,6 +371,17 @@ export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], 
     const line = applySigning(g, s, box, t, p, { method: 'bird', amt: p.rfa.qo, years: 1 });
     lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[t].abbr, pids: [id], text: line.replace('(Bird rights)', '(accepted his qualifying offer)') });
     if (g.isUser(s, t)) (by[t] = by[t] || []).push(p.name + ' accepted his ' + p.amt.toFixed(2) + 'M qualifying offer'); });
+}
+
+// Opening night: an AI team still under the salary floor renegotiates (the CBA lets a team under the cap
+// raise a player's salary into its room) instead of paying the shortfall at season's end: its best players
+// on standard deals, up to about 1.3× what each is worth (Game.fair) and his max, until it reaches the floor.
+export function renegotiateToFloor(g: Game, s: any, tid: number, lgLog: any[]) {
+  const P = g.db.P, N = nums(g), T = s.teams[tid]; let gap = N.FLOOR - teamSalary(g, s, tid); if (gap <= 0.5) return;
+  const ids = (s.rosters[tid] || []).filter((id: number) => { const p = P[id]; return p && p.ctype !== 'twoWay' && p.ctype !== 'rookie' && !p.rookieScale && p.capOverride == null && p.exp >= g.Y; }).sort((a: number, b: number) => P[b].ovr - P[a].ovr);
+  for (const id of ids) { if (gap <= 0.5) break; const p = P[id], up = +Math.min(gap, Math.min(N.max(yosOf(g, p)), g.fair(p.ovr) * 1.3) - p.amt).toFixed(2); if (up < 1) continue;
+    p.amt = +(p.amt + up).toFixed(2); gap -= up;
+    lgLog.unshift({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: T.region + ' ' + T.name + ' renegotiated ' + p.name + '’s contract up $' + up.toFixed(2) + 'M to $' + p.amt.toFixed(2) + 'M a year, to reach the salary floor.' }); }
 }
 
 // Opening-night rosters: at least the minimum (14); AI clubs fill with minimum deals and trim to the
