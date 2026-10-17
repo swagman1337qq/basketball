@@ -99,9 +99,22 @@ const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: 
 // A new player: his plan starts now, with ceilings set so a typical career peaks at `peak`. When the
 // rating scale cuts his ceiling short (a raw star prospect would need skills past 99), his plan aims
 // that much higher (dv0.k), so he still peaks around `peak` on average, just closer to his ceiling.
+// 2026-10-17: true potential above 70 is compressed (70 + 0.55 × the excess: 80 → 75.5, 90 → 81, 99 → 86), so an 80+
+// ceiling is rare (under one per draft class) and a 99 doesn't happen outside God Mode. His growth is unchanged:
+// his plan's pace (dv0.k) is raised by as much as his ceiling came down, so he develops exactly as fast and
+// peaks where he would have; he just gets closer to his (lower) ceiling.
+export const compressT = (T: number) => (T <= 70 ? T : 70 + (T - 70) * 0.55);
 export function initCeil(p: any, peak: number) {
   rollGen(p); startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
-  p.tpot = Math.round(Math.min(99, Math.max(p.ovr ?? o, want))); // his true potential, for good (a typical career gets about TYPICAL of the way)
+  const T = Math.max(compressT(want), Math.min(want, o + 2)); if (want > o && T < want) p.dv0.k = +((want - o) / Math.max(0.5, T - o)).toFixed(3);
+  p.tpot = Math.round(Math.min(99, Math.max(p.ovr ?? o, T))); // his true potential, for good (a typical career gets about TYPICAL of the way to the uncompressed ceiling)
+}
+// Older saves: the same compression for every active player's true potential, his pace raised to match.
+export function compressTruePot(p: any) {
+  const T0 = p.tpot; if (p.godPot != null || !(T0 > 70)) return false;
+  const o = ovrExact(p), T = Math.round(Math.max(compressT(T0), o + Math.min(2, Math.max(0, T0 - o)), p.ovr ?? 0)); if (T >= T0) return false;
+  const d = p.dv0; if (d && T0 > d.o && T > d.o) d.k = +((d.k ?? 1) * (T0 - d.o) / (T - d.o)).toFixed(3);
+  p.tpot = T; refreshPot(p); return true;
 }
 // Set his true potential to T: a fresh plan from now, his full ceiling at T. `god` (God Mode, player
 // cards): exactly T, whatever the usual limits. His skill ceilings go as high as the scale allows (100),

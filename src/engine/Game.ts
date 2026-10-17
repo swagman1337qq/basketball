@@ -35,7 +35,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
+import { capToT, ceilMax, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -105,6 +105,7 @@ export class Game {
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.db.priceQ0 = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = null; // salaries keep this season's pay scale by rank (priceOvr)
+    g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
@@ -229,6 +230,8 @@ export class Game {
       Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || onTeam.has(id) || (p.stats || []).length) return;
         const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0); if (g.draftLevel(p, p.tpot ?? p.pot, (r() + r() + r() - 1.5) * 5.3, true)) refreshPot(p); }); });
       g.db.prosV = 1; }
+    // 2026-10-17: true potential above 70 compressed (potential.ts compressT); pace raised so growth is unchanged.
+    if (!g.db.potV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.r && !p.retired && !p.gone) compressTruePot(p); }); g.db.potV = 1; }
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
     // ceilings are set so a typical career reaches it, and the league's read of it starts a little off.
     // 2026-10: the height rating mostly follows his listed height now (ratings.ts); his overall doesn't move.
@@ -749,7 +752,7 @@ export class Game {
     shiftOvr(p, want);
     const o = ovrExact(p), peak = o + Math.max(0, T - o) * TYPICAL;
     if (!lift) { bodyAhead(p, peak - p.ovr); syncOvr(p); } // his body arrives ahead of his game (development.ts)
-    initCeil(p, peak); p.tpot = Math.max(p.ovr, Math.min(99, T));
+    initCeil(p, peak); // his true potential: T, compressed above 70 (potential.ts compressT)
     return true;
   }
   rng(seed) { return mulberry32(seed); }
