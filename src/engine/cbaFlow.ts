@@ -373,15 +373,15 @@ export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], 
     if (g.isUser(s, t)) (by[t] = by[t] || []).push(p.name + ' accepted his ' + p.amt.toFixed(2) + 'M qualifying offer'); });
 }
 
-// Opening night: an AI team still under the salary floor renegotiates (the CBA lets a team under the cap
-// raise a player's salary into its room) instead of paying the shortfall at season's end: its best players
-// on standard deals, up to about 1.3× what each is worth (Game.fair) and his max, until it reaches the floor.
-export function renegotiateToFloor(g: Game, s: any, tid: number, lgLog: any[]) {
-  const P = g.db.P, N = nums(g), T = s.teams[tid]; let gap = N.FLOOR - teamSalary(g, s, tid); if (gap <= 0.5) return;
-  const ids = (s.rosters[tid] || []).filter((id: number) => { const p = P[id]; return p && p.ctype !== 'twoWay' && p.ctype !== 'rookie' && !p.rookieScale && p.capOverride == null && p.exp >= g.Y; }).sort((a: number, b: number) => P[b].ovr - P[a].ovr);
-  for (const id of ids) { if (gap <= 0.5) break; const p = P[id], up = +Math.min(gap, Math.min(N.max(yosOf(g, p)), g.fair(p.ovr) * 1.3) - p.amt).toFixed(2); if (up < 1) continue;
-    p.amt = +(p.amt + up).toFixed(2); gap -= up;
-    lgLog.unshift({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: T.region + ' ' + T.name + ' renegotiated ' + p.name + '’s contract up $' + up.toFixed(2) + 'M to $' + p.amt.toFixed(2) + 'M a year, to reach the salary floor.' }); }
+// Opening night: an AI team still under the salary floor with an open roster spot signs the best free agent
+// left (45+) to a one-year deal over his market value, up to the gap (at most 3× his ask, or his ask + $15M),
+// instead of paying the shortfall at season's end. Returns whether it signed someone.
+export function floorSigning(g: Game, s: any, box: Box, tid: number, lgLog: any[]) {
+  const P = g.db.P, N = nums(g), gap = N.FLOOR - teamSalary(g, s, tid); if (gap < 1 || stdIds(g, box.rosters[tid]).length >= seasonMax(s)) return false;
+  const id = box.fa.filter(x => { const p = P[x]; return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 45; }).sort((x, y) => P[y].ovr - P[x].ovr)[0]; if (id == null) return false;
+  const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), Math.max(ask * 3, ask + 15), N.CAP - teamSalary(g, s, tid))).toFixed(2);
+  lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids: [id], text: applySigning(g, s, box, tid, p, { method: 'cap', amt, years: 1 }) + ' (over market value, to reach the salary floor)' });
+  return true;
 }
 
 // Opening-night rosters: at least the minimum (14); AI clubs fill with minimum deals and trim to the

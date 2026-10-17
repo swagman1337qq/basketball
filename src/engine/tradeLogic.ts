@@ -15,7 +15,7 @@
 //    come out ahead by its own read (its own scouts, its timeline, its needs), and the league office
 //    has to approve. AI teams also bring you offers that fit their plans.
 import type { Game } from './Game';
-import { checkTrade, nums, teamSalary } from './cba';
+import { checkTrade, nums, seasonMax, teamSalary } from './cba';
 import { expectedByRank } from './lottery';
 import { protFactor } from './pickRules';
 import { teamRating } from './ratings';
@@ -191,6 +191,30 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
     if (!checkTrade(g, gd, a, b, [x.id], [y.id], [], []).ok) continue;
     return { a, b, aP: [x.id], bP: [y.id], aK: [], bK: [], why: 'need for need: ' + T[a].abbr + ' wanted a ' + GRP_WORD[na] + ', ' + T[b].abbr + ' a ' + GRP_WORD[nb] };
   }
+  return null;
+}
+
+// A team under the salary floor takes on a contract: a team over the cap (the most expensive first) sends it a
+// well-paid player it values least per dollar, on a deal ending within three seasons, for nothing or a cheap
+// expiring player back. Money the floor team would pay as a shortfall buys a real player, and the other team
+// clears salary (it has to gain from the trade; the floor team takes it as long as it's legal).
+export function floorTradeIdea(g: Game, s: any, recv: number): TradeIdea | null {
+  const P = g.db.P, T = s.teams, N = nums(g), strat = g.strategies(T, s) as any, gap = N.FLOOR - teamSalary(g, s, recv); if (gap < 2) return null;
+  const gd = { ...s, god: false }, kR = (id: number) => g.pVal(P[id], strat[recv] || 'middle', recv);
+  const full = (s.rosters[recv] || []).filter((id: number) => P[id].ctype !== 'twoWay').length >= seasonMax(s);
+  // What it can send back: nothing (if it has a roster spot) or one of its three least valuable players on a
+  // standard deal (never a recent top-14 pick), so the salary coming in is more than going out.
+  const spare = (s.rosters[recv] || []).filter((id: number) => P[id].ctype !== 'twoWay' && throwIn(P[id])).sort((x: number, y: number) => kR(x) - kR(y)).slice(0, 3);
+  const backs: number[][] = [...(full ? [] : [[]]), ...spare.map((id: number) => [id])];
+  const givers = T.map((t: any) => t.tid).filter((t: number) => t !== recv && !g.isUser(s, t) && teamSalary(g, s, t) > N.CAP).sort((x: number, y: number) => teamSalary(g, s, y) - teamSalary(g, s, x));
+  for (const a of givers) { const k = (id: number) => g.pVal(P[id], strat[a] || 'middle', a);
+    const cands = (s.rosters[a] || []).map((id: number) => P[id]).filter((p: any) => p.amt >= 3 && p.exp <= g.Y + 2 && !p.rookieScale && p.ctype !== 'rookie' && p.ctype !== 'twoWay').sort((x: any, y: any) => k(x.id) / x.amt - k(y.id) / y.amt).slice(0, 6);
+    for (const p of cands) for (const back of backs) {
+      const net = p.amt - back.reduce((x: number, id: number) => x + P[id].amt, 0); if (net < 1 || net > gap + 8) continue; // brings him to (or near) the floor, not far past it
+      if (teamGain(g, s, a, back, [p.id], [], [], AI_M) < 0) continue;
+      if (!checkTrade(g, gd, a, recv, [p.id], back, [], []).ok) continue;
+      return { a, b: recv, aP: [p.id], bP: back, aK: [], bK: [], why: T[recv].abbr + ' took on his contract to reach the salary floor, ' + T[a].abbr + ' cleared salary' };
+    } }
   return null;
 }
 

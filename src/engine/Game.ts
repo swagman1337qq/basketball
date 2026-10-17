@@ -22,7 +22,7 @@ import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, renegotiateToFloor, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
+import { agentCallNotice, askOf, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, floorSigning, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, numsWith, retiredNums } from './jerseys';
@@ -38,7 +38,7 @@ import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SK
 import { capToT, ceilMax, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
-import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
+import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { clubs, COLLEGES, countries, pickCollege, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
@@ -1546,7 +1546,17 @@ export class Game {
       // Opening night: an owner's payroll order still unmet → his fire sale, before the first game
       // (after AI teams cut to 15, so the teams taking the contracts have room).
       const fsPatch = openingNightFireSales(this, s, box.rosters, lgLog, box.fa); s = { ...s, ...fsPatch };
-      s.teams.forEach(t => { if (!this.isUser(s, t.tid)) renegotiateToFloor(this, { ...s, rosters: box.rosters, cap: box.cap }, t.tid, lgLog); }); // AI teams reach the salary floor (cbaFlow.ts)
+      // AI teams still under the salary floor sign a free agent over market value (cbaFlow.ts floorSigning) or
+      // take on a contract by trade (tradeLogic.ts floorTradeIdea) instead of paying the shortfall.
+      const bxa: any = box; bxa.assets = bxa.assets || s.assets;
+      s.teams.forEach(t => { if (this.isUser(s, t.tid)) return; for (let i = 0; i < 6; i++) { const st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa, assets: bxa.assets };
+        if (teamSalary(this, st, t.tid) >= nums(this).FLOOR - 0.5) break; if (floorSigning(this, st, box, t.tid, lgLog)) continue;
+        const x = floorTradeIdea(this, st, t.tid); if (x) { lgLog.unshift(this.execTrade(st, bxa, x, s.day)); continue; }
+        // No trade: waive his least valuable player on a cheap expiring deal (the money still counts) to open a spot.
+        const P0 = this.db.P, cut = box.rosters[t.tid].filter(id => { const q = P0[id]; return q.ctype !== 'twoWay' && !q.rookieScale && q.amt <= nums(this).min(10) * 1.5 && q.exp <= this.Y; }).sort((a, b) => this.pVal(P0[a], 'middle', t.tid) - this.pVal(P0[b], 'middle', t.tid))[0];
+        if (cut == null || stdIds(this, box.rosters[t.tid]).length < seasonMax(s)) break;
+        waivePlayer(this, st, box, t.tid, P0[cut], 'waive').forEach(text => lgLog.unshift({ day: s.day, type: 'Release', teams: t.abbr, pids: [cut], text }));
+        if (!floorSigning(this, st, box, t.tid, lgLog)) break; } });
       // The league always has about 90 unsigned players on opening night: journeymen back from
       // overseas, CCP veterans and late bloomers join the pool if it has run low.
       for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
