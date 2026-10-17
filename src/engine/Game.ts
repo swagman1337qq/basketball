@@ -1607,7 +1607,9 @@ export class Game {
         if (!floorSigning(this, st, box, t.tid, lgLog)) break; } });
       // The league always has about 90 unsigned players on opening night: journeymen back from
       // overseas, CCP veterans and late bloomers join the pool if it has run low.
-      for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 23 + Math.floor(Math.random() * 9), p = this.mkPlayer(38 + Math.random() * 13, age, s.natW || natDefault(), 0);
+      // 2026-10-17: replacement level (33–46, ages 24–32), the bench level of a new league; at 38–51 and 23–31 these
+      // fillers became most of the league's deep benches and squeezed the spread of overalls from below.
+      for (let k = 0; box.fa.length < 90 && k < 200; k++) { const age = 24 + Math.floor(Math.random() * 9), p = this.mkPlayer(33 + Math.random() * 13, age, s.natW || natDefault(), 0);
         Object.assign(p, { yos0: Math.max(0, age - 23), exp: this.Y + 1, inc: [], draft: this.Y - (age - 21), dr: null }); p.amt = nums(this).min(p.yos0); p.ask = askOf(this, p); box.fa.push(p.id); }
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
