@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CNTPVOqd.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-C7SYb-x5.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-17
+
+### Fixed
+- **Teams under the salary floor no longer hand bench players star money.** Paying over market value to reach the floor could reach $45M for a 49-rated player. Now a team under the floor pays at most half again a player's asking price, and never more than $8M over it, on a short deal; the rest of the gap it covers by trading for real contracts. Contracts already signed in your league stay as they are.
 
 ### Changed
 - **Salaries keep up with the cap.** A player's price now comes from where he ranks in the league, not his raw overall: the 10th-best player is paid like the 10th-best player of your league's first season, as the same share of the cap. Before, payrolls fell behind the growing cap (from 1.1× the cap to about 0.8× over ten seasons), most teams ended up under the cap and many under the salary floor, and max contracts nearly disappeared. Now league payroll stays at 1.0–1.1× the cap every season, 5–9 teams pay the tax, and stars get max deals. AI teams under the salary floor also bid first in free agency and pay over market value to reach it. Any still short on opening night take on a contract by trade from a team over the cap (sending back a cheaper player or nothing), or sign a free agent over market value, waiving a minimum-salary player if they need the roster spot. In your league, asking prices follow the new scale from now on (existing contracts don't change).
