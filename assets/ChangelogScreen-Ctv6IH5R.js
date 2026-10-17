@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-C5AXtV7v.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DRIhQNII.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-17
 
 ### Changed
+- **Salaries keep up with the cap.** A player's price now comes from where he ranks in the league, not his raw overall: the 10th-best player is paid like the 10th-best player of your league's first season, as the same share of the cap. Before, payrolls fell behind the growing cap (from 1.1× the cap to about 0.8× over ten seasons), most teams ended up under the cap and many under the salary floor, and max contracts nearly disappeared. Now league payroll stays at 1.0–1.1× the cap every season, 5–9 teams pay the tax, and stars get max deals. AI teams under the salary floor also bid first in free agency, pay more to reach it, and renegotiate their best players' deals up on opening night instead of paying the shortfall. In your league, asking prices follow the new scale from now on (existing contracts don't change).
 - **Draft prospects are closer to NBA level.** A prospect's level on draft night now follows his ceiling and his age: a 19-year-old is about 22 below his true potential, each year older about 3 closer, give or take a few points. Top-5 picks now open their rookie season around 50–57 and play 25–30 minutes, first-round rookies average about 43 (they averaged about 34), and the best rookies win Rookie of the Year at 19–21. Before, every prospect was equally raw whatever his ceiling, so top picks opened at about 32, sat on the bench, and often ended up no better than late first-rounders. A generational prospect still arrives a little short of a star. True potential works the same as before. In 10-season tests the league keeps its talent: players rated 60+ stay close to the first season's number (they used to fall from about 60 to 38), and 70+ players hold steady. When you load your league, prospects not yet drafted are raised to their new level (never lowered).
 
 ## 2026-10-16
