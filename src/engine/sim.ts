@@ -388,7 +388,7 @@ export class GameSim {
     if (this.q === 3 && this.t === 720) { this.on[k] = this.shape(k, ps.slice(0, 5), ps); return; }
     const el = this.elapsed();
     const trouble = (p: SimPlayer) => this.q <= 4 && S.box[p.id].pf >= this.q + 2 && !(this.q === 4 && this.t < 360);
-    const deficit = (p: SimPlayer) => (p.target * 60 * el) / 2880 - S.box[p.id].min * 60 - (trouble(p) ? 900 : 0) - Math.max(0, 72 - (this.en.get(p) ?? 100)) * 10; // a gassed player sits
+    const deficit = (p: SimPlayer) => (p.target * 60 * el) / 2880 - S.box[p.id].min * 60 - (trouble(p) ? 900 : 0) - Math.max(0, 66 - (this.en.get(p) ?? 100)) * 8; // a gassed player sits (2026-10-17: from 66, was 72 × 10 s: stars play star minutes)
     let on = this.on[k].filter(p => ps.includes(p));
     for (const p of ps) if (on.length < 5 && !on.includes(p)) on.push(p);
     for (let guard = 0; guard < 5; guard++) {

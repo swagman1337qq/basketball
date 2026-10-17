@@ -47,6 +47,7 @@ import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './star
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
+import { OLD_AWARD_FORMULAS } from '../data/awardDefs';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
@@ -342,6 +343,8 @@ export class Game {
       g.refreshNorms(g.state); g.db.iqV = 4; }
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
+    // 2026-10-17: new DPOY and ROY formulas; a league that saved the old ones word for word moves to the new ones.
+    if (Array.isArray(g.state.awardDefs)) g.state.awardDefs = g.state.awardDefs.map((d: any) => { const o = OLD_AWARD_FORMULAS[d?.shortName]; return o && d.formula === o[0] ? { ...d, formula: o[1] } : d; });
     if (!g.db.rebV) { (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone || p.retired) return; if (liftRebounding(p)) { syncOvr(p); if (p.tpot != null && p.ovr > p.tpot) p.tpot = p.ovr; } }); g.refreshNorms(g.state); g.db.rebV = 1; }
     // 2026-10-17: salaries priced by league rank (priceOvr); an older league (after the migrations above) reads ranks off a typical first season.
     if (g.db.priceQ0 === undefined) { g.db.priceQ0 = PRICE_Q0.slice(); g.refreshPrices(g.state.rosters || {}); }
@@ -781,6 +784,18 @@ export class Game {
   // as NBA stars do in the postseason); in an elimination game, seven (and a spot-up cameo).
   static PO_ROTATION = [39, 38, 37, 35, 32, 24, 18, 12, 5, 0, 0, 0, 0, 0, 0];
   static PO_ELIM_ROTATION = [41, 40, 38, 36, 34, 27, 21, 3, 0, 0, 0, 0, 0, 0, 0];
+  // A real star plays star minutes (2026-10-17): the top spot's target rises with his lead over the team's
+  // 6th-best player (up to +3) and his Endurance (±0.4 per 10 points from 50), at most 38; the extra minutes
+  // come off the end of the bench (spots 11, 10, then 9). Regular season only (playoff rotations are set).
+  starMinutes(ROT: number[], ps: any[]) {
+    if (ROT !== Game.ROTATION || ps.length < 9 || !ps[0]?.r) return ROT;
+    const star = ps[0], sixth = ps[5], gap = Math.max(0, (star.ovr ?? 0) - (sixth?.ovr ?? star.ovr));
+    const want = Math.max(31, Math.min(38, ROT[0] + Math.min(3, gap / 4) + ((star.r.endu ?? 50) - 50) / 25)), out = ROT.slice();
+    let d = +(want - ROT[0]).toFixed(1); out[0] = ROT[0] + d;
+    for (const i of [10, 9, 8]) { if (d <= 0) break; const take = Math.min(d, out[i] - (i === 8 ? 8 : 0)); out[i] -= take; d -= take; }
+    if (d < 0) out[8] -= d; // a low-Endurance star gives his minutes to the 9th man
+    return out;
+  }
   rotationFor(s, tid) {
     if (s.phase !== 'playoffs' || !s.po) return Game.ROTATION;
     const ser = (s.po.rounds || []).flat().find((x: any) => (x.a === tid || x.b === tid) && x.wa < 4 && x.wb < 4);
@@ -862,7 +877,7 @@ export class Game {
     let ids = s.rosters[tid].filter(id => this.canPlay1(s, P[id], post, hurt));
     if (!user) ids = this.aiOrder(s, tid).filter(id => ids.includes(id)); // AI: best first, and real minutes for a young high pick (rosterAI)
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    const ROT = this.rotationFor(s, tid);
+    const ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id]));
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       // Tactics: yours where you set them, the coaching staff's everywhere else (coach.ts); AI teams' staffs run all of it.
       tactics: club ? club.tactics : {}, situ: club ? club.situ || null : null, aiKeys: this.aiTacKeys(club), coach: coachQuality(teamBudget(this, s, tid).Coaching),

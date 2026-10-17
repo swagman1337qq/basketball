@@ -309,7 +309,7 @@ Typical results:
 
 ### 7.9 Energy and fatigue (Endurance)
 
-- **Energy (0–100) drains on the floor** at about `3.7 × (1.55 − Endurance/100)` per minute: ~2.4 a minute at 50 Endurance, ~1.5 at 90, ~3.0 at 30. Players 33 and older drain 10% faster.
+- **Energy (0–100) drains on the floor** at about `3.7 × (1.55 − Endurance/100)` per minute: ~3.9 a minute at 50 Endurance, ~2.4 at 90, ~4.6 at 30. Players 33 and older drain 10% faster.
 - **It recovers** 2.8 a minute on the bench, +6 at quarter breaks and +18 at halftime.
 - **Below about 88 he's tired.** He shoots worse (jump shots most), defends worse, turns it over more and rebounds less. Coaches sub out gassed players sooner.
 - **Heavy minutes over several games** leave him starting games with less energy. Endurance also clears that faster between games.
@@ -559,7 +559,7 @@ P(offensive rebound) = cl(.26 + .004 × (offense's avg glass skill − defense's
 - **On the floor:** −3.7 × (1.55 − endu/100) per minute (×1.1 at 33+).
 - **On the bench:** +2.8 per minute. Quarter breaks +6, halftime +18.
 - **Tiredness** = cl((88 − energy)/60, 0, 1).
-- **Subs:** each player's "minutes owed" is his target share of the time elapsed minus his minutes played. Subtract 15 minutes for foul trouble, and 10 seconds for each energy point under 72. A bench player comes in when he's owed at least 285 seconds more than the man he replaces.
+- **Subs:** each player's "minutes owed" is his target share of the time elapsed minus his minutes played. Subtract 15 minutes for foul trouble, and 8 seconds for each energy point under 66. A bench player comes in when he's owed at least 285 seconds more than the man he replaces.
 - **Season fatigue:** each game day it changes by −(8 + endu/10) + 1.1 × (minutes over 20) + .3 × (age − 30) for players over 30.
 
 ## J. Development (`Game.ts` devTick and the summer)
