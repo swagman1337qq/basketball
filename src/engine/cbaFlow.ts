@@ -6,7 +6,7 @@ import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
-import { acceptance, aiTerms, applySigning, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
+import { acceptance, aiTerms, applySigning, floorOverpay, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
 import { fmtMoney as money } from './capModel';
@@ -374,12 +374,12 @@ export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], 
 }
 
 // Opening night: an AI team still under the salary floor with an open roster spot signs the best free agent
-// left (45+) to a one-year deal over his market value, up to the gap (at most 3× his ask, or his ask + $15M),
+// left (45+) to a one-year deal over his market value, up to the gap (at most contracts.ts floorOverpay),
 // instead of paying the shortfall at season's end. Returns whether it signed someone.
 export function floorSigning(g: Game, s: any, box: Box, tid: number, lgLog: any[]) {
   const P = g.db.P, N = nums(g), gap = N.FLOOR - teamSalary(g, s, tid); if (gap < 1 || stdIds(g, box.rosters[tid]).length >= seasonMax(s)) return false;
   const id = box.fa.filter(x => { const p = P[x]; return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 45; }).sort((x, y) => P[y].ovr - P[x].ovr)[0]; if (id == null) return false;
-  const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), Math.max(ask * 3, ask + 15), N.CAP - teamSalary(g, s, tid))).toFixed(2);
+  const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), floorOverpay(ask), N.CAP - teamSalary(g, s, tid))).toFixed(2);
   lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids: [id], text: applySigning(g, s, box, tid, p, { method: 'cap', amt, years: 1 }) + ' (over market value, to reach the salary floor)' });
   return true;
 }

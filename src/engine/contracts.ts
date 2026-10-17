@@ -94,16 +94,19 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
 export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min', 'dpe'];
 
 // How an AI team would sign a player now (or null).
+// How far over his ask a team under the salary floor will go: half again, and no more than $8M over it. A modest
+// overpay on a short deal, like real teams with space they must use, not a star's salary for a bench player.
+export const floorOverpay = (ask: number) => Math.min(ask * 1.5, ask + 8);
 export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const N = nums(g), yos = yosOf(g, p), minS = N.min(yos), ask = Math.max(minS, p.ask || minS), yrs = Math.min(prefYears(p), 4);
   const ms = signingMethods(g, s, tid, p).filter(m => m.ok && !['twoWay', 'ex10', 'tenDay', 'hardship', 'offer'].includes(m.key));
   const room = capRoom(g, s, tid);
   const pick = (k: string) => ms.find(m => m.key === k);
   if (pick('bird') && ask <= pick('bird')!.maxFirst) return { method: 'bird', amt: ask, years: Math.min(yrs + 1, pick('bird')!.maxYears) };
-  // A team under the salary floor spends the gap on the players it signs (shorter deals) instead of paying it
-  // as a shortfall at season's end, like real teams with space they must use: up to 60% of the gap on top of
-  // his ask, within what the method allows.
-  const gap = N.FLOOR - teamSalary(g, s, tid), floorPay = (lim: number) => gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), ask + (gap - ask) * 0.6)).toFixed(2) : ask;
+  // A team under the salary floor pays over market value to get closer to it (shorter deals) instead of paying
+  // the shortfall at season's end: at most floorOverpay (half again his ask, $8M more at most), within what the
+  // method allows. The rest of the gap is for trades (tradeLogic.ts floorTradeIdea).
+  const gap = N.FLOOR - teamSalary(g, s, tid), floorPay = (lim: number) => gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), ask + gap * 0.5, floorOverpay(ask))).toFixed(2) : ask;
   const yrsFor = (amt: number, maxY: number) => Math.min(amt > ask * 1.5 ? 2 : yrs, maxY);
   if (room >= ask && pick('cap')) { const amt = floorPay(room); return { method: 'cap', amt, years: yrsFor(amt, 4) }; }
   for (const k of ['ntmle', 'tpmle', 'bae', 'room']) { const m = pick(k); if (m && ask <= m.maxFirst) { const amt = floorPay(m.maxFirst); return { method: k, amt, years: yrsFor(amt, m.maxYears) }; } }
