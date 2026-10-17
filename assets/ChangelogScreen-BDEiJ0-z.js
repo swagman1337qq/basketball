@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-C4tA0HQV.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DSnVAZ03.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -9,6 +9,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Teams under the salary floor no longer hand bench players star money.** Paying over market value to reach the floor could reach $45M for a 49-rated player. Now a team under the floor pays at most half again a player's asking price, and never more than $8M over it, on a short deal; the rest of the gap it covers by trading for real contracts. Contracts already signed in your league stay as they are.
 
 ### Changed
+- **Free agents added on opening night are replacement-level players.** The league tops its free-agent pool back up to about 90 players before each season; those journeymen used to be generated as solid rotation players (38–51, as young as 23) and ended up filling most deep benches. They're now true end-of-bench players (33–46, ages 24–32).
 - **EPM, LEBRON and DARKO are built like the real ones.** The game now records, for every player, his team's points for and against and the possessions while he's on the floor, and the expected points of every shot and free throw. EPM is now a lineup regression (each player adjusted for the teammates he plays with) with his box score as a starting point; LEBRON is the same regression on expected points, so shooting luck is removed for both teams and every kind of shot; DARKO ages his past seasons forward along this league's own aging curve instead of giving young players a flat bonus, and uses each past season's own context. All three are rescaled every season so the league's spread matches the real metrics'. Seasons played before this update keep the older method.
 - **Assists by shot type match the NBA's.** Mid-range makes were assisted too often and threes too rarely; now about 49% of mid-range makes, 79–90% of threes and 57% of rim makes are assisted, with team assists unchanged.
 - **Feel now counts in the overall.** Feel (vision and anticipation) improves a player's shots, turnovers, assists and steals, but the overall ignored it. Measured the same way as the other ratings (how much it changes a team's scoring margin over 120,000 simulated games), it's worth about as much as Offensive IQ: 7–9% of the overall. Each position is re-centred so an average player keeps his overall; most players move a point or less when you load your league, high-Feel players up and low-Feel players down.
