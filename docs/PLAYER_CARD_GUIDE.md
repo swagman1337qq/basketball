@@ -128,7 +128,7 @@ Across all rotation players, most ratings average about 54–57. As a rough guid
 
 ## 4. The overall, height and wingspan
 
-**Overall** = the weighted average of all 20 ratings (weights in section 3) + a wingspan bonus − a position adjustment (G −2.2, W 1.58, B 3.49). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
+**Overall** = the weighted average of all 20 ratings and Feel (weights in section 3; Feel, from the intangibles, is 7.4% of a guard's overall, 9.0% of a wing's and 7.3% of a big's) + a wingspan bonus − a position adjustment (G −1.49, W 1.92, B 3.5). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
 
 **The height rating should match the listed height:**
 

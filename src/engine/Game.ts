@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -41,6 +41,7 @@ import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
+import { roleRamp } from '../data/world';
 import { clubs, COLLEGES, countries, pickCollege, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './startRoster';
@@ -336,11 +337,12 @@ export class Game {
     // little less (ratings.ts OVR_W). Every overall is recomputed (most move under a point); his potential, true
     // potential and plan move by the same amount so his growth room is unchanged.
     // 2026-10-16 (iqV 4): weights measured from the engine (ratings.ts OVR_W); same recompute and shift.
-    if ((g.db.iqV || 0) < 4) { const v = g.db.iqV || 0, WV = v === 3 ? OVR_W_V4 : v === 2 ? OVR_W_V3 : v === 1 ? OVR_W_V2 : OVR_W_V1, AV = v === 3 ? OVR_ADJ_V4 : v === 2 ? OVR_ADJ_V3 : v === 1 ? OVR_ADJ_V2 : OVR_ADJ_V1; const oldOvr = (p: any) => { const W = WV[p.grp] || WV.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (AV[p.grp] ?? 2.5))); };
+    // 2026-10-17 (iqV 5): Feel joins the overall (ratings.ts FEEL_W); same recompute and shift.
+    if ((g.db.iqV || 0) < 5) { const v = g.db.iqV || 0, WV = v === 4 ? OVR_W : v === 3 ? OVR_W_V4 : v === 2 ? OVR_W_V3 : v === 1 ? OVR_W_V2 : OVR_W_V1, AV = v === 4 ? OVR_ADJ_V5 : v === 3 ? OVR_ADJ_V4 : v === 2 ? OVR_ADJ_V3 : v === 1 ? OVR_ADJ_V2 : OVR_ADJ_V1; const oldOvr = (p: any) => { const W = WV[p.grp] || WV.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (AV[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 4; }
+      g.refreshNorms(g.state); g.db.iqV = 5; }
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
     // 2026-10-17: new DPOY and ROY formulas; a league that saved the old ones word for word moves to the new ones.
@@ -488,7 +490,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 4, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 5, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -881,7 +883,7 @@ export class Game {
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       // Tactics: yours where you set them, the coaching staff's everywhere else (coach.ts); AI teams' staffs run all of it.
       tactics: club ? club.tactics : {}, situ: club ? club.situ || null : null, aiKeys: this.aiTacKeys(club), coach: coachQuality(teamBudget(this, s, tid).Coaching),
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), rr: roleRamp(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
   }
 
   // Can he play tonight: healthy (or playing through it), not in the development league, a two-way player

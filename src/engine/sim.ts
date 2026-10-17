@@ -9,6 +9,7 @@
 
 import { tacticEffects, type TacFx, type Tactics } from './tactics';
 import { gamePlan, liveTactics, type CoachPlan, type LiveMemory, type TacKey } from './coach';
+import { roleRamp } from '../data/world';
 export type { Tactics } from './tactics';
 
 export type Side = 'home' | 'away';
@@ -19,6 +20,13 @@ export const ZONES: Zone[] = ['rim', 'mid', 'c3', 'atb'];
 // The league's spread matches too: team scoring from about 106 to 122 a game (2025-26: Brooklyn 105.9,
 // Denver 122.1), ORtg and net rating spreads, single-game margins and home court (LINEUP_REG,
 // TOV_K, LEAD_K, the venue and tempo effects).
+// Role effects ramp in (data/world.ts roleRamp): a role's strength runs 0 → 1 over the ten rating points around
+// its threshold, so its bonus (×m at full strength) grows smoothly instead of switching on at one point.
+const roleW = (p: any, name: string): number => (p.rr ?? roleRamp(p))[name] ?? 0; // p.rr: set on game-day players (Game.simTeam)
+const roleK = (p: any, name: string, m: number) => 1 + (m - 1) * roleW(p, name);
+// Who gets the rebound: rebounding skill to this power (2026-10-17: 2 → 2.5, so the best rebounders get more of
+// their team's boards, as in the NBA; team totals don't change).
+const REB_EXP = 2.5;
 export const BASE = {
   pace: 99.4, pts: 115.6,
   fg: 0.471, tp: 0.360, tpa: 37.0, ft: 0.783,
@@ -148,7 +156,7 @@ export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: bo
   let u = Math.exp(0.019 * (offAbility(p.r) - 57)) * (p.tend?.usg ?? 1);
   if (p.alpha) u *= 1.05;
   if (p.touches) u *= 1.06;
-  if (p.roles?.includes('Primary creator')) u *= 1.05;
+  u *= roleK(p, 'Primary creator', 1.05);
   return u;
 }
 export const mental = (r: any) => (r.oiq + r.diq) / 2;
@@ -241,10 +249,9 @@ export function shotProfile(p: { r: any; roles?: string[]; tend?: Tend; pers?: a
     // Skill tilts the mix a little right away; most of how a better shooter shoots more comes through his
     // tendencies, which follow his skills gradually (tendencies.ts).
     let x = BASE.zone[z].share * n.shareCorr[z] * Math.exp((p.tend?.[z] != null ? 0.02 : 0.04) * (sk[z] - n.skill[z]));
-    if (z === 'rim' && roles.includes('Slasher')) x *= 1.3;
-    if ((z === 'c3' || z === 'atb') && roles.includes('Floor spacer')) x *= 1.25;
-    if (z === 'c3' && roles.includes('3-and-D wing')) x *= 1.4;
-    if ((z === 'c3' || z === 'atb') && roles.includes('Stretch big')) x *= 1.5;
+    if (z === 'rim') x *= roleK(p, 'Slasher', 1.3);
+    if (z === 'c3' || z === 'atb') x *= roleK(p, 'Floor spacer', 1.25) * roleK(p, 'Stretch big', 1.5);
+    if (z === 'c3') x *= roleK(p, '3-and-D wing', 1.4);
     x *= p.tend?.[z] ?? auto[z];
     if (mult?.[z]) x *= mult[z]!;
     w[z] = x; tot += x;
@@ -485,7 +492,7 @@ export class GameSim {
     // Intangibles: Feel on the floor finds better shots and fewer turnovers (and reads passing lanes
     // on defense); Poise keeps a team steady against pressure.
     const feelO = avg(onO, p => p.feel ?? FEEL_MID), feelD = avg(onD, p => p.feel ?? FEEL_MID), poiseO = avg(onO, p => p.poise ?? POISE_MID);
-    const connectors = onO.filter(p => p.roles?.includes('Connector')).length, poa = onD.filter(p => p.roles?.includes('Point-of-attack defender')).length;
+    const connectors = onO.reduce((a, p) => a + roleW(p, 'Connector'), 0), poa = onD.reduce((a, p) => a + roleW(p, 'Point-of-attack defender'), 0);
     // Offensive IQ is decision-making (the read, the cut, when to pass, when to shoot); Defensive IQ is
     // positioning and rotations; quick hands (Steals) force turnovers. All relative to the league.
     const oiqO = avg(onO, p => p.r.oiq) - (n.oiq ?? 52), diqD = avg(onD, p => p.r.diq) - (n.diq ?? 52), handsD = avg(onD, p => stealSkill(p.r)) - (n.stl ?? 52);
@@ -574,7 +581,7 @@ export class GameSim {
       const x = Math.random();
       const stealShare = cl(RATE.stealShare * Math.exp(handsD / 160), 0.35, 0.8);
       if (x < stealShare) {
-        const s2 = wpick(onD, p => Math.pow(Math.max(STEAL_FLOOR, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * (p.roles?.includes('Point-of-attack defender') ? 1.5 : 1));
+        const s2 = wpick(onD, p => Math.pow(Math.max(STEAL_FLOOR, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * roleK(p, 'Point-of-attack defender', 1.5));
         D.box[s2.id].stl++;
         ev([s2.id, handler.id], () => s2.name + ' steals the ball from ' + handler.name, () => '(' + D.box[s2.id].stl + ' STL)');
       } else if (x < stealShare + RATE.offFoul) {
@@ -583,7 +590,7 @@ export class GameSim {
       } else ev([handler.id], () => handler.name + (Math.random() < 0.5 ? ' loses the ball out of bounds' : ' throws it away'), () => '(' + O.box[handler.id].tov + ' TOV)');
     } else if (kind === 'trip') {
       // Fouled on a missed shot: two free throws (three on a three).
-      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * (p.roles?.includes('Slasher') ? 1.2 : 1) * (p.tend?.draw ?? 1));
+      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * roleK(p, 'Slasher', 1.2) * (p.tend?.draw ?? 1));
       keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
@@ -615,10 +622,10 @@ export class GameSim {
       const lab = () => (paint ? (sh.grp === 'B' ? 'a hook shot' : 'a floater') : cre && cre !== 'cns' ? CRE_LABEL[cre] + (z === 'mid' ? (cre === 'fade' ? '' : ' jumper') : z === 'c3' ? ' corner three' : ' three') : LABEL[z](sh));
       const bigs = onD.slice().sort((a, b) => b.r.hgt - a.r.hgt).slice(0, 2);
       const intD = avg(bigs, p => interiorD(p.r));
-      const rimPro = onD.some(p => p.roles?.includes('Rim protector'));
+      const rimPro = onD.reduce((a, p) => Math.max(a, roleW(p, 'Rim protector')), 0);
       // Rotations (the whole lineup's Defensive IQ) make every shot harder; gamblers leave easier ones.
       const small = z === 'rim' ? cl(1 + (55 - sh.r.hgt) / 100, 0.75, 1.3) : 1; // good rim protection bothers a small finisher more than a big one, who shoots over it
-      const defAdj = (z === 'rim' ? small * (0.0021 * (intD - n.interiorD) + (rimPro ? 0.007 : 0)) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
+      const defAdj = (z === 'rim' ? small * (0.0021 * (intD - n.interiorD) + 0.007 * rimPro) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -656,9 +663,9 @@ export class GameSim {
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
-        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (rimPro ? 1.3 : 1) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1); // small finishers get blocked more; stepbacks and fadeaways rarely
+        const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1); // small finishers get blocked more; stepbacks and fadeaways rarely
         if (Math.random() < blkP) {
-          const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * (p.roles?.includes('Rim protector') ? 1.6 : 1));
+          const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
         } else ev([sh.id], () => sh.name + ' misses ' + lab());
@@ -780,7 +787,7 @@ export class GameSim {
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
-      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), 2) * (p.roles?.includes('Rebounder') ? 1.3 : 1) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
+      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) * roleK(p, 'Rebounder', 1.3) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }

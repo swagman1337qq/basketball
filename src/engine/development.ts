@@ -15,7 +15,7 @@
 // The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { OVR_W, RMAX, skillTop } from './ratings';
+import { FEEL_W, OVR_W, RMAX, skillTop } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
 
@@ -102,7 +102,7 @@ export const dimAt = (v: number, gen = false) => { const k = gen ? 80 : 70; retu
 // count little at his position (a guard who learns to box out), part of it spills over evenly so a
 // single skill doesn't run away. Returns rating changes.
 export function skillChange(p: any, target: number, sw: Weights): Record<string, number> {
-  const W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, b) => a + b, 0), out: Record<string, number> = {};
+  const W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, b) => a + b, 0) + (FEEL_W[p.grp] ?? 2.5), out: Record<string, number> = {};
   if (!target) { SKILLS.forEach(k => (out[k] = 0)); return out; }
   const up = target > 0, base = up ? sw.w : SLIP, m = SKILLS.reduce((a, k) => a + base[k], 0) / SKILLS.length || 1;
   const u: Record<string, number> = Object.fromEntries(SKILLS.map(k => [k, base[k] / m - (up ? NEGLECT * sw.lazy[k] : 0)]));
@@ -174,7 +174,7 @@ export function bodyAhead(p: any, room: number) {
 }
 // The overall change a set of rating changes makes.
 export function ovrDelta(p: any, dl: Record<string, number>) {
-  const W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, b) => a + b, 0);
+  const W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, b) => a + b, 0) + (FEEL_W[p.grp] ?? 2.5);
   let x = 0; for (const k in dl) x += (W[k] ?? 0) * dl[k]; return x / T;
 }
 // Add rating changes through the hidden decimals (whole points land on the rating).

@@ -130,16 +130,23 @@ export const OVR_W_V1: Record<string, Record<string, number>> = {
 };
 export const OVR_ADJ_V1: Record<string, number> = { G: 1.76, W: 1.74, B: 4.76 };
 export const OVR_ADJ_V2: Record<string, number> = { G: 1.65, W: 1.68, B: 4.58 };
-export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0); return (W[k] ?? 0) / tot; };
+export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[grp] ?? 2.5); return (W[k] ?? 0) / tot; };
 // The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
 // far more than a center's), plus his wingspan, on a scale shared by all positions. Bigs naturally
 // rate high in size skills and guards in speed and handle, so each position has a set adjustment
 // that keeps a typical 60 guard, wing and big all at 60. Hidden decimal progress (p.rx) counts.
 export const OVR_ADJ_V3: Record<string, number> = { G: 1.6, W: 1.64, B: 4.44 };
 export const OVR_ADJ_V4: Record<string, number> = { G: 1.6, W: 1.64, B: 4.38 };
-export const OVR_ADJ: Record<string, number> = { G: -2.2, W: 1.58, B: 3.49 };
+export const OVR_ADJ_V5: Record<string, number> = { G: -2.2, W: 1.58, B: 3.49 }; // before Feel joined the overall (2026-10-17)
+export const OVR_ADJ: Record<string, number> = { G: -1.49, W: 1.92, B: 3.5 };
+// Feel (intangibles: vision and anticipation) counts too (2026-10-17): it improves shots, turnovers, assists and
+// steals in games. Measured like OVR_W (the same 120,000-game regression with Feel added: +10 Feel is worth about
+// 0.22 / 0.26 / 0.22 points per 100 for guards / wings / bigs, about what Offensive IQ is), in the same units
+// (each group's OVR_W adds up to 100): 7.4% of a guard's overall, 9.0% of a wing's, 7.3% of a big's. A player
+// without intangibles yet reads as 50.
+export const FEEL_W: Record<string, number> = { G: 8, W: 9.8, B: 7.8 };
 export function ovrExact(p: any): number {
-  const W = OVR_W[p.grp] || OVR_W.W; let a = 0, t = 0;
+  const W = OVR_W[p.grp] || OVR_W.W, fw = FEEL_W[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw;
   for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }
   return Math.max(1, Math.min(100, (t ? a / t : 50) + wngBonus(p) - (OVR_ADJ[p.grp] ?? 2.5)));
 }
@@ -197,7 +204,7 @@ export function deriveDefense(p: any, noise: (k: number) => number) {
 // stays exactly where it was (the shape, a shot-blocker vs a pickpocket, is kept).
 export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
   const before = ovrExact(p); deriveDefense(p, noise);
-  const W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0), k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
+  const W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[p.grp] ?? 2.5), k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
   for (let i = 0; i < 4; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.05) break; p.r.blk = Math.max(4, Math.min(RMAX, Math.round(p.r.blk + d * k))); p.r.stl = Math.max(4, Math.min(RMAX, Math.round(p.r.stl + d * k))); }
 }
 
@@ -217,7 +224,7 @@ export const hgtLean = (p: any) => ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000
 export function blendHeight(p: any, _old?: number) { return Math.round(Math.max(4, Math.min(RMAX, hgtFromInches(inchesOf(p.hgt)) + hgtLean(p)))); }
 // Set the height rating and move his other ratings the other way so his overall stays put.
 export function setHgtKeepOvr(p: any, v: number) {
-  const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = T / (T - (W.hgt ?? 0)); p.r.hgt = v;
+  const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = (T + (FEEL_W[p.grp] ?? 2.5)) / (T - (W.hgt ?? 0)); p.r.hgt = v;
   for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
 }
 // The least a player rebounds and boxes out just by his body: size, spring and strength (a 6′5″ guard with an average

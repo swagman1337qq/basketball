@@ -198,6 +198,26 @@ export function roleDefs(): any[] {
   ];
 }
 
+// How strongly each role's game effect applies (2026-10-17): 0 five points below its threshold, 0.5 at it, 1 five
+// above, so one rating point never switches a 30–60% effect on or off. The margin is the weakest requirement's
+// distance from its threshold; group and size requirements stay strict. The role labels (roleDefs) are unchanged.
+const ROLE_MARGIN: Record<string, (v: (k: string) => number, p: any) => number> = {
+  'Primary creator': v => Math.min(v('drb') - 62, v('pss') - 60),
+  'Floor spacer': v => v('tp') - 60,
+  '3-and-D wing': (v, p) => (p.grp === 'W' || (p.grp === 'G' && v('hgt') >= 45)) ? Math.min(v('tp') - 54, v('diq') - 54) : -99,
+  'Point-of-attack defender': (v, p) => p.grp !== 'B' ? Math.min(v('diq') - 58, v('spd') - 60) : -99,
+  'Slasher': v => (v('spd') + v('jmp') + v('dnk')) / 3 - 60,
+  'Rim protector': (v, p) => p.grp === 'B' ? Math.min(v('hgt') - 62, v('diq') - 52) : -99,
+  'Stretch big': (v, p) => p.grp === 'B' ? v('tp') - 48 : -99,
+  'Rebounder': v => v('reb') - 62,
+  'Connector': v => Math.min(v('pss') - 52, v('oiq') - 55, v('diq') - 50),
+};
+export function roleRamp(p: any): Record<string, number> {
+  const v = (k: string) => p.r?.[k] ?? 50, out: Record<string, number> = {};
+  for (const k in ROLE_MARGIN) { const m = ROLE_MARGIN[k](v, p), x = Math.max(0, Math.min(1, (m + 5) / 10)); if (x > 0) out[k] = +x.toFixed(2); }
+  return out;
+}
+
 export const COLLEGES = ['Kentucky', 'Gonzaga', 'Duke', 'Villanova', 'Baylor', 'Arizona', 'UCLA', 'Kansas', 'Michigan State', 'Houston', 'Creighton', 'Purdue', 'Tennessee', 'Iowa State', 'Marquette', 'Alabama', 'UConn', 'North Carolina', 'Texas', 'Auburn', 'Saint Mary’s', 'Florida', 'Arkansas', 'Indiana', 'USC', 'Oregon', 'Virginia', 'Memphis'];
 // The Ivy League's eight schools: real Division I programs that rarely send players to the NBA (Jeremy Lin,
 // Harvard; Geoff Petrie and Ian Hummer, Princeton), so a generated prospect comes from one now and then.

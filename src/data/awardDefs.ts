@@ -14,7 +14,7 @@ export const DEFAULT_AWARDS: AwardDef[] = [
     "shortName": "DPOY",
     "name": "Defensive Player of the Year",
     "showStats": "defense",
-    "formula": "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.15*max(0, usgp - 24)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"
+    "formula": "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.3*max(0, usgp - 22)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"
   },
   {
     "shortName": "ROY",
@@ -134,6 +134,6 @@ export const DEFAULT_AWARDS: AwardDef[] = [
 // 2026-10-17: the previous DPOY and ROY formulas. A league still using one of them word for word moves to the new
 // one when it loads (Game.load); edited formulas are left alone.
 export const OLD_AWARD_FORMULAS: Record<string, [string, string]> = {
-  DPOY: ["(dbpm/1.2 + blkp/6 + stlp/2.4 + drbp/40 + (112 - drtg)/7 + dws/6 + (min - 24)/20 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.15*max(0, usgp - 24)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"],
+  DPOY: ["(dbpm/1.2 + blkp/6 + stlp/2.4 + drbp/40 + (112 - drtg)/7 + dws/6 + (min - 24)/20 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.3*max(0, usgp - 22)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"],
   ROY: ["ewa/6 + vorp/2 + ws/4 + gp/82*(pts + 0.7*trb + 1.1*ast)/16 + 0.04*(tsp-50) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 20 - min)", "ewa/6 + vorp/2 + ws/4 + gp/82*(pts + 0.7*trb + 1.1*ast)/16 + 0.04*(tsp-50) - 100000*max(0, 50*seasonFraction - gp) - 100000*max(0, 12 - min)"],
 };
