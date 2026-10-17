@@ -149,7 +149,7 @@ Generated players sit within ±5 of this. A card can go further (a 6′6″ guar
 
 **The wingspan rating** comes from the gap between wingspan and height. Height + 4″ = 50, and every inch longer or shorter is 6 points. Its overall bonus is `(wingspan rating − 50) × 0.05` for guards, `× 0.075` for wings and `× 0.095` for bigs. A +12″ big gets about +4.6 overall.
 
-**The overall scale in a league:** the very best players are about 78–85, good starters 60–68, the median rotation player about 52, and deep bench 40–45. Draft prospects often start at 25–40.
+**The overall scale in a league:** the very best players are about 78–85, good starters 60–68, the median rotation player about 52, and deep bench 40–45. Draft prospects start at their true potential minus about 22 at 19 (3 less for each year older, at least 7), give or take 4: a top pick is usually 47–58, a late first-rounder 38–45, a second-rounder 30–40.
 
 ---
 

@@ -164,6 +164,14 @@ export function setOverall(p: any, v: number) {
   syncOvr(p, true);
 }
 
+// Move his overall to v (a new player's build): every rating but height by the same amount, his rebounding
+// floor kept; the ceiling isn't touched (callers set it).
+export function shiftOvr(p: any, v: number) {
+  const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
+  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(4, Math.min(RMAX, Math.round(p.r[k] + d * f))); }); liftRebounding(p); }
+  syncOvr(p);
+}
+
 // Blocks and Steals are their own skills, apart from Defensive IQ (positioning, rotations, reading
 // the play). Shot-blocking leans on leaping, size and arm length; steals on quick hands and feet.
 // Both only partly follow Defensive IQ, so a leaper can swat everything and still be lost in

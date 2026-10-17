@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -35,7 +35,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead } from './potential';
+import { capToT, ceilMax, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -95,6 +95,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
+    g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
@@ -212,6 +213,12 @@ export class Game {
     // 2026-10: draft surprises. Prospects (and this June's draftees who haven't been to camp yet) get their hidden translation.
     // 2026-10: prospects not yet in the league get a body ahead of their game, like new ones (development.ts).
     if (!g.db.bodyV) { Object.keys(g.db.cls || {}).forEach(y => { if (+y >= g.Y) (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.retired && !p.gone && !(p.stats || []).length) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } }); }); g.db.bodyV = 1; }
+    // 2026-10-17: prospects not yet drafted come in at a level that follows their true potential and age
+    // (Game.draftLevel), once; only ever up, true potential unchanged.
+    if (!g.db.prosV) { const onTeam = new Set([...(Object.values(g.state.rosters || {}).flat() as number[]), ...(g.state.fa || [])]);
+      Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || onTeam.has(id) || (p.stats || []).length) return;
+        const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0); if (g.draftLevel(p, p.tpot ?? p.pot, (r() + r() + r() - 1.5) * 5.3, true)) refreshPot(p); }); });
+      g.db.prosV = 1; }
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
     // ceilings are set so a typical career reaches it, and the league's read of it starts a little off.
     // 2026-10: the height rating mostly follows his listed height now (ratings.ts); his overall doesn't move.
@@ -692,16 +699,36 @@ export class Game {
     if (t.k === 'hs' || !t.to) return t.youth;
     return p.age <= (t.k === 'club' ? 17 : 18) ? t.youth : t.to;
   }
+  // How far below his true potential a prospect is on draft night, by draft-night age: a 19-year-old is about
+  // 22 short, each year older about 3 closer (a 24-year-old about 7). Prospects don't develop before the draft.
+  static DRAFT_GAP = (age: number) => Math.max(7, 22 - 3 * (age - 19));
   prospectPot(p, rnd: () => number = Math.random) {
     const z = (rnd() + rnd() + rnd() + rnd() - 2) * 1.732 - Math.max(0, (p.dAge ?? 19) - 19) * 0.35, gen = rnd() < 0.01 ? 7 : 0; // older draftees: a little less ceiling
     // The top of the scale stretches: a one-in-a-hundred prospect becomes a 75+ superstar.
     const room = Math.max(1, 6 - Math.max(0, (p.dAge ?? 19) - 19)); // a polished senior has less growth left than a teenager
     const pot = Math.round(this.cl(Math.max(47 + 8 * z + (z > 1.2 ? (z - 1.2) * 9 : 0) + gen, p.ovr + room), 40, 95));
-    bodyAhead(p, pot - p.ovr); syncOvr(p); // his body arrives ahead of his game (development.ts)
-    // `pot` is his expected career peak; his ceilings sit above it (potential.ts) and the league's read
-    // of them is a few points off either way. Returns that read.
-    initCeil(p, pot); rollPerr(p, 3.5); refreshPot(p);
+    // True potential as before (from the raw build mkProspect made), so the league's ceilings are unchanged.
+    const o0 = ovrExact(p), T = Math.round(Math.min(99, Math.max(p.ovr, o0 + Math.max(0, pot - o0) / TYPICAL)));
+    this.draftLevel(p, T, (rnd() + rnd() + rnd() - 1.5) * 5.3);
+    // His ceilings sit above his expected peak (potential.ts) and the league's read of them is a few points
+    // off either way. Returns that read.
+    rollPerr(p, 3.5); refreshPot(p);
     return p.pot;
+  }
+  // 2026-10-17: a prospect's level on draft night follows his true potential T and his age (DRAFT_GAP, with
+  // `noise`, about ±4), so the best prospects can play as rookies. (It used to be the same raw level whatever
+  // his ceiling, so top picks averaged about 32 and sat.) Every skill but height moves by the same amount, and
+  // his ceilings are set again so T stays his true potential, reached the usual share of the way from here.
+  // `lift` (older saves): only ever raises him, and his body is left as it is.
+  draftLevel(p, T: number, noise: number, lift = false) {
+    let want = this.cl(T - Game.DRAFT_GAP(p.dAge ?? 19) + noise, 18, Math.max(18, T - 2));
+    if (want > 55) want = 55 + (want - 55) / 2; // even a generational talent arrives a little short of a star
+    if (lift && want < ovrExact(p) + 0.5) return false;
+    shiftOvr(p, want);
+    const o = ovrExact(p), peak = o + Math.max(0, T - o) * TYPICAL;
+    if (!lift) { bodyAhead(p, peak - p.ovr); syncOvr(p); } // his body arrives ahead of his game (development.ts)
+    initCeil(p, peak); p.tpot = Math.max(p.ovr, Math.min(99, T));
+    return true;
   }
   rng(seed) { return mulberry32(seed); }
   cl(v, a, b) { return Math.max(a, Math.min(b, v)); }
