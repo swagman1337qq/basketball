@@ -77,9 +77,13 @@ const CRE_KEY: Record<Cre, [keyof BoxLine, keyof BoxLine]> = { cns: ['qm', 'qa']
 const CRE_LABEL: Record<Cre, string> = { cns: 'a catch-and-shoot', pullup: 'a pull-up', step: 'a stepback', fade: 'a fadeaway' };
 
 // Per offensive trip at league average (≈115 trips a game: 89 FGA, 14.5 TOV, FT-only trips).
+// Offensive-rebound chance per point of glass-skill edge between the lineups (2026-10-17: 0.004 → 0.0022).
+const ORB_K = 0.0022;
 // How much a lineup's ball-handling, feel and IQ (offense) and pressure, feel and hands (defense) move
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
-const TOV_K = { handle: 200, press: 85, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
+// 2026-10-17: handle 200 → 240, press 85 → 110: team TOV% spread was wider than the NBA's (sd 0.011–0.014 vs about
+// 0.010) and turnovers drove too much of the gap between good and bad teams.
+const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.066, nonShoot: 0.066, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.075 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
@@ -769,7 +773,8 @@ export class GameSim {
   }
 
   private rebound(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], cAdv: number, ev: Ev, tacOrb = 0) {
-    const orbP = cl(BASE.orbPct + 0.004 * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.03 * (avg(onD, p => this.tired(p)) - avg(onO, p => this.tired(p))) + 0.015 * cAdv + tacOrb, 0.12, 0.45);
+    // Glass skill edge per point 0.004 → 0.0028 (2026-10-17): team ORB% spread was about 0.035 against the NBA's 0.025.
+    const orbP = cl(BASE.orbPct + ORB_K * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.03 * (avg(onD, p => this.tired(p)) - avg(onO, p => this.tired(p))) + 0.015 * cAdv + tacOrb, 0.12, 0.45);
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
