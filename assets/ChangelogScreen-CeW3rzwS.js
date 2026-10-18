@@ -1,10 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-5M-spmYt.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CqSjTEyK.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-18
 
+### Added
+- **The coach plays the players who are playing well.** On Roster, a player on automatic minutes no longer gets fixed minutes from his place in the order: the coach ranks your automatic players by their rating and how well they're playing this season and shares out the minutes you haven't set. The order still decides who starts. **Set all minutes** puts every player on manual minutes at once (starting from the coach's plan), and the page shows how many of the 240 minutes your targets add up to.
+- **Teams under the salary floor pay the shortfall.** As in the NBA, a team whose payroll ends the season under the floor pays its players the difference; it shows in Finances, so staying under the floor saves nothing.
+
 ### Changed
+- **Minutes you set are minutes he plays.** A lineup style (small ball, twin towers) no longer sits a player who is short of the minutes you gave him; it takes the extra minutes from players on automatic minutes first.
+- **Fewer 35–39 point seasons, and rookies who play like rookies.** Stat padders were getting their extra shots twice; a weak team's best player is fed less like a star; personality adds less on top of a first option's role; a first-year player defers a little (rookies on bad teams were averaging 23–31 points).
+- **Defensive Player of the Year leans further toward defenders** (a 31-point scorer won both MVP and DPOY), and **Sixth Man of the Year goes to bench scorers** instead of efficient bench centers.
 - **Your games in the play-in and playoffs are tinted in your team's color** instead of outlined in gold: a light wash of your main color with a matching border, on the Playoffs bracket, its play-in games and the Play-in page.
 - **The Luka Dončić card starts with his exact rookie shot profile again**: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% from the corners); his jumpers 50% pull-ups, 30% stepbacks, 10% fadeaways and 10% catch-and-shoot. Like every card, the AI takes over his playing style after about a month.
 - **Guards don't crash the offensive glass like centers anymore.** Every position used to get about 27% of its rebounds on the offensive end. Now guards mostly get back on defense and pick up long rebounds instead (about 16% offensive, like the NBA), and bigs own the offensive glass (about a third). Team rebounding is unchanged.
