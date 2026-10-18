@@ -3,6 +3,7 @@
 import type { VM } from '../vm';
 import { h4Style, Link, muted, td, th } from '../kit';
 import { PlayinBracket, TeamLine } from './PlayoffsScreen';
+import { mineTint } from '../teamTint';
 
 export function PlayinScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, openTeam, isMine } = vm.ctx;
@@ -17,7 +18,7 @@ export function PlayinScreen({ vm }: { vm: VM }) {
   const card = (label: string, a: number | null, sa: number | null, b: number | null, sb: number | null, pa?: string, pb?: string) => {
     const mineGame = (a != null && isMine(a)) || (b != null && isMine(b));
     return (
-      <div style={{ border: '1px solid ' + (mineGame ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+      <div style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px', ...(mineGame ? mineTint(T, isMine, a, b) : null) }}>
         <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{label}</div>
         <TeamLine vm={vm} tid={a} seed={sa} wins={a != null ? <span style={{ fontSize: '12px', fontFamily: 'var(--font-body)' }}>{rec(a)}</span> : ''} placeholder={pa} />
         <TeamLine vm={vm} tid={b} seed={sb} wins={b != null ? <span style={{ fontSize: '12px', fontFamily: 'var(--font-body)' }}>{rec(b)}</span> : ''} placeholder={pb} />

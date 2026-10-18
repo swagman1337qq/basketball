@@ -1,4 +1,5 @@
 import { Children } from 'react';
+import { mineTint } from '../teamTint';
 // Postseason: play-in games, then an NBA-style bracket with the West on the left, the
 // East on the right and the Finals in the middle. Past seasons and the lottery below.
 import type { ReactNode } from 'react';
@@ -27,7 +28,7 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
   const done = x.wa === 4 || x.wb === 4;
   const tip = (x.g || []).map((g, i) => 'G' + (i + 1) + ': ' + vm.ctx.T[g.h].abbr + ' home, ' + g.hp + '–' + g.ap).join('\n');
   return (
-    <div title={tip} style={{ border: '1px solid ' + (vm.ctx.isMine(x.a) || vm.ctx.isMine(x.b) ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-bg)' }}>
+    <div title={tip} style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '5px 8px', display: 'flex', flexDirection: 'column', gap: '2px', background: 'var(--color-bg)', ...mineTint(vm.ctx.T, vm.ctx.isMine, x.a, x.b) }}>
       {title && <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)' }}>{title}</div>}
       <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.wa ?? ''} won={done && x.wa === 4} lost={done && x.wa < 4} placeholder={x.pa} />
       <TeamLine vm={vm} tid={x.b} seed={x.sb} wins={x.wb ?? ''} won={done && x.wb === 4} lost={done && x.wb < 4} placeholder={x.pb} />
@@ -70,7 +71,7 @@ export function PlayinBracket({ vm }: { vm: VM }) {
                   const next = !x.done && gm.playinPending(s.playin).some(p => p.x === x || (p.x.id === x.id && p.c === c));
                   const mineGame = x.a != null && (isMine(x.a) || isMine(x.b));
                   return (
-                    <div key={x.id} style={{ border: '1px solid ' + (mineGame ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div key={x.id} style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px', ...(mineGame ? mineTint(vm.ctx.T, isMine, x.a, x.b) : null) }}>
                       <div style={{ fontSize: '9.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-600)', display: 'flex', justifyContent: 'space-between', gap: 6 }}><span>{x.label}{x.done ? ' · Final' : next ? ' · Next' : ''}</span>
                         {x.done && (x.bid && (gm.db as any).boxes?.[x.bid] ? <button className="hv4" onClick={() => gm.setState({ boxId: x.bid })} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', color: 'var(--color-accent-700)' }}>Box score</button> : <span title="Played before box scores were added">No box score</span>)}</div>
                       <TeamLine vm={vm} tid={x.a} seed={x.sa} wins={x.done ? x.hp : ''} won={x.done && x.w === x.a} lost={x.done && x.w !== x.a} placeholder="Loser of 7 v 8" />
