@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-18
 
 ### Changed
+- **The Luka Dončić card starts with his exact rookie shot profile again**: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% from the corners); his jumpers 50% pull-ups, 30% stepbacks, 10% fadeaways and 10% catch-and-shoot. Like every card, the AI takes over his playing style after about a month.
 - **Guards don't crash the offensive glass like centers anymore.** Every position used to get about 27% of its rebounds on the offensive end. Now guards mostly get back on defense and pick up long rebounds instead (about 16% offensive, like the NBA), and bigs own the offensive glass (about a third). Team rebounding is unchanged.
 - **The Luka Dončić card plays like Luka again.** His elite mid-range rating made the game send him mostly mid-range jumpers (only 2 shots a game at the rim). He's retuned against his real shot zones too: more drives, fewer long twos. A player you gave the card gets the new build when you load your league.
 - **Every ready-made player card retuned.** All 17 cards were re-tested against their real rookie seasons with today's engine, playing the shot choices the game itself gives them, and their ratings adjusted to match. Potentials above 70 moved to the new scale (Chris Paul 85 → 78, Luka 83 → 77, Dwight Howard 82 → 77). Cards you never edited update on their own, and players you already gave a card get the new build when you load your league, keeping any growth since.

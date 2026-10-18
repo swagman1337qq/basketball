@@ -6,7 +6,7 @@ import { setTruePot } from './potential';
 import { CRE_TEN, ensureTen, initTendencies, quirkOf, round100, tenTargets, ZONE_TEN } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
-import { OLD_CARD_BUILDS } from '../data/cardBuilds';
+import { OLD_CARD_BUILDS, OLD_CARD_TENS } from '../data/cardBuilds';
 
 const KEEP = ['name', 'first', 'last', 'familyFirst', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten', 'tenLock'] as const;
 
@@ -84,6 +84,7 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
   let changed = false;
   const P0 = PRESET_CARDS[i].card, olds = OLD_CARD_BUILDS[P0.name] || [];
   if (c.name === P0.name && c.r && !same(c.r, P0.r) && olds.some(o => same(c.r, o.r))) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; } return true; }
+  if (c.ten && (OLD_CARD_TENS[P0.name] || []).some(t => same(c.ten, t)) && P0.ten && !same(c.ten, P0.ten)) { c.ten = { ...P0.ten }; delete c.tend; return true; }
   if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return changed;
   delete c.tend; c.ten = { ...P0.ten }; return true;
 }
@@ -128,7 +129,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 77, intg: { feel: 90, poise: 85 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: true, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, work: 58, loyalty: 60, ambition: 80 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
-    ten: { usage: 74.2, ftr: 56.5, ra: 22.4, paint: 13.8, mid: 22.7, c3: 4, atb: 37.1, cns: 9.8, pullup: 62.9, step: 22.9, fade: 4.4 },
+    ten: { usage: 52, ftr: 67, ra: 20, paint: 14, mid: 25, c3: 3, atb: 38, cns: 10, pullup: 50, step: 30, fade: 10 },
   } },
   // The rookie cards below were tuned the same way, against each player's real rookie season (Basketball-
   // Reference: per game, advanced, shooting by distance, splits) translated to today's league: volume per

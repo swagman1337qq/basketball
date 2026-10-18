@@ -59,3 +59,12 @@ export const OLD_CARD_BUILDS: Record<string, { r: Record<string, number>; pot: n
     { r: {hgt: 46, stre: 46, spd: 70, acc: 70, jmp: 68, endu: 72, ins: 42, dnk: 48, lay: 30, ft: 8, fg: 30, tp: 36, oiq: 62, diq: 60, blk: 68, stl: 48, drb: 48, pss: 47, reb: 33, box: 30}, pot: 54 },
   ],
 };
+
+// Playing styles ready-made cards shipped with and later replaced (2026-10-18: the Luka card went back to his exact
+// rookie shot profile after carrying the AI's read of his retuned build). A library copy still on one takes today's.
+export const OLD_CARD_TENS: Record<string, Record<string, number>[]> = {
+  'Luka Dončić': [
+    { usage: 74.2, ftr: 56.5, ra: 22.4, paint: 13.8, mid: 22.7, c3: 4, atb: 37.1, cns: 9.8, pullup: 62.9, step: 22.9, fade: 4.4 },
+    { usage: 79.1, ftr: 44.6, ra: 8.3, paint: 7.8, mid: 42.1, c3: 6.5, atb: 35.3, cns: 11.5, pullup: 60.9, step: 20.2, fade: 7.4 },
+  ],
+};
