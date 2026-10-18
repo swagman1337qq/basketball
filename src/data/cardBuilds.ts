@@ -35,6 +35,7 @@ export const OLD_CARD_BUILDS: Record<string, { r: Record<string, number>; pot: n
   ],
   "Yi Jianlian": [
     { r: {hgt: 68, stre: 42, spd: 70, acc: 58, jmp: 78, endu: 78, ins: 36, dnk: 60, lay: 42, ft: 70, fg: 46, tp: 30, oiq: 28, diq: 40, blk: 72, stl: 36, drb: 18, pss: 36, reb: 42, box: 32}, pot: 62 },
+    { r: {hgt: 68, stre: 42, spd: 70, acc: 57, jmp: 78, endu: 78, ins: 46, dnk: 70, lay: 52, ft: 60, fg: 60, tp: 23, oiq: 29, diq: 40, blk: 65, stl: 38, drb: 30, pss: 22, reb: 50, box: 40}, pot: 62 },
   ],
   "Andrei Kirilenko": [
     { r: {hgt: 60, stre: 54, spd: 84, acc: 80, jmp: 88, endu: 86, ins: 36, dnk: 40, lay: 40, ft: 52, fg: 34, tp: 22, oiq: 34, diq: 86, blk: 97, stl: 48, drb: 22, pss: 34, reb: 36, box: 38}, pot: 79 },

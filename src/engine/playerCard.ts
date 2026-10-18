@@ -278,14 +278,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // the floor for dunks and putbacks, but light and pushed around inside, a thin passer, a step slow on rotations.
     // Tested over 300 games at about 26 minutes: 8.9 pts, 5.6 reb, 0.9 ast, 0.5 stl, 0.8 blk, 1.4 tov, .418 FG on 8.1
     // shots, .840 FT on 2.4, TS .485 (at his real 25 minutes, about 8.3 pts and 5.2 reb). 44 overall, 62 potential.
-    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
-    // real minutes and role on a mid-table team: 8.3 pts, 4.5 reb, 0.9 ast, 0.5 stl, 0.6 blk, 0.7 tov, .632 FG on 5.5, .158 on 0.0 threes, .804 FT on 1.7 in 26.1 min.
-    // 45 overall; potential 62.
-    r: { hgt: 68, stre: 42, spd: 70, acc: 57, jmp: 78, endu: 78, ins: 46, dnk: 70, lay: 52, ft: 60, fg: 60, tp: 23, oiq: 29, diq: 40, blk: 65, stl: 38, drb: 30, pss: 22, reb: 50, box: 40 },
+    // Retuned 2026-10-18 (twice): a face-up shooter, not a rim runner. Against his real shot zones (about half his shots
+    // from 10 feet out, a quarter at the rim, a few threes) under the AI's own tendencies: 9.1 pts, 5.2 reb, .484 FG on 8.1,
+    // .595 at the rim on 3.4, 3.7 mid-range shots, .286 on 0.5 threes, .860 FT on 1.3. 47 overall; potential 62.
+    r: { hgt: 68, stre: 42, spd: 70, acc: 68, jmp: 78, endu: 78, ins: 15, dnk: 42, lay: 20, ft: 84, fg: 95, tp: 40, oiq: 25, diq: 40, blk: 66, stl: 29, drb: 50, pss: 22, reb: 56, box: 46 },
     pot: 62, intg: { feel: 40, poise: 48 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 70, loyalty: 70, ambition: 60 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots long twos, a quarter at the rim; almost no threes; .28 FTA per FGA.
-    ten: { usage: 36, ftr: 54.6, ra: 74.6, paint: 11.2, mid: 13.4, c3: 0.2, atb: 0.6, cns: 24.8, pullup: 27, step: 8, fade: 40.2 },
+    ten: { usage: 45.8, ftr: 35.7, ra: 32.8, paint: 6.5, mid: 54.5, c3: 1.1, atb: 5.1, cns: 23.6, pullup: 34.1, step: 14.6, fade: 27.7 },
   } },
   { label: 'Andrei Kirilenko – Rookie year (2001–02)', card: {
     card: 1, name: 'Andrei Kirilenko', first: 'Andrei', last: 'Kirilenko', native: 'Андрей Кириленко', nativeFirst: 'Андрей', nativeLast: 'Кириленко', pos: 'SF', age: 20, dob: '1981-02-18', hgt: '6′9″', wt: 215, wing: 85,

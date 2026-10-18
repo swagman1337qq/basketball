@@ -109,7 +109,7 @@ export class Game {
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
-    g.db.cardV = 2; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
+    g.db.cardV = 3; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
     { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k], roles: g.rolesOf(g.db.P[id]) }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
@@ -287,7 +287,7 @@ export class Game {
     (g.state.cards || []).forEach((c: any) => upgradePresetCard(c)); // ready-made cards' playing style, 2026-10-08
     // 2026-10-18: the ready-made cards were retuned for today's engine (then Luka's again, for his shot zones); players given an
     // earlier build take the new one (growth kept).
-    if ((g.db.cardV || 0) < 2) { retuneCarriers(g.db.P); g.db.cardV = 2; }
+    if ((g.db.cardV || 0) < 3) { retuneCarriers(g.db.P); g.db.cardV = 3; } // 3: Yi Jianlian as a face-up shooter
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // A U.S. state left on a player now born elsewhere (changing his nationality used to keep it).
     if (!g.db.stateV) { Object.values(g.db.P).forEach((p: any) => { if (p.state && p.born !== 'US') delete p.state; }); g.db.stateV = 1; }
