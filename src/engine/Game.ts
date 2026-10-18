@@ -1796,6 +1796,11 @@ export class Game {
   // the rotation), and when he's healthy he goes back to his old spot and minutes. (Without a record of
   // his spot: back among the healthy players by rating.)
   injAway(rosters, tid, p) { const i = (rosters[tid] || []).indexOf(p.id); if (i < 0) return; p.preInj = { tid, i, rot: p.rot ?? null }; rosters[tid] = [...rosters[tid].filter(x => x !== p.id), p.id]; }
+  // You set the order by hand: "Keep auto sorted" switches off (it would undo your order before the next game),
+  // and if the starting five changed, anyone parked by injury comes back to the bench, not to his old start.
+  handOrder(st, tid, order) { const five = (a: number[]) => a.slice(0, 5).sort((x, y) => x - y).join();
+    if (five(st.rosters[tid] || []) !== five(order)) order.forEach(id => { const b = this.db.P[id]?.preInj; if (b) b.bench = 1; });
+    return { ...this.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: order } }; }
   injBack(s, rosters, tid, p) {
     const b = p.preInj; delete p.preInj; if (!this.isUser(s, tid) || !rosters[tid]?.includes(p.id)) return;
     // He goes back to his old spot unless you moved him yourself while he was out (moving him on the
@@ -1803,7 +1808,9 @@ export class Game {
     // remembered (older saves) is placed by his overall, if he's still at the end.
     const P = this.db.P, at0 = rosters[tid].indexOf(p.id);
     if (!b && rosters[tid].slice(at0 + 1).some(x => !P[x].inj || P[x].inj.dtd)) return;
-    const rest = rosters[tid].filter(x => x !== p.id), at = b && b.tid === tid ? b.i : rest.filter(x => (!P[x].inj || P[x].inj.dtd) && P[x].ovr > p.ovr).length;
+    // If you changed the starting five while he was out, he comes back at the top of the bench instead
+    // of taking back his starting spot (that would push the player you put in to the bench).
+    const rest = rosters[tid].filter(x => x !== p.id), at = b && b.tid === tid ? (b.bench ? Math.max(b.i, 5) : b.i) : rest.filter(x => (!P[x].inj || P[x].inj.dtd) && P[x].ovr > p.ovr).length;
     rest.splice(Math.min(at, rest.length), 0, p.id); rosters[tid] = rest;
     if (b && b.tid === tid) { if (b.rot == null) delete p.rot; else p.rot = b.rot; } else if (p.rot === 0) delete p.rot;
   }

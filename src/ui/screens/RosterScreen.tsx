@@ -47,13 +47,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const now: number[] = s.rosters[tid] || [], here = new Set(now), saved = new Set(L.order);
     const order = [...L.order.filter(id => here.has(id)), ...now.filter(id => !saved.has(id))]; // players gone since are skipped; new ones keep their place at the end
     order.forEach(id => { if (!saved.has(id)) return; if (L.rot[id] != null) P[id].rot = L.rot[id]; else delete P[id].rot; delete P[id].preInj; });
-    gm.setState(st => ({ ...gm.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: order }, gv: (st.gv || 0) + 1 })); };
+    gm.setState(st => ({ ...gm.handOrder(st, tid, order), gv: (st.gv || 0) + 1 })); };
   const delLineup = (id: string) => setClub({ lineups: lineups.filter(l => l.id !== id) });
   // Auto set lineup (engine/autoLineup.ts): best, young prospects or bench players, always a sensible five.
   const [autoMode, setAutoMode] = useState<AutoMode>('best'), [autoMsg, setAutoMsg] = useState('');
   const runAuto = () => { const r = autoLineup(gm, s, tid, autoMode);
     Object.entries(r.rot).forEach(([id, v]) => { const p = P[+id]; if (!p) return; delete p.preInj; if (v == null) delete p.rot; else p.rot = v; });
-    gm.setState(st => ({ ...gm.clubPatch(st, tid, { keepSorted: false }), rosters: { ...st.rosters, [tid]: r.order }, gv: (st.gv || 0) + 1 }));
+    gm.setState(st => ({ ...gm.handOrder(st, tid, r.order), gv: (st.gv || 0) + 1 }));
     setAutoMsg((AUTO_MODES.find(m => m[0] === autoMode) || [, ''])[1] + ': ' + r.starters.map((id, i) => slotName(i) + ' ' + P[id].name.split(' ').slice(-1)[0] + (P[id].pos !== slotName(i) ? ' (' + P[id].pos + ')' : '')).join(', ')); };
   // ── Header numbers ──
   const hist = (s.history || []).find((h: any) => h.year === season)?.teams?.[tid];
@@ -71,7 +71,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po), tot: any = rs.reduce((a: any, r: any) => { Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); return a; }, {});
     const g = tot.gp || 1; return { gp: tot.gp || 0, min: tot.min / g, pts: tot.pts / g, reb: ((tot.orb || 0) + (tot.drb || 0)) / g, ast: tot.ast / g, per: gm.perOf(tot, season) }; };
   const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = (id: number) => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
-  const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { rosters: { ...st.rosters, [tid]: o }, dragId: null, overId: null }; });
+  const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { ...gm.handOrder(st, tid, o), dragId: null, overId: null }; });
   const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
   // Drag to reorder, live: while you drag, the list re-sorts under the cursor (the players you pass slide
   // out of the way), and the order is saved when you drop. Let go outside the table to cancel.
@@ -87,7 +87,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), o = order.filter(x => x !== drag); place(o.indexOf(target) + (e.clientY > r.top + r.height / 2 ? 1 : 0)); };
   const endDrag = () => { setDrag(null); setOrder(null); };
   const commit = () => { if (drag == null || !order) return endDrag(); const ord = order, d = drag;
-    gm.setState(st => { delete P[d]?.preInj; /* you placed him: he stays there when he heals */ const inList = new Set(ord); let k = 0; return { rosters: { ...st.rosters, [tid]: (st.rosters[tid] || []).map((x: number) => (inList.has(x) ? ord[k++] : x)) } }; }); endDrag(); };
+    gm.setState(st => { delete P[d]?.preInj; /* you placed him: he stays there when he heals */ const inList = new Set(ord); let k = 0; return gm.handOrder(st, tid, (st.rosters[tid] || []).map((x: number) => (inList.has(x) ? ord[k++] : x))); }); endDrag(); };
   const startersSet = new Set(cur ? (gm.isUser(s, tid) ? mainIds.slice(0, 5) : ids.filter(id => gm.canPlay1(s, P[id])).slice(0, 5)) : []); // an AI team: the five who start its next game
   const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
