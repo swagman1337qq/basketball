@@ -1670,7 +1670,11 @@ export class Game {
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
-  fair(ovr) { return Math.min(this.MAXC, valueCurve(this.priceOvr(ovr)) * this.db.sf * this.CAP / CAPS0.CAP); }
+  fair(ovr) { const b = this.priceOvr(ovr); return Math.min(this.MAXC, valueCurve(b) * Game.midTierF(b) * this.db.sf * this.CAP / CAPS0.CAP); }
+  // The middle of the market (2026-10-18): players ranked about 40th–120th (a first-season overall of 54.5–62.5) are
+  // paid 22% less, tapering back to full price by 51.5 and 65.5. Priced straight off the NBA's salary ranks, a 57
+  // (about the 70th-best player) asked about $30M, where real players of that quality get $15–25M.
+  static midTierF(b: number) { const d = b < 54.5 ? (b - 51.5) / 3 : b > 62.5 ? (65.5 - b) / 3 : 1; return 1 - 0.22 * Math.max(0, Math.min(1, d)); }
   // The overall a salary is priced at: his place in today's league (db.priceQ, rostered players, taken each
   // summer as the league year turns) read off the league's first season (db.priceQ0). Before the first summer
   // the two are the same.

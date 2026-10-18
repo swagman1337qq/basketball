@@ -29,10 +29,12 @@ export function clubLogs(g: Game, s: any, by: Record<number, string[]>, day = s.
 // A free agent's asking price: what his overall is worth, less as he ages past 30 (teams pay
 // for the years ahead, not the ones behind), nudged by his mood, and never above the max his
 // years of service allow (25% / 30% / 35% of the cap) or below his minimum.
-export const ageAskF = (age: number) => (age <= 30 ? 1 : Math.max(0.5, 1 - 0.07 * (age - 30))); // 32: 0.86 · 34: 0.72 · 36: 0.58
+// What age takes off a contract (2026-10-18: from 30, 9% a year, was 7% from 31): 30: 0.91 · 31: 0.82 · 32: 0.73 · 34: 0.55.
+// A star (priced like a top-15 player, base 66+) loses half as much: teams still pay the great ones into their thirties.
+export const ageAskF = (age: number, base = 0) => { const f = age <= 29 ? 1 : Math.max(0.5, 1 - 0.09 * (age - 29)); return base >= 66 ? 1 - (1 - f) / 2 : f; };
 export function askOf(g: Game, p: any) {
   const N = nums(g), yos = yosOf(g, p), minS = N.min(yos);
-  return +Math.max(minS, Math.min(N.max(yos), g.fair(p.ovr) * ageAskF(p.age ?? 27) * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1))).toFixed(2);
+  return +Math.max(minS, Math.min(N.max(yos), g.fair(p.ovr) * ageAskF(p.age ?? 27, g.priceOvr(p.ovr)) * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1))).toFixed(2);
 }
 
 // Default terms for the signing dialog: the first method that works, his asking price (within
@@ -473,9 +475,9 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
-      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, g.fair(proj) * (mot === 'Money' ? 1.1 : 1))).toFixed(2);
+      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, g.fair(proj) * (rook ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj))) * (mot === 'Money' ? 1.1 : 1))).toFixed(2); // a veteran's extension starts next season: priced at that age
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
-      const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 30 ? 3 : 2;
+      const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;
       const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1.08, i)).reduce((a, x) => a + x, 0), T = s.teams[t];
       addTx(g, s, p, { k: 'extend', tid: t, text: 'Signed a ' + yrs + '-year ' + (rook ? 'rookie-scale ' : '') + 'extension · $' + total.toFixed(1) + 'M total' });
