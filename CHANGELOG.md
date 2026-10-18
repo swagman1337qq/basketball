@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-18
 
 ### Added
+- **Many more kinds of injuries** (64, up from 25), each with its own recovery time: season-enders like a torn patellar tendon, a fractured tibia or back surgery alongside torn ACLs and ruptured Achilles; weeks out for a Lisfranc injury, a Jones fracture, a torn labrum, a separated shoulder or a broken finger; short absences for illness, a broken nose or a hip flexor strain; and day-to-day knocks like a stiff neck or a sore Achilles. How often players get hurt is unchanged. God Mode's injury menu lists them all, by how long they last.
 - **The coach plays the players who are playing well.** On Roster, a player on automatic minutes no longer gets fixed minutes from his place in the order: the coach ranks your automatic players by their rating and how well they're playing this season and shares out the minutes you haven't set. The order still decides who starts. **Set all minutes** puts every player on manual minutes at once (starting from the coach's plan), and the page shows how many of the 240 minutes your targets add up to.
 - **Teams under the salary floor pay the shortfall.** As in the NBA, a team whose payroll ends the season under the floor pays its players the difference; it shows in Finances, so staying under the floor saves nothing.
 

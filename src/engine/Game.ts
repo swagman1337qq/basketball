@@ -48,6 +48,7 @@ import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './star
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
+import { INJ_DTD, INJ_MAJOR, INJ_SHORT, INJ_WEEKS, rollInjury } from '../data/injuries';
 import { OLD_AWARD_FORMULAS, DEFAULT_AWARDS } from '../data/awardDefs';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
@@ -1870,10 +1871,11 @@ export class Game {
       const x = Math.random(); let inj;
       // ~0.7% career-altering tears (about six a season league-wide), ~7% multi-week injuries,
       // ~28% short absences, and the rest (~64%) day-to-day knocks he plays through.
-      if (x < .007) { inj = { name: Math.random() < .5 ? 'Torn ACL' : 'Ruptured Achilles', games: 126 + Math.floor(Math.random() * 45), major: true }; /* 9 to 12 months */ if (!p.frozen) { ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(r => p.r[r] = Math.max(4, p.r[r] - 3 - Math.floor(Math.random() * 5))); syncOvr(p); } }
-      else if (x < .077) inj = { name: pk(['Sprained MCL', 'Stress fracture', 'High ankle sprain', 'Fractured hand', 'Torn meniscus', 'Calf strain', 'Patellar tendinopathy']), games: 8 + Math.floor(Math.random() * 18) };
-      else if (x < .36) { inj = { name: pk(['Ankle sprain', 'Hamstring strain', 'Knee soreness', 'Back spasms', 'Groin strain', 'Hip contusion', 'Concussion protocol', 'Sprained wrist']), games: 1 + Math.floor(Math.random() * 8) }; p.minorCount = (p.minorCount || 0) + 1; }
-      else inj = { name: pk(['Ankle sprain', 'Sore knee', 'Bruised thigh', 'Jammed finger', 'Back tightness', 'Sore wrist', 'Hip soreness', 'Tweaked hamstring']), games: 1 + Math.floor(Math.random() * 5), dtd: true }; // plays through it, at reduced strength
+      // Types and recovery ranges: data/injuries.ts (2026-10-18: 5 major, 18 multi-week, 23 short, 18 day-to-day).
+      if (x < .007) { const r = rollInjury(INJ_MAJOR); inj = { name: r.name, games: r.games, major: true }; if (!p.frozen && r.body) { const [lo, ex] = r.body; ['spd', 'acc', 'jmp', 'stre', 'endu'].forEach(k2 => p.r[k2] = Math.max(4, p.r[k2] - lo - Math.floor(Math.random() * (ex + 1)))); syncOvr(p); } }
+      else if (x < .077) inj = rollInjury(INJ_WEEKS);
+      else if (x < .36) { inj = rollInjury(INJ_SHORT); p.minorCount = (p.minorCount || 0) + 1; }
+      else inj = { ...rollInjury(INJ_DTD), dtd: true }; // plays through it, at reduced strength
       inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
       inj.until = this.injUntil(s, inj.games, day, this.gamesPlayed(s) + 1);
       if (this.isUser(s, +k) && !inj.dtd && !p.preInj) { const c = this.clubOf(s, +k), thr = s.easy?.injuries ? 0 : ((c?.ptInj || { reg: 0 }).reg ?? 0); if (inj.games > thr) this.injAway(rosters, +k, p); }
