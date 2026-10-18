@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Dc1D-ZSn.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DGw2om2y.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-18
 
 ### Changed
+- **Guards don't crash the offensive glass like centers anymore.** Every position used to get about 27% of its rebounds on the offensive end. Now guards mostly get back on defense and pick up long rebounds instead (about 16% offensive, like the NBA), and bigs own the offensive glass (about a third). Team rebounding is unchanged.
+- **The Luka Dončić card plays like Luka again.** His elite mid-range rating made the game send him mostly mid-range jumpers (only 2 shots a game at the rim). He's retuned against his real shot zones too: more drives, fewer long twos. A player you gave the card gets the new build when you load your league.
 - **Every ready-made player card retuned.** All 17 cards were re-tested against their real rookie seasons with today's engine, playing the shot choices the game itself gives them, and their ratings adjusted to match. Potentials above 70 moved to the new scale (Chris Paul 85 → 78, Luka 83 → 77, Dwight Howard 82 → 77). Cards you never edited update on their own, and players you already gave a card get the new build when you load your league, keeping any growth since.
 - **Big, heavy draftees are a little less quick.** A prospect who is tall for his position or heavy for his frame now comes in with a bit less speed, acceleration and leaping (up to about 8 points for the biggest), so a giant center won't run the floor like a springy 6′10″ big. A tall, skinny big keeps more of his bounce, and about 1 in 20 is a freak athlete who loses nothing. Only new draft classes are affected.
 
