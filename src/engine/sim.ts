@@ -38,10 +38,12 @@ export const BASE = {
   // distance (ft) and assisted rate. Together they reproduce the league lines above
   // (47.1% FG, 43% of shots from three at 36.0%, corner threes 38.8%, rim 69.6%, 14.6 ft).
   zone: {
-    rim: { share: 0.31, pct: 0.696, dist: 2.5, ast: 0.55 },
-    mid: { share: 0.26, pct: 0.37, dist: 12.2, ast: 0.48 },
+    // 2026-10-18: rim .696 → .67, mid tier .37 → .425 (NBA 2023-24: about .68 at 0–3 ft, .44 on floaters and hooks,
+    // .42 from mid-range; the tier sat at .35–.39, so shot-makers away from the rim were punished and rim bigs looked great).
+    rim: { share: 0.31, pct: 0.67, dist: 2.5, ast: 0.55 },
+    mid: { share: 0.26, pct: 0.425, dist: 12.2, ast: 0.48 },
     c3: { share: 0.105, pct: 0.388, dist: 22.5, ast: 0.95 },
-    atb: { share: 0.325, pct: 0.351, dist: 25.8, ast: 0.82 },
+    atb: { share: 0.325, pct: 0.353, dist: 25.8, ast: 0.82 },
   } as Record<Zone, { share: number; pct: number; dist: number; ast: number }>,
 };
 
@@ -49,7 +51,7 @@ export const BASE = {
 // short turnarounds; about half of these shots) and mid-range. Paint shots go in a little more often
 // (and touch around the rim counts for them); mid-range a little less, so the tier's average holds.
 export const PAINT_SHARE = 0.52;
-const PAINT_D = 0.02;
+const PAINT_D = 0.01; // floaters and hooks about .44, mid-range about .42 (2026-10-18: was ±.02 around a lower tier)
 // ── Creating jump shots (tendencies.ts: catch & shoot, pull-up, stepback, fadeaway) ──────────────────
 export type Cre = 'cns' | 'pullup' | 'step' | 'fade';
 export const CRES: Cre[] = ['cns', 'pullup', 'step', 'fade'];
@@ -141,7 +143,9 @@ const RIM_SIZE = 0.0015;
 export function zoneSkill(r: any): Record<Zone, number> {
   // A taller shooter gets his jumper off over the contest a little more easily (a few points of skill for
   // half a foot); long arms help at the rim.
-  return { rim: 0.2 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.2 * r.ins + 0.25 * r.hgt + 0.1 * r.jmp + ape(r) * 1.0, mid: r.fg + 0.12 * (r.hgt - 50), c3: r.tp + 0.08 * (r.hgt - 50), atb: r.tp + 0.08 * (r.hgt - 50) };
+  // 2026-10-18: finishing skill counts more and height less (was 0.2 / 0.25 / 0.2 / 0.25 hgt): a tall big with no
+  // touch made .72–.79 at the rim, where the NBA's backup bigs make about .65–.70. RIM_SIZE still adds the size edge.
+  return { rim: 0.25 * r.dnk + 0.27 * (r.lay ?? r.dnk) + 0.25 * r.ins + 0.13 * r.hgt + 0.1 * r.jmp + ape(r) * 1.0, mid: r.fg + 0.12 * (r.hgt - 50), c3: r.tp + 0.08 * (r.hgt - 50), atb: r.tp + 0.08 * (r.hgt - 50) };
 }
 // Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
 // and still not a scorer). Rotation players average about 57.

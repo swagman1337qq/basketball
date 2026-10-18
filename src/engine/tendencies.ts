@@ -104,9 +104,10 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   // Drawing fouls: attacking off the dribble, or a big's strength and touch inside.
   const attack = big ? postSk * 0.45 + r.dnk * 0.3 + r.stre * 0.25 : acc * 0.3 + r.spd * 0.15 + r.drb * 0.25 + finish * 0.3;
   const out: Record<TenKey, number> = {
-    ra: t(41 + rel(rimSk) * 1.1 + (big ? 10 : guard ? -3 : 0) + (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) - (age >= 31 ? (age - 30) * 1.5 : 0)),
+    // A big who can't shoot lives at the rim (NBA: the 60%-shooting bigs take 70–85% of their shots there, 1–5% from 10 feet out).
+    ra: t(41 + rel(rimSk) * 1.1 + (big ? 10 + Math.max(0, 55 - Math.max(r.fg, r.tp)) * 0.5 : guard ? -3 : 0) + (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) - (age >= 31 ? (age - 30) * 1.5 : 0)),
     paint: t(42 + rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 + (big ? 8 : guard ? -2 : 0) + (age >= 30 && big ? 3 : 0)), // a big's hooks, a guard's floaters
-    mid: t(46 + rel(r.fg) * 1.2 + (f.alpha ? 4 : 0) + (f.touches ? 4 : 0) + (f.volatile ? 3 : 0) + (age >= 31 ? 4 : 0) - (big && r.fg < 50 ? 6 : 0)),
+    mid: t(46 + rel(r.fg) * 1.2 + (f.alpha ? 4 : 0) + (f.touches ? 4 : 0) + (f.volatile ? 3 : 0) + (age >= 31 ? 4 : 0) - (big ? Math.max(0, 60 - r.fg) * 0.9 : 0)), // 2026-10-18: was −6 under 50
     c3: t(5 + shoot3 + (wing ? 6 : guard ? -3 : -6) - (handle - L) * 0.4 + (f.team ? 4 : 0)), // spot-up shooters wait in the corners
     atb: t(5 + shoot3 + (guard ? 4 : big ? -8 : 0) + (handle - L) * 0.3 + (f.heat ? 4 : 0) + (f.alpha ? 2 : 0)), // ball handlers pull up from the top
     cns: t(ramp(v => 50 + (v - 50) * 1.8, 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0)),
