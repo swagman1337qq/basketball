@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cq1fAlGB.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D_bwFB8f.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-18
+
+### Changed
+- **Big, heavy draftees are a little less quick.** A prospect who is tall for his position or heavy for his frame now comes in with a bit less speed, acceleration and leaping (up to about 8 points for the biggest), so a giant center won't run the floor like a springy 6′10″ big. A tall, skinny big keeps more of his bounce, and about 1 in 20 is a freak athlete who loses nothing. Only new draft classes are affected.
 
 ### Fixed
 - **Defensive Player of the Year isn't only for bigs anymore.** Lockdown wings now win it now and then (about 1 year in 5), a guard with elite steal numbers very occasionally (about once in 20 years), and a dominant two-way superstar can, very rarely, win MVP and DPOY in the same season (about once in 40 seasons in testing). Leagues that never edited the formula switch to the new one automatically.
