@@ -4,7 +4,7 @@
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
-import { capState, rosterMin, seasonMax, stdIds, taxBill as cbaTax, teamSalary } from './cba';
+import { capState, nums, rosterMin, seasonMax, stdIds, taxBill as cbaTax, teamSalary } from './cba';
 import { contractDecision, gmSalary } from './gmCareer';
 import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
@@ -133,6 +133,8 @@ export function financesOf(g: Game, s: any, tid: number) {
   if (payroll <= g.TAX) rev.push(['Tax distribution (est.)', 11.5 * lf]);
   const dead = s.cap?.[tid]?.dead?.reduce((a, d) => a + (d.amts?.[g.Y] || 0), 0) || 0;
   const exp: [string, number][] = [...(share < -0.05 ? [['Revenue sharing paid', -share] as [string, number]] : []), ['Player payroll', payroll - dead - (T.capAdj || 0)], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
+  // Under the salary floor at season's end, the team pays its players the difference (NBA rule; 2026-10-18).
+  const short = Math.max(0, nums(g).FLOOR - payroll); if (short > 0.05) exp.push(['Salary-floor shortfall (paid to players)', +short.toFixed(1)]);
   const net = rev.reduce((a, r) => a + r[1], 0) - exp.reduce((a, r) => a + r[1], 0);
   return { payroll, att, cap, full: att / cap, tix, taxBill, repeater, rev, exp, net, budget: b };
 }

@@ -30,7 +30,7 @@ export function TacticsScreen({ vm }: { vm: VM }) {
   const [tp, setTp] = useState<number | null>(null);
   const trainee = P[tp != null && ids.includes(tp) ? tp : ids.slice().sort((a, b) => P[a].age - P[b].age)[0]];
   const move = (from: number, to: number) => { if (from === to) return; gm.setState(st => { const r = st.rosters[st.me].slice(), i = r.indexOf(from), j = r.indexOf(to); r.splice(i, 1); r.splice(j, 0, from); return { rosters: { ...st.rosters, [st.me]: r } }; }); };
-  const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = id => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
+  const plan = gm.minutesPlan(s, s.me), rotOf = id => Math.round(P[id].rot ?? plan[id] ?? 0);
   const total = ids.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0);
   // Who controls each setting: the coaching staff (coach.ts), you, or a mix (each setting ticked "Let AI control").
   const mode: 'ai' | 'manual' | 'mix' = s.tacMode || 'ai', tacAI = s.tacAI || {};

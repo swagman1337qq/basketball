@@ -70,7 +70,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const line = (p: any) => { if (cur) return { gp: p.gp || 0, min: p.min || 0, pts: p.pts || 0, reb: p.reb || 0, ast: p.ast || 0, per: p.per || 0 };
     const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po), tot: any = rs.reduce((a: any, r: any) => { Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); return a; }, {});
     const g = tot.gp || 1; return { gp: tot.gp || 0, min: tot.min / g, pts: tot.pts / g, reb: ((tot.orb || 0) + (tot.drb || 0)) / g, ast: tot.ast / g, per: gm.perOf(tot, season) }; };
-  const healthy = ids.filter(id => !P[id].inj && !P[id].dev), rotOf = (id: number) => Math.round(P[id].rot ?? Game.ROTATION[healthy.indexOf(id)] ?? 0);
+  const plan = cur && gm.isUser(s, tid) ? gm.minutesPlan(s, tid) : {}, rotOf = (id: number) => Math.round(P[id].rot ?? plan[id] ?? 0); // auto: the coach's call (Game.userTargets)
   const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { ...gm.handOrder(st, tid, o), dragId: null, overId: null }; });
   const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
   // Drag to reorder, live: while you drag, the list re-sorts under the cursor (the players you pass slide
@@ -127,7 +127,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && <td style={tdr}><ExpYear y={p.exp} cur={gm.Y} /></td>}
         {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (
-          <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him' : 'Automatic: minutes come from his rotation slot'}>
+          <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him: he plays these' : 'Automatic: the coach sets his minutes from his rating and how he is playing'}>
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
               <NumInput stepper disabled={!man} value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; bump(); }} />
             </span>
@@ -202,7 +202,8 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>)}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
             <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}>Auto sort roster</button>
-            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => delete P[id].rot); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Reset playing time</button>
+            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => { if (P[id].rot == null) P[id].rot = rotOf(id); }); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="Make every player's minutes yours to set, starting from the coach's current plan">Set all minutes</button>
+            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => delete P[id].rot); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="Give every player back to the coach">Reset playing time</button>
             <button data-tour="advice" className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>Ask the assistant coaches</button>
           </div>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}><input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto sorted (re-sorts before every game)</label>
@@ -263,7 +264,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         </div>); })()}
       {cur ? (
         <>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is automatic (greyed out) until you press Manual; then set his minutes with − / + or by typing. Auto hands it back.' : 'Green marks the starting five.'}</p>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is the coach’s call (greyed out): he plays the players who are playing well, whatever their place in the order. Press Manual (or Set all minutes) to set minutes yourself; he then plays your target. Auto hands it back. Targets add up to ' + Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) + ' of 240 minutes.' : 'Green marks the starting five.'}</p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(mainIds).map((id, i) => <Fragment key={id}>{vis(id) && Row({ id, i, list: mainIds })}{i === 4 && cur && !filtering && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>

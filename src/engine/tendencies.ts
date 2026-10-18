@@ -132,11 +132,18 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   //   veterans hand some over.
   const rimS = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, weapon = Math.max(rimS, r.fg, r.tp);
   const belief = f.alpha || f.padder ? 0.5 : f.touches ? 0.7 : f.heat || f.fearless ? 0.85 : 1, lvl = (offA - 57) * 0.55;
-  const ego = cl((f.alpha ? 6 : 0) + (f.touches ? 4 : 0) + (f.padder ? 3 : 0) + (f.heat ? 2 : 0) + (f.fearless ? 2 : 0) + (f.legacy ? 1.5 : 0) + (f.flashy ? 1 : 0) + (f.volatile ? 1 : 0) - (f.team ? 5 : 0), -5, 8); // traits overlap: one appetite
-  const rankB = rank == null ? 0 : [6, 3, 0, -2, -4, -5, -6][Math.min(6, rank)];
-  const situation = age > 24 ? 0 : mode === 'rebuild' ? 3 : mode === 'contend' && (rank ?? 9) > 0 ? -2 : 0;
+  const ego = cl((f.alpha ? 6 : 0) + (f.touches ? 4 : 0) + (f.padder ? 3 : 0) + (f.heat ? 2 : 0) + (f.fearless ? 2 : 0) + (f.legacy ? 1.5 : 0) + (f.flashy ? 1 : 0) + (f.volatile ? 1 : 0) - (f.team ? 5 : 0), -5, 6); // traits overlap: one appetite (cap 8 → 6, 2026-10-18)
+  // A first or second option's extra shots scale with how good a scorer he is: a weak team's best player
+  // shoots more than his teammates (the engine already gives him the bigger share) but isn't fed like a star.
+  // 2026-10-18: +6/+3 → +4/+2, scaled; a 61-overall first option on a 17-win team averaged 28 points.
+  const rk0 = rank == null ? 0 : [4, 2, 0, -2, -4, -5, -6][Math.min(6, rank)], rankB = rk0 > 0 ? rk0 * cl((offA - 58) / 16, 0.25, 1) : rk0;
+  const situation = age > 24 ? 0 : mode === 'rebuild' && (rank ?? 9) > 0 ? 2 : mode === 'contend' && (rank ?? 9) > 0 ? -2 : 0; // young talent gets the ball on a rebuilding team (not on top of a first option's)
   out.usage = t(48 + (lvl < 0 ? lvl * belief : lvl) + cl((weapon - 64) * 0.25, 0, 4) + cl((offA - defAbility(r)) * 0.35, -6, 3) + rankB + situation + ego
     - cl((r.pss - offA) * 0.12, -3, 4) + (age <= 20 && (rank ?? 9) > 0 ? -3 : 0) + (age >= 33 ? -3 : 0));
+  // A rookie (first NBA season, 23 or younger) defers a little even as his team's first option (2026-10-18:
+  // rookies on bad teams averaged 23–31 points; real rookies of the year score about 15–21).
+  const rookie = (p.age ?? 30) <= 23 && new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season)).size <= 1;
+  out.usage = Math.min(80, out.usage - (rookie ? 4 : 0));
   return out;
 }
 

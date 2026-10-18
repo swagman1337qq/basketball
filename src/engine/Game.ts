@@ -900,13 +900,29 @@ export class Game {
     let ids = s.rosters[tid].filter(id => this.canPlay1(s, P[id], post, hurt));
     if (!user) ids = this.aiOrder(s, tid).filter(id => ids.includes(id)); // AI: best first, and real minutes for a young high pick (rosterAI)
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    const ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id]));
+    const ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id])), tgt = user ? this.userTargets(s, ids, ROT) : null;
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       // Tactics: yours where you set them, the coaching staff's everywhere else (coach.ts); AI teams' staffs run all of it.
       tactics: club ? club.tactics : {}, situ: club ? club.situ || null : null, aiKeys: this.aiTacKeys(club), coach: coachQuality(teamBudget(this, s, tid).Coaching),
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), rr: roleRamp(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: user && p.rot != null ? p.rot : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), rr: roleRamp(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: tgt ? tgt[i] : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
   }
 
+  // Your team's minutes targets for tonight, in the order of `ids` (who can play). A player whose minutes you set
+  // plays them; the rest are the coach's call (2026-10-18): he ranks them by overall and how well they're playing
+  // this season (seasonForm: PER against what his overall predicts), and the minutes left over after yours follow
+  // the rotation curve in that order, whatever their place on the roster (the order still decides who starts, and a
+  // starter is ranked as if 6 points better).
+  coachValue(p) { return p.ovr + 4 * this.seasonForm(p); }
+  userTargets(s, ids: number[], ROT: number[]) {
+    const P = this.db.P, man = ids.filter(id => P[id].rot != null), auto = ids.filter(id => P[id].rot == null);
+    const v = (id: number) => this.coachValue(P[id]) + (ids.indexOf(id) < 5 ? 6 : 0); // your starters get the benefit of the doubt
+    const byVal = ids.slice().sort((a, b) => v(b) - v(a)), want = new Map<number, number>();
+    auto.forEach(id => want.set(id, ROT[byVal.indexOf(id)] ?? 0));
+    const left = Math.max(0, 240 - man.reduce((a, id) => a + P[id].rot, 0)), sum = auto.reduce((a, id) => a + want.get(id)!, 0), k = sum > 0 ? left / sum : 0;
+    return ids.map(id => { const p = P[id]; if (p.rot != null) return p.rot; const m = Math.min(40, want.get(id)! * k); return p.minMin ? Math.max(p.minMin, m) : m; });
+  }
+  // The minutes targets shown on Roster for a team you run (healthy players; 0 for the rest).
+  minutesPlan(s, tid) { const P = this.db.P, post = s.phase === 'playoffs' || s.phase === 'playin', ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id], post)), ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id])), t = this.userTargets(s, ids, ROT), m: Record<number, number> = {}; ids.forEach((id, i) => (m[id] = Math.round(t[i]))); return m; }
   // Can he play tonight: healthy (or playing through it), not in the development league, a two-way player
   // with games left (none in the postseason), not barred from this postseason.
   canPlay1(s, p: any, post = s.phase === 'playoffs' || s.phase === 'playin', hurt: (p: any) => boolean = () => false) {

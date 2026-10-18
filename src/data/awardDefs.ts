@@ -14,7 +14,7 @@ export const DEFAULT_AWARDS: AwardDef[] = [
     "shortName": "DPOY",
     "name": "Defensive Player of the Year",
     "showStats": "defense",
-    "formula": "(dbpm/2 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 3) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(3, 0.3*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"
+    "formula": "(dbpm/2 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 3) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(6, 0.4*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"
   },
   {
     "shortName": "ROY",
@@ -29,7 +29,7 @@ export const DEFAULT_AWARDS: AwardDef[] = [
     "name": "Sixth Man of the Year",
     "showStats": "offense",
     "bench": true,
-    "formula": "(ewa/6 + ws/5 + bpm/8 + gp/82*(pts + 0.5*trb + 0.8*ast)/7 + 0.04*(tsp-50) + 0.5*seasonFraction*winp) * (1/(numWon.SMOY + 1))^(1/24) * (1/(numWonConsecutive.SMOY + 1))^(1/18) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 22 - min) - 100000*max(0, 2*gs - gp + 1) - 100000*max(0, gs - 35)"
+    "formula": "(gp/82*(pts + 0.3*trb + 0.6*ast)/3.5 + bpm/8 + ws/8 + 0.03*(tsp-55) + 0.5*seasonFraction*winp) * (1/(numWon.SMOY + 1))^(1/24) * (1/(numWonConsecutive.SMOY + 1))^(1/18) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 22 - min) - 100000*max(0, 2*gs - gp + 1) - 100000*max(0, gs - 35)"
   },
   {
     "shortName": "MIP",
@@ -135,8 +135,10 @@ export const DEFAULT_AWARDS: AwardDef[] = [
 // default when it loads (Game.load); edited formulas are left alone.
 // DPOY: 2026-09-26 original; 2026-10-17 two versions (usage penalty above 24, then above 22); 2026-10-18 the
 // usage penalty is capped so a dominant two-way star can (rarely) win, and elite ball thieves get a bonus
-// (first a stronger one: too many guards won).
+// (first a stronger one: too many guards won); later that day the usage penalty went to 0.4 a point, at most 6
+// (a 31-point scorer won both; an 81-overall 32-point center won both). SMOY 2026-10-18: bench scoring counts about twice as much (bench centers won it).
 export const OLD_AWARD_FORMULAS: Record<string, string[]> = {
-  DPOY: ["(dbpm/1.2 + blkp/6 + stlp/2.4 + drbp/40 + (112 - drtg)/7 + dws/6 + (min - 24)/20 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.15*max(0, usgp - 24)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.3*max(0, usgp - 22)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/2.5 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 2.6) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(3, 0.3*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"],
+  DPOY: ["(dbpm/1.2 + blkp/6 + stlp/2.4 + drbp/40 + (112 - drtg)/7 + dws/6 + (min - 24)/20 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.15*max(0, usgp - 24)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/1.5 + blkp/4 + stlp/3 + drbp/50 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - 0.3*max(0, usgp - 22)) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/2.5 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 2.6) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(3, 0.3*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/2 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 3) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(3, 0.3*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)", "(dbpm/2 + blkp/4 + stlp/3 + 1.5*max(0, stlp - 3) + drbp/100 + (112 - drtg)/5 + dws/5 + (min - 24)/30 + 1.5*seasonFraction*winp - 0.4*max(0, pf - 2.8) - min(4, 0.3*max(0, usgp - 22))) * (1/(numWon.DPOY + 1))^(1/20) * (1/(numWonConsecutive.DPOY + 1))^(1/16) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 24 - min)"],
+  SMOY: ["(ewa/6 + ws/5 + bpm/8 + gp/82*(pts + 0.5*trb + 0.8*ast)/7 + 0.04*(tsp-50) + 0.5*seasonFraction*winp) * (1/(numWon.SMOY + 1))^(1/24) * (1/(numWonConsecutive.SMOY + 1))^(1/18) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 22 - min) - 100000*max(0, 2*gs - gp + 1) - 100000*max(0, gs - 35)"],
   ROY: ["ewa/6 + vorp/2 + ws/4 + gp/82*(pts + 0.7*trb + 1.1*ast)/16 + 0.04*(tsp-50) - 100000*max(0, 65*seasonFraction - gp) - 100000*max(0, 20 - min)"],
 };

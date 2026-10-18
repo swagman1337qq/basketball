@@ -430,13 +430,14 @@ export class GameSim {
   // under Twin towers while two healthy bigs sat). Without `need` (the second-half and closing lineups)
   // they follow the targets.
   private shape(k: Side, on: SimPlayer[], ps: SimPlayer[], need?: (p: SimPlayer) => number) {
-    // A player whose minutes you set by hand and who has had them goes to the back of the queue: the
-    // extra minutes a lineup style needs go to the players on automatic minutes first.
+    // The extra minutes a lineup style needs go to the players on automatic minutes first.
     const lu = this.teams[k].tactics ? this.tac(k).lineup : null;
     if (lu !== 'Small ball' && lu !== 'Twin towers') return on;
     const nb0 = on.filter(p => p.grp === 'B').length;
     if ((lu === 'Small ball' && nb0 <= 1) || (lu === 'Twin towers' && nb0 >= 2)) return on; // already the right shape
-    const ow = new Map<SimPlayer, number>(ps.map(p => { const d = need ? need(p) : 0; return [p, need ? d - (p.manual && d < 0 ? 1e5 : 0) : p.target]; }));
+    // A player on minutes you set is first in line while he's short of them and last once he has them (2026-10-18:
+    // a lineup style used to sit a manual 42-minute center at 28).
+    const ow = new Map<SimPlayer, number>(ps.map(p => { const d = need ? need(p) : 0; return [p, need ? d + (p.manual ? (d > 0 ? 1e5 : -1e5) : 0) : p.target]; }));
     const due = (a: SimPlayer, b: SimPlayer) => ow.get(b)! - ow.get(a)!; // most due first
     const big = (p: SimPlayer) => p.grp === 'B';
     for (let guard = 0; guard < 3; guard++) {
@@ -522,7 +523,7 @@ export class GameSim {
     const fx: TacFx | null = this.teams[offK].tactics || this.teams[defK].tactics ? tacticEffects(tO, tD, onO, onD, p => C(p).use) : null;
     const fb = this.fastBreak; this.fastBreak = false;
     const cl2 = clutch ? this.clutchPick(onO, tO, offK) : null;
-    const useBase = (p: SimPlayer) => (fx && fx.useExp !== 1 ? Math.pow(C(p).use, fx.useExp) : C(p).use) * (fx?.use.get(p) ?? 1) * (p.selfish ? 1.3 : p.padder ? 1.1 : 1) * (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1) * (cl2 && cl2.includes(p) ? 2.2 : 1);
+    const useBase = (p: SimPlayer) => (fx && fx.useExp !== 1 ? Math.pow(C(p).use, fx.useExp) : C(p).use) * (fx?.use.get(p) ?? 1) * (p.selfish ? 1.12 : p.padder ? 1.06 : 1) * /* a stat padder's appetite is also in his shot-volume tendency (tendencies.ts ego); 1.3 counted it twice (2026-10-18) */ (p.dtd ? 0.9 : 1) * (clutch && tO.clutch === 'Isolate the star' && p === star ? 2.5 : 1) * (cl2 && cl2.includes(p) ? 2.2 : 1);
     // Usage ceiling, from NBA history: Luka Dončić's heaviest season used 38% of his team's trips
     // while he was on the floor; the record is Russell Westbrook's 41.7% (2016–17). A star is held
     // to Luka's 38% on a normal roster; only when his teammates are far worse than him (a 75 among
