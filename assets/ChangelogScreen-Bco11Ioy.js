@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-IJ5lLD16.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CxVeL_A4.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-18
+
+### Fixed
+- **The starter you put in stays a starter when an injured player comes back.** If a starter got hurt and you moved a bench player into the starting five, the injured player used to walk straight back into his old spot when he healed, pushing your pick to the bench. Now, if you changed the starting five while he was out, he comes back as the first man off the bench (move him back up whenever you like). If you didn't touch the lineup, he still returns to his old spot. Moving players by hand also turns off "Keep auto sorted", which used to undo your order before the next game.
 
 ## 2026-10-17
 
