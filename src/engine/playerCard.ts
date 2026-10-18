@@ -6,6 +6,7 @@ import { setTruePot } from './potential';
 import { CRE_TEN, ensureTen, initTendencies, quirkOf, round100, tenTargets, ZONE_TEN } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
+import { OLD_CARD_BUILDS } from '../data/cardBuilds';
 
 const KEEP = ['name', 'first', 'last', 'familyFirst', 'native', 'nativeFirst', 'nativeLast', 'pos', 'age', 'dob', 'hgt', 'wt', 'wing', 'rep', 'born', 'raised', 'city', 'state', 'her', 'heritage', 'race', 'r', 'pot', 'intg', 'pers', 'ten', 'tenLock'] as const;
 
@@ -55,6 +56,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   // He starts with the card's playing style (or his ratings' if it has none); like every player's, the AI then
   // refreshes it every month unless you take it over with Edit tendencies in Edit player.
   delete p.tenLock;
+  p.cardName = card.name || undefined; // which card he carries, so a retuned ready-made card can find him (retuneCarriers)
   return '';
 }
 
@@ -72,22 +74,42 @@ export const BLANK_CARD = {
 const OLD_PRESET_TEND = [{ rim: 1.05, mid: 0.23, c3: 0.9, atb: 1.02, draw: 2.8, tov: 1.2, ast: 0.4 }, { rim: 0.69, mid: 1.34, c3: 2.51, atb: 1.3, draw: 0.27, tov: 0.31, ast: 1.35, usg: 0.97 }, { rim: 0.9, mid: 4.92, c3: 0.02, atb: 0.46, draw: 0.74, tov: 1.31, ast: 0.62, usg: 0.63 }, { rim: 0.94, mid: 1.51, c3: 0.02, atb: 0.15, draw: 0.72, tov: 1.11, ast: 1.15, usg: 0.72 }, { rim: 1.54, mid: 1.26, c3: 0.64, atb: 1.38, draw: 2.2, tov: 1.55, ast: 0.38, usg: 0.53 }, { rim: 1.74, mid: 4.38, c3: 0.62, atb: 0.42, draw: 0.12, tov: 0.48, ast: 1.2, usg: 1.25 }, { rim: 1.17, mid: 2.35, c3: 2.13, atb: 0.8, draw: 0.34, tov: 0.61, ast: 1.05, usg: 0.66 }, { rim: 0.95, mid: 3.39, c3: 0.02, atb: 0.18, draw: 1.39, tov: 0.64, ast: 0.95, usg: 0.73 }];
 // Their 0–100 scores of 2026-10-08 (version 3), before tendencies became shares.
 const OLD_PRESET_TEN3 = [{ usage: 52, ra: 62, paint: 48, mid: 66, c3: 43, atb: 84, cns: 28, pullup: 72, ftr: 67 }, { usage: 51, ra: 46, paint: 45, mid: 44, c3: 69, atb: 66, cns: 64, pullup: 36, ftr: 25 }, { usage: 43, ra: 24, paint: 52, mid: 43, c3: 2, atb: 2, cns: 27, pullup: 73, ftr: 62 }, { usage: 48, ra: 48, paint: 62, mid: 71, c3: 2, atb: 2, cns: 53, pullup: 47, ftr: 67 }, { usage: 45, ra: 16, paint: 25, mid: 44, c3: 11, atb: 18, cns: 21, pullup: 79, ftr: 70 }, { usage: 53, ra: 42, paint: 58, mid: 94, c3: 43, atb: 43, cns: 61, pullup: 39, ftr: 22 }, { usage: 32, ra: 62, paint: 65, mid: 79, c3: 79, atb: 39, cns: 64, pullup: 36, ftr: 53 }, { usage: 51, ra: 56, paint: 79, mid: 48, c3: 2, atb: 2, cns: 49, pullup: 51, ftr: 90 }];
-// A saved copy of a ready-made card (id 'presetN') that still has an old playing style gets the new one.
-// Ready-made cards retuned since (2026-10-11: Kawhi Leonard's rookie card was too strong for a 7.9-point
-// rookie, 61 overall with 86 potential): a library copy still holding exactly the old ratings takes the new
-// ratings, potential, intangibles and work ethic.
-const RETUNED: Record<string, any> = {
-  'Jeremy Lin': { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 34, dnk: 40, lay: 42, ft: 54, fg: 28, tp: 30, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
-  'Kawhi Leonard': { hgt: 50, stre: 70, spd: 70, acc: 62, jmp: 56, endu: 72, ins: 62, dnk: 87, lay: 87, ft: 55, fg: 53, tp: 60, oiq: 54, diq: 70, blk: 38, stl: 73, drb: 44, pss: 43, reb: 61, box: 58 },
-};
+// A saved copy of a ready-made card (id 'presetN') that still has an old playing style gets the new one, and
+// one that still holds an earlier build exactly (data/cardBuilds.ts: 2026-10-11 Kawhi Leonard toned down,
+// 2026-10-14 Jeremy Lin's shot mix, 2026-10-18 every card retuned for today's engine) takes today's ratings,
+// potential, intangibles, work ethic and playing style.
 export function upgradePresetCard(row: { id: string; card: any }): boolean {
   const m = /^preset(\d+)$/.exec(row.id || ''), i = m ? +m[1] : -1, c = row.card, same = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
   if (i < 0 || !PRESET_CARDS[i] || !c) return false;
   let changed = false;
-  const P0 = PRESET_CARDS[i].card, old = RETUNED[P0.name];
-  if (old && c.name === P0.name && c.r && same(c.r, old)) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; } changed = true; }
+  const P0 = PRESET_CARDS[i].card, olds = OLD_CARD_BUILDS[P0.name] || [];
+  if (c.name === P0.name && c.r && !same(c.r, P0.r) && olds.some(o => same(c.r, o.r))) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; } return true; }
   if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return changed;
   delete c.tend; c.ten = { ...P0.ten }; return true;
+}
+
+// A player who was given an earlier build of a ready-made card (his body is the card's and his ratings still
+// match it up to his growth since, or the card is on record as his) takes today's build plus that growth. A
+// potential still exactly the old card's (given after potentials were compressed, 2026-10-17) moves to the
+// new one; one compressed since already sits there. Returns how many players changed.
+export function retuneCarriers(P: Record<number, any>): number {
+  let n = 0;
+  Object.values(P).forEach((p: any) => {
+    if (!p?.r || p.retired || p.gone) return;
+    for (const { card: c } of PRESET_CARDS) {
+      const tagged = p.cardName === c.name;
+      if (!tagged && (p.cardName || p.hgt !== c.hgt || p.wing !== c.wing || p.wt !== c.wt)) continue;
+      const fit = (OLD_CARD_BUILDS[c.name] || []).map(o => { const ks = Object.keys(c.r).filter(k => o.r[k] != null && p.r[k] != null), d = ks.map(k => p.r[k] - o.r[k]), sh = d.reduce((a, x) => a + x, 0) / Math.max(1, d.length);
+        return { o, ks, sh, sp: d.reduce((a, x) => a + Math.abs(x - sh), 0) / Math.max(1, d.length) }; }).filter(f => f.ks.length >= 18 && f.sp <= (tagged ? 12 : 6) && Math.abs(f.sh) <= 15).sort((a, b) => a.sp - b.sp)[0];
+      if (!fit || JSON.stringify(fit.o.r) === JSON.stringify(c.r)) continue;
+      Object.keys(c.r).forEach(k => (p.r[k] = Math.max(1, Math.min(99, Math.round(c.r[k] + (fit.o.r[k] != null && p.r[k] != null ? p.r[k] - fit.o.r[k] : 0))))));
+      const pot0 = p.tpot; syncOvr(p);
+      if (pot0 === fit.o.pot && c.pot !== fit.o.pot) setTruePot(p, Math.max(c.pot, p.ovr), true);
+      else if (p.tpot != null && p.tpot < p.ovr) p.tpot = p.ovr;
+      p.cardName = c.name; n++; break;
+    }
+  });
+  return n;
 }
 
 // Ready-made cards (the starting library; every one is editable).
@@ -98,11 +120,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Tuned by simming his rookie season in 8 leagues against his real 2018–19 line and shooting splits
     // (Basketball-Reference): 21.6 pts on 17 FGA, 42.9% FG, 3.4 FGA at the rim (64.7%), 6.6 from 3 ft to
     // the arc (41.6%), 7.0 threes (33.5%), 6.5 FTA (72%), 7.3 reb, 6.2 ast, 3.5 tov, PER 19.2, TS 54.4%.
-    r: { hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 48, dnk: 30, lay: 42, ft: 42, fg: 95, tp: 51, oiq: 70, diq: 44, blk: 30, stl: 62, drb: 85, pss: 58, reb: 61, box: 56 },
-    pot: 83, intg: { feel: 90, poise: 85 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 19.5 pts, 6.4 reb, 5.7 ast, 1.0 stl, 0.3 blk, 4.6 tov, .372 FG on 20.1, .317 on 6.3 threes, .690 FT on 3.7 in 30.9 min.
+    // 61 overall; potential 77 (83 before potentials above 70 were compressed).
+    r: { hgt: 73, stre: 78, spd: 52, acc: 61, jmp: 42, endu: 58, ins: 53, dnk: 35, lay: 47, ft: 38, fg: 96, tp: 63, oiq: 58, diq: 44, blk: 28, stl: 51, drb: 85, pss: 60, reb: 68, box: 63 },
+    pot: 77, intg: { feel: 90, poise: 85 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: true, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, work: 58, loyalty: 60, ambition: 80 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
-    ten: { usage: 52, ftr: 67, ra: 20, paint: 14, mid: 25, c3: 3, atb: 38, cns: 10, pullup: 50, step: 30, fade: 10 },
+    ten: { usage: 79.1, ftr: 44.6, ra: 8.3, paint: 7.8, mid: 42.1, c3: 6.5, atb: 35.3, cns: 11.5, pullup: 60.9, step: 20.2, fade: 7.4 },
   } },
   // The rookie cards below were tuned the same way, against each player's real rookie season (Basketball-
   // Reference: per game, advanced, shooting by distance, splits) translated to today's league: volume per
@@ -119,11 +144,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Streaky: 13.6 ppg and .460 from three in November (37 and nine threes vs Utah), then .156 from three in
     // December; a median game of 6 points. Elite combine athlete (39-inch leap, 2nd in lane agility) who
     // defended poorly (upright, lost on the ball): fearless, a gym rat, unlimited green light.
-    r: { hgt: 47, stre: 46, spd: 66, acc: 80, jmp: 86, endu: 56, ins: 48, dnk: 66, lay: 81, ft: 49, fg: 59, tp: 62, oiq: 43, diq: 25, blk: 20, stl: 15, drb: 46, pss: 41, reb: 40, box: 46 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 9.3 pts, 2.6 reb, 0.6 ast, 0.3 stl, 0.1 blk, 1.2 tov, .474 FG on 6.8, .371 on 3.8 threes, .710 FT on 2.0 in 17.9 min.
+    // 48 overall; potential 51.
+    r: { hgt: 47, stre: 46, spd: 66, acc: 82, jmp: 86, endu: 56, ins: 44, dnk: 62, lay: 77, ft: 43, fg: 62, tp: 81, oiq: 51, diq: 25, blk: 24, stl: 13, drb: 34, pss: 41, reb: 54, box: 60 },
     pot: 51, intg: { feel: 57, poise: 62 },
     pers: { mot: 'Playing time', alpha: false, touches: false, pro: false, volatile: false, flashy: false, heat: true, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: true, work: 74, loyalty: 50, ambition: 62 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 21%: 22% at the rim, 9% paint, 8% mid-range, 61% threes (27% of them corners); mostly catch-and-shoot; .14 FTA per FGA.
-    ten: { usage: 51, ftr: 25, ra: 22, paint: 9, mid: 8, c3: 16.5, atb: 44.5, cns: 75, pullup: 18, step: 5, fade: 2 },
+    ten: { usage: 60.5, ftr: 53.6, ra: 27.3, paint: 8.1, mid: 8.1, c3: 14.7, atb: 41.8, cns: 72.8, pullup: 16.7, step: 8, fade: 2.5 },
   } },
   { label: 'Ben Simmons – Rookie year (2017–18)', card: {
     card: 1, name: 'Ben Simmons', first: 'Ben', last: 'Simmons', pos: 'PG', age: 21, dob: '1996-07-20', hgt: '6′10″', wt: 240, wing: 84,
@@ -132,11 +160,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 8.2 ast, 1.7 stl, 0.9 blk, 3.4 tov, .545 FG, 0 for 11 from three, .560 FT, 12 triple-doubles, PER 20.0,
     // BPM +4.5. A 5.5-ft average shot: 46% at the rim (.744, 148 dunks), 33% from 3–10 ft (.417), jumpers .310.
     // A 6-10 point guard in transition, a switchable defender; shoots left but is naturally right-handed.
-    r: { hgt: 64, stre: 72, spd: 86, acc: 78, jmp: 70, endu: 72, ins: 91, dnk: 91, lay: 91, ft: 16, fg: 42, tp: 8, oiq: 62, diq: 66, blk: 70, stl: 60, drb: 74, pss: 78, reb: 59, box: 58 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 16.1 pts, 7.3 reb, 8.4 ast, 1.6 stl, 1.0 blk, 3.0 tov, .564 FG on 12.3, .105 on 0.2 threes, .545 FT on 4.1 in 32.1 min.
+    // 63 overall; potential 69.
+    r: { hgt: 64, stre: 72, spd: 86, acc: 68, jmp: 70, endu: 72, ins: 81, dnk: 81, lay: 81, ft: 20, fg: 42, tp: 6, oiq: 42, diq: 66, blk: 74, stl: 59, drb: 63, pss: 82, reb: 79, box: 78 },
     pot: 69, intg: { feel: 70, poise: 40 },
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: true, padder: false, team: false, legacy: false, streaky: false, work: 45, loyalty: 30, ambition: 72 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 22.5%: 46% at the rim, 33% from 3–10 ft, 21% jumpers, no threes; .34 FTA per FGA.
-    ten: { usage: 43, ftr: 62, ra: 46, paint: 33, mid: 20.5, c3: 0.2, atb: 0.3, cns: 20, pullup: 50, step: 5, fade: 25 },
+    ten: { usage: 53.9, ftr: 61.3, ra: 81, paint: 12, mid: 6, c3: 0.2, atb: 0.8, cns: 12.6, pullup: 44, step: 28.5, fade: 14.9 },
   } },
   { label: 'Al Horford – Rookie year (2007–08)', card: {
     card: 1, name: 'Al Horford', first: 'Al', last: 'Horford', pos: 'C', age: 21, dob: '1986-06-03', hgt: '6′10″', wt: 245, wing: 85,
@@ -145,11 +176,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 0.9 blk, .499 FG, .731 FT, no threes, PER 14.7, 25 double-doubles. A 7.3-ft average shot: 41% at the rim
     // (.640), the jump hook, a reliable 12–15 footer (.429). Strongest player at the combine (20 reps), one of the
     // slowest in the lane drill. Calm, coachable, a high basketball IQ; foul-prone (3.8 per 36).
-    r: { hgt: 62, stre: 86, spd: 40, acc: 38, jmp: 62, endu: 66, ins: 79, dnk: 60, lay: 75, ft: 46, fg: 58, tp: 12, oiq: 60, diq: 62, blk: 65, stl: 53, drb: 36, pss: 45, reb: 82, box: 70 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 11.9 pts, 9.4 reb, 1.8 ast, 0.7 stl, 0.9 blk, 0.9 tov, .628 FG on 7.5, .176 on 0.1 threes, .724 FT on 3.4 in 31.4 min.
+    // 57 overall; potential 68.
+    r: { hgt: 62, stre: 86, spd: 40, acc: 34, jmp: 62, endu: 66, ins: 82, dnk: 63, lay: 78, ft: 48, fg: 59, tp: 15, oiq: 60, diq: 62, blk: 63, stl: 53, drb: 42, pss: 45, reb: 83, box: 71 },
     pot: 68, intg: { feel: 64, poise: 76 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 75, ambition: 45 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 41% at the rim, 26% hooks and short shots, 33% from 10 ft out, no threes; .38 FTA per FGA.
-    ten: { usage: 48, ftr: 67, ra: 41, paint: 26, mid: 33, c3: 0, atb: 0, cns: 45, pullup: 25, step: 2, fade: 28 },
+    ten: { usage: 37, ftr: 70.4, ra: 62, paint: 26.3, mid: 10.8, c3: 0.2, atb: 0.7, cns: 18, pullup: 21.8, step: 3.1, fade: 57.1 },
   } },
   { label: 'Chris Paul – Rookie year (2005–06)', card: {
     card: 1, name: 'Chris Paul', first: 'Chris', last: 'Paul', pos: 'PG', age: 20, dob: '1985-05-06', hgt: '6′0″', wt: 175, wing: 76,
@@ -158,11 +192,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // league), 2.3 tov, .430 FG, .282 from three, .847 FT on 6.0 attempts, PER 22.1, BPM +5.2. An 11.3-ft average
     // shot: 34% at the rim (.531), 23% long twos (.438); 79% of his baskets unassisted. Elite hands and quickness
     // (38.5-inch leap, 3.22 sprint), a fierce competitor and a road villain; the jumper came later.
-    r: { hgt: 24, stre: 52, spd: 82, acc: 88, jmp: 70, endu: 88, ins: 39, dnk: 25, lay: 57, ft: 76, fg: 47, tp: 26, oiq: 84, diq: 66, blk: 10, stl: 83, drb: 88, pss: 70, reb: 53, box: 34 },
-    pot: 85, intg: { feel: 79, poise: 86 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 19.7 pts, 4.6 reb, 7.0 ast, 2.1 stl, 0.2 blk, 2.6 tov, .473 FG on 16.0, .291 on 2.3 threes, .918 FT on 4.2 in 33.4 min.
+    // 62 overall; potential 78 (85 before potentials above 70 were compressed).
+    r: { hgt: 24, stre: 52, spd: 82, acc: 85, jmp: 70, endu: 88, ins: 28, dnk: 14, lay: 46, ft: 90, fg: 34, tp: 32, oiq: 64, diq: 66, blk: 19, stl: 74, drb: 87, pss: 62, reb: 66, box: 47 },
+    pot: 78, intg: { feel: 79, poise: 86 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 92, loyalty: 45, ambition: 86 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 23.5%: 25% at the rim, 20% paint, 43% mid-range, 12% threes; mostly pull-ups; .41 FTA per FGA.
-    ten: { usage: 45, ftr: 70, ra: 25, paint: 20, mid: 43, c3: 2, atb: 10, cns: 12, pullup: 70, step: 8, fade: 10 },
+    ten: { usage: 62.2, ftr: 64.9, ra: 65.8, paint: 13, mid: 8.5, c3: 0.5, atb: 12.2, cns: 6, pullup: 61.4, step: 31, fade: 1.6 },
   } },
   { label: 'Klay Thompson – Rookie year (2011–12)', card: {
     card: 1, name: 'Klay Thompson', first: 'Klay', last: 'Thompson', pos: 'SG', age: 21, dob: '1990-02-08', hgt: '6′7″', wt: 205, wing: 81,
@@ -171,11 +208,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 10.9 FGA, .443 FG, .414 on 4.1 threes (.474 from the corners), .868 FT on 1.4 attempts, USG 24.7, PER 14.9.
     // A 17.2-ft average shot, 32% of it long twos (.414); 93% of his threes assisted. "Ice-cold killer": calm,
     // fearless, a heat checker; son of former No. 1 pick Mychal Thompson.
-    r: { hgt: 48, stre: 46, spd: 62, acc: 58, jmp: 46, endu: 76, ins: 49, dnk: 56, lay: 72, ft: 88, fg: 51, tp: 93, oiq: 52, diq: 42, blk: 57, stl: 47, drb: 46, pss: 58, reb: 42, box: 30 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 11.7 pts, 2.4 reb, 2.0 ast, 0.5 stl, 0.3 blk, 1.5 tov, .423 FG on 8.9, .367 on 6.6 threes, .920 FT on 2.0 in 22.1 min.
+    // 55 overall; potential 71.
+    r: { hgt: 48, stre: 46, spd: 62, acc: 67, jmp: 46, endu: 76, ins: 37, dnk: 44, lay: 60, ft: 87, fg: 36, tp: 82, oiq: 47, diq: 42, blk: 44, stl: 39, drb: 42, pss: 61, reb: 52, box: 40 },
     pot: 71, intg: { feel: 58, poise: 82 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: true, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 76, loyalty: 80, ambition: 60 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 24.7%: 14% at the rim, 11% paint, 37% mid-range (32% long twos), 38% threes (a quarter from the corners); mostly catch-and-shoot; .13 FTA per FGA.
-    ten: { usage: 53, ftr: 22, ra: 14, paint: 11, mid: 37, c3: 9, atb: 29, cns: 70, pullup: 24, step: 3, fade: 3 },
+    ten: { usage: 62, ftr: 48.4, ra: 16.2, paint: 5.3, mid: 2.9, c3: 14.5, atb: 61.1, cns: 75.6, pullup: 14.3, step: 9.4, fade: 0.7 },
   } },
   { label: 'Kawhi Leonard – Rookie year (2011–12)', card: {
     card: 1, name: 'Kawhi Leonard', first: 'Kawhi', last: 'Leonard', pos: 'SF', age: 20, dob: '1991-06-29', hgt: '6′7″', wt: 227, wing: 87,
@@ -185,11 +225,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // finisher and corner shooter who guarded the other team's best wing: 7-3 wingspan, the biggest hands at the
     // combine. Quiet, humble, legendary work ethic. Retuned 2026-10-11 to a role player's ratings (he started at 61
     // overall, a rookie star's): 57 overall, 80 potential, the work ethic high but not maxed.
-    r: { hgt: 50, stre: 64, spd: 64, acc: 58, jmp: 54, endu: 70, ins: 54, dnk: 72, lay: 70, ft: 55, fg: 50, tp: 58, oiq: 48, diq: 64, blk: 34, stl: 64, drb: 40, pss: 40, reb: 66, box: 62 },
-    pot: 80, intg: { feel: 64, poise: 80 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 8.1 pts, 5.8 reb, 1.2 ast, 1.3 stl, 0.5 blk, 0.7 tov, .475 FG on 6.4, .294 on 2.7 threes, .792 FT on 1.6 in 26.1 min.
+    // 59 overall; potential 76 (80 before potentials above 70 were compressed).
+    r: { hgt: 50, stre: 64, spd: 64, acc: 63, jmp: 54, endu: 70, ins: 52, dnk: 70, lay: 68, ft: 56, fg: 44, tp: 48, oiq: 50, diq: 64, blk: 38, stl: 66, drb: 42, pss: 43, reb: 71, box: 67 },
+    pot: 76, intg: { feel: 64, poise: 80 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 88, loyalty: 40, ambition: 72 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 15.5%: 38% at the rim, 14% paint, 21% mid-range, 27% threes (most from the corners); mostly catch-and-shoot; .27 FTA per FGA.
-    ten: { usage: 32, ftr: 53, ra: 38, paint: 14, mid: 21, c3: 17, atb: 10, cns: 75, pullup: 18, step: 2, fade: 5 },
+    ten: { usage: 38.3, ftr: 50.7, ra: 41.1, paint: 11.6, mid: 6.8, c3: 10.5, atb: 30, cns: 64.5, pullup: 23.4, step: 6.4, fade: 5.7 },
   } },
   { label: 'Dwight Howard – Rookie year (2004–05)', card: {
     card: 1, name: 'Dwight Howard', first: 'Dwight', last: 'Howard', pos: 'C', age: 18, dob: '1985-12-08', hgt: '6′10″', wt: 240, wing: 88,
@@ -198,11 +241,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // offensive), 1.7 blk, .520 FG, .671 FT on 5.0 attempts, PER 17.2, 32 double-doubles. A 3.7-ft average shot:
     // 59% at the rim (.623, 162 dunks), 30% from 3–10 ft (.407); nothing outside 16 ft. 7-4½ wingspan; playful,
     // a showman, better at home; 9.4 ppg in November, 16.7 in April.
-    r: { hgt: 70, stre: 80, spd: 64, acc: 58, jmp: 86, endu: 72, ins: 95, dnk: 95, lay: 70, ft: 35, fg: 35, tp: 1, oiq: 38, diq: 55, blk: 67, stl: 54, drb: 26, pss: 45, reb: 67, box: 76 },
-    pot: 82, intg: { feel: 47, poise: 45 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 14.3 pts, 9.4 reb, 1.2 ast, 0.9 stl, 1.5 blk, 1.5 tov, .677 FG on 7.7, .100 on 0.0 threes, .725 FT on 5.4 in 31.3 min.
+    // 57 overall; potential 77 (82 before potentials above 70 were compressed).
+    r: { hgt: 70, stre: 80, spd: 64, acc: 59, jmp: 86, endu: 72, ins: 99, dnk: 99, lay: 83, ft: 44, fg: 24, tp: 1, oiq: 44, diq: 55, blk: 64, stl: 48, drb: 6, pss: 41, reb: 85, box: 94 },
+    pot: 77, intg: { feel: 47, poise: 45 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: false, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: false, work: 62, loyalty: 50, ambition: 70 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
-    ten: { usage: 51, ftr: 90, ra: 65, paint: 27, mid: 8, c3: 0, atb: 0, cns: 20, pullup: 20, step: 0, fade: 60 },
+    ten: { usage: 42, ftr: 90.2, ra: 77.6, paint: 21.2, mid: 0.8, c3: 0.1, atb: 0.3, cns: 32, pullup: 14.8, step: 3.2, fade: 50 },
   } },
   { label: 'John Wall – Rookie year (2010–11)', card: {
     card: 1, name: 'John Wall', first: 'John', last: 'Wall', pos: 'PG', age: 20, dob: '1990-09-06', hgt: '6′4″', wt: 195, wing: 81,
@@ -212,11 +258,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 15.8. The fastest end-to-end guard in the league: lived at the rim and in transition, pull-up jumpers he
     // hadn't found yet, loose with the ball. Played at 38 minutes, the card gives about 17 pts, 8.3 ast, 4.5 reb,
     // 2 stl, .417 FG and .28 from three. Became a five-time All-Star.
-    r: { hgt: 40, stre: 50, spd: 97, acc: 95, jmp: 80, endu: 84, ins: 48, dnk: 72, lay: 68, ft: 54, fg: 36, tp: 39, oiq: 40, diq: 44, blk: 45, stl: 66, drb: 74, pss: 72, reb: 30, box: 24 },
-    pot: 78, intg: { feel: 74, poise: 50 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 18.5 pts, 3.8 reb, 8.1 ast, 1.5 stl, 0.6 blk, 4.3 tov, .455 FG on 15.4, .191 on 1.7 threes, .767 FT on 5.4 in 34.1 min.
+    // 54 overall; potential 74 (78 before potentials above 70 were compressed).
+    r: { hgt: 40, stre: 50, spd: 97, acc: 86, jmp: 80, endu: 84, ins: 28, dnk: 52, lay: 48, ft: 54, fg: 20, tp: 26, oiq: 22, diq: 44, blk: 53, stl: 67, drb: 87, pss: 80, reb: 50, box: 44 },
+    pot: 74, intg: { feel: 74, poise: 50 },
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 55, loyalty: 70, ambition: 75 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): 32% at the rim, 16% paint, 40% mid-range, 12% threes; mostly pull-ups; .35 FTA per FGA.
-    ten: { usage: 40, ftr: 61, ra: 32, paint: 16, mid: 40, c3: 2, atb: 10, cns: 12, pullup: 75, step: 5, fade: 8 },
+    ten: { usage: 57.1, ftr: 74.2, ra: 84.4, paint: 8.4, mid: 3.5, c3: 0.3, atb: 3.4, cns: 5.1, pullup: 54, step: 39.8, fade: 1.1 },
   } },
   { label: 'Yi Jianlian – Rookie year (2007–08)', card: {
     card: 1, name: 'Yi Jianlian', first: 'Jianlian', last: 'Yi', familyFirst: true, native: '易建联', nativeFirst: '建联', nativeLast: '易', pos: 'PF', age: 20, dob: '1987-10-27', hgt: '7′0″', wt: 245, wing: 86,
@@ -227,11 +276,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // the floor for dunks and putbacks, but light and pushed around inside, a thin passer, a step slow on rotations.
     // Tested over 300 games at about 26 minutes: 8.9 pts, 5.6 reb, 0.9 ast, 0.5 stl, 0.8 blk, 1.4 tov, .418 FG on 8.1
     // shots, .840 FT on 2.4, TS .485 (at his real 25 minutes, about 8.3 pts and 5.2 reb). 44 overall, 62 potential.
-    r: { hgt: 68, stre: 42, spd: 70, acc: 58, jmp: 78, endu: 78, ins: 36, dnk: 60, lay: 42, ft: 70, fg: 46, tp: 30, oiq: 28, diq: 40, blk: 72, stl: 36, drb: 18, pss: 36, reb: 42, box: 32 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 8.3 pts, 4.5 reb, 0.9 ast, 0.5 stl, 0.6 blk, 0.7 tov, .632 FG on 5.5, .158 on 0.0 threes, .804 FT on 1.7 in 26.1 min.
+    // 45 overall; potential 62.
+    r: { hgt: 68, stre: 42, spd: 70, acc: 57, jmp: 78, endu: 78, ins: 46, dnk: 70, lay: 52, ft: 60, fg: 60, tp: 23, oiq: 29, diq: 40, blk: 65, stl: 38, drb: 30, pss: 22, reb: 50, box: 40 },
     pot: 62, intg: { feel: 40, poise: 48 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 70, loyalty: 70, ambition: 60 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots long twos, a quarter at the rim; almost no threes; .28 FTA per FGA.
-    ten: { usage: 60, ftr: 58, ra: 26, paint: 18, mid: 52, c3: 1, atb: 3, cns: 55, pullup: 20, step: 3, fade: 22 },
+    ten: { usage: 36, ftr: 54.6, ra: 74.6, paint: 11.2, mid: 13.4, c3: 0.2, atb: 0.6, cns: 24.8, pullup: 27, step: 8, fade: 40.2 },
   } },
   { label: 'Andrei Kirilenko – Rookie year (2001–02)', card: {
     card: 1, name: 'Andrei Kirilenko', first: 'Andrei', last: 'Kirilenko', native: 'Андрей Кириленко', nativeFirst: 'Андрей', nativeLast: 'Кириленко', pos: 'SF', age: 20, dob: '1981-02-18', hgt: '6′9″', wt: 215, wing: 85,
@@ -244,11 +296,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Tested over 300 games at about 28 minutes: 11.0 pts, 5.4 reb, 1.2 ast, 1.4 stl, 2.0 blk, 1.1 tov, .485 FG on
     // 7.5 shots, .282 on 1.1 threes, .780 FT on 4.4, TS .585 (at his real 26 minutes, about 10.2 pts and 5.0 reb).
     // 51 overall (his value was defense, which the box score undersells), 79 potential.
-    r: { hgt: 60, stre: 54, spd: 84, acc: 80, jmp: 88, endu: 86, ins: 36, dnk: 40, lay: 40, ft: 52, fg: 34, tp: 22, oiq: 34, diq: 86, blk: 97, stl: 48, drb: 22, pss: 34, reb: 36, box: 38 },
-    pot: 79, intg: { feel: 70, poise: 62 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 7.9 pts, 4.3 reb, 0.9 ast, 1.0 stl, 1.9 blk, 0.6 tov, .518 FG on 5.7, .289 on 1.7 threes, .800 FT on 1.8 in 27.9 min.
+    // 62 overall; potential 75 (79 before potentials above 70 were compressed).
+    r: { hgt: 60, stre: 54, spd: 84, acc: 70, jmp: 88, endu: 86, ins: 56, dnk: 60, lay: 60, ft: 64, fg: 17, tp: 41, oiq: 35, diq: 86, blk: 99, stl: 30, drb: 30, pss: 32, reb: 50, box: 52 },
+    pot: 75, intg: { feel: 70, poise: 62 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 75, ambition: 55 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots at the rim (cuts, transition, putbacks), 15% threes; .58 FTA per FGA.
-    ten: { usage: 50, ftr: 90, ra: 42, paint: 14, mid: 29, c3: 9, atb: 6, cns: 70, pullup: 20, step: 2, fade: 8 },
+    ten: { usage: 31.5, ftr: 58.5, ra: 64.1, paint: 10, mid: 2.7, c3: 6.9, atb: 16.3, cns: 65.6, pullup: 19, step: 10.9, fade: 4.5 },
   } },
   { label: 'Jeremy Lin – Rookie year (2010–11)', card: {
     card: 1, name: 'Jeremy Lin', first: 'Jeremy', last: 'Lin', native: '林書豪', nativeFirst: '書豪', nativeLast: '林', pos: 'PG', age: 22, dob: '1988-08-23', hgt: '6′3″', wt: 200, wing: 79,
@@ -263,11 +318,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // .446 FG on 10.9, .320 on 2.1 threes, .798 FT on 5.2). The same player at that level, tested over 300 games and
     // scaled to 26.9 minutes, plays 15.3 pts, 6.4 ast, 3.2 reb, 1.4 stl, 2.9 tov, .457 FG on 11.0, .304 on 2.2 threes,
     // .823 FT on 5.5, and rates 56 overall (about the 40th-best guard in a league): that's his potential.
-    r: { hgt: 36, stre: 52, spd: 82, acc: 84, jmp: 66, endu: 70, ins: 22, dnk: 22, lay: 26, ft: 54, fg: 46, tp: 41, oiq: 34, diq: 50, blk: 44, stl: 96, drb: 50, pss: 58, reb: 36, box: 28 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 3.2 pts, 1.0 reb, 1.4 ast, 0.7 stl, 0.3 blk, 0.6 tov, .446 FG on 3.0, .246 on 0.6 threes, .716 FT on 0.6 in 12.3 min.
+    // 50 overall; potential 56.
+    r: { hgt: 36, stre: 52, spd: 82, acc: 85, jmp: 66, endu: 70, ins: 23, dnk: 23, lay: 27, ft: 44, fg: 42, tp: 35, oiq: 34, diq: 50, blk: 49, stl: 99, drb: 40, pss: 61, reb: 36, box: 28 },
     pot: 56, intg: { feel: 70, poise: 74 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: true, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 90, loyalty: 60, ambition: 70 },
     // Playing style: what the AI sets for these ratings (it refreshes it every month), a slasher who pulls up from mid-range and takes about a third of his shots from three.
-    ten: { usage: 33, ftr: 47, ra: 39, paint: 5, mid: 21, c3: 4, atb: 31, cns: 28, pullup: 33, step: 31, fade: 8 },
+    ten: { usage: 30.6, ftr: 55.4, ra: 56.4, paint: 10.3, mid: 16.6, c3: 1.4, atb: 15.3, cns: 25.5, pullup: 35.4, step: 35.1, fade: 4 },
   } },
   { label: 'Toney Douglas – Rookie year (2009–10)', card: {
     card: 1, name: 'Toney Douglas', first: 'Toney', last: 'Douglas', pos: 'PG', age: 23, dob: '1986-03-16', hgt: '6′2″', wt: 190, wing: 78,
@@ -276,11 +334,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 1.9 reb, 2.0 ast, 0.8 stl, 0.1 blk, 1.0 tov, .458 FG on 7.0 shots, .389 on 3.1 threes, .809 FT on 1.2. A
     // shoot-first combo guard and pesky on-ball defender. Tested over 300 games at about 20 minutes: 8.5 pts, 2.1 reb,
     // 1.8 ast, 1.1 stl, 0.1 blk, 1.2 tov, .431 FG on 7.2, .376 on 3.6 threes, .827 FT on 1.1.
-    r: { hgt: 34, stre: 52, spd: 78, acc: 76, jmp: 62, endu: 74, ins: 40, dnk: 46, lay: 64, ft: 60, fg: 68, tp: 68, oiq: 46, diq: 62, blk: 22, stl: 62, drb: 56, pss: 58, reb: 30, box: 26 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 8.3 pts, 1.4 reb, 1.9 ast, 0.8 stl, 0.1 blk, 1.4 tov, .436 FG on 6.7, .375 on 3.5 threes, .771 FT on 1.5 in 17.1 min.
+    // 55 overall; potential 58.
+    r: { hgt: 34, stre: 52, spd: 78, acc: 66, jmp: 62, endu: 74, ins: 37, dnk: 43, lay: 61, ft: 56, fg: 80, tp: 70, oiq: 48, diq: 62, blk: 21, stl: 67, drb: 55, pss: 66, reb: 37, box: 33 },
     pot: 58, intg: { feel: 50, poise: 60 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 62, ftr: 30, ra: 20, paint: 8, mid: 22, c3: 16, atb: 36, cns: 55, pullup: 38, step: 4, fade: 3 },
+    ten: { usage: 48.8, ftr: 47.8, ra: 20.6, paint: 8.9, mid: 19.5, c3: 11.4, atb: 39.6, cns: 66.4, pullup: 23.2, step: 7.4, fade: 3 },
   } },
   { label: 'Jan Veselý – Rookie year (2011–12)', card: {
     card: 1, name: 'Jan Veselý', first: 'Jan', last: 'Veselý', pos: 'PF', age: 21, dob: '1990-04-24', hgt: '7′0″', wt: 240, wing: 85,
@@ -289,11 +350,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 0.6 blk, 1.1 tov, .537 FG on 3.8 shots (lobs, dunks, putbacks), 0 for 1 from three, .532 FT on 1.1. An explosive
     // leaper with no jumper and a broken free throw. Tested over 300 games at about 20 minutes: 4.2 pts, 4.7 reb,
     // 0.7 ast, 0.6 stl, 0.5 blk, 0.7 tov, .564 FG on 3.4, .502 FT on 0.8 (a little fewer turnovers than his real 1.1).
-    r: { hgt: 66, stre: 50, spd: 74, acc: 66, jmp: 84, endu: 70, ins: 42, dnk: 50, lay: 44, ft: 12, fg: 28, tp: 12, oiq: 22, diq: 50, blk: 72, stl: 70, drb: 12, pss: 36, reb: 52, box: 46 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 4.0 pts, 4.0 reb, 0.5 ast, 0.7 stl, 0.6 blk, 0.3 tov, .668 FG on 2.6, .077 on 0.0 threes, .522 FT on 1.0 in 17.7 min.
+    // 45 overall; potential 52.
+    r: { hgt: 66, stre: 50, spd: 74, acc: 67, jmp: 84, endu: 70, ins: 49, dnk: 57, lay: 51, ft: 11, fg: 39, tp: 14, oiq: 29, diq: 50, blk: 78, stl: 85, drb: 15, pss: 32, reb: 59, box: 53 },
     pot: 52, intg: { feel: 40, poise: 40 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 70, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 44, ftr: 50, ra: 70, paint: 16, mid: 13, c3: 0, atb: 1, cns: 60, pullup: 25, step: 0, fade: 15 },
+    ten: { usage: 23.9, ftr: 58.3, ra: 82.4, paint: 12.8, mid: 4, c3: 0.2, atb: 0.6, cns: 26.1, pullup: 23.6, step: 11.2, fade: 39.1 },
   } },
   { label: 'Bismack Biyombo – Rookie year (2011–12)', card: {
     card: 1, name: 'Bismack Biyombo', first: 'Bismack', last: 'Biyombo', pos: 'C', age: 19, dob: '1992-08-28', hgt: '6′9″', wt: 255, wing: 90,
@@ -302,11 +366,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 1.8 blk, 1.1 tov, .464 FG on 4.4 shots, .483 FT on 2.3. A 7-6 wingspan, all defense and energy, almost no
     // offense beyond dunks. Tested over 300 games at about 24 minutes: 4.9 pts, 6.0 reb, 0.6 ast, 0.3 stl, 1.6 blk,
     // 0.4 tov, .501 FG on 4.0, .505 FT on 1.7 (fewer turnovers than his real 1.1, as for every low-usage big).
-    r: { hgt: 60, stre: 72, spd: 62, acc: 56, jmp: 95, endu: 70, ins: 24, dnk: 30, lay: 16, ft: 8, fg: 16, tp: 1, oiq: 20, diq: 70, blk: 98, stl: 12, drb: 10, pss: 14, reb: 42, box: 50 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 4.6 pts, 3.4 reb, 0.8 ast, 0.3 stl, 2.2 blk, 0.3 tov, .657 FG on 3.1, .000 on 0.0 threes, .409 FT on 1.1 in 24.0 min.
+    // 47 overall; potential 60.
+    r: { hgt: 60, stre: 72, spd: 62, acc: 65, jmp: 95, endu: 70, ins: 44, dnk: 50, lay: 36, ft: 1, fg: 16, tp: 1, oiq: 30, diq: 70, blk: 99, stl: 5, drb: 15, pss: 22, reb: 29, box: 37 },
     pot: 60, intg: { feel: 35, poise: 45 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 85, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 48, ftr: 80, ra: 58, paint: 26, mid: 16, c3: 0, atb: 0, cns: 50, pullup: 20, step: 0, fade: 30 },
+    ten: { usage: 16.5, ftr: 67.5, ra: 86.2, paint: 12.2, mid: 1.1, c3: 0.1, atb: 0.4, cns: 36.4, pullup: 22.1, step: 8.5, fade: 33 },
   } },
   { label: 'Bronny James – Rookie year (2024–25)', card: {
     card: 1, name: 'Bronny James', first: 'Bronny', last: 'James', pos: 'SG', age: 20, dob: '2004-10-06', hgt: '6′2″', wt: 210, wing: 79,
@@ -315,11 +382,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 2.3 pts, 0.7 reb, 0.8 ast, 0.3 stl, 0.5 tov, .313 FG on 2.5 shots, .281 on 1.2 threes, .786 FT. Strong, a willing
     // defender, the offense still raw. Tested over 500 games at about 7 minutes: 2.2 pts, 0.7 reb, 0.8 ast, 0.2 stl,
     // 0.5 tov, .329 FG on 2.4, .282 on 1.5 threes, .750 FT.
-    r: { hgt: 34, stre: 60, spd: 66, acc: 64, jmp: 70, endu: 70, ins: 34, dnk: 30, lay: 14, ft: 56, fg: 10, tp: 36, oiq: 38, diq: 52, blk: 30, stl: 50, drb: 36, pss: 64, reb: 30, box: 30 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 2.0 pts, 0.6 reb, 1.1 ast, 0.3 stl, 0.1 blk, 0.3 tov, .379 FG on 1.8, .285 on 1.1 threes, .739 FT on 0.4 in 9.3 min.
+    // 48 overall; potential 52.
+    r: { hgt: 34, stre: 60, spd: 66, acc: 60, jmp: 70, endu: 70, ins: 34, dnk: 30, lay: 14, ft: 53, fg: 15, tp: 43, oiq: 36, diq: 52, blk: 41, stl: 51, drb: 36, pss: 64, reb: 31, box: 31 },
     pot: 52, intg: { feel: 55, poise: 55 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: true, streaky: false, work: 80, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 90, ftr: 34, ra: 20, paint: 8, mid: 8, c3: 18, atb: 48, cns: 50, pullup: 40, step: 6, fade: 4 },
+    ten: { usage: 22.1, ftr: 44.2, ra: 31.8, paint: 5.1, mid: 3.9, c3: 8.3, atb: 50.9, cns: 65.5, pullup: 20.4, step: 12.3, fade: 1.8 },
   } },
   { label: 'Jarrett Culver – Rookie year (2019–20)', card: {
     card: 1, name: 'Jarrett Culver', first: 'Jarrett', last: 'Culver', pos: 'GF', age: 20, dob: '1999-02-20', hgt: '6′6″', wt: 195, wing: 82,
@@ -329,10 +399,13 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // willing wing defender whose shot never came: one of the worst free-throw shooters in the league. Tested over 800
     // games at about 23.5 minutes: 9.3 pts, 3.2 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.4 tov, .417 FG on 8.8, .309 on 3.6
     // threes, .458 FT on 1.8.
-    r: { hgt: 46, stre: 46, spd: 70, acc: 70, jmp: 68, endu: 72, ins: 42, dnk: 48, lay: 30, ft: 8, fg: 30, tp: 36, oiq: 62, diq: 60, blk: 68, stl: 48, drb: 48, pss: 47, reb: 33, box: 30 },
+    // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
+    // real minutes and role on a mid-table team: 8.4 pts, 2.7 reb, 1.7 ast, 0.6 stl, 0.5 blk, 0.6 tov, .462 FG on 7.2, .353 on 3.4 threes, .418 FT on 1.3 in 24.1 min.
+    // 53 overall; potential 54.
+    r: { hgt: 46, stre: 46, spd: 70, acc: 80, jmp: 68, endu: 72, ins: 39, dnk: 45, lay: 27, ft: 5, fg: 48, tp: 56, oiq: 73, diq: 60, blk: 54, stl: 28, drb: 65, pss: 44, reb: 53, box: 50 },
     pot: 54, intg: { feel: 50, poise: 45 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 85, loyalty: 65, ambition: 60 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 82, ftr: 44, ra: 29, paint: 12, mid: 18, c3: 12, atb: 29, cns: 55, pullup: 35, step: 6, fade: 4 },
+    ten: { usage: 42.9, ftr: 51.7, ra: 35, paint: 5.1, mid: 7, c3: 15.5, atb: 37.4, cns: 52.6, pullup: 32.2, step: 12.8, fade: 2.4 },
   } },
 ];

@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-18
 
 ### Changed
+- **Every ready-made player card retuned.** All 17 cards were re-tested against their real rookie seasons with today's engine, playing the shot choices the game itself gives them, and their ratings adjusted to match. Potentials above 70 moved to the new scale (Chris Paul 85 → 78, Luka 83 → 77, Dwight Howard 82 → 77). Cards you never edited update on their own, and players you already gave a card get the new build when you load your league, keeping any growth since.
 - **Big, heavy draftees are a little less quick.** A prospect who is tall for his position or heavy for his frame now comes in with a bit less speed, acceleration and leaping (up to about 8 points for the biggest), so a giant center won't run the floor like a springy 6′10″ big. A tall, skinny big keeps more of his bounce, and about 1 in 20 is a freak athlete who loses nothing. Only new draft classes are affected.
 
 ### Fixed
