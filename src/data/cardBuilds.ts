@@ -6,6 +6,7 @@ export const OLD_CARD_BUILDS: Record<string, { r: Record<string, number>; pot: n
     { r: {hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 62, dnk: 34, lay: 62, ft: 44, fg: 45, tp: 56, oiq: 82, diq: 44, drb: 90, pss: 62, reb: 61, box: 56}, pot: 83 },
     { r: {hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 48, dnk: 30, lay: 42, ft: 42, fg: 95, tp: 51, oiq: 70, diq: 44, drb: 85, pss: 58, reb: 61, box: 56}, pot: 83 },
     { r: {hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 48, dnk: 30, lay: 42, ft: 42, fg: 95, tp: 51, oiq: 70, diq: 44, blk: 30, stl: 62, drb: 85, pss: 58, reb: 61, box: 56}, pot: 83 },
+    { r: {hgt: 73, stre: 78, spd: 52, acc: 61, jmp: 42, endu: 58, ins: 53, dnk: 35, lay: 47, ft: 38, fg: 96, tp: 63, oiq: 58, diq: 44, blk: 28, stl: 51, drb: 85, pss: 60, reb: 68, box: 63}, pot: 77 },
   ],
   "Dalton Knecht": [
     { r: {hgt: 47, stre: 46, spd: 66, acc: 80, jmp: 86, endu: 56, ins: 48, dnk: 66, lay: 81, ft: 49, fg: 59, tp: 62, oiq: 43, diq: 25, blk: 20, stl: 15, drb: 46, pss: 41, reb: 40, box: 46}, pot: 51 },

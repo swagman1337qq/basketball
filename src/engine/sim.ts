@@ -27,6 +27,7 @@ const roleK = (p: any, name: string, m: number) => 1 + (m - 1) * roleW(p, name);
 // Who gets the rebound: rebounding skill to this power (2026-10-17: 2 → 2.5, so the best rebounders get more of
 // their team's boards, as in the NBA; team totals don't change).
 const REB_EXP = 2.5;
+const REB_OFF: Record<string, number> = { G: 0.62, W: 0.7, B: 1.2 }, REB_DEF: Record<string, number> = { G: 1.45, W: 1.0, B: 0.92 }; // by position group (rebound())
 export const BASE = {
   pace: 99.4, pts: 115.6,
   fg: 0.471, tp: 0.360, tpa: 37.0, ft: 0.783,
@@ -804,7 +805,9 @@ export class GameSim {
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
       const pool = off ? onO : onD, S = off ? O : D;
-      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) * roleK(p, 'Rebounder', 1.3) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
+      // Guards get back on defense instead of crashing the offensive glass and pick up long defensive rebounds;
+      // bigs live on the offensive glass (NBA: about 17% of a guard's rebounds are offensive, 29% of a big's).
+      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) * (off ? REB_OFF[p.grp] ?? 1 : REB_DEF[p.grp] ?? 1) * roleK(p, 'Rebounder', 1.3) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }

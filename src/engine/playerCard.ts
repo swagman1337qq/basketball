@@ -121,13 +121,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // (Basketball-Reference): 21.6 pts on 17 FGA, 42.9% FG, 3.4 FGA at the rim (64.7%), 6.6 from 3 ft to
     // the arc (41.6%), 7.0 threes (33.5%), 6.5 FTA (72%), 7.3 reb, 6.2 ast, 3.5 tov, PER 19.2, TS 54.4%.
     // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
-    // real minutes and role on a mid-table team: 19.5 pts, 6.4 reb, 5.7 ast, 1.0 stl, 0.3 blk, 4.6 tov, .372 FG on 20.1, .317 on 6.3 threes, .690 FT on 3.7 in 30.9 min.
-    // 61 overall; potential 77 (83 before potentials above 70 were compressed).
-    r: { hgt: 73, stre: 78, spd: 52, acc: 61, jmp: 42, endu: 58, ins: 53, dnk: 35, lay: 47, ft: 38, fg: 96, tp: 63, oiq: 58, diq: 44, blk: 28, stl: 51, drb: 85, pss: 60, reb: 68, box: 63 },
+    // real minutes and role, with his real shot zones as targets too (a 95 mid-range rating had the AI send him mostly
+    // mid-range jumpers): 21.3 pts, 7.0 reb, 5.3 ast, 4.6 tov, .420 FG on 19.0, .713 at the rim on 4.4,
+    // .289 on 7.2 threes, .712 FT on 4.5 in 30.9 min. 61 overall; potential 77 (83 before potentials above 70 were compressed).
+    r: { hgt: 73, stre: 78, spd: 52, acc: 71, jmp: 42, endu: 58, ins: 59, dnk: 45, lay: 69, ft: 40, fg: 73, tp: 55, oiq: 52, diq: 44, blk: 27, stl: 47, drb: 92, pss: 58, reb: 70, box: 65 },
     pot: 77, intg: { feel: 90, poise: 85 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: true, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, work: 58, loyalty: 60, ambition: 80 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
-    ten: { usage: 79.1, ftr: 44.6, ra: 8.3, paint: 7.8, mid: 42.1, c3: 6.5, atb: 35.3, cns: 11.5, pullup: 60.9, step: 20.2, fade: 7.4 },
+    ten: { usage: 74.2, ftr: 56.5, ra: 22.4, paint: 13.8, mid: 22.7, c3: 4, atb: 37.1, cns: 9.8, pullup: 62.9, step: 22.9, fade: 4.4 },
   } },
   // The rookie cards below were tuned the same way, against each player's real rookie season (Basketball-
   // Reference: per game, advanced, shooting by distance, splits) translated to today's league: volume per
