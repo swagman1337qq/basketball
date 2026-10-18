@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-18
 
+### Changed
+- **Big, heavy draftees are a little less quick.** A prospect who is tall for his position or heavy for his frame now comes in with a bit less speed, acceleration and leaping (up to about 8 points for the biggest), so a giant center won't run the floor like a springy 6′10″ big. A tall, skinny big keeps more of his bounce, and about 1 in 20 is a freak athlete who loses nothing. Only new draft classes are affected.
+
 ### Fixed
 - **Defensive Player of the Year isn't only for bigs anymore.** Lockdown wings now win it now and then (about 1 year in 5), a guard with elite steal numbers very occasionally (about once in 20 years), and a dominant two-way superstar can, very rarely, win MVP and DPOY in the same season (about once in 40 seasons in testing). Leagues that never edited the formula switch to the new one automatically.
 - **The starter you put in stays a starter when an injured player comes back.** If a starter got hurt and you moved a bench player into the starting five, the injured player used to walk straight back into his old spot when he healed, pushing your pick to the bench. Now, if you changed the starting five while he was out, he comes back as the first man off the bench (move him back up whenever you like). If you didn't touch the lineup, he still returns to his old spot. Moving players by hand also turns off "Keep auto sorted", which used to undo your order before the next game.

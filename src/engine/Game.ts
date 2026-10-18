@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_W, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -707,7 +707,7 @@ export class Game {
   mkProspect(base: number, cls: number, ahead: number, Wt) {
     const rnd = () => this.rnd(), da = +this.wpick(Game.DRAFT_AGE);
     const p = this.mkPlayer(base + (da - 19) * 3, Math.max(15, da - ahead), Wt, cls);
-    p.dAge = da;
+    p.dAge = da; this.sizeTax(p, rnd);
     const home = p.raised || p.born, cc = ['US', 'CA', 'BS'].includes(home) ? [] : clubs()[home] || [], intl = cc.length > 0;
     const youth = intl ? { team: cc[Math.floor(rnd() * cc.length)][0] + ' U18', lg: 'Junior', country: home } : { team: this.db.C.US.cities[Math.floor(rnd() * this.db.C.US.cities.length)] + ' ' + ['Prep', 'Academy', 'Christian', 'High'][Math.floor(rnd() * 4)], lg: 'High school', country: 'US' };
     let k: 'hs' | 'col' | 'club', to: any = null;
@@ -717,6 +717,16 @@ export class Game {
     p.pth = { k, youth, to };
     p.from = this.prospectFrom(p);
     return p;
+  }
+  // Size costs a draftee a little quickness: taller than usual for his position (a guard over 6′3″, a wing over
+  // 6′6″, a big over 6′11″) or heavier than his frame, he loses some speed, acceleration and (less) leaping, up
+  // to about 8 for the biggest, heaviest. A skinny frame offsets part of the height (a tall, wiry big keeps his
+  // bounce), and about 1 in 20 is a freak athlete who loses nothing.
+  sizeTax(p, rnd: () => number) {
+    const hIn = inchesOf(p.hgt), mid = ({ G: 75, W: 78.5, B: 83 } as Record<string, number>)[p.grp] ?? 78.5, heavy = (p.wt - (hIn * 2.9 + 7.5)) / 10;
+    const load = Math.max(0, hIn - mid + 1.2 * heavy); if (!load || rnd() < 0.05) return;
+    ([['spd', 2.2], ['acc', 2.5], ['jmp', 1.6]] as [string, number][]).forEach(([k, w]) => (p.r[k] = Math.max(4, Math.round(p.r[k] - load * w))));
+    syncOvr(p);
   }
   // Where a prospect plays at his age now: high school or a junior team until he's 18, then his college or
   // his club's senior side (a prep-to-pro prospect stays in high school until the draft).
