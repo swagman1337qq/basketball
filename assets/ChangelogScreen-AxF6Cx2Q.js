@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D7AWSIt5.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BTMMFKe4.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -9,6 +9,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Teams under the salary floor pay the shortfall.** As in the NBA, a team whose payroll ends the season under the floor pays its players the difference; it shows in Finances, so staying under the floor saves nothing.
 
 ### Changed
+- **The Yi Jianlian card shoots like Yi.** He was a face-up 7-footer who lived on 15–20 foot jumpers and took a few threes, but the card sent three-quarters of his shots to the rim and almost never shot threes. Now about half his shots are jumpers, he takes the odd three, and he shoots .48 like a jump-shooting big. A player you gave the card gets the new build when you load your league.
 - **Shooting by zone matches the NBA.** Floaters, hooks and mid-range jumpers went in far too rarely (.39 and .35 against the NBA's .44 and .42), which made everything at the rim look great by comparison; now each zone hits NBA rates. Finishing at the rim leans more on touch (dunks, layups, inside) and less on height alone, so a tall backup big with no touch no longer converts like an All-Star, and big men who can't shoot take nearly all their shots at the rim instead of jumpers, like the NBA's 60% shooters.
 - **Minutes you set are minutes he plays.** A lineup style (small ball, twin towers) no longer sits a player who is short of the minutes you gave him; it takes the extra minutes from players on automatic minutes first.
 - **Fewer 35–39 point seasons, and rookies who play like rookies.** Stat padders were getting their extra shots twice; a weak team's best player is fed less like a star; personality adds less on top of a first option's role; a first-year player defers a little (rookies on bad teams were averaging 23–31 points).
