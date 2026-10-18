@@ -565,12 +565,19 @@ export class Game {
     }));
     // Scale contracts so the average payroll sits near $172M, then pull every team
     // between the salary floor and the 2nd apron (real payrolls cluster there).
+    // 2026-10-18: price the starting contracts from each player's final overall and league rank (the in-game
+    // pricing, priceOvr), with a random spread, instead of his generation rating: 12–17 players ranked 100th or
+    // worse (some on max deals) started on 12%+ of the cap.
+    this.refreshPrices(rosters);
+    (Object.values(rosters).flat() as number[]).forEach(id => { const p = P[id]; if (p.rookie && p.dr) return; const z = (rnd() + rnd() + rnd() - 1.5) * 2;
+      p.amt = Math.min(this.MAXC, valueCurve(this.priceOvr(ovrExact(p))) * Math.exp(0.15 * z)); });
     const tot = Object.values(rosters).reduce((a: number, ids: any) => a + ids.reduce((x, id) => x + P[id].amt, 0), 0) as number;
     const sf = 172 * teams.length / tot;
     Object.values(P).forEach((p: any) => { p.amt *= sf; });
+    const worth = new Map<number, number>((Object.values(rosters).flat() as number[]).map(id => [id, P[id].amt]));
     // First-round picks still on their rookie deals are paid on the rookie scale, not by rating.
     Object.values(P).forEach((p: any) => { if (p.rookie && p.dr) p.amt = this.rookieAmt(Math.min(30, p.dr.pick)) * CAPS0.CAP / 165; });
-    Object.values(rosters).forEach((ids: any) => { const vet = ids.filter(id => !P[id].rookie), fixed = ids.filter(id => P[id].rookie).reduce((x, id) => x + P[id].amt, 0), pay = vet.reduce((x, id) => x + P[id].amt, 0) + fixed, tgt = pay < CAPS0.MINP + 2 ? CAPS0.MINP + 2 + rnd() * 14 : pay > CAPS0.AP2 ? CAPS0.AP2 - 2 - rnd() * 10 : pay; if (tgt !== pay && pay > fixed) vet.forEach(id => (P[id].amt *= (tgt - fixed) / (pay - fixed))); });
+    Object.values(rosters).forEach((ids: any) => { const vet = ids.filter(id => !P[id].rookie), fixed = ids.filter(id => P[id].rookie).reduce((x, id) => x + P[id].amt, 0), pay = vet.reduce((x, id) => x + P[id].amt, 0) + fixed, tgt = pay < CAPS0.MINP + 2 ? CAPS0.MINP + 2 + rnd() * 14 : pay > CAPS0.AP2 ? CAPS0.AP2 - 2 - rnd() * 10 : pay; if (tgt !== pay && pay > fixed) vet.forEach(id => { const w = worth.get(id) ?? P[id].amt; P[id].amt = cl(P[id].amt * (tgt - fixed) / (pay - fixed), 0.6 * w, 1.35 * w); }); }); // a team's payroll moves toward the band, but nobody past 0.6–1.35× his worth (a weak team may start under the floor: it pays the shortfall)
     (Object.values(P) as any[]).forEach(p => { p.amt = +cl(p.amt, p.age <= 22 ? 1.35 : 2.44, this.MAXC).toFixed(1); p.ask = +Math.max(2.44, p.amt * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.25 : 1)).toFixed(1); });
     // Families. Former players from before the league's records (fathers for future sons),
     // then brothers and sons among today's players and prospects at real NBA rates.
