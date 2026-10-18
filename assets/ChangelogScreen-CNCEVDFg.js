@@ -1,11 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D-k749As.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cq1fAlGB.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-18
 
 ### Fixed
-- **Defensive Player of the Year isn't only for bigs anymore.** Lockdown wings and guards with elite steal numbers now win it too (about 4 in 10 years instead of 1 in 8), and a dominant two-way superstar can, very rarely, win MVP and DPOY in the same season (about once in 40 seasons in testing). Leagues that never edited the formula switch to the new one automatically.
+- **Defensive Player of the Year isn't only for bigs anymore.** Lockdown wings now win it now and then (about 1 year in 5), a guard with elite steal numbers very occasionally (about once in 20 years), and a dominant two-way superstar can, very rarely, win MVP and DPOY in the same season (about once in 40 seasons in testing). Leagues that never edited the formula switch to the new one automatically.
 - **The starter you put in stays a starter when an injured player comes back.** If a starter got hurt and you moved a bench player into the starting five, the injured player used to walk straight back into his old spot when he healed, pushing your pick to the bench. Now, if you changed the starting five while he was out, he comes back as the first man off the bench (move him back up whenever you like). If you didn't touch the lineup, he still returns to his old spot. Moving players by hand also turns off "Keep auto sorted", which used to undo your order before the next game.
 
 ## 2026-10-17
