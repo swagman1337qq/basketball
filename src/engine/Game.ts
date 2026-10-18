@@ -48,7 +48,7 @@ import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './star
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
 import { awardDefs, computeAwards, seriesMvp } from './awards';
-import { OLD_AWARD_FORMULAS } from '../data/awardDefs';
+import { OLD_AWARD_FORMULAS, DEFAULT_AWARDS } from '../data/awardDefs';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
@@ -348,8 +348,9 @@ export class Game {
       g.refreshNorms(g.state); g.db.iqV = 5; }
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
-    // 2026-10-17: new DPOY and ROY formulas; a league that saved the old ones word for word moves to the new ones.
-    if (Array.isArray(g.state.awardDefs)) g.state.awardDefs = g.state.awardDefs.map((d: any) => { const o = OLD_AWARD_FORMULAS[d?.shortName]; return o && d.formula === o[0] ? { ...d, formula: o[1] } : d; });
+    // 2026-10-17/18: new DPOY and ROY formulas; a league that saved an earlier default word for word moves to today's.
+    if (Array.isArray(g.state.awardDefs)) g.state.awardDefs = g.state.awardDefs.map((d: any) => { const now = DEFAULT_AWARDS.find(x => x.shortName === d?.shortName);
+      return now && OLD_AWARD_FORMULAS[d.shortName]?.includes(d.formula) ? { ...d, formula: now.formula } : d; });
     if (!g.db.rebV) { (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone || p.retired) return; if (liftRebounding(p)) { syncOvr(p); if (p.tpot != null && p.ovr > p.tpot) p.tpot = p.ovr; } }); g.refreshNorms(g.state); g.db.rebV = 1; }
     // 2026-10-17: salaries priced by league rank (priceOvr); an older league (after the migrations above) reads ranks off a typical first season.
     if (g.db.priceQ0 === undefined) { g.db.priceQ0 = PRICE_Q0.slice(); g.refreshPrices(g.state.rosters || {}); }
