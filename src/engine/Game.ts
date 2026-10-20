@@ -2186,6 +2186,9 @@ export class Game {
     Object.values(rosters).flat().forEach((id: any) => { const p = P[id], m = mins[id] || 0;
       p.fat = Math.max(0, Math.min(100, (p.fat || 0) - (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
   }
+  // How close (in draft value: 0.7 × potential read + 0.3 × overall) a prospect must be to an AI team's top
+  // choice for it to take him instead.
+  static DRAFT_CLOSE = 3;
   rookieAmt(n) { return +(2.9 + Math.pow((30 - n) / 29, 1.6) * 10.9).toFixed(1); }
   // Draft picks by the AI. Stops at a managed team's pick when untilMine; otherwise auto-picks for them too.
   // AI picks until it's a managed team's turn (untilMine), for everyone, or for `limit` picks.
@@ -2207,8 +2210,11 @@ export class Game {
         if (!avail.length) { pi = picks.length; break; } // class exhausted: the remaining picks are forfeited
         // An AI team drafts on its own read: the league's read of each prospect plus its own scouts' miss
         // (a frugal owner's thin staff misses more). Your auto-draft uses the board as shown.
-        const ranked = ai ? (() => { const val = (x: number) => { const q = this.db.P[x]; return this.potRead(q, ow, s) * 0.7 + q.ovr * 0.3; }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); return avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); })() : avail;
-        const id = ranked[Math.min(ranked.length - 1, Math.floor(Math.random() * Math.random() * 3))];
+        // It takes its top choice most of the time, else one of the next two, but only among prospects close
+        // to the best on its board (within DRAFT_CLOSE): a clear-cut best player always goes first.
+        let close = 3;
+        const ranked = ai ? (() => { const val = (x: number) => { const q = this.db.P[x]; return this.potRead(q, ow, s) * 0.7 + q.ovr * 0.3; }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); const r = avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); close = r.filter(x => v.get(r[0])! - v.get(x)! <= Game.DRAFT_CLOSE).length; return r; })() : avail;
+        const id = ranked[Math.min(ranked.length - 1, close - 1, Math.floor(Math.random() * Math.random() * 3))];
         picks[pi].pid = id; taken.add(id);
         const p = this.db.P[id], T = s.teams[ow];
         const pt = promiseOwner(id);

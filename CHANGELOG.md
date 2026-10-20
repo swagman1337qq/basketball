@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-20
 
+### Fixed
+- **A clear-cut best prospect always goes first.** AI teams sometimes take the second or third name on their draft board for variety, but now only when those players are close to the best one. Before, even a far better prospect, like one you'd made a 99 in God Mode, was passed over about 3 times in 10.
+
 ### Added
 - **Jarred Vanderbilt card (2022–23).** A ready-made card for his season with Utah and the Lakers, built from his real line (24.1 min: 7.9 pts, 7.5 reb, 2.4 ast, 1.1 stl, .548 FG, .322 on 1.2 threes, .691 FT) and his real shot chart (about half his shots at the rim, threes mostly from the corner). Tested over 430 games, the card plays 7.1 pts, 7.1 reb, 2.3 ast, 0.9 stl, .552 FG on 5.2 shots, .306 on 1.3 threes. 59 overall, 60 potential.
 

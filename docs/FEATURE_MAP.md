@@ -63,7 +63,7 @@ flowchart LR
 | Playoffs | `playoffs` | Best-of-7 East and West, then the Finals. When it ends: the owner's year-end letter and the Hall of Fame vote. | `Game.startPlayoffs()`, `Game.simPo()`, `ownerLetter.ts`, `hof.ts` |
 | Owner review | `playoffs` → `lottery` | Incentives paid, owner verdicts (you can be fired), your GM contract, the job market. | `frontOffice.seasonReview()`, `gmCareer.ts` |
 | Draft lottery | `lottery` | 3-2-1 lottery (16 teams, all 16 picks drawn), 2nd-apron penalty, pick protections and swaps settle. | `Game.runLottery()`, `lottery.ts`, `pickRules.ts` |
-| Draft | `draft` | Two rounds, 60 picks, rookie-scale deals, draft promises and draft-night heists. | `Game.aiDraft()`, `Game.draftPick()`, `cbaFlow.signDraftee()` |
+| Draft | `draft` | Two rounds, 60 picks, rookie-scale deals, draft promises and draft-night heists. AI teams pick from their own board (0.7 × potential read + 0.3 × overall): usually the top choice, sometimes one of the next two, but only among prospects within `Game.DRAFT_CLOSE` (3) of the best. | `Game.aiDraft()`, `Game.draftPick()`, `cbaFlow.signDraftee()` |
 | Pre-Free Agency | `draft` (with `preFA`) | Player options decided; you decide team options, expiring contracts (re-sign, keep Bird rights, qualifying offer, renounce) and extensions. | `preFA.ts`, `PreFAScreen.tsx` |
 | Free agency | `fa` | New league year (cap grows, exceptions reset, team sales close), moratorium until July 6, offer sheets, owner payroll orders. 92 days. | `Game.startFA()`, `Game.advanceFA()`, `cbaFlow.ts`, `contracts.ts` |
 
