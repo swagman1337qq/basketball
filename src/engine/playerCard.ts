@@ -410,4 +410,21 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
     ten: { usage: 42.9, ftr: 51.7, ra: 35, paint: 5.1, mid: 7, c3: 15.5, atb: 37.4, cns: 52.6, pullup: 32.2, step: 12.8, fade: 2.4 },
   } },
+  { label: 'Jarred Vanderbilt – 2022–23', card: {
+    card: 1, name: 'Jarred Vanderbilt', first: 'Jarred', last: 'Vanderbilt', pos: 'PF', age: 23, dob: '1999-04-03', hgt: '6′8″', wt: 214, wing: 85,
+    rep: 'US', born: 'US', raised: 'US', city: 'Houston', state: 'TX', her: 'US', race: 'black',
+    // Real (No. 41 pick in 2018 out of Kentucky; his fifth season, split between Utah and the Lakers): 78 games, 24.1 min,
+    // 7.9 pts, 7.5 reb, 2.4 ast, 1.1 stl, 0.3 blk, 1.2 tov, .548 FG on 5.8 shots, .322 on 1.2 threes, .691 FT on 1.8.
+    // A long, relentless rebounder and switchable defender who scores on putbacks, cuts and dunks.
+    // Shots: 48% from 0–3 ft (.720), 28% from 3–10 ft (.449), 4% mid-range, 20% threes (88% of them from the corner).
+    // Tested over 430 games at his real minutes and role on a mid-table team, playing the AI's own tendencies (which
+    // replace a card's every month): 7.1 pts, 7.1 reb, 2.3 ast, 0.9 stl, 0.4 blk, 0.7 tov, .552 FG on 5.2, .306 on 1.3 threes,
+    // .728 FT on 1.3 in 23.7 min (fewer turnovers than his real 1.2, as for every low-usage big).
+    // 59 overall; potential 60.
+    r: { hgt: 56, stre: 60, spd: 72, acc: 78, jmp: 80, endu: 78, ins: 50, dnk: 65, lay: 50, ft: 41, fg: 27, tp: 47, oiq: 55, diq: 72, blk: 24, stl: 70, drb: 42, pss: 59, reb: 77, box: 67 },
+    pot: 60, intg: { feel: 55, poise: 55 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 90, loyalty: 60, ambition: 55 },
+    // Playing style from his real 2022–23 shot chart (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 30, ftr: 53, ra: 48, paint: 28, mid: 4, c3: 18, atb: 2, cns: 85, pullup: 10, step: 0, fade: 5 },
+  } },
 ];
