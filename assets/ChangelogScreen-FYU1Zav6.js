@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cxo9Eyk3.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BeULVvj1.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-20
+
+### Added
+- **Jarred Vanderbilt card (2022–23).** A ready-made card for his season with Utah and the Lakers, built from his real line (24.1 min: 7.9 pts, 7.5 reb, 2.4 ast, 1.1 stl, .548 FG, .322 on 1.2 threes, .691 FT) and his real shot chart (about half his shots at the rim, threes mostly from the corner). Tested over 430 games, the card plays 7.1 pts, 7.1 reb, 2.3 ast, 0.9 stl, .552 FG on 5.2 shots, .306 on 1.3 threes. 59 overall, 60 potential.
 
 ## 2026-10-18
 
