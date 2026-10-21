@@ -4,6 +4,7 @@ import { Dice, GOD_PINK, godBtn, godText } from '../kit';
 import { TransactionsTab } from './TransactionsTab';
 import { CountryPicker, FtInInput, NumInput } from '../kit';
 import { GodPlayerEditor } from './GodPlayerEditor';
+import { GodInjury } from '../GodInjury';
 import { ScoutReportView } from '../ScoutReportView';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './ProfileExtras';
 import { ProfileHeader, ProfileOverview } from './ProfileMain';
@@ -194,15 +195,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                   <span style={{ marginRight: "6px" }}>
                     {vm.pl.ed.health}
                   </span>
-                  <button className="btn btn-secondary" onClick={vm.pl.ed.heal} style={{ fontSize: "12px", padding: "3px 10px" }}>
-                    Heal
-                  </button>
-                  <button className="btn btn-secondary" onClick={vm.pl.ed.injMinor} style={{ fontSize: "12px", padding: "3px 10px" }}>
-                    Minor injury
-                  </button>
-                  <button className="btn btn-secondary" onClick={vm.pl.ed.injMajor} style={{ fontSize: "12px", padding: "3px 10px" }}>
-                    Major injury
-                  </button>
+                  <GodInjury gm={vm.ctx.gm} pid={vm.pl.id} injured={!!vm.pl.inj} onHeal={vm.pl.ed.heal} buttons />
                 </div>
                 <p style={{ margin: "14px 0 0", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                   Player IDs, engine formulas and stats from past seasons can’t be edited.

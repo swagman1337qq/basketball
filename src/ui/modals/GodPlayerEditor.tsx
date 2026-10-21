@@ -26,11 +26,9 @@ import { clonePlayer } from '../../engine/godPlayer';
 import { nowLabel } from '../../engine/godMove';
 import { PlayerPicker } from '../PlayerPicker';
 import type { Game } from '../../engine/Game';
-import { INJ_DTD, INJ_MAJOR, INJ_SHORT, INJ_WEEKS } from '../../data/injuries';
+import { GodInjury } from '../GodInjury';
 
 const CJK = /[぀-ヿ㐀-鿿가-힯]/;
-// Every injury type (data/injuries.ts), by tier: [name, games (middle of its range), major, day-to-day, group].
-const INJ: [string, number, boolean, boolean, string][] = [...INJ_DTD.map(x => [x.name, Math.round((x.min + x.max) / 2), false, true, 'Day-to-day'] as [string, number, boolean, boolean, string]), ...INJ_SHORT.map(x => [x.name, Math.round((x.min + x.max) / 2), false, false, 'Short (days)'] as [string, number, boolean, boolean, string]), ...INJ_WEEKS.map(x => [x.name, Math.round((x.min + x.max) / 2), false, false, 'Weeks'] as [string, number, boolean, boolean, string]), ...INJ_MAJOR.map(x => [x.name, Math.round((x.min + x.max) / 2), true, false, 'Season-ending'] as [string, number, boolean, boolean, string])];
 const inchesOf = (h: string) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
 const fmtH = (i: number) => Math.floor(i / 12) + '′' + (i % 12) + '″';
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -243,10 +241,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
           {num('Fatigue', Math.round(p.fat || 0), 0, 100, v => mut(q => (q.fat = v)))}
           <span style={muted}>Injury</span>
           <span style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <select className="input" value="" onChange={e => { const x = INJ.find(i => i[0] === e.target.value && e.target.selectedOptions[0]?.parentElement?.getAttribute('label') === i[4]) || INJ.find(i => i[0] === e.target.value); if (x) mut(q => { q.inj = { name: x[0], games: x[1], major: x[2] || undefined, dtd: x[3] || undefined }; (q.injHist = q.injHist || []).push({ name: x[0], games: x[1], season: gm.seasonLbl(), god: true }); }); }}>
-              <option value="">Trigger an injury…</option>{['Day-to-day', 'Short (days)', 'Weeks', 'Season-ending'].map(gr => <optgroup key={gr} label={gr}>{INJ.filter(i => i[4] === gr).map(i => <option key={gr + i[0]} value={i[0]}>{i[0]} ({i[1]}g)</option>)}</optgroup>)}
-            </select>
-            {p.inj && <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => mut(q => { delete q.inj; delete q.preInj; })}>Heal now</button>}
+            <GodInjury gm={gm} pid={p.id} injured={!!p.inj} onHeal={() => mut(q => { delete q.inj; delete q.preInj; })} />
           </span>
         </div>
         <h4 style={{ ...ruleH4, marginTop: '18px' }}>Playing style</h4>

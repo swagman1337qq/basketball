@@ -2,6 +2,17 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-21
+
+### Added
+- **Custom injuries in God Mode.** Next to Heal / Minor injury / Major injury on a player's profile (and the full injury list in Edit player) there's now a box to type any injury and how many games he's out.
+
+### Changed
+- **God Mode injuries never lower a player's ratings.** Minor and Major injury now pick a random injury of that kind (a sprained MCL, a torn meniscus, a ruptured Achilles…) instead of always the same one, they show in his injury history, and he comes back with the same ratings. Injuries that happen naturally in games work as before, God Mode or not.
+
+### Fixed
+- A player given a major injury in God Mode no longer crashes the game when he comes back.
+
 ## 2026-10-20
 
 ### Fixed

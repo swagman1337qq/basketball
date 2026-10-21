@@ -1819,6 +1819,23 @@ export class Game {
   injDone(p, s = this.state) { const i = p?.inj, h = i?.h != null ? p.injHist?.[i.h] : null; if (!h || h.back != null) return; h.back = this.calNow(s); h.missed = i.miss || 0; }
   // A day number (calNow) as a date: "Mar 4, 2031".
   fmtDay(dn: number) { return new Date(dn * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
+  // God Mode: injure a player by hand (any type, or a made-up one, for `games` games). It never costs him
+  // ratings, now or when he's back (god: true skips the rust a major injury can leave). On a team you run
+  // he leaves the rotation like any injured player, unless it's a day-to-day knock.
+  godInjure(id: number, name: string, games: number, o: { major?: boolean; dtd?: boolean } = {}) {
+    this.setState(s => {
+      const p = this.db.P[id]; if (!p || !name.trim() || !(games >= 1)) return null;
+      if (p.inj) this.injDone(p, s);
+      const g = Math.round(games), inj: any = { name: name.trim(), games: g, god: true, ...(o.major ? { major: true } : {}), ...(o.dtd ? { dtd: true } : {}) };
+      inj.until = this.injUntil(s, g);
+      const rosters = { ...s.rosters }, tid = this.tidOf(rosters, id);
+      if (tid >= 0 && this.isUser(s, tid) && !inj.dtd && !p.preInj) { rosters[tid] = rosters[tid].slice(); this.injAway(rosters, tid, p); }
+      const H = (p.injHist = p.injHist || []); inj.h = H.length;
+      H.push({ name: inj.name, games: g, season: this.seasonLbl(), day: this.calNow(s), tm: s.teams[tid]?.abbr, days: Math.max(1, inj.until - this.calNow(s)), god: true, ...(inj.dtd ? { dtd: true } : {}), ...(inj.major ? { major: true } : {}) });
+      p.inj = inj;
+      return { rosters, gv: (s.gv || 0) + 1 };
+    });
+  }
   // Games and days left (null if healthy).
   injLeft(p, s = this.state) { const i = p?.inj; if (!i) return null; if (i.until == null) i.until = this.injUntil(s, i.games); return { games: Math.max(0, i.games), days: Math.max(0, i.until - this.calNow(s)) }; }
   // "5 games / 12 days" (short: "5g / 12d").
@@ -1859,7 +1876,7 @@ export class Game {
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
       if (p.inj) { p.inj.games--; if (played.has(+k) && !mins[id]) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0) { let lost = '';
           // A major injury can also cost skill once he's back (rust, lost feel).
-          if (p.inj.major && !p.frozen && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; (p.injHist[p.injHist.length - 1] || {}).lost = lost; }
+          if (p.inj.major && !p.inj.god && !p.frozen && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; if (p.injHist?.length) p.injHist[p.injHist.length - 1].lost = lost; }
           if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); this.injDone(p, s); delete p.inj; this.injBack(s, rosters, +k, p); }
         if (!p.inj || !p.inj.dtd || !mins[id]) return; }
       // Injury rates from the NBA's own injury database (Mack et al., Sports Health 2024, seasons
