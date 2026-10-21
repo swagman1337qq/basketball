@@ -427,4 +427,21 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his real 2022–23 shot chart (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
     ten: { usage: 30, ftr: 53, ra: 48, paint: 28, mid: 4, c3: 18, atb: 2, cns: 85, pullup: 10, step: 0, fade: 5 },
   } },
+  { label: 'Maxi Kleber – Prime (2019–20)', card: {
+    card: 1, name: 'Maxi Kleber', first: 'Maxi', last: 'Kleber', pos: 'FC', age: 28, dob: '1992-01-29', hgt: '6′10″', wt: 240, wing: 87,
+    rep: 'DE', born: 'DE', raised: 'DE', city: 'Würzburg', her: 'DE', race: 'white',
+    // Real (undrafted in 2014, from Bayern Munich; his best season, with Dallas): 74 games (21 starts), 25.5 min, 9.1 pts,
+    // 5.2 reb, 1.2 ast, 0.3 stl, 1.1 blk, 0.8 tov, .461 FG on 6.9 shots, .373 on 4.3 threes, .849 FT on 1.3.
+    // A stretch big off the bench: spot-up threes, rim protection, switching onto guards.
+    // Shots: 28% from 0–3 ft (.669), 7% from 3–10 ft, 4% mid-range, 62% threes (38% of them from the corner).
+    // Tested over 420 games at his real minutes and bench role on a mid-table team, playing the AI's own tendencies
+    // (which replace a card's every month): 9.0 pts, 5.3 reb, 1.1 ast, 0.4 stl, 1.2 blk, 0.9 tov, .444 FG on 6.7,
+    // .392 on 4.5 threes, .855 FT on 1.5 in 23.8 min.
+    // 59 overall; potential 59 (28: he is what he is).
+    r: { hgt: 64, stre: 55, spd: 55, acc: 48, jmp: 65, endu: 65, ins: 35, dnk: 45, lay: 35, ft: 76, fg: 58, tp: 81, oiq: 54, diq: 70, blk: 65, stl: 22, drb: 30, pss: 45, reb: 61, box: 61 },
+    pot: 59, intg: { feel: 60, poise: 60 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 80, loyalty: 75, ambition: 45 },
+    // Playing style from his real 2019–20 shot chart (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 30, ftr: 30, ra: 28, paint: 7, mid: 3, c3: 24, atb: 38, cns: 92, pullup: 5, step: 0, fade: 3 },
+  } },
 ];
