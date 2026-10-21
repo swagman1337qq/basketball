@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CqNtU8P7.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BMQkcyfn.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-21
 
 ### Added
+- **Maxi Kleber card (prime, 2019–20).** A ready-made card for his best season in Dallas, built from his real line (25.5 min: 9.1 pts, 5.2 reb, 1.1 blk, .461 FG, .373 on 4.3 threes, .849 FT) and his real shot chart (six in ten shots from three, the rest mostly at the rim). Tested over 420 games, the card plays 9.0 pts, 5.3 reb, 1.2 blk, .444 FG on 6.7 shots, .392 on 4.5 threes, .855 FT. 59 overall.
 - **Custom injuries in God Mode.** Next to Heal / Minor injury / Major injury on a player's profile (and the full injury list in Edit player) there's now a box to type any injury and how many games he's out.
 
 ### Changed
