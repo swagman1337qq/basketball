@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-wQnKycSI.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DXhOYCgE.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-22
 
 ### Changed
+- **A richer market at the top, not in the middle.** League payroll now aims a little higher (1.15× the cap) and prices can rise further, but the cheaper middle of the market (roughly the 45th–120th best players) is held at its old level, so the extra money goes to stars and starters. Tested over 4 leagues × 10 seasons: about 6–7 teams a season pay the tax (NBA: 5–10), about 30 players are on max deals, and 56–58 overalls cost what they did before.
 - **Stars get paid like stars.** A top-30 player now asks for the max once his price is within 25% of it, his asking price no longer melts away while he waits in free agency (it stays within 5% of where he opened), and teams almost always keep their franchise player, going past the owner's usual budget if they must. Before, the market's best free agents could wait out the market and sign for the mid-level exception: one test league had a 75 overall signing for 8% of the cap.
 - **No more big extensions for players who never developed.** A young player's extension is now priced halfway between what he is and what he's projected to become (it was all projection, so some 50 and 53 overalls got a fifth of the cap), and the rookie max goes only to a player who's already good (62+). One-year deals by teams under the salary floor are capped at twice the player's ask ($12M over at most), so a bench player can't get a star's salary for a season.
 - **More teams pay the luxury tax, more stars on max deals.** The league now aims for payrolls a little over the cap, as in the NBA (1.11× the cap, was 1.04×), and the cheaper middle of the market now covers about the 45th to 120th-best players (it started around the 25th), so the players just below the stars are priced near their max. Tested over 4 leagues × 10 seasons: about 6 teams a season pay the tax (was about 4), about 25 players are on or near a max deal (was about 18 before today), under 1 team a season is under the floor.
