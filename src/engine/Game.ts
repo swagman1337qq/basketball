@@ -108,6 +108,7 @@ export class Game {
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     g.db.priceQ0 = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = null; // salaries keep this season's pay scale by rank (priceOvr)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
+    g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4); g.db.mkt = 1; // opening-night payroll ÷ cap, for the first summer's market step
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.dlV = 1; // (from the stored, compressed true potential: Game.draftNightLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
@@ -235,6 +236,8 @@ export class Game {
       Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || onTeam.has(id) || (p.stats || []).length) return;
         const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0); if (g.draftLevel(p, p.tpot ?? p.pot, (r() + r() + r() - 1.5) * 5.3, true)) refreshPot(p); }); });
       g.db.prosV = 1; }
+    // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
+    if (g.db.payOpen == null && g.state.teams && g.CAP) g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4);
     // 2026-10-22: draft-night levels came from the uncompressed true potential, so the best prospects arrived far
     // too good. Prospects not yet drafted come down to the corrected level (Game.draftNightLevel) once; never up,
     // true potential unchanged, and his plan moves with his level (as at training camp).
@@ -1418,6 +1421,7 @@ export class Game {
       // aprons, exceptions, max and min salaries) moves with it.
       const d = this.db, Y = this.Y + 1, growth = capGrowthFor(Y), capsBefore = { ...d.caps };
       this.refreshPrices(s.rosters); // salaries priced by league rank this year (priceOvr)
+      this.marketStep(); // and at the market's level (db.mkt)
       ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'VMIN', 'MLE', 'MAXC'].forEach(k => (d.caps[k] = +(d.caps[k] * growth).toFixed(1)));
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
       const extPlan = Object.keys(s.decide || {}).filter(k => k.startsWith('ext') && s.decide[k]).map(k => +k.slice(3)), rePlan = Object.keys(s.decide || {}).filter(k => k.startsWith('re') && s.decide[k]).map(k => +k.slice(2));
@@ -1685,6 +1689,7 @@ export class Game {
       placeInGLeague(this, s, box.fa);
       ccpNewSeason(this, s, this.Y); ccpTopUp(this, s, box.fa); // a new CCP season (tips off in November)
       removeUnplayed(this, s); slimRetired(this); dropOldSplits(this); // this summer's retirees: remove those who never played here, trim the rest
+      { const st = { ...s, ...box }; this.db.payOpen = +(s.teams.reduce((a, t) => a + teamSalary(this, st, t.tid), 0) / s.teams.length / this.CAP).toFixed(4); } // opening-night payroll ÷ cap (marketStep)
       return { ...fsPatch, ...clubLogs(this, s, by), ...box, lgLog, phase: 'regular', prog: null, jobs: null };
     });
     if (this.state.phase === 'regular') {
@@ -1704,7 +1709,13 @@ export class Game {
   pct(t) { return t.w + t.l ? t.w / (t.w + t.l) : 0; }
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
-  fair(ovr) { const b = this.priceOvr(ovr); return Math.min(this.MAXC, valueCurve(b) * Game.midTierF(b) * this.db.sf * this.CAP / CAPS0.CAP); }
+  // db.mkt (2026-10-22): the market's level, steered each summer so league payroll sits just over the cap (marketStep).
+  fair(ovr) { const b = this.priceOvr(ovr); return Math.min(this.MAXC, valueCurve(b) * Game.midTierF(b) * this.db.sf * (this.db.mkt ?? 1) * this.CAP / CAPS0.CAP); }
+  // The market follows the money: each summer, before free agency, last opening night's league payroll ÷ cap
+  // (db.payOpen) moves every price toward MKT_TARGET (as leagueDrift steers pace): × (target / actual)^0.6, kept
+  // within 0.85–1.25. Pricing changes (or a league's own drift) can't leave payroll stuck under the cap.
+  static MKT_TARGET = 1.04;
+  marketStep() { const d = this.db; if (!(d.payOpen > 0)) return; d.mkt = +Math.max(0.85, Math.min(1.25, (d.mkt ?? 1) * Math.pow(Game.MKT_TARGET / d.payOpen, 0.6))).toFixed(4); }
   // The middle of the market (2026-10-18): players ranked about 40th–120th (a first-season overall of 54.5–62.5) are
   // paid 22% less, tapering back to full price by 51.5 and 65.5. Priced straight off the NBA's salary ranks, a 57
   // (about the 70th-best player) asked about $30M, where real players of that quality get $15–25M.
