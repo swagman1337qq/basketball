@@ -1710,12 +1710,16 @@ export class Game {
   inches(h) { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; }
   owner2027(orig, assets, rd = 1) { return (assets.find(a => a.yr === this.Y && a.rd === (rd || 1) && a.orig === orig) || { owner: orig }).owner; }
   // db.mkt (2026-10-22): the market's level, steered each summer so league payroll sits just over the cap (marketStep).
-  fair(ovr) { const b = this.priceOvr(ovr); return Math.min(this.MAXC, valueCurve(b) * Game.midTierF(b) * this.db.sf * (this.db.mkt ?? 1) * this.CAP / CAPS0.CAP); }
+  fair(ovr) { const b = this.priceOvr(ovr), mt = Game.midTierF(b); return Math.min(this.MAXC, valueCurve(b) * mt * this.db.sf * Game.mktFor(this.db.mkt ?? 1, mt) * this.CAP / CAPS0.CAP); }
+  // The market factor for one price: the cheaper middle (midTierF) never goes past MKT_SHIELD; the rest of the
+  // market takes all of it (2026-10-22: so a rising market lifts stars and starters, not 56s and 57s).
+  static MKT_SHIELD = 1.25;
+  static mktFor(m: number, mt: number) { if (m <= Game.MKT_SHIELD) return m; const depth = Math.max(0, Math.min(1, (1 - mt) / 0.22)); return Game.MKT_SHIELD + (m - Game.MKT_SHIELD) * (1 - depth); }
   // The market follows the money: each summer, before free agency, last opening night's league payroll ÷ cap
   // (db.payOpen) moves every price toward MKT_TARGET (as leagueDrift steers pace): × (target / actual)^0.6, kept
   // within 0.85–MKT_MAX. Pricing changes (or a league's own drift) can't leave payroll stuck under the cap.
-  static MKT_TARGET = 1.11; // 2026-10-22: was 1.04; NBA payrolls average well over the cap (Bird rights), which is what puts 5–10 teams in the tax
-  static MKT_MAX = 1.25; // the market's ceiling (1.4 was tried 2026-10-22: it raised middle-tier prices, not the number of max deals)
+  static MKT_TARGET = 1.15; // 2026-10-22: was 1.04, then 1.11; NBA payrolls average well over the cap (Bird rights), which is what puts 5–10 teams in the tax
+  static MKT_MAX = 1.4; // the market's ceiling (1.25 until 2026-10-22; the middle is shielded at MKT_SHIELD)
   marketStep() { const d = this.db; if (!(d.payOpen > 0)) return; d.mkt = +Math.max(0.85, Math.min(Game.MKT_MAX, (d.mkt ?? 1) * Math.pow(Game.MKT_TARGET / d.payOpen, 0.6))).toFixed(4); }
   // The middle of the market (2026-10-18): players ranked about 40th–120th (a first-season overall of 54.5–62.5) are
   // paid 22% less, tapering back to full price by 51.5 and 65.5. Priced straight off the NBA's salary ranks, a 57
