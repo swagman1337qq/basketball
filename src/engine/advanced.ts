@@ -188,13 +188,16 @@ export function seriesLine(t: any): StatLine {
 // ── EPM, LEBRON and DARKO (finished after the box score) ─────────────────────────────────────────────
 // Past seasons are fixed once played, so their results are kept (per league) for DARKO's history: the
 // last six seasons (older ones are dropped, or a long session would keep every season it ever played).
+// (A season's results need the seasons before it, which need theirs: older seasons are dropped only once
+// the outermost request is done, never in the middle of that chain.)
 const PAST = new WeakMap<object, Map<number, SeasonAdvanced>>();
+let pastDepth = 0;
 function pastSeason(g: Game, y: number): SeasonAdvanced | null {
   if (y >= g.Y || y < (g.db.firstSeason ?? 2027) - 1) return null;
   let m = PAST.get(g.db); if (!m) PAST.set(g.db, (m = new Map()));
-  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); m.set(y, seasonAdvanced(g, g.state, y)); }
+  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); pastDepth++; try { m.set(y, seasonAdvanced(g, g.state, y)); } finally { pastDepth--; } }
   const v = m.get(y)!;
-  for (const k of m.keys()) if (k < g.Y - 6 && k !== y) m.delete(k); // mostly the last few seasons are asked for (about 2 MB each in a long league)
+  if (!pastDepth) for (const k of m.keys()) if (k < g.Y - 6 && k !== y) m.delete(k); // about 2 MB each in a long league
   return v;
 }
 // Solve a small dense system (Gaussian elimination with partial pivoting).
