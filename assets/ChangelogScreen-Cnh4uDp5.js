@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D01g9K7j.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DGR1yOCP.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -11,7 +11,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - The league's transaction log keeps its last 10 seasons; every player's own transaction list keeps his whole history.
   - The save file itself is stored in a compact form (the same information, about a third smaller).
   - While you sim several days at once, the game saves when the sim stops instead of between days.
-  - A 60-season league's save went from 34 MB to 25 MB.
+  - Tested over 100 seasons: the save is 38 MB at year 100 (it was 108 MB), about 0.33 MB more a season, and a 90-year-old league sims a regular season in about the same time as a 10-year-old one.
 
 ## 2026-10-21
 
