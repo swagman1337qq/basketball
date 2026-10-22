@@ -1,6 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BMQkcyfn.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CpUtjTXz.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-22
+
+### Fixed
+- **Long leagues stay small and quick.** Saves used to grow about 1 MB every season (over 100 MB by year 100) and seasons got slower the longer a league ran. Now:
+  - The daily update no longer looks through every player who ever played, only this season's, so a season takes the same time in year 50 as in year 10.
+  - Retired players keep their whole box-score career, transactions and awards, but drop what only an active career needs: shot-zone splits on old stat lines, short injuries (their injury totals are kept, and every injury that cost 10+ games stays listed) and every single rating in their year-by-year history (each season's overall, potential and biggest rating moves stay).
+  - The league's transaction log keeps its last 10 seasons; every player's own transaction list keeps his whole history.
+  - The save file itself is stored in a compact form (the same information, about a third smaller).
+  - While you sim several days at once, the game saves when the sim stops instead of between days.
+  - A 60-season league's save went from 34 MB to 25 MB.
 
 ## 2026-10-21
 
