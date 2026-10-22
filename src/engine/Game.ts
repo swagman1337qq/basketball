@@ -36,7 +36,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
+import { capToT, ceilMax, compressT, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -109,6 +109,7 @@ export class Game {
     g.db.priceQ0 = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = null; // salaries keep this season's pay scale by rank (priceOvr)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
+    g.db.dlV = 1; // (from the stored, compressed true potential: Game.draftNightLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.db.cardV = 3; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
@@ -234,6 +235,15 @@ export class Game {
       Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || onTeam.has(id) || (p.stats || []).length) return;
         const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0); if (g.draftLevel(p, p.tpot ?? p.pot, (r() + r() + r() - 1.5) * 5.3, true)) refreshPot(p); }); });
       g.db.prosV = 1; }
+    // 2026-10-22: draft-night levels came from the uncompressed true potential, so the best prospects arrived far
+    // too good. Prospects not yet drafted come down to the corrected level (Game.draftNightLevel) once; never up,
+    // true potential unchanged, and his plan moves with his level (as at training camp).
+    if (!g.db.dlV) { const onTeam = new Set([...(Object.values(g.state.rosters || {}).flat() as number[]), ...(g.state.fa || [])]);
+      Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || p.godPot != null || onTeam.has(id) || (p.stats || []).length) return;
+        const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0), want = g.draftNightLevel(p.tpot ?? p.pot, p.dAge ?? 19, (r() + r() + r() - 1.5) * 5.3), e0 = ovrExact(p);
+        if (want >= e0 - 0.5) return;
+        shiftOvr(p, want); if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); refreshPot(p); }); });
+      g.db.dlV = 1; }
     // 2026-10-17: true potential above 70 compressed (potential.ts compressT); pace raised so growth is unchanged.
     if (!g.db.potV) { (Object.values(g.db.P) as any[]).forEach(p => { if (p?.r && !p.retired && !p.gone) compressTruePot(p); }); g.db.potV = 1; }
     // 2026-10: potential becomes a ceiling (potential.ts). The old potential was his expected peak: his
@@ -764,9 +774,19 @@ export class Game {
   // his ceiling, so top picks averaged about 32 and sat.) Every skill but height moves by the same amount, and
   // his ceilings are set again so T stays his true potential, reached the usual share of the way from here.
   // `lift` (older saves): only ever raises him, and his body is left as it is.
+  // 2026-10-22: the level comes from his true potential as it's stored (compressed above 70, potential.ts
+  // compressT; T itself is the uncompressed one and still sets his peak and ceilings), aimed at opening night
+  // (less the first summer's growth: about 2 at 19–20, 1 at 21–22), and the top is trimmed progressively.
+  // `lift`: T is already a stored (compressed) true potential.
+  static DRAFT_TRIM = 53;
+  draftNightLevel(Tc: number, age: number, noise: number) {
+    const summer = age <= 20 ? 2 : age <= 22 ? 1 : 0, top = Game.DRAFT_TRIM;
+    let want = this.cl(Tc - Game.DRAFT_GAP(age) + noise - summer, 18, Math.max(18, Tc - 2));
+    if (want > top) want = top + Math.min(6, want - top) / 2 + Math.max(0, want - top - 6) / 4; // even a generational talent arrives short of a star
+    return want;
+  }
   draftLevel(p, T: number, noise: number, lift = false) {
-    let want = this.cl(T - Game.DRAFT_GAP(p.dAge ?? 19) + noise, 18, Math.max(18, T - 2));
-    if (want > 55) want = 55 + (want - 55) / 2; // even a generational talent arrives a little short of a star
+    const want = this.draftNightLevel(lift ? T : compressT(T), p.dAge ?? 19, noise);
     if (lift && want < ovrExact(p) + 0.5) return false;
     shiftOvr(p, want);
     const o = ovrExact(p), peak = o + Math.max(0, T - o) * TYPICAL;

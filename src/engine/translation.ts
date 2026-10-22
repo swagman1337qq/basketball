@@ -50,15 +50,19 @@ export function ensureTranslation(p: any) { if (p && !p.dx && !p.dxDone) p.dx = 
 export function applyTranslation(p: any) {
   const t: Translation = p.dx; if (!t || p.dxDone) return null;
   const from = p.ovr, pot0 = p.pot, base = { ...p.r }, cl = (v: number) => Math.max(1, Math.min(100, Math.round(v)));
-  let d = t.o;
+  // A rookie who's already good gains less from a good camp (2026-10-22): × (62 − his level) / 7, from a
+  // quarter to all of it, above 55. Busts and poor camps are as rolled.
+  const goal = t.o > 0 && from > 55 ? Math.round(t.o * Math.max(0.25, Math.min(1, (62 - from) / 7))) : t.o;
+  let d = goal;
   for (let i = 0; i < 4; i++) {
     SKILLS.forEach(k => { if (base[k] != null) p.r[k] = cl(base[k] + d); });
     Object.entries(t.sh).forEach(([g, x]) => GROUPS[g]?.keys.forEach(k => { if (p.r[k] != null) p.r[k] = cl(p.r[k] + x); }));
     SKILLS.forEach(k => { if (base[k] != null && p.r[k] > 97 && p.r[k] > base[k]) p.r[k] = Math.max(base[k], 97); }); // camp doesn't hand out a 98+ (potential.ts)
-    syncOvr(p); const got = p.ovr - from; if (Math.abs(got - t.o) <= 0.5 || p.ovr <= 5) break; d += (t.o - got) * 1.15;
+    syncOvr(p); const got = p.ovr - from; if (Math.abs(got - goal) <= 0.5 || p.ovr <= 5) break; d += (goal - got) * 1.15;
   }
   p.pot = Math.max(p.ovr, Math.min(100, Math.round(pot0 + t.c + (p.ovr - from) * 0.5)));
-  p.dxDone = { from, to: p.ovr, pot0, pot: p.pot, tier: t.tier, sh: t.sh, o: t.o }; delete p.dx;
+  const tier = goal === t.o ? t.tier : goal >= 7 ? 'steal' : goal >= 3 ? 'better' : 'same'; // a damped gain reads as what he gained
+  p.dxDone = { from, to: p.ovr, pot0, pot: p.pot, tier, sh: t.sh, o: goal }; delete p.dx;
   return p.dxDone;
 }
 
