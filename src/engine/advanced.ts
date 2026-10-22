@@ -186,19 +186,18 @@ export function seriesLine(t: any): StatLine {
 }
 
 // ── EPM, LEBRON and DARKO (finished after the box score) ─────────────────────────────────────────────
-// Past seasons are fixed once played, so their results are kept (per league) for DARKO's history: the
-// last six seasons (older ones are dropped, or a long session would keep every season it ever played).
-// (A season's results need the seasons before it, which need theirs: older seasons are dropped only once
-// the outermost request is done, never in the middle of that chain.)
-const PAST = new WeakMap<object, Map<number, SeasonAdvanced>>();
-let pastDepth = 0;
+// Past seasons are fixed once played, so their results are kept (per league) for DARKO's history. A season's
+// results need the seasons before it (which need theirs), so whatever a page asks for stays until the league
+// moves on to a new season; then only the last six are kept (a long session used to keep every season it played,
+// about 2 MB each).
+const PAST = new WeakMap<object, { y: number; m: Map<number, SeasonAdvanced> }>();
 function pastSeason(g: Game, y: number): SeasonAdvanced | null {
   if (y >= g.Y || y < (g.db.firstSeason ?? 2027) - 1) return null;
-  let m = PAST.get(g.db); if (!m) PAST.set(g.db, (m = new Map()));
-  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); pastDepth++; try { m.set(y, seasonAdvanced(g, g.state, y)); } finally { pastDepth--; } }
-  const v = m.get(y)!;
-  if (!pastDepth) for (const k of m.keys()) if (k < g.Y - 6 && k !== y) m.delete(k); // about 2 MB each in a long league
-  return v;
+  let c = PAST.get(g.db); if (!c) PAST.set(g.db, (c = { y: g.Y, m: new Map() }));
+  if (c.y !== g.Y) { for (const k of c.m.keys()) if (k < g.Y - 6) c.m.delete(k); c.y = g.Y; }
+  const m = c.m;
+  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); m.set(y, seasonAdvanced(g, g.state, y)); }
+  return m.get(y)!;
 }
 // Solve a small dense system (Gaussian elimination with partial pivoting).
 function solve(A: number[][], b: number[]): number[] {
