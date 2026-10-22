@@ -2056,7 +2056,10 @@ export class Game {
   }
   // Payroll ceiling each owner archetype tolerates (shown on the Owner screen, used by the AI).
   // The payroll an owner allows: his type's line, any God Mode adjustment, and a new owner's first-year splash.
-  teamCeiling(t) { return this.ownerCeiling(t.arch) + (t.ceilAdj || 0) + (t.splash && this.Y <= t.splash.thru ? t.splash.amt : 0); }
+  // 2026-10-22: any owner spends to the first apron while his team contends (Game.strategies' top nine), and goes back
+  // to his usual line when it stops winning.
+  teamCeiling(t) { const base = this.ownerCeiling(t.arch) + (t.ceilAdj || 0) + (t.splash && this.Y <= t.splash.thru ? t.splash.amt : 0);
+    return this.state?.teams && this.strategies(this.state.teams, this.state, true)[t.tid] === 'contend' ? Math.max(base, this.db.caps.AP1) : base; }
   ownerCeiling(arch) { const AP1 = this.db.caps.AP1; return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': AP1, 'Hype Focus': AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
   payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
   // Cap hit: salary (or the 2-year minimum for a one-year veteran minimum deal) plus likely bonuses.

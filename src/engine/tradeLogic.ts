@@ -168,7 +168,7 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
     return null;
   }
   if (r < 0.8) { // Salary dump: a team over the tax pays a team with room to take a contract.
-    const dumper = pick(ai.filter(t => teamSalary(g, s, t) > N.TAX)); if (dumper == null) return null;
+    const dumper = pick(ai.filter(t => teamSalary(g, s, t) > (strat[t] === 'contend' ? N.AP2 : N.TAX))); if (dumper == null) return null; // a contender pays the tax rather than dump (below the 2nd apron)
     const st = strat[dumper] || 'middle', k = (id: number) => g.pVal(P[id], st, dumper);
     const bad = (s.rosters[dumper] || []).map((id: number) => P[id]).filter((p: any) => badContract(g, p)).sort((a: any, b: any) => k(a.id) - k(b.id))[0]; if (!bad) return null;
     const recv = pick(ai.filter(t => t !== dumper && strat[t] !== 'contend' && teamSalary(g, s, t) + bad.amt <= N.TAX - 2)); if (recv == null) return null;
@@ -251,7 +251,8 @@ export function offerToUser(g: Game, s: any, myGain: (getP: number[], giveP: num
     return ok(best);
   }
   // A team over the tax pays you to take a contract, if you have the room.
-  for (const t of ai.filter(x => teamSalary(g, s, x) > N.TAX).sort(() => rnd() - 0.5).slice(0, 3)) {
+  const strat2 = g.strategies(s.teams, s, true);
+  for (const t of ai.filter(x => teamSalary(g, s, x) > (strat2[x] === 'contend' ? N.AP2 : N.TAX)).sort(() => rnd() - 0.5).slice(0, 3)) {
     const bad = (s.rosters[t] || []).map((id: number) => P[id]).filter((p: any) => badContract(g, p))[0]; if (!bad || teamSalary(g, s, me) + bad.amt > N.TAX - 2) continue;
     const sweet = tradablePicks(g, s, t).map((a: any) => a.id).slice(0, 4);
     for (const ks of subsets(sweet, 2)) { if (!ks.length) continue;

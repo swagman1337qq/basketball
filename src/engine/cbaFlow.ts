@@ -492,7 +492,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
       const raw = g.fair(proj), af = rook || (raw >= MAX_SNAP * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
-      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx))).toFixed(2); // near the max: the max
+      const amt = rook && proj >= 64 ? mx /* a rising star's rookie extension: the rookie max */ : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx))).toFixed(2); // near the max: the max
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;

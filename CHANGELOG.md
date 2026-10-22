@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-22
 
 ### Changed
+- **Contenders spend like contenders.** While a team is one of the league's best, its owner will spend up to the first apron whatever his usual budget, and a contender over the tax keeps its players instead of dumping salary (unless it's past the second apron). A rising star's rookie-scale extension is the rookie max.
 - **Stars sign for the max.** A player whose price comes within 10% of the most his years in the league allow now asks for (and gets) the full max, in free agency, re-signings and extensions, and a star priced at that level takes no age discount until 33. A contending team re-signing one of its three best players can now go past its owner's usual budget, up to the second apron. Tested over 4 leagues × 10 seasons: about 21 players on or near a max deal (was about 18).
 
 ### Fixed
