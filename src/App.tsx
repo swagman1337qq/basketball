@@ -57,13 +57,16 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
     }
   }, [game, open]);
 
-  // Autosave shortly after every change, and immediately when the tab is hidden or closed.
+  // Autosave shortly after every change, and immediately when the tab is hidden or closed. While a
+  // multi-day sim runs, nothing is saved until it stops (writing a long league's whole save between
+  // days slowed the sim down); the change that ends the sim brings the save.
   useEffect(() => {
     if (version === lastSaved.current) return;
     setStatus('Saving…');
     clearTimeout(timer.current);
+    if (game.busy || game.state.simming) return;
     timer.current = setTimeout(save, 700);
-  }, [version, save]);
+  }, [version, save, game]);
   useEffect(() => {
     const flush = () => { if (document.visibilityState === 'hidden') save(); };
     window.addEventListener('pagehide', save);

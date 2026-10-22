@@ -196,7 +196,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
             <tbody>{feed.map((f, i) => <tr key={i}><td style={td()}>{f.m}{f.dev ? <span style={{ color: good }}> · dev</span> : null}</td><td style={td('right', { color: f.o >= 0 ? good : bad, fontWeight: 600 })}>{f.o >= 0 ? '+' : ''}{f.o.toFixed(2)}</td><td style={td()}>{Object.entries(f.r).map(([k, v]: any) => LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2)).join(' · ')}</td></tr>)}</tbody>
           </table>
         )}
-        {(p.injHist || []).length > 0 && <p style={{ ...muted, fontSize: '12px', marginTop: '14px' }}>Injury history: on the History tab.</p>}
+        {((p.injHist || []).length > 0 || p.injSum) && <p style={{ ...muted, fontSize: '12px', marginTop: '14px' }}>Injury history: on the History tab.</p>}
         {p.age < 24 && (p.minorCount || 0) >= 2 && <p style={{ color: bad, fontSize: '12px' }}>{p.minorCount} minor injuries this season: his growth is being stunted{p.minorCount >= 3 ? ' and his ceiling may drop' : ''}.</p>}
       </section>
     </div>
@@ -208,14 +208,17 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
 function InjuryHistory({ vm, p }: { vm: VM; p: any }) {
   const { gm } = vm.ctx, H: any[] = p.injHist || [];
   const rows = H.map((x, i) => ({ x, i, now: p.inj?.h === i && x.back == null })).reverse();
-  const missed = H.reduce((a, x) => a + (x.missed ?? (x.dtd ? 0 : x.games || 0)), 0), sat = H.filter(x => !x.dtd).length, longest = H.filter(x => !x.dtd).sort((a, b) => (b.days ?? b.games * 2.14) - (a.days ?? a.games * 2.14))[0];
+  // A retired player keeps only his longer injuries (prune.ts); his career totals were saved first (p.injSum).
+  const S = p.injSum, longest0 = H.filter(x => !x.dtd).sort((a, b) => (b.days ?? b.games * 2.14) - (a.days ?? a.games * 2.14))[0];
+  const missed = S ? S.missed : H.reduce((a, x) => a + (x.missed ?? (x.dtd ? 0 : x.games || 0)), 0), sat = S ? S.sat : H.filter(x => !x.dtd).length, longest = longest0 || S?.long || null, nInj = S ? S.n : H.length;
   const dur = (x: any) => (x.dtd ? 'Day-to-day' : x.games + ' game' + (x.games === 1 ? '' : 's')) + (x.days ? ' · ~' + (x.days >= 60 ? Math.round(x.days / 30.4) + ' months' : x.days >= 14 ? Math.round(x.days / 7) + ' weeks' : x.days + ' days') : '');
   return (
     <section style={{ marginTop: '22px' }}>
       <h4 style={ruleH4}>Injury history</h4>
-      {!H.length ? <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p> : <>
-        <p style={{ fontSize: '12.5px', margin: '0 0 8px' }}>{H.length} injur{H.length === 1 ? 'y' : 'ies'} ({sat} that kept him out) · about {missed} game{missed === 1 ? '' : 's'} missed{longest ? ' · longest: ' + longest.name.toLowerCase() + ' (' + longest.season + ')' : ''}{p.pers?.prone && gm.state.god ? ' · injury-prone' : ''}</p>
-        <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '12px', minWidth: 560 }}>
+      {!nInj ? <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p> : <>
+        <p style={{ fontSize: '12.5px', margin: '0 0 8px' }}>{nInj} injur{nInj === 1 ? 'y' : 'ies'} ({sat} that kept him out) · about {missed} game{missed === 1 ? '' : 's'} missed{longest ? ' · longest: ' + longest.name.toLowerCase() + ' (' + longest.season + ')' : ''}{p.pers?.prone && gm.state.god ? ' · injury-prone' : ''}</p>
+        {S && H.length < nInj && <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>{H.length ? 'Listed: the injuries that kept him out 10 games or more.' : 'None of them kept him out 10 games or more.'} Shorter ones aren’t kept once a player retires.</p>}
+        {H.length > 0 && <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '12px', minWidth: 560 }}>
           <thead><tr><th style={th()}>Date</th><th style={th()}>Team</th><th style={th()}>Injury</th><th style={th()}>Expected out</th><th style={th('right')}>Missed</th><th style={th()}>Back</th></tr></thead>
           <tbody>{rows.map(({ x, i, now }) => <tr key={i}>
             <td style={td()}>{x.day != null ? gm.fmtDay(x.day) : x.season}</td>
@@ -225,7 +228,7 @@ function InjuryHistory({ vm, p }: { vm: VM; p: any }) {
             <td style={td('right')}>{x.missed != null ? x.missed : now ? (p.inj.miss || 0) + '…' : x.dtd ? '0' : '—'}</td>
             <td style={td('left', now ? { color: bad } : undefined)}>{now ? 'Out now' + (gm.injLeft(p) ? ' (' + gm.injLeft(p)!.games + ' games, ' + gm.injLeft(p)!.days + ' days left)' : '') : x.back != null ? gm.fmtDay(x.back) : '—'}</td>
           </tr>)}</tbody>
-        </table></div>
+        </table></div>}
       </>}
     </section>
   );

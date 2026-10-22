@@ -27,7 +27,8 @@ import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, numsWith, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
-import { dropOldSplits, removeUnplayed, slimRetired } from './prune';
+import { dropOldSplits, removeUnplayed, slimRetired, trimLeagueLog } from './prune';
+import { decodeDb, decodeState, encodeDb, encodeState } from './saveCodec';
 import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
@@ -201,6 +202,7 @@ export class Game {
 
   static load(data: SaveData) {
     const g = new Game();
+    data = { db: decodeDb(data.db), state: decodeState(data.state) }; // compact saves (saveCodec.ts)
     g.db = { ...data.db, C: countries() };
     g.state = { ...data.state, ...TRANSIENT, simming: null, screen: data.state.screen === 'game' ? 'dash' : data.state.screen };
     if (g.state.gm && g.state.gm.y0 == null) g.state.gm = { ...g.state.gm, y0: g.Y - ((g.state.career?.seasons || []).length || 0) }; // older saves: your age counts from your first season (gmCareer.gmAge)
@@ -304,7 +306,7 @@ export class Game {
     // and the league's quickness for team tempo now; the make-rate and turnover corrections they already have stay.
     if (g.db.norms && g.db.norms.paceM == null) { const n = g.db.norms, d = g.leagueDrift(n.season - 1, { ...n, adjFrom: null, paceM: undefined, ftM: undefined, zoneM: undefined });
       Object.assign(n, { paceM: d.paceM ?? 1, ftM: d.ftM ?? 1, zoneM: d.zoneM ?? { rim: 1, mid: 1, c3: 1, atb: 1 } }); const { adj, tovM, adjFrom } = n; g.refreshNorms(g.state); Object.assign(g.db.norms, { adj, tovM, adjFrom, paceM: n.paceM, ftM: n.ftM, zoneM: n.zoneM }); }
-    ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); dropOldSplits(g); // older saves: remove retirees who never played here, trim the rest
+    ccpRefreshClubs(g.state);     removeUnplayed(g, g.state); slimRetired(g); dropOldSplits(g); g.state.lgLog = trimLeagueLog(g.state.lgLog || []); // older saves: remove retirees who never played here, trim the rest and the league log
     // Saves from before the CCP: set up this season's (played to date) unless it's the summer.
     if (!g.state.ccp && !['fa', 'preseason'].includes(g.state.phase)) { const st = g.state, fa = st.fa.slice(); ccpNewSeason(g, st); ccpTopUp(g, st, fa); st.fa = fa; ccpPlay(g, st, st.phase === 'regular' ? dnOf(g.Y, g.dateOf(st.day)) : 999); }
     // Saves from before layups / acceleration / box out / measured wingspans: derive them.
@@ -402,9 +404,10 @@ export class Game {
     delete s.results;
   }
 
+  // The save file is compacted (saveCodec.ts): the same data, lists stored as key list + rows.
   toSave(): SaveData {
     const { C, ...db } = this.db;
-    return { db, state: { ...this.state, ...TRANSIENT } };
+    return { db: encodeDb(db, RATING_KEYS), state: encodeState({ ...this.state, ...TRANSIENT }) };
   }
 
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
@@ -998,7 +1001,8 @@ export class Game {
     const keep = (p: any) => (p ? { adj: p.adj, tovM: p.tovM, paceM: p.paceM, ftM: p.ftM, zoneM: p.zoneM } : {});
     if (prev?.adjFrom === season) return { ...keep(prev), adjFrom: season };
     const T: Record<string, number> = { rm: 0, ra: 0, mm: 0, ma: 0, cm: 0, ca: 0, bm: 0, ba: 0, tov: 0, fga: 0, fta: 0, ftm: 0, orb: 0, min: 0 };
-    for (const p of Object.values(this.db.P) as any[]) for (const r of p.stats || []) if (r.season === season && !r.po) for (const k in T) T[k] += r[k] || 0;
+    // (Lines without zones are skipped whole: retired players' old lines drop them, prune.ts.)
+    for (const p of this.playersIn(season)) for (const r of p.stats || []) if (r.season === season && !r.po && r.ra != null) for (const k in T) T[k] += r[k] || 0;
     if (T.fga < 20000) return prev?.adj ? { ...keep(prev), adjFrom: prev.adjFrom } : {};
     const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v)), adj: Record<string, number> = {}, zoneM: Record<string, number> = {};
     const ZT = [['rim', 'rm', 'ra'], ['mid', 'mm', 'ma'], ['c3', 'cm', 'ca'], ['atb', 'bm', 'ba']] as const, att = ZT.reduce((x, [, , a]) => x + T[a], 0);
@@ -1077,7 +1081,7 @@ export class Game {
         if (!p || b.min <= 0) return;
         p.stats = p.stats || [];
         let row = p.stats.find(x => x.season === Y && x.tid === side.tid && !!x.po === po);
-        if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, ...blankLine(), h: {}, a: {} }; row.gs = 0; p.stats.push(row); }
+        if (!row) { row = { season: Y, tid: side.tid, po, gp: 0, ...blankLine(), h: {}, a: {} }; row.gs = 0; p.stats.push(row); if (this.curIdx?.y === Y) this.curIdx.ids.add(p.id); }
         row.gp++;
         if (p.numTid === side.tid && p.num != null) row.num = p.num; // the number he wore for them (Team history)
         Object.keys(b).forEach(f => { if (typeof b[f] === 'number' && f !== 'gp' && f !== 'season' && f !== 'tid') row[f] = f === 'xF' || f === 'xA' || f === 'xP' ? +((row[f] || 0) + b[f]).toFixed(2) : (row[f] || 0) + b[f]; });
@@ -1112,16 +1116,25 @@ export class Game {
   // USG%: share of team plays used while on the floor (team plays per minute from the baselines).
   usgOf(t) { const teamPlaysPer48 = 89.1 + 0.44 * 23.5 + BASE.tov; return t.min ? (100 * (t.fga + 0.44 * t.fta + t.tov) * 48) / (t.min * teamPlaysPer48) : 0; }
   eff(t) { return t.pts + t.orb + t.drb + t.ast + t.stl + t.blk - (t.fga - t.fgm) - (t.fta - t.ftm) - t.tov; }
-  // The players with a stat line in `season`. Past seasons don't change, so each is indexed once;
-  // the current one only looks at players still active (a long league has tens of thousands retired).
+  // The players with a stat line in `season`. Past seasons don't change, so each is indexed once. The
+  // current season keeps a running list (`curIdx`): built once by a scan, then a player joins it when he
+  // gets his first stat line of the season (addStatRow), so the daily refresh never walks every player
+  // ever saved (a long league has tens of thousands retired). `seasonDirty()` drops the lists after an
+  // edit that adds or moves stat lines (God Mode clones, imports).
   private seasonIdx = new Map<number, number[]>();
+  private curIdx: { y: number; ids: Set<number> } | null = null;
   playersIn(season: number): any[] {
     const P = this.db.P, has = (p: any) => (p.stats || []).some((r: any) => r.season === season);
-    if (season >= this.Y) return (Object.values(P) as any[]).filter(p => !p.gone && (!p.retired || (p.retired.season ?? 0) >= season) && has(p));
+    if (season >= this.Y) {
+      if (!this.curIdx || this.curIdx.y !== season) this.curIdx = { y: season, ids: new Set((Object.values(P) as any[]).filter(p => !p.gone && has(p)).map(p => p.id)) };
+      const out: any[] = []; this.curIdx.ids.forEach(id => { const p = P[id]; if (p && !p.gone && (!p.retired || (p.retired.season ?? 0) >= season)) out.push(p); });
+      return out;
+    }
     let ids = this.seasonIdx.get(season);
     if (!ids) { ids = (Object.values(P) as any[]).filter(has).map(p => p.id); this.seasonIdx.set(season, ids); }
     return ids.map(id => P[id]).filter(Boolean);
   }
+  seasonDirty() { this.seasonIdx.clear(); this.curIdx = null; }
 
   // A simple PER: efficiency per minute, scaled so the league average is 15.
   perOf(t, season) { const lg = this.db.lgRate?.[season] || 0.55; return t.min ? 15 * (this.eff(t) / t.min) / lg : 0; }
@@ -1392,7 +1405,7 @@ export class Game {
       const reLine = rePlan.filter(id => out.fa.includes(id)).map(id => Pp[id].name);
       const notices = addNotice(s, { tone: 'info', title: 'Free agency is open', lines: [...faNotes, ...(reLine.length ? ['You planned to re-sign ' + reLine.join(', ') + ': make your offer' + (reLine.length > 1 ? 's' : '') + ' on the Free agency screen. Other teams can bid now too.'] : [])].filter(Boolean), pids: [] });
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
-      return { ...out, notices: faNotes.length || reLine.length ? notices : s.notices, preFA: null, extPlan, faStart: s.day, faTop, lgLog: this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length), phase: 'fa', log: s.spectator ? s.log : this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
+      return { ...out, notices: faNotes.length || reLine.length ? notices : s.notices, preFA: null, extPlan, faStart: s.day, faTop, lgLog: trimLeagueLog(this.stampFA({ ...s, faStart: s.day }, [...out.lgLog.slice(0, 1), capLine, ...out.lgLog.slice(1)], s.lgLog.length)) /* the last 10 seasons (prune.ts) */, phase: 'fa', log: s.spectator ? s.log : this.logEntry(s, 'Free agency opened. Your free agents keep their Bird rights and cap holds until they sign or you renounce them.') };
     });
     if (this.state.phase === 'fa') { teamSales(this); offseasonMandates(this); } // team sales close with the new league year; owners' payroll orders
   }
