@@ -6,7 +6,7 @@ import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
 import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
-import { acceptance, aiTerms, applySigning, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
+import { acceptance, aiTerms, applySigning, floorOverpay1, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
 import { fmtMoney as money } from './capModel';
@@ -306,7 +306,7 @@ export function openFreeAgency(g: Game, s: any) {
   Object.keys(box.rosters).forEach(k => { const t = +k, user = g.isUser(s, t);
     box.rosters[t] = box.rosters[t].filter(id => { const p = P[id];
       // Extensions signed earlier take over when the old deal ends.
-      if (p.ext && p.exp <= Y) { Object.assign(p, { prevAmt: p.amt, amt: p.ext.amt, exp: p.exp + p.ext.yrs, raise: p.ext.raise ?? 0.08, ctype: p.ext.amt >= N.max(yosOf(g, p) + 1) - 0.05 ? 'max' : 'standard', signed: { season: Y + 1, day: s.day, phase: 'fa', tid: t, method: 'extension' } }); delete p.ext; delete p.rookieScale; p.rookie = false; delete p.opt; delete p.capOverride; note(t, p.name + '’s new contract starts: ' + money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2) + '.'); return true; }
+      if (p.ext && p.exp <= Y) { Object.assign(p, { prevAmt: p.amt, amt: p.ext.amt, exp: p.exp + p.ext.yrs, raise: p.ext.raise ?? 0.08, ctype: p.ext.amt >= N.max(yosOf(g, p) + 1) - 0.05 ? 'max' : 'standard', signed: { season: Y + 1, day: s.day, phase: 'fa', tid: t, method: 'extension', ovr: p.ext.ovr } }); delete p.ext; delete p.rookieScale; p.rookie = false; delete p.opt; delete p.capOverride; note(t, p.name + '’s new contract starts: ' + money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2) + '.'); return true; }
       // Player options: he opts out if he can beat the option salary on the market.
       if (p.opt?.kind === 'player' && p.opt.season === Y + 1) { const sal = g.salAt(p, Y + 1), stay = g.fair(p.ovr) * 1.05 <= sal || p.age >= 33 && g.fair(p.ovr) <= sal * 1.2;
         delete p.opt; if (stay) { note(t, p.name + ' exercised his player option (' + sal.toFixed(2) + 'M)'); } else { p.exp = Y; note(t, p.name + ' declined his player option and is a free agent'); lg(t, p.name + ' declined his player option with the ' + s.teams[t].region + ' ' + s.teams[t].name, [id]); } }
@@ -392,12 +392,12 @@ export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], 
 }
 
 // Opening night: an AI team still under the salary floor with an open roster spot signs the best free agent
-// left (45+) to a one-year deal over his market value, up to the whole gap (2026-10-22; it was at most floorOverpay),
+// left (45+) to a one-year deal over his market value, up to the gap and contracts.ts floorOverpay1 (twice his ask, $12M over at most),
 // instead of paying the shortfall at season's end. Returns whether it signed someone.
 export function floorSigning(g: Game, s: any, box: Box, tid: number, lgLog: any[]) {
   const P = g.db.P, N = nums(g), gap = N.FLOOR - teamSalary(g, s, tid); if (gap < 1 || stdIds(g, box.rosters[tid]).length >= seasonMax(s)) return false;
   const id = box.fa.filter(x => { const p = P[x]; return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 45; }).sort((x, y) => P[y].ovr - P[x].ovr)[0]; if (id == null) return false;
-  const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), N.CAP - teamSalary(g, s, tid))).toFixed(2); // one year: up to the whole gap
+  const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), floorOverpay1(ask), N.CAP - teamSalary(g, s, tid))).toFixed(2); // one year: up to floorOverpay1
   lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids: [id], text: applySigning(g, s, box, tid, p, { method: 'cap', amt, years: 1 }) + ' (over market value, to reach the salary floor)' });
   return true;
 }
@@ -491,11 +491,13 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
-      const raw = g.fair(proj), af = rook || (raw >= MAX_SNAP * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
-      const amt = rook && proj >= 64 ? mx /* a rising star's rookie extension: the rookie max */ : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx))).toFixed(2); // near the max: the max
+      // 2026-10-22: priced halfway between what he is and what he'll become (paying for all of the projection gave
+      // 50s and 53s who never developed a fifth of the cap); the rookie max only for a player already good (62+).
+      const raw = g.fair((p.ovr + proj) / 2), af = rook || (raw >= MAX_SNAP * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
+      const amt = rook && proj >= 64 && p.ovr >= 62 ? mx /* a rising star's rookie extension: the rookie max */ : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx))).toFixed(2); // near the max: the max
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
-      p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;
+      p.ext = { amt, yrs, raise: 0.08, ovr: p.ovr }; payroll += amt - p.amt; // (his level when he signed it)
       const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1.08, i)).reduce((a, x) => a + x, 0), T = s.teams[t];
       addTx(g, s, p, { k: 'extend', tid: t, text: 'Signed a ' + yrs + '-year ' + (rook ? 'rookie-scale ' : '') + 'extension · $' + total.toFixed(1) + 'M total' });
       out.push({ day: s.day, type: 'Signing', teams: T.abbr, pids: [id], text: T.region + ' ' + T.name + ' signed ' + p.name + ' to a ' + yrs + '-year, $' + total.toFixed(1) + 'M ' + (rook ? 'rookie-scale ' : '') + 'extension (starts ' + (last) + '–' + String(last + 1).slice(2) + ')' });

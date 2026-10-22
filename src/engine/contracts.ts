@@ -43,7 +43,7 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   p.capOverride = t.method === 'twoWay' ? 0 : t.method === 'min' && t.years === 1 && yos >= 2 ? N.min(2) : undefined; // two-ways are off the cap; one-year veteran minimums count as the 2-year minimum
   if (s.phase === 'regular' && s.day > DAY.PLAYOFF_WAIVE && p.waived?.season === g.Y) p.poIneligible = g.Y; // waived after March 1: not playoff-eligible elsewhere
   delete p.waived;
-  p.signed = { season: Y1, day: s.day, phase: s.phase, tid, method: t.method };
+  p.signed = { season: Y1, day: s.day, phase: s.phase, tid, method: t.method, ovr: p.ovr, ask: p.ask }; // (his level and ask when he signed)
   if (t.method !== 'bird') { if (prevTid != null && prevTid !== tid) p.leftAsFA = true; p.yrsWith = 0; }
   p.birdTid = null; delete p.rfa; p.rookie = false; delete p.rookieScale;
   if (t.method === 'tenDay' || t.method === 'hardship') { p.tenDay = { tid, start: s.day }; p.tenDayWith = { ...(p.tenDayWith || {}), [tid]: ((p.tenDayWith || {})[tid] || 0) + (t.method === 'tenDay' ? 1 : 0) }; }
@@ -95,8 +95,11 @@ export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min
 
 // How an AI team would sign a player now (or null).
 // How far over his ask a team under the salary floor will go on a multi-year deal: half again, and no more than
-// $8M over it. On a one-year deal it can pay up to its whole gap (aiTerms, cbaFlow.ts floorSigning).
+// $8M over it. On a one-year deal it can go to floorOverpay1 (aiTerms, cbaFlow.ts floorSigning).
 export const floorOverpay = (ask: number) => Math.min(ask * 1.5, ask + 8);
+// On a one-year deal a team under the floor goes further, but a bench player's price stays a bench player's: twice
+// his ask, at most $12M over it (2026-10-22: it was up to the whole gap).
+export const floorOverpay1 = (ask: number) => Math.min(ask * 2, ask + 12);
 export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const N = nums(g), yos = yosOf(g, p), minS = N.min(yos), ask = Math.max(minS, p.ask || minS), yrs = Math.min(prefYears(p), 4);
   const ms = signingMethods(g, s, tid, p).filter(m => m.ok && !['twoWay', 'ex10', 'tenDay', 'hardship', 'offer'].includes(m.key));
@@ -106,9 +109,9 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   // A team under the salary floor pays over market value to get closer to it (shorter deals) instead of paying
   // the shortfall at season's end, within what the method allows. The rest of the gap is for trades
   // (tradeLogic.ts floorTradeIdea).
-  // 2026-10-22: past floorOverpay only on a one-year deal, and then up to the whole gap (real teams under the floor
+  // 2026-10-22: past floorOverpay only on a one-year deal, and then up to floorOverpay1 (real teams under the floor
   // overpay a vet for one season rather than hand the shortfall back).
-  const gap = N.FLOOR - teamSalary(g, s, tid), floorPay = (lim: number) => gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), Math.max(gap, floorOverpay(ask)))).toFixed(2) : ask;
+  const gap = N.FLOOR - teamSalary(g, s, tid), floorPay = (lim: number) => gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), gap, floorOverpay1(ask))).toFixed(2) : ask;
   const yrsFor = (amt: number, maxY: number) => Math.min(amt > floorOverpay(ask) ? 1 : amt > ask * 1.5 ? 2 : yrs, maxY);
   if (room >= ask && pick('cap')) { const amt = floorPay(room); return { method: 'cap', amt, years: yrsFor(amt, 4) }; }
   for (const k of ['ntmle', 'tpmle', 'bae', 'room']) { const m = pick(k); if (m && ask <= m.maxFirst) { const amt = floorPay(m.maxFirst); return { method: k, amt, years: yrsFor(amt, m.maxYears) }; } }

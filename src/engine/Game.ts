@@ -1713,9 +1713,10 @@ export class Game {
   fair(ovr) { const b = this.priceOvr(ovr); return Math.min(this.MAXC, valueCurve(b) * Game.midTierF(b) * this.db.sf * (this.db.mkt ?? 1) * this.CAP / CAPS0.CAP); }
   // The market follows the money: each summer, before free agency, last opening night's league payroll ÷ cap
   // (db.payOpen) moves every price toward MKT_TARGET (as leagueDrift steers pace): × (target / actual)^0.6, kept
-  // within 0.85–1.25. Pricing changes (or a league's own drift) can't leave payroll stuck under the cap.
+  // within 0.85–MKT_MAX. Pricing changes (or a league's own drift) can't leave payroll stuck under the cap.
   static MKT_TARGET = 1.11; // 2026-10-22: was 1.04; NBA payrolls average well over the cap (Bird rights), which is what puts 5–10 teams in the tax
-  marketStep() { const d = this.db; if (!(d.payOpen > 0)) return; d.mkt = +Math.max(0.85, Math.min(1.25, (d.mkt ?? 1) * Math.pow(Game.MKT_TARGET / d.payOpen, 0.6))).toFixed(4); }
+  static MKT_MAX = 1.25; // the market's ceiling (1.4 was tried 2026-10-22: it raised middle-tier prices, not the number of max deals)
+  marketStep() { const d = this.db; if (!(d.payOpen > 0)) return; d.mkt = +Math.max(0.85, Math.min(Game.MKT_MAX, (d.mkt ?? 1) * Math.pow(Game.MKT_TARGET / d.payOpen, 0.6))).toFixed(4); }
   // The middle of the market (2026-10-18): players ranked about 40th–120th (a first-season overall of 54.5–62.5) are
   // paid 22% less, tapering back to full price by 51.5 and 65.5. Priced straight off the NBA's salary ranks, a 57
   // (about the 70th-best player) asked about $30M, where real players of that quality get $15–25M.
