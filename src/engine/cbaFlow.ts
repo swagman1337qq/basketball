@@ -32,9 +32,22 @@ export function clubLogs(g: Game, s: any, by: Record<number, string[]>, day = s.
 // What age takes off a contract (2026-10-18: from 30, 9% a year, was 7% from 31): 30: 0.91 · 31: 0.82 · 32: 0.73 · 34: 0.55.
 // A star (priced like a top-15 player, base 66+) loses half as much: teams still pay the great ones into their thirties.
 export const ageAskF = (age: number, base = 0) => { const f = age <= 29 ? 1 : Math.max(0.5, 1 - 0.09 * (age - 29)); return base >= 66 ? 1 - (1 - f) / 2 : f; };
+// 2026-10-22: a star asks for the max. A player whose price is within MAX_SNAP of the max his years of service
+// allow asks for the max itself (as real stars sign for the full max, not 97% of it), and one priced at that
+// level takes no age discount until 33 (teams pay the great ones into their thirties).
+export const MAX_SNAP = 0.9;
+export const snapMax = (amt: number, mx: number) => (amt >= MAX_SNAP * mx ? mx : amt);
 export function askOf(g: Game, p: any) {
-  const N = nums(g), yos = yosOf(g, p), minS = N.min(yos);
-  return +Math.max(minS, Math.min(N.max(yos), g.fair(p.ovr) * ageAskF(p.age ?? 27, g.priceOvr(p.ovr)) * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1))).toFixed(2);
+  const N = nums(g), yos = yosOf(g, p), minS = N.min(yos), mx = N.max(yos), raw = g.fair(p.ovr), age = p.age ?? 27;
+  const af = raw >= MAX_SNAP * mx && age <= 33 ? 1 : ageAskF(age, g.priceOvr(p.ovr));
+  return +Math.max(minS, Math.min(mx, snapMax(raw * af * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1), mx))).toFixed(2);
+}
+// 2026-10-22: a contender keeps its best players. Re-signing one of its top three (Bird rights), a contending
+// team goes past its owner's usual ceiling, up to the second apron (how most NBA teams end up in the tax).
+export function keepStarLimit(g: Game, s: any, rosters: any, tid: number, p: any, strat: Record<number, string>) {
+  if (strat[tid] !== 'contend') return 0;
+  const top = (rosters[tid] || []).map((x: number) => g.db.P[x]).filter(Boolean).sort((a: any, b: any) => b.ovr - a.ovr).slice(0, 3);
+  return top.some((q: any) => q.id === p.id) || (top.length < 3 || p.ovr >= top[top.length - 1].ovr) ? nums(g).AP2 : 0;
 }
 
 // Default terms for the signing dialog: the first method that works, his asking price (within
@@ -280,6 +293,7 @@ export function decisionsFor(g: Game, s: any, tid: number): Decision[] {
 // go out, AI teams re-sign some of their own free agents with Bird rights, everyone else hits
 // the market with Bird rights and cap holds, and each team's exceptions reset.
 export function openFreeAgency(g: Game, s: any) {
+  let strat0: Record<number, string> | null = null; const stratOf = () => (strat0 ??= g.strategies(s.teams, s, true));
   const P = g.db.P, Y = g.Y, N = nums(g), box = boxOf(s), by: Record<number, string[]> = {}, dec = s.decide || {};
   let lgLog = s.lgLog.slice();
   const letGo: number[] = []; // your expiring players you chose not to re-sign (Pre-Free Agency): rights renounced
@@ -309,7 +323,8 @@ export function openFreeAgency(g: Game, s: any) {
       if (wantQo) { p.rfa = { tid: t, qo }; note(t, 'Extended a ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' (restricted free agent)'); }
       // AI teams keep some of their own free agents before the market opens (Bird rights).
       if (!user && p.birdTid === t) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
-        const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP);
+        const star = keepStarLimit(g, s, box.rosters, t, p, stratOf()); // a contender's top-three player: up to the second apron
+        const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (star ? 0.9 : p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP, star);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
       if (gone) { p.birdTid = null; delete p.rfa; note(t, p.name + '’s contract expired. He asked for a trade and you kept him, so he won’t re-sign: he’s an unrestricted free agent'); }
       else if (user) { if (t === s.me && dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
@@ -334,6 +349,7 @@ export function openFreeAgency(g: Game, s: any) {
 
 // ── AI free agency, one day at a time ─────────────────────────────────────────────
 export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12, decay = 0.97, calls?: any[]) {
+  let strat0: Record<number, string> | null = null; const stratOf = () => (strat0 ??= g.strategies(s.teams, s, true));
   const P = g.db.P, N = nums(g), T = s.teams;
   // Unsigned players lower their asks as the market dries up.
   box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, (p.ask || minS) * decay).toFixed(2); });
@@ -349,7 +365,7 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
       if (std >= seasonMax(s) || (std >= seasonMax(s) - 2 && !spare && p.ovr <= (depth[seasonMax(s) - 3] ?? 0) + 1 && p.birdTid !== t)) continue;
       const terms = aiTerms(g, st, t, p); if (!terms) continue;
-      if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP)) continue;
+      if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP, terms.method === 'bird' ? keepStarLimit(g, s, box.rosters, t, p, stratOf()) : 0)) continue;
       if (p.rfa && p.rfa.tid !== t) { // offer sheet
         const orig = p.rfa.tid, sheet = { ...terms, method: terms.method };
         if (g.isUser(s, orig)) { offerSheets.push({ id: 'os' + id + '-' + s.day + '-' + k, pid: id, from: t, to: orig, terms: sheet, day: s.day }); box.fa.splice(box.fa.indexOf(id), 1); lgLog.unshift({ day: s.day, type: 'Signing', teams: T[t].abbr + ' · ' + T[orig].abbr, pids: [id], text: T[t].region + ' ' + T[t].name + ' signed restricted free agent ' + p.name + ' to an offer sheet ($' + terms.amt.toFixed(2) + 'M × ' + terms.years + '). ' + T[orig].abbr + ' can match.' }); break; }
@@ -475,7 +491,8 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
-      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, g.fair(proj) * (rook ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj))) * (mot === 'Money' ? 1.1 : 1))).toFixed(2); // a veteran's extension starts next season: priced at that age
+      const raw = g.fair(proj), af = rook || (raw >= MAX_SNAP * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
+      const amt = +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx))).toFixed(2); // near the max: the max
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       p.ext = { amt, yrs, raise: 0.08 }; payroll += amt - p.amt;
