@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BtaasUyQ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-3J0LhhSS.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-22
+
+### Changed
+- **Stars sign for the max.** A player whose price comes within 10% of the most his years in the league allow now asks for (and gets) the full max, in free agency, re-signings and extensions, and a star priced at that level takes no age discount until 33. A contending team re-signing one of its three best players can now go past its owner's usual budget, up to the second apron. Tested over 4 leagues × 10 seasons: about 21 players on or near a max deal (was about 18).
 
 ### Fixed
 - **Teams spend up to the salary cap again.** League payroll used to sink to about 95% of the cap and stay there, with 5–14 teams under the salary floor and almost nobody paying the luxury tax. Now the market follows the money: each summer, if last season's payrolls came in under the cap, every player asks a little more (and less if they ran over), so league payroll settles just above the cap. Teams under the floor can also sign a player to a big one-year deal that covers the whole gap. Tested over 30 seasons in 2 leagues: payroll averages 1.03–1.04× the cap, about 1 team a season is under the floor (was 5–14) and about 4 pay the tax (was 0–3).
