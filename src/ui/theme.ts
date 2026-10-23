@@ -7,12 +7,20 @@ export const DARK: Record<string, string> = {"--color-bg":"#181716","--color-sur
 export function applyTheme(el: HTMLElement | null, dark: boolean, team?: [string, string]) {
   if (!el) return;
   if (team) { el.style.setProperty('--team-1', team[0]); el.style.setProperty('--team-2', team[1]); }
-  // The accent line (primary buttons' borders, the next-phase marker): your team's primary color, lifted
-  // toward white on the dark theme (toward black on the light one) until it stands out from the background.
-  const line = team ? readableLine(team[0], dark) : null;
-  if (line) el.style.setProperty('--team-line', line); else el.style.removeProperty('--team-line');
   el.style.setProperty('--gm-elite', dark ? 'oklch(0.86 0.14 85)' : 'var(--color-accent-700)');
   Object.keys(DARK).forEach(k => (dark ? el.style.setProperty(k, DARK[k]) : el.style.removeProperty(k)));
+  // In a league the accent (every gold line, border, bar and the tinted highlights) is your team's primary
+  // color, lifted toward white on the dark theme (toward black on the light one) until it stands out from the
+  // background. The title screen keeps the gold.
+  const line = team ? readableLine(team[0], dark) : null, ACC = ['--color-accent', '--color-accent-100', '--color-accent-200', '--color-accent-300', '--color-accent-400', '--color-accent-500', '--team-line'];
+  if (!line) { ACC.forEach(k => { if (!(dark && k in DARK)) el.style.removeProperty(k); }); }
+  else {
+    const mix = (pct: number, base: string) => `color-mix(in srgb, ${line} ${pct}%, ${base})`;
+    el.style.setProperty('--team-line', line); el.style.setProperty('--color-accent', line);
+    (dark ? [15, 26, 42, 70, 85] : [10, 22, 40, 65, 85]).forEach((pct, i) => el.style.setProperty('--color-accent-' + (i + 1) + '00', mix(pct, 'var(--color-bg)')));
+    // Accent text: white on the dark theme (DARK), darker shades of the team color on the light one.
+    if (!dark) [20, 35, 50, 65].forEach((pct, i) => el.style.setProperty('--color-accent-' + (i + 6) + '00', mix(100 - pct, '#000')));
+  }
   // Data colours: neon green for growth and wins, soft red for decline, injuries and losses.
   el.style.setProperty('--gm-good', dark ? 'oklch(0.87 0.22 145)' : 'oklch(0.52 0.16 148)');
   el.style.setProperty('--gm-bad', dark ? 'oklch(0.72 0.14 25)' : 'oklch(0.52 0.16 25)');
