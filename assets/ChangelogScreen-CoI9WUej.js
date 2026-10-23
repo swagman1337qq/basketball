@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DkBLHMk-.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-ClIFU7PX.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-23
 
 ### Changed
+- **Draft: white when it isn't your turn.** While another team is on the clock, the on-the-clock box and that team's row in the pick list have a white border; your own turn stays green and your upcoming picks keep your team color.
 - **Your team's color instead of gold.** In a league, every gold line in the game (outlined buttons like Play next game, selected tabs, the next-phase marker, the bars on Mailbox, Lottery, Playoffs and Draft items, and their tinted highlights) is now your team's primary color, lightened or darkened just enough to stand out on the background. The title screen keeps the gold.
 
 ## 2026-10-22
