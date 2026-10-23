@@ -33,12 +33,19 @@ export const workLabel = (w: number) => (w >= 75 ? 'Tireless worker' : w >= 60 ?
 
 export type DevPath = 'specialist' | 'two' | 'rounded' | 'organic';
 export interface DevProfile { aff: Record<string, number>; path: DevPath; lead: string[]; low: string; athPeak: number; cap: Record<string, number> }
-// How well a skill group suits his position (from the overall's weights), softened: a guard leans to
-// shooting and playmaking, a big to finishing and the glass, but anyone can grow anything.
-function fitOf(grp: string, g: string) {
-  const W = OVR_W[grp] || OVR_W.W, avg = SKILLS.reduce((a, k) => a + W[k], 0) / SKILLS.length, ks = GROUPS[g].keys;
-  return Math.pow(ks.reduce((a, k) => a + W[k], 0) / ks.length / avg, 0.45);
-}
+// How well a skill group suits his position: a guard leans to shooting and playmaking, a big to finishing,
+// the glass and defense, a wing is even, and anyone can grow anything. Each group averages 1 over the three
+// positions, so the league's average in every skill holds steady over the years. (2026-10-23: it came from
+// the overall's weights, OVR_W^0.45; since those became the engine-measured value weights in c5b068f,
+// Defensive IQ 21–23% and each finishing skill 1%, growth poured into defense and the glass while dunks,
+// layups and inside scoring sank year after year. OVR_W keeps measuring what wins; this says what a
+// position works on.)
+const GROUP_FIT: Record<string, Record<string, number>> = {
+  G: { shoot: 1.2, finish: 0.85, play: 1.25, def: 0.95, reb: 0.75 },
+  W: { shoot: 1.05, finish: 1, play: 1, def: 1.05, reb: 0.9 },
+  B: { shoot: 0.75, finish: 1.15, play: 0.75, def: 1, reb: 1.35 },
+};
+const fitOf = (grp: string, g: string) => (GROUP_FIT[grp] || GROUP_FIT.W)[g] ?? 1;
 const PROFILES = new Map<string, DevProfile>();
 // His development profile: hidden, fixed for life (from his id and position group).
 //  • About 30% are specialists (one area takes most of the growth, another barely moves), 20% grow
