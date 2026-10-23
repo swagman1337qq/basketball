@@ -10,17 +10,23 @@ import { addTx, recordTrade } from './txlog';
 import { namePools, OWNER_ARCHETYPES, OWNER_SURNAMES } from '../data/world';
 import { bgByKey, kindOf, saleBg } from './owners';
 import { teamBudget } from './environment';
+import { cityArena, cityTicket } from '../data/arenas';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 export const DEFAULT_BUDGET = { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 };
 export const money = fmtMoney;
 
+// A club's arena seats and its city's typical ticket price (data/arenas.ts); either can be edited in the
+// League editor (T.arenaCap, T.tix0).
+export const arenaCapOf = (T: any): number => T.arenaCap || cityArena(T.region)?.[1] || 18800;
+export const ticketBaseOf = (T: any): number => T.tix0 || cityTicket(T.region, T.mkt);
+
 // ── Finances ─────────────────────────────────────────────────────────────────────
 // Local revenue (tickets, local media, sponsorship, merchandise): what revenue sharing is based on.
 function localOf(g: Game, s: any, tid: number) {
   const T = s.teams[tid], club = g.clubOf(s, tid), b = club ? club.budget : aiBudget(g, s, tid);
-  const mk = T.mkt, wp = demandWp(g, T), cap = T.arenaCap || 18800, lf = g.CAP / 165; // league revenue grows with the cap
+  const mk = T.mkt, wp = demandWp(g, T), cap = arenaCapOf(T), lf = g.CAP / 165; // league revenue grows with the cap
   const att = attendanceAt(g, T, b);
   const tix = (b.Tickets * att * 41) / 1e6;
   const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media', 34.0 * Math.pow(mk, 1.5) * lf], ['Sponsorship & naming', 48.0 * mk * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
@@ -39,25 +45,28 @@ export function aiBudget(g: Game, s: any, tid: number) {
 // building; a meddler goes with his gut. Prices follow demand: market size and how good the team is
 // (in season its record, weighed more as games pile up, like dynamic pricing).
 const FILL: Record<string, number> = { 'Frugal Profit-Seeker': 0.88, 'Win-Now Spender': 0.94, 'Asset Hoarder': 0.94, 'Meddling Micromanager': 0.93, 'Hype Focus': 0.99 }; // NBA arenas run about 95% full
+const DEMAND0 = 0.94;
 export function aiTicketPrice(g: Game, s: any, tid: number, fac = DEFAULT_BUDGET.Facilities) {
-  const T = s.teams[tid], mk = T.mkt || 1, h = (x: number) => ((((tid + 1) * 2654435761) ^ (x * 40503)) >>> 0) % 1000 / 1000 - 0.5;
-  const wp = demandWp(g, T);
+  const T = s.teams[tid], h = (x: number) => ((((tid + 1) * 2654435761) ^ (x * 40503)) >>> 0) % 1000 / 1000 - 0.5;
+  const wp = demandWp(g, T), B = ticketBaseOf(T), k = 55 * 110 / B;
   const fill = (FILL[T.arch] ?? 0.9) + (T.arch === 'Meddling Micromanager' ? h(7) * 0.08 : 0);
-  // Attendance (attendanceAt) = demand − 55 × (price − 110) / market. Price that fills `fill` of the seats,
+  // Attendance (attendanceAt) = demand − k × (price − typical price). Price that fills `fill` of the seats,
   // and the price that brings in the most ticket money; he charges the lower of the two.
-  const demand = 18800 + (wp - 0.5) * 9000 + (fac - 14) * 80 + (mk - 1) * 3000;
-  const atFill = 110 + (demand - fill * 18800) * mk / 55, best = (demand + 110 * 55 / mk) * mk / 110;
-  return Math.round(cl(Math.min(atFill, best) * (1 + h(3) * 0.12), 35, 300)); // plus his own pricing quirks (±6%)
+  const demand = 18800 * DEMAND0 + (wp - 0.5) * 9000 + (fac - 14) * 80;
+  const atFill = B + (demand - fill * 18800) / k, best = (demand + B * k) / (2 * k);
+  return Math.round(cl(Math.min(atFill, best) * (1 + h(3) * 0.12), 35, 450)); // plus his own pricing quirks (±6%)
 }
 
 // How good fans think the team is: .500 before the season, then its record, weighed fully from game 30
 // (a 0–0 team used to count as winless, so every preseason projection read as an empty arena).
 export const demandWp = (g: Game, T: any) => { const gp = (T.w || 0) + (T.l || 0); return 0.5 + (g.pct(T) - 0.5) * Math.min(1, gp / 30); };
 
-// Fans per game at a given ticket price and facilities budget.
+// Fans per game at a given ticket price and facilities budget. At the city's typical price (ticketBaseOf,
+// which already reflects the market) an average team fills DEMAND0 of its arena; each 1% on the price
+// costs about 0.3% of the crowd, the same in every city.
 function attendanceAt(g: Game, T: any, b: any) {
-  const mk = T.mkt, wp = demandWp(g, T), cap = T.arenaCap || 18800;
-  return cl(Math.round((cap / 18800) * (18800 - ((b.Tickets - 110) * 55) / mk + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80 + (mk - 1) * 3000)), 9000 * (cap / 18800), cap);
+  const wp = demandWp(g, T), cap = arenaCapOf(T), B = ticketBaseOf(T);
+  return cl(Math.round((cap / 18800) * (18800 * DEMAND0 - ((b.Tickets - B) * 55 * 110) / B + (wp - 0.5) * 9000 + (b.Facilities - 14) * 80)), 9000 * (cap / 18800), cap);
 }
 
 // Auto budget: what a sensible front office would set. Spending scales with the club's local
@@ -73,7 +82,7 @@ export function autoBudget(g: Game, s: any, tid: number, k: string, b: any = g.c
   const [mn, mx, df, stp] = g.db.BUD[k], T = s.teams[tid], arch = T.arch;
   const snap = (v: number) => +cl(Math.round(v / stp) * stp, mn, mx).toFixed(2);
   if (k === 'Tickets') {
-    const cap = T.arenaCap || 18800, floors = arch === 'Hype Focus' ? [0.9, 0.7, 0] : [0.8, 0];
+    const cap = arenaCapOf(T), floors = arch === 'Hype Focus' ? [0.9, 0.7, 0] : [0.8, 0];
     for (const f of floors) {
       let best = -1, bestRev = -1;
       for (let p = mn; p <= mx; p += stp) { const att = attendanceAt(g, T, { ...b, Tickets: p }); if (att / cap >= f && p * att > bestRev) { bestRev = p * att; best = p; } }

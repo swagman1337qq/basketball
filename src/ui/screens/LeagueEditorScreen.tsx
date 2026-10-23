@@ -8,7 +8,8 @@ import type { VM } from '../vm';
 import { teamSalary } from '../../engine/cba';
 import { OWNER_ARCHETYPES } from '../../data/world';
 import { KIND_LABEL, OWNER_BGS, ownerProfile } from '../../engine/owners';
-import { forceTeamSale } from '../../engine/frontOffice';
+import { arenaCapOf, forceTeamSale, ticketBaseOf } from '../../engine/frontOffice';
+import { CITY_ECON, cityArena } from '../../data/arenas';
 import { processImage } from '../upload';
 import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
 import { LOGO_STYLES, LOGO_STYLE_LABELS } from '../TeamLogo';
@@ -65,7 +66,9 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             </span>
             <span style={muted}>Arena</span><input className="input" value={t.arena ?? t.region + ' Arena'} onChange={e => setT({ arena: e.target.value })} />
             <span style={muted}>Capacity</span>
-            <NumInput value={t.arenaCap || 18800} min={8000} max={25000} step={100} width={96} onValue={v => setT({ arenaCap: v })} suffix="seats (8,000–25,000)" />
+            <NumInput value={arenaCapOf(t)} min={4000} max={25000} step={100} width={96} onValue={v => setT({ arenaCap: v })} suffix={'seats (4,000–25,000)' + (cityArena(t.region) ? '; real-life default: ' + cityArena(t.region)![0] + ', the biggest in ' + (CITY_ECON[t.region][0].length === 2 && !['MX', 'GB', 'DE', 'ES', 'FR'].includes(CITY_ECON[t.region][0]) ? 'the state or province' : 'the country') : '')} />
+            <span style={muted}>Typical ticket</span>
+            <NumInput value={ticketBaseOf(t)} min={35} max={450} step={1} width={96} onValue={v => setT({ tix0: v })} suffix={CITY_ECON[t.region]?.[1] ? '$ (from the real NBA team’s average price)' : '$ (from the city’s cost of living)'} />
           </div>
           {err && <p style={{ color: 'var(--gm-bad)', fontSize: '12px' }}>{err}</p>}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '12px' }}>{logo(tid, 64)}{logo(tid, 32)}{logo(tid, 18)}</div>

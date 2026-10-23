@@ -54,7 +54,7 @@ import { OLD_AWARD_FORMULAS, DEFAULT_AWARDS } from '../data/awardDefs';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
-import { applyAutoBudget, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
+import { applyAutoBudget, ticketBaseOf, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
@@ -236,6 +236,8 @@ export class Game {
       Object.keys(g.db.cls || {}).forEach(y => { if (+y < g.Y) return; (g.db.cls[y] || []).forEach((id: number) => { const p = g.db.P[id]; if (!p?.r || p.retired || p.gone || p.dr || p.frozen || onTeam.has(id) || (p.stats || []).length) return;
         const r = mulberry32(((id * 2246822519) ^ 0x5eed) >>> 0); if (g.draftLevel(p, p.tpot ?? p.pot, (r() + r() + r() - 1.5) * 5.3, true)) refreshPot(p); }); });
       g.db.prosV = 1; }
+    // 2026-10-23: ticket prices go up to $450 (the priciest cities' typical price is near $285).
+    if (g.db.BUD?.Tickets && g.db.BUD.Tickets[1] < 450) g.db.BUD = { ...g.db.BUD, Tickets: [g.db.BUD.Tickets[0], 450, ...g.db.BUD.Tickets.slice(2)] };
     // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
     if (g.db.payOpen == null && g.state.teams && g.CAP) g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4);
     // 2026-10-22: draft-night levels came from the uncompressed true potential, so the best prospects arrived far
@@ -606,7 +608,7 @@ export class Game {
     assets.find(a => a.yr === 2028 && a.rd === 2 && a.orig === 1).owner = 0;
     const days = this.buildSchedule(teams.length, rnd);
     const results = [];
-    const BUD = { Coaching: [5, 40, 18, .5], Health: [3, 25, 10, .5], Facilities: [3, 30, 14, .5], Scouting: [1, 12, 4, .25], Tickets: [35, 300, 118, 1] };
+    const BUD = { Coaching: [5, 40, 18, .5], Health: [3, 25, 10, .5], Facilities: [3, 30, 14, .5], Scouting: [1, 12, 4, .25], Tickets: [35, 450, 118, 1] };
     const lg = {}; (Object.entries(BUD) as [string, any][]).forEach(([k, [mn, mx, df]]) => { lg[k] = []; for (let i = 0; i < 29; i++) lg[k].push(+cl(df * (0.55 + rnd() * 0.9), mn, mx).toFixed(1)); });
     Object.assign(db, { os, teams, rosters, fa, cls, rank, order, assets, days, results, lg, BUD, sf });
     this.initContracts(rosters, rnd);
@@ -806,10 +808,10 @@ export class Game {
   initState(tids: number[] = [0]) {
     const d = this.db, rosters0 = { ...d.rosters }, fa0 = d.fa.slice(), lg0 = [], me = tids[0];
     const base: any = { managed: tids.slice(), me, clubs: {} };
-    tids.slice(1).forEach((t, i) => (base.clubs[t] = this.defaultClub(i + 1)));
+    tids.slice(1).forEach((t, i) => (base.clubs[t] = this.defaultClub(i + 1, d.teams[t])));
     const box0 = { rosters: rosters0, fa: fa0, overseas: [], cap: {} }, st0 = { ...base, teams: d.teams, phase: 'preseason', day: 0, rosters: rosters0, fa: fa0, cap: box0.cap, assets: d.assets, god: false };
     for (let k = 0; k < 14; k++) { const e = this.aiMove(box0, -14 + k, st0); if (e) lg0.unshift(e); }
-    return { ...base, ...this.defaultClub(0), screen: 'dash', pid: d.rosters[me][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: box0.rosters, fa: box0.fa, cap: box0.cap, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), listModal: null, god: false, phase: 'regular', season: 2027, po: null, playin: null, playinRes: [], history: [], expansion: false, expanded: false, lotto: null, gmSetup: true, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, games: [],
+    return { ...base, ...this.defaultClub(0, d.teams[me]), screen: 'dash', pid: d.rosters[me][0], teams: d.teams.map(t => ({ ...t, seq: t.seq.slice() })), rosters: box0.rosters, fa: box0.fa, cap: box0.cap, lgLog: lg0, natW: natDefault(), overseas: d.os.slice(), listModal: null, god: false, phase: 'regular', season: 2027, po: null, playin: null, playinRes: [], history: [], expansion: false, expanded: false, lotto: null, gmSetup: true, lists: [{ id: 'l1', name: 'Watchlist', ids: [] }], newList: '', txFilter: 'All', day: 0, games: [],
       sort: { roster: ['rk', 1], fa: ['ovr', -1], draft: ['rank', 1] }, stand: 'conf', tTid: d.teams.find(t => !tids.includes(t.tid)).tid, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null,
       assets: d.assets.map(a => ({ ...a })), picks: [...d.order.map((orig, i) => ({ n: i + 1, rd: 1, orig, pid: null })), ...d.order.map((orig, i) => ({ n: d.order.length + i + 1, rd: 2, orig, pid: null }))], pi: 0, dClass: 2027, adv: {},
       q: '', dialog: null, showJson: false, tstats: {}, awards: {}, news: [], career: { seasons: [], hires: [] } };
@@ -858,11 +860,11 @@ export class Game {
   static CLUB_KEYS = ['tactics', 'tacMode', 'tacAI', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto', 'lineups'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return s.spectator ? null : tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; } // Spectator Mode: no club is yours
-  defaultClub(i = 0) {
+  defaultClub(i = 0, T?: any) { // T: the club's team, whose city sets the opening ticket price
     const SC = [['Dale Whitcombe', 'NA', 4], ['Inés Morales', 'WEU', 3], ['Goran Vuković', 'BAL', 4], ['Kwame Asante', 'AFR', 2]];
     const NP = namePools(), R = Object.keys(regions()), pick = a => a[Math.floor(Math.random() * a.length)];
     const scouts = i === 0 ? SC.map(([name, spec, skill]) => ({ name, spec, skill, assign: spec })) : R.slice(0, 4).map(k => { const k2 = pick(R); return { name: pick(NP.us.f) + ' ' + pick(NP.us.l), spec: k2, skill: 2 + Math.floor(Math.random() * 3), assign: k2 }; });
-    return { tactics: { ...TAC_DEFAULT }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
+    return { tactics: { ...TAC_DEFAULT }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: T ? ticketBaseOf(T) : 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
   }
   // A patch that writes club fields for any managed team (top level if it's on screen).
   clubPatch(s, tid, fields, clubs?) {
@@ -893,7 +895,7 @@ export class Game {
     this.setState(s => {
       if (this.isUser(s, tid)) return null;
       const T = s.teams[tid];
-      return { managed: [...s.managed, tid], clubs: { ...(s.clubs || {}), [tid]: this.defaultClub(1) }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: why + ' the ' + T.region + ' ' + T.name }, ...s.lgLog] };
+      return { managed: [...s.managed, tid], clubs: { ...(s.clubs || {}), [tid]: this.defaultClub(1, T) }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: why + ' the ' + T.region + ' ' + T.name }, ...s.lgLog] };
     });
     this.switchTeam(tid);
   }
