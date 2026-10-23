@@ -83,42 +83,42 @@ A card can still carry the real player's name and bio. The card library shows th
 
 **Overall weight** is that rating's share of the overall for a Guard / Wing / Big. Larger numbers move the overall more.
 
-The weights are measured from the game engine itself: every rating was nudged up and down for every rotation player across 160,000 simulated games, and each weight is how much +10 in that rating changes his team's net points per 100 possessions, as a share of the total for his position (minimum 1%). So the overall tracks how much a player actually helps his team win in this engine. Steals and blocks measure at or below zero: raising them past Defensive IQ makes a player gamble, which costs about as much as the extra steals and blocks gain. Rim finishing, mid-range, ball handling and strength also measure close to zero in this engine.
+The weights are measured from the game engine itself: every rating was nudged up and down for every rotation player across 160,000 simulated games, and each weight is how much +10 in that rating changes his team's net points per 100 possessions, as a share of the total for his position (minimum 1%). So the overall tracks how much a player actually helps his team win in this engine. Steals and blocks measure at or below zero: raising them past Defensive IQ makes a player gamble, which costs about as much as the extra steals and blocks gain. Since 2026-10-23 the engine has shot creation (section 7): a lineup with a good creator gets easier shots for everyone, so ball handling, burst, speed and Offensive IQ count for much more than before (a guard's handle 1% → 8.5%). Each individual finishing rating is still small (each is a quarter of rim skill), and strength measures close to zero.
 
 ### Body
 
 | Key | Rating | What it does in games | Overall weight (G / W / B) |
 |---|---|---|---|
-| `hgt` | Height | Finishing at the rim (25% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | **12.5% / 15% / 18%** |
+| `hgt` | Height | Finishing at the rim (25% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | **9% / 10% / 16%** |
 | `stre` | Strength | Post game (hooks, fadeaways), drawing fouls (bigs), injury resistance, rebounding floor. | 1% / 1% / 1% |
-| `spd` | Speed | Perimeter defense, steals, slashing, fatigue-free pace. | 3% / 2% / 1% |
-| `acc` | Acceleration | Creating separation (stepbacks), perimeter defense, steals, scoring/usage. | 4.5% / 3.5% / 3% |
-| `jmp` | Jumping | Rim finishing, rebounding, blocks. | 2.5% / 3.5% / 3% |
-| `endu` | Endurance | How fast his energy drains on the floor (section 7.9), how quickly fatigue from heavy minutes clears between games, injury risk. | 7.5% / 8.5% / 6.5% |
+| `spd` | Speed | Perimeter defense, steals, slashing, fatigue-free pace. | 4.5% / 3.5% / 1% |
+| `acc` | Acceleration | Creating separation (stepbacks), perimeter defense, steals, scoring/usage. | 7.5% / 6% / 4% |
+| `jmp` | Jumping | Rim finishing, rebounding, blocks. | 1.5% / 2% / 3.5% |
+| `endu` | Endurance | How fast his energy drains on the floor (section 7.9), how quickly fatigue from heavy minutes clears between games, injury risk. | 7.5% / 6% / 6.5% |
 
 ### Scoring
 
 | Key | Rating | What it does | Overall weight (G / W / B) |
 |---|---|---|---|
-| `ins` | Inside | Post scoring and rim finishing (20% of rim skill), drawing fouls. | 1% / 1% / 2% |
-| `dnk` | Dunks | Rim finishing (20% of rim skill), slashing, lobs. | 1% / 1% / 1% |
-| `lay` | Layups | Rim finishing (25% of rim skill), floaters. | 1% / 2% / 1% |
-| `ft` | Free throws | Free-throw %, directly (section 7.5). | 3.5% / 4.5% / 4.5% |
-| `fg` | Mid-range | Mid-range and paint jump shots, fadeaways. | 1% / 1% / 2% |
-| `tp` | Three-pointers | Every three (corner and above the break). | 8% / 8% / 4% |
+| `ins` | Inside | Post scoring and rim finishing (20% of rim skill), drawing fouls. | 1% / 2% / 1.5% |
+| `dnk` | Dunks | Rim finishing (20% of rim skill), slashing, lobs. | 1.5% / 1.5% / 1.5% |
+| `lay` | Layups | Rim finishing (25% of rim skill), floaters. | 1.5% / 1.5% / 2% |
+| `ft` | Free throws | Free-throw %, directly (section 7.5). | 3.5% / 4% / 4% |
+| `fg` | Mid-range | Mid-range and paint jump shots, fadeaways. | 2.5% / 3% / 1.5% |
+| `tp` | Three-pointers | Every three (corner and above the break). | 8% / 7% / 5% |
 
 ### Skill and smarts
 
 | Key | Rating | What it does | Overall weight (G / W / B) |
 |---|---|---|---|
-| `oiq` | Offensive IQ | Decision-making: fewer turnovers, better shots (and a better shot when the defense keys on him), assists for teammates, avoiding late-game mental mistakes. | 7.5% / 9% / 8% |
-| `diq` | Defensive IQ | Positioning and rotations: makes every shot the opponent takes harder, fewer fouls, no defensive three seconds. | **22.5% / 21% / 23%** |
-| `blk` | Blocks | Who gets the block (timing). Above his Defensive IQ he gambles: more blocks, easier shots for everyone else. | 1% / 1% / 1% |
+| `oiq` | Offensive IQ | Decision-making: fewer turnovers, better shots (and a better shot when the defense keys on him), assists for teammates, avoiding late-game mental mistakes. | 10% / 8% / 9% |
+| `diq` | Defensive IQ | Positioning and rotations: makes every shot the opponent takes harder, fewer fouls, no defensive three seconds. | **17.5% / 18% / 22.5%** |
+| `blk` | Blocks | Who gets the block (timing). Above his Defensive IQ he gambles: more blocks, easier shots for everyone else. | 1% / 1.5% / 1% |
 | `stl` | Steals | Who gets the steal (hands). Gambling works the same way as Blocks. | 1% / 1% / 1% |
-| `drb` | Ball handling | Fewer turnovers; part of how assists are shared out (the ball handler makes most plays); pull-ups and stepbacks. | 1% / 3% / 3.5% |
-| `pss` | Passing | Who gets the assist on a teammate's make, and how often his lineup's baskets are assisted. | 3.5% / 1% / 2.5% |
-| `reb` | Rebounding | Who grabs the rebound. | 10.5% / 9% / 9% |
-| `box` | Box out | Team rebounding (keeps the opponent off the glass) without grabbing as many himself. | 6.5% / 4% / 5.5% |
+| `drb` | Ball handling | Shot creation (30% of creation skill: easier shots for his whole lineup), fewer turnovers; part of how assists are shared out (the ball handler makes most plays); pull-ups and stepbacks. | 8.5% / 7.5% / 5.5% |
+| `pss` | Passing | Who gets the assist on a teammate's make, and how often his lineup's baskets are assisted. | 3% / 2% / 1.5% |
+| `reb` | Rebounding | Who grabs the rebound. | 5.5% / 6.5% / 4.5% |
+| `box` | Box out | Team rebounding (keeps the opponent off the glass) without grabbing as many himself. | 2% / 3% / 3% |
 
 ### How ratings translate to quality
 
@@ -128,7 +128,7 @@ Across all rotation players, most ratings average about 54–57. As a rough guid
 
 ## 4. The overall, height and wingspan
 
-**Overall** = the weighted average of all 20 ratings and Feel (weights in section 3; Feel, from the intangibles, is 7.4% of a guard's overall, 9.0% of a wing's and 7.3% of a big's) + a wingspan bonus − a position adjustment (G −1.49, W 1.92, B 3.5). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
+**Overall** = the weighted average of all 20 ratings and Feel (weights in section 3; Feel, from the intangibles, is 6.2% of a guard's overall, 6.9% of a wing's and 7.7% of a big's) + a wingspan bonus − a position adjustment (G 1.03, W 1.87, B 2.18). The adjustment keeps a typical guard, wing and big on the same scale. Hidden decimal progress counts too, so a player can sit at 57.4.
 
 **The height rating should match the listed height:**
 
@@ -474,6 +474,7 @@ usage  = e^(0.019 × (offensive ability − 57)) × e^((ten.usage − 50) / 60)
 | Sag off non-shooters (guards and wings at the rim) | −.15 × cl((55 − max(tp, fg))/100, 0, 0.4) |
 | Spacing at the rim | +.0006 × (teammates' average tp − 50) |
 | Lineup regression | −.66 × (lineup's usage-weighted shooting edge); hot lineups give part of their edge back |
+| Shot creation | +.0015 × (lineup creation − league's typical lineup creation). Creation skill = .3·drb + .2·acc + .1·spd + .2·avg(ins, dnk, lay) + .1·fg + .1·oiq; a lineup's creation is .5 × its best creator + .3 × the second + .2 × the third (2026-10-23) |
 | Rim defense | −(size factor) × [.0021 × (interior D of his two tallest defenders − norm) + .007 if a Rim protector is on the floor] + .0005 × block gambling. Size factor = cl(1 + (55 − hgt)/100, .75, 1.3), so small finishers are hit harder. |
 | Jump-shot defense | −.001 (mid) / −.0008 (three) × (lineup perimeter D − norm) + .0003/.0004 × steal gambling |
 | Team defense | −.0008 × (defenders' average diq − norm) |

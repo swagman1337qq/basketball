@@ -2,7 +2,7 @@
 // start of every season (and when a league is created or loaded), so the 2026
 // baselines stay the league mean even as ratings drift upward or downward over time.
 import { effTend } from './tendencies';
-import { BASE, blockSkill, creMeanOf, curve, CURVE_OF, DEFAULT_NORMS, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
+import { BASE, blockSkill, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
 
 export interface NormEntry { p: any; roles: string[]; min: number; tid: number }
 
@@ -33,6 +33,11 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
   const blk: { v: number; w: number }[] = [];
   byTeam.forEach(list => list.filter(e => e.min >= 12).sort((a, b) => blockSkill(b.p.r) - blockSkill(a.p.r)).slice(0, 2).forEach(e => blk.push({ v: blockSkill(e.p.r), w: e.min })));
   n.blk = wmean(blk) || DEFAULT_NORMS.blk;
+  // Lineup creation as the engine sees it on the floor: about two thirds of a game with the five who play
+  // most, a third with a bench-heavy five (the 4th–8th in minutes).
+  const cre: { v: number; w: number }[] = [];
+  byTeam.forEach(list => { const rot = list.slice().sort((a, b) => b.min - a.min).map(e => creSkill(e.p.r)); if (rot.length >= 5) cre.push({ v: 0.65 * lineupCre(rot.slice(0, 5)) + 0.35 * lineupCre(rot.slice(3, 8)), w: 1 }); });
+  n.creL = wmean(cre) || undefined;
 
   // Shot volume = minutes × usage; iterate so the skill means and the share correction agree.
   const vol = (e: (typeof E)[number]) => e.min * e.use;

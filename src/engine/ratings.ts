@@ -101,7 +101,16 @@ export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }))
 // player gamble (sim.ts gambleS/gambleB). Each group adds up to 100. Earlier (2026-10-15): Endurance counts for more (.6 → .95). Offensive and Defensive IQ count for more (a guard's OIQ 7.7% → 12.2% of his overall), shooting,
 // finishing, blocks and steals a little less. OVR_W_V1 (before) and OVR_W_V2 (a first, smaller step the same day)
 // and OVR_W_V3 (before endurance) are kept for the save migration (Game.load iqV).
+// 2026-10-23: measured again (160,000 games, 4 leagues) after shot creation joined the engine (sim.ts creSkill /
+// lineupCre): ball handling, burst, speed and Offensive IQ count for more (a guard's handle 1% → 8.5%), Defensive
+// IQ, height and rebounding a little less. OVR_W_V5 / FEEL_W_V5 / OVR_ADJ_V6 are the weights before.
 export const OVR_W: Record<string, Record<string, number>> = {
+  G: { hgt: 9, stre: 1, spd: 4.5, acc: 7.5, jmp: 1.5, endu: 7.5, ins: 1, dnk: 1.5, lay: 1.5, ft: 3.5, fg: 2.5, tp: 8, oiq: 10, diq: 17.5, blk: 1, stl: 1, drb: 8.5, pss: 3, reb: 5.5, box: 2 },
+  W: { hgt: 10, stre: 1, spd: 3.5, acc: 6, jmp: 2, endu: 6, ins: 2, dnk: 1.5, lay: 1.5, ft: 4, fg: 3, tp: 7, oiq: 8, diq: 18, blk: 1.5, stl: 1, drb: 7.5, pss: 2, reb: 6.5, box: 3 },
+  B: { hgt: 16, stre: 1, spd: 1, acc: 4, jmp: 3.5, endu: 6.5, ins: 1.5, dnk: 1.5, lay: 2, ft: 4, fg: 1.5, tp: 5, oiq: 9, diq: 22.5, blk: 1, stl: 1, drb: 5.5, pss: 1.5, reb: 4.5, box: 3 },
+};
+// Before shot creation (2026-10-23; with FEEL_W_V5 and OVR_ADJ_V6), for the save migration (Game.load iqV 6):
+export const OVR_W_V5: Record<string, Record<string, number>> = {
   G: { hgt: 12.5, stre: 1, spd: 3, acc: 4.5, jmp: 2.5, endu: 7.5, ins: 1, dnk: 1, lay: 1, ft: 3.5, fg: 1, tp: 8, oiq: 7.5, diq: 22.5, blk: 1, stl: 1, drb: 1, pss: 3.5, reb: 10.5, box: 6.5 },
   W: { hgt: 15, stre: 1, spd: 2, acc: 3.5, jmp: 3.5, endu: 8.5, ins: 1, dnk: 1, lay: 2, ft: 4.5, fg: 1, tp: 8, oiq: 9, diq: 21, blk: 1, stl: 1, drb: 3, pss: 1, reb: 9, box: 4 },
   B: { hgt: 18, stre: 1, spd: 1, acc: 3, jmp: 3, endu: 6.5, ins: 2, dnk: 1, lay: 1, ft: 4.5, fg: 2, tp: 4, oiq: 8, diq: 23, blk: 1, stl: 1, drb: 3.5, pss: 2.5, reb: 9, box: 5.5 },
@@ -138,13 +147,15 @@ export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OV
 export const OVR_ADJ_V3: Record<string, number> = { G: 1.6, W: 1.64, B: 4.44 };
 export const OVR_ADJ_V4: Record<string, number> = { G: 1.6, W: 1.64, B: 4.38 };
 export const OVR_ADJ_V5: Record<string, number> = { G: -2.2, W: 1.58, B: 3.49 }; // before Feel joined the overall (2026-10-17)
-export const OVR_ADJ: Record<string, number> = { G: -1.49, W: 1.92, B: 3.5 };
+export const OVR_ADJ_V6: Record<string, number> = { G: -1.49, W: 1.92, B: 3.5 }; // before shot creation (2026-10-23)
+export const OVR_ADJ: Record<string, number> = { G: 1.03, W: 1.87, B: 2.18 };
 // Feel (intangibles: vision and anticipation) counts too (2026-10-17): it improves shots, turnovers, assists and
 // steals in games. Measured like OVR_W (the same 120,000-game regression with Feel added: +10 Feel is worth about
 // 0.22 / 0.26 / 0.22 points per 100 for guards / wings / bigs, about what Offensive IQ is), in the same units
 // (each group's OVR_W adds up to 100): 7.4% of a guard's overall, 9.0% of a wing's, 7.3% of a big's. A player
 // without intangibles yet reads as 50.
-export const FEEL_W: Record<string, number> = { G: 8, W: 9.8, B: 7.8 };
+export const FEEL_W: Record<string, number> = { G: 6.5, W: 7, B: 8 };
+export const FEEL_W_V5: Record<string, number> = { G: 8, W: 9.8, B: 7.8 };
 export function ovrExact(p: any): number {
   const W = OVR_W[p.grp] || OVR_W.W, fw = FEEL_W[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw;
   for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }

@@ -189,6 +189,16 @@ export const blockSkill = (r: any) => 100 * Math.pow(g01(r.blk ?? r.hgt), 0.32) 
 export const stealSkill = (r: any) => (r.stl ?? r.diq) * 0.7 + (r.acc ?? r.spd) * 0.15 + r.spd * 0.15 + ape(r) * 1.0;
 export const gambleB = (r: any) => Math.max(0, (r.blk ?? r.diq) - r.diq - 8);
 export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
+// Shot creation (2026-10-23): breaking a defender down, getting into the paint and making the defense
+// collapse, which hands everyone on the floor an easier shot. Handle and burst first, the threat of the
+// finish and the pull-up, and the read. A lineup's creation leans on its best creators (half its best,
+// 30% the next, 20% the third), and every shot it takes is that much easier or harder than the league's
+// (CRE_K per point). Before this the engine had no idea of creation: five spot-up shooters got the
+// same looks as a lineup with an elite ball-handler, so handle, quickness and finishing barely won games.
+export const creSkill = (r: any) => 0.3 * r.drb + 0.2 * (r.acc ?? r.spd) + 0.1 * r.spd + 0.2 * (r.ins + r.dnk + (r.lay ?? r.dnk)) / 3 + 0.1 * r.fg + 0.1 * r.oiq;
+export const CRE_W = [0.5, 0.3, 0.2];
+export const lineupCre = (xs: number[]) => { const a = xs.slice().sort((x, y) => y - x); return CRE_W.reduce((t, w, i) => t + w * (a[i] ?? a[a.length - 1] ?? 50), 0); };
+export const CRE_K = 0.0015;
 export const rebSkill = (r: any) => r.reb * 0.55 + r.hgt * 0.33 + r.jmp * 0.12 + ape(r) * 0.9;
 // Team rebounding also counts box-outs: a great boxer wins the glass for his team without
 // grabbing many rebounds himself.
@@ -215,6 +225,7 @@ export interface Norms {
   adj?: Record<Zone, number>; tovM?: number; adjFrom?: number; // the league's drift correction (Game.leagueDrift): make rates by tier and turnovers, from last season's results
   paceM?: number; ftM?: number; zoneM?: Record<Zone, number>; // also (2026-10-17) trip length, free-throw trips and the shot mix by tier
   quick?: number; // the league's typical speed and quickness (each team's top eight), the zero point for team tempo
+  creL?: number; // the league's typical lineup creation (lineupCre over each team's rotation)
 }
 export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid: 55, c3: 55, atb: 55 }, offset: { rim: 0, mid: 0, c3: 0, atb: 0 }, shareCorr: { rim: 1, mid: 1, c3: 1, atb: 1 }, ftOffset: 0, perimD: 55, interiorD: 58, reb: 58, pss: 55, handle: 55, diq: 52, oiq: 52, blk: 58, stl: 52, gamB: 2, gamS: 2 };
 
@@ -339,7 +350,7 @@ const RIM_CAP = 0.58;
 const TIRED0 = 0.13; // a typical player's tiredness on the floor: fatigue effects are measured from it, so league totals hold
 const SUB_MARGIN = 285; // seconds ahead of his minutes target before a bench player comes in
 
-interface PlayerCache { use: number; prof: Record<Zone, number>; skill: Record<Zone, number>; role: boolean; star: boolean; q: number } // q: his shot-making against the league, over his own shot mix
+interface PlayerCache { use: number; prof: Record<Zone, number>; skill: Record<Zone, number>; role: boolean; star: boolean; q: number; cre: number } // q: his shot-making against the league, over his own shot mix
 type Ev = (ids: number[], text: () => string, sub?: () => string, scoring?: boolean) => void;
 
 export class GameSim {
@@ -384,7 +395,7 @@ export class GameSim {
       this.teams[k].players.forEach(p => {
         const use = usageRaw(p), rel = use / this.norms.usage;
         const prof = shotProfile(p, this.norms), skill = zoneSkill(p.r);
-        this.cache.set(p, { use, prof, skill, role: rel < 0.9 && mental(p.r) < 62, star: rel >= 1.25 || mental(p.r) >= 65, q: ZONES.reduce((a, z) => a + prof[z] * (curve(CURVE_OF[z], skill[z]) + this.norms.offset[z]), 0) });
+        this.cache.set(p, { use, prof, skill, role: rel < 0.9 && mental(p.r) < 62, star: rel >= 1.25 || mental(p.r) >= 65, q: ZONES.reduce((a, z) => a + prof[z] * (curve(CURVE_OF[z], skill[z]) + this.norms.offset[z]), 0), cre: creSkill(p.r) });
       });
       this.on[k] = this.avail(k).slice(0, 5);
       this.on[k].forEach(p => (this[k].box[p.id].gs = 1));
@@ -665,7 +676,7 @@ export class GameSim {
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
       // At the rim, a guard or wing who can't shoot (his best of 3PT and mid-range under 55) finds the paint packed:
       // the defense sags off him (up to −6% at the worst); shooters around him open the lane a little (and vice versa).
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
