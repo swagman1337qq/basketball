@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DXhOYCgE.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Dwp8wMBX.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-10-23
+
+### Changed
+- **Your team's color instead of gold.** In a league, the outlined buttons (Play next game, Sim to next game and the rest) and the marker on the next phase use your team's primary color, lightened or darkened just enough to stand out on the background. The title screen keeps the gold.
 
 ## 2026-10-22
 
