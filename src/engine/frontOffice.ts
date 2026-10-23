@@ -185,7 +185,7 @@ export function ownerReview(g: Game, s: any, tid: number) {
     'Win-Now Spender': [['Make the playoffs (top 6, or through the play-in)', ord(seed) + ' in the ' + me.conf, st3(seed <= 6, seed <= 10)], ['Keep payroll under the 2nd apron', money(payroll), st3(payroll <= g.AP2, false)]],
     'Frugal Profit-Seeker': [['Turn a profit of at least $10M', money(fin.net), st3(fin.net >= 10, fin.net >= 0)], ['Stay under the luxury tax', money(payroll), st3(payroll <= g.TAX, false)], ['Win at least 40% of games', pctS(me), st3(g.pct(me) >= 0.4, g.pct(me) >= 0.35)]],
     'Asset Hoarder': [['Hold 4+ first-round picks across the next 3 drafts', String(firsts), st3(firsts >= 4, firsts === 3)], ['Keep the roster’s average age at 27 or under', avgAge.toFixed(1), st3(avgAge <= 27, avgAge <= 28)]],
-    'Hype Focus': [['Fill 90% of the arena', Math.round(fin.full * 100) + '%', st3(fin.full >= 0.9, fin.full >= 0.8)], ['Roster a star rated 65+', String(bestOvr), st3(bestOvr >= 65, bestOvr >= 62)]],
+    'Hype Focus': [['Fill 90% of the arena', Math.round(fin.full * 100) + '%', st3(fin.full >= 0.9, fin.full >= 0.8)], ['Roster a star rated 64+', String(bestOvr), st3(bestOvr >= 64, bestOvr >= 61)]],
     'Meddling Micromanager': [['Start ' + (P[fav]?.name || 'his favorite'), (ids.indexOf(fav) < 5 ? 'Starting' : 'Bench') + ' · benched ' + favBench + ' games', st3(ids.indexOf(fav) < 5 && favBench < 10, favBench < 20)], ['Win at least half your games', pctS(me), st3(g.pct(me) >= 0.5, g.pct(me) >= 0.45)]],
   };
   const ceiling = g.teamCeiling(me), god = !!s.god;

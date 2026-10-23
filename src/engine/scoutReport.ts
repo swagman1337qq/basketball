@@ -53,7 +53,7 @@ function observed(p: any, margin: number) {
 
 // Where a rating sits in this league: 75+ is a superstar, 66+ an All-Star, 56+ a starter
 // (about the top five on an average team), 48+ a rotation player, 41+ end of the bench.
-const TIER = [75, 66, 56, 48, 41];
+const TIER = [68, 64, 56, 48, 41]; // superstar and All-Star on the squeezed top (potential.ts squeezeTop)
 const tierOf = (v: number) => { const i = TIER.findIndex(t => v >= t); return i < 0 ? 5 : i; };
 
 const pickOf = (seed: number) => { const r = mulberry32(seed); return <T,>(a: T[]) => a[Math.floor(r() * a.length)]; };

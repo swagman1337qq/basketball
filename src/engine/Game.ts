@@ -36,7 +36,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, compressT, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
+import { capToT, ceilMax, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -106,7 +106,7 @@ export class Game {
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
-    g.db.priceQ0 = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = null; // salaries keep this season's pay scale by rank (priceOvr)
+    { const q = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = q; g.db.priceQ0 = q.map(unsqueezeTop); } // salaries keep this season's pay scale by rank (priceOvr), read on the unsqueezed scale the pay curve was made for (potential.ts squeezeTop)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
     g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4); g.db.mkt = 1; // opening-night payroll ÷ cap, for the first summer's market step
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
@@ -142,7 +142,7 @@ export class Game {
       else p.ctype = p.amt <= minS * 1.05 ? 'min' : p.amt >= N.CAP * 0.245 ? 'max' : 'standard';
       if (!p.opt && p.ctype !== 'rookie' && p.exp > 2027 && rnd() < 0.2) p.opt = { kind: rnd() < 0.75 ? 'player' : 'team', season: p.exp };
       if (p.amt >= N.CAP * 0.15 && rnd() < 0.12) p.kicker = 0.15;
-      if (yos >= 8 && p.yrsWith >= 4 && p.ovr >= 66 && rnd() < 0.5) p.ntc = true;
+      if (yos >= 8 && p.yrsWith >= 4 && p.ovr >= 64 && rnd() < 0.5) p.ntc = true;
     }));
     [...(this.db.fa || []), ...(this.db.os || [])].forEach(id => { const p = P[id]; p.raise = 0.05; p.ctype = 'standard'; });
   }
@@ -263,7 +263,7 @@ export class Game {
     // keeping each overall (his other ratings give the difference back). Nobody is lowered.
     if (!g.db.hgtV2) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; const v = blendHeight(p); if (v > p.r.hgt + 2) { setHgtKeepOvr(p, v); syncOvr(p); } }); if (g.db.norms) g.db.norms.season = -1; g.db.hgtV2 = 1; } // the league's norms are re-read below
     if (!g.db.hgtV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired || !p.hgt) return; setHgtKeepOvr(p, blendHeight(p, p.r.hgt)); syncOvr(p); }); g.db.hgtV = 1; }
-    if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr)); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
+    if (!g.db.ceilV) { Object.values(g.db.P).forEach((p: any) => { if (!p?.r || p.gone || p.retired) return; initCeil(p, Math.max(p.ovr, p.pot ?? p.ovr), true); rollPerr(p, p.age <= 22 ? (p.cls ? 3.5 : 2.5) : p.age <= 26 ? 1.2 : 0); refreshPot(p); }); g.db.ceilV = 1; }
     // 2026-10: 99 is extremely hard to reach (potential.ts softTop): skill ceilings past 85 thin out, below
     // 98 for everyone but a rare generational skill. Ratings already there stay; the ceilings above them come down.
     // 2026-10: true potential is fixed and a hard cap (potential.ts): set once from his full ceiling (plus a hidden gem's unsurfaced part).
@@ -685,14 +685,14 @@ export class Game {
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)], wpick = o => this.wpick(o);
     const P = this.db.P, b = this.bio(Wt);
     const [pos, grp] = forceGrp ? pick(POS.filter(x => x[1] === forceGrp)) : pick(POS);
-    const ovr = Math.round(cl(base, 22, 92));
-    const pot = Math.round(age < 23 ? ovr + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? ovr + rnd() * 5 : ovr);
+    const raw = Math.round(cl(base, 22, 92)), ovr = Math.round(squeezeTop(raw)); // the top of the scale squeezed (potential.ts squeezeTop); pay and potential from the unsqueezed level
+    const pot = Math.round(age < 23 ? raw + 4 + (23 - age) * 3 * (0.5 + rnd()) : age < 27 ? raw + rnd() * 5 : raw);
     const r: any = {}; RATING_KEYS.forEach(k => { const v = cl(ovr + (BIAS[grp][k] || 0) + (rnd() - .5) * 22, 4, 99); r[k] = Math.round(softTop(v)); }); // every rating thins out past 85 (ratings.ts softTop)
     const hIn = grp === 'G' ? 73 + Math.floor(rnd() * 5) : grp === 'W' ? 77 + Math.floor(rnd() * 4) : 81 + Math.floor(rnd() * 5);
     // Wingspan: NBA players average about 4 inches longer than their height, from −6 to +12.
     const wing = hIn + Math.round(cl((rnd() + rnd() + rnd() - 1.5) * 6 + 3.8, -6, 12));
     const p: any = { id: this.db.nid++, pos, grp, age, ovr, pot: Math.min(pot, 95), r, wing, hgt: Math.floor(hIn / 12) + '′' + (hIn % 12) + '″', wt: Math.round(hIn * 2.9 - 5 + rnd() * 25),
-      amt: Math.min(this.MAXC, valueCurve(ovr)), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
+      amt: Math.min(this.MAXC, valueCurve(raw)), exp: 2027 + Math.floor(rnd() * 4), draft: Math.min(2026, 2026 - (age - 21)), mood: pick(['Eager', 'Open', 'Open', 'Reluctant']),
       from: this.pipe(b.raised, cls), cls, dr: (() => { if (cls) return null; const x = rnd(); return x < .7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < .92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null; })(), nz: [rnd() - .5, rnd() - .5], gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0, stats: [], ...b };
     p.pers = { mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }), alpha: rnd() < .2, touches: rnd() < .3, pro: rnd() < .35, volatile: rnd() < .15, crowd: rnd() < .15, clutch: rnd() < .1, prone: rnd() < .08, padder: rnd() < .08, flashy: rnd() < .08, heat: rnd() < .1, villain: rnd() < .05, fearless: rnd() < .07 };
     p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && rnd() < .3; // team player
@@ -708,7 +708,7 @@ export class Game {
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
     initTendencies(p, { roles: this.rolesOf(p) }); // his playing style: where his game points, plus his own quirks (tendencies.ts)
-    if (!cls && age <= 23) { bodyAhead(p, p.pot - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
+    if (!cls && age <= 23) { bodyAhead(p, squeezeTop(p.pot) - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
     initCeil(p, p.pot); rollPerr(p, age <= 22 ? 2.5 : age <= 26 ? 1.2 : 0); refreshPot(p); // potential is a ceiling (potential.ts); p.pot is the league's read
     ensureIntg(p, rnd); rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     if (cls) ensureTranslation(p); // how his game will translate to the NBA: hidden until his first camp (translation.ts)

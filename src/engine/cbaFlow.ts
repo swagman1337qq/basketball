@@ -211,7 +211,7 @@ export function answerAgentCall(g: Game, id: string, keep: boolean) {
 // ── Releases ────────────────────────────────────────────────────────────────────
 // How much of what he's owed a player will give back in a buyout: veterans who want to
 // join a contender give more; young players and stars give little.
-export function buyoutWilling(g: Game, p: any) { return Math.max(0, Math.min(0.3, 0.04 + Math.max(0, p.age - 28) * 0.025 + (p.ovr < 55 ? 0.06 : 0) - (p.ovr >= 65 ? 0.05 : 0))); }
+export function buyoutWilling(g: Game, p: any) { return Math.max(0, Math.min(0.3, 0.04 + Math.max(0, p.age - 28) * 0.025 + (p.ovr < 55 ? 0.06 : 0) - (g.priceOvr(p.ovr) >= 65 ? 0.05 : 0))); }
 
 export function userRelease(g: Game) {
   g.setState(s => {
@@ -498,12 +498,12 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, g.potRead(p, t, s) - p.ovr) * 0.5) : p.ovr; // his team's own read of his potential
       if (proj < (rook ? 56 : 58) || p.age >= 33) return;
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
-      if (Math.random() > share * will * (proj >= 66 ? 1.3 : 1)) return;
+      if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
       // 2026-10-22: priced halfway between what he is and what he'll become (paying for all of the projection gave
       // 50s and 53s who never developed a fifth of the cap); the rookie max only for a player already good (62+).
       const raw = g.fair((p.ovr + proj) / 2), bNow = g.priceOvr(p.ovr), af = rook || (raw >= snapAt(bNow) * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
-      const amt = rook && proj >= 64 && p.ovr >= 62 ? mx /* a rising star's rookie extension: the rookie max */ : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
+      const amt = rook && g.priceOvr(proj) >= 64 && g.priceOvr(p.ovr) >= 62 ? mx /* a rising star's rookie extension: the rookie max */ : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       p.ext = { amt, yrs, raise: 0.08, ovr: p.ovr }; payroll += amt - p.amt; // (his level when he signed it)

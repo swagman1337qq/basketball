@@ -118,7 +118,7 @@ export function linkNames(text: string, open: (id: number) => void, opts: { P?: 
 }
 
 // Where a rating sits in this league (same cut-offs as the scouting reports) and its colour.
-export const RATING_TIERS: [number, string][] = [[75, 'Superstar'], [66, 'All-Star'], [56, 'Starter'], [48, 'Rotation'], [41, 'Bench'], [0, 'Fringe']];
+export const RATING_TIERS: [number, string][] = [[68, 'Superstar'], [64, 'All-Star'], [56, 'Starter'], [48, 'Rotation'], [41, 'Bench'], [0, 'Fringe']];
 export const ratingTier = (v: number) => { const i = RATING_TIERS.findIndex(([t]) => v >= t); return { i, name: RATING_TIERS[i][1], color: 'var(--rt-' + i + ')' }; };
 
 // A length in feet and inches (two typed fields). Inches past 11 or below 0 carry into the feet.

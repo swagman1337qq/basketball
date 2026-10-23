@@ -104,7 +104,17 @@ const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: 
 // his plan's pace (dv0.k) is raised by as much as his ceiling came down, so he develops exactly as fast and
 // peaks where he would have; he just gets closer to his (lower) ceiling.
 export const compressT = (T: number) => (T <= 70 ? T : 70 + (T - 70) * 0.55);
-export function initCeil(p: any, peak: number) {
+// 2026-10-23: the top of the talent scale squeezed. Real-player cards that reproduce real box scores in this
+// engine put MVP-level seasons at 62–69, but generated stars reached 75–83 and outscored real stars by far.
+// Above TOP_KNEE every point counts TOP_SLOPE: a would-be 83 is about 71, 78 about 69, 70 about 65.6; 62 and
+// below are unchanged. Applied to a new player's expected peak (initCeil) and to the starting league's
+// levels (Game.mkPlayer); salaries are priced by rank (Game.priceOvr), so stars still get the max.
+export const TOP_KNEE = 62, TOP_SLOPE = 0.45;
+export const squeezeTop = (x: number) => (x <= TOP_KNEE ? x : TOP_KNEE + (x - TOP_KNEE) * TOP_SLOPE);
+export const unsqueezeTop = (x: number) => (x <= TOP_KNEE ? x : TOP_KNEE + (x - TOP_KNEE) / TOP_SLOPE);
+// `raw`: the peak is already on today's scale (older saves' one-time ceilings).
+export function initCeil(p: any, peak: number, raw = false) {
+  if (!raw) peak = squeezeTop(peak);
   rollGen(p); startPlan(p); const o = p.dv0.o, want = o + Math.max(0, peak - o) / TYPICAL; fit(p, current(p), want);
   const T = Math.max(compressT(want), Math.min(want, o + 2)); if (want > o && T < want) p.dv0.k = +((want - o) / Math.max(0.5, T - o)).toFixed(3);
   p.tpot = Math.round(Math.min(99, Math.max(p.ovr ?? o, T))); // his true potential, for good (a typical career gets about TYPICAL of the way to the uncompressed ceiling)
