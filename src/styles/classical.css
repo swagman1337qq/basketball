@@ -130,9 +130,10 @@ figcaption {
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { color: var(--accent-ink); border-color: var(--color-accent); }
-.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
-.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+/* In a league, the accent line is your team's primary color (--team-line, theme.ts); gold elsewhere. */
+.btn-primary { color: var(--accent-ink); border-color: var(--team-line, var(--color-accent)); }
+.btn-primary:hover { background: color-mix(in srgb, var(--team-line, var(--color-accent)) 12%, transparent); }
+.btn-primary:active { background: color-mix(in srgb, var(--team-line, var(--color-accent)) 22%, transparent); }
 .btn-secondary { border-color: var(--color-divider); }
 .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
 .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }

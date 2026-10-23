@@ -7,6 +7,10 @@ export const DARK: Record<string, string> = {"--color-bg":"#181716","--color-sur
 export function applyTheme(el: HTMLElement | null, dark: boolean, team?: [string, string]) {
   if (!el) return;
   if (team) { el.style.setProperty('--team-1', team[0]); el.style.setProperty('--team-2', team[1]); }
+  // The accent line (primary buttons' borders, the next-phase marker): your team's primary color, lifted
+  // toward white on the dark theme (toward black on the light one) until it stands out from the background.
+  const line = team ? readableLine(team[0], dark) : null;
+  if (line) el.style.setProperty('--team-line', line); else el.style.removeProperty('--team-line');
   el.style.setProperty('--gm-elite', dark ? 'oklch(0.86 0.14 85)' : 'var(--color-accent-700)');
   Object.keys(DARK).forEach(k => (dark ? el.style.setProperty(k, DARK[k]) : el.style.removeProperty(k)));
   // Data colours: neon green for growth and wins, soft red for decline, injuries and losses.
@@ -27,4 +31,17 @@ export function lastTheme(): 'dark' | 'light' {
 }
 export function rememberTheme(t: 'dark' | 'light') {
   try { localStorage.setItem(THEME_KEY, t); } catch { /* storage unavailable */ }
+}
+
+// A hex color mixed toward white (dark theme) or black (light theme) until its luminance is far enough from the
+// background's to read as a line. null if it isn't a hex color.
+function readableLine(hex: string, dark: boolean): string | null {
+  const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec((hex || '').trim()); if (!m) return null;
+  let h = m[1]; if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const rgb = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  const lum = (c: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const to = dark ? 255 : 0, ok = (c: number[]) => (dark ? lum(c) >= 0.2 : lum(c) <= 0.25);
+  let c = rgb;
+  for (let t = 0; t <= 1.0001 && !ok(c); t += 0.05) c = rgb.map(v => Math.round(v + (to - v) * t));
+  return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
