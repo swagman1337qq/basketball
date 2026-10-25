@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-25
 
 ### Changed
+- **A real basketball for the icon.** The browser tab and the installed app's icon are now an orange basketball instead of the gold outline.
 - **Start screen: no more gold.** Buttons, outlines and labels on the start screen are white now, and a club you pick fills with its own team color (with dark or white text, whichever reads better).
 
 ### Added

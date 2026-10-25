@@ -291,7 +291,7 @@ All in `src/engine/`.
 
 ## Offline play
 
-- Service worker (2026-10-25): `pwa/sw-template.js`, written into the build as `dist/sw.js` by `pwa/offlinePlugin.mjs` (vite.config.ts) with every built file (bundle + `public/`, about 325 files, 6 MB) and a version hash; registered in `src/main.tsx` (production builds only). Page: network first, kept copy offline; other files: cache first; a new version installs in the background (`skipWaiting`, `clients.claim`) and the previous cache is kept one more round so an open tab can still load its lazy screens. `public/manifest.webmanifest` + `public/icons/` (192/512) make it installable. Saves stay in IndexedDB (`db/saves.ts`), untouched. Checked with Playwright: offline reload, new league, nine screens, no errors or failed requests.
+- Service worker (2026-10-25): `pwa/sw-template.js`, written into the build as `dist/sw.js` by `pwa/offlinePlugin.mjs` (vite.config.ts) with every built file (bundle + `public/`, about 325 files, 6 MB) and a version hash; registered in `src/main.tsx` (production builds only). Page: network first, kept copy offline; other files: cache first; a new version installs in the background (`skipWaiting`, `clients.claim`) and the previous cache is kept one more round so an open tab can still load its lazy screens. `public/manifest.webmanifest` + `public/icons/` (192/512 PNGs rendered from `icons/basketball.svg`, which is also the favicon) make it installable. Saves stay in IndexedDB (`db/saves.ts`), untouched. Checked with Playwright: offline reload, new league, nine screens, no errors or failed requests.
 
 ## Known issues to address
 
