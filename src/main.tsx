@@ -13,6 +13,9 @@ import './styles/classical.css';
 import './styles/app.css';
 import './styles/hover.css';
 
+// Offline play: the service worker (pwa/sw-template.js, written by the build) keeps a full copy of the game.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
