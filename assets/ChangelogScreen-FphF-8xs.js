@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BIx5KkNQ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CjRX17sY.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-25
+
+### Changed
+- **Start screen: no more gold.** Buttons, outlines and labels on the start screen are white now, and a club you pick fills with its own team color (with dark or white text, whichever reads better).
 
 ### Added
 - **Play offline.** Open the game once with an internet connection and your browser keeps a full copy of it. After that it opens and plays with no connection (on a plane, on the road), at the same address and with all your saved leagues. No download or program to run; in Chrome or Edge you can also click Install in the address bar for a desktop icon. New versions download quietly the next time you're online and take over the next time you open the game.
