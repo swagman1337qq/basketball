@@ -3,8 +3,13 @@ import { deleteSave, exportSave, importSave, listSaves, type SaveRow } from '../
 import { Game } from '../engine/Game';
 import { TeamLogo } from './TeamLogo';
 import { applyTheme, lastTheme } from './theme';
+import { inkOn } from './kit';
 
 const kicker = { fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' } as const;
+
+// No gold on the title screen: every accent (button outlines, kickers, focus rings, hover tints) is the text
+// color (white in the dark theme); a picked club fills with its own primary color.
+const PLAIN = { '--color-accent': 'var(--color-text)', '--color-accent-100': 'color-mix(in srgb, var(--color-text) 7%, transparent)', '--color-accent-700': 'var(--color-text)', '--color-accent-800': 'var(--color-text)', '--accent-ink': 'var(--color-text)', '--team-line': 'var(--color-text)' } as any;
 
 const market = (m: number) => (m >= 1.15 ? 'Large' : m >= 0.95 ? 'Mid-large' : m >= 0.85 ? 'Mid-size' : 'Small');
 
@@ -25,7 +30,7 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
   const picked = teams.find(t => t.tid === sel[0]) || teams[0];
   const toggle = (t: number) => setSel(x => (!multi ? [t] : x.includes(t) ? (x.length > 1 ? x.filter(y => y !== t) : x) : [...x, t]));
 
-  useLayoutEffect(() => applyTheme(rootRef.current, lastTheme() === 'dark'), []);
+  useLayoutEffect(() => { const el = rootRef.current; applyTheme(el, lastTheme() === 'dark'); if (el) Object.entries(PLAIN).forEach(([k, v]) => el.style.setProperty(k, v as string)); }, []); // the theme first, then no gold over it
   const refresh = () => listSaves().then(setSaves).catch(() => { setSaves([]); setMsg('This browser blocked local storage, so saves are unavailable.'); });
   useEffect(() => { refresh(); }, []);
 
@@ -137,19 +142,19 @@ export function TitleScreen({ onOpen, onCreate }: { onOpen: (id: string) => void
               <div key={conf}>
                 <h4 style={{ margin: '14px 0 4px', fontSize: '19px' }}>{conf}ern Conference</h4>
                 {teams.filter(t => t.conf === conf).sort((a, b) => (a.region + ' ' + a.name).localeCompare(b.region + ' ' + b.name)).map(t => {
-                  const on = sel.includes(t.tid), first = sel[0] === t.tid;
+                  const on = sel.includes(t.tid), first = sel[0] === t.tid, fill = (t.colors || [])[0] || '#444444', ink = on ? inkOn(fill) : 'var(--color-text)', sub = on ? 'color-mix(in srgb, ' + ink + ' 78%, transparent)' : null;
                   return (
                     <button key={t.tid} onClick={() => toggle(t.tid)} role={multi ? 'checkbox' : 'radio'} aria-checked={on} className={on ? '' : 'hv3'}
-                      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '14px 40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? 'var(--color-accent-100)' : 'transparent' }}>
-                      <span style={{ display: 'grid', placeItems: 'center', width: '14px', height: '14px', border: '1px solid var(--color-accent)', borderRadius: multi ? '2px' : '50%', background: on ? 'var(--color-accent)' : 'transparent', color: 'var(--color-bg)', fontSize: '10px', lineHeight: 1 }}>{on ? '✓' : ''}</span>
+                      style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', width: '100%', display: 'grid', gridTemplateColumns: '14px 40px minmax(0,1fr) auto', gap: '12px', alignItems: 'center', padding: '8px 10px', marginTop: '4px', border: '1px solid ' + (on ? fill : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: on ? fill : 'transparent', color: ink, ...(on ? { textShadow: 'none' } : {}) }}>
+                      <span style={{ display: 'grid', placeItems: 'center', width: '14px', height: '14px', border: '1px solid ' + ink, borderRadius: multi ? '2px' : '50%', background: on ? ink : 'transparent', color: fill, fontSize: '10px', lineHeight: 1 }}>{on ? '✓' : ''}</span>
                       <TeamLogo team={t} size={40} />
                       <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: on ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.region} {t.name}{first && sel.length > 1 ? ' · first' : ''}</span>
-                        <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-neutral-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Best player: {t.star.name}, {t.star.pos} · {t.star.ovr} ovr · {market(t.mkt)} market · {t.arch}</span>
+                        <span style={{ display: 'block', fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, lineHeight: 1.15, color: ink }}>{t.region} {t.name}{first && sel.length > 1 ? ' · first' : ''}</span>
+                        <span style={{ display: 'block', fontSize: '12px', color: sub ?? 'var(--color-neutral-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Best player: {t.star.name}, {t.star.pos} · {t.star.ovr} ovr · {market(t.mkt)} market · {t.arch}</span>
                       </span>
                       <span style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.outlook === 'Contender' ? 'var(--color-accent-700)' : 'var(--color-text)' }}>{t.outlook}</span>
-                        <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-neutral-600)' }}>#{t.rank} · rating {t.top8.toFixed(1)}</span>
+                        <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: ink }}>{t.outlook}</span>
+                        <span style={{ display: 'block', fontSize: '11px', color: sub ?? 'var(--color-neutral-600)' }}>#{t.rank} · rating {t.top8.toFixed(1)}</span>
                       </span>
                     </button>
                   );
