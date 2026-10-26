@@ -34,7 +34,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (card.pers) p.pers = { ...p.pers, ...card.pers };
   if (card.intg) p.intg = { feel: cl(card.intg.feel ?? p.intg?.feel ?? 50, 1, 99), poise: cl(card.intg.poise ?? p.intg?.poise ?? 50, 1, 99) };
   delete p.tend; delete p.ten; // his playing style starts over from the new build (below; his quirks stay)
-  if (card.pos) p.grp = GRP[card.pos];
+  if (card.pos) { p.grp = GRP[card.pos]; p.posLock = true; } // a card's position stays (Game.autoPos)
   p.rx = card._rx ?? {}; p.px = card._px ?? 0; if (card._gem !== undefined) p.gem = card._gem; else delete p.gem; // a fresh build: no leftover hidden growth (undo restores it)
   syncOvr(p);
   delete p.ceil; delete p.ph; p.perr = 0; // a fresh build: his potential is the card's, exactly (potential.ts)

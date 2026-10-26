@@ -144,7 +144,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                       </option>
                     ))}
                   </select><Dice title="A random position" onClick={() => { const o = vm.pl.ed.posOpts || []; vm.pl.ed.setPos({ target: { value: o[Math.floor(Math.random() * o.length)].v } }); }} /></span>
-                  <span style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--color-neutral-700)', margin: '-2px 0 4px' }} title={vm.pl.ed.posRec?.why}>Recommended: <b style={{ color: 'var(--color-accent-700)' }}>{vm.pl.ed.posRec?.label}</b> <span>({vm.pl.ed.posRec?.why})</span>{!vm.pl.ed.posRec?.same && <button className="btn btn-ghost" onClick={vm.pl.ed.posRec?.use} style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 6 }}>Use</button>}</span>
+                  <span style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--color-neutral-700)', margin: '-2px 0 4px' }} title={vm.pl.ed.posRec?.why}>Recommended: <b style={{ color: 'var(--color-accent-700)' }}>{vm.pl.ed.posRec?.label}</b> <span>({vm.pl.ed.posRec?.why})</span>{(!vm.pl.ed.posRec?.same || vm.pl.ed.posRec?.locked) && <button className="btn btn-ghost" onClick={vm.pl.ed.posRec?.use} title="Use it and let his position follow his game from now on" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 6 }}>{vm.pl.ed.posRec?.locked ? 'Back to auto' : 'Use'}</button>}<span style={{ display: 'block', marginTop: 2 }}>{vm.pl.ed.posRec?.locked ? 'Set by hand: it stays where you put it.' : 'Auto: his position follows how the game reads his ratings, checked every month.'}</span></span>
                   <span style={{ color: "var(--color-neutral-700)" }}>
                     Motivation
                   </span>

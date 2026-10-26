@@ -15,7 +15,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, FEEL_W_V5, OVR_W, OVR_W_V5, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, FEEL_W_V5, OVR_W, OVR_W_V5, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, POS_GROUP, recommendPos, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -713,6 +713,7 @@ export class Game {
     liftRebounding(p); // at least what his body gives him on the glass (ratings.ts rebFloor)
     deriveDefense(p, () => rnd() - .5); // blocks and steals come from his body and quickness, only partly from Defensive IQ
     syncOvr(p, true); p.wOvr = 1; // the overall is his ratings (position-weighted, wingspan included); the ceiling moves with it
+    this.autoPos(p, true); // listed where his game puts him, at the level he was made at
     initTendencies(p, { roles: this.rolesOf(p) }); // his playing style: where his game points, plus his own quirks (tendencies.ts)
     if (!cls && age <= 23) { bodyAhead(p, squeezeTop(p.pot) - p.ovr); syncOvr(p); } // a young body is ahead of his game (development.ts); prospects: prospectPot
     initCeil(p, p.pot); rollPerr(p, age <= 22 ? 2.5 : age <= 26 ? 1.2 : 0); refreshPot(p); // potential is a ceiling (potential.ts); p.pot is the league's read
@@ -1565,7 +1566,7 @@ export class Game {
       // His playing style catches up with his game: the AI sets it to what his new skills and role point to
       // (tendencies.ts autoTen; hand-set tendencies stay). tenPrev keeps last season's for the arrows.
       { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
-        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; ensureTen(p); p.tenPrev = { ...p.ten }; autoTen(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }); }); }
+        [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; this.autoPos(p); ensureTen(p); p.tenPrev = { ...p.ten }; autoTen(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }); }); }
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
@@ -2021,6 +2022,24 @@ export class Game {
     const r = (p.stats || []).find(x => x.season === season && !x.po); if (!r || r.gp < 20) return 0;
     return this.cl((this.perOf(r, season) - (15 + (p.ovr - 50) * 0.75)) / 8, -1, 1);
   }
+  // His listed position follows how the engine reads his game (ratings.ts recommendPos: height, length, and a
+  // guard's or a big's skills), checked each month and each summer, unless it was set by hand in God Mode or by a
+  // player card (p.posLock). It moves only when he's clearly inside the new position (a half-inch either way
+  // still reads the same), so it doesn't flip back and forth. A move between guard, wing and big changes how his
+  // overall is weighed; his potentials and plan move by the same amount, so his room to grow is unchanged.
+  // `keepLevel` (a new player): his ratings shift instead, so he's still the level he was made at. `now` (an edit in
+  // God Mode): straight to the recommendation, no half-inch margin.
+  autoPos(p, keepLevel = false, now = false) {
+    if (!p?.r || p.posLock || p.retired || p.gone) return false;
+    const rec = recommendPos(p).pos; if (rec === p.pos || (!now && (recommendPos(p, -0.5).pos !== rec || recommendPos(p, 0.5).pos !== rec))) return false;
+    const g = POS_GROUP[rec]; if (!g) return false;
+    if (g === p.grp) { p.pos = rec; return true; }
+    const before = ovrExact(p); p.pos = rec; p.grp = g;
+    if (keepLevel) { shiftOvr(p, before); return true; }
+    const d = ovrExact(p) - before, di = Math.round(d);
+    if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
+    syncOvr(p, true); refreshPot(p); return true;
+  }
   devTick(s, rosters, day) {
     const P = this.db.P, cl = this.cl, reps: Record<number, any[]> = {};
     const FOC = Game.FOCUS;
@@ -2029,6 +2048,7 @@ export class Game {
     Object.keys(rosters).forEach(k => { const club = this.clubOf(s, +k); if (club?.coachAuto) applyCoachPlans(this, s, club, rosters[k]); });
     const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true);
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id], a = p.age, club = this.clubOf(s, +k), mine = !!club;
+      this.autoPos(p); // his position follows his game (not if set by hand)
       autoTen(p, { rank: rk.get(id) ?? null, mode: md[k], roles: this.rolesOf(p) }); // the AI resets his playing style each month to what his game, role and team ask (not if set by hand)
       if (p.frozen) return; // God Mode's Freeze attributes: no growth or decline (he still ages, gets hurt, heals and has moods)
       const annual0 = this.devRate(p), annual = annual0 > 0 ? annual0 * (p.dyS === this.Y ? (p.godPot != null ? Math.max(0, p.dy ?? 1) : p.dy ?? 1) : 1) : annual0, wk = p.pers?.work ?? 50; // God Mode's potential (potential.ts): a down year is no growth, not a slide as big as the plan
