@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-26
 
 ### Added
+- **Real local TV and sponsorship money.** Each club's local media and sponsorship revenue now comes from real life: cities with an NBA team use that team's numbers (New York about $110M a season in local TV, Los Angeles $115M averaging the Lakers' $200M and the Clippers, the Bay Area's sponsors $200M), the rest go by market size. Both grow with the salary cap as the seasons go on, and sponsors pay a little more for a winner. Team revenue now runs from about $315M to $670M a season (the NBA's 2024-25: $301M to $833M, $408M average; the game's average is about $394M). Both can be changed per club in the League editor.
 - **God Mode: any team's finances.** With God Mode on, the Finances screen has a team picker: see any club's payroll against the cap, projected revenue and expenses, profit, budgets (with their league ranks) and committed salary. Other clubs' budgets are their owners' and are shown, not edited. ‹ › arrows step to the previous or next team; the picker and arrows are in God Mode's pink.
 
 ### Changed
