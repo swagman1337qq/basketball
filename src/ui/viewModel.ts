@@ -15,6 +15,7 @@ import { intelF } from '../engine/overseas';
 import { badgesOf, setOverall, setRating, setWing, syncOvr, teamRating, wngOf } from '../engine/ratings';
 import { askOffers, shopOffers } from '../engine/tradeOffers';
 import { recommendPos } from '../engine/ratings';
+import { dealLine } from '../engine/mediaDeals';
 import { knownBadges } from '../engine/scoutReport';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { acceptance, prefYears } from '../engine/contracts';
@@ -343,7 +344,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => { const [mn, mx, , stp] = d.BUD[k]; return { name: k === 'Tickets' ? 'Ticket price' : k, min: mn, max: mx, step: stp, v: b[k], range: k === 'Tickets' ? '$' + mn + '–$' + mx + ' average' : money(mn) + '–' + money(mx), amt: k === 'Tickets' ? '$' + b[k] : money(b[k]), rank: ord(1 + lgOf(k).filter(x => x > b[k]).length), effect: EFF[k], auto: !ro && !!(s.budgetAuto || {})[k], rec: k === 'Tickets' ? '$' + autoBudget(gm, s, tid, k, b) : money(autoBudget(gm, s, tid, k, b)),
       set: ro ? () => {} : e => { const v = +e.target.value; gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; delete ba[k]; return { budget: { ...st.budget, [k]: v }, budgetAuto: ba }; }); },
       toggleAuto: ro ? () => {} : () => gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; if (ba[k]) delete ba[k]; else ba[k] = true; return { budgetAuto: ba, budget: applyAutoBudget(gm, st, st.me, st.budget, { [k]: !!ba[k] }) }; }) }; }),
-    readOnly: ro, team: me.region + ' ' + me.name, allAuto: !ro && ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].every(k => (s.budgetAuto || {})[k]),
+    readOnly: ro, team: me.region + ' ' + me.name, deals: [['Local TV', dealLine(me.tv, true)], ['Lead sponsor', dealLine(me.spon)]], allAuto: !ro && ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].every(k => (s.budgetAuto || {})[k]),
     setAllAuto: ro ? () => {} : (on: boolean) => gm.setState(st => { const ba = on ? { Tickets: true, Coaching: true, Health: true, Facilities: true, Scouting: true } : {}; return { budgetAuto: ba, budget: on ? applyAutoBudget(gm, st, st.me, st.budget, ba) : st.budget }; }),
     years: YRS.map(y => '’' + String(y - 1).slice(2) + '–' + String(y).slice(2)), ledger: led.map(p => ({ name: p.name, open: open(p.id), cells: YRS.map(y => gm.salAt(p, y) ? money(gm.salAt(p, y)) : '') })), totals: YRS.map(y => money(led.reduce((a, p) => a + gm.salAt(p, y), 0))) };
     return fin; };

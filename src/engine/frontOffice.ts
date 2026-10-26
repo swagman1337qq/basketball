@@ -30,10 +30,11 @@ function localOf(g: Game, s: any, tid: number) {
   const mk = T.mkt, wp = demandWp(g, T), cap = arenaCapOf(T), lf = g.CAP / 165; // league revenue grows with the cap
   const att = attendanceAt(g, T, b);
   const tix = (b.Tickets * att * 41) / 1e6;
-  // Local media and sponsorship from real life (data/cityRevenue.ts, editable per club: T.lmRev / T.spRev), growing with
-  // the cap; sponsors pay a little more for a winner (±10%). Merchandise by market and record.
-  const [lm0, sp0] = cityRev(T.region, mk), lm = T.lmRev ?? lm0, sp = (T.spRev ?? sp0) * (0.9 + wp * 0.2);
-  const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media (TV, streaming, over-the-air)', lm * lf], ['Sponsorship & naming', sp * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
+  // Local media and sponsorship from real life (data/cityRevenue.ts); sponsors pay a little more for a winner (±10%).
+  // Merchandise by market and record.
+  // Both are multi-year deals (mediaDeals.ts: T.tv, T.spon, the fee this season); a club without one yet goes by its city.
+  const [lm0, sp0] = cityRev(T.region, mk), lm = T.tv ? T.tv.fee : (T.lmRev ?? lm0) * lf, sp = (T.spon ? T.spon.fee : (T.spRev ?? sp0) * lf) * (0.9 + wp * 0.2);
+  const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media (TV, streaming, over-the-air)', lm], ['Sponsorship & naming', sp], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
   return { b, att, cap, tix, lf, parts, total: parts.reduce((a, p) => a + p[1], 0) };
 }
 

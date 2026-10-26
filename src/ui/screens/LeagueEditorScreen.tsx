@@ -10,7 +10,7 @@ import { OWNER_ARCHETYPES } from '../../data/world';
 import { KIND_LABEL, OWNER_BGS, ownerProfile } from '../../engine/owners';
 import { arenaCapOf, forceTeamSale, ticketBaseOf } from '../../engine/frontOffice';
 import { CITY_ECON, cityArena } from '../../data/arenas';
-import { CITY_REV, cityRev } from '../../data/cityRevenue';
+import { cityRev } from '../../data/cityRevenue';
 import { processImage } from '../upload';
 import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
 import { LOGO_STYLES, LOGO_STYLE_LABELS } from '../TeamLogo';
@@ -70,10 +70,10 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             <NumInput value={arenaCapOf(t)} min={4000} max={25000} step={100} width={96} onValue={v => setT({ arenaCap: v })} suffix={'seats (4,000–25,000)' + (cityArena(t.region) ? '; real-life default: ' + cityArena(t.region)![0] + ', the biggest in ' + (CITY_ECON[t.region][0].length === 2 && !['MX', 'GB', 'DE', 'ES', 'FR'].includes(CITY_ECON[t.region][0]) ? 'the state or province' : 'the country') : '')} />
             <span style={muted}>Typical ticket</span>
             <NumInput value={ticketBaseOf(t)} min={35} max={450} step={1} width={96} onValue={v => setT({ tix0: v })} suffix={CITY_ECON[t.region]?.[1] ? '$ (from the real NBA team’s average price)' : '$ (from the city’s cost of living)'} />
-            <span style={muted}>Local media</span>
-            <NumInput value={t.lmRev ?? cityRev(t.region, t.mkt)[0]} min={0} max={400} step={1} width={96} onValue={v => setT({ lmRev: v })} suffix={'$M a season at today’s cap (' + (CITY_REV[t.region] ? 'the real NBA team’s' : 'from market size') + ')'} />
-            <span style={muted}>Sponsorship</span>
-            <NumInput value={t.spRev ?? cityRev(t.region, t.mkt)[1]} min={0} max={400} step={1} width={96} onValue={v => setT({ spRev: v })} suffix={'$M a season at today’s cap (' + (CITY_REV[t.region] ? 'the real NBA team’s' : 'from market size') + ')'} />
+            <span style={muted}>Local TV deal</span>
+            <NumInput value={t.tv?.fee ?? cityRev(t.region, t.mkt)[0]} min={0} max={500} step={1} width={96} onValue={v => setT({ tv: { ...(t.tv || { name: 'Local TV', raise: 0.04, from: gm.Y, to: gm.Y + 4 }), fee: v } })} suffix={'$M this season' + (t.tv ? ' · ' + t.tv.name + ', through ' + (t.tv.to - 1) + '–' + String(t.tv.to).slice(2) : '')} />
+            <span style={muted}>Lead sponsor</span>
+            <NumInput value={t.spon?.fee ?? cityRev(t.region, t.mkt)[1]} min={0} max={500} step={1} width={96} onValue={v => setT({ spon: { ...(t.spon || { name: 'Sponsor', raise: 0.04, from: gm.Y, to: gm.Y + 3 }), fee: v } })} suffix={'$M this season' + (t.spon ? ' · ' + t.spon.name + ', through ' + (t.spon.to - 1) + '–' + String(t.spon.to).slice(2) : '')} />
           </div>
           {err && <p style={{ color: 'var(--gm-bad)', fontSize: '12px' }}>{err}</p>}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '12px' }}>{logo(tid, 64)}{logo(tid, 32)}{logo(tid, 18)}</div>

@@ -139,6 +139,17 @@ export function FinancesScreen({ vm }: { vm: VM }) {
           </p>
         </section>
       </div>
+      <section style={{ marginBottom: "30px" }}>
+        <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>
+          Local TV and sponsorship deals
+        </h4>
+        {(vm.fin.deals || []).map(([k, v]: any) => (
+          <div key={k} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr)", gap: "14px", padding: "7px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "13px" }}>
+            <span style={{ color: "var(--color-neutral-700)" }}>{k}</span><span>{v}</span>
+          </div>
+        ))}
+        <p style={{ margin: "6px 0 0", fontSize: "12px", color: "var(--color-neutral-700)" }}>Multi-year deals: the fee rises each season until the deal runs out, then the club renews, takes a cut or signs with someone new (your Mailbox lists every change each summer).</p>
+      </section>
       <section>
         <h4 style={{ margin: "0 0 4px", fontSize: "19px" }}>
           Committed salary

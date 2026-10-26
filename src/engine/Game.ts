@@ -54,6 +54,7 @@ import { OLD_AWARD_FORMULAS, DEFAULT_AWARDS } from '../data/awardDefs';
 import { computeNorms } from './norms';
 import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
+import { ensureDeals, dealsYearTurn } from './mediaDeals';
 import { applyAutoBudget, ticketBaseOf, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
 import { adjustGames, confidenceTick, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
@@ -104,7 +105,8 @@ export class Game {
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     else if (opts.hopeless) makeHopeless(g, Array.isArray(tids) ? tids : [tids]); // startRoster.ts
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
-    g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1; // every owner's background (owners.ts)
+    g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1;
+    ensureDeals(g, g.state.teams); // every club's local TV deal and lead sponsor (mediaDeals.ts) // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     { const q = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = q; g.db.priceQ0 = q.map(unsqueezeTop); } // salaries keep this season's pay scale by rank (priceOvr), read on the unsqueezed scale the pay curve was made for (potential.ts squeezeTop)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
@@ -239,6 +241,8 @@ export class Game {
     // 2026-10-23: ticket prices go up to $450 (the priciest cities' typical price is near $285).
     if (g.db.BUD?.Tickets && g.db.BUD.Tickets[1] < 450) g.db.BUD = { ...g.db.BUD, Tickets: [g.db.BUD.Tickets[0], 450, ...g.db.BUD.Tickets.slice(2)] };
     // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
+    // 2026-10-26: every club gets a local TV deal and a lead sponsor, part-way through (mediaDeals.ts).
+    if (g.state.teams && g.state.teams.some((t: any) => !t.tv || !t.spon)) { g.state.teams = g.state.teams.map((t: any) => ({ ...t })); ensureDeals(g, g.state.teams); }
     if (g.db.payOpen == null && g.state.teams && g.CAP) g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4);
     // 2026-10-22: draft-night levels came from the uncompressed true potential, so the best prospects arrived far
     // too good. Prospects not yet drafted come down to the corrected level (Game.draftNightLevel) once; never up,
@@ -1501,11 +1505,13 @@ export class Game {
     // free agents gets an offer sheet you need to answer).
     if (this.mailWaiting()) return;
     if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length && !(this.state.agentCalls || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
+    let dealNote: any = null;
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
-      let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = s.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
+      const dl = dealsYearTurn(this, s, Y); dealNote = dl.notice; // local TV and sponsorship deals: raises, renewals, new partners (mediaDeals.ts), on last season's record
+      let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = dl.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
       Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
       // Breakthroughs to 99: one in about 150 seasons league-wide, shared among the ratings sitting at 98 this summer.
@@ -1641,6 +1647,7 @@ export class Game {
     });
     this.enforceRetirement();
     offseasonMandates(this);
+    if (dealNote) this.setState(st => ({ notices: addNotice(st, dealNote) })); // the summer's deals in the Mailbox
   }
   // Opening night: every club needs 13 players. Short-handed managed clubs sign the best
   // remaining free agents to minimum deals (logged), as the league would require.
