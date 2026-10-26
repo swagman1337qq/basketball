@@ -3,6 +3,15 @@ import type { VM } from '../vm';
 export function FinancesScreen({ vm }: { vm: VM }) {
   return (
     <>
+      {vm.fin.teams && (
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>God Mode · finances of</span>
+          <select className="input" value={vm.fin.teamV} onChange={vm.fin.setTeam} style={{ width: "auto" }}>
+            {vm.fin.teams.map((t: any) => <option key={t.v} value={t.v}>{t.label}</option>)}
+          </select>
+          {vm.fin.readOnly && <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Their budget is set by their owner (shown, not editable here).</span>}
+        </div>
+      )}
       <section style={{ marginBottom: "30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <h4 style={{ margin: "0", fontSize: "19px" }}>
@@ -80,9 +89,9 @@ export function FinancesScreen({ vm }: { vm: VM }) {
             <h4 style={{ margin: "0", fontSize: "19px" }}>
               Budget
             </h4>
-            <button onClick={() => vm.fin.setAllAuto(!vm.fin.allAuto)} title={vm.fin.allAuto ? "Take every category off Auto" : "Put every category on Auto"} style={autoBtn(vm.fin.allAuto)}>
+            {!vm.fin.readOnly && <button onClick={() => vm.fin.setAllAuto(!vm.fin.allAuto)} title={vm.fin.allAuto ? "Take every category off Auto" : "Put every category on Auto"} style={autoBtn(vm.fin.allAuto)}>
               {vm.fin.allAuto ? "All on Auto ✓" : "Auto all"}
-            </button>
+            </button>}
           </div>
           {(vm.fin.budget || []).map((b: any, i: number) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 84px 56px 40px", gap: "14px", alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
@@ -99,7 +108,7 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                 const setPct = (x: number) => { const raw = b.min + (x / 100) * span, v = Math.min(b.max, Math.max(b.min, Math.round(raw / b.step) * b.step)); b.set({ target: { value: +v.toFixed(2) } }); };
                 return (<>
                   <div>
-                    <input type="range" min={0} max={100} step={1} value={pct} onChange={e => setPct(+e.target.value)} aria-label={b.name + ' budget, percent of the maximum'} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
+                    <input type="range" min={0} max={100} step={1} value={pct} onChange={e => setPct(+e.target.value)} disabled={vm.fin.readOnly} aria-label={b.name + ' budget, percent of the maximum'} style={{ width: "100%", accentColor: "var(--color-accent)" }} />
                     <div style={{ fontSize: "11px", color: "var(--color-neutral-700)" }}>
                       {b.effect}
                     </div>
@@ -110,9 +119,9 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                   </div>
                 </>);
               })()}
-              <button onClick={b.toggleAuto} aria-pressed={b.auto} title={b.auto ? "On Auto: follows the recommendation (" + b.rec + ") as your record and revenue change. Click to set it yourself." : "Auto sets " + b.name.toLowerCase() + " to the recommendation (" + b.rec + " now) and keeps it there as your record and revenue change."} style={autoBtn(b.auto)}>
+              {vm.fin.readOnly ? <span /> : <button onClick={b.toggleAuto} aria-pressed={b.auto} title={b.auto ? "On Auto: follows the recommendation (" + b.rec + ") as your record and revenue change. Click to set it yourself." : "Auto sets " + b.name.toLowerCase() + " to the recommendation (" + b.rec + " now) and keeps it there as your record and revenue change."} style={autoBtn(b.auto)}>
                 {b.auto ? "Auto ✓" : "Auto"}
-              </button>
+              </button>}
               <div style={{ textAlign: "right", fontSize: "12px", color: "var(--color-neutral-700)" }}>
                 {b.rank}
               </div>
