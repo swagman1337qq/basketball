@@ -1,9 +1,9 @@
 // College and club stats for draft prospects (engine/amateurStats.ts): worked out when shown, never saved.
-// The profile tab (every amateur season) and the draft board's Stats / Advanced views (his latest season).
-import { useMemo, useState, type ReactNode } from 'react';
+// The profile tab: every amateur season, per game and advanced.
+import { useMemo, type ReactNode } from 'react';
 import type { VM } from './vm';
 import { classStats } from '../engine/amateurStats';
-import { muted, PN } from './kit';
+import { muted } from './kit';
 
 const f = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d));
 const pc = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
@@ -50,25 +50,5 @@ export function AmateurTab({ vm }: { vm: VM }) {
           <tbody>{lines.map(x => <tr key={x.season}><TD l pin>{sl(x.season)}</TD><TD l>{x.team}</TD><TD l><span style={muted}>{x.level}</span></TD><TD>{x.age}</TD>{(cols as Col[]).map(c => <TD key={c[0]}>{f(c[3](x), c[4])}</TD>)}</tr>)}</tbody>
         </table>
       </div>))}
-  </>);
-}
-
-// Draft board: the class's latest season, sortable, in the board's order and filters.
-export function AmateurBoard({ vm, rows, adv }: { vm: VM; rows: any[]; adv: boolean }) {
-  const { gm, s } = vm.ctx, cls = s.dClass ?? gm.Y, ids: number[] = gm.db.cls?.[cls] || [];
-  const all = useClass(vm, cls, ids), cols = adv ? ADV : BOX, [sort, setSort] = useState<{ k: string; d: number } | null>(null);
-  const list = rows.map(r => ({ r, x: (all[r.id] || [])[(all[r.id] || []).length - 1] })).filter(o => o.x);
-  const col = sort && cols.find(c => c[0] === sort.k);
-  if (col) list.sort((a, b) => { const va = col[3](a.x), vb = col[3](b.x); return (isFinite(vb) ? vb : -1e9) * sort!.d - (isFinite(va) ? va : -1e9) * sort!.d; });
-  return (<>
-    <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>{note} Latest season shown; the full history is on each prospect{'’'}s College / Club tab. Click a column to sort.</p>
-    <div style={{ overflowX: 'auto' }}>
-      <table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>
-        <thead><tr><TH>Rk</TH><TH l pin>Prospect</TH><TH l>Pos</TH><TH>Age</TH><TH l>Level</TH>{cols.map(c => <TH key={c[0]} t={c[2]} on={sort?.k === c[0]} onClick={() => setSort(sort?.k === c[0] ? { k: c[0], d: -sort.d } : { k: c[0], d: 1 })}>{c[1]}{sort?.k === c[0] ? (sort.d > 0 ? ' ▾' : ' ▴') : ''}</TH>)}</tr></thead>
-        <tbody>{list.map(({ r, x }) => (
-          <tr key={r.id}><TD>{r.rank}</TD><TD l pin><button onClick={r.open} className="hv6" style={{ all: 'unset', cursor: 'pointer', color: 'var(--color-accent-700)', ...PN }}>{r.name}</button></TD><TD l>{r.pos}</TD><TD>{x.age}</TD><TD l><span style={muted}>{x.team} · {x.level}</span></TD>
-            {cols.map(c => <TD key={c[0]}>{f(c[3](x), c[4])}</TD>)}</tr>))}</tbody>
-      </table>
-    </div>
   </>);
 }

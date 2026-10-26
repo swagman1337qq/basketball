@@ -5,13 +5,12 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
-import { AmateurBoard } from '../AmateurStats';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
-  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [cols, setCols] = useState<'ratings' | 'stats' | 'adv'>('ratings');
+  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
   const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   const pg = usePaged(boardRows, 'prospects', 30);
   const head = (
@@ -154,8 +153,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <section>
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /><Seg<"ratings" | "stats" | "adv"> value={cols} options={[["ratings", "Ratings"], ["stats", "College / club stats"], ["adv", "Advanced"]]} onChange={setCols} /></div>
-          {cols !== "ratings" ? <AmateurBoard vm={vm} rows={boardRows} adv={cols === "adv"} /> : (<>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /></div>
           {sc.bar()}{sc.Menu()}
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
@@ -218,7 +216,6 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </tbody>
           </table>
           {pg.pager}
-          </>)}
           </>)}
         </section>
       </div>
