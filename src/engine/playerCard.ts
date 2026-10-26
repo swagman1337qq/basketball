@@ -461,4 +461,34 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his Kansas season: post-ups, hooks and finishes inside, a few face-up jumpers, almost no threes; a huge free-throw rate.
     ten: { usage: 45, ftr: 80, ra: 52, paint: 30, mid: 14, c3: 1, atb: 3, cns: 30, pullup: 15, step: 5, fade: 50 },
   } },
+  { label: 'Joel Embiid – Rookie year (2016–17)', card: {
+    card: 1, name: 'Joel Embiid', first: 'Joel', last: 'Embiid', pos: 'C', age: 22, dob: '1994-03-16', hgt: '7′0″', wt: 250, wing: 89,
+    rep: 'CM', born: 'CM', raised: 'CM', city: 'Yaoundé', her: 'CM', race: 'black',
+    // Real (his first season, after two lost to foot injuries; Philadelphia, "The Process"): 31 games, 25.4 min, 20.2 pts,
+    // 7.8 reb, 2.1 ast, 0.9 stl, 2.5 blk, 3.8 tov, .466 FG on 13.8 shots, .367 on 3.2 threes, .783 FT on 7.7.
+    // Tuned 2026-10-26 over 240 games as a mid-table team's first option, playing the AI's own tendencies (which replace
+    // a card's every month), at 23.7 min: 19.6 pts, 7.3 reb, 1.8 ast, 0.8 stl, 2.2 blk, 3.1 tov, .494 FG on 13.2, .352 on 4.3
+    // threes, .810 FT on 6.2 (at his real 25.4 minutes: about 21 pts, 7.8 reb).
+    // 63 overall; potential 69, his MVP peak.
+    r: { hgt: 70, stre: 89, spd: 60, acc: 72, jmp: 66, endu: 45, ins: 89, dnk: 84, lay: 81, ft: 62, fg: 74, tp: 63, oiq: 48, diq: 71, blk: 90, stl: 55, drb: 50, pss: 54, reb: 72, box: 64 },
+    pot: 69, intg: { feel: 58, poise: 60 },
+    pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
+    // Playing style: the AI's own for these ratings and a first option's role (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
+    ten: { usage: 59.4, ftr: 75.3, ra: 37.7, paint: 13, mid: 11.9, c3: 12.3, atb: 25.1, cns: 61.9, pullup: 22.2, step: 3.2, fade: 12.7 },
+  } },
+  { label: 'Joel Embiid – MVP season (2022–23)', card: {
+    card: 1, name: 'Joel Embiid', first: 'Joel', last: 'Embiid', pos: 'C', age: 28, dob: '1994-03-16', hgt: '7′0″', wt: 280, wing: 89,
+    rep: 'CM', born: 'CM', raised: 'CM', city: 'Yaoundé', her: 'CM', race: 'black',
+    // Real (MVP and scoring champion, Philadelphia): 66 games, 34.6 min, 33.1 pts, 10.2 reb, 4.2 ast, 1.0 stl, 1.7 blk, 3.4 tov,
+    // .548 FG on 20.1 shots, .330 on 3.0 threes, .857 FT on 11.7.
+    // Tuned 2026-10-26 over 240 games as a mid-table team's first option, playing the AI's own tendencies, at 32.3 min:
+    // 30.8 pts, 9.3 reb, 4.1 ast, 1.2 stl, 1.9 blk, 4.0 tov, .541 FG on 19.7, .329 on 3.6 threes, .892 FT on 9.2 (at his real
+    // 34.6 minutes: about 33 pts, 9.9 reb; fewer free throws than his real 11.7, the engine's limit for a post scorer).
+    // 69 overall (68.5): the top of today's scale, where MVP seasons sit.
+    r: { hgt: 70, stre: 95, spd: 60, acc: 71, jmp: 62, endu: 65, ins: 88, dnk: 72, lay: 78, ft: 82, fg: 74, tp: 47, oiq: 80, diq: 73, blk: 66, stl: 53, drb: 60, pss: 60, reb: 72, box: 68 },
+    pot: 69, intg: { feel: 70, poise: 75 },
+    pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
+    // Playing style: the AI's own for these ratings and a first option's role.
+    ten: { usage: 69.1, ftr: 71.2, ra: 43.9, paint: 19, mid: 16.6, c3: 7.9, atb: 12.6, cns: 56.2, pullup: 25.6, step: 4.3, fade: 13.9 },
+  } },
 ];
