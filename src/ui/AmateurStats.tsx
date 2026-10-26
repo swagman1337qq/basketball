@@ -2,7 +2,7 @@
 // The profile tab: every amateur season, per game and advanced.
 import { useMemo, type ReactNode } from 'react';
 import type { VM } from './vm';
-import { classStats } from '../engine/amateurStats';
+import { amClass, classStats } from '../engine/amateurStats';
 import { muted } from './kit';
 
 const f = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d));
@@ -37,8 +37,8 @@ function useClass(vm: VM, cls: number, ids: number[]) { const { gm, s } = vm.ctx
 
 // Profile tab: every season before the draft.
 export function AmateurTab({ vm }: { vm: VM }) {
-  const { gm, s } = vm.ctx, p = gm.db.P[s.pid], ids: number[] = (p && gm.db.cls?.[p.cls]) || [];
-  const all = useClass(vm, p?.cls, ids), lines = (p && all[p.id]) || [];
+  const { gm, s } = vm.ctx, p = gm.db.P[s.pid], ids: number[] = (p && gm.db.cls?.[amClass(p)]) || [];
+  const all = useClass(vm, amClass(p), ids), lines = (p && all[p.id]) || [];
   if (!lines.length) return <p style={muted}>No college or club seasons to show.</p>;
   return (<>
     <p style={{ ...muted, fontSize: '12px', margin: '0 0 10px' }}>{note}</p>

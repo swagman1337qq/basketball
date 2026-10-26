@@ -1512,6 +1512,7 @@ export class Game {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
+      (d.cls[this.Y] || []).forEach((id: number) => { const p = P[id]; if (p?.r && !p.am) p.am = { r: { ...p.r }, rx: p.rx ? { ...p.rx } : null, grp: p.grp, feel: p.intg?.feel }; }); // the class's college/club game, before camp and the summer change it: their amateur stats stay put (amateurStats.ts)
       const dl = dealsYearTurn(this, s, Y); dealNote = dl.notice; // local TV and sponsorship deals: raises, renewals, new partners (mediaDeals.ts), on last season's record
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = dl.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.

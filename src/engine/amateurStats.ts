@@ -1,5 +1,5 @@
 // College and club stats for draft prospects (2026-10-26). Nothing is stored: each season line is worked out when
-// it's shown, from the prospect's true amateur game (p.r, before the hidden NBA translation, translation.ts), the
+// it's shown, from the prospect's true amateur game (p.r before the hidden NBA translation, translation.ts; p.am, kept as the summer after his draft began, from then on), the
 // level he plays at, his age and role, and a season's luck, seeded by his id and the season, so the same player
 // always shows the same numbers. Earlier seasons step his game back by the growth he had left at each age.
 // The numbers never hint at the translation; where they disagree with the board (your scouts' read, with its
@@ -28,7 +28,7 @@ export function compLevel(from: any): { c: number; label: string; college: boole
 // His game in an earlier season: the skills he had yet to add by the draft (about 3 a year in his teens, 2 at
 // 20–21, 1 after), his body a little less grown.
 function snapshot(p: any, yearsBack: number) {
-  const r = { ...p.r }; let age = p.dAge ?? p.age;
+  const r = { ...(p.am?.r || p.r) }; let age = p.dAge ?? p.age;
   for (let k = 0; k < yearsBack; k++) { age--; const d = age < 20 ? 3 : age < 22 ? 2.2 : 1.2; SKILLS.forEach(s => (r[s] = Math.max(4, r[s] - d))); ['spd', 'acc', 'jmp', 'stre'].forEach(s => (r[s] = Math.max(4, r[s] - d * 0.4))); }
   return { r, age };
 }
@@ -37,7 +37,7 @@ export interface AmLine { season: number; team: string; lg: string; level: strin
 // One season: per-possession rates from his game against the level, then a season's luck on the attempts.
 export function seasonLine(p: any, season: number, yearsBack: number): AmLine {
   const rnd = mulberry32(((p.id * 2654435761) ^ (season * 40503) ^ 0xa11) >>> 0), nz = (s: number) => Math.exp(s * (rnd() + rnd() + rnd() - 1.5) * 2);
-  const { r, age } = snapshot(p, yearsBack), lv = compLevel(p.from), o = ovrExact({ ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
+  const { r, age } = snapshot(p, yearsBack), lv = compLevel(p.from), o = ovrExact(p.am ? { ...p, r, grp: p.am.grp, intg: { ...p.intg, feel: p.am.feel }, rx: p.am.rx } : { ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
   const C = Math.max(lv.c, o - 22); // far above his competition, the edge levels off (a high-school star's numbers stay believable)
   const gp = lv.college ? 29 + Math.floor(rnd() * 7) : 22 + Math.floor(rnd() * 13);
   const mpg = +((lv.college ? cl(22 + 0.8 * dom, 6, 36) : cl(10 + 0.6 * dom, 4, 32)) * cl(nz(0.06), 0.85, 1.15)).toFixed(1);
@@ -69,10 +69,14 @@ function scale(t: StatLine, f: number): StatLine { const o: StatLine = {}; ['pts
 
 // The seasons he played before the draft: up to four in college (from 18), four abroad (from 16), one in high
 // school or a junior team; shown through the league's current season.
+export const amClass = (p: any): number => (p?.cls || p?.undrafted || 0); // his draft class (undrafted players keep theirs)
+// Is there a true amateur game to show? Before his first NBA summer it's p.r; after it, the copy kept then (older
+// saves didn't keep one).
+export const hasAmateur = (g: Game, p: any) => !!(p?.r && amClass(p) && (p.am || amClass(p) >= g.Y) && g.db.cls?.[amClass(p)]?.includes(p.id));
 export function amateurSeasons(g: Game, p: any): { season: number; back: number }[] {
-  if (!p?.r || !p.cls) return [];
+  if (!hasAmateur(g, p)) return [];
   const lv = compLevel(p.from), dAge = p.dAge ?? p.age, n = lv.label === 'High school' || lv.label === 'Junior' ? 1 : lv.college ? cl(dAge - 18, 1, 4) : cl(dAge - 16, 1, 4);
-  const out: { season: number; back: number }[] = []; for (let y = p.cls - n + 1; y <= Math.min(p.cls, g.Y); y++) out.push({ season: y, back: p.cls - y });
+  const out: { season: number; back: number }[] = []; const c = amClass(p); for (let y = c - n + 1; y <= Math.min(c, g.Y); y++) out.push({ season: y, back: c - y });
   return out;
 }
 
