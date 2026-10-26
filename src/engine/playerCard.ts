@@ -444,4 +444,21 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style from his real 2019–20 shot chart (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
     ten: { usage: 30, ftr: 30, ra: 28, paint: 7, mid: 3, c3: 24, atb: 38, cns: 92, pullup: 5, step: 0, fade: 3 },
   } },
+  { label: 'Joel Embiid – Draft night (2014, Kansas)', card: {
+    card: 1, name: 'Joel Embiid', first: 'Joel', last: 'Embiid', pos: 'C', age: 20, dob: '1994-03-16', hgt: '7′0″', wt: 250, wing: 89,
+    rep: 'CM', born: 'CM', raised: 'CM', city: 'Yaoundé', her: 'CM', race: 'black',
+    // Real (No. 3 pick in 2014 after one season at Kansas, the Big 12 Defensive Player of the Year; a back injury ended
+    // it after 28 games): 23.1 min, 11.2 pts, 8.1 reb, 1.4 ast, 0.9 stl, 2.6 blk, 2.4 tov, .626 FG on 5.6 shots, 1 of 5
+    // threes, .685 FT on 5.4. Per 40: 19.4 pts, 14.0 reb, 4.5 blk. He'd played organized basketball for about 3½ years:
+    // rare footwork and touch for a 7-footer, a shot-blocker and rebounder, raw handle and reads, limited stamina.
+    // Fitted 2026-10-26 to his per-40 numbers with the game's college-stats model (engine/amateurStats.ts, Kansas as a
+    // power program, his ratings held near a scouting prior): 19.6 pts, 14.1 reb, 2.3 ast, 1.5 stl, 4.2 blk, 3.3 tov,
+    // .642 FG, .698 FT per 40 (his real free-throw rate, 9.4 a 40, is beyond the model's: 4.9).
+    // 56 overall on draft night; potential 69, his MVP peak (2022–23), the top of today's scale.
+    r: { hgt: 70, stre: 78, spd: 60, acc: 75, jmp: 68, endu: 50, ins: 82, dnk: 78, lay: 72, ft: 44, fg: 54, tp: 30, oiq: 39, diq: 65, blk: 87, stl: 52, drb: 29, pss: 41, reb: 64, box: 56 },
+    pot: 69, intg: { feel: 58, poise: 58 },
+    pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
+    // Playing style from his Kansas season: post-ups, hooks and finishes inside, a few face-up jumpers, almost no threes; a huge free-throw rate.
+    ten: { usage: 45, ftr: 80, ra: 52, paint: 30, mid: 14, c3: 1, atb: 3, cns: 30, pullup: 15, step: 5, fade: 50 },
+  } },
 ];

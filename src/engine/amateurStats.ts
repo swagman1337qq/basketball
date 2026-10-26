@@ -35,7 +35,7 @@ function snapshot(p: any, yearsBack: number) {
 
 export interface AmLine { season: number; team: string; lg: string; level: string; age: number; gp: number; mpg: number; disp: StatLine; t: StatLine }
 // One season: per-possession rates from his game against the level, then a season's luck on the attempts.
-function seasonLine(p: any, season: number, yearsBack: number): AmLine {
+export function seasonLine(p: any, season: number, yearsBack: number): AmLine {
   const rnd = mulberry32(((p.id * 2654435761) ^ (season * 40503) ^ 0xa11) >>> 0), nz = (s: number) => Math.exp(s * (rnd() + rnd() + rnd() - 1.5) * 2);
   const { r, age } = snapshot(p, yearsBack), lv = compLevel(p.from), o = ovrExact({ ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
   const C = Math.max(lv.c, o - 22); // far above his competition, the edge levels off (a high-school star's numbers stay believable)
