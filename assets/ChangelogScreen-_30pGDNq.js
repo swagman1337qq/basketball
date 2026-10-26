@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BUjuX65k.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CHD1PF9S.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-26
+
+### Added
+- **God Mode: any team's finances.** With God Mode on, the Finances screen has a team picker: see any club's payroll against the cap, projected revenue and expenses, profit, budgets (with their league ranks) and committed salary. Other clubs' budgets are their owners' and are shown, not edited.
 
 ### Changed
 - **See at a glance whether a position is automatic.** In the God Mode player editor the position box reads "(Auto) GF" while it follows the player's game, and just "SG" once you've picked one yourself; pick "(Auto)" to hand it back. Everywhere else (profile, roster, lists) the position shows plainly, whichever it is.
