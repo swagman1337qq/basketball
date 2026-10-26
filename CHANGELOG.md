@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-26
 
 ### Changed
+- **See at a glance whether a position is automatic.** In the God Mode player editor the position box reads "(Auto) GF" while it follows the player's game, and just "SG" once you've picked one yourself; pick "(Auto)" to hand it back. Everywhere else (profile, roster, lists) the position shows plainly, whichever it is.
 - **Positions follow the player's game.** By default every player's listed position is where the game reads his ratings (height, wingspan, and whether his skills are a guard's or a big's), and it changes with them: each month in season, each summer, as a league loads, and right away when you edit his ratings or height in God Mode. The only way to set it yourself is the position box in the God Mode player editor (or applying a player card); then it stays where you put it, and **Back to auto** returns it to automatic. A move between guard, wing and big changes how his overall is weighed, and his potential moves with it, so his room to grow is the same.
 
 ## 2026-10-25
