@@ -33,7 +33,7 @@ function localOf(g: Game, s: any, tid: number) {
   // Local media and sponsorship from real life (data/cityRevenue.ts, editable per club: T.lmRev / T.spRev), growing with
   // the cap; sponsors pay a little more for a winner (±10%). Merchandise by market and record.
   const [lm0, sp0] = cityRev(T.region, mk), lm = T.lmRev ?? lm0, sp = (T.spRev ?? sp0) * (0.9 + wp * 0.2);
-  const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media', lm * lf], ['Sponsorship & naming', sp * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
+  const parts: [string, number][] = [['Ticket sales', tix * lf], ['Local media (TV, streaming, over-the-air)', lm * lf], ['Sponsorship & naming', sp * lf], ['Merchandise', 22 * mk * (0.8 + wp * 0.4) * lf]];
   return { b, att, cap, tix, lf, parts, total: parts.reduce((a, p) => a + p[1], 0) };
 }
 

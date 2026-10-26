@@ -1,4 +1,5 @@
-// Local revenue from real life (2026-10-26): each city's local media (TV and streaming rights) and
+// Local revenue from real life (2026-10-26): each city's local media (all local TV rights: a regional network,
+// free over-the-air TV, the team's own streaming) and
 // sponsorship (naming rights, jersey patch, partners), in millions a season, as of 2024-25. Cities with an NBA
 // team use that team's numbers; the rest go by market size. The game grows them with the salary cap each
 // season (frontOffice.ts localOf), so they keep pace with the league as the years go on.
@@ -9,14 +10,16 @@
 // $70M (2023-24, with their NBC Sports Boston stake), Forbes / SponsorUnited (team sponsorship $1.62B in
 // 2024-25, the Warriors over $200M) and GlobalData (jersey patches: the Knicks' $30M the largest). Most clubs'
 // figures aren't published; those are estimates in line with these anchors, lower for the teams whose
-// regional networks went bankrupt or that moved to free over-the-air TV. Los Angeles averages the Lakers and the
+// regional networks went bankrupt or that moved to free over-the-air TV (those over-the-air deals are
+// counted here too: the Suns' with Gray TV is over $30M a year, ESPN 2025, about what their old network paid;
+// SBJ: only three teams made over $30M from FanDuel Sports Network deals in 2024-25). Los Angeles averages the Lakers and the
 // Clippers; Oakland and San Francisco are the Warriors.
 
 // [local media, sponsorship], $M a season (2024-25)
 export const CITY_REV: Record<string, [number, number]> = {
   'New York': [110, 110], 'Los Angeles': [115, 95], 'Oakland': [50, 200], 'San Francisco': [50, 200], 'Boston': [70, 80], 'Chicago': [55, 70],
   'Philadelphia': [60, 70], 'Brooklyn': [50, 60], 'Toronto': [50, 70], 'Houston': [50, 60], 'Dallas': [20, 60], 'Miami': [30, 70],
-  'Washington': [40, 45], 'Denver': [30, 50], 'Phoenix': [15, 55], 'Minneapolis': [25, 35], 'Cleveland': [30, 45], 'Detroit': [25, 40],
+  'Washington': [40, 45], 'Denver': [30, 50], 'Phoenix': [30, 55], 'Minneapolis': [25, 35], 'Cleveland': [30, 45], 'Detroit': [25, 40],
   'Atlanta': [30, 45], 'Charlotte': [20, 35], 'Portland': [10, 35], 'San Antonio': [15, 45], 'Sacramento': [25, 40], 'Milwaukee': [25, 50],
   'Orlando': [25, 35], 'Indianapolis': [25, 35], 'New Orleans': [18, 30], 'Oklahoma City': [20, 35], 'Memphis': [15, 30], 'Salt Lake': [15, 40],
 };
