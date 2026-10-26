@@ -106,7 +106,7 @@ export class Game {
     else if (opts.hopeless) makeHopeless(g, Array.isArray(tids) ? tids : [tids]); // startRoster.ts
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
     g.state.teams = stampOwnerBgs(g.state.teams); g.db.ownerBgV = 1;
-    ensureDeals(g, g.state.teams); // every club's local TV deal and lead sponsor (mediaDeals.ts) // every owner's background (owners.ts)
+    ensureDeals(g, g.state.teams); g.db.laTvV = 1; // every club's local TV deal and lead sponsor (mediaDeals.ts) // every owner's background (owners.ts)
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     { const q = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = q; g.db.priceQ0 = q.map(unsqueezeTop); } // salaries keep this season's pay scale by rank (priceOvr), read on the unsqueezed scale the pay curve was made for (potential.ts squeezeTop)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
@@ -242,6 +242,8 @@ export class Game {
     if (g.db.BUD?.Tickets && g.db.BUD.Tickets[1] < 450) g.db.BUD = { ...g.db.BUD, Tickets: [g.db.BUD.Tickets[0], 450, ...g.db.BUD.Tickets.slice(2)] };
     // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
     // 2026-10-26: every club gets a local TV deal and a lead sponsor, part-way through (mediaDeals.ts).
+    // 2026-10-26: Los Angeles's local TV is the Lakers' $200M deal (it had averaged the Lakers and the Clippers, $115M).
+    if (!g.db.laTvV) { (g.state.teams || []).forEach((t: any) => { if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +(t.tv.fee * 200 / 115).toFixed(1) }; }); g.db.laTvV = 1; }
     if (g.state.teams && g.state.teams.some((t: any) => !t.tv || !t.spon)) { g.state.teams = g.state.teams.map((t: any) => ({ ...t })); ensureDeals(g, g.state.teams); }
     if (g.db.payOpen == null && g.state.teams && g.CAP) g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4);
     // 2026-10-22: draft-night levels came from the uncompressed true potential, so the best prospects arrived far

@@ -12,12 +12,12 @@
 // figures aren't published; those are estimates in line with these anchors, lower for the teams whose
 // regional networks went bankrupt or that moved to free over-the-air TV (those over-the-air deals are
 // counted here too: the Suns' with Gray TV is over $30M a year, ESPN 2025, about what their old network paid;
-// SBJ: only three teams made over $30M from FanDuel Sports Network deals in 2024-25). Los Angeles averages the Lakers and the
-// Clippers; Oakland and San Francisco are the Warriors.
+// SBJ: only three teams made over $30M from FanDuel Sports Network deals in 2024-25). Los Angeles's local media is the Lakers'
+// (Spectrum SportsNet, about $200M a year), its sponsorship averages the Lakers and the Clippers; Oakland and San Francisco are the Warriors.
 
 // [local media, sponsorship], $M a season (2024-25)
 export const CITY_REV: Record<string, [number, number]> = {
-  'New York': [110, 110], 'Los Angeles': [115, 95], 'Oakland': [50, 200], 'San Francisco': [50, 200], 'Boston': [70, 80], 'Chicago': [55, 70],
+  'New York': [110, 110], 'Los Angeles': [200, 95], 'Oakland': [50, 200], 'San Francisco': [50, 200], 'Boston': [70, 80], 'Chicago': [55, 70],
   'Philadelphia': [60, 70], 'Brooklyn': [50, 60], 'Toronto': [50, 70], 'Houston': [50, 60], 'Dallas': [20, 60], 'Miami': [30, 70],
   'Washington': [40, 45], 'Denver': [30, 50], 'Phoenix': [30, 55], 'Minneapolis': [25, 35], 'Cleveland': [30, 45], 'Detroit': [25, 40],
   'Atlanta': [30, 45], 'Charlotte': [20, 35], 'Portland': [10, 35], 'San Antonio': [15, 45], 'Sacramento': [25, 40], 'Milwaukee': [25, 50],
