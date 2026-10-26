@@ -9,6 +9,7 @@ import { ScoutReportView } from '../ScoutReportView';
 import { CompareTab, ContractExtras, DevelopmentTab, HistoryExtras } from './ProfileExtras';
 import { ProfileHeader, ProfileOverview } from './ProfileMain';
 import { PlayerStatsTab } from './PlayerStatsTab';
+import { AmateurTab } from '../AmateurStats';
 import { AccoladesTab } from './AccoladesTab';
 import { alphaTeams } from '../kit';
 import { cantMove, godMovePlayer, godTerms, whereIs } from '../../engine/godMove';
@@ -113,6 +114,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
           {vm.ctx.s.ptab === 'scout' && <div style={{ marginTop: 20 }}><ScoutReportView vm={vm} pid={vm.ctx.s.pid} /></div>}
           {vm.ctx.s.ptab === 'tx' && <TransactionsTab vm={vm} />}
           {vm.ctx.s.ptab === 'stats' && <PlayerStatsTab vm={vm} />}
+          {vm.ctx.s.ptab === 'amateur' && <AmateurTab vm={vm} />}
           {vm.ctx.s.ptab === 'accolades' && <AccoladesTab vm={vm} />}
           {!!vm.pl.tabEdit && (<>
             <div style={{ ...godText, fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600, margin: '-8px 0 10px' }}>God Mode · editing {vm.pl.name || 'this player'}</div>
