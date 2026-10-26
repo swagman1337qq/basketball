@@ -1,17 +1,24 @@
 import type { VM } from '../vm';
+import { GOD_PINK } from '../kit';
 
 export function FinancesScreen({ vm }: { vm: VM }) {
   return (
     <>
-      {vm.fin.teams && (
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>God Mode · finances of</span>
-          <select className="input" value={vm.fin.teamV} onChange={vm.fin.setTeam} style={{ width: "auto" }}>
-            {vm.fin.teams.map((t: any) => <option key={t.v} value={t.v}>{t.label}</option>)}
-          </select>
-          {vm.fin.readOnly && <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Their budget is set by their owner (shown, not editable here).</span>}
-        </div>
-      )}
+      {vm.fin.teams && (() => { // God Mode only, so in God Mode's color: the team box and its arrows
+        const T = vm.fin.teams, i = Math.max(0, T.findIndex((t: any) => t.v === vm.fin.teamV)), go = (d: number) => vm.fin.setTeam({ target: { value: T[(i + d + T.length) % T.length].v } });
+        const arrow = { all: "unset", cursor: "pointer", display: "grid", placeItems: "center", width: "30px", height: "30px", border: "1px solid " + GOD_PINK, borderRadius: "var(--radius-md)", color: GOD_PINK, background: "color-mix(in srgb, " + GOD_PINK + " 10%, transparent)", fontSize: "15px", lineHeight: 1 } as const;
+        return (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", color: GOD_PINK }}>God Mode · finances of</span>
+            <button onClick={() => go(-1)} title="Previous team" aria-label="Previous team" style={arrow}>‹</button>
+            <select className="input" value={vm.fin.teamV} onChange={vm.fin.setTeam} style={{ width: "auto", borderColor: GOD_PINK, color: GOD_PINK, background: "color-mix(in srgb, " + GOD_PINK + " 10%, var(--color-bg))" }}>
+              {T.map((t: any) => <option key={t.v} value={t.v}>{t.label}</option>)}
+            </select>
+            <button onClick={() => go(1)} title="Next team" aria-label="Next team" style={arrow}>›</button>
+            {vm.fin.readOnly && <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>Their budget is set by their owner (shown, not editable here).</span>}
+          </div>
+        );
+      })()}
       <section style={{ marginBottom: "30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <h4 style={{ margin: "0", fontSize: "19px" }}>
