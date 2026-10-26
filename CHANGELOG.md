@@ -5,7 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-26
 
 ### Changed
-- **Positions follow the player's game.** A player's listed position now updates with how the game reads his ratings (height, wingspan, and whether his skills are a guard's or a big's): it's checked every month and every summer, and right away when you edit his ratings or height in God Mode. It only changes when he's clearly into the new position, so it doesn't flip back and forth. If you pick a position yourself in God Mode (or apply a player card), it stays where you put it; the editor shows "Set by hand" with a **Back to auto** button. A move between guard, wing and big changes how his overall is weighed, and his potential moves with it, so his room to grow is the same.
+- **Positions follow the player's game.** By default every player's listed position is where the game reads his ratings (height, wingspan, and whether his skills are a guard's or a big's), and it changes with them: each month in season, each summer, as a league loads, and right away when you edit his ratings or height in God Mode. The only way to set it yourself is the position box in the God Mode player editor (or applying a player card); then it stays where you put it, and **Back to auto** returns it to automatic. A move between guard, wing and big changes how his overall is weighed, and his potential moves with it, so his room to grow is the same.
 
 ## 2026-10-25
 

@@ -83,7 +83,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   // His team context for the AI's playing style (tendencies.ts): his place among its options, its direction, his roles.
   const aiCtx = (q: any) => { const tid = gm.tidOf(s.rosters, q.id); return { rank: optionRanks(gm.db.P, s.rosters).get(q.id) ?? null, mode: tid >= 0 ? gm.strategies(s.teams, s, true)[tid] : undefined, roles: gm.rolesOf(q) }; };
   // Changing where he was born or raised, or his heritage, redoes his national-team eligibility.
-  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); gm.autoPos(p, false, true); liftCeil(p); refreshPot(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
+  const mut = (f: (p: any) => void) => { const k0 = p.born + '|' + p.raised + '|' + p.her; f(p); gm.autoPos(p); liftCeil(p); refreshPot(p); if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); };
   // "Playing for": the leagues in his country (top tier first), then the teams in the chosen
   // league, or every team in the country when the league is blank or typed by hand.
   const lgs = p.from ? leaguesIn(p.from.country || p.raised || p.born) : [], curL = lgs.find(x => x.lg === p.from?.lg);

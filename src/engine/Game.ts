@@ -374,6 +374,8 @@ export class Game {
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.iqV = 6; }
+    // Positions follow each player's game unless set by hand (Game.autoPos), in every league as it loads.
+    (Object.values(g.db.P) as any[]).forEach(p => g.autoPos(p));
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
     // rises a little with it (true potential too, if it would pass it).
     // 2026-10-17/18: new DPOY and ROY formulas; a league that saved an earlier default word for word moves to today's.
@@ -2022,16 +2024,15 @@ export class Game {
     const r = (p.stats || []).find(x => x.season === season && !x.po); if (!r || r.gp < 20) return 0;
     return this.cl((this.perOf(r, season) - (15 + (p.ovr - 50) * 0.75)) / 8, -1, 1);
   }
-  // His listed position follows how the engine reads his game (ratings.ts recommendPos: height, length, and a
-  // guard's or a big's skills), checked each month and each summer, unless it was set by hand in God Mode or by a
-  // player card (p.posLock). It moves only when he's clearly inside the new position (a half-inch either way
-  // still reads the same), so it doesn't flip back and forth. A move between guard, wing and big changes how his
-  // overall is weighed; his potentials and plan move by the same amount, so his room to grow is unchanged.
-  // `keepLevel` (a new player): his ratings shift instead, so he's still the level he was made at. `now` (an edit in
-  // God Mode): straight to the recommendation, no half-inch margin.
-  autoPos(p, keepLevel = false, now = false) {
+  // His listed position is, by default, where the engine reads his game (ratings.ts recommendPos: height, length,
+  // and a guard's or a big's skills), kept up as his ratings change: each month in season, each summer (growth,
+  // camp), on load and on every God Mode edit. Only the editor (or a player card) sets it by hand (p.posLock), and
+  // then it stays. A move between guard, wing and big changes how his overall is weighed; his potentials and plan
+  // move by the same amount, so his room to grow is unchanged. `keepLevel` (a new player): his ratings shift
+  // instead, so he's still the level he was made at.
+  autoPos(p, keepLevel = false) {
     if (!p?.r || p.posLock || p.retired || p.gone) return false;
-    const rec = recommendPos(p).pos; if (rec === p.pos || (!now && (recommendPos(p, -0.5).pos !== rec || recommendPos(p, 0.5).pos !== rec))) return false;
+    const rec = recommendPos(p).pos; if (rec === p.pos) return false;
     const g = POS_GROUP[rec]; if (!g) return false;
     if (g === p.grp) { p.pos = rec; return true; }
     const before = ovrExact(p); p.pos = rec; p.grp = g;

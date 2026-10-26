@@ -255,14 +255,12 @@ export function setWing(p: any, inches: number) { p.wing = inches; syncOvr(p, tr
 // The position his body and skills point to: mostly height, nudged by wingspan (long arms play
 // bigger) and by whether his skills are a guard's (handling, passing, speed) or a big's
 // (rebounding, inside scoring, strength). A 7-footer is a center; a 6′9″ playmaker is a wing.
-// `n` nudges the reading (inches toward a bigger position, and toward a creator over a shooter) so an automatic
-// change can check that he's clearly inside the new position, not on its edge (Game.autoPos).
 export const POS_GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
-export function recommendPos(p: any, n = 0): { pos: string; why: string } {
+export function recommendPos(p: any): { pos: string; why: string } {
   const r = p.r || {}, h = inchesOf(p.hgt), ape = (p.wing ?? h + 4) - h;
   const gs = ((r.drb ?? 50) + (r.pss ?? 50) + (r.spd ?? 50)) / 3, bs = ((r.reb ?? 50) + (r.ins ?? 50) + (r.box ?? r.reb ?? 50) + (r.stre ?? 50)) / 4;
-  const eff = h + (ape - 4) * 0.25 + (bs - gs) / 10 + n;
-  const creator = (r.pss ?? 50) * 0.6 + (r.drb ?? 50) * 0.4 + n * 4, shooter = ((r.tp ?? 50) + (r.fg ?? 50)) / 2;
+  const eff = h + (ape - 4) * 0.25 + (bs - gs) / 10;
+  const creator = (r.pss ?? 50) * 0.6 + (r.drb ?? 50) * 0.4, shooter = ((r.tp ?? 50) + (r.fg ?? 50)) / 2;
   const pos = eff < 75 ? (creator >= shooter + 3 ? 'PG' : creator <= shooter - 3 ? 'SG' : 'G') : eff < 77 ? (creator >= shooter + 6 ? 'G' : 'SG') : eff < 78.5 ? 'GF' : eff < 80 ? 'SF' : eff < 81 ? 'F' : eff < 82.5 ? 'PF' : eff < 83.5 ? 'FC' : 'C';
   const ft = (n: number) => Math.floor(n / 12) + '′' + (n % 12) + '″';
   const lean = bs - gs >= 6 ? 'big-man skills (rebounding ' + (r.reb ?? 50) + ', inside ' + (r.ins ?? 50) + ')' : gs - bs >= 6 ? 'guard skills (handling ' + (r.drb ?? 50) + ', passing ' + (r.pss ?? 50) + ')' : 'a balanced skill set';

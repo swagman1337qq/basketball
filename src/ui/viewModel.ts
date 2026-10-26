@@ -428,7 +428,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     pl.extWhy = status !== 'mine' ? 'Only players on your roster can be extended.' : xw.why;
     pl.tabOverview = (s.ptab || 'overview') === 'overview'; pl.tabContract = s.ptab === 'contract'; pl.tabHistory = s.ptab === 'history'; pl.tabEdit = s.ptab === 'edit' && !!s.god; pl.tabDev = s.ptab === 'dev'; pl.tabCompare = s.ptab === 'compare'; pl.nativeSep = pp.native ? '| ' + pp.native : '';
     {
-      const mut = fn => { fn(pp); gm.autoPos(pp, false, true); liftCeil(pp); refreshPot(pp); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); }; // ceilings follow edits (potential.ts)
+      const mut = fn => { fn(pp); gm.autoPos(pp); liftCeil(pp); refreshPot(pp); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); }; // ceilings follow edits (potential.ts)
       const chip = on => ({ bg: on ? 'var(--color-accent-100)' : 'transparent', color: on ? 'var(--color-accent-800)' : 'var(--color-text)', border: on ? 'var(--color-accent)' : 'var(--color-divider)', mark: on ? '✓ ' : '+ ' });
       // The full name and the first/last fields (Biography) stay in sync, in the right order for family-name-first names.
       const splitLatin = (p, v) => { const w = String(v).trim().split(/\s+/).filter(Boolean); if (p.familyFirst) { p.last = w[0] || ''; p.first = w.slice(1).join(' '); } else { p.first = w[0] || ''; p.last = w.slice(1).join(' '); } };
