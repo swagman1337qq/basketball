@@ -177,13 +177,15 @@ export function ccpAdvanced(g: Game, s: any, season: number, po = false): Season
 // Draft prospects' college and club seasons (amateurStats.ts): each line in its own average-team context at an NBA
 // pace (no team adjustment, no lineup data), the box plus-minus centred on the class (minute-weighted 0), win shares
 // per 40 minutes. `season` 1 keeps the league's past seasons out of it (DARKO, the aging curve).
-export function amateurAdvanced(g: Game, list: { p: any; t: StatLine }[]): Record<number, StatLine> {
-  const teams: Record<number, StatLine> = {}, rows: Row[] = list.map((x, i) => { teams[i] = avgTeam(x.t.gp || 30); return { p: x.p, t: { ...x.t }, tid: i }; });
+// tq: how good his team was (amateurStats.ts situation), about one standard deviation: box plus-minus gives
+// players on better teams more credit, as the real one's team adjustment does.
+export function amateurAdvanced(g: Game, list: { p: any; t: StatLine; tq?: number }[]): Record<number, StatLine> {
+  const teams: Record<number, StatLine> = {}, rows: Row[] = list.map((x, i) => { teams[i] = avgTeam(x.t.gp || 30); return { p: x.p, t: { ...x.t }, tid: i, tq: x.tq || 0 }; });
   if (!rows.length) return {};
   const { byPid } = computeAdvanced(g, 1, teams, rows, () => 0.5, [], 0, true);
   let w = 0, mo = 0, md = 0; rows.forEach(({ p, t }) => { const x = byPid[p.id]; mo += x.obpm * t.min; md += x.dbpm * t.min; w += t.min; });
   mo = w ? mo / w : 0; md = w ? md / w : 0;
-  rows.forEach(({ p, t }) => { const x = byPid[p.id]; x.obpm -= mo; x.dbpm -= md; x.bpm = x.obpm + x.dbpm; x.ws40 = (x.ws48 * 40) / 48; void t; ['vorp', 'pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]); }); // no lineups or standings for amateurs
+  rows.forEach(({ p, t, tq }: any) => { const x = byPid[p.id]; x.obpm -= mo - 1.2 * tq; x.dbpm -= md - 0.8 * tq; x.bpm = x.obpm + x.dbpm; x.ws40 = (x.ws48 * 40) / 48; void t; ['vorp', 'pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]); }); // no lineups or standings for amateurs
   return byPid;
 }
 
