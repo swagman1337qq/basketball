@@ -18,11 +18,11 @@ const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // How good his opponents are, on the ratings scale (an NBA rotation player is about 50).
 export function compLevel(from: any): { c: number; label: string; college: boolean } {
   const lg = from?.lg || '', team = from?.team || '';
-  if (lg === 'NCAA') return COLLEGES.includes(team) ? { c: 41, label: 'NCAA, power program', college: true } : MORE_COLLEGES.includes(team) ? { c: 38, label: 'NCAA, power conference', college: true } : IVY_LEAGUE.includes(team) ? { c: 31, label: 'NCAA, Ivy League', college: true } : MID_MAJORS.includes(team) ? { c: 34, label: 'NCAA, mid-major', college: true } : { c: 33, label: 'NCAA', college: true };
-  if (lg === 'EuroLeague') return { c: 52, label: 'EuroLeague', college: false };
-  if (lg === 'Overtime Elite') return { c: 29, label: 'Overtime Elite', college: false };
+  if (lg === 'NCAA') return COLLEGES.includes(team) ? { c: 24, label: 'NCAA, power program', college: true } : MORE_COLLEGES.includes(team) ? { c: 22, label: 'NCAA, power conference', college: true } : IVY_LEAGUE.includes(team) ? { c: 16, label: 'NCAA, Ivy League', college: true } : MID_MAJORS.includes(team) ? { c: 18, label: 'NCAA, mid-major', college: true } : { c: 17, label: 'NCAA', college: true };
+  if (lg === 'EuroLeague') return { c: 38, label: 'EuroLeague', college: false };
+  if (lg === 'Overtime Elite') return { c: 15, label: 'Overtime Elite', college: false };
   const t = tierOf(lg);
-  return t >= 4 ? { c: 20, label: 'Junior', college: false } : t === 3 ? { c: 23, label: 'High school', college: true } : t === 2 ? { c: 37, label: lg + ' (second division)', college: false } : { c: 45, label: lg, college: false };
+  return t >= 4 ? { c: 9, label: 'Junior', college: false } : t === 3 ? { c: 12, label: 'High school', college: true } : t === 2 ? { c: 24, label: lg + ' (second division)', college: false } : { c: 32, label: lg, college: false };
 }
 
 // His game in an earlier season: the skills he had yet to add by the draft (about 3 a year in his teens, 2 at
@@ -40,16 +40,16 @@ export function seasonLine(p: any, season: number, yearsBack: number): AmLine {
   const { r, age } = snapshot(p, yearsBack), lv = compLevel(p.from), o = ovrExact(p.am ? { ...p, r, grp: p.am.grp, intg: { ...p.intg, feel: p.am.feel }, rx: p.am.rx } : { ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
   const C = Math.max(lv.c, o - 22); // far above his competition, the edge levels off (a high-school star's numbers stay believable)
   const gp = lv.college ? 29 + Math.floor(rnd() * 7) : 22 + Math.floor(rnd() * 13);
-  const mpg = +((lv.college ? cl(22 + 0.8 * dom, 6, 36) : cl(10 + 0.6 * dom, 4, 32)) * cl(nz(0.06), 0.85, 1.15)).toFixed(1);
+  const mpg = +((lv.college ? cl(24 + 0.5 * dom, 8, 35) : cl(16 + 0.6 * dom, 5, 32)) * cl(nz(0.06), 0.85, 1.15)).toFixed(1);
   // Rates per possession on the floor.
-  const usg = cl(0.2 * Math.exp(0.025 * (off - C - 2)) * nz(0.05), 0.09, 0.38);
+  const usg = cl(0.2 * Math.exp(0.025 * (off - C - 4)) * nz(0.05), 0.09, 0.38);
   const tovR = cl(0.14 * Math.exp(-((r.drb * 0.5 + r.pss * 0.3 + r.oiq * 0.2) - C - 8) / 70) * (1 + (usg - 0.2)) * nz(0.08), 0.06, 0.26);
   const ftr = cl(0.3 * Math.exp((r.ins * 0.4 + ((r.dnk + (r.lay ?? r.dnk)) / 2) * 0.3 + r.stre * 0.15 + (r.acc ?? r.spd) * 0.15 - C - 12) / 40) * nz(0.1), 0.08, 0.75);
   const w = { rim: Math.exp((zs.rim - 55) / 15), mid: 0.6 * Math.exp((zs.mid - 55) / 15), three: 1.1 * Math.exp((r.tp - 55) / 12) }, wt = w.rim + w.mid + w.three;
   const pct = { rim: cl(0.62 + 0.0035 * (zs.rim - C - 12), 0.4, 0.8), mid: cl(0.41 + 0.003 * (zs.mid - C - 12), 0.25, 0.56), three: cl(0.355 + 0.003 * (zs.atb - C - 12), 0.18, 0.47), ft: cl(0.7 + 0.005 * (r.ft - 45), 0.4, 0.93) };
-  const astR = cl(0.2 * Math.exp((r.pss * 0.6 + r.oiq * 0.2 + r.drb * 0.2 - C - 10) / 22) * nz(0.08), 0.03, 0.48);
-  const rb = rebSkill(r), orbR = cl(0.05 * Math.exp((rb - C - 10) / 18) * nz(0.08), 0.01, 0.18), drbR = cl(0.14 * Math.exp((rb - C - 10) / 22) * nz(0.06), 0.06, 0.34);
-  const stlR = cl(0.016 * Math.exp((stealSkill(r) - C - 10) / 20) * nz(0.1), 0.005, 0.045), blkR = cl(0.03 * Math.exp((blockSkill(r) - C - 10) / 14) * nz(0.12), 0.002, 0.15);
+  const astR = cl(0.2 * Math.exp((r.pss * 0.6 + r.oiq * 0.2 + r.drb * 0.2 - C - 18) / 22) * nz(0.08), 0.03, 0.48);
+  const rb = rebSkill(r), orbR = cl(0.05 * Math.exp((rb - C - 16) / 18) * nz(0.08), 0.01, 0.15), drbR = cl(0.14 * Math.exp((rb - C - 16) / 22) * nz(0.06), 0.06, 0.28);
+  const stlR = cl(0.016 * Math.exp((stealSkill(r) - C - 12) / 20) * nz(0.1), 0.005, 0.045), blkR = cl(0.03 * Math.exp((blockSkill(r) - C - 16) / 14) * nz(0.12), 0.002, 0.15);
   const pf40 = 2.6 * (1 + (50 - r.diq) / 150);
   // A season at a given pace: possessions on the floor → attempts → makes (with their luck).
   const binom = (n: number, q: number) => Math.max(0, Math.min(n, Math.round(n * q + Math.sqrt(n * q * (1 - q)) * (rnd() + rnd() + rnd() - 1.5) * 2)));

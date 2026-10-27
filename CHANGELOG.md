@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-27
 
 ### Fixed
+- **College and club stats look like real draft prospects.** Most prospects ranked outside the top 10 showed only 2–6 points a game (and players abroad well under 1), because the game rated their competition too strong. Now a typical prospect is a starter at his level: first-rounders from college average about 13–18 points in 30–34 minutes, second-rounders about 10, top prospects abroad about 9 in 22 minutes. Raw, high-upside teenagers and young players in top pro leagues abroad can still show small numbers. Only the College / Club tab changes; the players themselves don't.
 - **Opening some retired players no longer crashes the game.** Clicking a player who retired after his last opening night (for example, one who left the league young) crashed the screen, because the game tried to show his rating changes from history it had already trimmed to keep saves small. His page now opens normally.
 - **Accepting a team's trade offer goes through.** When an AI team called you with an offer and you accepted, its own GM sometimes turned it down ("We're close, but not there") and the offer vanished. Now a team stands by the offer it made: accept it and the deal is done. The league office still checks the rules (cap, roster size, salary matching); if something has changed since they called and the rules stop it, you're told why and the offer stays in your list.
 
