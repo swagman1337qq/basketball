@@ -30,9 +30,10 @@ export function snapEnd(g: Game, s: any, season = g.Y) {
 // this season's opening night. null when there's no history yet.
 export function baseline(g: Game, p: any): { snap: Snap; label: string } | null {
   const h = p.rh || {}, Y = g.Y, lbl = (y: number) => 'opening night ' + (y - 1) + '–' + String(y).slice(2);
-  if (h[Y - 1]?.e) return { snap: h[Y - 1].e, label: 'the end of the ' + (Y - 2) + '–' + String(Y - 1).slice(2) + ' season' };
-  if (h[Y]?.o) return { snap: h[Y].o, label: lbl(Y) };
-  if (h[Y - 1]?.o) return { snap: h[Y - 1].o, label: lbl(Y - 1) };
+  // (a retired player's history is slimmed, prune.ts: its snapshots keep no ratings, so there's nothing to compare)
+  if (h[Y - 1]?.e?.r) return { snap: h[Y - 1].e, label: 'the end of the ' + (Y - 2) + '–' + String(Y - 1).slice(2) + ' season' };
+  if (h[Y]?.o?.r) return { snap: h[Y].o, label: lbl(Y) };
+  if (h[Y - 1]?.o?.r) return { snap: h[Y - 1].o, label: lbl(Y - 1) };
   return null;
 }
 export function deltas(p: any, b: Snap) {
