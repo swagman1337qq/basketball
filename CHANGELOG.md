@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-27
+
+### Fixed
+- **Accepting a team's trade offer goes through.** When an AI team called you with an offer and you accepted, its own GM sometimes turned it down ("We're close, but not there") and the offer vanished. Now a team stands by the offer it made: accept it and the deal is done. The league office still checks the rules (cap, roster size, salary matching); if something has changed since they called and the rules stop it, you're told why and the offer stays in your list.
+
 ## 2026-10-26
 
 ### Added

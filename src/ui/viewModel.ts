@@ -268,7 +268,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       gm: T[ofc.tid].gm, advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null } : {}),
     askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })), adviceOn: !!s.ofAdvice,
     prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }), next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
-    accept: () => { if (!ofc) return; gm.setState(st => ({ ...load(ofc), offers: null, ...(OF.kind === 'incoming' ? { inOffers: (st.inOffers || []).filter(o => o.id !== ofc.id) } : {}) })); gm.propose(); },
+    accept: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null }); gm.propose(false, OF.kind === 'incoming' ? ofc.id : null); }, // an offer they called with stands; if the league office stops it, it stays in your offers
     decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const gone = o.list[o.i], list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) }, ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}) }; }),
     negotiate: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null, tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”' }); },
     close: () => gm.setState({ offers: null }) };

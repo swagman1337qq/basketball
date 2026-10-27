@@ -2426,9 +2426,11 @@ export class Game {
   pickLabel(k, T) { const r = this.draftRights(k); if (r) { const p = this.db.P[r.pid]; return 'Draft rights: ' + p.name + ' (#' + r.n + ', ' + p.pos + ')'; }
     return k.yr + ' ' + (k.rd === 1 ? '1st' : '2nd') + (k.orig === k.owner ? '' : ' (via ' + T[k.orig].abbr + ')') + (k.prot ? ' · ' + protLabel(k.prot) : ''); }
   // force (God Mode only): the other team accepts and the league office approves no matter what.
-  propose(force = false) {
+  // honorId: you accepted an offer an AI team called you with (s.inOffers): their GM stands by it, so only the
+  // league office checks it; it leaves your offers once the trade goes through.
+  propose(force = false, honorId: string | null = null) {
     this.setState(s => {
-      force = force && !!s.god;
+      force = force && !!s.god; const honor = !!honorId && (s.inOffers || []).some((o: any) => o.id === honorId);
       const P = this.db.P, T = s.teams, t = T[s.tTid], ev = this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
       // What the other GM says, in his own words (a few ways to say it).
       const WANT: Record<string, string[]> = {
@@ -2437,7 +2439,7 @@ export class Game {
         contend: ['We’re trying to win now. I need proven players who can help us tonight.', 'Picks don’t help us this season. Give me someone who can play real minutes for a contender.', 'We’re in win-now mode: bring me a contributor, not a project.'] };
       const say = (st: string) => { const a = WANT[st] || WANT.middle; return a[(s.tTid * 7 + s.day + (s.tTheirs.length + s.tMine.length) * 3) % a.length]; };
       if (!force) { const chk = checkTrade(this, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs); if (!chk.ok) return { tMsg: 'League office: ' + chk.errs.join(' ') }; }
-      if (!ev.ok && !force && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + say(ev.st) + '\u201d' };
+      if (!ev.ok && !force && !honor && !this.isUser(s, s.tTid)) return { tMsg: t.gm + ', ' + t.abbr + ' GM: \u201c' + (ev.diff < -Math.max(10, ev.give) * 0.4 ? 'We\u2019re not close. ' : 'We\u2019re close, but not there. ') + say(ev.st) + '\u201d' };
       // Picks change hands (with any protection you attached); swap rights are recorded.
       const withProt = a => { const pr = (s.tProt || {})[a.id]; return pr && !a.prot && a.rd === 1 ? { ...a, prot: pr, rolls: 0 } : a; };
       const assets = s.assets.map(a => s.tkMine.includes(a.id) ? withProt({ ...a, owner: s.tTid }) : s.tkTheirs.includes(a.id) ? withProt({ ...a, owner: s.me }) : a);
@@ -2457,7 +2459,7 @@ export class Game {
       rightsIn.forEach(id => addTx(this, s, P[id], { k: 'trade', from: s.tTid, to: s.me, trade: tradeId, text: 'Draft rights traded' }));
       const A = id => this.tradeItemLabel(s, id, T);
       const names = (ps, ks) => { const x = [...ps.map(id => P[id].name), ...ks.map(A)]; return x.length ? x.join(', ') : 'nothing'; };
-      return { rosters, assets, swaps, tProt: {}, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : '') + (signed.length ? ' ' + T[s.tTid].abbr + ' made the pick on your behalf; ' + signed.join(' and ') + (signed.length === 1 ? ' signs his' : ' sign their') + ' rookie deal with you.' : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
+      return { ...(honor ? { inOffers: (s.inOffers || []).filter((o: any) => o.id !== honorId) } : {}), rosters, assets, swaps, tProt: {}, cap, tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: t.gm + ', ' + t.abbr + ' GM: \u201cWe have a deal.\u201d ' + T[s.me].region + ' receives ' + names(s.tTheirs, s.tkTheirs) + '.' + (capNotes.length ? ' ' + capNotes.join(' ') : '') + (signed.length ? ' ' + T[s.tTid].abbr + ' made the pick on your behalf; ' + signed.join(' and ') + (signed.length === 1 ? ' signs his' : ' sign their') + ' rookie deal with you.' : ''), news: [this.pressTrade(s, s.tTid, names(s.tMine, s.tkMine), s.tMine), ...(s.news || [])], lgLog: [{ day: s.day, type: 'Trade', teams: T[s.me].abbr + ' · ' + t.abbr, pids: [...s.tMine, ...s.tTheirs], text: T[s.me].region + ' traded ' + names(s.tMine, s.tkMine) + ' to ' + t.region + ' for ' + names(s.tTheirs, s.tkTheirs) }, ...s.lgLog], log: this.logEntry(s, 'Traded ' + names(s.tMine, s.tkMine) + ' to ' + t.abbr + ' for ' + names(s.tTheirs, s.tkTheirs)) };
     });
   }
   // Draft board shortcuts. Someone else's pick: trade with the team that owns it ("Trade for
