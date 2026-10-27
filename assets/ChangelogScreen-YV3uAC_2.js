@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-yUWMrz53.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-3V5O84iu.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-27
+
+### Added
+- **Draft-night cards: Anthony Bennett, Tyler Hansbrough and Blake Griffin.** Three more ready-made cards in the card library, each fitted in the game to his real final college season. Bennett (UNLV, 2013): 49 overall, potential 50, the No. 1 pick who never got better. Hansbrough (North Carolina, 2009): 51 overall, a polished 23-year-old senior with potential 52. Griffin (Oklahoma, 2009): 54 overall, potential 67, his All-Star peak.
 
 ### Fixed
 - **College and club stats look like real draft prospects.** Most prospects ranked outside the top 10 showed only 2–6 points a game (and players abroad well under 1), because the game rated their competition too strong. Now a typical prospect is a starter at his level: first-rounders from college average about 13–18 points in 30–34 minutes, second-rounders about 10, top prospects abroad about 9 in 22 minutes. Raw, high-upside teenagers and young players in top pro leagues abroad can still show small numbers. Only the College / Club tab changes; the players themselves don't.
