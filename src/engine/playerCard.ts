@@ -491,4 +491,54 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // Playing style: the AI's own for these ratings and a first option's role.
     ten: { usage: 69.1, ftr: 71.2, ra: 43.9, paint: 19, mid: 16.6, c3: 7.9, atb: 12.6, cns: 56.2, pullup: 25.6, step: 4.3, fade: 13.9 },
   } },
+  { label: 'Anthony Bennett – Draft night (2013, UNLV)', card: {
+    card: 1, name: 'Anthony Bennett', first: 'Anthony', last: 'Bennett', pos: 'PF', age: 20, dob: '1993-03-14', hgt: '6′8″', wt: 240, wing: 85,
+    rep: 'CA', born: 'CA', raised: 'CA', city: 'Toronto', her: 'CA', race: 'black',
+    // Real (No. 1 pick in 2013 after one season at UNLV, Mountain West Freshman of the Year): 35 games, 27.1 min, 16.1 pts,
+    // 8.1 reb, 1.0 ast, 1.2 blk, .533 FG, 36 of 96 threes (.375), .701 FT. A strong, bouncy face-up forward who could shoot
+    // it; a tweener on defense, out of shape on draft night (and hurt). One of the biggest busts in NBA history.
+    // Fitted 2026-10-27 to his per-40 numbers with the game's college-stats model (UNLV as a mid-major, ratings held near
+    // a scouting prior): 24.7 pts, 12.3 reb, 2.2 ast, 1.9 blk, 3.7 tov, .552 FG, .387 on 4.2 threes, .720 FT per 40 (the
+    // model plays him about 34 minutes, more than his real 27).
+    // 49 overall on draft night; potential 50: he never got better (his real NBA peak was well below this). The bust
+    // itself is his first camp's hidden roll if you put the card on a prospect (translation.ts), not the card.
+    r: { hgt: 54, stre: 75, spd: 62, acc: 65, jmp: 69, endu: 45, ins: 60, dnk: 68, lay: 58, ft: 49, fg: 62, tp: 52, oiq: 44, diq: 48, blk: 45, stl: 34, drb: 41, pss: 25, reb: 55, box: 49 },
+    pot: 50, intg: { feel: 45, poise: 45 },
+    pers: { mot: 'Fame', alpha: false, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: true, padder: false, team: false, legacy: false, streaky: true, work: 35, loyalty: 55, ambition: 50 },
+    // Playing style from his UNLV season: face-up drives and dunks, pick-and-pop jumpers, a real three.
+    ten: { usage: 50, ftr: 45, ra: 35, paint: 12, mid: 18, c3: 10, atb: 25, cns: 55, pullup: 25, step: 5, fade: 15 },
+  } },
+  { label: 'Tyler Hansbrough – Draft night (2009, North Carolina)', card: {
+    card: 1, name: 'Tyler Hansbrough', first: 'Tyler', last: 'Hansbrough', pos: 'PF', age: 23, dob: '1985-11-03', hgt: '6′9″', wt: 250, wing: 83,
+    rep: 'US', born: 'US', raised: 'US', city: 'Poplar Bluff', her: 'US', race: 'white',
+    // Real (No. 13 pick in 2009 after four seasons at North Carolina: national champion, 2008 national Player of the
+    // Year, the ACC's career scoring leader): senior year 20.7 pts, 8.1 reb, 1.0 ast in about 30 minutes, .508 FG, .846 FT
+    // on about 8.6 a game. All motor and strength, a great free-throw shooter, an average athlete for the NBA; a role
+    // player in the league (his best season about 11 points).
+    // Fitted 2026-10-27 to his senior per-40 numbers with the game's college-stats model (North Carolina as a power
+    // program, ratings held near a scouting prior): 26.8 pts, 11.1 reb, 2.3 ast, .573 FG, .842 FT per 40 (his real free-throw
+    // rate, 11.4 a 40, is beyond the model's: 7.9; it makes up the points from the field).
+    // 51 overall on draft night, a polished 23-year-old; potential 52: he is about what he is.
+    r: { hgt: 58, stre: 86, spd: 55, acc: 68, jmp: 46, endu: 85, ins: 71, dnk: 60, lay: 65, ft: 74, fg: 74, tp: 37, oiq: 55, diq: 41, blk: 29, stl: 41, drb: 47, pss: 26, reb: 56, box: 62 },
+    pot: 52, intg: { feel: 55, poise: 65 },
+    pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: true, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 95, loyalty: 85, ambition: 60 },
+    // Playing style from his North Carolina years: post-ups and put-backs, short jumpers off the catch, a huge free-throw rate.
+    ten: { usage: 60, ftr: 85, ra: 35, paint: 28, mid: 30, c3: 2, atb: 5, cns: 45, pullup: 25, step: 5, fade: 25 },
+  } },
+  { label: 'Blake Griffin – Draft night (2009, Oklahoma)', card: {
+    card: 1, name: 'Blake Griffin', first: 'Blake', last: 'Griffin', pos: 'PF', age: 20, dob: '1989-03-16', hgt: '6′10″', wt: 251, wing: 83,
+    rep: 'US', born: 'US', raised: 'US', city: 'Oklahoma City', her: 'US', race: 'black',
+    // Real (No. 1 pick in 2009 after his sophomore season, the national Player of the Year): 35 games, 22.7 pts, 14.4 reb,
+    // 2.3 ast, .654 FG, .594 FT on 9.3 a game (school records for free throws tried). An explosive leaper and a powerful
+    // finisher and rebounder; his jumper and free throws came later. Later a five-time All-Star (third in the MVP vote, 2014).
+    // Fitted 2026-10-27 to his per-40 numbers with the game's college-stats model (Oklahoma as a power conference, ratings
+    // held near a scouting prior): 27.6 pts, 15.2 reb, 3.1 ast, 1.6 stl, 1.8 blk, .686 FG, .621 FT per 40 (his real free-throw
+    // rate, 11.1 a 40, is beyond the model's: 8.4; his real 17.2 rebounds a 40 too).
+    // 54 overall on draft night; potential 67, his All-Star peak (2013–14), near the top of today's scale.
+    r: { hgt: 62, stre: 88, spd: 70, acc: 82, jmp: 87, endu: 70, ins: 72, dnk: 90, lay: 68, ft: 30, fg: 53, tp: 27, oiq: 51, diq: 50, blk: 43, stl: 41, drb: 51, pss: 43, reb: 75, box: 71 },
+    pot: 67, intg: { feel: 60, poise: 60 },
+    pers: { mot: 'Winning', alpha: true, touches: true, pro: true, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 80, loyalty: 60, ambition: 85 },
+    // Playing style from his Oklahoma season: dunks and finishes at the rim, post-ups, a huge free-throw rate, almost no threes.
+    ten: { usage: 62, ftr: 80, ra: 62, paint: 22, mid: 12, c3: 1, atb: 3, cns: 30, pullup: 30, step: 5, fade: 35 },
+  } },
 ];
