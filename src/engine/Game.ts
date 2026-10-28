@@ -1477,7 +1477,8 @@ export class Game {
   // were reaching about 89% of their planned growth by their late 20s against a design of 77%, and the
   // league filled up with stars), and the most everything that speeds him up (work ethic, the hidden
   // factor, a breakout year, his environment) can stack to: outliers exist, but not 4–8× a normal pace.
-  static REALIZE = 0.96; static GROW_CAP = 1.8; // 2026-10-16: breakout years narrowed (form roll −0.5…2.2, at most 1.8× the plan; was −1…3 and 2.5×), REALIZE up 2% to keep careers the same on average
+  // 2026-10-28: 0.96 → 0.86 with the later growth curve (potential.ts W_AGE): growth at 23–26 lands more fully than at 19–20, so the same plan would make about 25% more 60+ players
+  static REALIZE = 0.86; static GROW_CAP = 1.8; // 2026-10-16: breakout years narrowed (form roll −0.5…2.2, at most 1.8× the plan; was −1…3 and 2.5×), REALIZE up 2% to keep careers the same on average
   // The chance, each summer, that any rating in the league sitting at 98 breaks through to 99 (age 31 or
   // younger): about once in 150 seasons, however many 98s there are.
   static BREAK = 1 / 150;
@@ -1549,7 +1550,7 @@ export class Game {
         let potD = 0; if (a <= 24 && (p.tpot ?? p.pot) - p.ovr >= 5) { const r = Math.random(); if (r < .04) { x += 2 + Math.random() * 2; potD += 3; } else if (r < .07) { x -= 1 + Math.random(); potD -= 4; } }
         // The year's change goes into his ratings his own way (development.ts): his body on its own
         // track, the rest into his skills by his development profile and focus, with a little noise.
-        const from = p.ovr, dl = develop(p, x, 0.5, { year: this.Y, focus, keys: Game.FOCUS[focus], role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1), rnd: Math.random });
+        const from = p.ovr, dl = develop(p, x, 0.5, { year: this.Y, focus, keys: Game.FOCUS[focus], role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1) * coachAging(cm), rnd: Math.random });
         SKILLS.forEach(k => { const v0 = p.r[k] + (p.rx?.[k] || 0), room = Math.min(skillTop(p, k), Math.max(p.ceil?.[k] ?? 100, v0)) - v0; dl[k] = Math.min((dl[k] || 0) + (Math.random() - .5) * 3, Math.max(dl[k] || 0, room)); }); // a little noise, never past a ceiling (his own, unless the growth itself went there)
         applyChange(p, dl); syncOvr(p);
         // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
@@ -2062,9 +2063,10 @@ export class Game {
   // to his full ceiling, at his own hidden pace. Nothing makes up a lost year, and a typical player gets
   // about four fifths of the way; work ethic, the hidden factor, minutes, coaching and luck decide the rest.
   devRate(p, age = p.age) {
-    if (age >= 29) return Game.ageDecline(age) + (p.dv0?.n ? planRate(p, age) * paceOf(p) : 0); // a God Mode plan (potential.ts) grows on top of aging
+    if (age >= 29) return p.dv0?.n ? planRate(p, age) * paceOf(p) : 0; // 2026-10-28: aging is skill by skill now (development.ts skillAging, inside develop); a God Mode plan (potential.ts) still grows
     return planRate(p, age) * paceOf(p) * Game.REALIZE;
   }
+  // (Trade values still project a veteran's decline with this curve, tradeLogic.ts.)
   // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
   // 35, −5 at 38, −7 at 40, −11 at 44 for a typical player; work ethic and the hidden factor
   // move it). Athleticism goes first; shooting and feel for the game hold on longer.
@@ -2126,7 +2128,7 @@ export class Game {
       // skills by his development profile and training focus.
       const tReps = mine && monthly > 0 ? tacticReps(this.effTactics(s, +k)) : null, repF = p.dev ? 0 : (p.min || 0) >= 12 ? 1 : .4, role = roleReps(this.seasonTotals(p, this.Y));
       const mo = monthly > 0 ? Math.min(monthly, Math.max(0, trueT(p) - ovrExact(p))) : monthly; // never past his true potential
-      Object.assign(dl, develop(p, mo * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1), rnd: Math.random })); applyChange(p, dl); capToT(p);
+      Object.assign(dl, develop(p, mo * (1 - ovrShare(p.grp, 'hgt')), 1 / 12, { year: this.Y, focus, keys, reps: tReps, repF, role, work: wk, slow: this.devMult(p, -1) * coachAging(cm), rnd: Math.random })); applyChange(p, dl); capToT(p);
       // A hidden gem's extra ceiling surfaces (intangibles.ts), and his potential is re-read (potential.ts).
       const gemUp = gemTick(p), pot0 = p.pot;
       if (gemUp > 0) moveTruePot(p, gemUp);

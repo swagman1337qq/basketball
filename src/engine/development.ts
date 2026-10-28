@@ -5,7 +5,7 @@
 // module decides where that change lands, so players grow in their own way instead of every rating
 // rising together:
 //  • His body follows its own track. Speed, burst and leaping barely grow after 20–21 and start to go
-//    at his own athletic peak (26–29); strength and stamina fill out into the mid-20s. Each has a
+//    at his own athletic peak (28–30); strength and stamina fill out into the mid-20s. Each has a
 //    yearly cap and a lifetime cap set by his frame, and none of it comes from skill work: a player
 //    who learns to shoot doesn't get faster.
 //  • His skills grow by his development profile, fixed for each player: where his growth tends to go
@@ -15,7 +15,7 @@
 // The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { FEEL_W, OVR_W, RMAX, skillTop } from './ratings';
+import { FEEL_W, OVR_W, ovrExact, RMAX, skillTop } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
 
@@ -50,7 +50,7 @@ const PROFILES = new Map<string, DevProfile>();
 // His development profile: hidden, fixed for life (from his id and position group).
 //  • About 30% are specialists (one area takes most of the growth, another barely moves), 20% grow
 //    two areas, 15% are well-rounded (a little everywhere) and the rest grow their own uneven way.
-//  • His athletic peak (26–29.5), when speed, burst and leaping start to decline.
+//  • His athletic peak (28–30; 26–29.5 before 2026-10-28), when speed, burst and leaping start to decline, and dunks and blocks with them.
 //  • His frame: how much quickness (usually a little), strength and stamina he can still add from 18.
 export function devProfile(p: any): DevProfile {
   const key = p.id + ':' + p.grp; let d = PROFILES.get(key); if (d) return d;
@@ -65,7 +65,7 @@ export function devProfile(p: any): DevProfile {
   const m = gs.reduce((a, g) => a + aff[g], 0) / gs.length; gs.forEach(g => (aff[g] = +(aff[g] / m).toFixed(3)));
   const ath = 0.5 + Math.pow(r(), 1.6) * 6.5;
   const cap = { spd: ath * (0.6 + r() * 0.8), acc: ath * (0.6 + r() * 0.8), jmp: ath * (0.6 + r() * 0.8), stre: 4 + r() * 12, endu: 3 + r() * 9 };
-  d = { aff, path, lead, low: gs.slice().sort((a, b) => aff[a] - aff[b])[0], athPeak: +(26 + r() * 3.5).toFixed(1), cap };
+  d = { aff, path, lead, low: gs.slice().sort((a, b) => aff[a] - aff[b])[0], athPeak: +(28 + r() * 2).toFixed(1), cap };
   PROFILES.set(key, d); return d;
 }
 
@@ -200,6 +200,27 @@ export function applyChange(p: any, dl: Record<string, number>) {
 }
 // One stretch of development: the body on its own track, then the rest of the overall change (target)
 // spread across his skills. Body growth never pulls his skills down; body decline is part of the target.
+// Aging, skill by skill (2026-10-28), per year (frac: part of one). Like the body, each kind of skill has its own clock:
+//  • dunks and blocks ride on his legs: they start to fall at his athletic peak (28–30);
+//  • finishing inside, rebounding and steals half a year after it;
+//  • the shot (threes, mid-range, free throws), passing, the handle and boxing out hold until 31–33 (his own age, `hold`),
+//    then fall gently;
+//  • feel for the game (offensive and defensive IQ) keeps inching up (a fraction of a point a year) from 28 until then, never past his
+//    true potential, and goes last.
+// So an old shooter stays useful and an old athlete falls off. `slow`: work ethic, professionalism and coaching.
+export const holdAge = (p: any) => +(31 + 2 * mulberry32(((p.id * 3266489917) ^ 0x401d) >>> 0)()).toFixed(1);
+export const AGE_P = { k: 4.1, iq: 1.0 }; // the pace of aging and of feel-for-the-game growth (tuned so the league ages about as fast as before, 2026-10-28)
+const fall = (t: number, a0: number, a1: number, a2: number) => (t >= 0 ? -(a0 + a1 * t + a2 * t * t) * AGE_P.k : 0);
+export function skillAging(p: any, frac: number, slow = 1): Record<string, number> {
+  const out: Record<string, number> = {}; if (p.godPot != null && p.dv0?.n) return out; // God Mode's plan for a veteran: no aging while it runs
+  const a = p.age, pk = devProfile(p).athPeak, hold = holdAge(p), sl = slow * frac;
+  const t1 = a - pk, t2 = a - pk - 0.5, t3 = a - hold, t4 = a - hold - 1;
+  ['dnk', 'blk'].forEach(k => (out[k] = fall(t1, 0.5, 0.35, 0.01) * sl));
+  ['ins', 'lay', 'stl', 'reb'].forEach(k => (out[k] = fall(t2, 0.35, 0.4, 0.02) * sl));
+  ['tp', 'fg', 'ft', 'pss', 'drb', 'box'].forEach(k => (out[k] = fall(t3, 0.3, 0.35, 0.015) * sl));
+  ['oiq', 'diq'].forEach(k => (out[k] = a >= 28 && a <= hold ? AGE_P.iq * (0.6 + (p.pers?.work ?? 50) / 125) * frac : fall(t4, 0.2, 0.3, 0.015) * sl));
+  return out;
+}
 export function develop(p: any, target: number, frac: number, o: BodyOpts & WeightOpts): Record<string, number> {
   const body = bodyChange(p, frac, o);
   BODY.forEach(k => { const v = p.r[k] + ((p.rx || {})[k] || 0); if (body[k] > 0) body[k] = Math.min(body[k], Math.max(0, skillTop(p, k) - v)); }); // the body tops out at 98 too
@@ -207,6 +228,11 @@ export function develop(p: any, target: number, frac: number, o: BodyOpts & Weig
   if (target >= 0 && bo > target && bo > 0) { const f = target / bo; BODY.forEach(k => (body[k] = (body[k] || 0) * f)); bo = target; } // at his true potential the body stops growing too
   const rest = target >= 0 ? Math.max(0, target - bo) : target - bo;
   const sk = skillChange(p, rest, skillWeights(p, o));
+  // Aging on top (skillAging); feel for the game only grows while there's room under his true potential.
+  const ag = skillAging(p, frac, o.slow);
+  const iqUp = (ag.oiq || 0) > 0 ? ovrDelta(p, { oiq: ag.oiq, diq: ag.diq }) : 0;
+  if (iqUp > 0) { const room = Math.max(0, (p.tpot ?? 99) - ovrExact(p) - ovrDelta(p, { ...body, ...sk })), f = Math.min(1, room / iqUp); ag.oiq *= f; ag.diq *= f; }
+  Object.keys(ag).forEach(k => (sk[k] = (sk[k] || 0) + ag[k]));
   return { ...body, ...sk };
 }
 
@@ -226,6 +252,6 @@ export function devOutlook(p: any, exact: boolean): [string, string][] {
   const quick = ['spd', 'acc', 'jmp'].some(k => left(k) > 0.5 && YOUTH[k](a) > 0), strong = left('stre') > 1 && YOUTH.stre(a) > 0;
   out.push(['Body', a >= d.athPeak ? 'Past his athletic peak: speed and leaping are going' : quick ? 'Still getting a little quicker; ' + (strong ? 'filling out' : 'close to his full strength') : strong ? 'Quickness is set; still filling out' : a >= d.athPeak - 1.5 ? 'At his athletic peak' : 'Physically mature']);
   out.push(['Work ethic', workLabel(p.pers?.work ?? 50)]);
-  if (exact) out.push(['Hidden profile', Object.keys(d.aff).map(g => L(g) + ' ' + d.aff[g].toFixed(2)).join(' · ') + ' · athletic peak ' + d.athPeak + ' · frame left: ' + BODY.map(k => k + ' +' + Math.max(0, left(k)).toFixed(1)).join(', ') + ' · work ' + (p.pers?.work ?? 50)]);
+  if (exact) out.push(['Hidden profile', Object.keys(d.aff).map(g => L(g) + ' ' + d.aff[g].toFixed(2)).join(' · ') + ' · athletic peak ' + d.athPeak + ' (dunks and blocks fall from then) · shot and passing hold to ' + holdAge(p) + ' · frame left: ' + BODY.map(k => k + ' +' + Math.max(0, left(k)).toFixed(1)).join(', ') + ' · work ' + (p.pers?.work ?? 50)]);
   return out;
 }

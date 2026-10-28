@@ -21,7 +21,9 @@ import { mulberry32 } from './rng';
 import { rollGem } from './intangibles';
 
 // His plan: the share of his growth planned at each age (from 18; renormalized from his first season).
-const W_AGE: Record<number, number> = { 18: 0.14, 19: 0.15, 20: 0.15, 21: 0.14, 22: 0.13, 23: 0.11, 24: 0.09, 25: 0.07, 26: 0.05, 27: 0.03, 28: 0.01 };
+// 2026-10-28: a little later than before (was 14–15% a year from 18 to 21, then 13, 11, 9, 7, 5, 3, 1): most players improve
+// until about 24 and peak around 26–28.
+const W_AGE: Record<number, number> = { 18: 0.12, 19: 0.12, 20: 0.12, 21: 0.12, 22: 0.12, 23: 0.11, 24: 0.10, 25: 0.08, 26: 0.06, 27: 0.03, 28: 0.02 };
 const wAge = (a: number) => (a < 18 ? 0 : W_AGE[a] ?? 0);
 const wRem = (a: number) => { let s = 0; for (let x = Math.max(18, a); x <= 28; x++) s += wAge(x); return s; };
 // A plan's weights: by age to 28, or for God Mode's plan for a veteran (d.n), even over n seasons from its start.
