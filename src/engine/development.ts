@@ -149,6 +149,9 @@ const YOUTH: Record<string, (a: number) => number> = {
 const YEAR_CAP: Record<string, number> = { spd: 2.5, acc: 2.5, jmp: 2.5, stre: 4, endu: 4 };
 // How much a physical rating can still grow (his frame, at his age).
 export function bodyLeft(p: any, k: string) { const d = devProfile(p), ph = p.ph || { a0: p.age, g: {} }; return Math.max(0, Math.min(d.cap[k] * YOUTH[k](ph.a0) - (ph.g[k] || 0), d.cap[k] * YOUTH[k](p.age))); }
+// How much of an athlete he is (speed, burst and leap; 1 at 55): what rides on his legs fades in proportion when they go,
+// so an explosive player loses more than a shooter who never played above the rim. (k: unused, kept for the call sites.)
+const athF = (p: any, _k?: string) => { const r = p.r || {}, a = ((r.spd ?? 55) + (r.acc ?? 55) + (r.jmp ?? 55)) / 3; return cl(Math.pow(a / 55, 1.5), 0.4, 2); };
 export interface BodyOpts { focus?: string; work: number; slow: number; rnd: () => number; dry?: boolean; pk?: number } // pk: an athletic peak to use instead of his own (a projection that can't see it)
 // His physical ratings over part of a year (frac: 1/12 for a month in season, 0.5 for the summer).
 // Growth comes from his frame and age only (Athleticism or Conditioning focus speeds it up, never past
@@ -166,7 +169,8 @@ export function bodyChange(p: any, frac: number, o: BodyOpts): Record<string, nu
       if (!o.dry) ph.g[k] = +((ph.g[k] || 0) + x).toFixed(3);
     }
     const t = k === 'stre' ? a - 31 : k === 'endu' ? a - 29 : a - (o.pk ?? d.athPeak);
-    if (t >= 0) x -= (k === 'stre' ? 0.3 + 0.35 * t : k === 'endu' ? 0.4 + 0.45 * t : 0.4 + 0.5 * t + 0.04 * t * t) * o.slow * frac;
+    // (2026-10-28: speed, burst and leap fall in proportion to how much he has: an explosive athlete loses more than a shooter who never had much)
+    if (t >= 0) x -= (k === 'stre' ? 0.3 + 0.35 * t : k === 'endu' ? 0.5 + 0.6 * t : (1 + 0.9 * t) * athF(p, k)) * o.slow * frac;
     out[k] = x;
   });
   return out;
@@ -209,16 +213,16 @@ export function applyChange(p: any, dl: Record<string, number>) {
 //    true potential, and goes last.
 // So an old shooter stays useful and an old athlete falls off. `slow`: work ethic, professionalism and coaching.
 export const holdAge = (p: any) => +(31 + 2 * mulberry32(((p.id * 3266489917) ^ 0x401d) >>> 0)()).toFixed(1);
-export const AGE_P = { k: 4.1, iq: 1.0 }; // the pace of aging and of feel-for-the-game growth (tuned so the league ages about as fast as before, 2026-10-28)
+export const AGE_P = { k: 2, iq: 1.0, kIq: 5 }; // the pace of aging and of feel-for-the-game growth (tuned so the league ages about as fast as before, 2026-10-28)
 const fall = (t: number, a0: number, a1: number, a2: number) => (t >= 0 ? -(a0 + a1 * t + a2 * t * t) * AGE_P.k : 0);
 export function skillAging(p: any, frac: number, slow = 1, seen?: { pk: number; hold: number }): Record<string, number> {
   const out: Record<string, number> = {}; if (p.godPot != null && p.dv0?.n) return out; // God Mode's plan for a veteran: no aging while it runs
   const a = p.age, pk = seen?.pk ?? devProfile(p).athPeak, hold = seen?.hold ?? holdAge(p), sl = slow * frac; // seen: the ages a projection uses instead of his hidden ones
-  const t1 = a - pk, t2 = a - pk - 0.5, t3 = a - hold, t4 = a - hold - 1;
-  ['dnk', 'blk'].forEach(k => (out[k] = fall(t1, 0.5, 0.35, 0.01) * sl));
-  ['ins', 'lay', 'stl', 'reb'].forEach(k => (out[k] = fall(t2, 0.35, 0.4, 0.02) * sl));
-  ['tp', 'fg', 'ft', 'pss', 'drb', 'box'].forEach(k => (out[k] = fall(t3, 0.3, 0.35, 0.015) * sl));
-  ['oiq', 'diq'].forEach(k => (out[k] = a >= 28 && a <= hold ? AGE_P.iq * (0.6 + (p.pers?.work ?? 50) / 125) * frac : fall(t4, 0.2, 0.3, 0.015) * sl));
+  const t1 = a - pk, t2 = a - pk - 0.5, t3 = a - hold, t4 = a - hold;
+  ['dnk', 'blk'].forEach(k => (out[k] = fall(t1, 0.6, 0.6, 0) / AGE_P.k * athF(p) * sl)); // the more of an athlete he is, the more he has to lose
+  ['ins', 'lay', 'stl', 'reb'].forEach(k => (out[k] = fall(t2, 0.3, 0.4, 0) / AGE_P.k * Math.sqrt(athF(p)) * sl)); // what rides on his legs
+  ['tp', 'fg', 'ft', 'pss', 'drb', 'box'].forEach(k => (out[k] = fall(t3, 0.2, 0.25, 0) * sl)); // gently
+  ['oiq', 'diq'].forEach(k => (out[k] = a >= 28 && a < hold ? AGE_P.iq * (0.6 + (p.pers?.work ?? 50) / 125) * frac : fall(t4, 0.4, 0.5, 0.03) / AGE_P.k * AGE_P.kIq * (k === 'diq' ? athF(p) : 1) * sl)); // defense rides on his legs too
   return out;
 }
 export function develop(p: any, target: number, frac: number, o: BodyOpts & WeightOpts): Record<string, number> {
