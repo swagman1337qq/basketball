@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BWnVBljF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D1XGYT22.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-28
 
 ### Changed
+- **The AI judges veterans by how they'll actually age.** Trade values, the outlook that prices future draft picks, veterans' asking prices, which players AI teams keep and whom they re-sign now look ahead with the same aging the game really uses (instead of a separate age curve), as the league can see it: his skills and age, not his hidden athletic peak. AI teams no longer refuse to re-sign anyone 33 or older: they keep a veteran if he'll still be good enough in two years.
 - **Players age skill by skill.** Dunks and blocks now start to fall at a player's athletic peak (each player has his own, now between 28 and 30), with finishing, rebounding and steals soon after. His shooting, passing, handle and boxing out hold until 31 to 33 and then fade gently, and his basketball IQ keeps inching up, about a point a year, into his early 30s (never past his true potential). Old shooters stay useful and old athletes fall off, as in real basketball. Before, every skill started slipping together at 29.
 - **Players grow a little later.** Growth is spread more evenly through the early 20s and lasts a bit longer (most players improve until about 24 and peak around 26–28; the peak used to be about 26). Tested over 10 seasons in two leagues: about as many stars as before (about 12 players at 65+ and 45 at 60+ each season) and the same league average.
 
@@ -23,6 +24,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New players head abroad every year.** Each summer five of the undrafted (players raised outside the US first) sign with clubs overseas instead of entering free agency, and the oldest players abroad retire, so there's always a pool to scout. A few grow into players worth bringing over in their mid-20s.
 
 ### Fixed
+- **Skill ceilings always reach a player's true potential.** Some players' skill ceilings added up to less than their true potential (a third of active players in one test league), most often after a disappointing first training camp, so they could never grow into it the normal way. Now, whenever ceilings or potential change (camp, cards, God Mode edits, a hidden gem, a position change, loading an older league), the missing points go into his ceilings the way he grows: a shooter's mostly into his shot, nothing past the top of the scale. A bad camp is a setback he can grow back from.
 - **Growth fills skills that still have room first.** When a skill is near its own ceiling, its share of a year's growth now goes to skills still under theirs. A skill only goes past its ceiling once every skill is close to its own (before, growth could pile up past one ceiling while other skills sat far below theirs).
 - **No more ceilings far below a skill.** Some players had a skill ceiling 10–38 points under the rating they already had (left over from earlier versions). Every ceiling is now at least the current rating minus 2, for new players, cards and God Mode changes, and once for your league when you load it.
 ## 2026-10-27
