@@ -2,6 +2,14 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-28
+
+### Changed
+- **Players abroad ask realistic prices.** What a player abroad wants to come over is now worked out again every summer from his rating and age: about half of what an NBA free agent like him would ask, never more than the mid-level exception, and at about 50 overall or below just the minimum (a two-way works too). Before, prices were set once when the league began and never changed, so a 34-year-old could still be asking $14.8M. His club's buyout is still separate.
+- **Years abroad don't count as NBA service.** A player who's only played overseas has 0 years in the league: he gets the rookie minimum and can sign a two-way, like real players coming over.
+- **Many players abroad went undrafted.** About 6 in 10 players abroad who never played in the NBA are now undrafted instead of former picks (in new leagues, and in your league the first time you load it).
+- **New players head abroad every year.** Each summer five of the undrafted (players raised outside the US first) sign with clubs overseas instead of entering free agency, and the oldest players abroad retire, so there's always a pool to scout. A few grow into players worth bringing over in their mid-20s.
+
 ## 2026-10-27
 
 ### Added

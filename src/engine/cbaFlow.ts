@@ -45,6 +45,25 @@ export function askOf(g: Game, p: any) {
   const b = g.priceOvr(p.ovr), af = raw >= snapAt(b) * mx && age <= 33 ? 1 : ageAskF(age, b);
   return +Math.max(minS, Math.min(mx, snapMax(raw * af * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1), mx, b))).toFixed(2);
 }
+// Players abroad (2026-10-28). What one asks to come over: about 45% of what an NBA free agent of his rating and
+// age asks (he's unproven here, and clubs over there pay less), at most the non-taxpayer mid-level; at about 50
+// overall or below he takes the minimum (or a two-way, with under 4 years of NBA service). Refreshed every summer.
+// His club's buyout is separate (overseas.ts).
+export function overseasAsk(g: Game, p: any) {
+  const N = nums(g), minS = N.min(yosOf(g, p));
+  return p.ovr <= 50 ? minS : +Math.max(minS, Math.min(N.NTMLE, askOf(g, p) * 0.45)).toFixed(2);
+}
+// The pool abroad, once per league (a new one, or an older save): NBA service counts NBA seasons only (one who never
+// played here has none), and about 60% of those who never played here went undrafted. Then everyone's price.
+export function settleAbroad(g: Game, ids: number[], first: boolean) {
+  ids.forEach(id => { const p = g.db.P[id]; if (!p?.r || p.retired) return;
+    if (first && !(p.stats || []).length && !p.draftTid) {
+      p.yos0 = 0;
+      const u = ((Math.imul(p.id, 2654435761) ^ 0x0b5ea5) >>> 0) / 4294967296;
+      if (p.dr && u < 0.6) { p.dr = null; p.undrafted = p.draft; }
+    }
+    p.ask = overseasAsk(g, p); });
+}
 // 2026-10-22: a contender keeps its best players. Re-signing one of its top three (Bird rights), a contending
 // team goes past its owner's usual ceiling, up to the second apron (how most NBA teams end up in the tax).
 // Any team keeps its franchise player: one of its two best, priced like a top-30 player (STAR_B), up to the
