@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bj_D9sFS.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-mJNQV-ox.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -18,6 +18,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Many players abroad went undrafted.** About 6 in 10 players abroad who never played in the NBA are now undrafted instead of former picks (in new leagues, and in your league the first time you load it).
 - **New players head abroad every year.** Each summer five of the undrafted (players raised outside the US first) sign with clubs overseas instead of entering free agency, and the oldest players abroad retire, so there's always a pool to scout. A few grow into players worth bringing over in their mid-20s.
 
+### Fixed
+- **Growth fills skills that still have room first.** When a skill is near its own ceiling, its share of a year's growth now goes to skills still under theirs. A skill only goes past its ceiling once every skill is close to its own (before, growth could pile up past one ceiling while other skills sat far below theirs).
+- **No more ceilings far below a skill.** Some players had a skill ceiling 10–38 points under the rating they already had (left over from earlier versions). Every ceiling is now at least the current rating minus 2, for new players, cards and God Mode changes, and once for your league when you load it.
 ## 2026-10-27
 
 ### Added
