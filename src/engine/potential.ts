@@ -150,7 +150,17 @@ export function liftCeil(p: any) { if (!p.ceil) return; SKILLS.forEach(k => { if
 // The league's read: what he could still reach plus the scouts' miss, which goes either way (they
 // sell some players short and oversell others, a bust they rate above anything he can reach), never
 // below his overall.
-export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); if (p.tpot == null) p.tpot = trueT(p); if (p.ovr > p.tpot) p.tpot = p.ovr; p.pot = Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0)))); }
+// His skill ceilings must add up to at least his true potential (2026-10-28): after anything that moves either (camp,
+// cards, God Mode edits, a hidden gem, an older save, a position change), the missing points go into his ceilings the
+// way he grows (his development profile: a shooter's mostly into his shot), never past the top of the scale, never
+// lowering one. A bad camp is a setback, not a lower ceiling: he can still grow back to his true potential.
+export function fitCeilToT(p: any) {
+  if (!p?.ceil || !p.r || p.godPot != null) return;
+  const T = trueT(p); if (skillCeil(p) >= T - 0.25) return;
+  const old = { ...p.ceil }; fit(p, old, T + 0.25);
+  SKILLS.forEach(k => { if (!(p.ceil[k] >= old[k])) p.ceil[k] = old[k]; });
+}
+export function refreshPot(p: any) { if (!p?.r) return; if (!p.ceil) initCeil(p, p.pot ?? p.ovr); if (p.tpot == null) p.tpot = trueT(p); if (p.ovr > p.tpot) p.tpot = p.ovr; floorCeil(p); fitCeilToT(p); p.pot = Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0)))); }
 // The scouts' miss on a new player (points of potential, either way; fixed from his id).
 export function rollPerr(p: any, sd: number) { const r = mulberry32(((p.id * 40503) ^ 0x9e11) >>> 0); p.perr = +((r() + r() + r() - 1.5) * 2 * sd).toFixed(2); }
 // Every summer the league learns more: the miss shrinks (gone by 27).

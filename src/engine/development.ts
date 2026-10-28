@@ -149,7 +149,7 @@ const YOUTH: Record<string, (a: number) => number> = {
 const YEAR_CAP: Record<string, number> = { spd: 2.5, acc: 2.5, jmp: 2.5, stre: 4, endu: 4 };
 // How much a physical rating can still grow (his frame, at his age).
 export function bodyLeft(p: any, k: string) { const d = devProfile(p), ph = p.ph || { a0: p.age, g: {} }; return Math.max(0, Math.min(d.cap[k] * YOUTH[k](ph.a0) - (ph.g[k] || 0), d.cap[k] * YOUTH[k](p.age))); }
-export interface BodyOpts { focus?: string; work: number; slow: number; rnd: () => number; dry?: boolean }
+export interface BodyOpts { focus?: string; work: number; slow: number; rnd: () => number; dry?: boolean; pk?: number } // pk: an athletic peak to use instead of his own (a projection that can't see it)
 // His physical ratings over part of a year (frac: 1/12 for a month in season, 0.5 for the summer).
 // Growth comes from his frame and age only (Athleticism or Conditioning focus speeds it up, never past
 // his frame); decline starts at his athletic peak for speed, burst and leap, at 29 for stamina and 31
@@ -165,7 +165,7 @@ export function bodyChange(p: any, frac: number, o: BodyOpts): Record<string, nu
       x = Math.min(left, Math.min(YEAR_CAP[k], d.cap[k] * Math.max(0, Y(a) - Y(a + 1)) * f * (0.85 + o.work / 333) * (0.5 + o.rnd())) * frac);
       if (!o.dry) ph.g[k] = +((ph.g[k] || 0) + x).toFixed(3);
     }
-    const t = k === 'stre' ? a - 31 : k === 'endu' ? a - 29 : a - d.athPeak;
+    const t = k === 'stre' ? a - 31 : k === 'endu' ? a - 29 : a - (o.pk ?? d.athPeak);
     if (t >= 0) x -= (k === 'stre' ? 0.3 + 0.35 * t : k === 'endu' ? 0.4 + 0.45 * t : 0.4 + 0.5 * t + 0.04 * t * t) * o.slow * frac;
     out[k] = x;
   });
@@ -211,9 +211,9 @@ export function applyChange(p: any, dl: Record<string, number>) {
 export const holdAge = (p: any) => +(31 + 2 * mulberry32(((p.id * 3266489917) ^ 0x401d) >>> 0)()).toFixed(1);
 export const AGE_P = { k: 4.1, iq: 1.0 }; // the pace of aging and of feel-for-the-game growth (tuned so the league ages about as fast as before, 2026-10-28)
 const fall = (t: number, a0: number, a1: number, a2: number) => (t >= 0 ? -(a0 + a1 * t + a2 * t * t) * AGE_P.k : 0);
-export function skillAging(p: any, frac: number, slow = 1): Record<string, number> {
+export function skillAging(p: any, frac: number, slow = 1, seen?: { pk: number; hold: number }): Record<string, number> {
   const out: Record<string, number> = {}; if (p.godPot != null && p.dv0?.n) return out; // God Mode's plan for a veteran: no aging while it runs
-  const a = p.age, pk = devProfile(p).athPeak, hold = holdAge(p), sl = slow * frac;
+  const a = p.age, pk = seen?.pk ?? devProfile(p).athPeak, hold = seen?.hold ?? holdAge(p), sl = slow * frac; // seen: the ages a projection uses instead of his hidden ones
   const t1 = a - pk, t2 = a - pk - 0.5, t3 = a - hold, t4 = a - hold - 1;
   ['dnk', 'blk'].forEach(k => (out[k] = fall(t1, 0.5, 0.35, 0.01) * sl));
   ['ins', 'lay', 'stl', 'reb'].forEach(k => (out[k] = fall(t2, 0.35, 0.4, 0.02) * sl));

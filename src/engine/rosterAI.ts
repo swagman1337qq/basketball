@@ -13,6 +13,7 @@
 //    potential isn't touched: if he doesn't develop, his ratings and play make the case over time.
 import type { Game } from './Game';
 import { remainingGuaranteed, stdIds } from './cba';
+import { agingLoss, typicalLoss } from './agingOutlook';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const MIN_GRP: Record<string, number> = { G: 4, W: 4, B: 3 }; // a roster needs this many at each position group
@@ -42,6 +43,7 @@ export function rosterValue(g: Game, s: any, tid: number, p: any, ids: number[],
   const ref = p.rh?.[Y]?.o?.ovrI ?? p.rh?.[Y - 1]?.o?.ovrI; if (ref != null && age <= 26) v += cl(p.ovr - ref, -4, 6) * 0.5;
   // Age against the timeline.
   if (age >= 33) v -= (age - 32) * 1.5 * (tl === 'rebuild' ? 1.5 : 1); else if (tl === 'rebuild' && age >= 29) v -= (age - 28) * 0.8;
+  if (age >= 29) v += (typicalLoss(g, age) - agingLoss(g, p)) * 0.6; // how he'll age against a typical player his age (agingOutlook.ts)
   // His contract: guaranteed money is paid anyway; camp deals are cheap to cut.
   const guar = Object.values(remainingGuaranteed(g, s, p)).reduce((a: number, x: any) => a + x, 0);
   v += Math.min(7, Math.sqrt(guar) * 1.2) - (p.ctype === 'ex10' ? 4 : 0);

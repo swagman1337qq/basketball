@@ -11,6 +11,7 @@ import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
 import { fmtMoney as money } from './capModel';
 import { addNotice } from './preFA';
+import { agingEdge, agingLoss } from './agingOutlook';
 
 type Box = { rosters: any; fa: number[]; overseas: number[]; cap: any };
 const boxOf = (s: any): Box => ({ rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } });
@@ -42,7 +43,7 @@ export const snapAt = (b?: number) => (b != null && b >= STAR_B ? STAR_SNAP : MA
 export const snapMax = (amt: number, mx: number, b?: number) => (amt >= snapAt(b) * mx ? mx : amt);
 export function askOf(g: Game, p: any) {
   const N = nums(g), yos = yosOf(g, p), minS = N.min(yos), mx = N.max(yos), raw = g.fair(p.ovr), age = p.age ?? 27;
-  const b = g.priceOvr(p.ovr), af = raw >= snapAt(b) * mx && age <= 33 ? 1 : ageAskF(age, b);
+  const b = g.priceOvr(p.ovr), af = raw >= snapAt(b) * mx && age <= 33 ? 1 : ageAskF(age, b) * (age >= 30 ? agingEdge(g, p, 0.04, 0.85, 1.15) : 1); // a veteran who'll hold up asks more (agingOutlook.ts)
   return +Math.max(minS, Math.min(mx, snapMax(raw * af * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1), mx, b))).toFixed(2);
 }
 // Players abroad (2026-10-28). What one asks to come over: about 45% of what an NBA free agent of his rating and
@@ -515,7 +516,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       if (!rook && !vetOk) return;
       // Worth keeping? Young players on what they'll become, veterans on what they are.
       const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, g.potRead(p, t, s) - p.ovr) * 0.5) : p.ovr; // his team's own read of his potential
-      if (proj < (rook ? 56 : 58) || p.age >= 33) return;
+      if (proj < (rook ? 56 : 58) || p.age >= 36 || (p.age >= 33 && p.ovr - agingLoss(g, p, 2) < (rook ? 56 : 58))) return; // a veteran only if he'll still be worth it in two years (agingOutlook.ts)
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));

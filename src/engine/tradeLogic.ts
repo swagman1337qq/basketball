@@ -19,6 +19,8 @@ import { checkTrade, nums, seasonMax, teamSalary } from './cba';
 import { expectedByRank } from './lottery';
 import { protFactor } from './pickRules';
 import { teamRating } from './ratings';
+import { agingPath } from './agingOutlook';
+import { ovrExact } from './ratings';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export const PICK_YEARS = 4; // default: picks tradable up to four drafts after this one (God Mode setting)
@@ -30,7 +32,9 @@ const OUT = new WeakMap<object, Map<number, number[]>>(); // state → years ahe
 export function projStrength(g: Game, s: any, tid: number, n: number) {
   const P = g.db.P, Y = g.Y, ids: number[] = s.rosters[tid] || [], REPL = 44;
   const vals = ids.map(id => { const p = P[id]; if (!p) return REPL; let o = p.ovr;
-    for (let i = 0; i < n; i++) { const a = p.age + i; o += a <= 26 ? Math.min(Math.max(0, (p.pot ?? o) - o), a <= 22 ? 3 : a <= 24 ? 2 : 1) : a >= 29 ? (g.constructor as any).ageDecline(a + 1) : 0; }
+    // Growth for the young; aging from the same code that ages him (agingOutlook.ts: a shooter holds up, an athlete fades).
+    const path = n > 0 && p.age + n >= 27 ? agingPath(p, n) : null, o0 = ovrExact(p);
+    for (let i = 0; i < n; i++) { const a = p.age + i; o += a <= 26 ? Math.min(Math.max(0, (p.pot ?? o) - o), a <= 22 ? 3 : a <= 24 ? 2 : 1) : path ? path[i] - (i ? path[i - 1] : o0) : 0; }
     const stays = n === 0 || p.exp >= Y + n ? 1 : (o >= 62 ? 0.75 : o >= 54 ? 0.55 : 0.35) * (p.age + n >= 34 ? 0.5 : 1);
     return stays * o + (1 - stays) * REPL; });
   const fake: Record<number, any> = {}; vals.forEach((o, i) => (fake[i] = { ovr: o }));

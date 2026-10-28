@@ -36,7 +36,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, floorCeil, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
+import { capToT, ceilMax, fitCeilToT, floorCeil, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -61,6 +61,7 @@ import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
 import { losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
+import { agingEdge } from './agingOutlook';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
 export const CAPS0 = { CAP: 165.0, MINP: 148.5, TAX: 201.0, AP1: 209.0, AP2: 221.7, VMIN: 3.87, MLE: 15.0, MAXC: 57.7 };
@@ -244,6 +245,7 @@ export class Game {
     // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
     // 2026-10-26: every club gets a local TV deal and a lead sponsor, part-way through (mediaDeals.ts).
     // 2026-10-26: Los Angeles's local TV is the Lakers' $200M deal (it had averaged the Lakers and the Clippers, $115M).
+    if (!g.db.ceilFitV) { Object.values(g.db.P).forEach((p: any) => { if (p?.ceil && p.r && !p.retired && !p.gone) { floorCeil(p); fitCeilToT(p); } }); g.db.ceilFitV = 1; } // 2026-10-28: ceilings add up to at least true potential (potential.ts fitCeilToT)
     if (!g.db.ceilFloorV) { Object.values(g.db.P).forEach((p: any) => { if (p?.ceil && !p.retired && !p.gone) floorCeil(p); }); g.db.ceilFloorV = 1; } // 2026-10-28: no ceiling far below the skill (potential.ts floorCeil)
     if (!g.db.osV) { settleAbroad(g, g.state.overseas || [], true); g.db.osV = 1; } // 2026-10-28: players abroad (cbaFlow.ts settleAbroad)
     if (!g.db.laTvV) { (g.state.teams || []).forEach((t: any) => { if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +(t.tv.fee * 200 / 115).toFixed(1) }; }); g.db.laTvV = 1; }
@@ -1858,7 +1860,7 @@ export class Game {
     const gap = Math.max(0, pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
     const agePen = p.age >= 31 ? 0.65 : p.age >= 29 ? 0.85 : 1;
     const M = { rebuild: [p.age >= 29 ? 0.55 : 0.9, 1.7, 0.35], middle: [0.9, 1.4, 1.0], contend: [1.35, 0.5, 0.75] }[st];
-    let v = base * agePen * M[0] + youth * M[1];
+    let v = base * agePen * agingEdge(this, p) * M[0] + youth * M[1]; // agingEdge: a veteran who'll hold up (a shooter) is worth more than one who'll fade (agingOutlook.ts)
     if (st === 'middle' && p.age <= 24 && pot >= 60) v += 8;
     return v + contractValue(this, p, tid == null ? 0.35 * M[2] : contractK(this, this.state, tid, st)); // tradeLogic: a bad contract costs more near the tax, less with room
   }
@@ -2066,11 +2068,6 @@ export class Game {
     if (age >= 29) return p.dv0?.n ? planRate(p, age) * paceOf(p) : 0; // 2026-10-28: aging is skill by skill now (development.ts skillAging, inside develop); a God Mode plan (potential.ts) still grows
     return planRate(p, age) * paceOf(p) * Game.REALIZE;
   }
-  // (Trade values still project a veteran's decline with this curve, tradeLogic.ts.)
-  // Aging: the decline speeds up every year after 29 (about −0.5 a year at 30, −2 at 33, −3 at
-  // 35, −5 at 38, −7 at 40, −11 at 44 for a typical player; work ethic and the hidden factor
-  // move it). Athleticism goes first; shooting and feel for the game hold on longer.
-  static ageDecline(age) { const t = age - 29; return (-0.4 - 0.25 * t - 0.03 * t * t) / 0.83; }
   // Personality, traits and the hidden factor: speeds growth (rate > 0) or slows decline (rate < 0).
   devMult(p, rate) {
     const w = p.pers?.work ?? 50, k = this.devK(p);
