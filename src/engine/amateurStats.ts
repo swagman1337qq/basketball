@@ -11,14 +11,14 @@ import { ovrExact } from './ratings';
 import { blockSkill, offAbility, rebSkill, stealSkill, zoneSkill } from './sim';
 import { SKILLS } from './development';
 import { amateurAdvanced, type StatLine } from './advanced';
-import { COLLEGES, IVY_LEAGUE, MID_MAJORS, MORE_COLLEGES } from '../data/world';
+import { COLLEGES, IVY_LEAGUE, LOW_MAJORS, MID_MAJORS, MORE_COLLEGES } from '../data/world';
 import { tierOf } from '../data/leagues';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // How good his opponents are, on the ratings scale (an NBA rotation player is about 50).
 export function compLevel(from: any): { c: number; label: string; college: boolean } {
   const lg = from?.lg || '', team = from?.team || '';
-  if (lg === 'NCAA') return COLLEGES.includes(team) ? { c: 24, label: 'NCAA, power program', college: true } : MORE_COLLEGES.includes(team) ? { c: 22, label: 'NCAA, power conference', college: true } : IVY_LEAGUE.includes(team) ? { c: 16, label: 'NCAA, Ivy League', college: true } : MID_MAJORS.includes(team) ? { c: 18, label: 'NCAA, mid-major', college: true } : { c: 17, label: 'NCAA', college: true };
+  if (lg === 'NCAA') return COLLEGES.includes(team) ? { c: 24, label: 'NCAA, power program', college: true } : MORE_COLLEGES.includes(team) ? { c: 22, label: 'NCAA, power conference', college: true } : IVY_LEAGUE.includes(team) ? { c: 16, label: 'NCAA, Ivy League', college: true } : MID_MAJORS.includes(team) ? { c: 18, label: 'NCAA, mid-major', college: true } : LOW_MAJORS.includes(team) ? { c: 15, label: 'NCAA, small conference', college: true } : { c: 17, label: 'NCAA', college: true };
   if (lg === 'EuroLeague') return { c: 38, label: 'EuroLeague', college: false };
   if (lg === 'Overtime Elite') return { c: 15, label: 'Overtime Elite', college: false };
   const t = tierOf(lg);
