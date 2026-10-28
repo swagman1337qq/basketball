@@ -56,7 +56,7 @@ import { addNotice, contractLine, preFAPending, startPreFA } from './preFA';
 import { enterSpectator, manageTeam, spectate, type SpecGoal } from './spectator';
 import { ensureDeals, dealsYearTurn } from './mediaDeals';
 import { applyAutoBudget, ticketBaseOf, inboxTick, offseasonMandates, openingNightFireSales, ownerFavorite, teamSales } from './frontOffice';
-import { adjustGames, confidenceTick, scoutTick } from './overseas';
+import { adjustGames, confidenceTick, leagueStr, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
 import { losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
@@ -110,7 +110,7 @@ export class Game {
     g.db.bodyV = 1; // its prospects were made with a body ahead of their game already (development.ts)
     { const q = priceQuantiles((Object.values(g.state.rosters).flat() as number[]).map(id => ovrExact(g.db.P[id]))); g.db.priceQ = q; g.db.priceQ0 = q.map(unsqueezeTop); } // salaries keep this season's pay scale by rank (priceOvr), read on the unsqueezed scale the pay curve was made for (potential.ts squeezeTop)
     g.db.potV = 1; // its ceilings already compressed (potential.ts compressT)
-    settleAbroad(g, g.state.overseas || [], true); g.db.osV = 1; // players abroad: NBA service, many undrafted, their price (cbaFlow.ts)
+    settleAbroad(g, g.state.overseas || [], false); g.db.osV = 1; // players abroad: their price (cbaFlow.ts); their NBA years and draft were set with the world
     g.db.payOpen = +(g.state.teams.reduce((a: number, t: any) => a + teamSalary(g, g.state, t.tid), 0) / g.state.teams.length / g.CAP).toFixed(4); g.db.mkt = 1; // opening-night payroll ÷ cap, for the first summer's market step
     g.db.prosV = 1; // and at a draft-night level that follows their true potential (Game.draftLevel)
     g.db.dlV = 1; // (from the stored, compressed true potential: Game.draftNightLevel)
@@ -583,8 +583,13 @@ export class Game {
     // About 90 unsigned players at any time in season, like the NBA's pool of veterans, CCP
     // call-up candidates and undrafted players: a few useful vets, the rest end-of-bench types.
     const fa = []; for (let k = 0; k < 90; k++) fa.push(mk(k < 5 ? 54 + rnd() * 6 : k < 25 ? 47 + rnd() * 8 : 38 + rnd() * 12, 22 + Math.floor(rnd() * 13), W_NBA, 0).id);
-    const os = []; for (let k = 0; k < 22; k++) { const p = mk(44 + rnd() * 12, 22 + Math.floor(rnd() * 8), W_NBA, 0); const cc0 = CLUBS[p.raised] ? p.raised : pick(['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT']), k2 = pick(CLUBS[cc0]), out = rnd() < .45;
-      p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: +(8 + (p.ovr - 44) * 1.1 + rnd() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + rnd() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + rnd() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? .3 + rnd() * .7 : 1.5 + rnd() * 3.5).toFixed(1) }; os.push(p.id); }
+    // Players abroad (2026-10-28): a mix, like the real pool. [how many, ages, overall, NBA years, share drafted]
+    //   flamed out after a season or two · never made an NBA team · had a few chances in their mid-to-late 20s ·
+    //   a year or two in the league, then years abroad · veterans finishing their careers there
+    const os = [], AB: [number, number, number, number, number, number, number, number][] = [[6, 22, 25, 41, 50, 1, 2, 0.7], [7, 22, 26, 40, 52, 0, 0, 0.1], [6, 26, 29, 45, 53, 3, 5, 0.75], [5, 28, 32, 46, 55, 1, 2, 0.55], [6, 32, 35, 44, 53, 3, 10, 0.65]];
+    AB.forEach(([n, a0, a1, o0, o1, y0, y1, dp]) => { for (let k = 0; k < n; k++) { const age = a0 + Math.floor(rnd() * (a1 - a0 + 1)), p = mk(o0 + rnd() * (o1 - o0), age, W_NBA, 0);
+      p.yos0 = y0 + Math.floor(rnd() * (y1 - y0 + 1)); p.dr = rnd() < dp ? { rd: 2, pick: 1 } : null; // (draft slots are dealt out below)
+      this.sendAbroad(p, rnd); os.push(p.id); } });
     const cls = { 2027: [], 2028: [], 2029: [] };
     for (let k = 0; k < 105; k++) { const p = this.mkProspect(29 + rnd() * 14, 2027, 0, W_NBA); p.pot = this.prospectPot(p, rnd); cls[2027].push(p.id); }
     for (let k = 0; k < 100; k++) { const p = this.mkProspect(25 + rnd() * 11, 2028, 1, W_NBA); p.pot = this.prospectPot(p, rnd); cls[2028].push(p.id); }
@@ -1445,6 +1450,17 @@ export class Game {
       const capLine = { day: s.day, type: 'Signing', teams: 'League', text: 'The ' + (Y - 1) + '–' + String(Y).slice(2) + ' salary cap is $' + d.caps.CAP + 'M (' + (growth >= 1 ? 'up ' : 'down ') + Math.abs((growth - 1) * 100).toFixed(1) + '% from $' + capsBefore.CAP + 'M); tax line $' + d.caps.TAX + 'M, aprons $' + d.caps.AP1 + 'M and $' + d.caps.AP2 + 'M.' };
       const extPlan = Object.keys(s.decide || {}).filter(k => k.startsWith('ext') && s.decide[k]).map(k => +k.slice(3)), rePlan = Object.keys(s.decide || {}).filter(k => k.startsWith('re') && s.decide[k]).map(k => +k.slice(2));
       const { faNotes, ...out } = openFreeAgency(this, s), Pp = this.db.P;
+      // 2026-10-28: players abroad good enough for the NBA come back to its market (about a third of those 49 or better and
+      // 32 or younger, half of those 53+; at most four a summer): free agents like any other, still finding their feet here.
+      { const ov: number[] = ((out as any).overseas || s.overseas || []).slice(), back: number[] = [];
+        ov.filter(id => { const p = Pp[id]; return p?.abroad && !p.retired && p.age <= 32 && p.ovr >= 49; }).sort((a, b) => Pp[b].ovr - Pp[a].ovr)
+          .forEach(id => { if (back.length < 4 && Math.random() < (Pp[id].ovr >= 53 ? 0.5 : 0.3)) back.push(id); });
+        back.forEach(id => { const p = Pp[id], a = p.abroad;
+          p.adjust = adjustGames(p); p.overseasArc = { ...(p.overseasArc || {}), back: Y, club: a.club, lg: a.lg, line: a.pts + ' pts · ' + a.reb + ' reb · ' + a.ast + ' ast', conf: Math.round(p.conf ?? 50) }; delete p.abroad;
+          p.ask = askOf(this, p); p.exp = Y; p.birdTid = null; p.yrsWith = 0;
+          addTx(this, s, p, { k: 'abroad', text: 'Left ' + a.club + ' for NBA free agency' });
+          out.lgLog = [{ day: s.day, type: 'Signing', teams: 'FA', pids: [id], text: p.name + ' left ' + a.club + ' (' + a.lg + ') to become an NBA free agent' }, ...out.lgLog]; });
+        if (back.length) { (out as any).overseas = ov.filter(id => !back.includes(id)); out.fa = [...out.fa, ...back]; } }
       const reLine = rePlan.filter(id => out.fa.includes(id)).map(id => Pp[id].name);
       const notices = addNotice(s, { tone: 'info', title: 'Free agency is open', lines: [...faNotes, ...(reLine.length ? ['You planned to re-sign ' + reLine.join(', ') + ': make your offer' + (reLine.length > 1 ? 's' : '') + ' on the Free agency screen. Other teams can bid now too.'] : [])].filter(Boolean), pids: [] });
       const faTop = (out.fa || s.fa).slice().sort((a, b) => this.db.P[b].ovr - this.db.P[a].ovr).slice(0, 50);
@@ -1509,7 +1525,7 @@ export class Game {
     // free agents gets an offer sheet you need to answer).
     if (this.mailWaiting()) return;
     if (this.state.phase === 'fa' && !(this.state.offerSheets || []).length && !(this.state.agentCalls || []).length) { const left = Game.FA_END - this.faDayOf(); if (left > 0) this.advanceFA(left); }
-    let dealNote: any = null;
+    let dealNote: any = null, abroadNote: any = null;
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
@@ -1631,17 +1647,34 @@ export class Game {
       // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to the minimum
       // (14) with minimum deals and cut to the limit (15; guaranteed money they waive stays on their cap).
       const box = { rosters, fa, overseas: [...(s.overseas || []).filter(id => !abroadOut.includes(id)), ...abroadNew], cap: { ...(s.cap || {}) } }, byClub: Record<number, string[]> = {};
-      settleAbroad(this, box.overseas, false); // a new summer, a new price (cbaFlow.ts overseasAsk)
       const lgA: any[] = [], sT = { ...s, teams }; acceptQualifyingOffers(this, sT, box, lgA, byClub);
       Object.keys(box.rosters).forEach(k => { if (this.isUser(s, +k)) return; fillRoster(this, sT, box, +k, lgA); trimRoster(this, sT, box, +k, lgA); });
       // Free agents with no NBA future leave the league.
       // Unsigned free agents with no NBA future leave the league (or retire when they're old).
-      box.fa = box.fa.filter(id => { const p = P[id]; if (p.rfa || p.age < 24 || (p.ovr >= 43 && p.age < 31) || (p.ovr >= 48 && p.age < 34) || p.ovr >= 55) return true; p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' }; return false; });
+      // 2026-10-28: most of the young and prime-age ones sign abroad instead, and some veterans (abroadMove).
+      const toAbroad: number[] = [], abroadMove = (p: any) => { const ch = p.age <= 29 ? 0.85 : p.age <= 32 ? 0.6 : p.age <= 34 ? 0.35 : 0; if (p.ovr < 33 || Math.random() >= ch) return false; toAbroad.push(p.id); return true; };
+      box.fa = box.fa.filter(id => { const p = P[id]; if (p.rfa || p.age < 24 || (p.ovr >= 43 && p.age < 31) || (p.ovr >= 48 && p.age < 34) || p.ovr >= 55) return true; if (abroadMove(p)) return false; p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' }; return false; });
       // The market holds about 90 players into the season (the NBA's in-season pool of unsigned
       // veterans and CCP hopefuls); the rest sign abroad or move on.
       if (box.fa.length > 90) { const val = id => P[id].ovr + (P[id].age < 25 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) + (P[id].rfa ? 50 : 0); const keep = new Set(box.fa.slice().sort((a, b) => val(b) - val(a)).slice(0, 90));
         box.fa.filter(id => P[id].undrafted === this.Y && P[id].cls === 0).sort((a, b) => P[b].pot - P[a].pot).slice(0, 20).forEach(id => keep.add(id)); // the draft's best undrafted rookies stay (the CCP), as camp invites and two-ways do
-        box.fa = box.fa.filter(id => { if (keep.has(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; addTx(this, s, P[id], { k: 'retire', text: P[id].retired.why + ' at ' + P[id].age }); return false; }); }
+        box.fa = box.fa.filter(id => { if (keep.has(id)) return true; if (abroadMove(P[id])) return false; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: P[id].age >= 32 ? 'Retired' : 'Left the league (signed abroad)' }; addTx(this, s, P[id], { k: 'retire', text: P[id].retired.why + ' at ' + P[id].age }); return false; }); }
+      // About 45 players abroad at most, so only some of them are followed there: players on your shortlists first, then
+      // the most promising (the youngest, the best); the rest leave the league as before. Past 45, the least promising of
+      // the players already abroad stay over there for good.
+      { const onList0 = new Set<number>((s.lists || []).flatMap((l: any) => l.ids || [])), v = (id: number) => P[id].ovr + (P[id].age < 26 ? Math.max(0, P[id].pot - P[id].ovr) * 0.5 : 0) - Math.max(0, P[id].age - 30) + (onList0.has(id) ? 100 : 0);
+        const room = Math.max(0, 45 - box.overseas.length), go = toAbroad.slice().sort((a, b) => v(b) - v(a)), keepGo = go.slice(0, Math.max(room, go.filter(id => onList0.has(id)).length));
+        go.filter(id => !keepGo.includes(id)).forEach(id => { const p = P[id]; p.retired = { season: this.Y, age: p.age, tid: -1, why: 'Left the league (signed abroad)' }; addTx(this, s, p, { k: 'retire', text: p.retired.why + ' at ' + p.age }); });
+        toAbroad.length = 0; toAbroad.push(...keepGo);
+        toAbroad.forEach(id => { const p = P[id]; this.sendAbroad(p); box.overseas.push(id);
+          addTx(this, s, p, { k: 'abroad', text: 'Signed with ' + p.abroad.club + ' (' + p.abroad.lg + ')' });
+          lgA.push({ day: s.day, type: 'Signing', teams: 'Abroad', pids: [id], text: p.name + ' signed with ' + p.abroad.club + ' (' + p.abroad.lg + ')' }); });
+        if (box.overseas.length > 45) { const keepA = new Set(box.overseas.slice().sort((a, b) => v(b) - v(a)).slice(0, 45));
+          box.overseas = box.overseas.filter(id => { if (keepA.has(id)) return true; const q = P[id]; q.retired = { season: this.Y, age: q.age, tid: -1, why: 'Stayed abroad' }; delete q.abroad; return false; }); } }
+      settleAbroad(this, box.overseas, false); // a new summer, a new price (cbaFlow.ts overseasAsk)
+      // Players on your shortlists who signed abroad this summer: a note in the Mailbox.
+      { const onList = new Set<number>((s.lists || []).flatMap((l: any) => l.ids || [])), went = [...abroadNew, ...toAbroad].filter(id => onList.has(id) && box.overseas.includes(id));
+        if (went.length) abroadNote = { tone: 'info', title: (went.length === 1 ? P[went[0]].name + ' signed' : went.length + ' players on your shortlists signed') + ' abroad', lines: went.map(id => { const p = P[id]; return p.name + ' (' + p.pos + ', ' + p.age + ', ' + p.ovr + ' overall): ' + p.abroad.club + ', ' + p.abroad.lg + '. ' + (p.abroad.clause === 'NBA out clause' ? 'He has an NBA out clause.' : 'His club would want a buyout.'); }).concat(['You can still bring them over from the Overseas screen.']), pids: went }; }
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
       Object.keys(rosters).forEach(k => { if (!this.isUser(s, +k)) { const o = rosters[k].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); teams[k].str = o.reduce((a, b) => a + b, 0) / o.length - 4.3; } });
@@ -1662,6 +1695,7 @@ export class Game {
     this.enforceRetirement();
     offseasonMandates(this);
     if (dealNote) this.setState(st => ({ notices: addNotice(st, dealNote) })); // the summer's deals in the Mailbox
+    if (abroadNote) this.setState(st => ({ notices: addNotice(st, abroadNote) })); // shortlisted players who signed abroad
   }
   // Opening night: every club needs 13 players. Short-handed managed clubs sign the best
   // remaining free agents to minimum deals (logged), as the league would require.
@@ -2374,10 +2408,20 @@ export class Game {
       return { ...this.clubPatch(s, ow, { promises, agentRep: this.cl(rep, 0, 100), log: [{ date: this.fmtS(s.day), day: s.day, text: 'Drafted ' + p.name + ' at #' + cur.n + (how === 'rookie' ? ' (rookie scale: ' + p.amt.toFixed(2) + 'M, 4 years, team options on years 3 and 4)' : how === 'twoWay' ? ' (two-way contract)' : ' (2-year minimum deal)') }, ...(c.log || [])] }), picks, pi: s.pi + 1, adv: {}, rosters, lgLog: [{ day: s.day, type: 'Draft', teams: T.abbr, pids: [id], text: '#' + cur.n + ' ' + T.region + ' ' + T.name + ' selected ' + p.name + ' (' + p.pos + ', ' + p.from.team + familyTag(this, p) + ')' }, ...s.lgLog] };
     });
   }
-  // A player signs with a club abroad (world.ts clubs: his home country's if it has a league, else a big one).
-  sendAbroad(p: any) {
-    const CL = clubs(), home = p.raised || p.born, cc0 = CL[home]?.length ? home : ['ES', 'FR', 'TR', 'GR', 'IT', 'DE', 'CN', 'AU', 'IL', 'LT'][Math.floor(Math.random() * 10)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)], out = Math.random() < 0.45;
-    p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: +Math.max(2, 8 + (p.ovr - 44) * 1.1 + Math.random() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + Math.random() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + Math.random() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? 0.3 + Math.random() * 0.7 : 1.5 + Math.random() * 3.5).toFixed(1) };
+  // A player signs with a club abroad (2026-10-28). Where: a league about his level (overseas.ts leagueStr: a
+  // EuroLeague club for the best, second divisions and smaller leagues for the rest), often at home if his country has
+  // one, and China's CBA is a favourite of former NBA players and veterans (it pays the most). Japan, Australia, Korea,
+  // the Philippines, Puerto Rico and the rest take their share.
+  sendAbroad(p: any, r: () => number = Math.random) {
+    const CL: Record<string, [string, string][]> = clubs() as any, home = p.raised || p.born, nba = (p.stats || []).length > 0 || (p.yos0 || 0) > 0;
+    const CW: Record<string, number> = { ES: 1.5, TR: 1.4, FR: 1.3, GR: 1.2, IT: 1.2, DE: 1, IL: 0.9, RS: 0.8, LT: 0.7, HR: 0.4, SI: 0.2, ME: 0.2, BA: 0.2, LV: 0.3, GE: 0.2, FI: 0.2, GB: 0.3,
+      AU: 1.5, NZ: 0.3, CN: nba || p.age >= 27 ? 5 : 2, JP: 2.2, KR: 0.9, PH: 0.6, PR: 0.7, TW: 0.5, LB: 0.4, DO: 0.3, BR: 0.3, AR: 0.3, MX: 0.4, VE: 0.3, UY: 0.2, AO: 0.2 };
+    const opts: [string, string, string, number][] = [];
+    Object.keys(CL).forEach(cc => CL[cc].forEach(([club, lg]) => { const lvl = 20 + 50 * leagueStr(lg), fit = Math.exp(-(((p.ovr - lvl) / 6) ** 2)) + 0.005;
+      opts.push([club, lg, cc, (CW[cc] ?? 0.2) * (cc === home ? 6 : 1) * fit / CL[cc].length]); }));
+    let x = r() * opts.reduce((a, o) => a + o[3], 0), k2 = opts[0]; for (const o of opts) { x -= o[3]; if (x <= 0) { k2 = o; break; } }
+    const out = r() < 0.45;
+    p.abroad = { club: k2[0], lg: k2[1], country: k2[2], pts: +Math.max(2, 8 + (p.ovr - 44) * 1.1 + r() * 4).toFixed(1), reb: +(2 + p.r.reb / 14 + r() * 2).toFixed(1), ast: +(1 + p.r.pss / 18 + r() * 2).toFixed(1), clause: out ? 'NBA out clause' : 'Buyout', fee: +(out ? 0.3 + r() * 0.7 : 1.5 + r() * 3.5).toFixed(1) };
   }
   askFor(p, s) {
     const me = s.teams[s.me], conf = s.teams.filter(t => t.conf === me.conf).sort((a, b) => this.pct(b) - this.pct(a)), top = conf.indexOf(me) < 6, m = p.pers.mot;

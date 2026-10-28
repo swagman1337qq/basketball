@@ -10,6 +10,7 @@ export const LEAGUE_STR: Record<string, number> = {
   EuroLeague: 0.62, 'Liga ACB': 0.55, 'Basketbol Süper Ligi': 0.52, 'Greek Basket League': 0.48, 'ABA League': 0.5, LKL: 0.47, 'LNB Élite': 0.5, BBL: 0.48,
   'Lega Basket Serie A': 0.5, NBL: 0.5, CBA: 0.42, 'B.League': 0.44, 'KBL': 0.4, 'Israeli Premier League': 0.47,
   NBB: 0.42, 'Liga Nacional': 0.42, LNBP: 0.36, PBA: 0.36, Korisliiga: 0.4, 'Super League Basketball': 0.38, 'Latvian-Estonian League': 0.42, 'Georgian Superleague': 0.36,
+  BSN: 0.4, TPBL: 0.37, 'P. League+': 0.37, 'Lebanese Basketball League': 0.37, 'LNB Dominicana': 0.34,
   'Basketball Africa League': 0.38, 'Angolan Unitel League': 0.33, 'Superliga Venezuela': 0.34, 'Liga Uruguaya': 0.33,
 };
 export const leagueStr = (lg: string) => LEAGUE_STR[lg] ?? 0.45;

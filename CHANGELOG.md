@@ -4,7 +4,14 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-28
 
+### Added
+- **Players in the league go overseas.** Each summer, free agents with no NBA spot sign with clubs abroad instead of just leaving: young players who flamed out after a season or two, guys who had a few chances, veterans finishing their careers. China's CBA is a favourite of former NBA players. They develop there, and you can bring them back.
+- **Players abroad come back.** When free agency opens, some of the best players abroad (49 overall or better, 32 or younger) return to the NBA market as free agents, and any team can sign them.
+- **Shortlist alerts.** When a player on one of your shortlists signs abroad, you get a note in the Mailbox with his new club and whether he has an NBA out clause or would need a buyout.
+- **More clubs and leagues abroad.** Japan's B.League now has 10 clubs (was 3), Korea's KBL 4 and the Philippines' PBA 3, plus new leagues in Puerto Rico (BSN), Taiwan (TPBL and P. League+), Lebanon and the Dominican Republic. Players head to a league that fits their level, often at home.
+
 ### Changed
+- **A real mix of players abroad.** New leagues start with 30 players abroad of every kind: young players who flamed out after a season or two, young players who never made an NBA team, mid-to-late-20s players who had a few chances, players who spent a year or two in the league and then years overseas, and veterans. In existing leagues the mix builds up each summer. About 45 players are abroad at most.
 - **Players abroad ask realistic prices.** What a player abroad wants to come over is now worked out again every summer from his rating and age: about half of what an NBA free agent like him would ask, never more than the mid-level exception, and at about 50 overall or below just the minimum (a two-way works too). Before, prices were set once when the league began and never changed, so a 34-year-old could still be asking $14.8M. His club's buyout is still separate.
 - **Years abroad don't count as NBA service.** A player who's only played overseas has 0 years in the league: he gets the rookie minimum and can sign a two-way, like real players coming over.
 - **Many players abroad went undrafted.** About 6 in 10 players abroad who never played in the NBA are now undrafted instead of former picks (in new leagues, and in your league the first time you load it).
