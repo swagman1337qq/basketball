@@ -36,7 +36,7 @@ import { yearEndLetter } from './ownerLetter';
 import { answerOffer } from './gmCareer';
 import { applyTranslation, ensureTranslation, translationLine } from './translation';
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
-import { capToT, ceilMax, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
+import { capToT, ceilMax, floorCeil, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, pickCut, rosterValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
@@ -244,6 +244,7 @@ export class Game {
     // 2026-10-22: the market factor (marketStep) needs last opening night's payroll; older saves take today's.
     // 2026-10-26: every club gets a local TV deal and a lead sponsor, part-way through (mediaDeals.ts).
     // 2026-10-26: Los Angeles's local TV is the Lakers' $200M deal (it had averaged the Lakers and the Clippers, $115M).
+    if (!g.db.ceilFloorV) { Object.values(g.db.P).forEach((p: any) => { if (p?.ceil && !p.retired && !p.gone) floorCeil(p); }); g.db.ceilFloorV = 1; } // 2026-10-28: no ceiling far below the skill (potential.ts floorCeil)
     if (!g.db.osV) { settleAbroad(g, g.state.overseas || [], true); g.db.osV = 1; } // 2026-10-28: players abroad (cbaFlow.ts settleAbroad)
     if (!g.db.laTvV) { (g.state.teams || []).forEach((t: any) => { if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +(t.tv.fee * 200 / 115).toFixed(1) }; }); g.db.laTvV = 1; }
     if (g.state.teams && g.state.teams.some((t: any) => !t.tv || !t.spon)) { g.state.teams = g.state.teams.map((t: any) => ({ ...t })); ensureDeals(g, g.state.teams); }
@@ -1549,7 +1550,7 @@ export class Game {
         // The year's change goes into his ratings his own way (development.ts): his body on its own
         // track, the rest into his skills by his development profile and focus, with a little noise.
         const from = p.ovr, dl = develop(p, x, 0.5, { year: this.Y, focus, keys: Game.FOCUS[focus], role: roleReps(this.seasonTotals(p, this.Y)), work: wk, slow: this.devMult(p, -1), rnd: Math.random });
-        SKILLS.forEach(k => { const room = skillTop(p, k) - (p.r[k] + (p.rx?.[k] || 0)); dl[k] = Math.min((dl[k] || 0) + (Math.random() - .5) * 3, Math.max(dl[k] || 0, room)); }); // a little noise, never past a ceiling
+        SKILLS.forEach(k => { const v0 = p.r[k] + (p.rx?.[k] || 0), room = Math.min(skillTop(p, k), Math.max(p.ceil?.[k] ?? 100, v0)) - v0; dl[k] = Math.min((dl[k] || 0) + (Math.random() - .5) * 3, Math.max(dl[k] || 0, room)); }); // a little noise, never past a ceiling (his own, unless the growth itself went there)
         applyChange(p, dl); syncOvr(p);
         // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
         capToT(p); syncOvr(p);

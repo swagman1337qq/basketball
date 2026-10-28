@@ -123,11 +123,16 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
   let lost = 0; if (up) SKILLS.forEach(k => { const f = dimAt(vv(k), p.gen === k); if (f < 1 && out[k] > 0) { lost += W[k] * out[k] * (1 - f); out[k] *= f; } });
   // A rating can't pass its ceiling (or drop below 4): what doesn't fit goes to his other skills, so
   // the overall moves by `target` while there's room anywhere (a star maxed in his best skills grows
-  // elsewhere); with every skill at its ceiling, he's done growing.
-  for (let pass = 0; pass < 3; pass++) {
+  // elsewhere); with every skill at its ceiling, he's done growing. 2026-10-28: growth goes past a skill's own
+  // ceiling (p.ceil) only once every skill is within 2 of its own; until then what doesn't fit goes to skills
+  // still under theirs (the hard top, 98, holds either way).
+  const ceilOf = (k: string) => p.ceil?.[k] ?? 100, vv0 = (k: string) => p.r[k] + ((p.rx || {})[k] || 0);
+  let soft = up && SKILLS.some(k => vv0(k) < ceilOf(k) - 2);
+  for (let pass = 0; pass < 5; pass++) {
     const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0); let spill = 0; const open: string[] = [];
-    SKILLS.forEach(k => { const top = skillTop(p, k), hi = Math.max(0, top - v(k)), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k); }); // growth that doesn't fit can land on any skill with room left
+    SKILLS.forEach(k => { const top = soft ? Math.min(skillTop(p, k), Math.max(ceilOf(k), v(k))) : skillTop(p, k), hi = Math.max(0, top - v(k)), lo = 4 - v(k); if (out[k] > hi) { spill += W[k] * (out[k] - hi); out[k] = hi; } else if (out[k] < lo) { spill += W[k] * (out[k] - lo); out[k] = lo; } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k); }); // growth that doesn't fit can land on any skill with room left
     if (pass === 0) spill += lost;
+    if (spill && !open.length && soft) { soft = false; open.push(...SKILLS.filter(k => v(k) + out[k] < skillTop(p, k) - 1)); } // every skill at its own ceiling: past them now
     if (!spill || !open.length) break;
     const sw2 = (k: string) => Math.max(0.15, u[k]) * (up ? dimAt(v(k), p.gen === k) : 1), den2 = open.reduce((a, k) => a + W[k] * sw2(k), 0); open.forEach(k => (out[k] += (spill * sw2(k)) / den2));
   }

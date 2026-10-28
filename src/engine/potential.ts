@@ -93,7 +93,7 @@ function fit(p: any, base: Record<string, number>, F: number, cap = 99) {
   const w = gapShape(p), at = (t: number) => Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), ceilFor(p, k, base[k] + t * w[k], cap))]));
   let lo = -120, hi = 120;
   for (let i = 0; i < 36; i++) { const m = (lo + hi) / 2; if (ovrOf(p, withBody(p, at(m))) < F) lo = m; else hi = m; }
-  const c = at((lo + hi) / 2); p.ceil = Object.fromEntries(SKILLS.map(k => [k, +c[k].toFixed(1)]));
+  const c = at((lo + hi) / 2); p.ceil = Object.fromEntries(SKILLS.map(k => [k, +c[k].toFixed(1)])); floorCeil(p);
 }
 const startPlan = (p: any, n = 0) => { p.dv0 = { o: +ovrExact(p).toFixed(2), a: p.age, ...(n ? { n } : {}) }; };
 // A new player: his plan starts now, with ceilings set so a typical career peaks at `peak`. When the
@@ -139,6 +139,10 @@ export function setTruePot(p: any, T: number, god = false) {
 // AI decides it once and only God Mode changes it. Kept so older call sites read the same.
 export function moveTruePot(_p: any, _d: number) { /* fixed */ }
 // God Mode raised a rating past its ceiling: that's his new ceiling there.
+// A ceiling never sits far below what he already has (2026-10-28): at least his rating minus 2, so the usual creep of a
+// point or two past it stays possible but a ceiling 30 points under the skill can't happen (new players, cards, God Mode
+// potential, and once for older saves).
+export function floorCeil(p: any) { if (!p?.ceil || !p.r) return; SKILLS.forEach(k => { const v = p.r[k] + ((p.rx || {})[k] || 0); if (v != null && !(p.ceil[k] >= v - 2)) p.ceil[k] = +(v - 2).toFixed(1); }); }
 export function liftCeil(p: any) { if (!p.ceil) return; SKILLS.forEach(k => { if (p.ceil[k] < p.r[k]) p.ceil[k] = p.r[k]; }); }
 
 // The league's read: what he could still reach plus the scouts' miss, which goes either way (they
