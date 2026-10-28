@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D1XGYT22.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-C5SWTXSM.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -6,7 +6,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ### Changed
 - **The AI judges veterans by how they'll actually age.** Trade values, the outlook that prices future draft picks, veterans' asking prices, which players AI teams keep and whom they re-sign now look ahead with the same aging the game really uses (instead of a separate age curve), as the league can see it: his skills and age, not his hidden athletic peak. AI teams no longer refuse to re-sign anyone 33 or older: they keep a veteran if he'll still be good enough in two years.
-- **Players age skill by skill.** Dunks and blocks now start to fall at a player's athletic peak (each player has his own, now between 28 and 30), with finishing, rebounding and steals soon after. His shooting, passing, handle and boxing out hold until 31 to 33 and then fade gently, and his basketball IQ keeps inching up, about a point a year, into his early 30s (never past his true potential). Old shooters stay useful and old athletes fall off, as in real basketball. Before, every skill started slipping together at 29.
+- **Players age skill by skill, and athletes fade faster than shooters.** Speed, quickness and leaping, and the dunks, blocks, finishing, rebounding, steals and defense that ride on them, start to fade at a player's athletic peak (each has his own, 28 to 30), and the more athletic he is, the more he has to lose. His shot, passing and handle hold until 31 to 33 and then fade gently. His basketball IQ keeps inching up, about a point a year, into his early 30s (never past his true potential), then goes. So an old shooter stays useful and an old high-flyer falls off: by 35, the most athletic guards and wings lose about 15–20% more than the best shooters, and the veterans still in the league are mostly shooters. Tested over 10 seasons in two leagues: about as many stars as before and the same league average.
 - **Players grow a little later.** Growth is spread more evenly through the early 20s and lasts a bit longer (most players improve until about 24 and peak around 26–28; the peak used to be about 26). Tested over 10 seasons in two leagues: about as many stars as before (about 12 players at 65+ and 45 at 60+ each season) and the same league average.
 
 ### Added
