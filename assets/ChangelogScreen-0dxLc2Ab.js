@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CYHWHNQM.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bj_D9sFS.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-28
 
 ### Added
+- **Every Division I school.** All 365 Division I colleges can now produce prospects (was 240): Michigan, Arizona State, Georgia Tech, Virginia Tech, Boston College and DePaul joined the big conferences, plus schools like New Orleans, Southeastern Louisiana, Utah Valley and every other small conference. A few prospects a year come from the smallest conferences, and their college stats are against weaker competition.
 - **Players in the league go overseas.** Each summer, free agents with no NBA spot sign with clubs abroad instead of just leaving: young players who flamed out after a season or two, guys who had a few chances, veterans finishing their careers. China's CBA is a favourite of former NBA players. They develop there, and you can bring them back.
 - **Players abroad come back.** When free agency opens, some of the best players abroad (49 overall or better, 32 or younger) return to the NBA market as free agents, and any team can sign them.
 - **Shortlist alerts.** When a player on one of your shortlists signs abroad, you get a note in the Mailbox with his new club and whether he has an NBA out clause or would need a buyout.
