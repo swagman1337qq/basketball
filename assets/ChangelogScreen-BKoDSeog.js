@@ -1,8 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-mJNQV-ox.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BWnVBljF.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-10-28
+
+### Changed
+- **Players age skill by skill.** Dunks and blocks now start to fall at a player's athletic peak (each player has his own, now between 28 and 30), with finishing, rebounding and steals soon after. His shooting, passing, handle and boxing out hold until 31 to 33 and then fade gently, and his basketball IQ keeps inching up, about a point a year, into his early 30s (never past his true potential). Old shooters stay useful and old athletes fall off, as in real basketball. Before, every skill started slipping together at 29.
+- **Players grow a little later.** Growth is spread more evenly through the early 20s and lasts a bit longer (most players improve until about 24 and peak around 26–28; the peak used to be about 26). Tested over 10 seasons in two leagues: about as many stars as before (about 12 players at 65+ and 45 at 60+ each season) and the same league average.
 
 ### Added
 - **Every Division I school.** All 365 Division I colleges can now produce prospects (was 240): Michigan, Arizona State, Georgia Tech, Virginia Tech, Boston College and DePaul joined the big conferences, plus schools like New Orleans, Southeastern Louisiana, Utah Valley and every other small conference. A few prospects a year come from the smallest conferences, and their college stats are against weaker competition.
