@@ -36,15 +36,14 @@ export function negotiateBuyout(g: Game, pid: number, offer: number, withPick: b
   const p = g.db.P[pid], a = p.abroad; if (!a || a.clause !== 'Buyout') return null;
   const s = g.state, Y = g.Y;
   if (a.walked === Y) return { ok: false, msg: a.club + ' have ended talks until next season.' };
-  const pickVal = withPick ? 1.0 : 0, floor = floorOf(p);
-  const second = withPick ? s.assets.find(k => k.owner === s.me && k.rd === 2 && k.yr > Y) || s.assets.find(k => k.owner === s.me && k.rd === 2) : null;
-  if (withPick && !second) return { ok: false, msg: 'You have no second-round pick to include.' };
+  if (withPick) return { ok: false, msg: 'NBA draft picks cannot be paid to overseas clubs. Negotiate a cash buyout.' };
+  if (!Number.isFinite(offer) || offer < 0) return { ok: false, msg: 'Enter a valid cash offer.' };
+  const floor = floorOf(p);
   a.tries = (a.tries || 0) + 1;
-  if (offer + pickVal >= floor) {
+  if (offer >= floor) {
     a.agreed = +offer.toFixed(2); a.fee = a.agreed; a.clause = 'Buyout agreed';
-    const assets = second ? s.assets.map(k => (k.id === second.id ? { ...k, owner: -1 } : k)) : s.assets;
-    g.setState(st => ({ assets, log: g.logEntry(st, 'Agreed a $' + a.agreed.toFixed(2) + 'M buyout with ' + a.club + ' for ' + p.name + (second ? ' (plus ' + g.pickLabel(second, st.teams) + ')' : '')) }));
-    return { ok: true, msg: a.club + ' accept $' + a.agreed.toFixed(2) + 'M' + (second ? ' and the pick' : '') + '. ' + p.name + ' is free to sign.' };
+    g.setState(st => ({ log: g.logEntry(st, 'Agreed a $' + a.agreed.toFixed(2) + 'M buyout with ' + a.club + ' for ' + p.name) }));
+    return { ok: true, msg: a.club + ' accept $' + a.agreed.toFixed(2) + 'M' + '. ' + p.name + ' is free to sign.' };
   }
   if (a.tries >= 3) { a.walked = Y; g.setState({ gv: (s.gv || 0) + 1 }); return { ok: false, msg: a.club + ' walk away. Try again next season.' }; }
   const counter = +((floor + a.fee) / 2).toFixed(2);

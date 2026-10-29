@@ -10,7 +10,7 @@ import { Link, muted, NumInput, td, th, usePaged } from '../kit';
 export function OverseasScreen({ vm }: { vm: VM }) {
   const { gm, s, open, money } = vm.ctx;
   const P = gm.db.P;
-  const [neg, setNeg] = useState<{ pid: number; offer: number; pick: boolean; msg?: string } | null>(null);
+  const [neg, setNeg] = useState<{ pid: number; offer: number; msg?: string } | null>(null);
   const srt = useSort<any>((vm.ovRows || []) as any[], { name: r => byLast(P[r.id] || r), club: r => r.club, age: r => r.age, pos: r => r.pos, trans: r => translation(gm, s, P[r.id]).pts, rating: r => { const t = translation(gm, s, P[r.id]); return (t.lo + t.hi) / 2; }, fee: r => P[r.id]?.abroad?.fee ?? 0, ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0 });
   const rows = srt.rows;
   const sc = useScoutSelect(vm, rows.map((r: any) => r.id));
@@ -48,7 +48,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
               <td style={td('right')}>{r.ask}</td>
               <td style={td('right')}>
                 {buy ? (
-                  <button className="btn btn-secondary" disabled={walked} onClick={() => setNeg({ pid: r.id, offer: +(a.fee * 0.7).toFixed(2), pick: false })} style={{ fontSize: '12px', padding: '3px 10px', whiteSpace: 'nowrap' }}>{walked ? 'Talks ended' : 'Negotiate buyout'}</button>
+                  <button className="btn btn-secondary" disabled={walked} onClick={() => setNeg({ pid: r.id, offer: +(a.fee * 0.7).toFixed(2) })} style={{ fontSize: '12px', padding: '3px 10px', whiteSpace: 'nowrap' }}>{walked ? 'Talks ended' : 'Negotiate buyout'}</button>
                 ) : (
                   <button className="btn btn-primary" onClick={r.sign} disabled={r.cant} style={{ fontSize: '12px', padding: '3px 12px' }}>Sign</button>
                 )}
@@ -67,13 +67,12 @@ export function OverseasScreen({ vm }: { vm: VM }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0 6px' }}>
                 <span style={muted}>Your offer</span><NumInput value={neg.offer} min={0.05} max={Math.max(0.2, a.fee)} step={0.05} width={90} onValue={v => setNeg({ ...neg, offer: v, msg: undefined })} suffix={'$M (asking ' + money(a.fee) + ')'} />
               </div>
-              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12.5px' }}><input type="checkbox" checked={neg.pick} onChange={e => setNeg({ ...neg, pick: e.target.checked })} /> Include a second-round pick</label>
               <div style={{ fontSize: '12px', ...muted, marginTop: '6px' }}>Cap hit from this buyout: {neg.offer > BUYOUT_EXEMPT ? money(neg.offer - BUYOUT_EXEMPT) : 'none'}</div>
               {neg.msg && <div style={{ marginTop: '8px', fontWeight: 600 }}>{neg.msg}</div>}
             </div>
             <div className="dialog-actions">
               <button className="btn btn-secondary" onClick={() => setNeg(null)}>Close</button>
-              {a.clause === 'Buyout' && a.walked !== gm.Y && <button className="btn btn-primary" onClick={() => { const r = negotiateBuyout(gm, neg.pid, neg.offer, neg.pick); setNeg({ ...neg, msg: r?.msg }); }}>Make offer</button>}
+              {a.clause === 'Buyout' && a.walked !== gm.Y && <button className="btn btn-primary" onClick={() => { const r = negotiateBuyout(gm, neg.pid, neg.offer, false); setNeg({ ...neg, msg: r?.msg }); }}>Make offer</button>}
             </div>
           </div>
         </div>

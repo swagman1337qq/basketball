@@ -5,7 +5,7 @@
 import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
-import { birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
+import { signingMethods, birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { acceptance, aiTerms, applySigning, floorOverpay1, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
@@ -110,9 +110,10 @@ export function userSign(g: Game, force = false) {
       const acc = acceptance(g, s, tid, p, { ...t, amt: val }); if (!acc.ok) return { dialog: null, offered: { ...(s.offered || {}), [p.id]: { season: g.Y, day: s.day, amt: t.amt, years: t.years } },
         notices: addNotice(s, { tone: 'bad', title: 'Declined: ' + p.name, lines: [p.name + ' turned down your offer (' + money(t.amt) + ' × ' + t.years + ' year' + (t.years === 1 ? '' : 's') + '). His camp: “' + acc.why + '”', 'He’s still a free agent: you can make a better offer, and you’ll hear about it if he signs somewhere else.'], pids: [p.id] }), log: g.logEntry(s, p.name + ' turned down your offer (' + money(t.amt) + ' × ' + t.years + ')') };
     }
+    if (p.rfa && p.rfa.tid !== tid) t.raise = vRaise(g, s, tid, p, t.method);
     const box = boxOf(s); let lgLog = s.lgLog, log = s.log, offerSheets = s.offerSheets || [];
     // Offer sheet to another team's restricted free agent: they decide right away.
-    if (t.method === 'offer' && p.rfa) {
+    if (p.rfa && p.rfa.tid !== tid) {
       const orig = p.rfa.tid;
       if (!g.isUser(s, orig) && aiMatches(g, s, orig, p, t)) {
         const line = applySigning(g, s, box, orig, p, { ...t, method: 'bird' });
@@ -122,7 +123,7 @@ export function userSign(g: Game, force = false) {
       if (g.isUser(s, orig)) { offerSheets = [...offerSheets, { id: 'os' + p.id + '-' + s.day, pid: p.id, from: tid, to: orig, terms: t, day: s.day }]; box.fa = box.fa.filter(x => x !== p.id);
         return { dialog: null, fa: box.fa, offerSheets, log: g.logEntry(s, 'Signed ' + p.name + ' to an offer sheet; ' + T[orig].abbr + ' (also yours) must match or decline'), notices: addNotice(s, { tone: 'info', title: 'Offer sheet signed', lines: [p.name + ' signed your offer sheet. ' + T[orig].abbr + ' (also yours) has to match or decline it on the Cap sheet.'], pids: [p.id] }) }; }
     }
-    const sheet = t.method === 'offer' && p.rfa ? T[p.rfa.tid] : null; // he had an offer sheet the other team declined to match
+    const sheet = p.rfa && p.rfa.tid !== tid ? T[p.rfa.tid] : null; // he had an offer sheet the other team declined to match
     let cash = 0; const boughtOut = force && p.abroad?.clause === 'Buyout' ? p.abroad.club + ' got its asking price for him: a ' + money(p.abroad.fee) + ' buyout (Force Sign).' : '';
     if (p.abroad) { // NBA out clause: the fee is cash, and anything above $0.85M counts on the cap this season
       cash = p.abroad.fee; const over = Math.max(0, p.abroad.fee - 0.85);
@@ -141,6 +142,8 @@ export function userSign(g: Game, force = false) {
 }
 const unbox = (b: Box) => ({ rosters: b.rosters, fa: b.fa, overseas: b.overseas, cap: b.cap });
 
+const vRaise = (g: Game, s: any, tid: number, p: any, method: string) => signingMethods(g, s, tid, p).find(x => x.key === method)?.raise ?? 0.05;
+
 // Would an AI team match an offer sheet for its restricted free agent?
 function aiMatches(g: Game, s: any, tid: number, p: any, t: Terms) {
   const N = nums(g), after = teamSalary(g, s, tid) + t.amt, ceil = g.teamCeiling(s.teams[tid]);
@@ -154,7 +157,9 @@ export function answerOfferSheet(g: Game, id: string, match: boolean) {
     const os = (s.offerSheets || []).find(x => x.id === id); if (!os) return null;
     const P = g.db.P, p = P[os.pid], T = s.teams, box = boxOf(s), N = nums(g);
     if (match && !s.god && teamSalary(g, s, os.to) + os.terms.amt > N.AP2 && capState(s, os.to).hardCap) return { tMsg: null, offerMsg: 'Matching would break your hard cap.' };
-    const tid = match ? os.to : os.from, line = applySigning(g, s, box, tid, p, match ? { ...os.terms, method: 'bird' } : os.terms);
+    const tid = match ? os.to : os.from;
+    if (!match) { const valid = validateSigning(g, { ...s, offerSheets: s.offerSheets.filter(x => x.id !== id) }, tid, p, { ...os.terms, amt: os.terms.amt + (os.terms.inc || []).filter(x => x.likely).reduce((a, x) => a + x.amt, 0) }); if (!valid.ok) return { offerMsg: valid.why }; }
+    const line = applySigning(g, s, box, tid, p, match ? { ...os.terms, method: 'bird' } : os.terms);
     const text = match ? T[os.to].region + ' matched ' + T[os.from].abbr + '’s offer sheet for ' + p.name + ': ' + line.split(' · ')[1] : line + ' (' + T[os.to].abbr + ' declined to match)';
     const notices = addNotice(s, { tone: match ? 'good' : 'info', title: match ? 'Matched: ' + p.name + ' stays' : p.name + ' signed with ' + T[os.from].abbr, lines: [match ? 'You matched ' + T[os.from].abbr + '’s offer sheet: ' + money(os.terms.amt) + ' × ' + os.terms.years + '.' : 'You declined to match. He signed with the ' + T[os.from].region + ' ' + T[os.from].name + ' (' + money(os.terms.amt) + ' × ' + os.terms.years + ').'], pids: [p.id] });
     return { ...unbox(box), notices, offerSheets: s.offerSheets.filter(x => x.id !== id), offerMsg: null, lgLog: [{ day: s.day, type: 'Signing', teams: T[tid].abbr, pids: [p.id], text }, ...s.lgLog], ...clubLogs(g, s, { [os.to]: [match ? 'Matched the offer sheet for ' + p.name : 'Let ' + p.name + ' go to ' + T[os.from].abbr + ' (declined to match)'] }) };
@@ -287,7 +292,7 @@ export function convertContract(g: Game, pid: number, to: ConvTo) {
 // First-rounders sign the rookie scale (4 years; team options on years 3 and 4).
 // Second-rounders sign a two-way deal if there's a slot, else a 2-year minimum, or go unsigned.
 export function signDraftee(g: Game, s: any, box: { rosters: any; fa: number[] }, tid: number, p: any, pk: { n: number; rd?: number }, user: boolean) {
-  const rd = pk.rd || 1, n = rd === 1 ? pk.n : pk.n - 30, Y = g.Y, deal = rookieDeal(g, n, rd), N = nums(g);
+  const rd = pk.rd || 1, n = rd === 1 ? pk.n : pk.n - s.teams.length, Y = g.Y, deal = rookieDeal(g, n, rd), N = nums(g);
   Object.assign(p, { dr: { rd, pick: n }, draft: Y, yrsWith: 0, yos0: 0, draftTid: tid, rookieTid: tid, birdTid: null, inc: [], kicker: 0, ntc: false, signed: { season: Y + 1, day: s.day, phase: 'draft', tid, method: 'rookie' } });
   delete p.capOverride; delete p.opt; delete p.leftAsFA;
   recordPick(g, s, p, pk as any, tid);
@@ -322,17 +327,18 @@ export function openFreeAgency(g: Game, s: any) {
   let strat0: Record<number, string> | null = null; const stratOf = () => (strat0 ??= g.strategies(s.teams, s, true));
   const P = g.db.P, Y = g.Y, N = nums(g), box = boxOf(s), by: Record<number, string[]> = {}, dec = s.decide || {};
   let lgLog = s.lgLog.slice();
+  Object.values(P).forEach((p: any) => (p.inc || []).forEach(x => { if (x.nextLikely != null) { x.likely = x.nextLikely; delete x.nextLikely; } x.paid = 0; }));
   const letGo: number[] = []; // your expiring players you chose not to re-sign (Pre-Free Agency): rights renounced
   const note = (tid: number, text: string) => { if (g.isUser(s, tid)) (by[tid] = by[tid] || []).push(text); };
   const lg = (tid: number, text: string, pids: number[] = []) => lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids, text });
   // Draft picks by AI teams join (or boycott, or go unsigned).
   s.picks.forEach(pk => { const ow = g.owner2027(pk.orig, s.assets, pk.rd); if (!pk.pid || g.isUser(s, ow)) return; const p = P[pk.pid];
-    if (p.boycott) { p.abroad = { club: p.from.team, lg: p.from.lg, country: p.from.country || p.raised, pts: 12, reb: 5, ast: 2, clause: 'Buyout', fee: 2.5 }; Object.assign(p, { cls: 0, dr: { rd: pk.rd || 1, pick: pk.rd === 2 ? pk.n - 30 : pk.n }, draft: Y }); box.overseas.push(pk.pid); return; }
+    if (p.boycott) { p.abroad = { club: p.from.team, lg: p.from.lg, country: p.from.country || p.raised, pts: 12, reb: 5, ast: 2, clause: 'Buyout', fee: 2.5 }; Object.assign(p, { cls: 0, dr: { rd: pk.rd || 1, pick: pk.rd === 2 ? pk.n - s.teams.length : pk.n }, draft: Y }); box.overseas.push(pk.pid); return; }
     signDraftee(g, s, box, ow, p, pk, false); });
   Object.keys(box.rosters).forEach(k => { const t = +k, user = g.isUser(s, t);
     box.rosters[t] = box.rosters[t].filter(id => { const p = P[id];
       // Extensions signed earlier take over when the old deal ends.
-      if (p.ext && p.exp <= Y) { Object.assign(p, { prevAmt: p.amt, amt: p.ext.amt, exp: p.exp + p.ext.yrs, raise: p.ext.raise ?? 0.08, ctype: p.ext.amt >= N.max(yosOf(g, p) + 1) - 0.05 ? 'max' : 'standard', signed: { season: Y + 1, day: s.day, phase: 'fa', tid: t, method: 'extension', ovr: p.ext.ovr } }); delete p.ext; delete p.rookieScale; p.rookie = false; delete p.opt; delete p.capOverride; note(t, p.name + '’s new contract starts: ' + money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2) + '.'); return true; }
+      if (p.ext && p.exp <= Y) { Object.assign(p, { prevAmt: p.amt, amt: p.ext.amt, raiseBase: p.ext.amt, exp: p.exp + p.ext.yrs, raise: p.ext.raise ?? 0.08, ctype: p.ext.amt >= N.max(yosOf(g, p) + 1) - 0.05 ? 'max' : 'standard', signed: { season: Y + 1, day: s.day, phase: 'fa', tid: t, method: 'extension', ovr: p.ext.ovr } }); delete p.ext; delete p.rookieScale; p.rookie = false; delete p.opt; delete p.capOverride; note(t, p.name + '’s new contract starts: ' + money(p.amt) + ' a year through ' + (p.exp - 1) + '–' + String(p.exp).slice(2) + '.'); return true; }
       // Player options: he opts out if he can beat the option salary on the market.
       if (p.opt?.kind === 'player' && p.opt.season === Y + 1) { const sal = g.salAt(p, Y + 1), stay = g.fair(p.ovr) * 1.05 <= sal || p.age >= 33 && g.fair(p.ovr) <= sal * 1.2;
         delete p.opt; if (stay) { note(t, p.name + ' exercised his player option (' + sal.toFixed(2) + 'M)'); } else { p.exp = Y; note(t, p.name + ' declined his player option and is a free agent'); lg(t, p.name + ' declined his player option with the ' + s.teams[t].region + ' ' + s.teams[t].name, [id]); } }
@@ -353,7 +359,7 @@ export function openFreeAgency(g: Game, s: any) {
         const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (star ? 0.95 : p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP, star);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
       if (gone) { p.birdTid = null; delete p.rfa; note(t, p.name + '’s contract expired. He asked for a trade and you kept him, so he won’t re-sign: he’s an unrestricted free agent'); }
-      else if (user) { if (t === s.me && dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
+      else if (user) { if (dec['let' + id]) letGo.push(id); else note(t, p.name + '’s contract expired: he’s a free agent' + (p.rfa ? ' (restricted: you can match any offer sheet)' : p.birdTid === t ? ' (you hold his ' + (birdOf(p, t) === 'full' ? 'full ' : birdOf(p, t) === 'early' ? 'early ' : 'non-') + 'Bird rights; re-sign him from Free agency)' : '') + '.'); }
       p.rookie = false; box.fa.push(id); return false; }); });
   // CCP contracts run for the season: last season's players become free again, and their
   // CCP teams keep returning rights.
@@ -363,13 +369,15 @@ export function openFreeAgency(g: Game, s: any) {
   const now = stamp(g, s);
   s.teams.forEach(t => { const c = { ...(box.cap[t.tid] || {}) };
     box.cap[t.tid] = { ...c, exc: { ...freshExceptions(g), used: [] }, hardCap: null, renounced: [], dpe: null, tpe: (c.tpe || []).filter(x => x.until > now), dead: (c.dead || []).filter(d => Object.keys(d.amts || {}).some(y => +y > Y)) }; });
-  if (letGo.length) { const c = box.cap[s.me]; box.cap[s.me] = { ...c, renounced: [...(c.renounced || []), ...letGo] };
-    letGo.forEach(id => { const p = P[id]; p.birdTid = null; delete p.rfa; note(s.me, p.name + '’s contract expired and you renounced his rights, as decided: he’s an unrestricted free agent and his cap hold is off your books.'); }); }
+  if (letGo.length) {
+    letGo.forEach(id => { const p = P[id], tid = p.birdTid, c = box.cap[tid]; box.cap[tid] = { ...c, renounced: [...(c.renounced || []), id] }; p.birdTid = null; delete p.rfa; note(tid, p.name + '’s contract expired and you renounced his rights, as decided: he’s an unrestricted free agent and his cap hold is off your books.'); }); }
   // Nobody may start free agency with more than the camp limit (21) under contract: AI teams trim.
   s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > campMax(s)) { const w = pickCut(g, { ...s, rosters: box.rosters }, t.tid, box.rosters[t.tid])!.p; waivePlayer(g, s, box, t.tid, w, 'waive'); } }); // rosterAI: worth to the team, not overall alone
   const nFA = box.fa.length, nR = box.fa.filter(id => P[id].rfa).length;
   lgLog = [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + nFA + ' players available (' + nR + ' restricted). The ' + Y + '–' + String(Y + 1).slice(2) + ' mid-level is ' + N.NTMLE + 'M (non-taxpayer), ' + N.TPMLE + 'M (taxpayer), bi-annual ' + N.BAE + 'M, room ' + N.ROOM + 'M.' }, ...lgLog];
-  const logs = clubLogs(g, s, by);
+  const logs: any = clubLogs(g, s, by);
+  let st = { ...s, ...logs };
+  (s.managed || []).forEach(tid => { const patch = g.clubPatch(st, tid, { bonusPaid: 0, bonusYear: Y + 1 }); Object.assign(logs, patch); st = { ...st, ...patch }; });
   return { ...logs, ...unbox(box), lgLog, decide: {}, offerSheets: [], faNotes: by[s.me] || [] };
 }
 
@@ -384,7 +392,7 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
     p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, floor, (p.ask || minS) * decay).toFixed(2); });
   for (let k = 0; k < moves; k++) {
     const pool = box.fa.filter(id => !P[id].retired).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 10); if (!pool.length) break;
-    const id = pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa };
+    const id = pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa, offerSheets };
     // His own team (Bird rights) first, then the teams with the most cap room, then everyone else.
     // Each team's room, worked out once per move (nothing changes until someone signs).
     const roomOf = new Map<number, number>(T.filter(t => !g.isUser(s, t.tid)).map(t => [t.tid, N.CAP - teamSalary(g, st, t.tid, { holds: true })])), room = (t: number) => roomOf.get(t) ?? 0;
@@ -394,6 +402,8 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
       if (std >= seasonMax(s) || (std >= seasonMax(s) - 2 && !spare && p.ovr <= (depth[seasonMax(s) - 3] ?? 0) + 1 && p.birdTid !== t)) continue;
       const terms = aiTerms(g, st, t, p); if (!terms) continue;
+      if (p.rfa && p.rfa.tid !== t) terms.raise = vRaise(g, st, t, p, terms.method);
+      if (!validateSigning(g, st, t, p, terms).ok) continue;
       if (terms.method !== 'min' && teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0), N.CAP, terms.method === 'bird' ? keepStarLimit(g, s, box.rosters, t, p, stratOf()) : 0)) continue;
       if (p.rfa && p.rfa.tid !== t) { // offer sheet
         const orig = p.rfa.tid, sheet = { ...terms, method: terms.method };

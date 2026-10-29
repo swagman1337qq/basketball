@@ -5,7 +5,7 @@ import { addTx } from './txlog';
 import { callUpNote } from './gleague';
 import { birdOf, capRoom, capState, DAY, exceptionsOf, freshExceptions, nums, rosterMax, seasonMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, deadSchedule, type Method } from './cba';
 
-export interface Terms { method: string; amt: number; years: number; opt?: 'player' | 'team' | null; inc?: any[]; kicker?: number; ntc?: boolean }
+export interface Terms { method: string; amt: number; years: number; opt?: 'player' | 'team' | null; inc?: any[]; kicker?: number; ntc?: boolean; raise?: number }
 
 // First season a new contract covers: next season during the offseason, else this one.
 export const firstSeason = (g: Game, s: any) => (['fa', 'draft', 'lottery', 'playoffs', 'playin'].includes(s.phase) && s.phase !== 'regular' && s.phase !== 'preseason' ? g.Y + 1 : g.Y);
@@ -35,9 +35,10 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   const N = nums(g), Y1 = firstSeason(g, s), yos = yosOf(g, p), minS = N.min(yos);
   const cap = { ...(box.cap[tid] || {}) }, exc = { ...(cap.exc || freshExceptions(g)), used: [...((cap.exc || {}).used || [])] };
   const prevTid = p.birdTid;
+  delete p.ext; delete p.extNoTrade;
   // Contract terms.
-  p.prevAmt = p.amt; p.amt = +t.amt.toFixed(2); p.inc = (t.inc || []).map(x => ({ ...x }));
-  p.exp = Y1 + Math.max(1, t.years) - 1; p.raise = t.method === 'bird' ? 0.08 : ['min', 'twoWay', 'ex10', 'tenDay', 'hardship', 'dpe'].includes(t.method) ? 0 : 0.05;
+  p.prevAmt = p.amt; p.amt = +t.amt.toFixed(2); p.raiseBase = p.amt; p.inc = (t.inc || []).map(x => ({ ...x }));
+  p.exp = Y1 + Math.max(1, t.years) - 1; p.raise = t.raise ?? (t.method === 'bird' ? 0.08 : ['min', 'twoWay', 'ex10', 'tenDay', 'hardship', 'dpe'].includes(t.method) ? 0 : 0.05);
   p.opt = t.opt && t.years >= 2 ? { kind: t.opt, season: p.exp } : undefined; p.kicker = t.kicker || 0; p.ntc = !!t.ntc;
   p.ctype = t.method === 'twoWay' ? 'twoWay' : t.method === 'ex10' ? 'ex10' : t.method === 'tenDay' ? 'tenDay' : t.method === 'hardship' ? 'hardship' : t.amt >= N.max(yos) - 0.05 ? 'max' : t.amt <= minS * 1.02 ? 'min' : 'standard';
   p.capOverride = t.method === 'twoWay' ? 0 : t.method === 'min' && t.years === 1 && yos >= 2 ? N.min(2) : undefined; // two-ways are off the cap; one-year veteran minimums count as the 2-year minimum
@@ -53,7 +54,7 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   if (t.method === 'twoWay') p.twoWay = { tid, games: 0 }; else delete p.twoWay;
   box.rosters[tid] = [...(box.rosters[tid] || []).filter(x => x !== p.id), p.id];
   // Exceptions and hard caps.
-  if (['cap', 'room', 'ntmle', 'tpmle', 'bae'].includes(t.method)) { if (!exc.used.includes(t.method)) exc.used.push(t.method); if (exc[t.method] != null) exc[t.method] = Math.max(0, +(exc[t.method] - t.amt).toFixed(2)); }
+  if (['cap', 'room', 'ntmle', 'tpmle', 'bae'].includes(t.method)) { if (!exc.used.includes(t.method)) exc.used.push(t.method); if (exc[t.method] != null) exc[t.method] = Math.max(0, +(exc[t.method] - t.amt - (t.inc || []).reduce((a, x) => a + x.amt, 0)).toFixed(2)); }
   if (t.method === 'bae') cap.baeLast = Y1;
   if (t.method === 'ntmle' || t.method === 'bae') cap.hardCap = 'AP1';
   if (t.method === 'tpmle' && cap.hardCap !== 'AP1') cap.hardCap = 'AP2';
@@ -72,18 +73,25 @@ function describe(g: Game, t: Terms, p: any) {
 // Can this signing go through? (Validates against the CBA methods.) God Mode too: only its Force Sign
 // (forceSignBlock) skips the salary cap.
 export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms): { ok: boolean; why?: string; m?: Method } {
+  if ((s.offerSheets || []).some(x => x.from === tid)) return { ok: false, why: 'Resolve your outstanding offer sheet before committing more salary.' };
+  if (p.rfa && p.rfa.tid !== tid && t.years - (t.opt ? 1 : 0) < 2) return { ok: false, why: 'An offer sheet requires at least two seasons excluding an option season.' };
   const m = signingMethods(g, s, tid, p).find(x => x.key === t.method);
   if (!m) return { ok: false, why: 'That signing method isn’t available.' };
   if (!m.ok) return { ok: false, why: m.why || 'Not available', m };
   if (t.amt > m.maxFirst + 0.005) return { ok: false, why: m.label + ' allows at most ' + m.maxFirst.toFixed(2) + 'M in the first year.', m };
+  const likely = (t.inc || []).filter(x => x.likely).reduce((a, x) => a + x.amt, 0), unlikely = (t.inc || []).filter(x => !x.likely).reduce((a, x) => a + x.amt, 0);
+  if ((t.inc || []).some(x => !Number.isFinite(x.amt) || x.amt < 0)) return { ok: false, why: 'Invalid incentive amount.' };
+  if (unlikely > (t.amt - likely) * 0.15 + 0.005) return { ok: false, why: 'Unlikely bonuses cannot exceed 15% of regular salary.' };
+  if (t.amt + unlikely > m.maxFirst + 0.005) return { ok: false, why: 'First-year salary plus all bonuses must fit the signing limit.' };
+  if (t.inc?.length && ['min', 'twoWay', 'ex10', 'tenDay', 'hardship'].includes(t.method)) return { ok: false, why: 'This contract cannot contain performance bonuses.' };
   const minS = nums(g).min(yosOf(g, p));
-  if (!['twoWay', 'tenDay', 'hardship'].includes(t.method) && t.amt < minS - 0.005) return { ok: false, why: 'Below his minimum salary (' + minS.toFixed(2) + 'M for ' + yosOf(g, p) + ' years of service).', m };
+  if (!['twoWay', 'tenDay', 'hardship'].includes(t.method) && t.amt - likely < minS - 0.005) return { ok: false, why: 'Below his minimum salary (' + minS.toFixed(2) + 'M for ' + yosOf(g, p) + ' years of service).', m };
   if (m.maxYears > 0 && (t.years < 1 || t.years > m.maxYears)) return { ok: false, why: m.label + ' allows 1–' + m.maxYears + ' years' + (m.maxYears < 4 && p.age >= 35 ? ' (over-38 rule)' : '') + '.', m };
   if (t.method === 'bird' && birdOf(p, tid) === 'early' && t.years < 2) return { ok: false, why: 'Early Bird contracts must be at least 2 years.', m };
   if (t.ntc && !(yosOf(g, p) >= 8 && t.method === 'bird' && (p.yrsWith || 0) >= 4)) return { ok: false, why: 'No-trade clauses need 8+ years of service and 4+ years with your team (re-signing with Bird rights).', m };
   if (t.kicker && (t.kicker < 0 || t.kicker > 0.15)) return { ok: false, why: 'Trade kickers are 0–15%.', m };
   // Hard cap after signing.
-  const cs = capState(s, tid), N = nums(g), after = teamSalary(g, s, tid) + (t.method === 'twoWay' ? 0 : t.amt), hc = m.hardCap || cs.hardCap;
+  const cs = capState(s, tid), N = nums(g), after = teamSalary(g, s, tid) + (s.rosters[tid] || []).reduce((a, id) => a + (g.db.P[id].inc || []).filter(x => !x.likely).reduce((n, x) => n + x.amt, 0), 0) + (t.method === 'twoWay' ? 0 : t.amt + unlikely), hc = m.hardCap || cs.hardCap;
   if (hc === 'AP1' && after > N.AP1) return { ok: false, why: 'This would put you over the 1st apron, where you’re hard-capped.', m };
   if (hc === 'AP2' && after > N.AP2) return { ok: false, why: 'This would put you over the 2nd apron, where you’re hard-capped.', m };
   return { ok: true, m };
@@ -122,13 +130,13 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
 // Waive a player. 'waive': remaining guaranteed salary stays on the cap as dead money in the
 // seasons it was due; 'stretch': spread over twice the remaining years plus one; 'buyout': he
 // gives back part of what he's owed first. A team under the cap may claim him off waivers.
-export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; cap: any }, tid: number, p: any, mode: 'waive' | 'stretch' | 'buyout' = 'waive', giveBack = 0) {
+export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; cap: any }, tid: number, p: any, mode: 'waive' | 'stretch' | 'buyout' = 'waive', giveBack = 0, allowClaim = true) {
   const T = s.teams[tid], lines: string[] = [];
   const amts = deadSchedule(g, s, p, mode === 'stretch', mode === 'buyout' ? giveBack : 0);
   box.rosters[tid] = (box.rosters[tid] || []).filter(x => x !== p.id);
   const cap = { ...(box.cap[tid] || {}) };
   // Waiver claim: an AI team with room for the whole contract takes it over (no dead money).
-  const claimant = s.teams.filter(t => t.tid !== tid && !g.isUser(s, t.tid) && stdIds(g, box.rosters[t.tid] || []).length < seasonMax(s) && capRoom(g, { ...s, rosters: box.rosters }, t.tid) >= p.amt && p.ovr >= 48 && mode !== 'buyout').sort(() => Math.random() - 0.5)[0];
+  const claimant = allowClaim && s.teams.filter(t => t.tid !== tid && !g.isUser(s, t.tid) && stdIds(g, box.rosters[t.tid] || []).length < seasonMax(s) && capRoom(g, { ...s, rosters: box.rosters }, t.tid) >= p.amt && p.ovr >= 48 && mode !== 'buyout').sort(() => Math.random() - 0.5)[0];
   if (claimant && Math.random() < 0.5 && p.ctype !== 'tenDay') {
     box.rosters[claimant.tid] = [...box.rosters[claimant.tid], p.id]; p.yrsWith = 0;
     lines.push(claimant.region + ' ' + claimant.name + ' claimed ' + p.name + ' off waivers from ' + T.abbr + ' (contract and all).');
@@ -136,6 +144,7 @@ export function waivePlayer(g: Game, s: any, box: { rosters: any; fa: number[]; 
     const total = Object.values(amts).reduce((a: number, b: any) => a + b, 0) as number;
     if (total > 0) cap.dead = [...(cap.dead || []), { pid: p.id, name: p.name, amts, mode, season: g.Y }];
     box.fa.push(p.id); p.waived = { season: g.Y, day: s.day, prevAmt: p.amt, tid }; p.lastTid = tid; if (p.ctype === 'ex10') p.wasEx10 = true;
+    delete p.ext; delete p.extNoTrade;
     p.ask = Math.max(nums(g).min(yosOf(g, p)), +(g.fair(p.ovr) * 0.8).toFixed(2)); p.birdTid = null; p.yrsWith = 0; p.ctype = 'standard'; delete p.opt; delete p.tenDay; delete p.twoWay; delete p.capOverride; p.kicker = 0; p.ntc = false; p.inc = [];
     lines.push(T.region + ' ' + T.name + (mode === 'buyout' ? ' bought out ' : ' waived ') + p.name + (total > 0 ? ' · ' + total.toFixed(2) + 'M dead money' + (mode === 'stretch' ? ' stretched over ' + Object.keys(amts).length + ' seasons' : '') : ''));
   }

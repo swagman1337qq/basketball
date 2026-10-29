@@ -2,6 +2,20 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-29
+
+### Fixed
+- **Draft picks and swaps cannot be double-booked.** Offering a first-round pick removes its swap from the deal, and offering a swap removes the affected firsts. You cannot offer a new swap after trading away its underlying pick, or sell a first already committed to a swap. Older invalid swaps cannot take another team's pick.
+- **Restricted free agents keep their matching rights.** All offers to another club's restricted free agent go through an offer sheet funded by cap room or an actual exception. Pending sheets reserve their funding; completed deals spend that exception and apply its hard cap.
+- **Guaranteed contracts stay on your books after an overseas release.** Signed extension years remain guaranteed when a player is waived, and an old extension cannot reappear after he signs a new deal. Current-year guaranteed salary stays on the cap; in-season stretching applies to future years. New contracts use raises based on first-year salary.
+- **Hardship replacements can play.** An authorized extra player no longer stops your season for exceeding the normal roster limit; the replacement does not create room for unrelated extra signings.
+- **Trades count the first-round picks you receive.** Exchanging consecutive future firsts now passes the Stepien check when both teams retain firsts in those drafts.
+- **Every managed club finishes its offseason decisions.** Free agency waits for all your franchises, and letting a player go renounces that club's rights and cap hold.
+- **Postseason games affect health and fatigue.** Play-in and playoff games now run injury risk, recovery and fatigue once per game day, including when simulating an entire round.
+- **Expansion draft numbers stay correct.** Second-round player records use the league's actual size.
+- **Incentive bonuses are accounted for once each year.** Earned bonuses are separated from base payroll, tax calculations reflect earned bonuses, and next year's likely/unlikely classification follows the preceding season. Annual bonus spending resets, minimum-exception contracts cannot add performance bonuses, and unlikely bonuses obey the CBA's 15% limit on regular salary and signing-funding limits.
+- **Overseas buyouts use cash.** NBA picks can no longer be paid to overseas clubs, and old saves restore second-round picks left without an NBA owner.
+
 ## 2026-10-28
 
 ### Changed

@@ -38,7 +38,7 @@ export function settlePickRules(g: Game, s: any, picks: { n: number; rd: number;
   const swaps: SwapRight[] = s.swaps || [];
   swaps.filter(w => w.yr === Y).forEach(w => {
     const pa = picks.find(p => p.rd === 1 && p.orig === w.to), pb = picks.find(p => p.rd === 1 && p.orig === w.from), A = first(Y, w.to), B = first(Y, w.from);
-    if (!pa || !pb || !A || !B) return;
+    if (!pa || !pb || !A || !B || A.owner !== w.to || B.owner !== w.from) return;
     if (kept.has(w.from) || kept.has(w.to)) { line(T[w.to].abbr, T[w.to].region + '’s ' + Y + ' swap with ' + T[w.from].region + ' is void: one of the picks stayed home under its protection'); return; }
     if (pb.n < pa.n) { const o = A.owner; A.owner = B.owner; B.owner = o; line(T[w.to].abbr, T[w.to].region + ' swapped firsts with ' + T[w.from].region + ': No. ' + pa.n + ' for No. ' + pb.n); }
     else line(T[w.to].abbr, T[w.to].region + ' kept its own first (No. ' + pa.n + '); swapping with ' + T[w.from].region + '’s No. ' + pb.n + ' wouldn’t help');
@@ -52,4 +52,17 @@ export function protFactor(slot: number, prot?: number) {
   if (!prot) return 1;
   const p = 1 / (1 + Math.exp((slot - prot - 0.5) / 2.2)); // chance it lands inside
   return 1 - p * 0.55;
+}
+
+// Only unencumbered, still-owned firsts can support this game's two-club swap.
+export function canOfferSwap(s: any, year: number, a: number, b: number) {
+  return [a, b].every(t => s.assets.some(p => p.yr === year && p.rd === 1 && p.orig === t && p.owner === t && !p.prot))
+    && !(s.swaps || []).some(w => w.yr === year && [w.from, w.to].some(t => t === a || t === b));
+}
+export function toggleTradePick(s: any, key: string, id: string) {
+  const selected = s[key] || []; if (selected.includes(id)) return { [key]: selected.filter(x => x !== id), tMsg: null };
+  const isSwap = id.startsWith('swap:'), asset = s.assets.find(a => a.id === id), year = isSwap ? +id.slice(5) : asset?.rd === 1 ? asset.yr : null;
+  const out: any = { tkMine: [...s.tkMine], tkTheirs: [...s.tkTheirs], tMsg: null };
+  if (year != null) for (const k of ['tkMine', 'tkTheirs']) out[k] = out[k].filter(x => isSwap ? x !== 'swap:' + year && !s.assets.some(a => a.id === x && a.rd === 1 && a.yr === year) : x !== 'swap:' + year);
+  out[key].push(id); return out;
 }

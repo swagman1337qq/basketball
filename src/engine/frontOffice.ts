@@ -135,18 +135,22 @@ export function revenueSharing(g: Game, s: any, tid: number) {
 // ── Finances ─────────────────────────────────────────────────────────────────────
 export function financesOf(g: Game, s: any, tid: number) {
   const T = s.teams[tid], { b, att, cap, tix, lf, parts } = localOf(g, s, tid);
-  const payroll = teamSalary(g, s, tid);
+  const payroll = teamSalary(g, s, tid), capBonus = s.cap?.[tid];
+  const likelyBonus = (s.rosters[tid] || []).reduce((a, id) => a + (g.db.P[id].inc || []).filter(x => x.likely).reduce((n, x) => n + x.amt, 0), 0);
+  const settled = s.phase !== 'fa' && capBonus?.bonusYear === g.Y;
+  const bonusPaid = settled ? capBonus.bonusPaid || 0 : likelyBonus;
+  const taxPayroll = payroll + (settled ? bonusPaid - likelyBonus : 0);
   // Repeater: a taxpayer in at least three of the previous four seasons.
   const club = g.clubOf(s, tid), taxHist = (s.cap?.[tid]?.taxHist) || club?.taxHist || [];
   const repeater = taxHist.slice(-4).filter(Boolean).length >= 3;
-  const taxBill = Math.max(0, cbaTax(g, payroll, repeater) + (T.taxAdj || 0));
+  const taxBill = Math.max(0, cbaTax(g, taxPayroll, repeater) + (T.taxAdj || 0));
   void capState;
   const share = revenueSharing(g, s, tid);
   const rev: [string, number][] = [parts[0], ['National media rights', 152.0 * lf], ...parts.slice(1)];
   if (share > 0.05) rev.push(['Revenue sharing received', share]);
   if (payroll <= g.TAX) rev.push(['Tax distribution (est.)', 11.5 * lf]);
   const dead = s.cap?.[tid]?.dead?.reduce((a, d) => a + (d.amts?.[g.Y] || 0), 0) || 0;
-  const exp: [string, number][] = [...(share < -0.05 ? [['Revenue sharing paid', -share] as [string, number]] : []), ['Player payroll', payroll - dead - (T.capAdj || 0)], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(club?.bonusPaid ? [['Incentive bonuses paid', club.bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
+  const exp: [string, number][] = [...(share < -0.05 ? [['Revenue sharing paid', -share] as [string, number]] : []), ['Player payroll', payroll - dead - (T.capAdj || 0) - likelyBonus], ...(dead ? [['Dead money (waived players)', dead] as [string, number]] : []), ...(T.capAdj ? [['Payroll adjustment (God Mode)', T.capAdj] as [string, number]] : []), ...(payroll < g.MINP ? [['Salary-floor shortfall (paid to players)', g.MINP - payroll] as [string, number]] : []), ...(taxBill ? [[repeater ? 'Luxury tax (repeater rates)' : 'Luxury tax', taxBill] as [string, number]] : []), ['Arena & game operations', 55.0 * lf], ['Front office & staff', 25.0 * lf], ['Team travel', 9.0 * lf], ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []), ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []), ...(bonusPaid ? [[settled ? 'Incentive bonuses paid' : 'Incentive bonuses (projected)', bonusPaid] as [string, number]] : []), ['Coaching', b.Coaching * lf], ['Health', b.Health * lf], ['Facilities', b.Facilities * lf], ['Scouting', b.Scouting * lf]];
   // Under the salary floor at season's end, the team pays its players the difference (NBA rule; 2026-10-18).
   const short = Math.max(0, nums(g).FLOOR - payroll); if (short > 0.05) exp.push(['Salary-floor shortfall (paid to players)', +short.toFixed(1)]);
   const net = rev.reduce((a, r) => a + r[1], 0) - exp.reduce((a, r) => a + r[1], 0);
@@ -254,26 +258,38 @@ export function seasonReview(g: Game) {
     if (s.phase !== 'playoffs' || !s.po || s.po.champ == null || s.reviewed === g.Y) return null;
     const P = g.db.P, T = s.teams, Y = g.Y, news = (s.news || []).slice(), lgLog = s.lgLog.slice();
     const finOf = tid => { const h = s.history[0]; return h?.teams?.[tid]?.fin || (s.po.rounds[0].some(x => x.a === tid || x.b === tid) ? 'Made the playoffs' : 'Missed the playoffs'); };
-    let clubs = { ...(s.clubs || {}) }, top: any = {};
+    let clubs = { ...(s.clubs || {}) }, top: any = {}, cap = { ...(s.cap || {}) };
     const setClub = (tid, f) => { const st = { ...s, ...top, clubs }; const pt = g.clubPatch(st, tid, f(g.clubOf(st, tid) || {}), clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; };
 
     // 1. Incentives: pay what was earned, re-classify likely/unlikely for next season.
     const made = new Set<number>(s.po.rounds[0].flatMap(x => [x.a, x.b]));
     const aw = (s.awards || {})[Y] || {};
-    Object.keys(s.rosters).forEach(k => s.rosters[k].forEach(id => {
-      const p = P[id]; if (!p.inc?.length) return;
-      const t = g.seasonTotals(p, Y);
-      let paid = 0;
-      p.inc.forEach(x => { const ok = incentiveMet(x, p, t, +k, made, aw, T); x.lastMet = ok; x.likely = ok; if (ok) { paid += x.amt; x.paid = (x.paid || 0) + x.amt; } });
-      if (paid && g.isUser(s, +k)) setClub(+k, c => ({ bonusPaid: (c.bonusPaid || 0) + paid, log: [{ date: g.fmtS(s.day), day: s.day, text: p.name + ' earned ' + money(paid) + ' in incentive bonuses' }, ...(c.log || [])] }));
-    }));
+    Object.keys(s.rosters).forEach(k => {
+      let paidTeam = 0, likelyTeam = 0;
+      s.rosters[k].forEach(id => {
+        const p = P[id]; if (!p.inc?.length) return;
+        const t = g.seasonTotals(p, Y); let paid = 0;
+        p.inc.forEach(x => {
+          const ok = incentiveMet(x, p, t, +k, made, aw, T);
+          if (x.likely) likelyTeam += x.amt;
+          x.lastMet = ok; x.nextLikely = ok; x.paid = ok ? x.amt : 0; x.paidSeason = Y;
+          if (ok) paid += x.amt;
+        });
+        paidTeam += paid;
+        if (paid && g.isUser(s, +k)) setClub(+k, c => ({ log: [{ date: g.fmtS(s.day), day: s.day, text: p.name + ' earned ' + money(paid) + ' in incentive bonuses' }, ...(c.log || [])] }));
+      });
+      const c = { ...(cap[k] || {}) }, taxSalary = teamSalary(g, s, +k) + paidTeam - likelyTeam;
+      if (c.taxHist?.length) c.taxHist = [...c.taxHist.slice(0, -1), taxSalary > nums(g).TAX];
+      cap[k] = { ...c, bonusYear: Y, bonusPaid: paidTeam, bonusLikely: likelyTeam };
+      if (g.isUser(s, +k)) setClub(+k, () => ({ bonusYear: Y, bonusPaid: paidTeam }));
+    });
 
     // 2. Owner verdicts for every franchise you run.
     const teamHist = { ...(s.teamHist || {}) }, career = { ...(s.career || { seasons: [] }), seasons: (s.career?.seasons || []).slice() };
     if ((aw.coy || [])[0] && g.isUser(s, aw.coy[0].tid)) career.coy = (career.coy || 0) + 1;
     const fired: number[] = [];
     s.managed.forEach(tid => {
-      const rv = ownerReview(g, s, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god || s.easy?.fire || s.graceY === Y ? [] : fireReasons(g, s, tid, rv, fin); // graceY: you took the team over from Spectator Mode this season
+      const rv = ownerReview(g, { ...s, ...top, clubs, cap }, tid), fin = finOf(tid), reasons = s.ownerFiring === false || s.god || s.easy?.fire || s.graceY === Y ? [] : fireReasons(g, s, tid, rv, fin); // graceY: you took the team over from Spectator Mode this season
       career.seasons.push({ season: Y, tid, w: T[tid].w, l: T[tid].l, fin, sec: rv.sec, fired: reasons.length > 0 });
       if (reasons.length) {
         fired.push(tid); career.fired = (career.fired || 0) + 1;
@@ -318,7 +334,7 @@ export function seasonReview(g: Game) {
     // Fired from every club you run: you stay in charge until you accept a new job.
     const allFired = fired.length && fired.length >= s.managed.length;
     fired.filter(t => !allFired || t !== s.me).forEach(t => { if (s.managed.length > 1) { /* handed over after the updater */ } });
-    return { ...top, clubs, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, gmOffer, gmAsk: null, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: s.spectator ? s.screen : fired.length ? 'career' : 'playoffs' };
+    return { ...top, clubs, cap, news, lgLog, teamHist, career: { ...career, rep }, reviewed: Y, gmOffer, gmAsk: null, jobs: { season: Y, vacancies, offers, applied: {} }, firedFrom: fired, unemployed: !!allFired, phase: 'lottery', screen: s.spectator ? s.screen : fired.length ? 'career' : 'playoffs' };
   });
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
@@ -444,7 +460,9 @@ export function acceptJob(g: Game, offerId: string, optIdx: number, leave: boole
 // against the cap); unlikely incentives don't, which is why cap-strapped teams use them.
 export function incentiveOptions(g: Game, s: any, p: any, tid: number, salary: number) {
   const last = g.seasonTotals(p, g.Y - (s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs' ? 1 : 0)) || null;
-  const lastPo = new Set<number>((s.history?.[0] ? [] : []) as number[]);
+  const previousYear = g.Y - (['regular', 'playin', 'playoffs', 'preseason'].includes(s.phase) ? 1 : 0);
+  const previous = (s.history || []).find(h => h.year === previousYear);
+  const lastPo = new Set<number>(Object.entries(previous?.teams || {}).filter(([, t]: any) => !/Missed|play-in/.test(t.fin)).map(([id]) => +id));
   const pg = (k: string) => (last && last.gp ? (k === 'reb' ? (last.orb + last.drb) / last.gp : last[k] / last.gp) : null);
   const out: any[] = [];
   const amt = (f: number) => +Math.max(0.1, salary * f).toFixed(1);
@@ -459,7 +477,10 @@ export function incentiveOptions(g: Game, s: any, p: any, tid: number, salary: n
   out.push({ k: 'wins', label: 'Team wins 50 games', target: 50, amt: amt(0.05), likely: s.teams[tid].w >= 50 && s.phase !== 'regular' });
   if (p.ovr >= 62) out.push({ k: 'allLeague', label: 'Named to an All-League team', amt: amt(0.1), likely: false });
   if (p.r.diq >= 66) out.push({ k: 'allDef', label: 'Named to an All-Defensive team', amt: amt(0.07), likely: false });
-  void lastPo;
+  const previousTeams = s.teams.map(t => ({ ...t, w: previous?.teams?.[t.tid]?.w ?? (previousYear === g.Y ? t.w : 0) }));
+  out.forEach(x => {
+    if (last || ['playoffs', 'wins', 'allLeague', 'allDef'].includes(x.k)) x.likely = incentiveMet(x, p, last, tid, lastPo, s.awards?.[previousYear] || {}, previousTeams);
+  });
   return out;
 }
 // Base salary after moving value into incentives: likely bonuses count in full,

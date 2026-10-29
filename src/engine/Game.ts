@@ -23,6 +23,7 @@ import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { agentCallNotice, askOf, settleAbroad, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, floorSigning, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
+import { hardshipSlots } from './cba';
 import { aiTerms, applySigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, numsWith, retiredNums } from './jerseys';
@@ -215,6 +216,8 @@ export class Game {
     if (g.state.notices?.length) { const n = g.state.notices; g.state.notices = []; g.setState({ notices: n }); } // pop-ups from older saves go to the Mailbox
     if ((g.db.v || 1) < 2) g.migrateV1();
     if (!g.state.tstats) g.state.tstats = {};
+    // Legacy overseas pick payments left an asset with no NBA owner. Restore its original franchise.
+    g.state.assets = (g.state.assets || []).map(a => a.owner === -1 && a.rd === 2 ? { ...a, owner: a.orig } : a);
     // Teams renamed in 2026 to fit their cities: saves that kept the old default nicknames update.
     const fix = (t: any) => { if (t && (OLD_NICKNAMES[t.abbr] || []).includes(t.name)) { const nt = TEAMS.find(x => x[2] === t.abbr), fr = FRANCHISES.find(x => x.abbr === t.abbr), nm = nt ? nt[1] : fr?.name; if (nm) { t.name = nm; Object.assign(t, { icon: nt ? teamStyle(t.abbr).icon : fr!.icon }); } } };
     g.db.teams.forEach(fix); g.state.teams = g.state.teams.map((t: any) => { const c = { ...t }; fix(c); return c; });
@@ -882,14 +885,14 @@ export class Game {
   // ── Multi-team control ─────────────────────────────────────────────────────────
   // `managed` are the franchises a human runs; `me` is the one on screen. Per-club settings
   // (CLUB_KEYS) live at the top level of state for `me` and in `clubs[tid]` for the others.
-  static CLUB_KEYS = ['tactics', 'tacMode', 'tacAI', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto', 'lineups'];
+  static CLUB_KEYS = ['tactics', 'tacMode', 'tacAI', 'situ', 'budget', 'train', 'scouts', 'promises', 'agentRep', 'mleUsed', 'buyoutCash', 'bonusPaid', 'bonusYear', 'taxHist', 'reports', 'log', 'prog', 'inbox', 'intel', 'scoutFocus', 'scoutAssign', 'briefPicks', 'coachAuto', 'ptInj', 'keepSorted', 'teamNote', 'scoutReports', 'scoutList', 'mentors', 'budgetAuto', 'lineups'];
   isUser(s, tid) { return (s.managed || [0]).includes(tid); }
   clubOf(s, tid) { return s.spectator ? null : tid === s.me ? s : this.isUser(s, tid) ? s.clubs?.[tid] || null : null; } // Spectator Mode: no club is yours
   defaultClub(i = 0, T?: any) { // T: the club's team, whose city sets the opening ticket price
     const SC = [['Dale Whitcombe', 'NA', 4], ['Inés Morales', 'WEU', 3], ['Goran Vuković', 'BAL', 4], ['Kwame Asante', 'AFR', 2]];
     const NP = namePools(), R = Object.keys(regions()), pick = a => a[Math.floor(Math.random() * a.length)];
     const scouts = i === 0 ? SC.map(([name, spec, skill]) => ({ name, spec, skill, assign: spec })) : R.slice(0, 4).map(k => { const k2 = pick(R); return { name: pick(NP.us.f) + ' ' + pick(NP.us.l), spec: k2, skill: 2 + Math.floor(Math.random() * 3), assign: k2 }; });
-    return { tactics: { ...TAC_DEFAULT }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: T ? ticketBaseOf(T) : 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
+    return { tactics: { ...TAC_DEFAULT }, situ: null, budget: { Coaching: 18, Health: 10, Facilities: 14, Scouting: 4, Tickets: T ? ticketBaseOf(T) : 118 }, train: {}, scouts, promises: {}, agentRep: 50, mleUsed: false, buyoutCash: 0, bonusPaid: 0, bonusYear: this.Y, taxHist: [], reports: [], log: [], prog: null, inbox: [] };
   }
   // A patch that writes club fields for any managed team (top level if it's on screen).
   clubPatch(s, tid, fields, clubs?) {
@@ -1276,24 +1279,36 @@ export class Game {
     if (finals) [res.home, res.away].forEach(sd => Object.entries(sd.box).forEach(([k, b]: any) => { if (b.min <= 0) return; const t = (finals[k] = finals[k] || { gp: 0, min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0 }); t.gp++; Object.keys(t).forEach(f => { if (f !== 'gp') t[f] += b[f] || 0; }); }));
     return { res, log: { day: s.day, h: home, a: away, hp: res.home.pts, ap: res.away.pts, ot: res.ot, po: kind, bid } };
   }
+  private postConditions(s, rosters, results) {
+    const mins: Record<number, number> = {}, participating = {};
+    results.forEach(res => [res.home, res.away].forEach(side => {
+      participating[side.tid] = rosters[side.tid];
+      Object.entries(side.box).forEach(([id, b]: any) => { mins[+id] = (mins[+id] || 0) + b.min; });
+    }));
+    this.fatigueTick(rosters, mins);
+    const injuries = []; this.injTick(participating, s.day, s, injuries, mins);
+    Object.assign(rosters, participating);
+    return injuries;
+  }
   simPlayin(forced?: GameResult) {
     if (this.mailWaiting() || (this.state.phase === 'playin' && !this.canPlay())) return;
     this.setState(s => {
       if (s.phase !== 'playin') return null;
-      const pi = JSON.parse(JSON.stringify(s.playin)), todo = this.playinPending(pi);
+      const pi = JSON.parse(JSON.stringify(s.playin)), todo = this.playinPending(pi), results = [];
       if (!todo.length) return null;
       const games = (s.games || []).slice(), rosters = { ...s.rosters }; let st: any = { ...s }, clubs = { ...(s.clubs || {}) };
       const note = (t, text) => { const pt = this.clubPatch({ ...st, clubs }, t, { log: [{ date: this.fmtS(s.day), day: s.day, text }, ...((this.clubOf({ ...st, clubs }, t) || {}).log || [])] }, clubs); if (pt.clubs) clubs = pt.clubs; else st = { ...st, ...pt }; };
       todo.forEach(({ c, x }) => {
-        const { res, log } = this.postGame(s, x.a, x.b, forced, 'playin'); this.injGame(s, rosters, x.a); this.injGame(s, rosters, x.b);
+        const { res, log } = this.postGame(s, x.a, x.b, forced, 'playin'); results.push(res);
         Object.assign(x, { hp: res.home.pts, ap: res.away.pts, bid: log.bid, done: true, w: res.home.pts > res.away.pts ? x.a : x.b, l: res.home.pts > res.away.pts ? x.b : x.a });
         games.push(log);
         [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (x.w === t ? 'Won' : 'Lost') + ' the play-in (' + x.label + ') vs ' + s.teams[x.w === t ? x.l : x.w].abbr + ', ' + Math.max(x.hp, x.ap) + '–' + Math.min(x.hp, x.ap)); });
         if (x.id === 'B' || x.id === 'A') { const [A, B, C] = pi[c]; if (A.done && B.done) Object.assign(C, { a: A.l, sa: A.l === A.a ? 7 : 8, b: B.w, sb: B.w === B.a ? 9 : 10 }); }
       });
+      const injuries = this.postConditions(s, rosters, results);
       const alive = new Set<number>(['East', 'West'].flatMap(c => (s.seeds?.[c] || []).slice(0, 10))); // still playing: the top six and the play-in
       this.healCal({ ...s, day: s.day + 1, rosters }, rosters, alive);
-      return { ...st, clubs, playin: pi, games, rosters, day: s.day + 1 };
+      return { ...st, clubs, playin: pi, games, rosters, lgLog: [...injuries.map(x => ({ day: s.day, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text })), ...s.lgLog], day: s.day + 1 };
     });
   }
   startPlayoffs() {
@@ -1326,19 +1341,21 @@ export class Game {
         po.rounds.push(nr);
       };
       const playDay = () => {
-        const ri = po.rounds.length - 1, r = po.rounds[ri];
+        const ri = po.rounds.length - 1, r = po.rounds[ri], results = [];
         r.forEach(x => {
           if (done(x)) return;
           const n = x.wa + x.wb, aHome = [0, 1, 4, 6].includes(n), home = aHome ? x.a : x.b, away = aHome ? x.b : x.a;
           const f = !used && forced && forced.home.tid === home && forced.away.tid === away ? forced : undefined;
           if (f) used = true;
-          const { res, log } = this.postGame({ ...s, day }, home, away, f, 'po', ri === 3 ? po.finals : ri === 2 ? po.cf : null); this.injGame(s, poRosters, home); this.injGame(s, poRosters, away);
+          const { res, log } = this.postGame({ ...s, day, rosters: poRosters }, home, away, f, 'po', ri === 3 ? po.finals : ri === 2 ? po.cf : null); results.push(res);
           games.push(log);
           const aWon = (res.home.pts > res.away.pts) === aHome;
           if (aWon) x.wa++; else x.wb++;
           x.g.push({ h: home, hp: res.home.pts, ap: res.away.pts, bid: log.bid });
           if (done(x)) [x.a, x.b].forEach(t => { if (this.isUser(s, t)) note(t, (W(x).t === t ? 'Won ' : 'Lost ') + (ri === 3 ? 'the Finals' : 'the ' + RN[ri]) + ' vs ' + s.teams[t === x.a ? x.b : x.a].abbr + ', ' + Math.max(x.wa, x.wb) + '–' + Math.min(x.wa, x.wb)); });
         });
+        const injuries = this.postConditions({ ...s, day, rosters: poRosters }, poRosters, results);
+        if (injuries.length) st.lgLog = [...injuries.map(x => ({ day, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text })), ...st.lgLog];
         day++;
         if (r.every(done)) advance();
       };
@@ -1355,7 +1372,7 @@ export class Game {
         const teams = {}; T.forEach(t => (teams[t.tid] = { rec: t.w + '–' + t.l, w: t.w, l: t.l, fin: finOf(t.tid), conf: t.conf, name: t.region + ' ' + t.name, abbr: t.abbr })); // every team, for league history
         out.history = [{ season: this.seasonLbl(), year: this.Y, champ: po.champ, runner: po.runner, rec: T[s.me].w + '–' + T[s.me].l, fin: finOf(s.me), teams, fmvp: fm?.pid, ring: (poRosters[po.champ] || []).slice() }, ...s.history]; // ring: the champion's roster at the final buzzer
         out.awards = { ...(s.awards || {}), [this.Y]: aw };
-        out.lgLog = [{ day, type: 'Award', teams: T[po.champ].abbr, text: T[po.champ].region + ' ' + T[po.champ].name + ' won the ' + this.seasonLbl() + ' championship' }, ...(fm ? [{ day, type: 'Award', teams: T[po.champ].abbr, pids: [fm.pid], text: this.db.P[fm.pid].name + ' is the Finals MVP: ' + fm.line }] : []), ...s.lgLog];
+        out.lgLog = [{ day, type: 'Award', teams: T[po.champ].abbr, text: T[po.champ].region + ' ' + T[po.champ].name + ' won the ' + this.seasonLbl() + ' championship' }, ...(fm ? [{ day, type: 'Award', teams: T[po.champ].abbr, pids: [fm.pid], text: this.db.P[fm.pid].name + ' is the Finals MVP: ' + fm.line }] : []), ...st.lgLog];
         out.news = [{ day, season: this.Y, kind: 'title', tid: po.champ, who: T[po.champ].owner, role: 'Owner, ' + T[po.champ].abbr, quote: 'This city deserved this. I promised a champion and ' + T[po.champ].gm + ' and this group delivered one.' }, ...(s.news || [])];
         // The owner's year-end letter for each franchise you run.
         out.letters = { ...(s.letters || {}), [this.Y]: s.managed.map(t => yearEndLetter(this, { ...s, ...out }, t, finOf(t))) };
@@ -1442,7 +1459,7 @@ export class Game {
     this.setState(s => {
       if (s.phase !== 'draft' || s.pi < s.picks.length) return null;
       if (s.gmOffer?.kind === 'expiring' && !s.unemployed) return null; // answer the owner's contract offer first
-      if (!s.preFA || (!s.easy?.cap && !s.spectator && preFAPending(this, s, s.me) > 0)) return null; // Pre-Free Agency first, with every decision made (the AI's, in Spectator Mode)
+      if (!s.preFA || (!s.easy?.cap && !s.spectator && s.managed.some(t => preFAPending(this, s, t) > 0))) return null; // Pre-Free Agency first, with every decision made (the AI's, in Spectator Mode)
       // A new league year starts when free agency opens: the cap follows the projected cap
       // outlook (at most +10% a year, as the CBA allows), and every number tied to it (tax,
       // aprons, exceptions, max and min salaries) moves with it.
@@ -1494,7 +1511,7 @@ export class Game {
   advanceFA(days) {
     if (this.mailWaiting()) return;
     this.setState(s => {
-      if (s.phase !== 'fa') return null;
+      if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length) return null;
       const fd0 = this.faDayOf(s), n = Math.max(0, Math.min(days, Game.FA_END - fd0)); if (!n) return null;
       const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } }, lgLog = s.lgLog.slice(), offerSheets = (s.offerSheets || []).slice(), sheets0 = offerSheets.length, calls = (s.agentCalls || []).slice(), calls0 = calls.length;
       let done = 0;
@@ -1538,7 +1555,7 @@ export class Game {
       const dl = dealsYearTurn(this, s, Y); dealNote = dl.notice; // local TV and sponsorship deals: raises, renewals, new partners (mediaDeals.ts), on last season's record
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = dl.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.
-      Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) p.amt = +(p.amt * (1 + p.raise)).toFixed(2); });
+      Object.values(rosters).flat().forEach((id: any) => { const p = P[id]; if (p.exp >= Y && p.signed?.season !== Y && p.raise) { p.raiseBase ??= p.amt; p.amt = +(p.amt + p.raiseBase * p.raise).toFixed(2); } });
       // Breakthroughs to 99: one in about 150 seasons league-wide, shared among the ratings sitting at 98 this summer.
       const BK = [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'], at98 = [...(Object.values(rosters).flat() as number[]), ...fa].reduce((n, id) => { const q = P[id]; return q?.r && q.age < 31 ? n + BK.filter(k => q.r[k] === 98).length : n; }, 0), brkP = Game.BREAK / Math.max(1, at98);
       const grow = (p, tid = -1, focus = 'Balanced') => { const env = envOf(this, s, p, tid, rosters), cm = tid >= 0 ? coachMult(teamBudget(this, s, tid).Coaching) : 1; let pen = 0; if (p.age < 24 && (p.minorCount || 0) >= 4) { pen = -2; moveTruePot(p, -(1 + Math.floor(Math.random() * 3))); } p.minorCount = 0; p.age++; if (p.frozen) return p.ovr; const a = p.age, rate = this.devRate(p, a), form = this.seasonForm(p), wk = p.pers?.work ?? 50, nz = () => (Math.random() + Math.random() + Math.random() - 1.5) * 2;
@@ -1689,7 +1706,7 @@ export class Game {
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { if (P[id].twoWay) P[id].twoWay.games = 0; delete P[id].poIneligible; P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; P[id].padding = false; P[id].moodAdj = Math.round((P[id].moodAdj || 0) / 2); });
       this.refreshNorms({ rosters, season: Y });
       let clubs = { ...(s.clubs || {}) }, top: any = {};
-      s.managed.forEach(t => { const f: any = { prog: progBy[t] || [] }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
+      s.managed.forEach(t => { const f: any = { prog: progBy[t] || [], bonusPaid: 0, bonusYear: Y }; if (byClub[t]) { const c = this.clubOf(s, t); f.log = [...byClub[t].map(text => ({ date: this.fmtS(s.day), day: s.day, text })), ...((c && c.log) || [])]; }
         const pt = this.clubPatch(s, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; });
       (this.db as any).boxes = {}; // last season's box scores go with its game log
       const qoMine = (byClub[s.me] || []).filter(x => /qualifying offer/.test(x)), campLines = s.managed.flatMap((t: number) => camp[t] || []);
@@ -2016,7 +2033,7 @@ export class Game {
       else inj = { ...rollInjury(INJ_DTD), dtd: true }; // plays through it, at reduced strength
       inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
       inj.until = this.injUntil(s, inj.games, day, this.gamesPlayed(s) + 1);
-      if (this.isUser(s, +k) && !inj.dtd && !p.preInj) { const c = this.clubOf(s, +k), thr = s.easy?.injuries ? 0 : ((c?.ptInj || { reg: 0 }).reg ?? 0); if (inj.games > thr) this.injAway(rosters, +k, p); }
+      if (this.isUser(s, +k) && !inj.dtd && !p.preInj) { const c = this.clubOf(s, +k), thr = s.easy?.injuries ? 0 : ((c?.ptInj || { reg: 0 })[s.phase === 'regular' ? 'reg' : 'po'] ?? 0); if (inj.games > thr) this.injAway(rosters, +k, p); }
       if (p.inj) this.injDone(p, s); // a new injury on top of a knock he was playing through: that one's over
       const H = (p.injHist = p.injHist || []); inj.h = H.length;
       H.push({ name: inj.name, games: inj.games, season: this.seasonLbl(), day: this.calNow(s), tm: s.teams[k]?.abbr, days: Math.max(1, inj.until - this.calNow(s)), ...(inj.dtd ? { dtd: true } : {}), ...(inj.major ? { major: true } : {}) });
@@ -2155,7 +2172,7 @@ export class Game {
   payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
   // Cap hit: salary (or the 2-year minimum for a one-year veteran minimum deal) plus likely bonuses.
   // In free agency (the new league year) a continuing contract counts at next season's salary.
-  capHit(p) { const next = this.state?.phase === 'fa' && p.capOverride == null && p.exp > this.Y && p.signed?.season !== this.Y + 1 && p.raise ? p.amt * (1 + p.raise) : p.amt;
+  capHit(p) { const next = this.state?.phase === 'fa' && p.capOverride == null && p.exp > this.Y && p.signed?.season !== this.Y + 1 && p.raise ? p.amt + (p.raiseBase ?? p.amt) * p.raise : p.amt;
     return (p.capOverride ?? next) + (p.inc || []).filter(x => x.likely).reduce((a, x) => a + x.amt, 0); }
 
   // One random move by an AI-run team: a signing (through a CBA method, within its owner's
@@ -2210,7 +2227,7 @@ export class Game {
   // Your teams over the roster limit (God Mode can sign and move players past it).
   rosterOver(s = this.state): { tid: number; std: number; tw: number }[] {
     const lim = rosterMax(s);
-    return (s.managed || []).map(t => ({ tid: t, std: stdIds(this, s.rosters[t] || []).length, tw: twoWayIds(this, s.rosters[t] || []).length })).filter(x => x.std > lim || x.tw > TWO_WAY_MAX);
+    return (s.managed || []).map(t => ({ tid: t, std: stdIds(this, s.rosters[t] || []).length, tw: twoWayIds(this, s.rosters[t] || []).length })).filter(x => x.std > lim + hardshipSlots(this, s, x.tid) || x.tw > TWO_WAY_MAX);
   }
   // No games while one of your teams is over the limit: a notice says who to cut, and false.
   canPlay() {
@@ -2462,7 +2479,7 @@ export class Game {
     return { hap, hapLabel: hap >= 80 ? 'Thrilled' : hap >= 62 ? 'Content' : hap >= 45 ? 'Neutral' : hap >= 30 ? 'Frustrated' : 'Wants out', hapColor: hap >= 62 ? 'var(--gm-good)' : hap < 45 ? 'var(--gm-bad)' : 'var(--color-text)', factors: out };
   }
   // Salary in a future season: this season's salary with the contract's annual raises.
-  salAt(p, y) { const r = 1 + (p.raise || 0); if (y <= p.exp) return +(p.amt * Math.pow(r, Math.max(0, y - this.Y))).toFixed(2); if (p.ext && y <= p.exp + p.ext.yrs) return +(p.ext.amt * Math.pow(1 + (p.ext.raise ?? p.raise ?? 0), y - p.exp - 1)).toFixed(2); return 0; }
+  salAt(p, y) { if (y <= p.exp) return +(p.amt + (p.raiseBase ?? p.amt) * (p.raise || 0) * Math.max(0, y - this.Y)).toFixed(2); if (p.ext && y <= p.exp + p.ext.yrs) return +(p.ext.amt * (1 + (p.ext.raise ?? p.raise ?? 0) * (y - p.exp - 1))).toFixed(2); return 0; }
   // God Mode's Force Sign on the signing dialog: past the salary cap (cbaFlow.userSign).
   forceSign() { if (this.state.dialog?.type === 'sign' && this.state.god) userSign(this, true); }
   confirmDialog() {
@@ -2471,7 +2488,7 @@ export class Game {
     if (dg0?.type === 'release') return userRelease(this);
     this.setState(s => {
       const dg = s.dialog; if (!dg) return null; const p = this.db.P[dg.pid];
-      if (dg.type === 'abroad') { const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; addTx(this, s, p, { k: 'abroad', tid: s.me, text: 'Released to play overseas for ' + k2[0] + ' (' + k2[1] + ')' }); p.overseasArc = { left: this.Y, from: s.teams[s.me].abbr, ovr: p.ovr, club: k2[0], lg: k2[1] }; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
+      if (dg.type === 'abroad') { const box = { rosters: { ...s.rosters }, fa: [...s.fa], cap: { ...s.cap } }; waivePlayer(this, s, box, s.me, p, 'waive', 0, false); const CL = clubs(), cc0 = ['ES', 'TR', 'GR', 'IT', 'FR', 'DE', 'CN', 'AU'][Math.floor(Math.random() * 8)], k2 = CL[cc0][Math.floor(Math.random() * CL[cc0].length)]; p.abroad = { club: k2[0], lg: k2[1], country: cc0, pts: 0, reb: 0, ast: 0, clause: 'NBA out clause', fee: .5 }; p.redeem = true; addTx(this, s, p, { k: 'abroad', tid: s.me, text: 'Released to play overseas for ' + k2[0] + ' (' + k2[1] + ')' }); p.overseasArc = { left: this.Y, from: s.teams[s.me].abbr, ovr: p.ovr, club: k2[0], lg: k2[1] }; p.ask = Math.max(2.44, p.amt * .7); return { dialog: null, overseas: [p.id, ...(s.overseas || [])], cap: box.cap, rosters: box.rosters, log: this.logEntry(s, 'Released ' + p.name + ' to play for ' + k2[0] + ' (' + k2[1] + ')') }; }
       if (dg.type === 'release') { p.ask = Math.max(2.44, p.amt); return { dialog: null, fa: [p.id, ...s.fa], rosters: { ...s.rosters, [s.me]: s.rosters[s.me].filter(x => x !== p.id) }, log: this.logEntry(s, 'Released ' + p.name) }; }
       return { dialog: null };
     });

@@ -1,3 +1,4 @@
+import { canOfferSwap } from './pickRules';
 // The collective bargaining agreement: salary cap, tax and aprons, every contract type
 // and signing mechanism, extensions, trades, waivers and the calendar that governs them.
 // Rules follow the 2023 NBA CBA. Dollar figures are the CBA's real ratios to the salary
@@ -18,6 +19,8 @@ export const rosterMin = (s: any) => s?.rosterLim?.min ?? 14;
 export const campMax = (s: any) => seasonMax(s) + 6;
 export const inSeasonPhase = (s: any) => s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs';
 export const rosterMax = (s: any) => (inSeasonPhase(s) ? seasonMax(s) : campMax(s));
+// An authorized hardship replacement occupies an extra standard roster place until released.
+export const hardshipSlots = (g: Game, s: any, tid: number) => inSeasonPhase(s) ? (s.rosters[tid] || []).filter(id => g.db.P[id]?.ctype === 'hardship' && g.db.P[id]?.tenDay?.tid === tid).length : 0;
 export const TWO_WAY_MAX = 3;
 // A point on the league calendar, for exceptions that last a year (traded player exceptions).
 export const stamp = (g: Game, s: any) => g.Y * 1000 + (s.phase === 'preseason' ? 50 : s.phase === 'regular' ? 100 + s.day : 300);
@@ -117,8 +120,9 @@ export function deadThis(g: Game, s: any, tid: number, season = g.Y) { return ca
 export function teamSalary(g: Game, s: any, tid: number, opts: { holds?: boolean } = {}) {
   const P = g.db.P, N = nums(g), T = s.teams[tid], ids = s.rosters[tid] || [];
   let sal = ids.reduce((a, id) => a + g.capHit(P[id]), 0) + deadThis(g, s, tid) + (T?.capAdj || 0);
+  sal += (s.offerSheets || []).filter(x => x.from === tid).reduce((a, x) => a + x.terms.amt + (x.terms.inc || []).filter(b => b.likely).reduce((n, b) => n + b.amt, 0), 0);
   if (opts.holds) {
-    const cs = capState(s, tid), own = (s.fa || []).filter(id => P[id].birdTid === tid && !cs.renounced.includes(id)), avg = own.length ? avgSalary(g, s) : 0, holds = own.map(id => capHold(g, s, P[id], avg));
+    const cs = capState(s, tid), own = [...new Set([...(s.fa || []), ...(s.offerSheets || []).filter(x => x.to === tid).map(x => x.pid)])].filter(id => P[id].birdTid === tid && !cs.renounced.includes(id)), avg = own.length ? avgSalary(g, s) : 0, holds = own.map(id => capHold(g, s, P[id], avg));
     sal += holds.reduce((a, b) => a + b, 0);
     const n = ids.length + holds.length; if (n < 12) sal += (12 - n) * N.min(0); // incomplete-roster charge
   }
@@ -128,7 +132,11 @@ export function capRoom(g: Game, s: any, tid: number) { return +(nums(g).CAP - t
 
 // Exceptions available this season. Reset when free agency opens.
 export function freshExceptions(g: Game) { const N = nums(g); return { ntmle: N.NTMLE, tpmle: N.TPMLE, room: N.ROOM, bae: N.BAE, used: [] as string[] }; }
-export function exceptionsOf(g: Game, s: any, tid: number) { return capState(s, tid).exc || freshExceptions(g); }
+export function exceptionsOf(g: Game, s: any, tid: number) {
+  const out = { ...(capState(s, tid).exc || freshExceptions(g)) };
+  (s.offerSheets || []).filter(x => x.from === tid).forEach(x => { const k = x.terms.method; if (out[k] != null) out[k] = Math.max(0, out[k] - x.terms.amt - (x.terms.inc || []).reduce((n, b) => n + b.amt, 0)); });
+  return out;
+}
 
 // ── Signing: every way a team can sign a player, with its limits ───────────────────
 export interface Method { key: string; label: string; maxFirst: number; maxYears: number; raise: number; hardCap?: 'AP1' | 'AP2'; note: string; ok: boolean; why?: string; minFirst?: number }
@@ -149,10 +157,6 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
     return { key, label, maxFirst: Math.max(0, mf), maxYears: yearsCap(maxYears), raise, note, ok, why, hardCap, minFirst };
   };
   const out: Method[] = [];
-  if (p.rfa && p.rfa.tid !== tid) {
-    const arenas = yos <= 2; // Gilbert Arenas provision
-    out.push(m('offer', 'Offer sheet (restricted FA)', arenas ? Math.max(room, N.NTMLE) : Math.max(room, 0) || N.NTMLE, 4, 0.05, (arenas ? 'Arenas provision: first-year salary limited to the mid-level (' + N.NTMLE + 'M). ' : '') + 'His team has 2 days to match.', room > 0 || arenas || !exc.used.includes('ntmle'), room <= 0 && !arenas && exc.used.includes('ntmle') ? 'No cap room or mid-level left' : undefined));
-  }
   if (lvl) {
     const lim = lvl === 'full' ? max : lvl === 'early' ? Math.max(prev * 1.75, avgSalary(g, s) * 1.05) : Math.max(prev * 1.2, minS * 1.2);
     out.push(m('bird', BIRD_LABEL[lvl] + ' rights', lim, lvl === 'early' ? 4 : 5, 0.08, lvl === 'full' ? 'Exceed the cap up to his max.' : lvl === 'early' ? 'Up to 175% of his last salary or 105% of the average salary; at least 2 years.' : 'Up to 120% of his last salary.', sal + minS <= hard, sal + minS > hard ? 'Hard-capped' : undefined, undefined, lvl === 'early' ? undefined : undefined));
@@ -176,10 +180,14 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
   if (pre || phase === 'fa') out.push(m('ex10', 'Exhibit 10 (training camp)', minS, 1, 0, 'One-year, non-guaranteed minimum deal for camp. Convert him to a two-way before opening night, keep him (he becomes a standard contract) or waive him for nothing; if waived and he joins your CCP team he earns a bonus of up to ' + N.E10_BONUS.toFixed(2) + 'M.', stdCount < 21, stdCount >= 21 ? 'Camp roster full (21)' : undefined));
   if (inSeason && s.day >= DAY.TEN_DAY_START) { const n = (p.tenDayWith || {})[tid] || 0; out.push(m('tenDay', '10-day contract', +(minS * 10 / 174).toFixed(3), 0, 0, 'Prorated minimum for 10 days; at most two with the same team, then rest of season.', n < 2, n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined)); }
   const injured = (s.rosters[tid] || []).filter(id => g.db.P[id].inj && !g.db.P[id].inj.dtd).length;
-  if (inSeason && injured >= 4 && stdCount >= seasonMax(s)) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: one player past the ' + seasonMax(s) + '-man limit, on a non-guaranteed minimum deal until the roster is healthy.'));
+  if (inSeason && injured >= 4 && stdCount >= seasonMax(s) && !hardshipSlots(g, s, tid)) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: one player past the ' + seasonMax(s) + '-man limit, on a non-guaranteed minimum deal until the roster is healthy.'));
   // Roster room.
   void off;
   return out.map(x => {
+    if (p.rfa && p.rfa.tid !== tid) {
+      if (['twoWay', 'ex10', 'tenDay', 'hardship', 'dpe'].includes(x.key)) return { ...x, ok: false, why: 'A restricted free agent requires a standard offer sheet.' };
+      x = { ...x, maxFirst: Math.min(x.maxFirst, yos <= 2 ? N.NTMLE : max), note: x.note + ' Offer sheet: the original club may match.' };
+    }
     if (['twoWay', 'ex10', 'hardship'].includes(x.key)) return x;
     if (stdCount >= lim) return { ...x, ok: false, why: 'Roster full (' + lim + (inSeasonPhase(s) ? ' in season' : ' in the offseason') + ')' };
     return x;
@@ -225,11 +233,21 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
   };
   side(a, fromA, fromB); side(b, fromB, fromA);
   // Stepien rule: a team can't be without a first-round pick in consecutive future drafts.
-  [[a, picksA], [b, picksB]].forEach(([tid, give]: any) => { const own = s.assets.filter(k => k.owner === tid && k.rd === 1 && !give.includes(k.id)); const yrs = [...new Set(s.assets.filter(k => k.rd === 1).map(k => k.yr))].sort() as number[];
+  [[a, picksA, picksB], [b, picksB, picksA]].forEach(([tid, give, receive]: any) => { const own = s.assets.filter(k => k.rd === 1 && ((k.owner === tid && !give.includes(k.id)) || receive.includes(k.id))); const yrs = [...new Set(s.assets.filter(k => k.rd === 1).map(k => k.yr))].sort() as number[];
     for (let i = 1; i < yrs.length; i++) if (!own.some(k => k.yr === yrs[i]) && !own.some(k => k.yr === yrs[i - 1])) { errs.push(s.teams[tid].abbr + ' would have no first-round pick in both ' + yrs[i - 1] + ' and ' + yrs[i] + ' (Stepien rule).'); break; } });
   // 2nd apron: a team above it can't trade its first-round pick furthest in the future.
   [[a, picksA], [b, picksB]].forEach(([tid, give]: any) => { if (teamSalary(g, s, tid) <= N.AP2) return; const far = Math.max(...s.assets.filter(k => k.rd === 1).map(k => k.yr));
     if (give.some(id => { const k = s.assets.find(x => x.id === id); return k && k.rd === 1 && k.yr === far; })) errs.push(s.teams[tid].abbr + ' is above the 2nd apron, so its ' + far + ' first-round pick is frozen.'); });
+  for (const [tid, give] of [[a, picksA], [b, picksB]] as any) for (const id of give) {
+    if (id.startsWith('swap:')) {
+      const yr = +id.slice(5);
+      if (!canOfferSwap(s, yr, a, b) || [...picksA, ...picksB].some(x => s.assets.some(p => p.id === x && p.rd === 1 && p.yr === yr)) || (picksA.includes(id) && picksB.includes(id))) errs.push('A swap requires both original firsts, still owned and unencumbered; a pick and its swap cannot be traded together.');
+    } else {
+      const p = s.assets.find(p => p.id === id);
+      if (!p || p.owner !== tid) errs.push('You cannot trade a pick you do not own.');
+      if (p?.rd === 1 && (s.swaps || []).some(w => w.yr === p.yr && [w.from, w.to].includes(p.orig))) errs.push('This first is committed to an existing swap.');
+    }
+  }
   return { ok: errs.length === 0, errs: [...new Set(errs)], notes };
 }
 // Salary a player counts for in a trade (trade kickers add their bonus, up to the max).
@@ -246,18 +264,22 @@ export function taxBill(g: Game, payroll: number, repeater: boolean) {
 // ── Waivers: dead money, the stretch provision, buyouts ────────────────────────────
 export function remainingGuaranteed(g: Game, s: any, p: any) {
   const out: Record<number, number> = {}; if (['ex10', 'tenDay', 'hardship', 'twoWay'].includes(p.ctype)) return out; // non-guaranteed
-  const frac = s.phase === 'regular' ? Math.max(0, 1 - s.day / 82) : s.phase === 'playin' || s.phase === 'playoffs' ? 0 : 1;
-  for (let y = g.Y; y <= p.exp; y++) { if (p.opt?.kind === 'team' && y === p.opt.season) break; const sal = g.salAt(p, y); out[y] = +(y === g.Y ? sal * frac : sal).toFixed(2); }
+  // Waived salary already paid still counts on the cap for that salary-cap year (Art. VII 4(a)(1)(i)).
+  for (let y = g.Y; y <= p.exp + (p.ext?.yrs || 0); y++) { if (p.opt?.kind === 'team' && y === p.opt.season) break; const sal = g.salAt(p, y); out[y] = +sal.toFixed(2); }
   if (s.phase === 'fa' || s.phase === 'draft' || s.phase === 'lottery') delete out[g.Y];
   return out;
 }
 export function deadSchedule(g: Game, s: any, p: any, stretch: boolean, giveBack = 0) {
   const rem = remainingGuaranteed(g, s, p), yrs = Object.keys(rem).map(Number).sort();
-  const total = yrs.reduce((a, y) => a + rem[y], 0) * (1 - giveBack);
   if (!stretch || !yrs.length) { const o: Record<number, number> = {}; yrs.forEach(y => (o[y] = +(rem[y] * (1 - giveBack)).toFixed(2))); return o; }
-  // Stretch: spread over twice the remaining years plus one.
-  const first = yrs[0], n = yrs.length * 2 + 1, o: Record<number, number> = {};
-  for (let i = 0; i < n; i++) o[first + i] = +(total / n).toFixed(2);
+  // After August 31 the current year's salary stays intact; only future years stretch.
+  const beforeSeptember = s.phase === 'fa' && g.faDate(s).getMonth() < 8;
+  const current = beforeSeptember ? g.Y + 1 : g.Y;
+  const eligible = yrs.filter(y => beforeSeptember || y > current), o: Record<number, number> = {};
+  yrs.filter(y => !eligible.includes(y)).forEach(y => { o[y] = +(rem[y] * (1 - giveBack)).toFixed(2); });
+  if (!eligible.length) return o;
+  const first = eligible[0], n = eligible.length * 2 + 1, stretched = eligible.reduce((a, y) => a + rem[y], 0) * (1 - giveBack);
+  for (let i = 0; i < n; i++) o[first + i] = +(stretched / n).toFixed(2);
   return o;
 }
 
