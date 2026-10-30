@@ -11,16 +11,20 @@ import { useScoutSelect } from '../ScoutSelect';
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
-  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [stats, setStats] = useState(false);
-  // College / club stats on the board (2026-10-30): each prospect's latest season he played, in place of where he plays and his height.
+  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [stMode, setStMode] = useState<'' | 'trad' | 'adv'>(''), stats = !!stMode;
+  // College / club stats on the board (2026-10-30): each prospect's latest season he played, traditional or advanced, in place of where he plays and his height.
   const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
   const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
-  const f1 = (x: number) => (x == null || !isFinite(x) ? '—' : x.toFixed(1)), pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
-  // [label, tooltip, value]: shown to one decimal; a column sorts by its value (a prospect with none goes last).
-  const ST: [string, string, (x: any) => number][] = [['PPG', 'Points per game', x => x.disp.pts / x.disp.gp], ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp], ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
+  const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)), pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
+  // [label, tooltip, value, decimals]: a column sorts by its value (a prospect with none goes last).
+  const TRAD: [string, string, (x: any) => number, number?][] = [['PPG', 'Points per game', x => x.disp.pts / x.disp.gp], ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp], ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
     ['SPG', 'Steals per game', x => x.disp.stl / x.disp.gp], ['BPG', 'Blocks per game', x => x.disp.blk / x.disp.gp], ['FG%', 'Field goal %', x => pct(x.disp.fgm, x.disp.fga)], ['3P%', 'Three-point %', x => pct(x.disp.tpm, x.disp.tpa)],
     ['FT%', 'Free-throw %', x => pct(x.disp.ftm, x.disp.fta)], ['PER', 'Player efficiency rating', x => x.adv?.per]];
+  const ADV: [string, string, (x: any) => number, number?][] = [['PER', 'Player efficiency rating', x => x.adv?.per], ['TS%', 'True shooting %', x => x.adv?.tsp], ['USG%', 'Usage: share of his team’s plays he finishes while on the floor', x => x.adv?.usgp],
+    ['AST%', 'Share of teammates’ baskets he assisted while on the floor', x => x.adv?.astp], ['TRB%', 'Share of available rebounds he grabbed', x => x.adv?.trbp], ['STL%', 'Steals per 100 opponent possessions', x => x.adv?.stlp],
+    ['BLK%', 'Share of opponents’ twos he blocked', x => x.adv?.blkp], ['TOV%', 'Turnovers per 100 plays', x => x.adv?.tovp], ['WS/40', 'Win shares per 40 minutes', x => x.adv?.ws40, 3], ['BPM', 'Box plus-minus (the class average is 0)', x => x.adv?.bpm]];
+  const ST = stMode === 'adv' ? ADV : TRAD, pickMode = (m: 'trad' | 'adv') => { setStSort(null); setStMode(cur => (cur === m ? '' : m)); };
   const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
   const stVal = (id: number, k: string) => { const x = last(id), c = ST.find(t => t[0] === k); const v = x && c ? c[2](x) : NaN; return v == null || !isFinite(v) ? null : v; };
   const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
@@ -168,8 +172,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <section>
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /><button className={stats ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setStats(v => !v)} title="Each prospect's latest college or club season, in place of where he plays and his height" style={{ fontSize: "12.5px" }}>{stats ? "Hide college stats" : "College stats"}</button></div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} />{([["trad", "Show traditional stats", "Points, rebounds, assists, steals, blocks, shooting and PER"], ["adv", "Show advanced stats", "PER, true shooting, usage, assist, rebound, steal, block and turnover rates, win shares and box plus-minus"]] as const).map(([m, label, what]) => <button key={m} className={stMode === m ? "btn btn-primary" : "btn btn-secondary"} onClick={() => pickMode(m)} title={what + ": each prospect's latest season, in place of where he plays and his height" + (stMode === m ? " (click again to hide)" : "")} style={{ fontSize: "12.5px" }}>{label}</button>)}</div>
           {sc.bar()}{sc.Menu()}
+          <div style={{ overflowX: "auto" }}>
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
@@ -178,7 +183,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <th onClick={() => { setStSort(null); c.onClick(); }} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: stats && stSort ? "color-mix(in srgb, var(--color-text) 60%, transparent)" : c.color }}>
                     {c.label}{stats && stSort ? "" : c.arrow}
                   </th>
-                  {stats && c.key === 'age' && ST.map(([h, t]) => { const on = stSort?.[0] === h; return <th key={h} title={t + ' (click to sort)'} onClick={() => sortSt(h)} style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: on ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>{h}{on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}</th>; })}</Fragment>
+                  {stats && c.key === 'age' && ST.map(([h, t]) => { const on = stSort?.[0] === h; return <th key={h} title={t + ' (click to sort)'} onClick={() => sortSt(h)} style={{ padding: "6px 4px", textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: on ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>{h}{on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}</th>; })}</Fragment>
                 ))}
                 <th style={{ padding: "6px 8px" }}></th>
               </tr>
@@ -205,7 +210,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  {stats ? ST.map(([h, , fn]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: stSort?.[0] === h ? 600 : undefined }}>{x ? f1(fn(x)) : '—'}</td>; }) : (<>
+                  {stats ? ST.map(([h, , fn, dg]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 4px", textAlign: "right", whiteSpace: "nowrap", fontWeight: stSort?.[0] === h ? 600 : undefined }}>{x ? f1(fn(x), dg ?? 1) : '—'}</td>; }) : (<>
                   <td style={{ padding: "4px 8px" }}>
                     {p.fromT}{" "}
                     <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
@@ -232,6 +237,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
               ))}
             </tbody>
           </table>
+          </div>
           {pg.pager}
           </>)}
         </section>
