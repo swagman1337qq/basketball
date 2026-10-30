@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-JhBjtWrC.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DOp4TBBZ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -9,6 +9,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Hover any player's name for a stats snapshot.** Anywhere in the game (roster, stats, leaders, trades, mailbox, draft board and the rest), resting the mouse on a player's name shows his games, minutes, points, rebounds, assists, steals, blocks, turnovers and shooting: this season's, or his last season if he hasn't played this year; a prospect's latest college or club season; a player abroad's line with his club.
 
 ### Changed
+- **Shortlist dropdown on the player profile.** Instead of a row of buttons for every shortlist, one dropdown shows the list he's on: pick another to move him there, pick Not on a shortlist to take him off, or pick + New shortlist… to name a new one and put him on it.
 - **Terrible shooters can shoot terribly.** A player with almost no three-point shot now makes about 14% of his threes instead of always near 20%, and a big man with no touch around the basket misses more of his close shots instead of making 60% on size alone. Only the very worst shooters change (about one big in 30, all deep bench); everyone else shoots as before.
 - **Real college paths for draft prospects.** A prospect's College / Club tab now follows his real time in school: his age on draft night minus 18, so a 22-year-old senior shows four seasons and a 23- or 24-year-old shows five or six. The extra years come the way they do in real life: a redshirt freshman year, a medical redshirt after an early injury, sitting out after a transfer, or a fifth season of eligibility; now and then an injury cuts a season short. Many players transfer (more the longer they stay), some start at a junior college (like Jimmy Butler) or at a Division II, III or NAIA school before moving up (like Derrick White and Duncan Robinson). Seasons he didn't play are listed without stats. Nothing extra is saved.
 - **Small-college prospects.** About one draft class in two now has a prospect who never played Division I (Division II, the NAIA, now and then Division III), like Ben Wallace, Charles Oakley or Haywood Highsmith: a conservative estimate. Most are raw athletes, rebounders and defenders who grew late; some are scorers the big schools missed. Their stats are against weaker competition.
