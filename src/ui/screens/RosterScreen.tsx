@@ -109,6 +109,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
             <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
             <span title={p.name + (p.native ? ' (' + p.native + ')' : '')} style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}>{p.name}</span>
             {p.native && p.name.length + p.native.length <= 34 && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>}
+            {p.dev && mine && <button onClick={e => { e.stopPropagation(); delete P[id].dev; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="He's playing in the CCP (the development league), so he doesn't play for you. Click to recall him; giving him minutes recalls him too." style={{ all: 'unset', cursor: 'pointer', fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--color-accent-700)' }}>In the CCP · recall</button>}
             {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
             {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
             {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}
@@ -129,9 +130,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (
           <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him: he plays these' : 'Automatic: the coach sets his minutes from his rating and how he is playing'}>
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
-              <NumInput stepper disabled={!man} value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; bump(); }} />
+              <NumInput stepper disabled={!man} value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; if (v > 0) delete P[id].dev; bump(); }} />
             </span>
-            <button className="btn btn-secondary" onClick={() => { if (man) delete P[id].rot; else P[id].rot = rotOf(id); bump(); }}
+            <button className="btn btn-secondary" onClick={() => { if (man) delete P[id].rot; else { P[id].rot = rotOf(id); delete P[id].dev; } bump(); }}
               title={man ? 'Go back to automatic minutes' : 'Set his minutes yourself'} style={{ fontSize: '11.5px', padding: '2px 0', width: 62, marginLeft: 6, verticalAlign: 'middle' }}>{man ? 'Auto' : 'Manual'}</button>
           </td>); })()}
         <td style={tdr}>{ln.gp}</td>

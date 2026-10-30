@@ -25,12 +25,14 @@ export function coachFocus(p: any): { focus: string; why: string } {
 }
 
 // Development league or main roster: young players outside the top ten go down for game reps;
-// anyone who has worked his way into the rotation (or is hurt) stays up.
+// anyone who has worked his way into the rotation (or is hurt) stays up. Your rotation counts (2026-10-30): a player
+// you've given minutes, or put in your top ten, stays up whatever his overall.
 export function coachAssign(g: Game, ids: number[], p: any): { dev: boolean; why: string } {
   const P = g.db.P, eligible = p.age <= 25 && p.ovr < 58;
   if (!eligible) return { dev: false, why: 'Too established for the CCP.' };
   if (p.inj) return { dev: false, why: 'Rehabbing with the team.' };
-  const rank = ids.filter(id => P[id].ovr > p.ovr).length + 1;
+  if ((p.rot ?? 0) > 0) return { dev: false, why: 'You gave him ' + Math.round(p.rot) + ' minutes in your rotation.' };
+  const spot = ids.indexOf(p.id) + 1, rank = Math.min(ids.filter(id => P[id].ovr > p.ovr).length + 1, spot > 0 ? spot : 99);
   if (rank > 10 && p.age <= 23) return { dev: true, why: 'Outside the rotation (' + rank + 'th on the roster): he needs game reps.' };
   return { dev: false, why: rank <= 10 ? 'Part of the rotation (' + rank + 'th on the roster).' : 'At ' + p.age + ', he develops with the team.' };
 }
