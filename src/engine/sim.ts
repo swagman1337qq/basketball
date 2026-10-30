@@ -129,7 +129,11 @@ const CURVE: Record<string, { mid: number; up: number; down: number; soft?: numb
 // Free throws fall off faster at the bottom: below 40 each point costs half again as much, so a 20
 // shoots like Shaq (about 53–55%) and a 1 like Ben Wallace (about 41%), not a passable 51%.
 const FT_KNEE = 40, FT_LOW = 0.0025, FT_PERFECT = 98.5; // a perfect 99: 98% (ftPct)
-export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / (c.soft ?? 40)) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : 0); };
+// Threes fall off faster at the very bottom too (2026-10-30): below a 20 each point costs half again as much, so a
+// 4 shoots about 14% (Hansen Yang's rookie year: 5 of 42) instead of leveling off near 20%. Players this poor don't
+// take threes unless their style is set by hand.
+const TP_KNEE = 20, TP_LOW = 0.0045;
+export const curve = (k: string, r: number) => { const c = CURVE[k], d = r - c.mid; return (d >= 0 ? (d * c.up) / (1 + d / (c.soft ?? 40)) : d * c.down) - (k === 'ft' ? FT_LOW * Math.max(0, FT_KNEE - r) : k === 'three' ? TP_LOW * Math.max(0, TP_KNEE - r) : 0); };
 export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: 'three', atb: 'three' };
 
 // A player's skill for each tier (0–99 scale).
@@ -140,6 +144,11 @@ export const CURVE_OF: Record<Zone, string> = { rim: 'rim', mid: 'jumper', c3: '
 // On top of that, a straight size edge on every rim shot: about 4 points of FG% between a 6'2" guard
 // and a 7-footer with the same skills (centered on the league, so overall scoring doesn't move).
 const RIM_SIZE = 0.0015;
+// A big with no touch around the basket (Layups, Inside and Dunks averaging under 32) misses even from close:
+// each point under costs 0.7% at the rim (2026-10-30; a raw 7-footer at 23 makes about 52%, not 60%). Guards'
+// rim skill leans on height, so this is for bigs only; about 1 big in 30, all deep bench.
+const RAW_KNEE = 32, RAW_K = 0.007;
+export const rawBig = (p: { grp?: string; r: any }) => (p.grp === 'B' ? RAW_K * Math.max(0, RAW_KNEE - (p.r.lay + p.r.ins + p.r.dnk) / 3) : 0);
 export function zoneSkill(r: any): Record<Zone, number> {
   // A taller shooter gets his jumper off over the contest a little more easily (a few points of skill for
   // half a foot); long arms help at the rim.
@@ -676,7 +685,7 @@ export class GameSim {
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
       // At the rim, a guard or wing who can't shoot (his best of 3PT and mid-range under 55) finds the paint packed:
       // the defense sags off him (up to −6% at the worst); shooters around him open the lane a little (and vice versa).
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - rawBig(sh) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
