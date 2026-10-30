@@ -2,7 +2,7 @@
 // numbers by season (per game, per 36 or totals; regular season or playoffs; NBA or CCP) with a
 // row per team in traded seasons, league leaders in bold, an Awards column, career and
 // per-team career lines; shooting efficiency and all five shot zones, advanced stats, and splits.
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { cloneElement, Fragment, isValidElement, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { muted, Ring, ruleH4, Seg } from '../kit';
 import { ccpAdvanced, seasonAdvanced } from '../../engine/advanced';
@@ -15,9 +15,34 @@ import { fiveZones, LEAGUE_ZONE } from './ProfileExtras';
 type Mode = 'pg' | 'p36' | 'tot';
 const f1 = (x: number) => (isFinite(x) ? x.toFixed(1) : '—');
 const pct = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
-const TH = ({ children, l, t }: { children: ReactNode; l?: boolean; t?: string }) => <th title={t} style={{ padding: '5px 7px', textAlign: l ? 'left' : 'right', whiteSpace: 'nowrap' }}>{children}</th>;
+const TH = ({ children, l, t, onClick, dir }: { children: ReactNode; l?: boolean; t?: string; onClick?: () => void; dir?: number }) => <th title={t} onClick={onClick} style={{ padding: '5px 7px', textAlign: l ? 'left' : 'right', whiteSpace: 'nowrap', cursor: onClick ? 'pointer' : undefined, userSelect: 'none', color: dir ? 'var(--color-accent-700)' : undefined }}>{children}{dir ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>;
 const TD = ({ children, l, b, c }: { children: ReactNode; l?: boolean; b?: boolean; c?: string }) => <td style={{ padding: '4px 7px', textAlign: l ? 'left' : 'right', whiteSpace: 'nowrap', fontWeight: b ? 700 : undefined, color: c, fontVariantNumeric: 'tabular-nums' }}>{children}</td>;
-const Wrap = ({ children }: { children: ReactNode }) => <div style={{ overflowX: 'auto', marginBottom: 6 }}><table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>{children}</table></div>;
+// Every table here sorts by any column (2026-10-30): click a header for highest first, again for lowest first, a third
+// time for the usual order. Seasons sort as a unit (a traded season's team rows stay under it); career and team-total
+// rows stay at the bottom. Values are read from the cells as shown.
+const flat = (n: ReactNode): ReactNode[] => (Array.isArray(n) ? n.flatMap(flat) : isValidElement(n) && n.type === Fragment ? flat((n.props as any).children) : n == null || n === false || n === true ? [] : [n]);
+const textOf = (n: ReactNode): string => (n == null || typeof n === 'boolean' ? '' : typeof n === 'string' || typeof n === 'number' ? String(n) : Array.isArray(n) ? n.map(textOf).join('') : isValidElement(n) ? textOf((n.props as any).children) : '');
+const SEASON = /^\d{4}–\d{2}/;
+const sortKey = (txt: string): number | string | null => { const t = txt.trim(); if (!t || t === '—') return null; const m = t.match(/^[+-]?(\d+\.?\d*|\.\d+)/); return m ? parseFloat(m[0]) : t.toLowerCase(); };
+function Wrap({ children }: { children: ReactNode }) {
+  const [sort, setSort] = useState<[number, number] | null>(null);
+  const parts = flat(children) as ReactElement<any>[], head = parts.find(x => x.type === 'thead'), body = parts.find(x => x.type === 'tbody');
+  if (!head || !body) return <div style={{ overflowX: 'auto', marginBottom: 6 }}><table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>{children}</table></div>;
+  const hRow = flat(head.props.children)[0] as ReactElement<any>, ths = flat(hRow.props.children) as ReactElement<any>[];
+  const click = (i: number) => setSort(cur => (!cur || cur[0] !== i ? [i, -1] : cur[1] < 0 ? [i, 1] : null));
+  const head2 = <thead><tr>{ths.map((th, i) => cloneElement(th, { key: 'h' + i, onClick: () => click(i), dir: sort && sort[0] === i ? sort[1] : 0 }))}</tr></thead>;
+  return <div style={{ overflowX: 'auto', marginBottom: 6 }}><table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>{head2}<tbody>{orderRows(body.props.children, sort)}</tbody></table></div>;
+}
+export function orderRows(children: ReactNode, sort: [number, number] | null): ReactElement<any>[] {
+  const rows = (flat(children) as ReactElement<any>[]).map((r, i) => cloneElement(r, { key: 'r' + i }));
+  const cellsOf = (r: ReactElement<any>) => flat(r.props.children) as ReactElement<any>[], first = (r: ReactElement<any>) => textOf(cellsOf(r)[0]).trim();
+  // Group rows into seasons (a season row plus the team rows under it); rows that aren't seasons stay at the bottom.
+  const anySeason = rows.some(r => SEASON.test(first(r))), groups: ReactElement<any>[][] = [], tail: ReactElement<any>[] = [];
+  rows.forEach(r => { const f = first(r), m = f.match(SEASON); if (anySeason && !m) tail.push(r); else if (m && groups.length && first(groups[groups.length - 1][0]).match(SEASON)?.[0] === m[0]) groups[groups.length - 1].push(r); else groups.push([r]); });
+  if (sort) { const [c, d] = sort, val = (g: ReactElement<any>[]) => sortKey(textOf(cellsOf(g[0])[c]));
+    groups.sort((a, b) => { const x = val(a), y = val(b); if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1; return typeof x === 'number' && typeof y === 'number' ? (x - y) * d : String(x).localeCompare(String(y)) * d; }); }
+  return [...groups.flat(), ...tail];
+}
 
 export function PlayerStatsTab({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, p = gm.db.P[s.pid];

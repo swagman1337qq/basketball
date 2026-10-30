@@ -39,12 +39,14 @@ function SortTable({ cols, rows, initial = 2, limit = 25, noun = 'players', lead
   const [sort, setSort] = useState<[number, number]>([initial, -1]);
   // Name columns render links: sort players by last name, teams by name.
   const val = (r: any) => { const v = c[2](r); return v && typeof v === 'object' ? (r.p ? byLast(r.p) : r.t ? r.t.region + ' ' + r.t.name : '') : v; };
-  const c = cols[sort[0]], srt = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y)) * sort[1] * -1; return ((y ?? -1e9) - (x ?? -1e9)) * (sort[1] === -1 ? 1 : -1); });
+  // The column sorted by, or this view's default if that column isn't in it (switching Per game → Advanced has fewer columns).
+  const si = sort[0] < cols.length ? sort[0] : Math.max(0, Math.min(initial, cols.length - 1));
+  const c = cols[si], srt = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y)) * sort[1] * -1; return ((y ?? -1e9) - (x ?? -1e9)) * (sort[1] === -1 ? 1 : -1); });
   const pg = usePaged(srt, noun, limit, sort.join());
   return (
     <div style={{ overflowX: 'auto' }}>
       <table className="table" style={{ fontSize: '12.5px', minWidth: 900 }}>
-        <thead><tr><th style={{ padding: '5px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>#</th>{cols.map(([h, tip], i) => <th key={h + i} title={tip} onClick={() => setSort([i, sort[0] === i ? -sort[1] : -1])} style={{ padding: '5px 6px', textAlign: i < 3 ? 'left' : 'right', cursor: 'pointer', whiteSpace: 'nowrap', color: sort[0] === i ? 'var(--color-accent-700)' : undefined }}>{h}{sort[0] === i ? (sort[1] === -1 ? ' ↓' : ' ↑') : ''}</th>)}</tr></thead>
+        <thead><tr><th style={{ padding: '5px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>#</th>{cols.map(([h, tip], i) => <th key={h + i} title={tip} onClick={() => setSort([i, si === i ? -sort[1] : -1])} style={{ padding: '5px 6px', textAlign: i < 3 ? 'left' : 'right', cursor: 'pointer', whiteSpace: 'nowrap', color: si === i ? 'var(--color-accent-700)' : undefined }}>{h}{si === i ? (sort[1] === -1 ? ' ↓' : ' ↑') : ''}</th>)}</tr></thead>
         <tbody>{pg.rows.map((r, i) => <tr key={r.key ?? i}><td style={{ padding: '3px 6px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-600)' }}>{pg.start + i + 1}</td>{cols.map(([h, , f, d, lk], j) => { const v = f(r), b = !!leaders && !!lk && typeof v === 'number' && isFinite(v) && leaders[lk] != null && roundStat(lk, v, lmode) === leaders[lk]; return <td key={h + j} title={b ? 'Led the league' : undefined} style={{ padding: '3px 6px', textAlign: j < 3 ? 'left' : 'right', whiteSpace: 'nowrap', fontWeight: b ? 800 : undefined }}>{v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : typeof v === 'number' ? (d === 3 && Math.abs(v) < 1 ? v.toFixed(3).replace(/^0/, '') : v.toFixed(d ?? 1)) : v}</td>; })}</tr>)}</tbody>
       </table>
       {pg.pager}
