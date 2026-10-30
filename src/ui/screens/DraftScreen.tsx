@@ -39,7 +39,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
       ['EWA', 'Estimated wins added', A('ewa')], ['EPM', 'EPM estimate (box score: no lineup data for amateurs)', A('epm')], ['LEBRON', 'LEBRON estimate (box score)', A('lebron')], ['DARKO', 'DARKO estimate (box score)', A('darko')]]]];
   const [advPg, setAdvPg] = useState(0), ADV = ADV_PAGES[advPg][1];
   const turn = (d: number) => { const n = (advPg + d + ADV_PAGES.length) % ADV_PAGES.length; setAdvPg(n); setStSort(cur => (cur && ADV_PAGES[n][1].some(c => c[0] === cur[0]) ? cur : null)); };
-  const ST = stMode === 'adv' ? ADV : TRAD, pickMode = (m: 'trad' | 'adv') => { setStSort(null); setStMode(cur => (cur === m ? '' : m)); };
+  // Minutes come first in both views (2026-10-30): how big a role the numbers came from.
+  const MPG: [string, string, (x: any) => number, number?] = ['MPG', 'Minutes per game', x => x.mpg];
+  const ST = [MPG, ...(stMode === 'adv' ? ADV : TRAD)], pickMode = (m: 'trad' | 'adv') => { setStSort(null); setStMode(cur => (cur === m ? '' : m)); };
   const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
   const stVal = (id: number, k: string) => { const x = last(id), c = ST.find(t => t[0] === k); const v = x && c ? c[2](x) : NaN; return v == null || !isFinite(v) ? null : v; };
   const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
