@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-30
 
 ### Added
+- **VORP for prospects.** College and club seasons now show value over replacement player, in a prospect's College / Club tab and on the draft board's Impact page of advanced stats.
 - **What each advanced stat means.** Rest the mouse anywhere on an advanced stat's column header (TS%, USG%, BPM, Win Shares, LEBRON and the rest), on any screen, and a one-line description pops up right away.
 - **Sort a player's stats by anything.** In a player's profile, Stats tab, click any column header in any of its tables to sort his seasons by it: highest first, click again for lowest first, a third time for the usual order. A traded season's team rows stay under it, and the career and per-team totals stay at the bottom.
 - **Pick several players at once, then right-click.** On the draft board, free agency, overseas and your shortlists: click a row to pick a player, drag across rows to pick several, shift-click to pick everything between, ctrl-click (cmd on a Mac) to add or drop one. Right-click for a menu with **Scouting** (have one of your scouts follow them, or stop) and **Add to shortlist** (any of your lists, or a new one). Clicking a player's name still opens his profile.
@@ -19,6 +20,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Small-college prospects.** About one draft class in two now has a prospect who never played Division I (Division II, the NAIA, now and then Division III), like Ben Wallace, Charles Oakley or Haywood Highsmith: a conservative estimate. Most are raw athletes, rebounders and defenders who grew late; some are scorers the big schools missed. Their stats are against weaker competition.
 
 ### Fixed
+- **No more 45-minute college games.** A prospect in a big role could average more minutes than a 40-minute game allows. College and high school minutes now top out at 38 a game and club minutes at 36; only those few seasons change.
 - **The league Stats screen no longer crashes when you switch to Advanced.** Switching views after sorting by a column the new view doesn't have could leave a blank screen; it now falls back to that view's usual sort.
 - **The draft board's advanced-stats arrows stay put.** Flipping between scoring, rebounding and defense, and impact no longer slides the › arrow around, so you can click through without moving the mouse.
 

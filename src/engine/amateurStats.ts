@@ -66,7 +66,8 @@ export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint
   const sit = situation(p.id, season);
   const C = Math.max(lv.c, o - 22); // far above his competition, the edge levels off (a high-school star's numbers stay believable)
   const gp0 = lv.college ? 29 + Math.floor(rnd() * 7) : 22 + Math.floor(rnd() * 13), gp = kind === 'redshirt' || kind === 'sitout' ? 0 : kind === 'medical' ? 2 + Math.floor(rnd() * 7) : kind === 'short' ? 8 + Math.floor(rnd() * 11) : gp0;
-  const mpg = +((lv.college ? cl(24 + 0.5 * dom, 8, 35) : cl(16 + 0.6 * dom, 5, 32)) * cl(nz(0.06) * sit.min, 0.55, 1.3)).toFixed(1);
+  // Capped at what a game allows (2026-10-30: a big role could reach 45 a game): college and high school 38 (the real college leaders play about 37), clubs 36.
+  const mpg = +Math.min(lv.college ? 38 : 36, (lv.college ? cl(24 + 0.5 * dom, 8, 35) : cl(16 + 0.6 * dom, 5, 32)) * cl(nz(0.06) * sit.min, 0.55, 1.3)).toFixed(1);
   // Rates per possession on the floor.
   const usg = cl(0.2 * Math.exp(0.025 * (off - C - 4)) * nz(0.05) * sit.usg, 0.08, 0.38);
   const tovR = cl(0.14 * Math.exp(-((r.drb * 0.5 + r.pss * 0.3 + r.oiq * 0.2) - C - 8) / 70) * (1 + (usg - 0.2)) * nz(0.08), 0.06, 0.26);

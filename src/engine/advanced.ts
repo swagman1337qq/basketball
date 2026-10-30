@@ -185,7 +185,9 @@ export function amateurAdvanced(g: Game, list: { p: any; t: StatLine; tq?: numbe
   const { byPid } = computeAdvanced(g, 1, teams, rows, () => 0.5, [], 0, true);
   let w = 0, mo = 0, md = 0; rows.forEach(({ p, t }) => { const x = byPid[p.id]; mo += x.obpm * t.min; md += x.dbpm * t.min; w += t.min; });
   mo = w ? mo / w : 0; md = w ? md / w : 0;
-  rows.forEach(({ p, t, tq }: any) => { const x = byPid[p.id]; x.obpm -= mo - 1.2 * tq; x.dbpm -= md - 0.8 * tq; x.bpm = x.obpm + x.dbpm; x.ws40 = (x.ws48 * 40) / 48; void t; ['vorp', 'pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]); }); // no lineups or standings for amateurs
+  rows.forEach(({ p, t, tq }: any) => { const x = byPid[p.id]; x.obpm -= mo - 1.2 * tq; x.dbpm -= md - 0.8 * tq; x.bpm = x.obpm + x.dbpm; x.ws40 = (x.ws48 * 40) / 48;
+    // VORP (2026-10-30): the NBA formula, (BPM + 2) × his share of the team's minutes × games / 82, his share from a 48-minute game (t.min is scaled to 48).
+    x.vorp = t.gp ? (x.bpm + 2) * Math.min(1, t.min / (48 * t.gp)) * (t.gp / 82) : 0; ['pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]); }); // no lineups or standings for amateurs
   return byPid;
 }
 
