@@ -36,7 +36,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
       ['AST%', 'Share of teammates’ baskets he assisted while on the floor', A('astp')], ['TOV%', 'Turnovers per 100 plays', A('tovp')], ['ORtg', 'Offensive rating: points produced per 100 possessions', A('ortg'), 0]]],
     ['Rebounding and defense', [['ORB%', 'Offensive rebound %', A('orbp')], ['DRB%', 'Defensive rebound %', A('drbp')], ['TRB%', 'Total rebound %', A('trbp')], ['STL%', 'Steals per 100 opponent possessions', A('stlp')], ['BLK%', 'Share of opponents’ twos he blocked', A('blkp')],
       ['DRtg', 'Defensive rating', A('drtg'), 0], ['OWS', 'Offensive win shares', A('ows')], ['DWS', 'Defensive win shares', A('dws')]]],
-    ['Impact', [['WS', 'Win shares', A('ws')], ['WS/40', 'Win shares per 40 minutes', A('ws40'), 3], ['OBPM', 'Offensive box plus-minus (the class average is 0)', A('obpm')], ['DBPM', 'Defensive box plus-minus', A('dbpm')], ['BPM', 'Box plus-minus', A('bpm')], ['VORP', 'Value over replacement player', A('vorp')],
+    ['Impact', [['WS', 'Win shares', A('ws')], ['WS/40', 'Win shares per 40 minutes', A('ws40'), 3], ['OBPM', 'Offensive box plus-minus (the class average is 0)', A('obpm')], ['DBPM', 'Defensive box plus-minus', A('dbpm')], ['BPM', 'Box plus-minus', A('bpm')],
       ['EWA', 'Estimated wins added', A('ewa')], ['EPM', 'EPM estimate (box score: no lineup data for amateurs)', A('epm')], ['LEBRON', 'LEBRON estimate (box score)', A('lebron')], ['DARKO', 'DARKO estimate (box score)', A('darko')]]]];
   const [advPg, setAdvPg] = useState(0), ADV = ADV_PAGES[advPg][1];
   const turn = (d: number) => { const n = (advPg + d + ADV_PAGES.length) % ADV_PAGES.length; setAdvPg(n); setStSort(cur => (cur && ADV_PAGES[n][1].some(c => c[0] === cur[0]) ? cur : null)); };

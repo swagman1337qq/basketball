@@ -5,7 +5,6 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-30
 
 ### Added
-- **VORP for prospects.** College and club seasons now show value over replacement player, in a prospect's College / Club tab and on the draft board's Impact page of advanced stats.
 - **What each advanced stat means.** Rest the mouse anywhere on an advanced stat's column header (TS%, USG%, BPM, Win Shares, LEBRON and the rest), on any screen, and a one-line description pops up right away.
 - **Sort a player's stats by anything.** In a player's profile, Stats tab, click any column header in any of its tables to sort his seasons by it: highest first, click again for lowest first, a third time for the usual order. A traded season's team rows stay under it, and the career and per-team totals stay at the bottom.
 - **Pick several players at once, then right-click.** On the draft board, free agency, overseas and your shortlists: click a row to pick a player, drag across rows to pick several, shift-click to pick everything between, ctrl-click (cmd on a Mac) to add or drop one. Right-click for a menu with **Scouting** (have one of your scouts follow them, or stop) and **Add to shortlist** (any of your lists, or a new one). Clicking a player's name still opens his profile.
