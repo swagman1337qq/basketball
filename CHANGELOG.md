@@ -20,6 +20,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Small-college prospects.** About one draft class in two now has a prospect who never played Division I (Division II, the NAIA, now and then Division III), like Ben Wallace, Charles Oakley or Haywood Highsmith: a conservative estimate. Most are raw athletes, rebounders and defenders who grew late; some are scorers the big schools missed. Their stats are against weaker competition.
 
 ### Fixed
+- **No more "Class of 0 prospect".** A player without a team now shows what he really is at the top of his profile: Retired (with his final season), Free agent, or Out of the league; only real prospects say Class of … prospect. Shortlists and your scouts' lists follow the same rule.
 - **No more 45-minute college games.** A prospect in a big role could average more minutes than a 40-minute game allows. College and high school minutes now top out at 38 a game and club minutes at 36; only those few seasons change.
 - **The league Stats screen no longer crashes when you switch to Advanced.** Switching views after sorting by a column the new view doesn't have could leave a blank screen; it now falls back to that view's usual sort.
 - **The draft board's advanced-stats arrows stay put.** Flipping between scoring, rebounding and defense, and impact no longer slides the › arrow around, so you can click through without moving the mouse.
