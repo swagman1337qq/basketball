@@ -10,7 +10,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-10-29
 
+### Changed
+- **Ten player cards are closer to their real historical seasons.** Luka, Knecht, Simmons, Dwight Howard, John Wall, Maxi Kleber and the four college cards were adjusted after testing every preset across multiple teams and playing styles. Older seasons target their actual numbers. Cards with inconsistent results keep their earlier builds; detailed comparisons and remaining realism gaps are recorded in the player-card audit.
+
 ### Fixed
+- **Player cards keep all their skill points when applied.** Rounding the overall against potential can no longer trim the card’s ratings.
+- **Saved card builds update to the right variant.** Draft-night, rookie and MVP versions are distinguished when retuned. Updates preserve development gains and custom playing styles.
 - **Draft picks and swaps cannot be double-booked.** Offering a first-round pick removes its swap from the deal, and offering a swap removes the affected firsts. You cannot offer a new swap after trading away its underlying pick, or sell a first already committed to a swap. Older invalid swaps cannot take another team's pick.
 - **Restricted free agents keep their matching rights.** All offers to another club's restricted free agent go through an offer sheet funded by cap room or an actual exception. Pending sheets reserve their funding; completed deals spend that exception and apply its hard cap.
 - **Guaranteed contracts stay on your books after an overseas release.** Signed extension years remain guaranteed when a player is waived, and an old extension cannot reappear after he signs a new deal. Current-year guaranteed salary stays on the cap; in-season stretching applies to future years. New contracts use raises based on first-year salary.

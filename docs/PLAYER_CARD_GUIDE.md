@@ -2,7 +2,7 @@
 
 Everything you need to build a player card that plays the way you want: what a card contains, what every field does, how the engine turns ratings into box-score stats, and a step-by-step method for matching a real player's numbers.
 
-The numbers in this guide come straight from the engine code (as of 2026-10-16). Shooting percentages are approximate. They are the starting point before defense, fatigue, the venue and the game situation move them a little on every shot.
+This guide began with the 2026-10-16 engine. The 2026-10-29 audit updates key shooting, rebounding and testing sections; some historical appendix formulas and calibration claims below are stale. Use the current source and `docs/PLAYER_CARD_AUDIT_2026-10-29.md` when validating exact behavior. Shooting percentages are approximate. They are the starting point before defense, fatigue, the venue and the game situation move them a little on every shot.
 
 ---
 
@@ -241,10 +241,10 @@ The zone is picked from his shot-mix shares (section 6), then the creation type 
 
 `make % = league zone baseline + skill curve + creation type + defense + situation`
 
-League baselines: rim .696, paint/mid-range about .37, corner three .388, above-the-break three .351.
+League shot-zone baselines: rim .670, merged paint/mid-range .425 (paint +.010, mid-range −.010), corner three .388, above-the-break three .353. Player and league normalization still change actual results.
 
 **Skill per zone:**
-- **Rim** = 0.2 Dunks + 0.25 Layups + 0.2 Inside + 0.25 Height + 0.1 Jumping, plus wingspan.
+- **Rim** = 0.25 Dunks + 0.27 Layups + 0.25 Inside + 0.13 Height + 0.1 Jumping, plus wingspan.
 - **Mid** = Mid-range + 0.12 × (Height − 50).
 - **Three** = 3PT + 0.08 × (Height − 50).
 
@@ -296,7 +296,7 @@ Typical results:
 
 **Team offensive-rebound chance:** 26% baseline, ± the lineups' glass skill (rebounding, height, jumping, wingspan, box-out), fatigue and tactics.
 
-**Who grabs it:** (0.55 Rebounding + 0.33 Height + 0.12 Jumping + wingspan)², with a little less for big box-out specialists (they free up teammates).
+**Who grabs it:** (0.55 Rebounding + 0.33 Height + 0.12 Jumping + wingspan)^2.5, with a little less for big box-out specialists (they free up teammates).
 
 **Rebounding floor:** every player rebounds and boxes out at least what his body gives him: about 0.3 Height + 0.2 Jumping + 0.15 Strength − 6. That's about 25 for a 6′5″ guard and 40 for a 7-footer.
 
@@ -379,7 +379,7 @@ Roles show on the profile and change how the engine uses him.
 5. **Playmaking.** Assists come from Passing and Ball handling relative to his teammates. A real 8-assist point guard needs about 80+ Passing and 75+ Ball handling.
 6. **Defense and rebounding.** Set Defensive IQ for overall defense, Steals and Blocks for the counting stats (don't push them far above Defensive IQ unless he's a gambler), and Rebounding plus Box out to match his rebound numbers.
 7. **Potential.** For a rookie card, use his prime overall. He'll grow toward it at about 77% typical progress, faster with high `work`.
-8. **Test it.** Load the card, sim 20–40 games, compare his per-game line and shooting splits to the real ones, and adjust one rating at a time. Change efficiency through the shooting ratings, volume through usage and offensive ability, and assists through Passing and Ball handling.
+8. **Test against independently checked season records.** Use the exact named season, league, minutes and role. Test authored tendencies and AI-refreshed tendencies across several rosters, with repeated seeded games and a separate holdout sample. Compare shooting volume and efficiency, free throws, both rebound types, assists, steals, blocks, turnovers and fouls—not points alone. Low-volume shooting needs attempt counts and uncertainty. College/draft-night cards must also be checked through `amateurStats.seasonLine`, rather than compared with college numbers in an NBA game. See `docs/PLAYER_CARD_AUDIT_2026-10-29.md` for all 25 presets and the limits of the current tests.
 
 **Common mistakes:**
 - **Forgetting to Freeze tendencies.** The AI rewrites the shot mix next month.
@@ -421,7 +421,7 @@ This appendix is for testing cards in detail. It lists every formula the engine 
 | Name | Formula |
 |---|---|
 | wingspan edge `ape` | wingspan − height in inches − 4 (0 = league typical) |
-| rim skill | 0.2·dnk + 0.25·lay + 0.2·ins + 0.25·hgt + 0.1·jmp + 1.0·ape |
+| rim skill | 0.25·dnk + 0.27·lay + 0.25·ins + 0.13·hgt + 0.1·jmp + 1.0·ape |
 | mid skill | fg + 0.12·(hgt − 50) |
 | three skill | tp + 0.08·(hgt − 50) |
 | offensive ability | 0.55·scoring + 0.17·drb + 0.15·oiq + 0.13·acc, where scoring = 0.5·best + 0.3·second + 0.1·third of {rim finishing, fg, tp} + 0.1·ft, and rim finishing = 0.25·dnk + 0.25·lay + 0.3·ins + 0.1·hgt + 0.1·jmp |
@@ -462,7 +462,7 @@ usage  = e^(0.019 × (offensive ability − 57)) × e^((ten.usage − 50) / 60)
 
 | Term | Value |
 |---|---|
-| Zone baseline | rim .696, mid tier .37, corner .388, above the break .351 |
+| Zone baseline | rim .670, mid tier .425, corner .388, above the break .353 |
 | Calibration | rim +.007, mid +.008, corner +.007, above the break +.005 |
 | Skill curve | zone skill `s` against the curve's midpoint `m`: if `s ≥ m`, up × (s − m) / (1 + (s − m)/40); else down × (s − m). Rim: m = 60, up .0025, down .0032. Mid-range: m = 55, up .0022, down .0028. Threes: m = 65, up .0016, down .0029. |
 | League re-centering | − the league's average curve value (keeps the league on its baselines), + last season's drift correction |
@@ -509,7 +509,7 @@ A 98.5+ free-throw rating: 98% flat (cap .99).
 ## F. Turnovers and steals
 
 ```
-P(turnover) = .118 × e^(−(handle − n)/200 + (pressure − n)/85 − (Feel_O − 54)/400 + (Feel_D − 54)/210
+P(turnover) = .118 × e^(−(handle − n)/240 + (pressure − n)/110 − (Feel_O − 54)/400 + (Feel_D − 54)/210
               − (oiq − n)/350 + (hands − n)/420)
               × (1 + .02 per flashy) × (1 + .3 × (tiredness − .13)) × (1 − .015 per Connector)
               × (1 + .025 per Point-of-attack defender) × last season's correction
@@ -546,12 +546,12 @@ max(42, pss × (1 + (Feel − 54)/300 + (oiq − 50)/400))^2.4
 ## H. Rebounds
 
 ```
-P(offensive rebound) = cl(.26 + .004 × (offense's avg glass skill − defense's) + .03 × (defense's
+P(offensive rebound) = cl(.26 + .0022 × (offense's avg glass skill − defense's) + .03 × (defense's
                        avg tiredness − offense's) + .015 × clutch edge + tactics, .12, .45)
 ```
 
 - 89% of rebounds are credited to a player (the rest are team rebounds).
-- **Who grabs it:** weighted by max(36, rebound skill)² × 1.3 for a Rebounder × (1 − max(0, box − 55)/120) × (1 − .35 × tiredness).
+- **Who grabs it:** weighted by max(36, rebound skill)^2.5 × 1.3 for a Rebounder × (1 − max(0, box − 55)/120) × (1 − .35 × tiredness).
 - **Rebounding floor** (`ratings.ts`): reb ≥ round(.3·hgt + .2·jmp + .15·stre − 6), and box ≥ that − 4.
 
 ## I. Minutes, fatigue and rotation
@@ -687,7 +687,7 @@ group affinity (from his profile, scaled by how well the group fits his position
 
 - **Feel** for generated players ≈ .35·oiq + .15·pss + 30 ± 11 (15–99). League average is about 50.
 - **Poise** ≈ 52 + 1.2 × (age − 24) ± 11, +10 if `clutch`, −12 if `volatile`, +4 if `pro` (10–99).
-- **Neither one counts toward the overall.** In games:
+- **Feel counts toward the overall; Poise does not.** In games:
   - **Feel:** better shots for his lineup (+.00012 per point), fewer turnovers, more assists, more steals.
   - **Poise:** clutch shooting (+.0005 per point over 55), late free throws, less road penalty.
 - **Hidden gems** (players under 25): base chance 5–7%, raised by Feel over 60, Poise over 60 and work over 60.

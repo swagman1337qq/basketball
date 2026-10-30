@@ -4,3 +4,14 @@ node.exe
 npm.tgz
 package/
 npm-cache/
+
+# Generated card audit artifacts
+card-before/
+remote-base/
+card-stats/
+player-card-results*.json
+card-current-*.json
+card-direct-*.json
+card-calibration*.json
+card-polished.json
+college-card-calibration.json
