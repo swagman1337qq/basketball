@@ -145,7 +145,7 @@ export function mockDraft(g: Game, s: any, k: string): MockPick[] {
     const n = sd * gauss(key + p.id);
     if (k === 'athleisure') return 100 - (rankOf[p.id] ?? 60) * 0.9 + n; // mirrors how teams actually rank them
     const base = k === 'donger' ? p.pot * .8 + p.ovr * .2 : k === 'illiterated' ? p.pot * .45 + p.ovr * .55 : p.pot * .6 + p.ovr * .4;
-    const b = k === 'donger' ? (p.age <= 19 ? 1.5 : p.age >= 22 ? -1.5 : 0) : k === 'bleacher' ? (athletic(p) - 50) * .08 : k === 'illiterated' ? (p.from?.lg === 'NCAA' && p.age >= 21 ? 1.5 : 0) : k === 'fox' ? (p.grp === 'B' ? 2 : 0) : 0;
+    const b = k === 'donger' ? (p.age <= 19 ? 1.5 : p.age >= 22 ? -1.5 : 0) : k === 'bleacher' ? (athletic(p) - 50) * .08 : k === 'illiterated' ? ((p.from?.lg === 'NCAA' || p.from?.lg === 'NAIA') && p.age >= 21 ? 1.5 : 0) : k === 'fox' ? (p.grp === 'B' ? 2 : 0) : 0;
     return base + b + n;
   };
   const V: Record<number, number> = {}; pool0.forEach(id => P[id] && (V[id] = val(P[id])));
@@ -165,7 +165,7 @@ export function mockDraft(g: Game, s: any, k: string): MockPick[] {
       : k === 'donger' && p.age <= 19 && ups >= 18 && cr > i + 1 ? say(['Upside swing: the ceiling is enormous.', 'Bet on the tools. He’s 19.', 'The most fun pick on the board.'])
       : k === 'bleacher' && athletic(p) >= 64 ? say(['Freak athlete. The highlights write themselves.', 'Nobody in this class moves like him.', 'Pure bounce and burst.'])
       : k === 'athleisure' && unit(key + 'src' + best) < .35 ? say(['Sources say they love him.', 'He had a strong workout here, per league sources.', 'Intel points this way.'])
-      : k === 'illiterated' && p.from?.lg === 'NCAA' && p.age >= 21 ? say(['A proven college producer.', 'Ready to help on day one.', 'Three years of tape. He can play.'])
+      : k === 'illiterated' && (p.from?.lg === 'NCAA' || p.from?.lg === 'NAIA') && p.age >= 21 ? say(['A proven college producer.', 'Ready to help on day one.', 'Three years of tape. He can play.'])
       : best !== bpa ? 'Fills a need at ' + ({ G: 'guard', W: 'wing', B: 'big' } as any)[p.grp] + '.'
       : i < 3 ? say(['The best player in the class on our board.', 'No overthinking it.', 'Top of our board.'])
       : say(['Best player available.', 'Value pick at this spot.', 'Too good to pass up here.', 'Highest on our board still available.']);

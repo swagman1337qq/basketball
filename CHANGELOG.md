@@ -2,6 +2,12 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-10-30
+
+### Changed
+- **Real college paths for draft prospects.** A prospect's College / Club tab now follows his real time in school: his age on draft night minus 18, so a 22-year-old senior shows four seasons and a 23- or 24-year-old shows five or six. The extra years come the way they do in real life: a redshirt freshman year, a medical redshirt after an early injury, sitting out after a transfer, or a fifth season of eligibility; now and then an injury cuts a season short. Many players transfer (more the longer they stay), some start at a junior college (like Jimmy Butler) or at a Division II, III or NAIA school before moving up (like Derrick White and Duncan Robinson). Seasons he didn't play are listed without stats. Nothing extra is saved.
+- **Small-college prospects.** About one draft class in two now has a prospect who never played Division I (Division II, the NAIA, now and then Division III), like Ben Wallace, Charles Oakley or Haywood Highsmith: a conservative estimate. Most are raw athletes, rebounders and defenders who grew late; some are scorers the big schools missed. Their stats are against weaker competition.
+
 ## 2026-10-29
 
 ### Fixed

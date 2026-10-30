@@ -44,7 +44,7 @@ import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pic
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
 import { roleRamp } from '../data/world';
-import { clubs, COLLEGES, countries, pickCollege, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
+import { clubs, COLLEGES, countries, pickCollege, pickSmallCollege, cyr, EXPANSION, MARKETS, namePools, natDefault, nativeMaps, OWNER_ARCHETYPES, OWNER_SURNAMES, OLD_NICKNAMES, RATING_KEYS, regions, roleDefs, TEAM_STYLE, TEAMS, teamStyle } from '../data/world';
 import { faceSvg, makeFace } from './faces';
 import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './startRoster';
 import { mulberry32, nextRandom } from './rng';
@@ -764,7 +764,15 @@ export class Game {
     let k: 'hs' | 'col' | 'club', to: any = null;
     if (da === 18) k = 'hs';
     else if (intl && rnd() < 0.75) { const c = cc[Math.floor(rnd() * cc.length)]; k = 'club'; to = { team: c[0], lg: c[1], country: p.raised || p.born }; }
-    else { k = 'col'; to = { team: pickCollege(rnd), lg: 'NCAA', country: 'US' }; }
+    else { k = 'col'; to = { team: pickCollege(rnd), lg: 'NCAA', country: 'US' };
+      // 2026-10-30: about 1.5 in 100 older college prospects (a conservative estimate) never played Division I (Division II, the NAIA, now and then
+      // Division III), like Ben Wallace, Charles Oakley and Haywood Highsmith. Most are raw athletes, rebounders and defenders
+      // who grew late; some are scorers the big schools missed.
+      if (da >= 21 && rnd() < 0.015) { to = { ...pickSmallCollege(rnd), country: 'US' };
+        const ath = rnd() < 0.7, add = (k2: string, v: number) => { if (p.r[k2] != null) p.r[k2] = Math.max(4, Math.min(95, p.r[k2] + v)); };
+        if (ath) { add('jmp', 4); add('spd', 3); add('stre', 3); add('reb', 4); add('blk', 3); add('diq', 3); add('drb', -3); add('pss', -3); add('tp', -2); }
+        else { add('fg', 4); add('tp', 3); add('ft', 3); add('diq', -2); }
+        syncOvr(p); } }
     p.pth = { k, youth, to };
     p.from = this.prospectFrom(p);
     return p;

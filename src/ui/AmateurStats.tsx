@@ -31,7 +31,7 @@ const ADV: Col[] = [
   ['obpm', 'OBPM', 'Offensive box plus-minus (the class average is 0)', x => x.adv.obpm, 1], ['dbpm', 'DBPM', 'Defensive box plus-minus', x => x.adv.dbpm, 1], ['bpm', 'BPM', 'Box plus-minus', x => x.adv.bpm, 1],
   ['ewa', 'EWA', 'Estimated wins added', x => x.adv.ewa, 1], ['epm', 'EPM', 'EPM estimate (from the box score: no lineup data for amateurs)', x => x.adv.epm, 1], ['lebron', 'LEBRON', 'LEBRON estimate (box score)', x => x.adv.lebron, 1], ['darko', 'DARKO', 'DARKO estimate (box score)', x => x.adv.darko, 1],
 ];
-const note = 'Worked out from how he really played (not your scouts’ read) against his level of competition: college, high school, junior or pro leagues abroad. A year of luck is in every line. BPM, EPM, LEBRON and DARKO compare him with this draft class; amateurs have no lineup data.';
+const note = 'Worked out from how he really played (not your scouts’ read) against his level of competition: college (Division I, junior college, Division II and III, the NAIA), high school, junior or pro leagues abroad. Redshirt years and seasons lost to injury are shown without stats. A year of luck is in every line. BPM, EPM, LEBRON and DARKO compare him with this draft class; amateurs have no lineup data.';
 
 function useClass(vm: VM, cls: number, ids: number[]) { const { gm, s } = vm.ctx; return useMemo(() => classStats(gm, cls, ids, s.gv || 0), [gm, cls, ids.join(','), s.gv, gm.Y]); }
 
@@ -47,7 +47,7 @@ export function AmateurTab({ vm }: { vm: VM }) {
         <h4 style={{ margin: '0 0 4px', fontSize: '16px' }}>{title}</h4>
         <table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>
           <thead><tr><TH l pin>Season</TH><TH l>Team</TH><TH l>Level</TH><TH>Age</TH>{(cols as Col[]).map(c => <TH key={c[0]} t={c[2]}>{c[1]}</TH>)}</tr></thead>
-          <tbody>{lines.map(x => <tr key={x.season}><TD l pin>{sl(x.season)}</TD><TD l>{x.team}</TD><TD l><span style={muted}>{x.level}</span></TD><TD>{x.age}</TD>{(cols as Col[]).map(c => <TD key={c[0]}>{f(c[3](x), c[4])}</TD>)}</tr>)}</tbody>
+          <tbody>{lines.map(x => <tr key={x.season}><TD l pin>{sl(x.season)}</TD><TD l>{x.team}</TD><TD l><span style={muted}>{x.level}{x.note ? ' · ' + x.note : ''}</span></TD><TD>{x.age}</TD>{(cols as Col[]).map(c => <TD key={c[0]}>{f(c[3](x), c[4])}</TD>)}</tr>)}</tbody>
         </table>
       </div>))}
   </>);
