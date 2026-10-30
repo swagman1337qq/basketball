@@ -410,6 +410,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   }
   const togList = (lid, pid) => () => gm.setState(st => ({ lists: st.lists.map(l => l.id !== lid ? l : { ...l, ids: l.ids.includes(pid) ? l.ids.filter(x => x !== pid) : [...l.ids, pid] }) }));
   pl.lists = s.lists.map(l => { const on = l.ids.includes(pp.id); return { name: l.name, mark: on ? '✓ ' : '+ ', toggle: togList(l.id, pp.id), color: on ? 'var(--color-accent-800)' : 'var(--color-text)', bg: on ? 'var(--color-accent-100)' : 'transparent', border: on ? 'var(--color-accent)' : 'var(--color-divider)' }; });
+  // The profile's shortlist dropdown (2026-10-30): the list he's on, moving him to another (off every other list), or a new one.
+  pl.listCur = s.lists.find(l => l.ids.includes(pp.id))?.id ?? '';
+  pl.listMore = s.lists.filter(l => l.ids.includes(pp.id)).slice(1).map(l => l.name);
+  pl.listMove = (lid: string) => gm.setState(st => ({ lists: st.lists.map(l => ({ ...l, ids: l.id === lid ? (l.ids.includes(pp.id) ? l.ids : [...l.ids, pp.id]) : l.ids.filter(x => x !== pp.id) })) }));
+  pl.listNew = (name: string) => { const nm = name.trim(); if (!nm) return; gm.setState(st => ({ lists: [...st.lists.map(l => ({ ...l, ids: l.ids.filter(x => x !== pp.id) })), { id: 'l' + Date.now(), name: nm, ids: [pp.id] }] })); };
   const shortlists = s.lists.map(l => ({ name: l.name, count: l.ids.length + (l.ids.length === 1 ? ' player' : ' players'), empty: l.ids.length === 0, del: () => gm.setState(st => ({ lists: st.lists.filter(x => x.id !== l.id) })),
     rows: l.ids.map(id => ({ ...pBase(id), team: teamOf(id), openT: openTeam(tidOf[id] ?? -1), money: tidOf[id] === -1 ? 'Asking ' + money(P[id].ask) : P[id].cls && tidOf[id] === undefined ? '—' : money(P[id].amt), remove: e => { e.stopPropagation(); togList(l.id, id)(); } })) }));
   {

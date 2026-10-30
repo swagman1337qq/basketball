@@ -148,7 +148,7 @@ Screens: Trade, Pre-Free Agency, Free agency, Cap sheet, Contracts, Cap outlook.
 - Scouts with regional specialties; talent regions in tiers 1 to 4; the scouting budget sets accuracy.
 - Scouting reports with margins: 12 graded categories, strengths, weaknesses, player comparisons.
 - Scout briefs: tell a scout what to look for and he finds players himself.
-- Shortlist, draft board and mock drafts; about 100 prospects a year, 60 drafted.
+- Shortlist, draft board and mock drafts; about 100 prospects a year, 60 drafted. On a player's profile the shortlist is one dropdown (2026-10-30, `ProfileMain.tsx`; `viewModel.ts` `pl.listCur`, `pl.listMove` moves him onto one list and off the others, `pl.listNew` makes a new list with him on it; "also on …" if an older save has him on several).
 - 3-2-1 lottery with exact odds and a lottery-night reveal.
 - Draft promises and draft-night heists.
 - Draft surprises: each prospect has a hidden "NBA translation" that shows at his first training camp. His level moves (about half ±2, the rest 3–6 either way, about one in eight a real bust or steal), his shape shifts (e.g. shooting up, playmaking down), and his ceiling moves too. You get a camp report; God Mode profiles can peek. The level change moves his development plan's starting point with it (it's a level, not growth still to come). A rookie who's already good gains less from a good camp (`applyTranslation`: × (62 − level) / 7, between ¼ and all of it, above 55; the camp report's label follows what he actually gained).

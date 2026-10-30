@@ -51,6 +51,7 @@ export function ProfileHeader({ vm }: { vm: VM }) {
   const { gm, s, p, tid, openClass, draftLabel } = useProfile(vm), pl: any = vm.pl;
   const [allFor, setAllFor] = useState<number | null>(null); // the player whose badges are all showing
   const [faceFor, setFaceFor] = useState<number | null>(null); // the player whose face editor is open
+  const [newList, setNewList] = useState<string | null>(null); // the name being typed for a new shortlist (null: not adding one)
   if (!p.id) return null;
   const t = gm.seasonTotals(p, gm.Y), gp = t?.gp || 0, f1 = (v: number) => v.toFixed(1);
   const kb = knownBadges(gm, s, p), badges = kb.list, T = s.teams;
@@ -125,7 +126,17 @@ export function ProfileHeader({ vm }: { vm: VM }) {
       {faceFor === p.id && <FaceEditor gm={gm} p={p} onClose={() => setFaceFor(null)} />}
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
         <span style={{ ...muted, fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', marginRight: '4px' }}>Shortlist</span>
-        {(pl.lists || []).map((c: any, i: number) => <button key={i} onClick={c.toggle} style={{ all: 'unset', cursor: 'pointer', padding: '2px 10px', border: '1px solid ' + c.border, borderRadius: 'var(--radius-sm)', fontSize: '12px', color: c.color, background: c.bg }}>{c.mark}{c.name}</button>)}
+        <select className="input" value={newList != null ? '__new' : pl.listCur} onChange={e => { const v = e.target.value; if (v === '__new') setNewList(''); else { setNewList(null); pl.listMove(v); } }} style={{ width: 'auto', fontSize: '12.5px', padding: '3px 8px' }} title="Put him on a shortlist (moving him off any other), or start a new one">
+          <option value="">Not on a shortlist</option>
+          {s.lists.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          <option value="__new">+ New shortlist…</option>
+        </select>
+        {newList != null && <>
+          <input className="input" autoFocus value={newList} placeholder="Name the shortlist" onChange={e => setNewList(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && newList.trim()) { pl.listNew(newList); setNewList(null); } else if (e.key === 'Escape') { e.stopPropagation(); setNewList(null); } }} style={{ width: '170px', fontSize: '12.5px', padding: '3px 8px' }} />
+          <button className="btn btn-primary" disabled={!newList.trim()} onClick={() => { pl.listNew(newList); setNewList(null); }} style={{ fontSize: '12px', padding: '2px 10px' }}>Create</button>
+          <button className="btn btn-ghost" onClick={() => setNewList(null)} style={{ fontSize: '12px' }}>Cancel</button>
+        </>}
+        {pl.listMore?.length > 0 && <span style={{ ...muted, fontSize: '12px' }}>also on {pl.listMore.join(', ')}</span>}
         <button className="btn btn-ghost" onClick={vm.goShort} style={{ fontSize: '12px' }}>Manage categories</button>
       </div>
     </>
