@@ -16,6 +16,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
   const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
+  // Where that season was played, so 25 a game in a small conference reads differently from 25 in a power conference.
+  const LV: Record<string, string> = { 'NCAA, power program': 'Power program', 'NCAA, power conference': 'Power conf.', 'NCAA, mid-major': 'Mid-major', 'NCAA, small conference': 'Small conf.', 'NCAA, Ivy League': 'Ivy League', 'NCAA Division II': 'Division II', 'NCAA Division III': 'Division III', 'Junior college': 'JUCO' };
   const snap = (p: any) => { const x = last(p.id), d = x?.disp; if (!x) return <><b>{p.name}</b><div style={{ color: 'var(--color-neutral-600)' }}>No college or club season yet.</div></>;
     const pg = (v: number) => (v / d.gp).toFixed(1), pc = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
     const cells: [string, string][] = [['G', String(d.gp)], ['MPG', x.mpg.toFixed(1)], ['PTS', pg(d.pts)], ['REB', pg(d.orb + d.drb)], ['AST', pg(d.ast)], ['STL', pg(d.stl)], ['BLK', pg(d.blk)], ['TOV', pg(d.tov)], ['FG%', pc(d.fgm, d.fga)], ['3P%', pc(d.tpm, d.tpa)], ['FT%', pc(d.ftm, d.fta)]];
@@ -196,7 +198,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <th onClick={() => { setStSort(null); c.onClick(); }} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: stats && stSort ? "color-mix(in srgb, var(--color-text) 60%, transparent)" : c.color }}>
                     {c.label}{stats && stSort ? "" : c.arrow}
                   </th>
-                  {stats && c.key === 'age' && ST.map(([h, t]) => { const on = stSort?.[0] === h; return <th key={h} title={t + ' (click to sort)'} onClick={() => sortSt(h)} style={{ padding: "6px 4px", textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: on ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>{h}{on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}</th>; })}</Fragment>
+                  {stats && c.key === 'age' && <th title="Where he played that season, and its level of competition" style={{ padding: "6px 8px", textAlign: "left", whiteSpace: "nowrap" }}>TEAM</th>}{stats && c.key === 'age' && ST.map(([h, t]) => { const on = stSort?.[0] === h; return <th key={h} title={t + ' (click to sort)'} onClick={() => sortSt(h)} style={{ padding: "6px 4px", textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: on ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>{h}{on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}</th>; })}</Fragment>
                 ))}
                 <th style={{ padding: "6px 8px" }}></th>
               </tr>
@@ -223,7 +225,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  {stats ? ST.map(([h, , fn, dg]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 4px", textAlign: "right", whiteSpace: "nowrap", fontWeight: stSort?.[0] === h ? 600 : undefined }}>{x ? f1(fn(x), dg ?? 1) : '—'}</td>; }) : (<>
+                  {stats ? <>{(() => { const x = last(p.id); return <td style={{ padding: "4px 8px", whiteSpace: "nowrap" }} title={x ? x.team + ' · ' + x.level : undefined}>{x ? <>{x.team} <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>{LV[x.level] ?? x.level}</span></> : '—'}</td>; })()}{ST.map(([h, , fn, dg]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 4px", textAlign: "right", whiteSpace: "nowrap", fontWeight: stSort?.[0] === h ? 600 : undefined }}>{x ? f1(fn(x), dg ?? 1) : '—'}</td>; })}</> : (<>
                   <td style={{ padding: "4px 8px" }}>
                     {p.fromT}{" "}
                     <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
