@@ -56,12 +56,12 @@ function ListTable({ vm, rows }: { vm: VM; rows: any[] }) {
       <thead><tr>{sc.head()}{srt.head('name', 'Player')}{srt.head('team', 'Team')}{srt.head('pos', 'Pos')}{srt.head('age', 'Age', 'right')}{srt.head('ovr', 'Ovr', 'right')}{srt.head('pot', 'Pot', 'right')}{srt.head('money', 'Contract / ask', 'right')}<th></th></tr></thead>
       <tbody>
         {pg.rows.map((p: any, i: number) => (
-          <tr key={i} onClick={p.open} onContextMenu={sc.onContext(p.id)} style={{ cursor: "pointer", background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+          <tr key={i} {...sc.row(p.id)} style={{ userSelect: "none", background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
             {sc.cell(p.id)}
             <td style={{ padding: "5px 8px" }}>
               <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
                 <img src={p.flag} alt="" style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                <span title={p.name} style={{ color: "var(--color-accent-700)", ...PN }}>
+                <span title={p.name} data-pid={p.id} onClick={p.open} style={{ color: "var(--color-accent-700)", cursor: "pointer", ...PN }}>
                   {p.name}
                 </span>
                 {sc.tag(p.id)}

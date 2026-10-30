@@ -30,7 +30,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
         </thead>
         <tbody>
           {pg.rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (
-            <tr key={r.id} onContextMenu={sc.onContext(r.id)} style={{ background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+            <tr key={r.id} {...sc.row(r.id)} style={{ userSelect: "none", background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
               {sc.cell(r.id)}
               <td style={td()}>
                 <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>

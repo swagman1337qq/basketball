@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Seg, usePaged, PN } from '../kit';
 import { BadgeChip } from '../BadgeChip';
 import { TraitFilter, byTrait } from '../TraitFilter';
+import { useSearchFilter } from '../SearchFilter';
 import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
@@ -72,11 +73,12 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const inR = (v: number, lo?: number, hi?: number) => (lo == null || v >= lo) && (hi == null || v <= hi);
   const posOk = (p: any) => !F.pos || F.pos === 'any' || (F.pos.length === 1 ? P[p.id]?.grp === F.pos : p.pos === F.pos || ({ GF: ['SG', 'SF'], FC: ['PF', 'C'], G: ['PG', 'SG'], F: ['SF', 'PF'] } as Record<string, string[]>)[p.pos]?.includes(F.pos));
   const all = vm.faRows || [];
-  const rows = all.filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk))
+  const sf = useSearchFilter();
+  const rows = all.filter((p: any) => f === 'all' || (f === 'gl' ? !!p.glT : !p.glT)).filter(byTrait(vm, tk)).filter(sf.test)
     .filter((p: any) => (!F.can || !p.cant) && posOk(p) && inR(p.age, F.ageMin, F.ageMax) && inR(p.ovr, F.ovrMin, F.ovrMax) && inR(p.pot, F.potMin, F.potMax) && (F.askMax == null || (p.ask ?? 0) <= F.askMax + 1e-9));
   const nGl = all.filter((p: any) => p.glT).length, nCan = all.filter((p: any) => !p.cant).length;
-  const active = f !== 'all' || !!tk || Object.entries(F).some(([k, v]) => v != null && v !== false && !(k === 'pos' && v === 'any'));
-  const reset = () => { setF('all'); setTk(''); gm.setState({ faF: {} }); };
+  const active = f !== 'all' || !!tk || sf.active || Object.entries(F).some(([k, v]) => v != null && v !== false && !(k === 'pos' && v === 'any'));
+  const reset = () => { setF('all'); setTk(''); sf.clear(); gm.setState({ faF: {} }); };
   const ids = s.rosters[s.me] || [], lim = rosterMax(s), std = stdIds(gm, ids).length, tw = twoWayIds(gm, ids).length, inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase);
   // The assistant GM: press to highlight his picks (the rest dim); press again to turn it off.
   // The picks stay put while you page, sort or filter, until you turn him off.
@@ -131,7 +133,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
           </div>); })}
         <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>His picks are highlighted in the list below; everyone else is dimmed. Press the button again to turn this off.</div>
       </div>}
-      {sc.bar()}{sc.Menu()}
+      {sf.bar}{sc.bar()}{sc.Menu()}
       <table data-tour="fa-table" className="table" style={{ fontSize: "13px" }}>
         <thead>
           <tr>
@@ -149,7 +151,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
         </thead>
         <tbody>
           {pg.rows.map((p: any, i: number) => (
-            <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) || advPick.has(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined, boxShadow: advPick.has(p.id) ? 'inset 3px 0 0 var(--color-accent)' : undefined, opacity: adv && !advPick.has(p.id) ? 0.35 : 1, transition: 'opacity .15s' }}>
+            <tr key={i} {...sc.row(p.id)} style={{ userSelect: "none", background: sc.isSel(p.id) || advPick.has(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined, boxShadow: advPick.has(p.id) ? 'inset 3px 0 0 var(--color-accent)' : undefined, opacity: adv && !advPick.has(p.id) ? 0.35 : 1, transition: 'opacity .15s' }}>
               {sc.cell(p.id)}
               <td style={{ padding: "4px 8px" }}>
                 <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>

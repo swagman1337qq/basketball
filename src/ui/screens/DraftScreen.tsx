@@ -6,6 +6,7 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
+import { useSearchFilter } from '../SearchFilter';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
@@ -46,7 +47,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const stVal = (id: number, k: string) => { const x = last(id), c = ST.find(t => t[0] === k); const v = x && c ? c[2](x) : NaN; return v == null || !isFinite(v) ? null : v; };
   const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
   const cols = (vm.draftCols || []).filter((c: any) => !stats || (c.key !== 'fromT' && c.key !== 'hgt'));
-  const rows0 = (vm.draftRows || []).filter(byTrait(vm, tk));
+  const sf = useSearchFilter(), rows0 = (vm.draftRows || []).filter(byTrait(vm, tk)).filter(sf.test);
   const boardRows = stats && stSort ? rows0.slice().sort((a: any, b: any) => { const x = stVal(a.id, stSort[0]), y = stVal(b.id, stSort[0]); return x == null ? (y == null ? 0 : 1) : y == null ? -1 : stSort[1] < 0 ? y - x : x - y; }) : rows0, sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   const pg = usePaged(boardRows, 'prospects', 30);
   const head = (
@@ -190,7 +191,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
           <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} />{([["trad", "Show traditional stats", "Points, rebounds, assists, steals, blocks, shooting and PER"], ["adv", "Show advanced stats", "Every advanced stat, a set at a time (‹ › to turn): scoring, rebounding and defense, impact"]] as const).map(([m, label, what]) => <button key={m} className={stMode === m ? "btn btn-primary" : "btn btn-secondary"} onClick={() => pickMode(m)} title={what + ": each prospect's latest season, in place of where he plays and his height" + (stMode === m ? " (click again to hide)" : "")} style={{ fontSize: "12.5px" }}>{label}</button>)}{stMode === 'adv' && <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px" }}><button className="btn btn-ghost" onClick={() => turn(-1)} title="Previous set" style={{ padding: "2px 8px", minHeight: 0 }}>‹</button><span style={{ display: "inline-grid", whiteSpace: "nowrap", textAlign: "center" }}>{ADV_PAGES.map(([name], i) => <span key={name} aria-hidden={i !== advPg} style={{ gridArea: "1 / 1", visibility: i === advPg ? "visible" : "hidden" }}>{name} <span style={{ color: "var(--color-neutral-600)" }}>{i + 1}/{ADV_PAGES.length}</span></span>)}</span><button className="btn btn-ghost" onClick={() => turn(1)} title="Next set" style={{ padding: "2px 8px", minHeight: 0 }}>›</button></span>}</div>
-          {sc.bar()}{sc.Menu()}
+          {sf.bar}{sc.bar()}{sc.Menu()}
           <div style={{ overflowX: "auto" }}>
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
@@ -207,7 +208,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </thead>
             <tbody>
               {pg.rows.map((p: any, i: number) => (
-                <tr key={i} onContextMenu={sc.onContext(p.id)} style={{ background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
+                <tr key={i} {...sc.row(p.id)} style={{ userSelect: "none", background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
                   {sc.cell(p.id)}
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: "var(--color-neutral-700)" }}>
                     {p.rank}
