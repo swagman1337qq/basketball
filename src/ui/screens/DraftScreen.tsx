@@ -16,12 +16,17 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
   const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
-  const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)), pct = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
-  const ST: [string, string, (x: any) => string][] = [['PPG', 'Points per game', x => f1(x.disp.pts / x.disp.gp)], ['RPG', 'Rebounds per game', x => f1((x.disp.orb + x.disp.drb) / x.disp.gp)], ['APG', 'Assists per game', x => f1(x.disp.ast / x.disp.gp)],
-    ['SPG', 'Steals per game', x => f1(x.disp.stl / x.disp.gp)], ['BPG', 'Blocks per game', x => f1(x.disp.blk / x.disp.gp)], ['FG%', 'Field goal %', x => pct(x.disp.fgm, x.disp.fga)], ['3P%', 'Three-point %', x => pct(x.disp.tpm, x.disp.tpa)],
-    ['FT%', 'Free-throw %', x => pct(x.disp.ftm, x.disp.fta)], ['PER', 'Player efficiency rating', x => f1(x.adv?.per)]];
+  const f1 = (x: number) => (x == null || !isFinite(x) ? '—' : x.toFixed(1)), pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
+  // [label, tooltip, value]: shown to one decimal; a column sorts by its value (a prospect with none goes last).
+  const ST: [string, string, (x: any) => number][] = [['PPG', 'Points per game', x => x.disp.pts / x.disp.gp], ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp], ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
+    ['SPG', 'Steals per game', x => x.disp.stl / x.disp.gp], ['BPG', 'Blocks per game', x => x.disp.blk / x.disp.gp], ['FG%', 'Field goal %', x => pct(x.disp.fgm, x.disp.fga)], ['3P%', 'Three-point %', x => pct(x.disp.tpm, x.disp.tpa)],
+    ['FT%', 'Free-throw %', x => pct(x.disp.ftm, x.disp.fta)], ['PER', 'Player efficiency rating', x => x.adv?.per]];
+  const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
+  const stVal = (id: number, k: string) => { const x = last(id), c = ST.find(t => t[0] === k); const v = x && c ? c[2](x) : NaN; return v == null || !isFinite(v) ? null : v; };
+  const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
   const cols = (vm.draftCols || []).filter((c: any) => !stats || (c.key !== 'fromT' && c.key !== 'hgt'));
-  const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
+  const rows0 = (vm.draftRows || []).filter(byTrait(vm, tk));
+  const boardRows = stats && stSort ? rows0.slice().sort((a: any, b: any) => { const x = stVal(a.id, stSort[0]), y = stVal(b.id, stSort[0]); return x == null ? (y == null ? 0 : 1) : y == null ? -1 : stSort[1] < 0 ? y - x : x - y; }) : rows0, sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   const pg = usePaged(boardRows, 'prospects', 30);
   const head = (
       <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px", flexWrap: "wrap" }}>
@@ -170,10 +175,10 @@ export function DraftScreen({ vm }: { vm: VM }) {
               <tr>
                 {sc.head()}
                 {cols.map((c: any, i: number) => (<Fragment key={i}>
-                  <th onClick={c.onClick} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: c.color }}>
-                    {c.label}{c.arrow}
+                  <th onClick={() => { setStSort(null); c.onClick(); }} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: stats && stSort ? "color-mix(in srgb, var(--color-text) 60%, transparent)" : c.color }}>
+                    {c.label}{stats && stSort ? "" : c.arrow}
                   </th>
-                  {stats && c.key === 'age' && ST.map(([h, t]) => <th key={h} title={t} style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{h}</th>)}</Fragment>
+                  {stats && c.key === 'age' && ST.map(([h, t]) => { const on = stSort?.[0] === h; return <th key={h} title={t + ' (click to sort)'} onClick={() => sortSt(h)} style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: on ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>{h}{on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}</th>; })}</Fragment>
                 ))}
                 <th style={{ padding: "6px 8px" }}></th>
               </tr>
@@ -200,7 +205,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
-                  {stats ? ST.map(([h, , fn]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{x ? fn(x) : '—'}</td>; }) : (<>
+                  {stats ? ST.map(([h, , fn]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap", fontWeight: stSort?.[0] === h ? 600 : undefined }}>{x ? f1(fn(x)) : '—'}</td>; }) : (<>
                   <td style={{ padding: "4px 8px" }}>
                     {p.fromT}{" "}
                     <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>

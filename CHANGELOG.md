@@ -5,7 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-10-30
 
 ### Added
-- **College stats on the draft board.** A College stats button next to the personality filter swaps the Playing for and height columns for each prospect's latest college or club season: points, rebounds, assists, steals and blocks per game, field goal, three-point and free-throw percentages, and PER. Click it again to go back.
+- **College stats on the draft board.** A College stats button next to the personality filter swaps the Playing for and height columns for each prospect's latest college or club season: points, rebounds, assists, steals and blocks per game, field goal, three-point and free-throw percentages, and PER. Click it again to go back. Click any of those columns to sort the board by it (again to flip the order).
 
 ### Changed
 - **Real college paths for draft prospects.** A prospect's College / Club tab now follows his real time in school: his age on draft night minus 18, so a 22-year-old senior shows four seasons and a 23- or 24-year-old shows five or six. The extra years come the way they do in real life: a redshirt freshman year, a medical redshirt after an early injury, sitting out after a transfer, or a fifth season of eligibility; now and then an injury cuts a season short. Many players transfer (more the longer they stay), some start at a junior college (like Jimmy Butler) or at a Division II, III or NAIA school before moving up (like Derrick White and Duncan Robinson). Seasons he didn't play are listed without stats. Nothing extra is saved.
