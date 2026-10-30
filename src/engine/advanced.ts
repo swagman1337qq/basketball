@@ -49,8 +49,8 @@ export function seasonAdvanced(g: Game, s: any, season: number, po = false): Sea
   return computeAdvanced(g, season, teams, rows, recOf, s.teams.map((t: any) => t.tid), wins, po);
 }
 
-type Row = { p: any; t: StatLine; tid: number };
-function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number, po = true): SeasonAdvanced {
+export type Row = { p: any; t: StatLine; tid: number };
+export function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number, po = true): SeasonAdvanced {
   // League context.
   const lg: StatLine = {}; Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
   const possT = (t: StatLine) => g.possOf(t);

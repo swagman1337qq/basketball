@@ -1,6 +1,7 @@
 import type { VM } from '../vm';
 import { GOD_PINK, PN } from '../kit';
-import { useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import { classStats } from '../../engine/amateurStats';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
@@ -10,7 +11,16 @@ import { useScoutSelect } from '../ScoutSelect';
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
-  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board');
+  const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [stats, setStats] = useState(false);
+  // College / club stats on the board (2026-10-30): each prospect's latest season he played, in place of where he plays and his height.
+  const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
+  const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
+  const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
+  const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)), pct = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
+  const ST: [string, string, (x: any) => string][] = [['PPG', 'Points per game', x => f1(x.disp.pts / x.disp.gp)], ['RPG', 'Rebounds per game', x => f1((x.disp.orb + x.disp.drb) / x.disp.gp)], ['APG', 'Assists per game', x => f1(x.disp.ast / x.disp.gp)],
+    ['SPG', 'Steals per game', x => f1(x.disp.stl / x.disp.gp)], ['BPG', 'Blocks per game', x => f1(x.disp.blk / x.disp.gp)], ['FG%', 'Field goal %', x => pct(x.disp.fgm, x.disp.fga)], ['3P%', 'Three-point %', x => pct(x.disp.tpm, x.disp.tpa)],
+    ['FT%', 'Free-throw %', x => pct(x.disp.ftm, x.disp.fta)], ['PER', 'Player efficiency rating', x => f1(x.adv?.per)]];
+  const cols = (vm.draftCols || []).filter((c: any) => !stats || (c.key !== 'fromT' && c.key !== 'hgt'));
   const boardRows = (vm.draftRows || []).filter(byTrait(vm, tk)), sc = useScoutSelect(vm, boardRows.map((p: any) => p.id));
   const pg = usePaged(boardRows, 'prospects', 30);
   const head = (
@@ -153,16 +163,17 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <section>
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /></div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} /><button className={stats ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setStats(v => !v)} title="Each prospect's latest college or club season, in place of where he plays and his height" style={{ fontSize: "12.5px" }}>{stats ? "Hide college stats" : "College stats"}</button></div>
           {sc.bar()}{sc.Menu()}
           <table className="table" style={{ fontSize: "13px" }}>
             <thead>
               <tr>
                 {sc.head()}
-                {(vm.draftCols || []).map((c: any, i: number) => (
-                  <th key={i} onClick={c.onClick} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: c.color }}>
+                {cols.map((c: any, i: number) => (<Fragment key={i}>
+                  <th onClick={c.onClick} style={{ padding: "6px 8px", textAlign: c.align, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", color: c.color }}>
                     {c.label}{c.arrow}
                   </th>
+                  {stats && c.key === 'age' && ST.map(([h, t]) => <th key={h} title={t} style={{ padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{h}</th>)}</Fragment>
                 ))}
                 <th style={{ padding: "6px 8px" }}></th>
               </tr>
@@ -189,6 +200,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.age}
                   </td>
+                  {stats ? ST.map(([h, , fn]) => { const x = last(p.id); return <td key={h} style={{ padding: "4px 6px", textAlign: "right", whiteSpace: "nowrap" }}>{x ? fn(x) : '—'}</td>; }) : (<>
                   <td style={{ padding: "4px 8px" }}>
                     {p.fromT}{" "}
                     <span style={{ color: "var(--color-neutral-600)", fontSize: "11px" }}>
@@ -197,7 +209,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
                     {p.hgt}
-                  </td>
+                  </td></>)}
                   <td style={{ padding: "4px 8px", textAlign: "right", color: p.tone, fontWeight: "600", whiteSpace: "nowrap" }}>
                     {p.ovrS}
                   </td>
