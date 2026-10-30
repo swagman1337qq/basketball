@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { usePaged, PN } from '../kit';
 import type { VM } from '../vm';
 import { byLast, useSort } from '../sortable';
 import { useScoutSelect } from '../ScoutSelect';
 
+let lastPick = ''; // the shortlist last shown, kept while the game is open
 export function ShortlistScreen({ vm }: { vm: VM }) {
+  const [pick, setPick0] = useState(lastPick), setPick = (id: string) => { lastPick = id; setPick0(id); };
   return (
     <>
       <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "20px" }}>
@@ -20,27 +23,25 @@ export function ShortlistScreen({ vm }: { vm: VM }) {
           No categories yet. Create one above.
         </p>
       </>)}
-      {(vm.shortlists || []).map((l: any, i: number) => (
-        <section key={i} style={{ marginBottom: "26px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px", borderBottom: "1px solid var(--color-text)", paddingBottom: "3px" }}>
-            <h4 style={{ margin: "0", fontSize: "19px" }}>
-              {l.name}
-            </h4>
-            <span style={{ flex: "1", color: "var(--color-neutral-700)" }}>
-              {l.count}
-            </span>
-            <button className="btn btn-ghost" onClick={l.del} style={{ fontSize: "12px" }}>
+      {/* One shortlist at a time (2026-10-30), picked from the dropdown; the choice is remembered while the game is open. */}
+      {(() => { const ls: any[] = vm.shortlists || [], l = ls.find(x => x.id === pick) || ls[0]; if (!l) return null; return (
+        <section key={l.id} style={{ marginBottom: "26px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", borderBottom: "1px solid var(--color-text)", paddingBottom: "5px", flexWrap: "wrap" }}>
+            <select className="input" value={l.id} onChange={e => setPick(e.target.value)} title="Choose which shortlist to show" style={{ width: "auto", fontSize: "16px", fontFamily: "var(--font-heading)", padding: "3px 10px" }}>
+              {ls.map(x => <option key={x.id} value={x.id}>{x.name} ({x.count})</option>)}
+            </select>
+            <span style={{ flex: "1" }} />
+            <button className="btn btn-ghost" onClick={() => { l.del(); setPick(''); }} style={{ fontSize: "12px" }}>
               Delete category
             </button>
           </div>
           {!!l.empty && (<>
             <p style={{ fontStyle: "italic", color: "var(--color-neutral-700)", margin: "8px 0" }}>
-              Nobody here yet. Open a player and tap this category.
+              Nobody here yet. Add players from their profile, or pick several players on the draft board, free agency or overseas and right-click.
             </p>
           </>)}
           <ListTable vm={vm} rows={l.rows || []} />
-        </section>
-      ))}
+        </section>); })()}
     </>
   );
 }
