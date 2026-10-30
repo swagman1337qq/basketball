@@ -36,7 +36,7 @@ export function ContractsScreen({ vm }: { vm: VM }) {
   const extend = (id: number) => { open(id); gm.setState({ ptab: 'contract' }); };
   const extBtn = (p: any) => <button className="btn btn-primary" style={{ fontSize: '11.5px', padding: '2px 10px' }} onClick={() => extend(p.id)} title={extWindow(gm, s, p).why}>Extend…</button>;
   const who = (p: any) => (
-    <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span>{tid === s.me && ids.includes(p.id) && <button className="btn btn-ghost hv4" onClick={() => gm.setState({ dialog: { type: 'release', pid: p.id } })} title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', marginLeft: 6, color: 'var(--gm-bad)' }}>Cut</button>}</td>);
+    <td style={tdc}><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age}</span>{tid === s.me && ids.includes(p.id) && <button className="btn btn-ghost hv4" onClick={() => gm.setState({ dialog: { type: 'release', pid: p.id } })} title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', marginLeft: 6, color: 'var(--gm-bad)' }}>Cut</button>}</td>);
   const rat = (p: any) => <td style={tdr}><b style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</b> <span style={muted}>/</span> <span style={{ color: ratingTier(vm.ctx.potOf(p)).color }}>{vm.ctx.potOf(p)}</span></td>;
 
   // Summer-by-summer groups: deals ending, and options to decide (the option year starts that fall).
@@ -69,7 +69,7 @@ export function ContractsScreen({ vm }: { vm: VM }) {
           <h4 style={{ ...ruleH4, color: 'var(--color-accent-800)' }}>Offer sheets</h4>
           {sheets.map((o: any) => { const p = P[o.pid], yours = o.to === tid; return (
             <div key={o.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--color-divider)', fontSize: 13 }}>
-              {tag(yours ? 'To answer' : 'Waiting', yours ? C_RFA : C_OPT)}<Link onClick={() => open(p.id)}>{p.name}</Link> · {yours ? 'signed an offer sheet with the ' + T[o.from].region + ' ' + T[o.from].name : 'your offer sheet; the ' + T[o.to].region + ' ' + T[o.to].name + ' can match'}: {fmtMoney(o.terms.amt)} × {o.terms.years} yrs
+              {tag(yours ? 'To answer' : 'Waiting', yours ? C_RFA : C_OPT)}<Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> · {yours ? 'signed an offer sheet with the ' + T[o.from].region + ' ' + T[o.from].name : 'your offer sheet; the ' + T[o.to].region + ' ' + T[o.to].name + ' can match'}: {fmtMoney(o.terms.amt)} × {o.terms.years} yrs
               {yours && <> · <Link onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Match or decline on the Cap sheet ›</Link></>}
             </div>); })}
         </section>

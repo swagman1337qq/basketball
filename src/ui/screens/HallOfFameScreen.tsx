@@ -21,7 +21,7 @@ export function HallOfFameScreen({ vm }: { vm: VM }) {
         <div className="gm-face" style={{ width: 48, height: 72, flex: 'none', overflow: 'hidden', borderRadius: 'var(--radius-sm)' }}>{gm.faceEl(p.id, lt ?? -1)}</div>
         <div style={{ minWidth: 0 }}>
           <Kicker accent>{h.firstBallot ? 'First ballot · ' : ''}Class of {h.year}</Kicker>
-          <Link onClick={() => open(p.id)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, color: 'var(--gm-elite)' }}>{p.name}</Link>
+          <Link pid={p.id} onClick={() => open(p.id)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, color: 'var(--gm-elite)' }}>{p.name}</Link>
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px' }}>{(h.tids || []).slice(-4).map(t => T[t] ? <span key={t}>{logo(t, 16)}</span> : null)}<span style={{ ...muted, fontSize: '12px', marginLeft: '4px' }}>{p.pos}{p.legacy ? ' · pre-league era' : ''}</span></div>
         </div>
       </div>
@@ -33,7 +33,7 @@ export function HallOfFameScreen({ vm }: { vm: VM }) {
   const Row = ({ x, i }: { x: any; i: number }) => (
     <div style={{ display: 'grid', gridTemplateColumns: '24px minmax(0,1.3fr) minmax(0,2fr) 120px', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
       <span style={muted}>{i + 1}</span>
-      <span><Link onClick={() => open(x.p.id)} style={{ fontWeight: 600 }}>{x.p.name}</Link> <span style={{ ...muted, fontSize: '11px' }}>{x.p.pos} · {x.p.retired ? 'retired ' + x.p.retired.season + (x.p.retired.season + WAIT > gm.Y ? ' · eligible ' + (x.p.retired.season + WAIT) : '') : 'age ' + x.p.age}</span></span>
+      <span><Link pid={x.p.id} onClick={() => open(x.p.id)} style={{ fontWeight: 600 }}>{x.p.name}</Link> <span style={{ ...muted, fontSize: '11px' }}>{x.p.pos} · {x.p.retired ? 'retired ' + x.p.retired.season + (x.p.retired.season + WAIT > gm.Y ? ' · eligible ' + (x.p.retired.season + WAIT) : '') : 'age ' + x.p.age}</span></span>
       <span style={muted}>{x.parts.sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, v]) => n + ' ' + v.toFixed(0)).join(' · ')}</span>
       <span><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}><span>{x.score.toFixed(0)}</span><span style={muted}>/ {HOF_BAR}</span></div><Bar value={x.score} max={HOF_BAR} color={x.score >= HOF_BAR ? 'var(--gm-elite)' : 'var(--color-accent)'} /></span>
     </div>

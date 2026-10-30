@@ -63,7 +63,7 @@ function PlayerStats({ vm }: { vm: VM }) {
       return [{ key: p.id, p, t, a: adv?.[p.id], team: tids.map(x => T[x]?.abbr).join('/'), yrs: season === 'career' ? new Set(rs.map((r: any) => r.season)).size : 1 }];
     }).filter(r => r.t.gp >= minG && (pos === 'all' || r.p.grp === pos));
   }, [season, po, team, minG, pos, s.day, s.phase]);
-  const name = (r: any) => <Link onClick={() => open(r.p.id)}>{r.p.name}</Link>;
+  const name = (r: any) => <Link pid={r.p.id} onClick={() => open(r.p.id)}>{r.p.name}</Link>;
   const pg = (k: string) => (r: any) => r.t[k] / r.t.gp, tot = (k: string) => (r: any) => r.t[k], p36 = (k: string) => (r: any) => (r.t.min ? (r.t[k] * 36) / r.t.min : null);
   const base: any[] = [['Player', '', name], ['Team', '', (r: any) => r.team], ['Pos', '', (r: any) => r.p.pos], ['Age', 'Age that season', (r: any) => (season === 'career' ? (r.p.retired?.age ?? r.p.age) : gm.ageIn(r.p, season as number)), 0], ['G', 'Games', (r: any) => r.t.gp, 0], ...(season === 'career' ? [['Yrs', 'Seasons', (r: any) => r.yrs, 0]] : [])];
   const f = mode === 'tot' ? tot : mode === 'p36' ? p36 : pg;
@@ -115,7 +115,7 @@ function TeamStats({ vm }: { vm: VM }) {
 function History({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeam } = vm.ctx, P = gm.db.P;
   const race = useMemo(() => (s.phase === 'regular' && (s.games || []).length > 30 && !(s.awards || {})[gm.Y] ? computeAwards(gm, s) : null), [s.day]);
-  const nm = (x: any) => (x && P[x.pid] ? <Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link> : '—');
+  const nm = (x: any) => (x && P[x.pid] ? <Link pid={x.pid} onClick={() => open(x.pid)}>{P[x.pid].name}</Link> : '—');
   const tm = (tid: number | null | undefined) => (tid != null && T[tid] ? <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>{logo(tid, 16)}<Link onClick={() => openTeam(tid)}>{T[tid].region} {T[tid].name}</Link></span> : '—');
   const seasons = [...new Set([...(s.history || []).map((h: any) => h.year), ...Object.keys(s.awards || {}).map(Number)])].sort((a, b) => b - a);
   const best = (y: number) => { const hs = Object.entries((s.history || []).find((h: any) => h.year === y)?.teams || {}) as [string, any][]; const b = hs.filter(([, v]) => v.w != null).sort((a, b) => b[1].w - a[1].w)[0]; if (b) return [+b[0], b[1].w + '–' + b[1].l] as [number, string];

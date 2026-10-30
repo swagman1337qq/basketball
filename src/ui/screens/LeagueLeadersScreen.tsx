@@ -36,7 +36,7 @@ export function LeagueLeadersScreen({ vm }: { vm: VM }) {
             <tr key={e.pid} style={hlRow(lit ? meColor : null)}>
               <td style={{ width: 18, padding: '2px 4px', opacity: 0.65, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</td>
               <td style={{ padding: '2px 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0, width: '100%' }}>
-                <Link onClick={() => open(e.pid)} style={{ color: lit ? 'inherit' : 'var(--color-accent-700)', fontWeight: lit ? 600 : 400 }}>{P[e.pid]?.name}</Link> <span style={{ fontSize: '11px', opacity: 0.65 }}>{T[e.tid]?.abbr}</span>
+                <Link pid={e.pid} onClick={() => open(e.pid)} style={{ color: lit ? 'inherit' : 'var(--color-accent-700)', fontWeight: lit ? 600 : 400 }}>{P[e.pid]?.name}</Link> <span style={{ fontSize: '11px', opacity: 0.65 }}>{T[e.tid]?.abbr}</span>
               </td>
               <td style={{ padding: '2px 4px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: i === 0 ? 700 : 400 }}>{fmt(b, e.v)}</td>
             </tr>); })}

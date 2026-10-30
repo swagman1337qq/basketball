@@ -6,6 +6,7 @@ import { GMView } from './ui/GMView';
 import { TitleScreen } from './ui/TitleScreen';
 import { applyTheme, rememberTheme } from './ui/theme';
 import { buildView } from './ui/viewModel';
+import { PlayerHover } from './ui/PlayerHover';
 
 interface Open { id: string; name: string; createdAt: number; game: Game }
 
@@ -96,5 +97,5 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
 
   const exportNow = () => exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
   const vm = buildView(game, rootRef, { saveId: open.id, saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onSwitch: async (id: string) => { await save(); onSwitch(id); }, onExport: exportNow });
-  return <GMView vm={vm} />;
+  return <><GMView vm={vm} /><PlayerHover gm={game} /></>;
 }

@@ -17,7 +17,7 @@ export function PredictionsScreen({ vm }: { vm: VM }) {
   const hist = (s.history || []).find((h: any) => h.year === yr), aw = (s.awards || {})[yr];
   const gp = gm.gamesPlayed(s), live = yr === gm.Y && !hist && gp > 0 && ['regular', 'playin', 'playoffs', 'lottery', 'draft', 'fa'].includes(s.phase);
   const actualW = (t: number): [number, number] | null => hist?.teams?.[t] ? [hist.teams[t].w, hist.teams[t].l] : live ? [T[t].w, T[t].l] : null;
-  const pname = (pid?: number) => (pid != null && P[pid] ? <Link onClick={() => open(pid)}>{P[pid].name}</Link> : <span style={muted}>—</span>);
+  const pname = (pid?: number) => (pid != null && P[pid] ? <Link pid={pid} onClick={() => open(pid)}>{P[pid].name}</Link> : <span style={muted}>—</span>);
   const tname = (t?: number) => (t != null && T[t] ? <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center', whiteSpace: 'nowrap' }}>{logo(t, 16)}<Link onClick={() => openTeam(t)}>{T[t].abbr}</Link></span> : <span style={muted}>—</span>);
   const conf = ['West', 'East'];
   // Consensus projected wins: the average of every outlet.
@@ -116,7 +116,7 @@ function Top100({ vm, sp, tk, setTk }: { vm: VM; sp: SeasonPreds; tk: string; se
         <tbody>{pg.rows.map((r: any) => { const d = tk === 'cons' ? 0 : r.cr - r.rk; return (
           <tr key={r.id}>
             <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.rk}</td>
-            <td style={{ padding: '4px 8px' }}><Link onClick={() => open(r.id)}>{r.name}</Link></td>
+            <td style={{ padding: '4px 8px' }}><Link pid={r.id} onClick={() => open(r.id)}>{r.name}</Link></td>
             <td style={{ padding: '4px 8px' }}><span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>{r.tid != null && logo(r.tid, 16)}{r.team}</span></td>
             <td style={{ padding: '4px 8px' }}>{r.pos}</td>
             <td style={{ padding: '4px 8px', textAlign: 'right' }}>{r.age}</td>

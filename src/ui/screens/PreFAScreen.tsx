@@ -35,7 +35,7 @@ export function PreFAScreen({ vm }: { vm: VM }) {
         <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>The player decides. Those who opted out are now expiring contracts below.</p>
         {opts.length ? opts.map((o: any) => { const p = P[o.pid]; return (
           <div key={o.pid} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--color-divider)' }}>
-            <Link onClick={() => open(o.pid)} style={{ fontWeight: 600 }}>{p.name}</Link>
+            <Link pid={o.pid} onClick={() => open(o.pid)} style={{ fontWeight: 600 }}>{p.name}</Link>
             <span style={{ ...muted, fontSize: '12px' }}>{p.pos} · {p.age} · <span style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</span></span>
             <span style={{ marginLeft: 'auto', color: o.stay ? 'var(--gm-good)' : 'var(--gm-bad)', fontWeight: 600 }}>{o.stay ? 'Opted in · ' + fmtMoney(o.amt) + ' next season' : 'Opted out · free agent June 30'}</span>
           </div>); }) : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>None of your players had a player option this summer.</p>}
@@ -50,7 +50,7 @@ export function PreFAScreen({ vm }: { vm: VM }) {
             <div key={r.pid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: '6px 16px', alignItems: 'center', padding: '9px 10px', borderBottom: '1px solid var(--color-divider)', borderLeft: '3px solid ' + (need ? 'var(--color-accent)' : 'transparent') }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                  <Link onClick={() => open(r.pid)} style={{ fontWeight: 600, fontSize: '14px' }}>{p.name}</Link>
+                  <Link pid={r.pid} onClick={() => open(r.pid)} style={{ fontWeight: 600, fontSize: '14px' }}>{p.name}</Link>
                   <span style={{ ...muted, fontSize: '12px' }}>{p.pos} · {p.age} yrs · <span style={{ color: ratingTier(p.ovr).color }}>{p.ovr}</span>/{p.pot}</span>
                   <span style={{ fontSize: '12.5px' }}>{r.head}</span>
                 </div>

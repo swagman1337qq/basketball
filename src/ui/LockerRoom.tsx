@@ -36,7 +36,7 @@ export function MentoringSection({ vm, tid }: { vm: VM; tid: number }) {
             const work = !M ? 'Nobody to learn from' : [bad.length ? 'Breaking: ' + bad.map(tl).join(', ') : '', gain.length ? 'Learning: ' + gain.map(tl).join(', ') : ''].filter(Boolean).join(' · ') || 'Nothing to fix: good habits already';
             return (
               <tr key={id}>
-                <td style={td()}><Link onClick={() => open(id)}>{p.name}</Link></td>
+                <td style={td()}><Link pid={id} onClick={() => open(id)}>{p.name}</Link></td>
                 <td style={td('right')}>{p.age}</td>
                 <td style={td()}>{bad.length ? bad.map(tl).join(', ') : <span style={muted}>None</span>}</td>
                 <td style={td()}>

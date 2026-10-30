@@ -49,7 +49,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
           <h4 style={{ ...ruleH4, color: 'var(--color-accent-800)' }}>Offer sheets to answer</h4>
           {sheets.map(o => { const p = P[o.pid]; return (
             <div key={o.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '13px' }}>
-              <span style={{ flex: 1, minWidth: '240px' }}><Link onClick={() => open(p.id)}>{p.name}</Link> ({p.ovr}) signed an offer sheet with the {T[o.from].region} {T[o.from].name}: {fmtMoney(o.terms.amt)} × {o.terms.years} years{o.terms.opt ? ', ' + o.terms.opt + ' option' : ''}. Match with Bird rights and he stays on those exact terms; decline and he leaves.{s.managed.length > 1 && o.to !== tid ? ' (For ' + T[o.to].abbr + '.)' : ''}</span>
+              <span style={{ flex: 1, minWidth: '240px' }}><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> ({p.ovr}) signed an offer sheet with the {T[o.from].region} {T[o.from].name}: {fmtMoney(o.terms.amt)} × {o.terms.years} years{o.terms.opt ? ', ' + o.terms.opt + ' option' : ''}. Match with Bird rights and he stays on those exact terms; decline and he leaves.{s.managed.length > 1 && o.to !== tid ? ' (For ' + T[o.to].abbr + '.)' : ''}</span>
               <button className="btn btn-primary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => answerOfferSheet(gm, o.id, true)}>Match</button>
               <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => answerOfferSheet(gm, o.id, false)}>Decline</button>
             </div>); })}
@@ -63,7 +63,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
           <table className="table" style={{ fontSize: '12.5px' }}><tbody>
             {decs.map(d => { const k = (d.kind === 'teamOpt' ? 'opt' : 'qo') + d.pid, v = dec[k] ?? d.def, p = P[d.pid]; return (
               <tr key={k}>
-                <td style={tdc}><Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age} · {p.ovr}</span></td>
+                <td style={tdc}><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>{p.pos} · {p.age} · {p.ovr}</span></td>
                 <td style={tdc}>{d.label}</td><td style={tdr}>{fmtMoney(d.amt)}</td>
                 <td style={tdc}><label style={{ display: 'flex', gap: '6px', alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={v} onChange={e => setDec(k, e.target.checked)} />{d.kind === 'teamOpt' ? (v ? 'Exercise' : 'Decline') : (v ? 'Extend (restricted FA)' : 'Don’t extend (unrestricted)')}</label></td>
                 <td style={{ ...tdc, ...muted, fontSize: '11.5px', maxWidth: '300px' }}>{d.note}</td>
@@ -93,7 +93,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
             <tbody>
               {ids.slice().sort((a, b) => sal(P[b], Y0) - sal(P[a], Y0)).map(id => { const p = P[id]; return (
                 <tr key={id}>
-                  <td style={tdc}><Link onClick={() => open(id)}>{p.name}</Link> <span style={muted}>{p.ovr}</span></td>
+                  <td style={tdc}><Link pid={id} onClick={() => open(id)}>{p.name}</Link> <span style={muted}>{p.ovr}</span></td>
                   <td style={{ ...tdc, fontSize: '11.5px' }} title={describeContract(gm, p)}>{typeTag(p)}{p.kicker ? ' · kicker' : ''}{p.ntc ? ' · NTC' : ''}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</td>
                   {years.map(y => { const v = sal(p, y); return <td key={y} style={{ ...tdr, color: p.opt?.season === y ? 'var(--color-accent-700)' : v ? undefined : 'var(--color-neutral-500)' }}>{v ? fmtMoney(v) + mark(p, y) : y === p.exp + 1 && qoFor && qoOk(gm, p) ? 'RFA' : y === p.exp + 1 ? 'UFA' : ''}</td>; })}
                   <td style={{ ...tdc, fontSize: '11.5px' }}>{(p.yrsWith || 0) >= 3 ? 'Full' : p.yrsWith === 2 ? 'Early' : 'Non'}</td>
@@ -103,7 +103,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
                   </td>
                 </tr>); })}
               {dead.map((d, i) => <tr key={'d' + i} style={{ color: 'var(--gm-bad)' }}><td style={tdc}>{d.name}</td><td style={{ ...tdc, fontSize: '11.5px' }}>Dead money ({d.mode === 'stretch' ? 'stretched' : d.mode === 'buyout' ? 'buyout' : 'waived'})</td>{years.map(y => <td key={y} style={tdr}>{d.amts?.[y] ? fmtMoney(d.amts[y]) : ''}</td>)}<td /><td /></tr>)}
-              {holds.map(id => { const p = P[id]; return <tr key={'h' + id} style={muted}><td style={tdc}><Link onClick={() => open(id)}>{p.name}</Link></td><td style={{ ...tdc, fontSize: '11.5px' }}>Cap hold{p.rfa ? ' (RFA, QO ' + fmtMoney(p.rfa.qo) + ')' : ''}</td>{years.map((y, i) => <td key={y} style={tdr}>{i === 0 ? fmtMoney(capHold(gm, s, p)) : ''}</td>)}<td style={{ ...tdc, fontSize: '11.5px' }}>{BIRD_LABEL[birdOf(p, tid) || 'non'].replace(' Bird', '').replace('-Bird', '')}</td><td style={tdc}><button className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} onClick={() => renounce(gm, id)}>Renounce</button></td></tr>; })}
+              {holds.map(id => { const p = P[id]; return <tr key={'h' + id} style={muted}><td style={tdc}><Link pid={id} onClick={() => open(id)}>{p.name}</Link></td><td style={{ ...tdc, fontSize: '11.5px' }}>Cap hold{p.rfa ? ' (RFA, QO ' + fmtMoney(p.rfa.qo) + ')' : ''}</td>{years.map((y, i) => <td key={y} style={tdr}>{i === 0 ? fmtMoney(capHold(gm, s, p)) : ''}</td>)}<td style={{ ...tdc, fontSize: '11.5px' }}>{BIRD_LABEL[birdOf(p, tid) || 'non'].replace(' Bird', '').replace('-Bird', '')}</td><td style={tdc}><button className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} onClick={() => renounce(gm, id)}>Renounce</button></td></tr>; })}
               <tr style={{ fontWeight: 600, borderTop: '1px solid var(--color-text)' }}><td style={tdc}>Total</td><td />{years.map(y => <td key={y} style={{ ...tdr, color: tot(y) > N.TAX && y === Y0 ? 'var(--gm-bad)' : undefined }}>{fmtMoney(tot(y))}</td>)}<td /><td /></tr>
             </tbody>
           </table>

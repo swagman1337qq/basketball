@@ -119,7 +119,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
           <div style={{ flex: 1 }}>
             <Kicker accent>{gm.seasonLbl()} champions</Kicker>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', lineHeight: 1.1 }}>{T[champ].region} {T[champ].name}</div>
-            <div style={muted}>Beat the {T[s.po.runner].region} {T[s.po.runner].name} in the Finals{aw?.fmvp ? <> · Finals MVP <Link onClick={() => open(aw.fmvp.pid)}>{P[aw.fmvp.pid].name}</Link> ({aw.fmvp.line})</> : null}</div>
+            <div style={muted}>Beat the {T[s.po.runner].region} {T[s.po.runner].name} in the Finals{aw?.fmvp ? <> · Finals MVP <Link pid={aw.fmvp.pid} onClick={() => open(aw.fmvp.pid)}>{P[aw.fmvp.pid].name}</Link> ({aw.fmvp.line})</> : null}</div>
           </div>
         </div>
       )}
@@ -172,7 +172,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
                     <td style={td()}>{x.season}</td>
                     <td style={td()}><span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>{logo(x.champ, 16)}<Link onClick={() => openTeam(x.champ)}>{T[x.champ].region} {T[x.champ].name}</Link></span></td>
                     <td style={td()}>{T[x.runner]?.abbr}</td>
-                    <td style={td()}>{x.fmvp != null && P[x.fmvp] ? <Link onClick={() => open(x.fmvp)}>{P[x.fmvp].name}</Link> : '—'}</td>
+                    <td style={td()}>{x.fmvp != null && P[x.fmvp] ? <Link pid={x.fmvp} onClick={() => open(x.fmvp)}>{P[x.fmvp].name}</Link> : '—'}</td>
                     <td style={td('right')}>{mineRow ? mineRow.rec : '—'}</td>
                     <td style={td()}>{mineRow ? mineRow.fin : 'Not your team yet'}</td>
                   </tr>

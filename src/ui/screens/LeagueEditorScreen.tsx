@@ -92,7 +92,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
           <h4 style={ruleH4}>Roster · {s.rosters[tid].length} players</h4>
           {s.rosters[tid].map(id => (
             <div key={id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '3px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
-              <Link onClick={() => open(id)}>{P[id].name}</Link><span style={muted}>{P[id].pos} · {P[id].ovr} · {money(P[id].amt)}</span>
+              <Link pid={id} onClick={() => open(id)}>{P[id].name}</Link><span style={muted}>{P[id].pos} · {P[id].ovr} · {money(P[id].amt)}</span>
               <button className="btn btn-ghost" onClick={() => release(id)} style={{ marginLeft: 'auto', fontSize: '11.5px', padding: '1px 8px' }}>Remove</button>
             </div>
           ))}

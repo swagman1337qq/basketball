@@ -65,7 +65,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // A popup list (a country, a draft class) is part of the history too: Back from a player you
   // opened from it returns to the list, with the page you opened the list from behind it.
   const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
-  const open = id => e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
+  // (the handler carries the player's id, __pid: hovering anything it's on shows his stats, PlayerHover.tsx)
+  const open = id => { const f: any = e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
+  f.__pid = id; return f; };
   const go = k => () => gm.setState(st => ({ screen: k, q: '', modal: false, teamModal: null, boxId: null, awardsYear: null, rosterView: null, pageStack: [], navTick: (st.navTick || 0) + 1 })); // clicking the tab you're on starts it fresh (your team, this season)
   // Clicking a team anywhere opens its Roster page (this season); the team overview is a button there.
   const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0 || !s.teams[tid]) return; gm.setState(st => ({ screen: 'roster', rosterView: { tid, season: gm.Y }, teamModal: null, modal: false, boxId: null, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st), navTick: (st.navTick || 0) + 1 })); scrollTo(0); };

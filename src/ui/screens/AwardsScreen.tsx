@@ -45,16 +45,16 @@ export function AwardsScreen({ vm }: { vm: VM }) {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', ...(isMe(w.tid) ? { ...lit(w.tid), borderRadius: 'var(--radius-sm)', padding: '6px 8px', margin: '0 -8px' } : {}) }}>
               <div className="gm-face" style={{ width: 40, height: 60, flex: 'none', overflow: 'hidden' }}>{gm.faceEl(w.pid, w.tid)}</div>
               <div style={{ minWidth: 0 }}>
-                <Link onClick={() => open(w.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, lineHeight: 1.1 }}>{P[w.pid].name}</Link>
+                <Link pid={w.pid} onClick={() => open(w.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600, lineHeight: 1.1 }}>{P[w.pid].name}</Link>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', ...sub(w.tid) }}>{logo(w.tid, 14)}{T[w.tid] ? T[w.tid].region + ' ' + T[w.tid].name : 'Free agent'} · {P[w.pid].pos}</div>
                 <div style={{ fontSize: '12px' }}>{w.line}</div>
               </div>
             </div>
             <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: '6px', fontSize: '12px' }}>
-              {openV[k] ? <Voting list={list} k={k.toUpperCase()} name={x => <><Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link> <span style={sub(x.tid)}>{T[x.tid]?.abbr}</span></>} /> : list.slice(1, 5).map((x, i) => (
+              {openV[k] ? <Voting list={list} k={k.toUpperCase()} name={x => <><Link pid={x.pid} onClick={() => open(x.pid)}>{P[x.pid].name}</Link> <span style={sub(x.tid)}>{T[x.tid]?.abbr}</span></>} /> : list.slice(1, 5).map((x, i) => (
                 <div key={x.pid} style={{ display: 'flex', gap: '8px', padding: '1px 4px', margin: '0 -4px', borderRadius: 'var(--radius-sm)', ...lit(x.tid) }}>
                   <span style={{ width: '14px', opacity: 0.7 }}>{i + 2}</span>
-                  <Link onClick={() => open(x.pid)}>{P[x.pid].name}</Link>
+                  <Link pid={x.pid} onClick={() => open(x.pid)}>{P[x.pid].name}</Link>
                   <span style={{ ...sub(x.tid), marginLeft: 'auto' }}>{x.pts != null ? x.pts + ' pts' : T[x.tid]?.abbr}</span>
                 </div>
               ))}
@@ -76,7 +76,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
               <div key={pid} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '4px 4px', borderBottom: '1px solid var(--color-divider)', ...lit(tid) }}>
                 <span style={{ width: '22px', fontSize: '11px', opacity: 0.7 }}>{P[pid].pos}</span>
                 {logo(tid, 16)}
-                <Link onClick={() => open(pid)}>{P[pid].name}</Link>
+                <Link pid={pid} onClick={() => open(pid)}>{P[pid].name}</Link>
               </div>
             ); })}
           </div>
@@ -112,7 +112,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
         {Object.entries(a.sfmvp || {}).filter(([, e]) => e).map(([c, e]: any) => (
           <section key={c} className="card" style={{ padding: '14px 16px', gap: '8px', flexDirection: 'row', alignItems: 'center', ...lit(e.tid) }}>
             {logo(e.tid, 34)}
-            <div><Kicker accent>{c} Finals MVP</Kicker><Link onClick={() => open(e.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '19px', fontWeight: 600 }}>{P[e.pid].name}</Link><div style={{ fontSize: '12px' }}>{e.line}</div></div>
+            <div><Kicker accent>{c} Finals MVP</Kicker><Link pid={e.pid} onClick={() => open(e.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '19px', fontWeight: 600 }}>{P[e.pid].name}</Link><div style={{ fontSize: '12px' }}>{e.line}</div></div>
           </section>
         ))}
         {a.fmvp && (
@@ -120,7 +120,7 @@ export function AwardsScreen({ vm }: { vm: VM }) {
             {logo(a.fmvp.tid, 40)}
             <div>
               <Kicker accent>Finals MVP</Kicker>
-              <Link onClick={() => open(a.fmvp.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600 }}>{P[a.fmvp.pid].name}</Link>
+              <Link pid={a.fmvp.pid} onClick={() => open(a.fmvp.pid)} style={{ fontFamily: 'var(--font-heading)', fontSize: '21px', fontWeight: 600 }}>{P[a.fmvp.pid].name}</Link>
               <div style={{ fontSize: '12px' }}>{a.fmvp.line}</div>
             </div>
           </section>
@@ -146,7 +146,7 @@ function AllStarBox({ vm, y }: { vm: VM; y: number }) {
   return (
     <section style={{ marginBottom: 24 }}>
       <h4 style={h4Style}>All-Stars · {(y - 1) + '–' + String(y).slice(2)}</h4>
-      {g && <p style={{ margin: '0 0 10px', fontSize: '13px' }}><b>{g.winner}</b> won the All-Star Game {Math.max(g.East, g.West)}–{Math.min(g.East, g.West)}. MVP: <Link onClick={() => open(g.mvp)}>{P[g.mvp]?.name}</Link> ({g.mvpLine}).</p>}
+      {g && <p style={{ margin: '0 0 10px', fontSize: '13px' }}><b>{g.winner}</b> won the All-Star Game {Math.max(g.East, g.West)}–{Math.min(g.East, g.West)}. MVP: <Link pid={g.mvp} onClick={() => open(g.mvp)}>{P[g.mvp]?.name}</Link> ({g.mvpLine}).</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 24 }}>
         {(['West', 'East'] as const).map(c => (
           <div key={c}>
@@ -155,7 +155,7 @@ function AllStarBox({ vm, y }: { vm: VM; y: number }) {
               <div key={id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 4px', borderBottom: '1px solid var(--color-divider)', ...hlRow(tidOf(id) != null && isMe(tidOf(id)) ? meColor : null) }}>
                 <span style={{ width: 22, fontSize: '11px', opacity: 0.7 }}>{P[id]?.pos}</span>
                 {tidOf(id) != null && logo(tidOf(id), 16)}
-                <Link onClick={() => open(id)} style={{ fontWeight: st ? 600 : 400 }}>{P[id]?.name}</Link>
+                <Link pid={id} onClick={() => open(id)} style={{ fontWeight: st ? 600 : 400 }}>{P[id]?.name}</Link>
                 <span style={{ fontSize: '11px', marginLeft: 'auto', opacity: 0.75 }}>{st ? 'Starter' : 'Reserve'}{tidOf(id) != null ? ' · ' + T[tidOf(id)]?.abbr : ''}</span>
               </div>))}
           </div>))}

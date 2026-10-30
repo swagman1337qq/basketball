@@ -116,7 +116,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
   const nameCell = (p: any, lit: boolean) => (
     <span style={{ display: 'inline-flex', gap: 7, alignItems: 'center' }}>
       {flag(p)}
-      <Link onClick={() => open(p.id)} style={{ color: lit ? 'inherit' : 'var(--color-accent-700)', fontWeight: lit ? 600 : 400 }}>{p.name}</Link>
+      <Link pid={p.id} onClick={() => open(p.id)} style={{ color: lit ? 'inherit' : 'var(--color-accent-700)', fontWeight: lit ? 600 : 400 }}>{p.name}</Link>
     </span>
   );
   const titlesCell = (n: number) => (n ? <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><Ring />{n > 1 ? '×' + n : ''}</span> : <span style={{ opacity: 0.5 }}>—</span>);

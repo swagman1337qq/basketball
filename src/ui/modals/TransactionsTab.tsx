@@ -11,7 +11,7 @@ export function TransactionsTab({ vm }: { vm: VM }) {
   if (!p) return null;
   const tx: Tx[] = p.tx || [], trades = tradesOf(gm);
   const team = (tid?: number) => (tid != null && T[tid] ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', whiteSpace: 'nowrap' }}>{logo(tid, 14)}<Link onClick={() => openTeam(tid)}>{T[tid].abbr}</Link></span> : <span>—</span>);
-  const player = (pid: number) => { const q = P[pid]; return q ? <span style={{ whiteSpace: 'nowrap' }}><Link onClick={() => open(pid)} style={{ color: 'var(--color-accent-700)' }}>{q.name}</Link> <span style={{ ...muted, fontSize: '11.5px' }}>{q.pos} · {q.ovr}</span></span> : <span>Unknown player</span>; };
+  const player = (pid: number) => { const q = P[pid]; return q ? <span style={{ whiteSpace: 'nowrap' }}><Link pid={pid} onClick={() => open(pid)} style={{ color: 'var(--color-accent-700)' }}>{q.name}</Link> <span style={{ ...muted, fontSize: '11.5px' }}>{q.pos} · {q.ovr}</span></span> : <span>Unknown player</span>; };
   // A pick: its label, where it went next, and what it became.
   const pick = (id: string, after?: Trade) => {
     if (id.startsWith('swap:')) return <span><b style={{ fontWeight: 600 }}>{id.slice(5)} first-round swap rights</b></span>;

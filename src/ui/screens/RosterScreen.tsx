@@ -94,7 +94,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id);
     const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
     return (
-      <tr key={id} onClick={() => open(id)} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); setDrag(id); setOrder(listOf(id).slice()); }}
+      <tr key={id} onClick={() => open(id)} data-pid={id} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); setDrag(id); setOrder(listOf(id).slice()); }}
         onDragOver={e => dragOver(e, id)} onDrop={e => { e.preventDefault(); commit(); }} onDragEnd={endDrag}
         style={{ cursor: mine ? 'grab' : 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined, opacity: drag === id ? 0.75 : 1, outline: drag === id ? '2px dashed var(--color-accent)' : undefined, outlineOffset: -2 }}>
         <td style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }} title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'} />
@@ -299,7 +299,7 @@ function AdvicePanel({ vm, advice, onApply, onClose }: { vm: VM; advice: Advice;
       {advice.lines.map((l, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: 8, padding: '3px 0', borderTop: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
           <span style={{ color: color[l.kind], fontWeight: 600 }}>{icon[l.kind]}</span>
-          <span><Link onClick={() => open(l.pid)}>{P[l.pid].name}</Link>: {l.text} <span style={muted}>— {l.by}</span></span>
+          <span><Link pid={l.pid} onClick={() => open(l.pid)}>{P[l.pid].name}</Link>: {l.text} <span style={muted}>— {l.by}</span></span>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

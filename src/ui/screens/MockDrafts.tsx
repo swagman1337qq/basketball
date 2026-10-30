@@ -29,8 +29,8 @@ export function MockDrafts({ vm }: { vm: VM }) {
               <tr key={m.n}>
                 <td style={{ padding: '4px 6px', ...muted }}>{m.n}</td>
                 <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>{logo(m.owner, 16)}<Link onClick={() => openTeam(m.owner)}>{T[m.owner].abbr}</Link></span></td>
-                {PANEL.map(o => { const x = mocks[o.k][i]; if (!x) return <td key={o.k} />; const hit = actual[x.n] === x.pid; return <td key={o.k} title={P[x.pid]?.name + ' · ' + x.why} style={{ padding: '4px 6px', whiteSpace: 'nowrap', background: hit ? 'color-mix(in srgb, var(--gm-good) 18%, transparent)' : undefined }}><Link onClick={() => open(x.pid)}>{last(x.pid)}</Link></td>; })}
-                {drafted && <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontWeight: 600 }}>{actual[m.n] ? <Link onClick={() => open(actual[m.n])}>{last(actual[m.n])}</Link> : ''}</td>}
+                {PANEL.map(o => { const x = mocks[o.k][i]; if (!x) return <td key={o.k} />; const hit = actual[x.n] === x.pid; return <td key={o.k} title={P[x.pid]?.name + ' · ' + x.why} style={{ padding: '4px 6px', whiteSpace: 'nowrap', background: hit ? 'color-mix(in srgb, var(--gm-good) 18%, transparent)' : undefined }}><Link pid={x.pid} onClick={() => open(x.pid)}>{last(x.pid)}</Link></td>; })}
+                {drafted && <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontWeight: 600 }}>{actual[m.n] ? <Link pid={actual[m.n]} onClick={() => open(actual[m.n])}>{last(actual[m.n])}</Link> : ''}</td>}
               </tr>))}</tbody>
           </table>
         </div>
@@ -41,9 +41,9 @@ export function MockDrafts({ vm }: { vm: VM }) {
             <tr key={m.n} style={{ background: hit ? 'color-mix(in srgb, var(--gm-good) 14%, transparent)' : undefined }}>
               <td style={{ padding: '5px 8px', ...muted }}>{m.n}</td>
               <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>{logo(m.owner, 18)}<Link onClick={() => openTeam(m.owner)}>{T[m.owner].region} {T[m.owner].name}</Link>{m.owner !== m.orig && <span style={{ ...muted, fontSize: '11px' }}>via {T[m.orig].abbr}</span>}</span></td>
-              <td style={{ padding: '5px 8px' }}><Link onClick={() => open(m.pid)}>{p.name}</Link> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age} · {p.from?.team}</span></td>
+              <td style={{ padding: '5px 8px' }}><Link pid={m.pid} onClick={() => open(m.pid)}>{p.name}</Link> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age} · {p.from?.team}</span></td>
               <td style={{ padding: '5px 8px', fontSize: '12.5px', fontStyle: 'italic' }}>{m.why}</td>
-              {drafted && <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{actual[m.n] ? <>{hit ? '✓ ' : ''}<Link onClick={() => open(actual[m.n])}>{P[actual[m.n]].name}</Link></> : ''}</td>}
+              {drafted && <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{actual[m.n] ? <>{hit ? '✓ ' : ''}<Link pid={actual[m.n]} onClick={() => open(actual[m.n])}>{P[actual[m.n]].name}</Link></> : ''}</td>}
             </tr>); })}</tbody>
         </table>
       )}

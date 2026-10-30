@@ -35,7 +35,7 @@ export function OverseasScreen({ vm }: { vm: VM }) {
               <td style={td()}>
                 <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                   <img src={r.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-                  <Link onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>{r.name}</Link>{sc.tag(r.id)}
+                  <Link pid={r.id} onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>{r.name}</Link>{sc.tag(r.id)}
                   <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{r.pos} · {r.age} · {r.drafted}</span>
                 </span>
                 {p.overseasArc?.from && <div style={{ fontSize: '11px', color: 'var(--gm-good)' }}>Redemption arc: left {p.overseasArc.from} in {p.overseasArc.left} at {p.overseasArc.ovr}</div>}

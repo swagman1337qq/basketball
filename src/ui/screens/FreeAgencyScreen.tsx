@@ -47,7 +47,7 @@ function FATracker({ vm }: { vm: VM }) {
           <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>Best still available</div>
           {best.map((p: any) => (
             <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '12.5px', padding: '2px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
-              <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span><Link onClick={() => open(p.id)}>{p.name}</Link><span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age}{p.birdTid != null && T[p.birdTid] ? ' · last with ' + T[p.birdTid].abbr : ''}{p.rfa ? ' · restricted' : ''}{p.ask ? ' · asking $' + p.ask.toFixed(1) + 'M' : ''}</span>
+              <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link><span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age}{p.birdTid != null && T[p.birdTid] ? ' · last with ' + T[p.birdTid].abbr : ''}{p.rfa ? ' · restricted' : ''}{p.ask ? ' · asking $' + p.ask.toFixed(1) + 'M' : ''}</span>
             </div>))}
         </div>
       </div>

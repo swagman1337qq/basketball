@@ -11,14 +11,14 @@ export function ScoutReportView({ vm, pid, compact }: { vm: VM; pid: number; com
   const { gm, s, open } = vm.ctx, P = gm.db.P, p = P[pid], r = scoutReport(gm, s, pid);
   const listed = (s.scoutList || []).includes(pid);
   const toggle = () => gm.setState(st => ({ scoutList: listed ? (st.scoutList || []).filter((x: number) => x !== pid) : [...(st.scoutList || []), pid].slice(-20) }));
-  const pl = (x: { id: number; name: string } | null) => (x ? <Link onClick={() => open(x.id)}>{x.name}</Link> : '—');
+  const pl = (x: { id: number; name: string } | null) => (x ? <Link pid={x.id} onClick={() => open(x.id)}>{x.name}</Link> : '—');
   return (
     <div style={{ fontSize: '13px' }}>
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
         {!compact && <div className="gm-face" style={{ width: 72, height: 108, overflow: 'hidden', flex: 'none', borderRadius: 'var(--radius-sm)' }}>{gm.faceEl(pid, -1)}</div>}
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: compact ? '20px' : '24px' }}><Link onClick={() => open(pid)}>{p.name}</Link></span>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: compact ? '20px' : '24px' }}><Link pid={pid} onClick={() => open(pid)}>{p.name}</Link></span>
             <span style={{ fontSize: '11px', padding: '1px 8px', borderRadius: 999, border: '1px solid var(--color-divider)' }}>{r.kindLabel}</span>
           </div>
           <div style={{ ...muted, fontSize: '12px', margin: '2px 0 6px' }}>Filed {r.filed} · {/^No scout/.test(r.scout) ? r.scout : 'Scouted by ' + r.scout.replace(/^Your/, 'your')} · Confidence: <b>{r.confidence}</b>{r.margin > 0 ? ' (±' + r.margin.toFixed(1) + ')' : ''}</div>

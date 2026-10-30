@@ -178,7 +178,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
                   <div className="gm-face" style={{ width: 30, height: 44, overflow: 'hidden', flex: 'none' }}>{gm.faceEl(q.id, -1)}</div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ ...muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.08em' }}>{{ father: 'Father', son: 'Son', brother: 'Brother' }[x.rel]}</div>
-                    <Link onClick={() => open(q.id)} style={{ fontWeight: 600, color: 'var(--color-accent-700)' }}>{q.name}</Link>
+                    <Link pid={q.id} onClick={() => open(q.id)} style={{ fontWeight: 600, color: 'var(--color-accent-700)' }}>{q.name}</Link>
                     <span style={{ ...muted, fontSize: '12px' }}> · {q.retired ? 'retired' + ((vm.ctx.s.hof || []).some(h => h.pid === q.id) ? ', Hall of Fame' : '') : q.pos + ' · ' + q.ovr + ' ovr'}</span>
                   </div>
                 </div>

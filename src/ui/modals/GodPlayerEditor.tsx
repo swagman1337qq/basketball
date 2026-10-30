@@ -327,7 +327,7 @@ function FamilyEditor({ gm, p, mut, open }: { gm: Game; p: any; mut: (f: (p: any
   const person = (id: number, rel: string, actions: any) => { const q = P[id]; if (!q) return null; return (
     <div key={rel + id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
       <div className="gm-face" style={{ width: 24, height: 36, overflow: 'hidden', flex: 'none' }}>{gm.faceEl(q.id, -1)}</div>
-      <span style={{ minWidth: 0, flex: 1 }}><button className="hv4" onClick={() => open(q.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, color: 'var(--color-accent-700)' }}>{q.name}</button> <span style={muted}>· {q.age} · {nowLabel(gm, s, q).label}</span></span>
+      <span style={{ minWidth: 0, flex: 1 }}><button className="hv4" onClick={() => open(q.id)} data-pid={q.id} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, color: 'var(--color-accent-700)' }}>{q.name}</button> <span style={muted}>· {q.age} · {nowLabel(gm, s, q).label}</span></span>
       {actions}
     </div>); };
   const btn = (label: string, on: () => void, title?: string) => <button className="btn btn-ghost" onClick={on} title={title} style={{ fontSize: '11.5px', padding: '1px 8px' }}>{label}</button>;

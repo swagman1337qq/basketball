@@ -43,7 +43,7 @@ export function SpectatorDashboard({ vm }: { vm: VM }) {
           {logo(champ, 48)}
           <div><Kicker accent>{gm.seasonLbl()} champions</Kicker>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', lineHeight: 1.1 }}><Link onClick={() => openTeam(champ)}>{T[champ].region} {T[champ].name}</Link></div>
-            <div style={{ ...muted, fontSize: '12.5px' }}>Beat the {T[s.po.runner].region} {T[s.po.runner].name} in the Finals{fmvp ? <> · Finals MVP <Link onClick={() => open(fmvp.pid)}>{P[fmvp.pid]?.name}</Link></> : null}</div></div>
+            <div style={{ ...muted, fontSize: '12.5px' }}>Beat the {T[s.po.runner].region} {T[s.po.runner].name} in the Finals{fmvp ? <> · Finals MVP <Link pid={fmvp.pid} onClick={() => open(fmvp.pid)}>{P[fmvp.pid]?.name}</Link></> : null}</div></div>
         </section>
       )}
 
@@ -70,7 +70,7 @@ export function SpectatorDashboard({ vm }: { vm: VM }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px 16px' }}>
               {BOARDS.map(b => (
                 <div key={b.id}><div style={{ fontSize: '11px', fontWeight: 600, marginBottom: 2 }}>{BOARD_LABEL[b.id]}</div>
-                  {((boards as any)[b.id] || []).map((r: any) => <div key={r.pid} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: '12px' }}><Link onClick={() => open(r.pid)} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{P[r.pid]?.name}</Link><span>{r.v.toFixed(1)}</span></div>)}
+                  {((boards as any)[b.id] || []).map((r: any) => <div key={r.pid} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: '12px' }}><Link pid={r.pid} onClick={() => open(r.pid)} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{P[r.pid]?.name}</Link><span>{r.v.toFixed(1)}</span></div>)}
                 </div>))}
             </div>}
           <div style={{ marginTop: 8 }}><Link onClick={() => gm.setState({ screen: 'leaders' })}>All leaders →</Link> · <Link onClick={() => gm.setState({ screen: 'awards' })}>Awards →</Link> · <Link onClick={() => gm.setState({ screen: 'stats' })}>Stats →</Link></div>
@@ -79,7 +79,7 @@ export function SpectatorDashboard({ vm }: { vm: VM }) {
           <Kicker>Injuries</Kicker>
           {!injured.length ? <p style={{ ...muted, fontSize: '12.5px' }}>Nobody is out right now.</p> :
             <table className="table" style={{ fontSize: '12px', width: '100%' }}><tbody>
-              {injured.map(x => <tr key={x.id}><td><Link onClick={() => open(x.id)}>{x.p.name}</Link> <span style={muted}>{T[x.tid].abbr}</span></td><td style={muted}>{x.p.inj.name}</td><td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{gm.injText(x.p, true)}</td></tr>)}
+              {injured.map(x => <tr key={x.id}><td><Link pid={x.id} onClick={() => open(x.id)}>{x.p.name}</Link> <span style={muted}>{T[x.tid].abbr}</span></td><td style={muted}>{x.p.inj.name}</td><td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{gm.injText(x.p, true)}</td></tr>)}
             </tbody></table>}
         </section>
       </div>

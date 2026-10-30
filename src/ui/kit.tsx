@@ -54,10 +54,10 @@ export function Kicker({ children, accent }: { children: ReactNode; accent?: boo
 }
 
 // A clickable name (player or team) with the prototype's hover treatment.
-export function Link({ onClick, children, style }: { onClick?: () => void; children: ReactNode; style?: CSSProperties }) {
+export function Link({ onClick, children, style, pid }: { onClick?: () => void; children: ReactNode; style?: CSSProperties; pid?: number }) { // pid: a player's name (hover shows his stats, PlayerHover.tsx)
   const txt = textOf(children), long = !!txt && txt.length > 24; // a long name: one line with an ellipsis (PN)
   return (
-    <button className="hv4" onClick={e => { e.stopPropagation(); onClick?.(); }} title={long ? txt! : undefined} style={{ ...linkBtn, ...(long ? PN : {}), ...style }}>
+    <button className="hv4" data-pid={pid} onClick={e => { e.stopPropagation(); onClick?.(); }} title={long ? txt! : undefined} style={{ ...linkBtn, ...(long ? PN : {}), ...style }}>
       {children}
     </button>
   );
@@ -114,7 +114,7 @@ export function linkNames(text: string, open: (id: number) => void, opts: { P?: 
   if (!re) return text;
   const parts = text.split(re);
   if (parts.length === 1) return text;
-  return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
+  return parts.map((x, i) => (i % 2 === 1 && byName[x] != null ? <Link pid={byName[x]} key={i} onClick={() => open(byName[x])} style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}>{x}</Link> : x));
 }
 
 // Where a rating sits in this league (same cut-offs as the scouting reports) and its colour.

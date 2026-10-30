@@ -13,7 +13,7 @@ export function InboxCard({ vm }: { vm: VM }) {
       <Kicker accent>Front-office inbox</Kicker>
       {items.map(x => (
         <div key={x.id} style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: '8px' }}>
-          <div style={{ fontWeight: 600 }}>{x.pid != null ? <Link onClick={() => open(x.pid)}>{x.title}</Link> : x.title}</div>
+          <div style={{ fontWeight: 600 }}>{x.pid != null ? <Link pid={x.pid} onClick={() => open(x.pid)}>{x.title}</Link> : x.title}</div>
           <div style={{ fontSize: '12.5px', ...muted, margin: '2px 0 6px' }}>{linkNames(x.text, open, { P: gm.db.P })}</div>
           {!x.done && (
             <div style={{ display: 'flex', gap: '6px' }}>

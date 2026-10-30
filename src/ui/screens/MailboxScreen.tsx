@@ -58,7 +58,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   const txText = (e: any) => e.text || (e.k === 'trade' ? 'Traded from ' + abbr(e.from) + ' to ' + abbr(e.to) : e.k === 'expansion' ? 'Taken by ' + abbr(e.to) + ' in the expansion draft' : e.k === 'draft' ? 'Drafted No. ' + e.n + ' by ' + abbr(e.tid) : e.k);
   listed.forEach((lists, id) => { const p = P[id]; if (!p) return;
     (p.tx || []).forEach((e: any, i: number) => { if (e.season < Y - 1 || e.k === 'god') return;
-      items.push({ key: 'x' + id + '-' + i, kind: 'shortlist', ms: when(e.date, e.season) + i, date: e.date, pids: [id], title: <><Link onClick={() => open(id)}>{p.name}</Link>: {txText(e)}</>,
+      items.push({ key: 'x' + id + '-' + i, kind: 'shortlist', ms: when(e.date, e.season) + i, date: e.date, pids: [id], title: <><Link pid={id} onClick={() => open(id)}>{p.name}</Link>: {txText(e)}</>,
         lines: [<span key="l" style={muted}>On your shortlist{lists.length > 1 ? 's' : ''}: {lists.join(', ')}</span>] }); }); });
   // Retirements: this season's and last season's; the notable ones (55+, yours, shortlisted) one by one, the rest together.
   const recent = (Object.values(P) as any[]).filter(p => p.retired && !p.retired.legacy && p.retired.season >= Y - 1);
@@ -66,11 +66,11 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   const notable = (p: any) => p.ovr >= 55 || listed.has(p.id) || mine(p) || (s.hof || []).some((h: any) => h.pid === p.id);
   const rDate = (p: any) => (p.tx || []).slice().reverse().find((e: any) => e.k === 'retire')?.date || 'Jun ' + p.retired.season;
   recent.filter(notable).forEach(p => { const yrs = new Set((p.stats || []).filter((r: any) => !r.po).map((r: any) => r.season)).size;
-    items.push({ key: 'r' + p.id, kind: 'retire', ms: when(rDate(p), p.retired.season), date: rDate(p), pids: [p.id], title: <><Link onClick={() => open(p.id)}>{p.name}</Link> {p.retired.why === 'Retired' ? 'retired' : p.retired.why.toLowerCase()} at {p.retired.age}</>,
+    items.push({ key: 'r' + p.id, kind: 'retire', ms: when(rDate(p), p.retired.season), date: rDate(p), pids: [p.id], title: <><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> {p.retired.why === 'Retired' ? 'retired' : p.retired.why.toLowerCase()} at {p.retired.age}</>,
       lines: [p.pos + ' · ' + p.ovr + ' overall' + (yrs ? ' · ' + yrs + ' season' + (yrs === 1 ? '' : 's') + ' in the league' : '') + (mine(p) ? ' · on your team' : listed.has(p.id) ? ' · on your shortlist' : '')] }); });
   [Y, Y - 1].forEach(y => { const rest = recent.filter(p => p.retired.season === y && !notable(p)).sort((a, b) => b.ovr - a.ovr); if (!rest.length) return;
     items.push({ key: 'rr' + y, kind: 'retire', ms: Date.parse('Jun 30, ' + y), date: 'Summer ' + y, title: rest.length + ' more player' + (rest.length === 1 ? '' : 's') + ' left the league in ' + y,
-      lines: [<span key="n">{rest.slice(0, 25).map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>({p.ovr}, {p.retired.age})</span></span>)}{rest.length > 25 ? <span style={muted}> and {rest.length - 25} more</span> : null}</span>] }); });
+      lines: [<span key="n">{rest.slice(0, 25).map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> <span style={muted}>({p.ovr}, {p.retired.age})</span></span>)}{rest.length > 25 ? <span style={muted}> and {rest.length - 25} more</span> : null}</span>] }); });
 
   items.sort((a, b) => b.ms - a.ms);
   const lk = (n: ReactNode) => (typeof n === 'string' ? linkNames(n, open, { P }) : n); // any player's name in the text opens his profile
@@ -92,7 +92,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
             </div>
             <div style={{ fontWeight: 600 }}>{lk(x.title)}</div>
             {x.lines.length > 0 && <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{x.lines.map((l, i) => <div key={i}>{lk(l)}</div>)}</div>}
-            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
+            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') && (x.pids || []).some(id => P[id] && !P[id].gone) && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}><span style={muted}>Profile:</span>{(x.pids || []).filter(id => P[id] && !P[id].gone).map(id => <Link pid={id} key={id} onClick={() => open(id)}>{P[id].name}</Link>)}</div>}
             {!!x.actions?.length && <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>{x.actions.map(a => <button key={a.label} className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '3px 10px' }} onClick={a.go}>{a.label}</button>)}</div>}
           </div>))}
       </div>

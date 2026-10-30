@@ -26,7 +26,7 @@ export function PressScreen({ vm }: { vm: VM }) {
             <blockquote style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '16.5px', lineHeight: 1.35 }}>“{linkNames(n.quote, open, { P })}”</blockquote>
             <div style={{ fontSize: '12px', ...muted }}>
               — {n.who}, {T[n.tid] ? <Link onClick={() => openTeam(n.tid)}>{n.role}</Link> : n.role}
-              {(n.pids || []).filter(id => P[id]).map(id => <span key={id}> · <Link onClick={() => open(id)}>{P[id].name}</Link></span>)}
+              {(n.pids || []).filter(id => P[id]).map(id => <span key={id}> · <Link pid={id} onClick={() => open(id)}>{P[id].name}</Link></span>)}
             </div>
           </section>
         ))}

@@ -292,7 +292,7 @@ export function CompareTab({ vm }: { vm: VM }) {
     <div>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '14px', position: 'relative' }}>
         <Kicker>Compare with</Kicker>
-        <Link onClick={() => open(other.id)} style={{ fontWeight: 600, color: 'var(--gm-bad)' }}>{other.name}</Link>
+        <Link pid={other.id} onClick={() => open(other.id)} style={{ fontWeight: 600, color: 'var(--gm-bad)' }}>{other.name}</Link>
         <input className="input" placeholder="Search any player…" value={q} onChange={e => setQ(e.target.value)} style={{ marginLeft: 'auto', width: '220px' }} />
         {hits.length > 0 && <div className="card" style={{ position: 'absolute', right: 0, top: '38px', zIndex: 5, padding: '4px 0', minWidth: '220px' }}>{hits.map(h => <button key={h.id} onClick={() => { gm.setState({ cmpId: h.id }); setQ(''); }} style={{ all: 'unset', cursor: 'pointer', display: 'block', padding: '4px 12px' }}>{h.name} <span style={muted}>· {h.pos} · {h.ovr}</span></button>)}</div>}
       </div>

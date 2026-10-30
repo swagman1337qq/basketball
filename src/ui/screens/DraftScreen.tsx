@@ -6,7 +6,6 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
-import { HoverCard } from '../HoverCard';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
@@ -15,9 +14,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [stMode, setStMode] = useState<'' | 'trad' | 'adv'>(''), stats = !!stMode;
   // College / club stats on the board (2026-10-30): each prospect's latest season he played, traditional or advanced, in place of where he plays and his height.
   const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
-  const am = useMemo(() => classStats(gm, cls, clsIds, s.gv || 0), [gm, cls, clsIds.length, s.gv, gm.Y]); // (also the hover snapshot on each name)
+  const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
-  // Hovering a name: his latest season, traditional stats only.
   const snap = (p: any) => { const x = last(p.id), d = x?.disp; if (!x) return <><b>{p.name}</b><div style={{ color: 'var(--color-neutral-600)' }}>No college or club season yet.</div></>;
     const pg = (v: number) => (v / d.gp).toFixed(1), pc = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
     const cells: [string, string][] = [['G', String(d.gp)], ['MPG', x.mpg.toFixed(1)], ['PTS', pg(d.pts)], ['REB', pg(d.orb + d.drb)], ['AST', pg(d.ast)], ['STL', pg(d.stl)], ['BLK', pg(d.blk)], ['TOV', pg(d.tov)], ['FG%', pc(d.fgm, d.fga)], ['3P%', pc(d.tpm, d.tpa)], ['FT%', pc(d.ftm, d.fta)]];
@@ -28,9 +26,17 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const TRAD: [string, string, (x: any) => number, number?][] = [['PPG', 'Points per game', x => x.disp.pts / x.disp.gp], ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp], ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
     ['SPG', 'Steals per game', x => x.disp.stl / x.disp.gp], ['BPG', 'Blocks per game', x => x.disp.blk / x.disp.gp], ['FG%', 'Field goal %', x => pct(x.disp.fgm, x.disp.fga)], ['3P%', 'Three-point %', x => pct(x.disp.tpm, x.disp.tpa)],
     ['FT%', 'Free-throw %', x => pct(x.disp.ftm, x.disp.fta)], ['PER', 'Player efficiency rating', x => x.adv?.per]];
-  const ADV: [string, string, (x: any) => number, number?][] = [['PER', 'Player efficiency rating', x => x.adv?.per], ['TS%', 'True shooting %', x => x.adv?.tsp], ['USG%', 'Usage: share of his team’s plays he finishes while on the floor', x => x.adv?.usgp],
-    ['AST%', 'Share of teammates’ baskets he assisted while on the floor', x => x.adv?.astp], ['TRB%', 'Share of available rebounds he grabbed', x => x.adv?.trbp], ['STL%', 'Steals per 100 opponent possessions', x => x.adv?.stlp],
-    ['BLK%', 'Share of opponents’ twos he blocked', x => x.adv?.blkp], ['TOV%', 'Turnovers per 100 plays', x => x.adv?.tovp], ['WS/40', 'Win shares per 40 minutes', x => x.adv?.ws40, 3], ['BPM', 'Box plus-minus (the class average is 0)', x => x.adv?.bpm]];
+  // Advanced stats, a page at a time (‹ ›): every one the game keeps for an amateur season, PER aside (it's with the traditional ones).
+  const A = (k: string) => (x: any) => x.adv?.[k];
+  const ADV_PAGES: [string, [string, string, (x: any) => number, number?][]][] = [
+    ['Scoring', [['TS%', 'True shooting %', A('tsp')], ['eFG%', 'Effective field goal %', A('efg')], ['3PAr', 'Share of shots from three', A('tpar'), 3], ['FTr', 'Free throws per shot', A('ftr'), 3], ['USG%', 'Usage: share of his team’s plays he finishes while on the floor', A('usgp')],
+      ['AST%', 'Share of teammates’ baskets he assisted while on the floor', A('astp')], ['TOV%', 'Turnovers per 100 plays', A('tovp')], ['ORtg', 'Offensive rating: points produced per 100 possessions', A('ortg'), 0]]],
+    ['Rebounding and defense', [['ORB%', 'Offensive rebound %', A('orbp')], ['DRB%', 'Defensive rebound %', A('drbp')], ['TRB%', 'Total rebound %', A('trbp')], ['STL%', 'Steals per 100 opponent possessions', A('stlp')], ['BLK%', 'Share of opponents’ twos he blocked', A('blkp')],
+      ['DRtg', 'Defensive rating', A('drtg'), 0], ['OWS', 'Offensive win shares', A('ows')], ['DWS', 'Defensive win shares', A('dws')]]],
+    ['Impact', [['WS', 'Win shares', A('ws')], ['WS/40', 'Win shares per 40 minutes', A('ws40'), 3], ['OBPM', 'Offensive box plus-minus (the class average is 0)', A('obpm')], ['DBPM', 'Defensive box plus-minus', A('dbpm')], ['BPM', 'Box plus-minus', A('bpm')],
+      ['EWA', 'Estimated wins added', A('ewa')], ['EPM', 'EPM estimate (box score: no lineup data for amateurs)', A('epm')], ['LEBRON', 'LEBRON estimate (box score)', A('lebron')], ['DARKO', 'DARKO estimate (box score)', A('darko')]]]];
+  const [advPg, setAdvPg] = useState(0), ADV = ADV_PAGES[advPg][1];
+  const turn = (d: number) => { const n = (advPg + d + ADV_PAGES.length) % ADV_PAGES.length; setAdvPg(n); setStSort(cur => (cur && ADV_PAGES[n][1].some(c => c[0] === cur[0]) ? cur : null)); };
   const ST = stMode === 'adv' ? ADV : TRAD, pickMode = (m: 'trad' | 'adv') => { setStSort(null); setStMode(cur => (cur === m ? '' : m)); };
   const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
   const stVal = (id: number, k: string) => { const x = last(id), c = ST.find(t => t[0] === k); const v = x && c ? c[2](x) : NaN; return v == null || !isFinite(v) ? null : v; };
@@ -179,7 +185,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <section>
           {!!vm.dr.isCurrent && <div style={{ marginBottom: "10px" }}><Seg<"board" | "mock"> value={view} options={[["board", "Big board"], ["mock", "Mock drafts"]]} onChange={setView} /></div>}
           {view === "mock" && vm.dr.isCurrent ? <MockDrafts vm={vm} /> : (<>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} />{([["trad", "Show traditional stats", "Points, rebounds, assists, steals, blocks, shooting and PER"], ["adv", "Show advanced stats", "PER, true shooting, usage, assist, rebound, steal, block and turnover rates, win shares and box plus-minus"]] as const).map(([m, label, what]) => <button key={m} className={stMode === m ? "btn btn-primary" : "btn btn-secondary"} onClick={() => pickMode(m)} title={what + ": each prospect's latest season, in place of where he plays and his height" + (stMode === m ? " (click again to hide)" : "")} style={{ fontSize: "12.5px" }}>{label}</button>)}</div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", margin: "0 0 8px" }}><TraitFilter value={tk} onChange={setTk} />{([["trad", "Show traditional stats", "Points, rebounds, assists, steals, blocks, shooting and PER"], ["adv", "Show advanced stats", "Every advanced stat, a set at a time (‹ › to turn): scoring, rebounding and defense, impact"]] as const).map(([m, label, what]) => <button key={m} className={stMode === m ? "btn btn-primary" : "btn btn-secondary"} onClick={() => pickMode(m)} title={what + ": each prospect's latest season, in place of where he plays and his height" + (stMode === m ? " (click again to hide)" : "")} style={{ fontSize: "12.5px" }}>{label}</button>)}{stMode === 'adv' && <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px" }}><button className="btn btn-ghost" onClick={() => turn(-1)} title="Previous set" style={{ padding: "2px 8px", minHeight: 0 }}>‹</button><span style={{ whiteSpace: "nowrap" }}>{ADV_PAGES[advPg][0]} <span style={{ color: "var(--color-neutral-600)" }}>{advPg + 1}/{ADV_PAGES.length}</span></span><button className="btn btn-ghost" onClick={() => turn(1)} title="Next set" style={{ padding: "2px 8px", minHeight: 0 }}>›</button></span>}</div>
           {sc.bar()}{sc.Menu()}
           <div style={{ overflowX: "auto" }}>
           <table className="table" style={{ fontSize: "13px" }}>
@@ -205,9 +211,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <HoverCard width={300} anchor={<button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
+                      <button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
                         {p.name}
-                      </button>}>{snap(p)}</HoverCard>
+                      </button>
                       {sc.tag(p.id)}
                     </span>
                   </td>
@@ -268,8 +274,8 @@ function PastDraft({ vm }: { vm: VM }) {
   return (
     <section>
       <p style={{ margin: '0 0 10px', fontSize: '13px' }}>
-        {best && <>Best of the class so far: <button className="hv1" onClick={() => open(best.p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{best.p.name}</button> (#{best.u.n}, now {best.now}). </>}
-        {steal && steal !== best && <>Biggest steal: <button className="hv1" onClick={() => open(steal.p.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{steal.p.name}</button> (#{steal.u.n}, now {steal.now}).</>}
+        {best && <>Best of the class so far: <button className="hv1" onClick={() => open(best.p.id)} data-pid={best.p.id} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{best.p.name}</button> (#{best.u.n}, now {best.now}). </>}
+        {steal && steal !== best && <>Biggest steal: <button className="hv1" onClick={() => open(steal.p.id)} data-pid={steal.p.id} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>{steal.p.name}</button> (#{steal.u.n}, now {steal.now}).</>}
       </p>
       <table className="table" style={{ fontSize: '13px' }}>
         <thead><tr>{th('n', 'Pick', true)}{th(null, 'Team')}{th(null, 'Player')}{th(null, 'From')}{th(null, 'Draft night', true)}{th(null, 'First camp', true)}{th('now', 'Now', true)}{th('pts', 'Career', true)}{th(null, 'Where now')}</tr></thead>
@@ -277,7 +283,7 @@ function PastDraft({ vm }: { vm: VM }) {
           <tr key={u.n} style={{ background: gm.isUser(s, u.tid) ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : undefined }}>
             <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'var(--font-heading)', fontSize: '16px' }}>{u.n}{u.rd === 2 && <span style={{ ...muted, fontSize: '10.5px' }}> (2nd)</span>}</td>
             <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{logo(u.tid, 16)}<button className="hv4" onClick={() => openTeam(u.tid)} style={{ all: 'unset', cursor: 'pointer' }}>{T[u.tid]?.abbr}</button>{u.orig !== u.tid && T[u.orig] && <span style={{ ...muted, fontSize: '11px' }}>via {T[u.orig].abbr}</span>}</span></td>
-            <td style={{ padding: '5px 8px' }}><button className="hv1" onClick={() => open(p.id)} title={p.name} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, ...PN }}>{p.name}</button> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos}</span></td>
+            <td style={{ padding: '5px 8px' }}><button className="hv1" onClick={() => open(p.id)} data-pid={p.id} title={p.name} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600, ...PN }}>{p.name}</button> <span style={{ ...muted, fontSize: '11.5px' }}>{p.pos}</span></td>
             <td style={{ padding: '5px 8px', fontSize: '12px', ...muted }}>{p.from?.team || ''}</td>
             <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{u.ovr != null ? u.ovr + ' / ' + u.pot : '—'}</td>
             <td style={{ padding: '5px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.dxDone ? (p.dxDone.to > p.dxDone.from + 2 ? 'var(--gm-good)' : p.dxDone.to < p.dxDone.from - 2 ? 'var(--gm-bad)' : undefined) : undefined }} title={p.dxDone ? 'At his first NBA camp his game carried over ' + (p.dxDone.to - p.dxDone.from >= 0 ? '+' : '') + (p.dxDone.to - p.dxDone.from) : 'Not in an NBA camp yet'}>{p.dxDone ? p.dxDone.from + ' → ' + p.dxDone.to : '—'}</td>
