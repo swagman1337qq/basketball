@@ -6,6 +6,7 @@ import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
+import { HoverCard } from '../HoverCard';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
@@ -14,8 +15,14 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''), [view, setView] = useState<'board' | 'mock'>('board'), [stMode, setStMode] = useState<'' | 'trad' | 'adv'>(''), stats = !!stMode;
   // College / club stats on the board (2026-10-30): each prospect's latest season he played, traditional or advanced, in place of where he plays and his height.
   const { gm, s } = vm.ctx, cls = s.dClass, clsIds: number[] = (gm.db.cls?.[cls] || []);
-  const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
+  const am = useMemo(() => classStats(gm, cls, clsIds, s.gv || 0), [gm, cls, clsIds.length, s.gv, gm.Y]); // (also the hover snapshot on each name)
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
+  // Hovering a name: his latest season, traditional stats only.
+  const snap = (p: any) => { const x = last(p.id), d = x?.disp; if (!x) return <><b>{p.name}</b><div style={{ color: 'var(--color-neutral-600)' }}>No college or club season yet.</div></>;
+    const pg = (v: number) => (v / d.gp).toFixed(1), pc = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
+    const cells: [string, string][] = [['G', String(d.gp)], ['MPG', x.mpg.toFixed(1)], ['PTS', pg(d.pts)], ['REB', pg(d.orb + d.drb)], ['AST', pg(d.ast)], ['STL', pg(d.stl)], ['BLK', pg(d.blk)], ['TOV', pg(d.tov)], ['FG%', pc(d.fgm, d.fga)], ['3P%', pc(d.tpm, d.tpa)], ['FT%', pc(d.ftm, d.fta)]];
+    return <><b>{p.name}</b><div style={{ color: 'var(--color-neutral-600)', margin: '1px 0 6px' }}>{(x.season - 1) + '–' + String(x.season).slice(2)} · {x.team} · {x.level} · age {x.age}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, auto)', gap: '2px 10px' }}>{cells.map(([k, v]) => <div key={k}><div style={{ color: 'var(--color-neutral-600)', fontSize: '10.5px' }}>{k}</div><div style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</div></div>)}</div></>; };
   const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)), pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
   // [label, tooltip, value, decimals]: a column sorts by its value (a prospect with none goes last).
   const TRAD: [string, string, (x: any) => number, number?][] = [['PPG', 'Points per game', x => x.disp.pts / x.disp.gp], ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp], ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
@@ -198,9 +205,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <td style={{ padding: "4px 8px" }}>
                     <span style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                       <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <button className="hv6" onClick={p.open} title={p.name} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
+                      <HoverCard width={300} anchor={<button className="hv6" onClick={p.open} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)", ...PN }}>
                         {p.name}
-                      </button>
+                      </button>}>{snap(p)}</HoverCard>
                       {sc.tag(p.id)}
                     </span>
                   </td>
