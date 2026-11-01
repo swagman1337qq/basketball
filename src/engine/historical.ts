@@ -5,7 +5,7 @@
 // and scouts' read set from his real career. His ratings are shaped by his real college numbers (shooting, passing,
 // rebounding, blocks, steals) and then set to that overall. Nothing in the game says who he really was.
 import type { Game } from './Game';
-import { HISTORICAL_CLASSES, type HistProspect } from '../data/historicalClasses';
+import type { HistProspect } from '../data/historicalClasses';
 import { deletePlayer } from './godPlayer';
 import { shiftOvr, syncOvr } from './ratings';
 import { refreshPot, setTruePot } from './potential';
@@ -36,9 +36,9 @@ function shapeFromStats(p: any, h: HistProspect) {
   syncOvr(p);
 }
 
-// The ready-made classes (more years can be added to data/historicalClasses.ts).
-export const builtInClasses = () => Object.entries(HISTORICAL_CLASSES).map(([y, c]) => ({ year: +y, label: c.label, n: c.players.length }));
-export const builtInClass = (y: number) => HISTORICAL_CLASSES[y] || null;
+// Which classes can take a loaded one: those still to come (the current one only before its draft starts).
+export const canLoadYear = (g: Game, year: number) => year > g.Y || (year === g.Y && !(g.state.phase === 'draft' ? (g.state.pi || 0) > 0 : ['preFA', 'fa', 'preseason'].includes(g.state.phase)));
+export const loadableYears = (g: Game) => Object.keys(g.db.cls || {}).map(Number).filter(y => canLoadYear(g, y)).sort((a, b) => a - b);
 
 // A class from a file (your own, or one exported and edited): { label, players: [...] } in the same format
 // (docs/DRAFT_CLASS_FORMAT.md). Returns the class, or an error message naming the first problem.
@@ -61,7 +61,7 @@ export function parseDraftClass(text: string): { label: string; players: HistPro
 
 export function loadDraftClass(g: Game, H: { label: string; players: HistProspect[] }, year: number, hist = 0): string {
   if (!H.players?.length) return 'That class has no players.';
-  if (year < g.Y || (year === g.Y && (g.state.phase === 'draft' ? (g.state.pi || 0) > 0 : ['preFA', 'fa', 'preseason'].includes(g.state.phase)))) return 'That draft has already started or happened.';
+  if (!canLoadYear(g, year)) return 'That draft has already started or happened.';
   const P = g.db.P, s: any = g.state, ahead = year - g.Y, natW = s.natW;
   // The old class leaves the league for good (the God Mode delete keeps every reference straight).
   [...(g.db.cls[year] || [])].forEach(id => deletePlayer(g, id));

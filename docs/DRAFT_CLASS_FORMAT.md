@@ -1,6 +1,6 @@
 # Draft class files
 
-God Mode → Draft → **Load draft class…** replaces the class shown on the board (one not drafted yet) with a ready-made class or one from a `.json` file. **Save this class as a file** downloads any class in this format, so the easiest way to make your own is to save one and edit it.
+God Mode → **Draft classes** (or **Load draft class…** on the Draft board): browse the library, **Add from a file…** to put your own `.json` class in it (shared by all your leagues in this browser), and **Load** one into a class that hasn't been drafted. **Save the class as a file** downloads one of your league's classes in this format, so the easiest way to make your own is to save one and edit it. Loaded prospects are edited in God Mode like any player.
 
 ```json
 {

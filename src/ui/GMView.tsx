@@ -13,6 +13,7 @@ import { StandingsScreen } from './screens/StandingsScreen';
 import { TradeScreen } from './screens/TradeScreen';
 import { FreeAgencyScreen } from './screens/FreeAgencyScreen';
 import { CardsScreen } from './screens/CardsScreen';
+import { DraftClassesScreen } from './screens/DraftClassesScreen';
 import { DraftScreen } from './screens/DraftScreen';
 import { LiveGameScreen } from './screens/LiveGameScreen';
 import { ScheduleScreen } from './screens/ScheduleScreen';
@@ -114,6 +115,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.prefa && <PreFAScreen vm={vm} />}
             {!!vm.is.fa && <FreeAgencyScreen vm={vm} />}
             {!!vm.is.cards && <CardsScreen vm={vm} />}
+            {!!vm.is.draftClasses && <DraftClassesScreen vm={vm} />}
             {!!vm.is.daily && <DailyScheduleScreen vm={vm} />}
             {!!vm.is.draft && <DraftScreen vm={vm} />}
             {!!vm.is.game && <LiveGameScreen vm={vm} />}
