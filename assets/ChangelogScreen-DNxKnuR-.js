@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-D5SvDnOZ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CzhfdQYZ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-01
 
 ### Added
+- **Load a draft class (God Mode).** On the Draft board, **Load draft class…** replaces a class that hasn't been drafted with a ready-made one or your own. The first ready-made class is a real draft from 2000: all 69 players who declared, every name made up and every school swapped for a rival, with their real draft-night age, birthday, height, weight, jersey and real college seasons (advanced stats worked out from them). Players with no stats on record get generated ones like any prospect. Each player's true potential follows the career he really had, while the board shows how the scouts saw him then, so a second-round pick can turn out to be the star. **Save this class as a file** downloads any class to edit into your own and load back.
 - **Ball dominance: pass-first point guards are real now.** A new playing-style setting, next to usage, says how much the offense runs through a player, apart from how often he shoots. Usage is still his shot volume; ball dominance decides how many of his team's assists (and turnovers) are his. So a Luka can be high on both, a Chris Paul high dominance with moderate usage (about 20 points and 10+ assists instead of 30 and 12), a Rondo high dominance and low usage (about 11 and 11), a Klay high usage and low dominance. Set it in Edit player → Tendencies, see it in a player's Playing style, and player cards carry it. The AI sets it from passing, handle and reads, a guard's job and his place on the team; Wants touches now means wanting the ball, not more shots, and a player who passes much better than he scores shoots less. When a star far better than his teammates takes over, he takes over his way: a scorer shoots more, a pass-first star sets up more. League scoring, assists and turnovers are unchanged in total; tested over full seasons, the assist leaders now reach 10+ a game like real seasons, pass-first guards score a few points less and pass more, and every preset player card plays as before (the playmakers a few assists closer to their real seasons).
 
 ### Changed
