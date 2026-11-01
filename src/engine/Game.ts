@@ -1,7 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
-import { darkoUpdate } from './advanced';
+import { darkoUpdate, hollingerU, PER_TEAM_FIELDS } from './advanced';
 import { PRESET_CARDS, retuneCarriers, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
@@ -1179,6 +1179,7 @@ export class Game {
     if (!rows.length) return null;
     const t: any = {};
     rows.forEach(r => Object.keys(r).forEach(k => { if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k]; }));
+    Object.defineProperty(t, '_tid', { value: rows.slice().sort((a, b) => (b.min || 0) - (a.min || 0))[0].tid, enumerable: false }); // his main team (PER's team context), out of the fields
     return t;
   }
   tsOf(t) { return t.fga + t.fta ? t.pts / (2 * (t.fga + 0.44 * t.fta)) : 0; }
@@ -1206,7 +1207,28 @@ export class Game {
   seasonDirty() { this.seasonIdx.clear(); this.curIdx = null; }
 
   // A simple PER: efficiency per minute, scaled so the league average is 15.
-  perOf(t, season) { const lg = this.db.lgRate?.[season] || 0.55; return t.min ? 15 * (this.eff(t) / t.min) / lg : 0; }
+  // PER (2026-11-01): Hollinger's full formula (advanced.ts hollingerU), in the season's league context with his
+  // team's assist rate and pace when the line has a team (a season row), else a league-average team; scaled so the
+  // league's minute-weighted average is 15. A season with no team totals kept uses the old efficiency per minute.
+  perOf(t, season, tid?: number) {
+    if (!t || !t.min) return 0;
+    const L = this.perLeague(season); if (!L) { const lr = this.db.lgRate?.[season] || 0.55; return 15 * (this.eff(t) / t.min) / lr; }
+    const T = L.teams[tid ?? t.tid ?? t._tid] || null;
+    return (15 * hollingerU(t, L.lg, T) * (T ? L.pace / Math.max(1, T.pace) : 1)) / L.lgA;
+  }
+  private perCache = new Map<number, { k: string; v: any }>();
+  // A season's league totals, teams (with pace) and minute-weighted aPER, kept until another game is played.
+  perLeague(season: number): { lg: any; teams: Record<number, any>; pace: number; lgA: number } | null {
+    const s = this.state, src = season === this.Y ? s?.tstats : (s?.tstatsHist || {})[season]; if (!src) return null;
+    const TT = Object.entries(src).filter(([, t]: any) => t && t.gp) as [string, any][], gp = TT.reduce((a, [, t]) => a + t.gp, 0); if (gp < 10) return null;
+    const k = season + ':' + gp, c = this.perCache.get(season); if (c && c.k === k) return c.v;
+    const lg: any = {}; TT.forEach(([, t]) => PER_TEAM_FIELDS.forEach(f => (lg[f] = (lg[f] || 0) + (t[f] || 0))));
+    const teams: Record<number, any> = {}; TT.forEach(([tid, t]) => (teams[+tid] = { ...t, pace: this.possOf(t) / t.gp }));
+    const pace = this.possOf(lg) / lg.gp;
+    let a = 0, w = 0;
+    this.playersIn(season).forEach(p => { const rs = (p.stats || []).filter(r => r.season === season && !r.po && r.min > 0); rs.forEach(r => { const T = teams[r.tid] || null; a += hollingerU(r, lg, T) * (T ? pace / Math.max(1, T.pace) : 1) * r.min; w += r.min; }); });
+    const v = { lg, teams, pace, lgA: w && a > 0 ? a / w : 1 }; this.perCache.set(season, { k, v }); return v;
+  }
 
   // Per-game averages shown across the app = season totals ÷ games played.
   refreshAverages(ids: number[]) {

@@ -11,6 +11,19 @@ export type StatLine = Record<string, number>;
 // Hollinger's replacement-level PER by position (ESPN): point guards 11.0, shooting guards and small forwards 10.5,
 // power forwards 11.5, centers 10.6; the in-between positions average their two.
 const PRL: Record<string, number> = { PG: 11.0, SG: 10.5, G: 10.75, GF: 10.5, SF: 10.5, F: 11.0, PF: 11.5, FC: 11.05, C: 10.6 };
+// Hollinger's unadjusted PER (Basketball-Reference's formula): his box score per minute with his team's assist rate
+// (tmAST/tmFG) and the league's value of a possession, rebound share and foul cost. Multiply by league pace / team
+// pace for aPER; PER = aPER × 15 / the league's minute-weighted aPER.
+export function hollingerU(t: StatLine, lg: StatLine, T: StatLine | null): number {
+  if (!t.min) return 0;
+  const lgFG = Math.max(1, lg.fgm), lgFT = Math.max(1, lg.ftm), lgPF = Math.max(1, lg.pf || lg.gp * 19.5), lgTRB = Math.max(1, lg.orb + lg.drb);
+  const factor = 2 / 3 - (0.5 * (lg.ast / lgFG)) / (2 * (lgFG / lgFT)), VOP = lg.pts / Math.max(1, lg.fga - lg.orb + lg.tov + 0.44 * lg.fta), DRBp = (lgTRB - lg.orb) / lgTRB;
+  const tA = T && T.fgm ? T.ast / T.fgm : lg.ast / lgFG;
+  return (1 / t.min) * ((t.tpm || 0) + (2 / 3) * (t.ast || 0) + (2 - factor * tA) * (t.fgm || 0) + (t.ftm || 0) * 0.5 * (1 + (1 - tA) + (2 / 3) * tA) - VOP * (t.tov || 0) - VOP * DRBp * ((t.fga || 0) - (t.fgm || 0))
+    - VOP * 0.44 * (0.44 + 0.56 * DRBp) * ((t.fta || 0) - (t.ftm || 0)) + VOP * (1 - DRBp) * (t.drb || 0) + VOP * DRBp * (t.orb || 0) + VOP * (t.stl || 0) + VOP * DRBp * (t.blk || 0)
+    - (t.pf || 0) * (lg.ftm / lgPF - 0.44 * (lg.fta / lgPF) * VOP));
+}
+export const PER_TEAM_FIELDS = ['gp', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'oPts', 'oFgm', 'oFga', 'oTpm', 'oTpa', 'oFtm', 'oFta', 'oOrb', 'oDrb', 'oTov'];
 const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 
 // The impact metrics' constants fitted to this engine (2026-11-01, scripts/fitImpact.mts, docs/ADVANCED_ESTIMATES.md):
@@ -148,19 +161,10 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
       x._sO = spm(FIT.epm.o, fx); x._sD = spm(FIT.epm.d, fx); x._lO = spm(lgF.o, fl); x._lD = spm(lgF.d, fl); }
     out[p.id] = x;
   });
-  // Hollinger's PER, the full formula (Basketball-Reference's): unadjusted PER from his box score with team and
-  // league context, adjusted for his team's pace, then scaled so the league's minute-weighted average is 15. EWA
-  // uses it (the PER column shows the game's simpler efficiency per minute).
+  // Hollinger's PER (hollingerU, aPER scaled so the league's minute-weighted average is 15): the PER column and EWA.
   {
-    const lgFG = Math.max(1, lg.fgm), lgFT = Math.max(1, lg.ftm), lgPF = Math.max(1, lg.pf || lg.gp * 19.5), lgTRB = Math.max(1, lg.orb + lg.drb);
-    const factor = 2 / 3 - (0.5 * (lg.ast / lgFG)) / (2 * (lgFG / lgFT)), VOP = lg.pts / Math.max(1, lg.fga - lg.orb + lg.tov + 0.44 * lg.fta), DRBp = (lgTRB - lg.orb) / lgTRB;
     let a = 0, w = 0;
-    rows.forEach(({ p, t, tid }) => {
-      const T = teams[tid] || avgTeam(), tA = T.fgm ? T.ast / T.fgm : 0.6, trb = (t.orb || 0) + (t.drb || 0);
-      const u = (1 / t.min) * ((t.tpm || 0) + (2 / 3) * (t.ast || 0) + (2 - factor * tA) * (t.fgm || 0) + (t.ftm || 0) * 0.5 * (1 + (1 - tA) + (2 / 3) * tA) - VOP * (t.tov || 0) - VOP * DRBp * ((t.fga || 0) - (t.fgm || 0))
-        - VOP * 0.44 * (0.44 + 0.56 * DRBp) * ((t.fta || 0) - (t.ftm || 0)) + VOP * (1 - DRBp) * (t.drb || 0) + VOP * DRBp * (t.orb || 0) + VOP * (t.stl || 0) + VOP * DRBp * (t.blk || 0)
-        - (t.pf || 0) * (lg.ftm / lgPF - 0.44 * (lg.fta / lgPF) * VOP));
-      const ap = (lgPace / Math.max(1, T.pace || lgPace)) * u; out[p.id]._aper = ap; a += ap * t.min; w += t.min; });
+    rows.forEach(({ p, t, tid }) => { const T = teams[tid] || avgTeam(), ap = (lgPace / Math.max(1, T.pace || lgPace)) * hollingerU(t, lg, T); out[p.id]._aper = ap; a += ap * t.min; w += t.min; });
     const lgA = w && a > 0 ? a / w : 0; rows.forEach(({ p }) => { const x = out[p.id]; x._perH = lgA ? (x._aper * 15) / lgA : 0; });
   }
   // League min-weighted means to centre the raw numbers.
@@ -193,7 +197,7 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
     const rel = Math.min(1, t.min / 500); x.obpm = x.obpm * rel + -1.5 * (1 - rel); x.dbpm = x.dbpm * rel + -0.5 * (1 - rel);
     x.bpm = x.obpm + x.dbpm;
     x.vorp = (x.bpm + 2) * x._share * (T.gp / 82);
-    x.per = g.perOf(t, season);
+    x.per = x._perH; // Hollinger's PER in this season's context (Game.perOf gives the same outside the advanced tables)
     x.ewa = ((x._perH - (PRL[p.pos] ?? 10.8)) * t.min / 67) / 30; // Hollinger: value added = minutes × (PER − his position's replacement PER) / 67; wins = that / 30
     const teamDiff = T.pts - T.oPts, possOff = Math.max(1, T.poss - x._possOn);
     x.pm = t.pm || 0; x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
