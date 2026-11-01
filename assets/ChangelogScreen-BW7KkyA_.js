@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-fnAZBvkC.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BBRsh_hX.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-01
+
+### Changed
+- **PER is Hollinger's real formula.** Every PER in the game (profiles, stats pages, rosters, leaders, the Hall of Fame and scouting) now uses John Hollinger's full calculation: the box score weighted by the league's value of a possession, rebound share and foul cost, his team's assist rate, adjusted for his team's pace, with the league average at 15. It used to be a simpler efficiency per minute. Stars land around 25–33, a little more spread out than before.
 
 ### Fixed
 - **2013 draft schools and clubs audited.** Checked all 100 prospects and their transfer histories against sourced rivalries. Corrected affiliations or division labels for 16 prospects, removed the unsupported Granada B club, and labeled the single approved competitive-opponent fallback. Refresh and reload the class to apply this to undrafted prospects; existing saved players keep their affiliations.
