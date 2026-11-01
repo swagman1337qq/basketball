@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bup8MvK3.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-fnAZBvkC.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -9,6 +9,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Imported draft-class height affects play.** Loading a listed height now adjusts the engine’s height rating and wingspan along with the displayed measurement.
 
 ### Changed
+- **Defense is one on one now, not just a team average.** Every player guards someone (matched by size, and a team's best perimeter defender moves onto the other team's top scorer when he's much better than whoever had him). His own man's defense counts toward every shot he takes, so a lockdown wing slows the player he guards, and offenses look for the weak defender a little more. His man also commits more of the shooting fouls on him, blocks more of his shots and steals more from him.
+- **A great pass makes a better shot.** The teammate who sets a shot up is picked before it goes up, and the better his passing (with a little Feel and Offensive IQ), the easier the shot, most of all on catch-and-shoot looks. Passing used to decide only who got the assist; now a good passer makes his teammates better.
+- **Steals and blocks help you win.** Quick hands force more turnovers, shot-blockers make shots at the rim harder (not just block ones that would have missed), and gamblers give up fewer easy shots than before. More steals or blocks used to cost a team points; now they're worth about as much as better shooting.
+- **Scoring settles a little lower in long leagues:** about 117 points and 38 threes a game after a few seasons, instead of 118 and 39.
 - **EWA is the real formula now.** Estimated Wins Added uses Hollinger's own method: his full PER (with team pace and league context) against the replacement level for his position (point guards 11.0, shooting guards and small forwards 10.5, power forwards 11.5, centers 10.6), instead of a simpler efficiency number against one level for everyone.
 - **His role in one line.** A player's Playing style now opens with what his usage and ball dominance add up to: a pass-first creator, a ball-dominant scorer and creator, a volume scorer, a spot-up role player and so on. In God Mode's tendency editor the line changes as you move either setting.
 - **No more 15-assist seasons.** One player can only collect so much of his team's assists: past a point, his share grows much more slowly. A pass-first star set to run the offense now tops out around 12–13 assists a game, like the real Chris Paul and Rondo, instead of 15. The league's assist leaders stay around 10.
