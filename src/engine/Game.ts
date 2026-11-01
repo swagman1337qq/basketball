@@ -93,6 +93,12 @@ const TRANSIENT = { navArrange: false, tour: null, tourMode: null, modal: false,
 
 export interface SaveData { db: any; state: any }
 
+// What the drift correction (Game.leagueDrift) steers a settled league toward (2026-11-01): a little under the NBA
+// baselines (BASE pace 99.4, threes 43% of shots), which left long leagues at 117–118 points and 39 threes a game;
+// these settle near 117 and 38.
+const DRIFT_PACE = 98.6, DRIFT_3 = 0.42;
+const DRIFT_SHARE = (z: string) => { const b = BASE.zone as any, three = b.c3.share + b.atb.share; return z === 'c3' || z === 'atb' ? b[z].share * (DRIFT_3 / three) : b[z].share * ((1 - DRIFT_3) / (1 - three)); };
+
 export class Game {
   db: any;
   state: any;
@@ -1071,13 +1077,13 @@ export class Game {
     ZT.forEach(([z, m, a]) => {
       const was = prev?.adj?.[z] ?? 0; adj[z] = T[a] > 500 ? +cl(was + 0.8 * (BASE.zone[z].pct - T[m] / T[a]), -0.06, 0.06).toFixed(4) : was;
       // The shot mix: each tier's share of shots back toward the NBA's (rim .31, mid .26, corner .105, above the break .325).
-      const wasM = prev?.zoneM?.[z] ?? 1; zoneM[z] = T[a] > 500 && att > 0 ? +cl(wasM * Math.pow(BASE.zone[z].share / (T[a] / att), 0.8), 0.75, 1.33).toFixed(4) : wasM; });
+      const wasM = prev?.zoneM?.[z] ?? 1; zoneM[z] = T[a] > 500 && att > 0 ? +cl(wasM * Math.pow(DRIFT_SHARE(z) / (T[a] / att), 0.8), 0.75, 1.33).toFixed(4) : wasM; });
     const tovPct = T.tov / Math.max(1, T.fga + 0.44 * T.fta + T.tov), tovM = +cl((prev?.tovM ?? 1) * Math.pow(BASE.tovPct / Math.max(0.01, tovPct), 0.8), 0.8, 1.25).toFixed(4);
     // Pace (possessions per 48 minutes of team play) and free-throw rate (FTM per FGA) back toward the NBA's.
     // Pace from last season's team totals (the same estimate the league stats show, possOf), or from the player rows.
     const TT = Object.values((this.state?.tstatsHist || {})[season] || (this.state?.season === season ? this.state.tstats : null) || {}) as any[], tg = TT.reduce((a, t) => a + (t.gp || 0), 0);
     const games = T.min / 240, pace = tg > 300 ? TT.reduce((a, t) => a + (t.gp ? this.possOf(t) : 0), 0) / tg : games > 0 ? (T.fga + 0.4 * T.fta + T.tov - 1.07 * T.orb) / games : BASE.pace;
-    const paceM = +cl((prev?.paceM ?? 1) * Math.pow(pace / BASE.pace, 0.8), 0.85, 1.18).toFixed(4);
+    const paceM = +cl((prev?.paceM ?? 1) * Math.pow(pace / DRIFT_PACE, 0.8), 0.85, 1.18).toFixed(4);
     const ftM = +cl((prev?.ftM ?? 1) * Math.pow(BASE.ftr / Math.max(0.05, T.ftm / T.fga), 0.8), 0.8, 1.25).toFixed(4);
     return { adj, tovM, paceM, ftM, zoneM, adjFrom: season };
   }

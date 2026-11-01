@@ -99,7 +99,7 @@ const ZONE_AST: Record<Zone, number> = { rim: 0.94, mid: 0.68, c3: 2.2, atb: 2.1
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
 // 2026-10-17: handle 200 → 240, press 85 → 110: team TOV% spread was wider than the NBA's (sd 0.011–0.014 vs about
 // 0.010) and turnovers drove too much of the gap between good and bad teams.
-const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 420 };
+const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 130 };
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.066, nonShoot: 0.066, andOne: 0.072, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.075 };
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
@@ -220,8 +220,36 @@ export const interiorD = (r: any) => r.hgt * 0.4 + r.diq * 0.3 + (r.blk ?? r.hgt
 const g01 = (v: number) => Math.max(5, Math.min(100, v)) / 100;
 export const blockSkill = (r: any) => 100 * Math.pow(g01(r.blk ?? r.hgt), 0.32) * Math.pow(g01(r.hgt), 0.18) * Math.pow(g01(50 + ape(r) * 6), 0.15) * Math.pow(g01(r.jmp), 0.12) * Math.pow(g01((r.acc ?? r.spd) * 0.6 + r.spd * 0.4), 0.1) * Math.pow(g01(r.diq), 0.16);
 export const stealSkill = (r: any) => (r.stl ?? r.diq) * 0.7 + (r.acc ?? r.spd) * 0.15 + r.spd * 0.15 + ape(r) * 1.0;
+// A passer's vision: Passing, sharpened a little by Feel and Offensive IQ (who sets up shots, and how good they are).
+export const passQ = (p: { r: any; feel?: number }) => p.r.pss * (1 + ((p.feel ?? 54) - 54) / 300 + (p.r.oiq - 50) / 400);
+// Individual defense (2026-11-01): who guards whom. Before this every shot faced the five defenders' average.
+// MATCH_W of a jumper's perimeter defense is his own man's (the rest the lineup's help and rotations); at the rim a
+// big's own man counts MATCH_W of the interior defense, and a guard or wing driving gets MATCH_RIM per point his
+// man's perimeter defense is over the lineup's (staying in front). Offenses look for the weak defender: a shooter's
+// share of the shots × exp((the lineup's perimeter defense − his man's) / HUNT_K). His man also commits more of
+// the shooting fouls on him, makes more of the blocks and gets more of the steals.
+export const MATCH_W = 0.3, MATCH_RIM = 0.0006, HUNT_K = 200, STOP_GAP = 10;
+// Matchups for two lineups: by size (tallest on tallest), then the defense's best perimeter defender (a guard or
+// wing) takes the offense's main perimeter scorer if he's much better (STOP_GAP) than the one who had him. (At a
+// gap of 4 and HUNT_K 50 stars were held down too much: 7 players a season scored 25+ instead of 12.)
+export function matchups(onO: SimPlayer[], onD: SimPlayer[], useOf: (p: SimPlayer) => number): Map<SimPlayer, SimPlayer> {
+  const o = onO.slice().sort((a, b) => a.r.hgt - b.r.hgt), d = onD.slice().sort((a, b) => a.r.hgt - b.r.hgt), m = new Map<SimPlayer, SimPlayer>();
+  o.forEach((p, i) => m.set(p, d[Math.min(i, d.length - 1)]));
+  const star = onO.filter(p => p.grp !== 'B').sort((a, b) => useOf(b) - useOf(a))[0], stop = onD.filter(p => p.grp !== 'B').sort((a, b) => perimD(b.r) - perimD(a.r))[0];
+  if (star && stop && m.get(star) !== stop && perimD(stop.r) - perimD(m.get(star)!.r) > STOP_GAP) { const was = m.get(star)!, other = [...m.entries()].find(([, v]) => v === stop)?.[0]; m.set(star, stop); if (other) m.set(other, was); }
+  return m;
+}
+export const SETUP_K = 0.0004; // +10 passing for a team's guards ≈ +0.5 points per 100 (it was about 0)
 export const gambleB = (r: any) => Math.max(0, (r.blk ?? r.diq) - r.diq - 8);
 export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
+// Steals and blocks (2026-11-01): they must help the team that has them. A gambler (steals or blocks well past his
+// Defensive IQ) still gives up easier shots, but less than before (GAMBLE, per point of gamble on the floor, was rim
+// .0005 / mid .0003 / three .0004), quick hands force more turnovers (TOV_K.hands 130, was 420), and shot-blockers on
+// the floor make shots at the rim harder (BLK_RIM per point of the two best blockers' skill over the league's), not
+// just block shots that would have missed anyway. Before this, +10 steals for a team's guards cost it 0.76 points
+// per 100 possessions and +10 blocks for its bigs 0.09; now they're worth about +0.3 and +0.3 to +0.8 (3,000-game
+// tests; +10 three-point shooting for the guards is about +0.4).
+const GAMBLE = { rim: 0.00005, mid: 0.00003, three: 0.00004 }, BLK_RIM = 0.008;
 // Shot creation (2026-10-23): breaking a defender down, getting into the paint and making the defense
 // collapse, which hands everyone on the floor an easier shot. Handle and burst first, the threat of the
 // finish and the pull-up, and the read. A lineup's creation leans on its best creators (half its best,
@@ -242,7 +270,8 @@ export const glassSkill = (r: any) => rebSkill(r) * 0.75 + (r.box ?? r.reb) * 0.
 // out. The team totals don't change, only who gets them; the best players lose a sliver.
 // Without them a weak passer in 20+ minutes a night averaged 0.2 assists, a small guard under a
 // rebound, a slow big 0.2 steals; nobody in NBA history with real minutes posts lines like that.
-const PASS_KNEE = 0.58, PASS_SLOPE = 0.32, PASS_FLOOR = 42, REB_FLOOR = 36, STEAL_FLOOR = 32, BLOCK_FLOOR = 30;
+export const PASS_FLOOR = 42;
+export const PASS_KNEE = 0.58, PASS_SLOPE = 0.32; const REB_FLOOR = 36, STEAL_FLOOR = 32, BLOCK_FLOOR = 30;
 
 export interface Norms {
   season: number;
@@ -254,6 +283,8 @@ export interface Norms {
   draw?: number; // usage-weighted contact/foul-drawing intensity, for team shooting-foul frequency
   perimD: number; interiorD: number; reb: number; pss: number; handle: number;
   rimHgt?: number; // the league's typical height rating at the rim, weighted by rim attempts
+  passQ?: number; // the typical setter's vision (passQ), weighted as the engine picks setters
+  blkL?: number; // the typical lineup's two best shot-blockers on the floor (BLK_RIM)
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
   cre?: Record<JumpZone, CreMean>; // the league's jump-shot creation, per tier: keeps a typical mix on the league's make rate, assists and blocks
   adj?: Record<Zone, number>; tovM?: number; adjFrom?: number; // the league's drift correction (Game.leagueDrift): make rates by tier and turnovers, from last season's results
@@ -414,6 +445,7 @@ export class GameSim {
   private rest(x: number) { this.en.forEach((e, p) => this.en.set(p, Math.min(100, e + x))); }
   private curSt: [[number, number, number], [number, number, number]] = [[0, 0, 0], [0, 0, 0]]; // this trip's stint entries (free-throw expected points)
   private newPoss = true; // the next step starts a new possession (on-floor possession counts)
+  private mCache = new Map<string, Map<SimPlayer, SimPlayer>>(); // matchups by the two lineups
   private fastBreak = false; // the defense crashed the glass and lost the rebound: this trip is a run-out
 
   constructor(home: SimTeam, away: SimTeam, public opts: SimOpts = {}) {
@@ -592,6 +624,7 @@ export class GameSim {
     const ui = uw.indexOf(Math.max(...uw)), gapO = onO[ui].ovr - others(ui), USG_CAP = 0.33 + 0.17 * cl((gapO - 28) / 27, 0, 1), ut2 = uw.reduce((a, b) => a + b, 0);
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : 1;
     const use = (p: SimPlayer) => { const i = onO.indexOf(p); return i < 0 ? useBase(p) * useMood(p) : uw[i] * (i === ui ? uF : 1); };
+    const mk = kO + '|' + kD, M = this.mCache.get(mk) || (this.mCache.set(mk, matchups(onO, onD, p => C(p).use)).get(mk)!), manOf = (p: SimPlayer) => M.get(p) || onD[0];
     const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * (1 + 0.3 * (avg(onO, p => this.tired(p)) - TIRED0)) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const drawO = onO.reduce((a, p) => a + foulDrawWeight(p, use(p)), 0) / Math.max(1e-6, onO.reduce((a, p) => a + use(p), 0));
     // Foul drawing must create trips as well as decide who takes them. Previously
@@ -629,7 +662,7 @@ export class GameSim {
       if (pbp) this.pbp.unshift({ side: offK, time, text: text(), sub: sub ? sub() : '', score: scoring ? this.away.pts + '–' + this.home.pts : '', ids });
     };
     const score = (p: SimPlayer, x: number) => { O.pts += x; addQ(O, x); O.box[p.id].pts += x; stO[1] += x; stD[1] += x; onO.forEach(y => { O.box[y.id].pm += x; O.box[y.id].onF += x; }); onD.forEach(y => { D.box[y.id].pm -= x; D.box[y.id].onA += x; }); };
-    const foul = () => { const f = wpick(onD, p => foulWeight(p)); D.box[f.id].pf++; D.fouls++; return f; };
+    const foul = (on?: SimPlayer) => { const mm = on ? manOf(on) : null, f = wpick(onD, p => foulWeight(p) * (p === mm ? 3 : 1)); D.box[f.id].pf++; D.fouls++; return f; }; // a shooting foul: most often his own man
 
     let keep = false;
     if (kind === 'ifoul' && eg.foul) {
@@ -657,7 +690,7 @@ export class GameSim {
       const x = Math.random();
       const stealShare = cl(RATE.stealShare * Math.exp(handsD / 160), 0.35, 0.8);
       if (x < stealShare) {
-        const s2 = wpick(onD, p => Math.pow(Math.max(STEAL_FLOOR, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * roleK(p, 'Point-of-attack defender', 1.5));
+        const s2 = wpick(onD, p => Math.pow(Math.max(STEAL_FLOOR, stealSkill(p.r) + ((p.feel ?? FEEL_MID) - FEEL_MID) * 0.4), 1.2) * roleK(p, 'Point-of-attack defender', 1.5) * (p === manOf(handler) ? 1.5 : 1));
         D.box[s2.id].stl++;
         ev([s2.id, handler.id], () => s2.name + ' steals the ball from ' + handler.name, () => '(' + D.box[s2.id].stl + ' STL)');
       } else if (x < stealShare + RATE.offFoul) {
@@ -667,10 +700,10 @@ export class GameSim {
     } else if (kind === 'trip') {
       // Fouled on a missed shot: two free throws (three on a three).
       const sh = wpick(onO, p => foulDrawWeight(p, use(p)) * roleK(p, 'Slasher', 1.2));
-      keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
+      keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(sh), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
-      const sh = wpick(onO, p => use(p) * (eg.need3 ? Math.exp((p.r.tp - 50) / 14) : 1)); // needing a three, it goes to a shooter
+      const sh = wpick(onO, p => use(p) * Math.exp((pressD - perimD(manOf(p).r)) / HUNT_K) * (eg.need3 ? Math.exp((p.r.tp - 50) / 14) : 1)); // needing a three, it goes to a shooter
       const prof0 = this.profile(sh, tO, fx, fb), md = mood(sh);
       // A heat check is a deep pull-up; a frustrated shot is a contested jumper, rarely a drive.
       const prof = md === 'heat' ? { ...prof0, atb: prof0.atb * 2, c3: prof0.c3 * 0.6 } : md === 'tilt' ? { ...prof0, mid: prof0.mid * 1.5, atb: prof0.atb * 1.4, rim: prof0.rim * 0.6 } : prof0;
@@ -701,7 +734,9 @@ export class GameSim {
       const rimPro = onD.reduce((a, p) => Math.max(a, roleW(p, 'Rim protector')), 0);
       // Rotations (the whole lineup's Defensive IQ) make every shot harder; gamblers leave easier ones.
       const small = z === 'rim' ? cl(1 + (55 - sh.r.hgt) / 100, 0.75, 1.3) : 1; // good rim protection bothers a small finisher more than a big one, who shoots over it
-      const defAdj = (z === 'rim' ? small * (0.0021 * (intD - n.interiorD) + 0.007 * rimPro) - 0.0005 * gamB : z === 'mid' ? 0.001 * (pressD - n.perimD) - 0.0003 * gamS : 0.0008 * (pressD - n.perimD) - 0.0004 * gamS) + 0.0008 * diqD;
+      const blkTop = z === 'rim' ? (() => { const b = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a); return (b[0] + (b[1] ?? b[0])) / 2; })() : 0;
+      const man = manOf(sh), pD = (1 - MATCH_W) * pressD + MATCH_W * perimD(man.r), intM = sh.grp === 'B' ? (1 - MATCH_W) * intD + MATCH_W * interiorD(man.r) : intD, stay = sh.grp === 'B' ? 0 : MATCH_RIM * (perimD(man.r) - pressD);
+      const defAdj = (z === 'rim' ? small * (0.0021 * (intM - n.interiorD) + 0.007 * rimPro + BLK_RIM * (blkTop - (n.blkL ?? n.blk ?? 58))) + stay - GAMBLE.rim * gamB : z === 'mid' ? 0.001 * (pD - n.perimD) - GAMBLE.mid * gamS : 0.0008 * (pD - n.perimD) - GAMBLE.three * gamS) + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -719,7 +754,22 @@ export class GameSim {
       const lineQ = onO.reduce((a, p) => a + C(p).q * C(p).use, 0) / Math.max(1e-6, onO.reduce((a, p) => a + C(p).use, 0)), leadD = -LEAD_K * cl(O.pts - D.pts, -30, 30);
       // At the rim, a guard or wing who can't shoot (his best of 3PT and mid-range under 55) finds the paint packed:
       // the defense sags off him (up to −6% at the worst); shooters around him open the lane a little (and vice versa).
-      const pct = creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - rawBig(sh) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      // The pass (2026-11-01): who would set this shot up is chosen before it goes up, and a better passer makes it a
+      // better shot: SETUP_K per point of his vision over the league's typical setter (n.passQ), times how likely this
+      // kind of shot is to come off a pass (a catch-and-shoot three almost always; a stepback hardly ever). If it goes
+      // in on an assisted look, he gets the assist. Before this, passing only decided who was credited.
+      const aRate = RATE.astF * BASE.zone[z].ast * ZONE_AST[z] * Math.exp((avg(onO.filter(p => p !== sh), p => Math.max(p.r.pss, (p.r.pss + p.r.drb) / 2)) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
+      const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
+      const aChance = putback ? 0 : cl(aRate * (cre && cm ? CRE_AST[cre] / cm.ast : 1) * stopper * iso, 0.05, 0.97); // a self-creator's makes come off his own dribble
+      // A soft ceiling on one passer's share (2026-11-01): past PASS_KNEE of his teammates' assisted baskets, his share
+      // grows only PASS_SLOPE as fast, so even an elite pass-first guard tops out near the NBA's best (about 50% AST%).
+      // Vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of
+      // his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7).
+      const cands = onO.filter(p => p.id !== sh.id), ws = cands.map(p => Math.pow(Math.max(PASS_FLOOR, passQ(p)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p === bp ? tkPass : 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)), wt = ws.reduce((x, y) => x + y, 0), wi = ws.indexOf(Math.max(...ws)), top = wt > 0 ? ws[wi] / wt : 0;
+      if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
+      const setter = putback || !cands.length ? null : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
+      const setup = setter && Math.random() < aChance ? setter : null;
+      const pct = setupD + creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - rawBig(sh) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
@@ -729,24 +779,18 @@ export class GameSim {
         O.tiers[z] = [O.tiers[z][0] + 1, O.tiers[z][1]];
         score(sh, three ? 3 : 2);
         let passer: SimPlayer | null = null;
-        const aRate = RATE.astF * BASE.zone[z].ast * ZONE_AST[z] * Math.exp((avg(onO.filter(p => p !== sh), p => Math.max(p.r.pss, (p.r.pss + p.r.drb) / 2)) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
-        const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
-        if (!putback && Math.random() < cl(aRate * (cre && cm ? CRE_AST[cre] / cm.ast : 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          // A soft ceiling on one passer's share (2026-11-01): past PASS_KNEE of his teammates' assisted baskets, his share
-          // grows only PASS_SLOPE as fast, so even an elite pass-first guard tops out near the NBA's best (about 50% AST%).
-          const cands = onO.filter(p => p.id !== sh.id), ws = cands.map(p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p === bp ? tkPass : 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)), wt = ws.reduce((x, y) => x + y, 0), wi = ws.indexOf(Math.max(...ws)), top = wt > 0 ? ws[wi] / wt : 0;
-          if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
-          passer = wpick(cands, p => ws[cands.indexOf(p)]); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
+        if (setup) { // the pass that set it up (chosen before the shot) counts as the assist
+          passer = setup;
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);
-        if (Math.random() < RATE.andOne) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, foul(), 'and1', cAdv);
+        if (Math.random() < RATE.andOne) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, foul(sh), 'and1', cAdv);
       } else {
         this.streak.set(sh.id, Math.min(0, this.streak.get(sh.id) || 0) - 1);
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
         const blkP = 1.18 * BLOCK_ON_MISS[z] * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (z === 'rim' ? Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1); // small finishers get blocked more; stepbacks and fadeaways rarely
         if (Math.random() < blkP) {
-          const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6));
+          const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6) * (p === man ? 1.5 : 1));
           D.box[bl.id].blk++;
           ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name, () => '(' + D.box[bl.id].blk + ' BLK)');
         } else ev([sh.id], () => sh.name + ' misses ' + lab());

@@ -2,7 +2,7 @@
 // start of every season (and when a league is created or loaded), so the 2026
 // baselines stay the league mean even as ratings drift upward or downward over time.
 import { effTend } from './tendencies';
-import { BASE, blockSkill, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, foulDrawWeight, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
+import { BASE, blockSkill, PASS_FLOOR, PASS_KNEE, PASS_SLOPE, passQ, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, foulDrawWeight, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
 
 export interface NormEntry { p: any; roles: string[]; min: number; tid: number }
 
@@ -38,6 +38,18 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
   const cre: { v: number; w: number }[] = [];
   byTeam.forEach(list => { const rot = list.slice().sort((a, b) => b.min - a.min).map(e => creSkill(e.p.r)); if (rot.length >= 5) cre.push({ v: 0.65 * lineupCre(rot.slice(0, 5)) + 0.35 * lineupCre(rot.slice(3, 8)), w: 1 }); });
   n.creL = wmean(cre) || undefined;
+  // On the floor as the engine plays it (about two thirds of a game with the five who play most, a third with the 4th–8th):
+  // the typical setter (sim.ts, the pass before a shot: for each shooter, the other four weighted as the engine picks
+  // who sets it up, the soft ceiling on one passer's share included) and the two best shot-blockers on the floor.
+  const setters: { v: number; w: number }[] = [], blkL: { v: number; w: number }[] = [];
+  byTeam.forEach(list => { const rot = list.slice().sort((a, b) => b.min - a.min); if (rot.length < 5) return;
+    ([[rot.slice(0, 5), 0.65], [rot.slice(3, 8), 0.35]] as [typeof E, number][]).forEach(([L, lw]) => {
+      const b2 = L.map(e => blockSkill(e.p.r)).sort((a, b) => b - a); blkL.push({ v: (b2[0] + b2[1]) / 2, w: lw });
+      L.forEach(sh => { const c = L.filter(e => e !== sh), q = c.map(e => passQ({ r: e.p.r, feel: e.p.intg?.feel ?? 50 })), t = c.map(e => (effTend(e.p) as any)?.pass ?? 1);
+        const ws = c.map((e, i) => Math.pow(Math.max(PASS_FLOOR, q[i]), 2.4) * Math.max(0.75, Math.min(1.45, 0.45 + e.p.r.drb / 80)) * t[i]), wt = ws.reduce((a, b) => a + b, 0), wi = ws.indexOf(Math.max(...ws)), top = wt > 0 ? ws[wi] / wt : 0;
+        if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
+        const W = ws.reduce((a, b) => a + b, 0); if (W > 0) setters.push({ v: ws.reduce((a, w, i) => a + w * q[i], 0) / W, w: lw * sh.use }); }); }); });
+  n.passQ = wmean(setters) || undefined; n.blkL = wmean(blkL) || undefined;
 
   // Shot volume = minutes × usage; iterate so the skill means and the share correction agree.
   const vol = (e: (typeof E)[number]) => e.min * e.use;
