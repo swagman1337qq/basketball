@@ -3,7 +3,7 @@
 // adding up to 100% (change one and the others make room in proportion); free throw rate as free throw
 // attempts per 100 shots. Used by the player editor and the card editor.
 import type { Game } from '../engine/Game';
-import { CRE_TEN, expUsg, HABIT_TEN, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
+import { CRE_TEN, expUsg, HABIT_TEN, roleOf, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
 import { GOD_PINK, muted, NumInput } from './kit';
 
 // `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
@@ -38,6 +38,7 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto, onFreeze }: { p: an
       {head('His role in the offense')}
       {row('usage', 'Usage rate', Math.round(expUsg(p, norms, roles)), uLo, uHi, v => onTen({ ...t, usage: usageScoreFor(p, norms, roles, v) }), '% USG', 'typical 20% (his game sets his range: ' + uLo + '–' + uHi + ')', TEN_DESC.usage)}
       {row('dom', 'Ball dominance', Math.round(t.dom ?? 50), 2, 98, v => onTen({ ...t, dom: v }), '/100', 'typical 50 · how much the offense runs through him (assists, turnovers); usage is how often he shoots', TEN_DESC.dom)}
+      <div style={{ ...muted, fontSize: '11.5px', paddingLeft: 158 }}>Together: <b style={{ color: 'var(--color-text)' }}>{roleOf(t).replace(/^A /, 'a ')}</b></div>
       {head('Where his shots come from (% of his shots)')}
       {ZONE_TEN.map(share)}{total(ZONE_TEN)}
       {head('How he creates his jump shots (% of his jumpers)')}

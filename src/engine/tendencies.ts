@@ -347,13 +347,23 @@ export function optionRanks(P: Record<number, any>, rosters: Record<string, numb
 
 // A short read of his style for the profile: his two or three strongest leanings.
 const STYLE: Record<ZoneTen | CreTen | 'ftr', string> = { ra: 'shots at the rim', paint: 'floaters and hooks', mid: 'mid-range shots', c3: 'corner threes', atb: 'threes above the break', cns: 'catch-and-shoot jumpers', pullup: 'pull-up jumpers', step: 'stepbacks', fade: 'fadeaways', ftr: 'trips to the line' };
+// His role in one phrase (2026-11-01), from the two settings: usage (how often he shoots) and ball dominance (how
+// much the offense runs through him). Three bands each, 50 typical: low ≤ 37, high ≥ 63 (usage 60 for "high").
+export function roleOf(t: { usage?: number; dom?: number }): string {
+  const u = t.usage ?? 50, d = t.dom ?? 50, U = u >= 60 ? 2 : u <= 38 ? 0 : 1, D = d >= 63 ? 2 : d <= 37 ? 0 : 1;
+  return [
+    ['A spot-up role player', 'A low-usage role player', 'A pass-first floor general who rarely shoots'],
+    ['Scores off the ball', 'A balanced option', 'A pass-first creator'],
+    ['A volume scorer who rarely sets others up', 'A volume scorer who also makes plays', 'A ball-dominant scorer and creator'],
+  ][U][D];
+}
+
 export function styleLine(p: any): string {
   const t = ensureTen(p); if (!t) return '';
   const lean: [keyof typeof STYLE, number][] = [...ZONE_TEN.filter(k => t[k] >= 8).map(k => [k, t[k] / (ZB[k] * 100)] as [ZoneTen, number]), ...CRE_TEN.filter(k => t[k] >= 12).map(k => [k, t[k] / (CRE_BASE[k] * 100)] as [CreTen, number])];
   if (t.ftr >= 62) lean.push(['ftr', 1.4 + (t.ftr - 62) / 30]);
   const top = lean.filter(([, v]) => v >= 1.4).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => STYLE[k]);
-  const vol = (t.dom ?? 50) >= 72 ? (t.usage >= 60 ? 'A ball-dominant scorer and creator' : 'A pass-first playmaker') : t.usage >= 65 ? 'A high-usage scorer' : t.usage >= 55 ? 'A willing scorer' : t.usage <= 35 ? 'A low-usage role player' : t.usage <= 45 ? 'Plays within the offense' : 'A balanced option';
-  return vol + (top.length ? ', heavy on ' + (top.length > 1 ? top.slice(0, -1).join(', ') + ' and ' + top[top.length - 1] : top[0]) : '') + '.';
+  return roleOf(t) + (top.length ? ', heavy on ' + (top.length > 1 ? top.slice(0, -1).join(', ') + ' and ' + top[top.length - 1] : top[0]) : '') + '.';
 }
 
 // Usage rate in NBA terms (USG%, league mean 20): what the engine expects from his usage tendency
