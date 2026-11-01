@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CPrEl6XB.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cfx6oxLA.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-01
 
 ### Changed
+- **His role in one line.** A player's Playing style now opens with what his usage and ball dominance add up to: a pass-first creator, a ball-dominant scorer and creator, a volume scorer, a spot-up role player and so on. In God Mode's tendency editor the line changes as you move either setting.
+- **No more 15-assist seasons.** One player can only collect so much of his team's assists: past a point, his share grows much more slowly. A pass-first star set to run the offense now tops out around 12–13 assists a game, like the real Chris Paul and Rondo, instead of 15. The league's assist leaders stay around 10.
 - **Closer fictional names for the 2000 draft class.** Reviewed all 69 prospects and updated 39 names so the first and last initials and their separate spoken syllable counts match the real players as closely as possible. Newly loaded copies use the revised names; prospects already loaded into a league keep their saved names.
 
 ### Added
@@ -12,9 +14,6 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New version notice.** When an update to the game is published while you're playing, a bar at the bottom says a new version is ready: Reload saves your league and loads it, or pick Later. No more Ctrl+Shift+R.
 - **Draft classes (God Mode).** A new **Draft classes** screen, like Player cards: a library shared by all your leagues where you browse each class (every prospect's position, age, height, school, overall, the scouts' read, true potential and last real season), add your own from a file, and load one into any class that hasn't been drafted (also from **Load draft class…** on the Draft board). Loaded prospects are edited in God Mode like any player. The library lives in your browser, not in your saves, and loads only when you open it. The first ready-made class is a real draft from 2000: all 69 players who declared, every name made up and every school swapped for a rival, with their real draft-night age, birthday, height, weight, jersey and real college seasons (advanced stats worked out from them). Players with no stats on record get generated ones like any prospect. Each player's true potential follows the career he really had, while the board shows how the scouts saw him then, so a second-round pick can turn out to be the star. **Save the class as a file** downloads any of your league's classes to edit into your own and add back.
 - **Ball dominance: pass-first point guards are real now.** A new playing-style setting, next to usage, says how much the offense runs through a player, apart from how often he shoots. Usage is still his shot volume; ball dominance decides how many of his team's assists (and turnovers) are his. So a Luka can be high on both, a Chris Paul high dominance with moderate usage (about 20 points and 10+ assists instead of 30 and 12), a Rondo high dominance and low usage (about 11 and 11), a Klay high usage and low dominance. Set it in Edit player → Tendencies, see it in a player's Playing style, and player cards carry it. The AI sets it from passing, handle and reads, a guard's job and his place on the team; Wants touches now means wanting the ball, not more shots, and a player who passes much better than he scores shoots less. When a star far better than his teammates takes over, he takes over his way: a scorer shoots more, a pass-first star sets up more. League scoring, assists and turnovers are unchanged in total; tested over full seasons, the assist leaders now reach 10+ a game like real seasons, pass-first guards score a few points less and pass more, and every preset player card plays as before (the playmakers a few assists closer to their real seasons).
-
-### Changed
-- **No more 15-assist seasons.** One player can only collect so much of his team's assists: past a point, his share grows much more slowly. A pass-first star set to run the offense now tops out around 12–13 assists a game, like the real Chris Paul and Rondo, instead of 15. The league's assist leaders stay around 10.
 
 ## 2026-10-31
 
