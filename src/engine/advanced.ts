@@ -1,8 +1,8 @@
 // Advanced stats for a season, in Basketball-Reference style, from season totals and
 // team totals: shooting and rate stats (TS%, eFG%, USG%, AST%, ORB/DRB/TRB%, STL%, BLK%,
 // TOV%), individual offensive/defensive ratings, win shares (OWS/DWS/WS/WS48), box
-// plus-minus (OBPM/DBPM/BPM, team-adjusted), VORP, PER, EWA, on/off per 100, and estimates of EPM,
-// LEBRON and DARKO (offense, defense and total).
+// plus-minus (OBPM/DBPM/BPM, team-adjusted), VORP, Hollinger's PER and EWA, on/off per 100, and EPM, LEBRON and
+// DARKO (offense, defense and total; docs/ADVANCED_ESTIMATES.md).
 // Award formulas read these by name; per-game stats (pts, trb, ast, …) are averages.
 import type { Game } from './Game';
 import { BASE } from './sim';
@@ -33,7 +33,9 @@ const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: '
 // - decay: DARKO's, per stat: how much of the past each game keeps (d), how much a summer keeps (m), and the
 //   prior (a bench player's rate) worth K possessions, chosen by how well they predict the next 20 games.
 export type ImpactFit = { usePrior?: boolean; epm: { o: number[]; d: number[] }; lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> }; decay: Record<string, { d: number; m: number; K: number; prior: number }> };
-export const IMPACT_FIT: ImpactFit | null = null; // FILLED BY THE FIT
+// Fitted 2026-11-01 on the engine with one-on-one defense (3 leagues × 4 seasons, scripts/fitImpact.mts). usePrior false:
+// EPM and LEBRON keep BPM as their prior (it predicted next season as well or better); DARKO is game by game.
+export const IMPACT_FIT: ImpactFit | null = {usePrior: false, epm: {o: [0.2027, 0.3389, -0.339, -0.1479, 0.0201, 0.1775, -0.6523, 0.0585, -0.029, -0.0378, 0.0664, -0.1075], d: [-0.8132, 0.0044, -0.0163, 0.018, -0.0087, 0.0308, -0.2073, 0.0148, 0.0409, 0.453, 0.7095, -0.1155]}, decay: {pts: {d: 0.99, m: 0.3, K: 100, prior: 0.19961}, xP: {d: 0.985, m: 0.2, K: 60, prior: 0.19968}, fga: {d: 0.99, m: 0.2, K: 60, prior: 0.1629}, fta: {d: 0.993, m: 0.5, K: 300, prior: 0.03742}, tpm: {d: 0.99, m: 0.5, K: 30, prior: 0.02003}, ast: {d: 0.985, m: 0.3, K: 30, prior: 0.03583}, tov: {d: 0.99, m: 0.5, K: 300, prior: 0.0264}, orb: {d: 0.993, m: 0.5, K: 60, prior: 0.02175}, drb: {d: 0.998, m: 0.3, K: 100, prior: 0.05655}, stl: {d: 0.996, m: 0.7, K: 300, prior: 0.01277}, blk: {d: 0.993, m: 0.5, K: 100, prior: 0.00694}, pf: {d: 0.998, m: 0.5, K: 300, prior: 0.03961}}, lebron: {o: [0.4815, 0.3629, -0.3569, -0.1889, 0.0272, 0.1543, -0.6212, 0.1487, -0.0878, -0.015, 0.0315, -0.1467], d: [-0.7623, 0.0285, -0.0295, -0.0251, 0.0015, 0.0282, -0.2088, 0.0866, -0.0077, 0.4537, 0.692, -0.1239]}};
 let FIT: ImpactFit | null = IMPACT_FIT;
 // The tests switch between the fitted method (undefined: the built-in fit), a fit of their own, or null (the method
 // before 2026-11-01: BPM as the prior, DARKO by season).

@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-01
 
 ### Changed
+- **DARKO updates after every game, like the real one.** Each stat is now a running rate that forgets old games at its own speed (scoring and shooting fastest, rebounds, steals and blocks slowest), and a summer away counts too. The speeds were fitted by how well they predict a player's next 20 games. His DARKO moves through the season with hot and cold stretches, instead of being worked out once from his season totals. Seasons played before this keep the old method. League Leaders now just say EPM, LEBRON and DARKO (no "estimate"): they come from every lineup's possessions.
 - **PER is Hollinger's real formula.** Every PER in the game (profiles, stats pages, rosters, leaders, the Hall of Fame and scouting) now uses John Hollinger's full calculation: the box score weighted by the league's value of a possession, rebound share and foul cost, his team's assist rate, adjusted for his team's pace, with the league average at 15. It used to be a simpler efficiency per minute. Stars land around 25–33, a little more spread out than before.
 
 ### Fixed
