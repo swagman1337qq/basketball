@@ -16,7 +16,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, FEEL_W_V5, OVR_W, OVR_W_V5, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, POS_GROUP, recommendPos, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, OVR_ADJ_V7, FEEL_W_V5, FEEL_W_V6, OVR_W, OVR_W_V5, OVR_W_V6, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, POS_GROUP, recommendPos, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -388,13 +388,20 @@ export class Game {
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 6; } // straight to today's weights
+      g.refreshNorms(g.state); g.db.iqV = 7; } // straight to today's weights
     // 2026-10-23 (iqV 6): weights measured again after shot creation joined the engine (sim.ts creSkill); same recompute and shift.
     if ((g.db.iqV || 0) < 6) { const oldOvr = (p: any) => { const W = OVR_W_V5[p.grp] || OVR_W_V5.W, fw = FEEL_W_V5[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (OVR_ADJ_V6[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 6; }
+      g.refreshNorms(g.state); g.db.iqV = 7; } // straight to today's weights
+    // 2026-11-01 (iqV 7): weights measured again after one-on-one defense, the pass that sets up a shot, and steals and
+    // blocks that help (sim.ts matchups, setupD, GAMBLE/BLK_RIM); same recompute and shift.
+    if ((g.db.iqV || 0) < 7) { const oldOvr = (p: any) => { const W = OVR_W_V6[p.grp] || OVR_W_V6.W, fw = FEEL_W_V6[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (OVR_ADJ_V7[p.grp] ?? 2.5))); };
+      (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
+        if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
+        syncOvr(p, true); if (!p.retired) refreshPot(p); });
+      g.refreshNorms(g.state); g.db.iqV = 7; }
     // Positions follow each player's game unless set by hand (Game.autoPos), in every league as it loads.
     (Object.values(g.db.P) as any[]).forEach(p => g.autoPos(p));
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
@@ -546,7 +553,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 6, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 7, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
