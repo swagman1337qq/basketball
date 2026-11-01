@@ -56,7 +56,7 @@ export function deletePlayer(g: Game, pid: number): boolean {
 // Everything that belongs to the original's life rather than to who he is as a player.
 const HISTORY = ['stats', 'tx', 'injHist', 'rh', 'feed', 'last5', 'family', 'retired', 'hof', 'signed', 'legacy', 'awards', 'ring', 'overseasArc', 'waived', 'leftAsFA',
   'exp', 'ctype', 'opt', 'kicker', 'ntc', 'inc', 'capOverride', 'rookie', 'rookieScale', 'birdTid', 'rfa', 'twoWay', 'tenDay', 'tenDayWith', 'ext', 'extNoTrade', 'prevAmt', 'poIneligible', 'abroad', 'adjust',
-  'gl', 'glx', 'ccpS', 'inj', 'preInj', 'minorCount', 'hapGod', 'offered', 'slim', 'wasEx10', 'lastTid', 'yrsWith', 'progB', 'progD', 'dev', 'rot'];
+  'gl', 'glx', 'ccpS', 'inj', 'preInj', 'minorCount', 'hapGod', 'offered', 'slim', 'wasEx10', 'lastTid', 'yrsWith', 'progB', 'progD', 'dev', 'rot', 'dk', 'dkS'];
 
 export function clonePlayer(g: Game, pid: number): number | null {
   const P = g.db.P, src = P[pid]; if (!src || src.gone || src.retired || !src.r) return null;

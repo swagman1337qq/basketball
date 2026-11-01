@@ -8,6 +8,61 @@ import type { Game } from './Game';
 import { BASE } from './sim';
 
 export type StatLine = Record<string, number>;
+// Hollinger's replacement-level PER by position (ESPN): point guards 11.0, shooting guards and small forwards 10.5,
+// power forwards 11.5, centers 10.6; the in-between positions average their two.
+const PRL: Record<string, number> = { PG: 11.0, SG: 10.5, G: 10.75, GF: 10.5, SF: 10.5, F: 11.0, PF: 11.5, FC: 11.05, C: 10.6 };
+const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
+
+// The impact metrics' constants fitted to this engine (2026-11-01, scripts/fitImpact.mts, docs/ADVANCED_ESTIMATES.md):
+// - epm / lebron: the box-score prior ("SPM"), offense and defense, [intercept, then one weight per SPM_F feature per
+//   100 possessions], fitted to the engine's own lineup RAPM the way EPM and LEBRON fit theirs; LEBRON's on expected
+//   points (luck removed), with its own weights by position group (its role adjustment);
+// - decay: DARKO's, per stat: how much of the past each game keeps (d), how much a summer keeps (m), and the
+//   prior (a bench player's rate) worth K possessions, chosen by how well they predict the next 20 games.
+export type ImpactFit = { epm: { o: number[]; d: number[] }; lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> }; decay: Record<string, { d: number; m: number; K: number; prior: number }> };
+export const IMPACT_FIT: ImpactFit | null = null; // FILLED BY THE FIT
+let FIT: ImpactFit | null = IMPACT_FIT;
+// The tests switch between the fitted method (undefined: the built-in fit), a fit of their own, or null (the method
+// before 2026-11-01: BPM as the prior, DARKO by season).
+export function setImpactFit(f?: ImpactFit | null) { FIT = f === undefined ? IMPACT_FIT : f; }
+export function clearAdvancedCache(g: Game) { PAST.delete(g.db); }
+export const SPM_F = ['pts', 'fga', 'fta', 'tpm', 'ast', 'tov', 'orb', 'drb', 'stl', 'blk', 'pf'] as const;
+const DEF_F = new Set(['drb', 'stl', 'blk', 'pf']);
+const spm = (c: number[], x: number[]) => c[0] + x.reduce((s, v, i) => s + c[i + 1] * v, 0);
+// His features per 100 possessions on the floor: offense on offensive trips, defense on defensive (his possessions
+// on the floor where they weren't tracked). `xP`: expected instead of actual points (LEBRON).
+const spmFeats = (t: StatLine, poss: number, xP?: number) => { const o = t.onPO > 0 ? t.onPO : poss, d = t.onPD > 0 ? t.onPD : poss;
+  return SPM_F.map(k => (100 * (k === 'pts' && xP != null ? xP : t[k] || 0)) / Math.max(1, DEF_F.has(k) ? d : o)); };
+
+// DARKO, game by game (2026-11-01): after every regular-season game his decayed totals (p.dk: per stat, the sum of
+// what he did and of the possessions it came on, each game keeping d of the past, each summer m) give his current
+// rates, each pulled toward a bench player's by K possessions; the fitted prior turns them into offense and defense.
+// Kept per season in p.dkS[season] = [offense, defense, years between the games' average age and now].
+const DK = ['pts', 'xP', 'fga', 'fta', 'tpm', 'ast', 'tov', 'orb', 'drb', 'stl', 'blk', 'pf'];
+const DK_DEF = (k: string) => DEF_F.has(k);
+const r2 = (v: number) => Math.round(v * 100) / 100;
+export function darkoUpdate(g: Game, p: any, b: any, Y: number) {
+  const F = FIT?.decay; if (!F || !(b.onPO > 0) || !(b.onPD > 0)) return;
+  let dk = p.dk;
+  if (!dk || !Array.isArray(dk.n)) dk = p.dk = darkoBoot(g, p, Y, F);
+  if (dk.y !== Y) { const yrs = Math.max(1, Y - dk.y); DK.forEach((k, i) => { const m = F[k].m ** yrs; dk.n[i] *= m; dk.w[i] *= m; }); const m = F.pts.m ** yrs; dk.a[0] *= m; dk.a[1] *= m; dk.y = Y; }
+  const age = p.age ?? 27;
+  DK.forEach((k, i) => { const d = F[k].d, poss = DK_DEF(k) ? b.onPD : b.onPO, v = k === 'xP' ? (b.xP > 0 ? b.xP : b.pts) : b[k] || 0; dk.n[i] = r2(dk.n[i] * d + v); dk.w[i] = r2(dk.w[i] * d + poss); });
+  dk.a[0] = r2(dk.a[0] * F.pts.d + age * b.onPO); dk.a[1] = r2(dk.a[1] * F.pts.d + b.onPO);
+  const rate = (k: string) => { const i = DK.indexOf(k), f = F[k]; return (100 * (dk.n[i] + f.K * f.prior)) / (dk.w[i] + f.K); };
+  const x = SPM_F.map(k => rate(k)), o = spm(FIT!.epm.o, x), d = spm(FIT!.epm.d, x), gap = dk.a[1] > 0 ? age - dk.a[0] / dk.a[1] : 0;
+  (p.dkS ||= {})[Y] = [r2(o), r2(d), r2(gap)];
+}
+// A player's first tracked game: start from his last season and this season so far, as the decay would have left them.
+function darkoBoot(g: Game, p: any, Y: number, F: ImpactFit['decay']) {
+  const dk = { y: Y, n: DK.map(() => 0), w: DK.map(() => 0), a: [0, 0] };
+  ([[Y - 1, true], [Y, false]] as [number, boolean][]).forEach(([y, past]) => { const t: any = g.seasonTotals(p, y); if (!t || !t.gp) return;
+    const possO = t.onPO > 0 ? t.onPO : t.min * 2.08, possD = t.onPD > 0 ? t.onPD : t.min * 2.08, age = (p.age ?? 27) - (past ? 1 : 0);
+    DK.forEach((k, i) => { const f = F[k], keep = ((1 - f.d ** t.gp) / (1 - f.d || 1e-9)) / t.gp * (past ? f.m : 1), v = k === 'xP' ? (t.xP > 0 ? t.xP : t.pts) : t[k] || 0;
+      dk.n[i] += r2(v * keep); dk.w[i] += r2((DK_DEF(k) ? possD : possO) * keep); });
+    const keep = ((1 - F.pts.d ** t.gp) / (1 - F.pts.d || 1e-9)) / t.gp * (past ? F.pts.m : 1); dk.a[0] += age * possO * keep; dk.a[1] += possO * keep; });
+  return dk;
+}
 const TEAM_FIELDS = ['gp', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'oPts', 'oFgm', 'oFga', 'oTpm', 'oTpa', 'oFtm', 'oFta', 'oOrb', 'oDrb', 'oTov'];
 
 // A league-average team season (used when a past season's team totals weren't kept).
@@ -58,7 +113,7 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
   Object.values(teams).forEach(t => { t.poss = possT(t); t.min = t.gp * 240; t.ortg = (100 * t.pts) / t.poss; t.drtg = (100 * t.oPts) / t.poss; t.pace = t.poss / t.gp; t.orbPct = t.orb / Math.max(1, t.orb + t.oDrb); });
 
 
-  const out: Record<number, StatLine> = {};
+  const out: Record<number, StatLine> = {}, lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36;
   // Each team's on-floor totals (tracked seasons): the sums of its players' / 5, for on/off with him off the floor.
   rows.forEach(({ t, tid }) => { const T = teams[tid]; if (!T || !(t.onPO > 0)) return; ['onPO', 'onPD', 'onF', 'onA', 'xF', 'xA'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0) / 5)); });
   // Pass 1: rate stats, points produced and raw box scores.
@@ -89,8 +144,25 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
     x._obpm = 0.8 * per100(0.86 * t.pts - 0.56 * t.fga - 0.246 * t.fta + 0.389 * t.tpm + 0.807 * t.ast - 0.964 * t.tov + 0.397 * t.orb);
     x._dbpm = per100(0.25 * t.drb + 1.6 * t.stl + 1.2 * t.blk - 0.3 * t.pf);
     x._share = share; x._possOn = possOn;
+    if (FIT) { const lgF = FIT.lebron.grp?.[GROUP[p.pos] || 'W'] || FIT.lebron, fx = spmFeats(t, possOn), fl = spmFeats(t, possOn, t.xP > 0 ? t.xP : t.pts - 3 * ((t.tpm || 0) - (t.tpa || 0) * (t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3)));
+      x._sO = spm(FIT.epm.o, fx); x._sD = spm(FIT.epm.d, fx); x._lO = spm(lgF.o, fl); x._lD = spm(lgF.d, fl); }
     out[p.id] = x;
   });
+  // Hollinger's PER, the full formula (Basketball-Reference's): unadjusted PER from his box score with team and
+  // league context, adjusted for his team's pace, then scaled so the league's minute-weighted average is 15. EWA
+  // uses it (the PER column shows the game's simpler efficiency per minute).
+  {
+    const lgFG = Math.max(1, lg.fgm), lgFT = Math.max(1, lg.ftm), lgPF = Math.max(1, lg.pf || lg.gp * 19.5), lgTRB = Math.max(1, lg.orb + lg.drb);
+    const factor = 2 / 3 - (0.5 * (lg.ast / lgFG)) / (2 * (lgFG / lgFT)), VOP = lg.pts / Math.max(1, lg.fga - lg.orb + lg.tov + 0.44 * lg.fta), DRBp = (lgTRB - lg.orb) / lgTRB;
+    let a = 0, w = 0;
+    rows.forEach(({ p, t, tid }) => {
+      const T = teams[tid] || avgTeam(), tA = T.fgm ? T.ast / T.fgm : 0.6, trb = (t.orb || 0) + (t.drb || 0);
+      const u = (1 / t.min) * ((t.tpm || 0) + (2 / 3) * (t.ast || 0) + (2 - factor * tA) * (t.fgm || 0) + (t.ftm || 0) * 0.5 * (1 + (1 - tA) + (2 / 3) * tA) - VOP * (t.tov || 0) - VOP * DRBp * ((t.fga || 0) - (t.fgm || 0))
+        - VOP * 0.44 * (0.44 + 0.56 * DRBp) * ((t.fta || 0) - (t.ftm || 0)) + VOP * (1 - DRBp) * (t.drb || 0) + VOP * DRBp * (t.orb || 0) + VOP * (t.stl || 0) + VOP * DRBp * (t.blk || 0)
+        - (t.pf || 0) * (lg.ftm / lgPF - 0.44 * (lg.fta / lgPF) * VOP));
+      const ap = (lgPace / Math.max(1, T.pace || lgPace)) * u; out[p.id]._aper = ap; a += ap * t.min; w += t.min; });
+    const lgA = w && a > 0 ? a / w : 0; rows.forEach(({ p }) => { const x = out[p.id]; x._perH = lgA ? (x._aper * 15) / lgA : 0; });
+  }
   // League min-weighted means to centre the raw numbers.
   const wmean = (k: string) => { let a = 0, w = 0; rows.forEach(({ p, t }) => { a += out[p.id][k] * t.min; w += t.min; }); return w ? a / w : 0; };
   const ortgRaw = (x: StatLine) => (x._totPoss ? (100 * x._pprod) / x._totPoss : lgORtg);
@@ -103,6 +175,10 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
   const adj: Record<number, { o: number; d: number }> = {};
   tids.forEach(tm0 => { const tm = { tid: tm0 }, T = teams[tm.tid]; let o = 0, d = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tm.tid) return; o += out[p.id]._obpm * t.min; d += out[p.id]._dbpm * t.min; w += t.min; });
     adj[tm.tid] = { o: (T.ortg - lgORtg) / 5 - (w ? o / w : 0), d: (lgORtg - T.drtg) / 5 - (w ? d / w : 0) }; });
+  // The same team adjustment for the fitted priors (used where there's no lineup regression, and by DARKO).
+  const adjS: Record<number, { o: number; d: number; lo: number; ld: number }> = {};
+  if (FIT) tids.forEach(tid0 => { const T = teams[tid0]; let o = 0, d = 0, lo = 0, ld = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tid0) return; const x = out[p.id]; o += x._sO * t.min; d += x._sD * t.min; lo += x._lO * t.min; ld += x._lD * t.min; w += t.min; });
+    const to = (T.ortg - lgORtg) / 5, td = (lgORtg - T.drtg) / 5; adjS[tid0] = { o: to - (w ? o / w : 0), d: td - (w ? d / w : 0), lo: to - (w ? lo / w : 0), ld: td - (w ? ld / w : 0) }; });
 
   rows.forEach(({ p, t, tid }) => {
     const x = out[p.id], T = teams[tid] || avgTeam(), gp = t.gp, mppw = 0.32 * lgPPG * (T.pace / lgPace);
@@ -118,7 +194,7 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
     x.bpm = x.obpm + x.dbpm;
     x.vorp = (x.bpm + 2) * x._share * (T.gp / 82);
     x.per = g.perOf(t, season);
-    x.ewa = ((x.per - 11) * t.min / 67) / 30;
+    x.ewa = ((x._perH - (PRL[p.pos] ?? 10.8)) * t.min / 67) / 30; // Hollinger: value added = minutes × (PER − his position's replacement PER) / 67; wins = that / 30
     const teamDiff = T.pts - T.oPts, possOff = Math.max(1, T.poss - x._possOn);
     x.pm = t.pm || 0; x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
     x.onOff100 = x.pm100 - (100 * (teamDiff - x.pm)) / possOff;
@@ -126,6 +202,9 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
     // box score (obpmU/dbpmU), his possessions on the floor, and the box-score luck LEBRON removes. The metrics are
     // finished after this loop: RAPM per team where lineup data exists (current tracked seasons), else on/off.
     x.obpmU = x._obpm + (adj[tid]?.o ?? 0); x.dbpmU = x._dbpm + (adj[tid]?.d ?? 0);
+    if (FIT) { const A = adjS[tid] || { o: 0, d: 0, lo: 0, ld: 0 }, sh = (v: number, to: number) => v * rel + to * (1 - rel);
+      x.sO = sh(x._sO, -1.5); x.sD = sh(x._sD, -0.5); x.lO = sh(x._lO, -1.5); x.lD = sh(x._lD, -0.5); // the priors: his own box score, as fitted
+      x.sOA = sh(x._sO + A.o, -1.5); x.sDA = sh(x._sD + A.d, -0.5); x.lOA = sh(x._lO + A.lo, -1.5); x.lDA = sh(x._lD + A.ld, -0.5); x.dkAO = A.o; x.dkAD = A.d; } // team-adjusted
     x.possO = t.onPO > 0 ? t.onPO : x._possOn; x.possD = t.onPD > 0 ? t.onPD : x._possOn;
     // His own shooting luck on offense: actual minus expected points on his shots (tracked seasons), else his
     // threes regressed toward the league's (750 attempts), turned into box-score points.
@@ -226,7 +305,7 @@ function solve(A: number[][], b: number[]): number[] {
 // him on, defense from points allowed (sign flipped). y = actual points (EPM) or expected points (LEBRON: every
 // shot's and free throw's luck removed, both teams). Teammates are adjusted for; opponents count as average.
 export const RAPM = { lambda: 10000 }; // ridge strength, in possessions of the box-score prior (picked by the prediction test, docs/ADVANCED_ESTIMATES.md)
-function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number } | null) {
+function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number; dL?: number } | null) {
   let sp = 0, sx = 0, sn = 0; Object.values(R).forEach((T: any) => { for (const k in T.O.yp) { const n = T.O.xx[k + ',' + k] || 0; sp += T.O.yp[k]; sx += T.O.yx[k]; sn += n; } });
   if (sn < 5000) return null;
   const lgP = sp / sn, lgX = sx / sn, acc: Record<number, { w: number; o: number; d: number; oX: number; dX: number }> = {};
@@ -234,7 +313,7 @@ function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number
     const ids = Object.keys(M.yp).map(Number), m = ids.length; if (!m) return null;
     const A = ids.map(a => ids.map(b => M.xx[Math.min(a, b) + ',' + Math.max(a, b)] || 0)), pr = ids.map(id => prior(id));
     const L = RAPM.lambda, Ar = A.map((r, i) => r.map((v, j) => v + (i === j ? L : 0)));
-    const pO = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.o) / 100 : def ? 0.005 : -0.015), pX = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.oL) / 100 : def ? 0.005 : -0.015);
+    const pO = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.o) / 100 : def ? 0.005 : -0.015), pX = (i: number) => (pr[i] ? (def ? -(pr[i]!.dL ?? pr[i]!.d) : pr[i]!.oL) / 100 : def ? 0.005 : -0.015);
     const bP = ids.map((id, i) => M.yp[id] - lgP * A[i][i] + L * pO(i)), bX = ids.map((id, i) => M.yx[id] - lgX * A[i][i] + L * pX(i));
     return { ids, n: ids.map((_, i) => A[i][i]), P: solve(Ar, bP), X: solve(Ar, bX) };
   };
@@ -267,17 +346,20 @@ function finishImpact(g: Game, season: number, rows: Row[], out: Record<number, 
   // EPM and LEBRON: RAPM where the season's lineups were tracked (regular season), else the box score blended
   // with on/off; the on/off weight counts how few possessions he had OFF the floor too (n = 1/(1/on + 1/off)).
   const R = !po ? (g.db.rapm || {})[season] : null;
-  const RP = R ? rapm(R, id => { const x = out[id]; return x ? { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) } : null; }) : null;
+  const RP = R ? rapm(R, id => { const x = out[id]; return !x ? null : FIT ? { o: x.sO, d: x.sD, oL: x.lO, dL: x.lD } : { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) }; }) : null;
   rows.forEach(({ p }) => { const x = out[p.id], r = RP?.[p.id];
     if (r) { x.oepm = r.o; x.depm = r.d; x.olebron = r.oX; x.dlebron = r.dX; return; }
     const wO = x.nOff / (x.nOff + 6000), wD = x.nDef / (x.nDef + 6000), lO = x.nOff / (x.nOff + 5000), lD = x.nDef / (x.nDef + 5000);
-    x.oepm = x.obpm * (1 - wO) + x.ooff * wO; x.depm = x.dbpm * (1 - wD) + x.doff * wD;
-    x.olebron = (x.obpm - x.luckBox) * (1 - lO) + x.ooffX * lO; x.dlebron = x.dbpm * (1 - lD) + x.doffX * lD; });
+    const bO = FIT ? x.sOA : x.obpm, bD = FIT ? x.sDA : x.dbpm, bLO = FIT ? x.lOA : x.obpm - x.luckBox, bLD = FIT ? x.lDA : x.dbpm;
+    x.oepm = bO * (1 - wO) + x.ooff * wO; x.depm = bD * (1 - wD) + x.doff * wD;
+    x.olebron = bLO * (1 - lO) + x.ooffX * lO; x.dlebron = bLD * (1 - lD) + x.doffX * lD; });
   // DARKO: his current level. This season's unshrunk box score and his last three (each in its own season's
   // pace, league means and team context), older ones weighted less (×0.55 a year), each aged forward to now
   // along the league's own aging curve, regressed toward a slightly-below-average prior worth 1,500 possessions.
   const dA = agingCurve(g, season);
-  rows.forEach(({ p }) => { const x = out[p.id], now = gAge(p, season);
+  rows.forEach(({ p }) => { const x = out[p.id], now = gAge(p, season), dk = FIT ? p.dkS?.[season] : null;
+    // Game by game where kept (darkoUpdate): his current level plus his team's adjustment, aged from his games' average age.
+    if (dk) { const sh = dk[2] > 0 ? dk[2] * dA(now - dk[2] / 2) : 0; x.odarko = dk[0] + x.dkAO + 0.6 * sh; x.ddarko = dk[1] + x.dkAD + 0.4 * sh; return; }
     let so = x.obpmU * x.possO, sd = x.dbpmU * x.possD, wo = x.possO, wd = x.possD;
     for (let k = 1; k <= 3; k++) { const y = season - k, r = pastSeason(g, y)?.byPid[p.id]; if (!r || !(r.possO >= 50)) continue;
       const d = 0.55 ** k; let sh = 0; for (let a = gAge(p, y); a < now; a++) sh += dA(a);
@@ -293,5 +375,5 @@ function finishImpact(g: Game, season: number, rows: Row[], out: Record<number, 
     const sc = v.length >= 30 && sdv > 0.1 ? IMPACT_SD / sdv : sc0;
     rows.forEach(({ p }) => { const x = out[p.id]; x[ko] = (x[ko] - mo) * sc; x[kd] = (x[kd] - md) * sc; x[k] = x[ko] + x[kd]; });
   });
-  rows.forEach(({ p }) => { const x = out[p.id]; ['ooff', 'doff', 'ooffX', 'doffX', 'nOff', 'nDef', 'luckBox'].forEach(f => delete x[f]); });
+  rows.forEach(({ p }) => { const x = out[p.id]; ['ooff', 'doff', 'ooffX', 'doffX', 'nOff', 'nDef', 'luckBox', 'sO', 'sD', 'lO', 'lD', 'sOA', 'sDA', 'lOA', 'lDA', 'dkAO', 'dkAD'].forEach(f => delete x[f]); });
 }

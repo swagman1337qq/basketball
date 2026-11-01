@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-01
 
 ### Changed
+- **EWA is the real formula now.** Estimated Wins Added uses Hollinger's own method: his full PER (with team pace and league context) against the replacement level for his position (point guards 11.0, shooting guards and small forwards 10.5, power forwards 11.5, centers 10.6), instead of a simpler efficiency number against one level for everyone.
 - **His role in one line.** A player's Playing style now opens with what his usage and ball dominance add up to: a pass-first creator, a ball-dominant scorer and creator, a volume scorer, a spot-up role player and so on. In God Mode's tendency editor the line changes as you move either setting.
 - **No more 15-assist seasons.** One player can only collect so much of his team's assists: past a point, his share grows much more slowly. A pass-first star set to run the offense now tops out around 12–13 assists a game, like the real Chris Paul and Rondo, instead of 15. The league's assist leaders stay around 10.
 - **Closer fictional names for the 2000 draft class.** Reviewed all 69 prospects and updated 39 names so the first and last initials and their separate spoken syllable counts match the real players as closely as possible. Newly loaded copies use the revised names; prospects already loaded into a league keep their saved names.

@@ -12,7 +12,7 @@
 // lines. Names, ratings, bio, transactions and NBA career stats stay.
 import type { Game } from './Game';
 
-const DEV_ONLY = ['feed', 'rx', 'ox', 'glx', 'last5', 'dy', 'dyS', 'padding', 'ceil', 'tenPrev', 'ph', 'dv0', 'dx', 'dxDone', 'devK', 'dyT', 'minorCount', 'protect', 'minMin', 'moodAdj', 'hot', 'fat', 'rot', 'dev', 'gem', 'tenQ', 'nz', 'ix', 'pth', 'ovrF', 'signed'];
+const DEV_ONLY = ['dk', 'feed', 'rx', 'ox', 'glx', 'last5', 'dy', 'dyS', 'padding', 'ceil', 'tenPrev', 'ph', 'dv0', 'dx', 'dxDone', 'devK', 'dyT', 'minorCount', 'protect', 'minMin', 'moodAdj', 'hot', 'fat', 'rot', 'dev', 'gem', 'tenQ', 'nz', 'ix', 'pth', 'ovrF', 'signed'];
 // Shot-zone and shot-type splits on a stat line (sim.ts): the live season's shooting chart and playing style.
 export const ZONE_KEYS = ['rm', 'ra', 'mm', 'ma', 'cm', 'ca', 'bm', 'ba', 'km', 'ka', 'qm', 'qa', 'um', 'ua', 'sm', 'sa', 'dm', 'da'];
 const SLIM = 3;

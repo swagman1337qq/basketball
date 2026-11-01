@@ -1,6 +1,7 @@
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
+import { darkoUpdate } from './advanced';
 import { PRESET_CARDS, retuneCarriers, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
@@ -1152,6 +1153,7 @@ export class Game {
           const gmsc = b.pts + 0.4 * b.fgm - 0.7 * b.fga - 0.4 * (b.fta - b.ftm) + 0.7 * b.orb + 0.3 * b.drb + b.stl + 0.7 * b.ast + 0.7 * b.blk - 0.4 * b.pf - b.tov;
           p.last5 = [{ pts: b.pts, reb: b.orb + b.drb, ast: b.ast, min: +b.min.toFixed(1), gmsc: +gmsc.toFixed(1), home: k === 'home' }, ...(p.last5 || [])].slice(0, 5);
         }
+        if (!po) darkoUpdate(this, p, b, Y); // DARKO, game by game (advanced.ts)
         if (touched) touched.push(id);
         if (mins) mins[id] = b.min;
       });

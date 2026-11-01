@@ -9,10 +9,8 @@
 //
 // A band is where real seasons sit with some room for a game league's spread; a failure means "look at this",
 // not always "this is wrong". Bands live in BANDS below.
-import { Game } from '../src/engine/Game';
 import { seasonMax, stdIds, twoWayIds, TWO_WAY_MAX } from '../src/engine/cba';
-import { seasonReview } from '../src/engine/frontOffice';
-import { mulberry32 } from '../src/engine/rng';
+import { newLeague, offseason, playRegular, rostered } from './lib/headless.mts';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const seeds = arg('seeds', '11,12,13').split(',').map(Number), seasons = Math.max(1, +arg('seasons', '1'));
@@ -50,28 +48,6 @@ function invariants(g: any): string[] {
   return out.slice(0, 10);
 }
 
-const clr = (g: any) => g.setState({ mailRead: g.state.mailSeq || 0, letterUnread: null, letterOpen: null, notices: [], dialog: null });
-const rostered = (g: any) => (Object.values(g.state.rosters).flat() as number[]).map(id => g.db.P[id]).filter(Boolean);
-
-async function playRegular(g: any) { for (let i = 0; i < 400; i++) { clr(g); const d0 = g.state.day; await g.sim(200); if (g.state.day === d0 || g.state.phase !== 'regular') break; } }
-
-// From the end of the regular season to the next opening night, every decision left to the AI.
-function offseason(g: any) {
-  const P = g.db.P;
-  clr(g); g.startPlayin(); clr(g); g.simPlayin(); clr(g); g.simPlayin(); clr(g); g.startPlayoffs();
-  for (let i = 0; i < 60 && g.state.phase === 'playoffs'; i++) { clr(g); g.simPo('all'); }
-  g.setState({ letterOpen: null }); if (g.state.phase === 'playoffs' || g.state.phase === 'review') { clr(g); try { seasonReview(g); } catch { /* the review needs a GM; spectating leagues skip it */ } }
-  clr(g); g.runLottery();
-  for (let i = 0; i < 200 && g.state.phase === 'draft' && g.state.pi < g.state.picks.length; i++) {
-    clr(g); const pi0 = g.state.pi; g.aiDraft(false);
-    if (g.state.pi === pi0) { const taken = new Set(g.state.picks.map((x: any) => x.pid)); const best = g.db.cls[g.Y].filter((id: number) => !taken.has(id)).sort((a: number, b: number) => (g.db.rank[a] ?? 999) - (g.db.rank[b] ?? 999))[0]; g.draftPick(best); if (g.state.pi === pi0) break; }
-  }
-  clr(g); g.startPreFA(); clr(g); g.startFA(); for (let d = 0; d < 6; d++) { clr(g); g.advanceFA(5); }
-  for (let i = 0; i < 6 && g.state.phase === 'fa'; i++) { g.setState({ offerSheets: [], agentCalls: [] }); clr(g); g.startPreseason(); }
-  clr(g); g.startSeason();
-  if (g.state.phase !== 'regular') { const me = g.state.me; g.setState((st: any) => ({ rosters: { ...st.rosters, [me]: st.rosters[me].slice().sort((a: number, b: number) => P[b].ovr - P[a].ovr).slice(0, seasonMax(st)) } })); clr(g); g.startSeason(); }
-}
-
 function measure(g: any, rows: Row[]) {
   const Y = g.Y, P = g.db.P, tot: Record<string, number> = {}, players: { t: Record<string, number> }[] = [];
   Object.values(P).forEach((p: any) => {
@@ -93,9 +69,7 @@ function measure(g: any, rows: Row[]) {
 
 const t0 = Date.now();
 for (const seed of seeds) {
-  Math.random = mulberry32(seed);
-  const g: any = Game.create(seed, [0]);
-  g.setState({ easy: { lineup: true, tactics: true, cap: true, fa: true, draft: true, fire: true, scouting: true, injuries: true }, ownerFiring: false, gmSetup: false });
+  const g: any = newLeague(seed);
   const start = rostered(g), mean0 = start.reduce((a, p) => a + p.ovr, 0) / start.length, top0 = start.filter(p => p.ovr >= 60).length;
   for (let s = 0; s < seasons; s++) {
     if (s > 0) offseason(g);
