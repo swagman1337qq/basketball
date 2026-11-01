@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-01
 
 ### Fixed
+- **2013 draft schools and clubs audited.** Checked all 100 prospects and their transfer histories against sourced rivalries. Corrected affiliations or division labels for 16 prospects, removed the unsupported Granada B club, and labeled the single approved competitive-opponent fallback. Refresh and reload the class to apply this to undrafted prospects; existing saved players keep their affiliations.
 - **Imported draft-class height affects play.** Loading a listed height now adjusts the engine’s height rating and wingspan along with the displayed measurement.
 
 ### Changed

@@ -1,5 +1,5 @@
-// Historical draft classes (2026-11-01), renamed: every name is made up and every school or club is swapped for a
-// rival. The 2000 names match the real player's first/last initials and spoken syllable counts (2026-11-01).
+// Historical draft classes (2026-11-01): fictional names and rival school/club substitutions. The 2013 class has
+// one explicitly labeled, user-approved opponent fallback (docs/DRAFT_CLASS_2013_RIVALRIES.md). The 2000 names match the real player's first/last initials and spoken syllable counts (2026-11-01).
 // Nobody in the game is named for a real player (the who's-who key is kept outside the game). Each entry:
 // draft-night age and birthday (month-day), height, weight, jersey, position, personality, his real season lines
 // (per game, season offset from the draft year; est = offensive/defensive rebound split estimated from his real

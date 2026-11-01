@@ -33,7 +33,7 @@ God Mode → **Draft classes** (or **Load draft class…** on the Draft board): 
 - Advanced stats (PER, TS%, BPM, Win Shares, …) are worked out from these traditional numbers by the game's own formulas.
 - His ratings are shaped by his numbers (shooting, passing, rebounding, blocks, steals) and then set to `ovr`; his ceiling to `tpot`.
 - Up to 200 players. A file with a mistake is refused with the first problem named; nothing is replaced.
-- Ready-made classes are real drafts with every name made up and every school or club swapped for a rival; who's who is never in the game.
+- Ready-made classes use fictional player names and rival school/club substitutions; any approved exception is explicitly labeled and documented. The 2013 class has one competitive-opponent fallback. The real-player identity key is not published.
 
 ## Fictional naming for the 2000 class (2026-11-01)
 
@@ -43,4 +43,4 @@ See [the fictional-name pronunciation sheet](DRAFT_CLASS_NAMES.md) for every ali
 
 ## 2013 class (2026-11-01)
 
-The 100-player 2013 preset follows the same naming and rival-school rules. It excludes Giannis Antetokounmpo and Rudy Gobert entirely. See [coverage, sources, estimates and fictional pronunciations](DRAFT_CLASS_2013.md). A [downloadable class file](../public/draft-classes/2013.json) uses this format.
+The 100-player 2013 preset follows the same naming and rival-school rules, with one user-approved competitive-opponent fallback explicitly labeled in the game. The [full institution audit](DRAFT_CLASS_2013_RIVALRIES.md) records every pairing and its evidence. It excludes Giannis Antetokounmpo and Rudy Gobert entirely. See [coverage, sources, estimates and fictional pronunciations](DRAFT_CLASS_2013.md). A [downloadable class file](../public/draft-classes/2013.json) uses this format.

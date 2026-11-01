@@ -27,6 +27,16 @@ for (const p of H.players) {
     assert(Math.abs(r.trb! - r.orb! - r.drb!) <= .151);
   }
 }
+// Source-backed regression cases: senior/reserve identity, separate transfer stints and the approved exception.
+const byName = (name: string) => H.players.find(p => p.first + ' ' + p.last === name)!;
+const spanish = byName('Axel Arbines').real!.filter(r => r.y === -1);
+assert(spanish.some(r => r.team === 'Cajasol Sevilla'));
+assert(spanish.some(r => r.team === 'CB Granada'));
+assert(!JSON.stringify(H).includes('Granada B'));
+assert.deepEqual(byName('Boris Dubrović').from, {team: 'Lucentum Alicante', lg: 'LEB Oro', country: 'ES'});
+assert.deepEqual(byName('Lóránt Dobay').from, {team: 'Peñas Huesca', lg: 'LEB Oro', country: 'ES'});
+assert.equal(byName('Alexandro Parados').from.team, 'Brasília');
+assert.equal(byName('Stanimir Stojičić').from.team, 'Sloga Kraljevo (opponent fallback)');
 const clone = (x: any) => JSON.parse(JSON.stringify(x));
 for (const seed of [11, 44, 2027]) {
   const g: any = newLeague(seed), year = g.Y + (seed === 44 ? 2 : 0), generated = new Map();
