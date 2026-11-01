@@ -139,8 +139,8 @@ async function test() {
     const g = newLeague(seed), snaps: Record<number, any> = {}, tst: Record<number, any> = {};
     for (let s = 0; s < seasons; s++) { if (s > 0) offseason(g); await playRegular(g); snaps[g.Y] = JSON.parse(JSON.stringify(g.db.rapm[g.Y])); tst[g.Y] = JSON.parse(JSON.stringify(g.state.tstats)); console.log('seed', seed, 'season', g.Y); }
     g.db.rapm = snaps; // every season's lineup totals, for the test
-    for (const variant of ['old', 'new']) {
-      A.setImpactFit(variant === 'new' ? fitC : null); A.clearAdvancedCache(g);
+    for (const [variant, lam] of [['old', 10000], ['new', 3000], ['new', 10000], ['new', 30000]] as [string, number][]) {
+      A.setImpactFit(variant === 'new' ? fitC : null); A.RAPM.lambda = lam; A.clearAdvancedCache(g);
       const years = Object.keys(snaps).map(Number).sort();
       for (let i = 0; i < years.length - 1; i++) {
         const y0 = years[i], y1 = years[i + 1], a0 = A.seasonAdvanced(g, g.state, y0).byPid, T1 = y1 === g.Y ? g.state.tstats : tst[y1];
@@ -148,7 +148,7 @@ async function test() {
         Object.values(g.db.P).forEach((p: any) => (p.stats || []).forEach((r: any) => { if (r.season === y1 && !r.po) (min1[r.tid] ||= {})[p.id] = (min1[r.tid]?.[p.id] || 0) + r.min; }));
         Object.entries(min1).forEach(([tid, ms]) => { const T = T1[+tid]; if (!T) return; const poss = g.possOf(T), net = (100 * (T.pts - T.oPts)) / poss;
           ['bpm', 'epm', 'lebron', 'darko'].forEach(k => { let s = 0, w = 0; Object.entries(ms).forEach(([id, m]) => { const v = a0[+id]?.[k]; s += m * (v == null || !(a0[+id].minTot >= 250) ? -2 : v); w += m; });
-            (pairs[variant + ' ' + k] ||= []).push({ p: s / w, a: net }); }); });
+            (pairs[variant + (variant === 'new' ? ' λ' + lam / 1000 + 'k' : '') + ' ' + k] ||= []).push({ p: s / w, a: net }); }); });
       }
     }
   }
