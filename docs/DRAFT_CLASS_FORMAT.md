@@ -34,3 +34,9 @@ God Mode → **Draft classes** (or **Load draft class…** on the Draft board): 
 - His ratings are shaped by his numbers (shooting, passing, rebounding, blocks, steals) and then set to `ovr`; his ceiling to `tpot`.
 - Up to 200 players. A file with a mistake is refused with the first problem named; nothing is replaced.
 - Ready-made classes are real drafts with every name made up and every school or club swapped for a rival; who's who is never in the game.
+
+## Fictional naming for the 2000 class (2026-11-01)
+
+All 69 entries were reviewed individually. Each fictional full name keeps the historical player's first and last initial, with the first-name and surname syllable counts matched separately using the usual basketball pronunciation. Where possible, the replacements also keep a similar sound and cultural style. Familiar first names can be shared; the complete names remain fictional. The real-name identity key is not part of the game or published source.
+
+See [the fictional-name pronunciation sheet](DRAFT_CLASS_NAMES.md) for every alias and its intended syllables. This update changes 39 names; 30 already fit. Name changes reach the ready-made library after refreshing the game and apply when that class is loaded. Previously loaded prospects and user-imported copies retain their saved names.

@@ -31,3 +31,6 @@ final-college-styles.mjs
 
 lin-sync/
 build-lin-card.mjs
+
+# Private name review and incoming-source backups
+name-update/
