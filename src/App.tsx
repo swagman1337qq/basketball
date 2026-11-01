@@ -8,6 +8,8 @@ import { applyTheme, rememberTheme } from './ui/theme';
 import { buildView } from './ui/viewModel';
 import { PlayerHover } from './ui/PlayerHover';
 import { StatHover } from './ui/StatHover';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { UpdateBanner } from './ui/UpdateBanner';
 
 interface Open { id: string; name: string; createdAt: number; game: Game }
 
@@ -34,7 +36,7 @@ export function App() {
     setOpen({ id, name: row.name, createdAt: row.createdAt, game });
   }, []);
 
-  if (!open) return <TitleScreen onOpen={onOpen} onCreate={onCreate} />;
+  if (!open) return <><TitleScreen onOpen={onOpen} onCreate={onCreate} /><UpdateBanner /></>;
   return <GameScreen key={open.id} open={open} error={error} onExit={() => setOpen(null)} onSwitch={onOpen} />;
 }
 
@@ -98,5 +100,5 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
 
   const exportNow = () => exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
   const vm = buildView(game, rootRef, { saveId: open.id, saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onSwitch: async (id: string) => { await save(); onSwitch(id); }, onExport: exportNow });
-  return <><GMView vm={vm} /><PlayerHover gm={game} /><StatHover /></>;
+  return <><GMView vm={vm} /><ErrorBoundary quiet resetKey={String(version)}><PlayerHover gm={game} /><StatHover /></ErrorBoundary><UpdateBanner beforeReload={save} /></>;
 }

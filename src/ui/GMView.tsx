@@ -52,6 +52,7 @@ import { InboxCard } from './screens/InboxCard';
 import { DeskPanel } from './shell/DeskPanel';
 import { ListModal } from './modals/ListModal';
 import { TeamModal } from './modals/TeamModal';
+import { ErrorBoundary } from './ErrorBoundary';
 import { PlayerModal } from './modals/PlayerModal';
 import { ConfirmDialog } from './modals/ConfirmDialog';
 import { ContractDialog } from './modals/ContractDialog';
@@ -74,6 +75,7 @@ export function GMView({ vm }: { vm: VM }) {
           {!!vm.isB && <BroadsheetMasthead vm={vm} />}
           {!!vm.isC && <DeskTopbar vm={vm} />}
           <main style={{ flex: "1", overflow: "auto", padding: "22px 28px 40px" }}>
+            <ErrorBoundary resetKey={[vm.ctx.s.screen, vm.ctx.s.modal, vm.ctx.s.pid, vm.ctx.s.boxId, vm.ctx.s.teamModal].join('|')} onHome={() => vm.ctx.gm.setState({ screen: 'dash', modal: false, teamModal: null, boxId: null })}>
             <Suspense fallback={<p style={{ opacity: 0.6 }}>Loading…</p>}>
             <div className="team-stripe" />
             <div data-tour="phase" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
@@ -152,6 +154,7 @@ export function GMView({ vm }: { vm: VM }) {
             {!!vm.is.leaders && <LeagueLeadersScreen vm={vm} />}
             </Fragment>)}
             </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
         {!!vm.isC && !vm.spec.on && <DeskPanel vm={vm} />}
