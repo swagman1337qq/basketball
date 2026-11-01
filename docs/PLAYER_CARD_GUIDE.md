@@ -2,7 +2,7 @@
 
 Everything you need to build a player card that plays the way you want: what a card contains, what every field does, how the engine turns ratings into box-score stats, and a step-by-step method for matching a real player's numbers.
 
-This guide began with the 2026-10-16 engine. The 2026-10-29 audit updates key shooting, rebounding and testing sections; some historical appendix formulas and calibration claims below are stale. Use the current source and `docs/PLAYER_CARD_AUDIT_2026-10-29.md` when validating exact behavior. Shooting percentages are approximate. They are the starting point before defense, fatigue, the venue and the game situation move them a little on every shot.
+This guide began with the 2026-10-16 engine. The 2026-10-29 audit and 2026-10-30 fixes update key shooting, rebounding, playing-style and testing sections; some historical appendix formulas and calibration claims below are stale. Use the current source and `docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md` when validating exact behavior. Shooting percentages are approximate. They are the starting point before defense, fatigue, the venue and the game situation move them a little on every shot.
 
 ---
 
@@ -24,7 +24,7 @@ A card can still carry the real player's name and bio. The card library shows th
 
 **Two things that catch people out:**
 
-1. **The AI resets every player's playing style once a month**, and again each summer, to match his ratings, role and team. To keep your card's exact shot mix, open Edit player → Tendencies and press **Freeze**.
+1. **A card’s authored preferences now survive monthly AI refreshes.** The AI adapts them relative to the card’s starting skills and age, and adjusts volume for the player’s role. To keep every number fixed, use Edit player → Tendencies → **Freeze**. Cards without an authored style keep the normal AI targets.
 2. **Ratings keep developing** after you load the card: the player grows, peaks and ages like anyone else. To keep the card exactly as built, use **Freeze attributes** in Edit player.
 
 ---
@@ -89,7 +89,7 @@ The weights are measured from the game engine itself: every rating was nudged up
 
 | Key | Rating | What it does in games | Overall weight (G / W / B) |
 |---|---|---|---|
-| `hgt` | Height | Finishing at the rim (25% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | **9% / 10% / 16%** |
+| `hgt` | Height | Finishing at the rim (13% of rim skill), getting jumpers off over contests, rebounding, rim protection, perimeter contests. Rim finishing also gets a straight bonus for size. | **9% / 10% / 16%** |
 | `stre` | Strength | Post game (hooks, fadeaways), drawing fouls (bigs), injury resistance, rebounding floor. | 1% / 1% / 1% |
 | `spd` | Speed | Perimeter defense, steals, slashing, fatigue-free pace. | 4.5% / 3.5% / 1% |
 | `acc` | Acceleration | Creating separation (stepbacks), perimeter defense, steals, scoring/usage. | 7.5% / 6% / 4% |
@@ -199,7 +199,12 @@ Stored the way the NBA reports it.
 | Key | What it controls |
 |---|---|
 | `usage` | Shot volume on top of what his game earns him. +20 means about 40% more of the offense. |
-| `ftr` | How often he's the one fouled on drives (free-throw rate). |
+| `ftr` | Foul drawing: changes his share of free throws and the lineup’s shooting-foul frequency. |
+| `turnovers` | Risk on touches and passes, beyond skills and role. 50 is neutral; higher means more turnovers. |
+| `fouls` | Foul frequency beyond defensive skills, position and contact. 50 is neutral; higher means more fouls. |
+| `crash` | Pursuit of offensive rebounds. 50 is neutral; higher means more of the offensive boards. |
+
+The three habit scores are optional in older cards and default to 50. They are editable in the card and player tendency editors and shown on the Playing style profile. Skills, minutes, opposition and teammates still determine the observed statistics. College/club snapshots keep usage, foul drawing and habits at draft time.
 
 ### Limits the engine enforces regardless of the card
 
@@ -207,7 +212,7 @@ Stored the way the NBA reports it.
 - A **high-usage shooter's three-heavy mix bends back** toward 48% threes as he carries more of the offense. At 20+ shots a night, 75% threes plays as about 55%.
 - **Heat-check and tilt moods** (traits) push extra pull-up threes or forced jumpers in streaks.
 
-Remember: **Freeze the tendencies** or the AI will reset them next month.
+Card preferences persist through AI refreshes. **Freeze tendencies** keeps every number fixed as well.
 
 ---
 
@@ -277,7 +282,7 @@ The league's best three-point shooters (about 85–95 on 3PT) land at .38–.43 
 |---|---|---|---|---|---|---|---|---|---|
 | FT% | ~.55 | ~.63 | ~.70 | ~.75 | ~.80 | ~.85 | ~.88 | ~.91 | .98 |
 
-**Who gets fouled on drives:** usage × (Inside, Dunks/Layups, Strength, Acceleration) × the `ftr` tendency.
+**Who gets fouled on drives:** usage × (60 + .55 Strength + .25 Acceleration + .20 Handle + .20 Inside) × the free-throw tendency. Finishing percentage and drawing contact are separate. The lineup’s contact intensity also changes shooting-foul trip frequency, relative to league norms (bounded to 0.7–1.5 times the normal trip rate).
 
 ### 7.6 Assists
 
@@ -305,7 +310,7 @@ Typical results:
 - **Turnovers:** the lineup's ball handling and passing, Offensive IQ, Feel and fatigue against the defense's pressure, hands and Feel. The ball handler (high usage, passing) commits most. `flashy` adds a few.
 - **Steals:** credited by Steals rating + acceleration, speed and wingspan (the Point-of-attack defender role ×1.5).
 - **Blocks:** credited by a combination of Blocks, height, wingspan, jumping, quickness and Defensive IQ. A weakness anywhere drags it down. The Rim protector role ×1.6.
-- **Fouls committed:** lower Defensive IQ fouls more.
+- **Fouls committed:** lower Defensive IQ, interior contact, gambling for blocks and the foul-frequency habit increase foul risk.
 
 ### 7.9 Energy and fatigue (Endurance)
 
@@ -520,7 +525,7 @@ P(turnover) = .118 × e^(−(handle − n)/240 + (pressure − n)/110 − (Feel_
 - **hands** = the defense's average steal skill.
 - **oiq** = the lineup's average Offensive IQ.
 
-**Who commits the turnover:** weighted by usage^1.7 × (.5 + pss/100) × (1.25 − drb/220) × (1.35 − oiq/150) × 1.3 if flashy.
+**Who commits the turnover:** weighted by (.3 + .7 × usage) × (.5 + pss/100) × (1.25 − drb/220) × (1.35 − oiq/150) × 1.3 if flashy, and × exp((turnovers − 50)/35).
 
 **What kind of turnover:**
 - A steal, with probability cl(.573 × e^((hands − n)/160), .35, .8). The steal goes to a defender weighted by (max(32, steal skill + .4·(Feel − 54)))^1.2, ×1.5 for a Point-of-attack defender.
@@ -757,7 +762,7 @@ L, rel(x) and shoot3 are defined in section K. "handle" = (drb + acc)/2, and "fi
 - **Playing hurt** (day-to-day): −3% per shot, usage ×0.9, starts with 5 less energy.
 - **Selfish teammates** (`padder`): −1.5% on everyone else's shots; selfish defenders give the offense +1.2%.
 - **Defensive three seconds:** bigs with low Defensive IQ get called about 0.4 times a game. Each call is one technical free throw.
-- **Fouls:** who commits each foul is weighted by (110 − diq).
+- **Fouls:** credit weight = (110 − diq) × position (B 1.6, G .85, W 1) × (1 + max(0, blk − diq)/140) × exp((fouls − 50)/35).
 - **Garbage time:** up 20+ with 5:00 left (or 24+ with 8:00, 15+ with 3:00), the deep bench plays.
 - **Tactics:** your team's schemes (pace, defense, focus) shift shot mixes and make rates, and add practice reps that steer growth toward the system's skills (sections D and N).
 - **Ratings shown in the game are rounded.** Hidden decimals (`rx`) keep counting, so a 74 can be 74.9.
@@ -809,3 +814,15 @@ You can put `mal`, `loyalty` and `ambition` in a card's `pers`; they're copied l
 The real EPM, LEBRON and DARKO use player-tracking data, play-by-play lineups and models that aren't public. These follow each one's published method with the data the game keeps, and are scaled so the league's best are about +7 to +10.
 
 That is everything that touches a player's ratings, development and stats. Contracts, mood, trade value and awards come from these same numbers but don't feed back into how he plays.
+
+## 2026-10-30 calculation corrections
+
+Poor rim touch has a steeper downside (`CURVE.rim.down` .006; the upper side is unchanged); league norms re-center the curve. Offensive-rebound credit includes `exp((crash − 50)/35)`, preserving team rebound opportunities.
+
+The college model solves `FGA + .44 × FTA = used possessions − turnovers` and `FTA = FTr × FGA` together. It no longer multiplies free throws by an extra .6. Usage and foul drawing affect college volume; habits are frozen in `p.am.habits` after the draft. Higher college defensive-rebound capacity permits elite rebounders, and personal-foul totals respect the five-foul limit. Historical shot-distance bins used for fitting are documented approximations of the engine’s RA/paint zones; they are not interchangeable with tracking coordinates.
+
+See the current realism-fix report for every card’s measured results and remaining limits.
+
+## Jeremy Lin’s Knicks season card (2026-10-31)
+
+The separate **Jeremy Lin – Linsanity season (2011–12 Knicks)** preset targets his complete historical regular season. See [the comparison and import instructions](JEREMY_LIN_CARD.md); the Warriors rookie preset stays available.

@@ -3,7 +3,7 @@
 // adding up to 100% (change one and the others make room in proportion); free throw rate as free throw
 // attempts per 100 shots. Used by the player editor and the card editor.
 import type { Game } from '../engine/Game';
-import { CRE_TEN, expUsg, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
+import { CRE_TEN, expUsg, HABIT_TEN, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
 import { GOD_PINK, muted, NumInput } from './kit';
 
 // `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
@@ -43,5 +43,7 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto, onFreeze }: { p: an
       {CRE_TEN.map(share)}{total(CRE_TEN)}
       {head('Getting to the line')}
       {row('ftr', 'Free throw rate', Math.round(tenUnit('ftr', t.ftr ?? 50) * 100), fLo, fHi, v => onTen({ ...t, ftr: tenScore('ftr', v / 100) }), 'FTA per 100 FGA', 'typical 25', TEN_DESC.ftr)}
+      {head('Other habits (50 = neutral)')}
+      {HABIT_TEN.map(k => row(k, TEN_LABEL[k], Math.round(t[k] ?? 50), 2, 98, v => onTen({ ...t, [k]: v }), '', 'higher = more often', TEN_DESC[k]))}
     </div>);
 }

@@ -2,7 +2,7 @@
 // start of every season (and when a league is created or loaded), so the 2026
 // baselines stay the league mean even as ratings drift upward or downward over time.
 import { effTend } from './tendencies';
-import { BASE, blockSkill, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
+import { BASE, blockSkill, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, foulDrawWeight, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
 
 export interface NormEntry { p: any; roles: string[]; min: number; tid: number }
 
@@ -41,6 +41,7 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
 
   // Shot volume = minutes × usage; iterate so the skill means and the share correction agree.
   const vol = (e: (typeof E)[number]) => e.min * e.use;
+  n.draw = E.reduce((a, e) => a + e.min * foulDrawWeight({ r: e.p.r, tend: effTend(e.p) }, e.use), 0) / Math.max(1e-6, E.reduce((a, e) => a + vol(e), 0));
   for (const z of ZONES) n.skill[z] = wmean(E.map(e => ({ v: e.sk[z], w: vol(e) })));
   // Players with their own shot mix (tendencies.ts, version 4) take what's set: the share correction only
   // steers the old, computed mixes (and stays put when there are none).
@@ -61,6 +62,6 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
   n.cre = {} as Record<JumpZone, any>;
   (['mid', 'c3', 'atb'] as JumpZone[]).forEach(z => { const xs = E.map((e, i) => { const t = effTend(e.p), w = vol(e) * prof[i][z] * (z === 'mid' ? 1 - (t?.pf ?? 0.52) : 1); return { m: creMeanOf(e.p.r, t?.cre, z), w }; }), W = xs.reduce((a, x) => a + x.w, 0) || 1;
     n.cre![z] = { pct: xs.reduce((a, x) => a + x.m.pct * x.w, 0) / W, ast: xs.reduce((a, x) => a + x.m.ast * x.w, 0) / W, blk: xs.reduce((a, x) => a + x.m.blk * x.w, 0) / W }; });
-  n.ftOffset = Math.max(-0.08, Math.min(0.08, -wmean(E.map(e => ({ v: curve('ft', e.p.r.ft), w: vol(e) * (e.p.r.ins + e.p.r.dnk + e.p.r.stre / 2) })))));
+  n.ftOffset = Math.max(-0.08, Math.min(0.08, -wmean(E.map(e => ({ v: curve('ft', e.p.r.ft), w: e.min * foulDrawWeight({ r: e.p.r, tend: effTend(e.p) }, e.use) })))));
   return n;
 }

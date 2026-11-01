@@ -120,7 +120,7 @@ export const BLOCK_ON_MISS: Record<Zone, number> = { rim: 0.36, mid: 0.053, c3: 
 // poor ratings cost a lot (a 40 is ~27%). The norms' offsets re-centre the league mean.
 const CURVE: Record<string, { mid: number; up: number; down: number; soft?: number }> = {
   three: { mid: 65, up: 0.0016, down: 0.0029 },
-  rim: { mid: 60, up: 0.0025, down: 0.0032 },
+  rim: { mid: 60, up: 0.0025, down: 0.006 }, // poor touch must matter even for a tall, athletic finisher; norms re-center the league
   jumper: { mid: 55, up: 0.0022, down: 0.0028 },
   ft: { mid: 60, up: 0.005, down: 0.005, soft: 80 }, // the best shooters are 90–93% (Curry, Nash): a 90 is about 90%, a 100 about 92.5%
 };
@@ -179,6 +179,26 @@ export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: bo
   return u;
 }
 export const mental = (r: any) => (r.oiq + r.diq) / 2;
+// Turnovers include catches, screens and short touches as well as on-ball creation.
+// Raising usage to 1.7 all but exempted low-usage bigs from turning the ball over.
+// These are credit weights only: the lineup still determines the team turnover rate.
+export function turnoverWeight(p: { r: any; tend?: Tend; flashy?: boolean }, use: number): number {
+  return (0.3 + 0.7 * Math.max(0, use)) * (0.5 + p.r.pss / 100)
+    * (1.25 - p.r.drb / 220) * (1.35 - p.r.oiq / 150)
+    * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1);
+}
+// Interior defenders contest more contact than perimeter players. Discipline still
+// matters, and gambling for blocks adds risk without making blocks equal defense.
+export function foulWeight(p: { r: any; grp?: string; tend?: Tend }): number {
+  return Math.max(1, 110 - p.r.diq) * (p.grp === 'B' ? 1.6 : p.grp === 'G' ? 0.85 : 1)
+    * (1 + Math.max(0, (p.r.blk ?? p.r.diq) - p.r.diq) / 140) * (p.tend?.foul ?? 1);
+}
+export function foulDrawWeight(p: { r: any; tend?: Tend }, use: number): number {
+  // Contact comes from strength, attacking and handling, not from making the
+  // resulting shot. A raw, powerful finisher can draw fouls while missing layups.
+  const r = p.r;
+  return Math.max(0, use) * (60 + 0.55 * r.stre + 0.25 * (r.acc ?? r.spd) + 0.2 * r.drb + 0.2 * r.ins) * (p.tend?.draw ?? 1);
+}
 // `ape` is wingspan minus height in inches (the league averages about +4): long arms help
 // contests, blocks, rebounds and steals; short arms hurt them.
 const ape = (r: any) => (r.ape ?? 4) - 4;
@@ -227,6 +247,7 @@ export interface Norms {
   offset: Record<Zone, number>; // re-centres each tier's curve on its baseline
   shareCorr: Record<Zone, number>; // keeps the league shot mix on the baseline shares
   ftOffset: number;
+  draw?: number; // usage-weighted contact/foul-drawing intensity, for team shooting-foul frequency
   perimD: number; interiorD: number; reb: number; pss: number; handle: number;
   rimHgt?: number; // the league's typical height rating at the rim, weighted by rim attempts
   diq?: number; oiq?: number; blk?: number; stl?: number; gamB?: number; gamS?: number; // minutes-weighted league means (blk: each team's top shot-blockers)
@@ -243,7 +264,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; ast?: number; usg?: number; pass?: number; zs?: Record<Zone, number>; cre?: Record<Cre, number> } // zs: his shot mix as fractions (tendencies.ts, version 4: what he takes, used as is); cre: how he creates his jump shots // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; foul?: number; orb?: number; ast?: number; usg?: number; pass?: number; zs?: Record<Zone, number>; cre?: Record<Cre, number> } // zs: his shot mix as fractions (tendencies.ts, version 4: what he takes, used as is); cre: how he creates his jump shots // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
 // Players carry evolving playing-style tendencies (tendencies.ts, effTend) that fill these in; autoTend
 // below is only the fallback for a player without them.
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
@@ -563,7 +584,11 @@ export class GameSim {
     const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
     const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
     const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * (1 + 0.3 * (avg(onO, p => this.tired(p)) - TIRED0)) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
-    const pTrip = RATE.foulTrip * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1) * (n.ftM ?? 1);
+    const drawO = onO.reduce((a, p) => a + foulDrawWeight(p, use(p)), 0) / Math.max(1e-6, onO.reduce((a, p) => a + use(p), 0));
+    // Foul drawing must create trips as well as decide who takes them. Previously
+    // an elite attacker could only take his teammates' fixed free-throw allowance.
+    const drawTrips = cl(Math.pow(drawO / (n.draw ?? 120), 0.4), 0.7, 1.5);
+    const pTrip = RATE.foulTrip * drawTrips * (1 + 0.1 * cAdv) * (fx ? fx.trip : 1) * (n.ftM ?? 1);
     const pNsf = putback ? 0 : RATE.nonShoot * (fx ? fx.nsf : 1);
     // Hack-a-Shaq: in the penalty, foul their worst free-throw shooter away from the ball (not in
     // the last two minutes of a quarter, when that earns a free throw and the ball).
@@ -571,7 +596,7 @@ export class GameSim {
     // Who coughs it up: whoever has the ball, so usage first. Creators handle it most and throw the
     // riskiest passes (star playmakers lead the NBA in turnovers: about 4 a game); a good handle
     // only trims that a little.
-    const handler = wpick(onO, p => Math.pow(use(p), 1.7) * (0.5 + p.r.pss / 100) * (1.25 - p.r.drb / 220) * (1.35 - p.r.oiq / 150) * (p.tend?.tov ?? 1) * (p.flashy ? 1.3 : 1));
+    const handler = wpick(onO, p => turnoverWeight(p, use(p)));
     const r = Math.random();
     const kind0 = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
     // Defensive three seconds: bigs who don't read the play camp in the lane (about 0.4 a game).
@@ -595,7 +620,7 @@ export class GameSim {
       if (pbp) this.pbp.unshift({ side: offK, time, text: text(), sub: sub ? sub() : '', score: scoring ? this.away.pts + '–' + this.home.pts : '', ids });
     };
     const score = (p: SimPlayer, x: number) => { O.pts += x; addQ(O, x); O.box[p.id].pts += x; stO[1] += x; stD[1] += x; onO.forEach(y => { O.box[y.id].pm += x; O.box[y.id].onF += x; }); onD.forEach(y => { D.box[y.id].pm -= x; D.box[y.id].onA += x; }); };
-    const foul = () => { const f = wpick(onD, p => 110 - p.r.diq); D.box[f.id].pf++; D.fouls++; return f; };
+    const foul = () => { const f = wpick(onD, p => foulWeight(p)); D.box[f.id].pf++; D.fouls++; return f; };
 
     let keep = false;
     if (kind === 'ifoul' && eg.foul) {
@@ -632,7 +657,7 @@ export class GameSim {
       } else ev([handler.id], () => handler.name + (Math.random() < 0.5 ? ' loses the ball out of bounds' : ' throws it away'), () => '(' + O.box[handler.id].tov + ' TOV)');
     } else if (kind === 'trip') {
       // Fouled on a missed shot: two free throws (three on a three).
-      const sh = wpick(onO, p => use(p) * (p.r.ins + (p.r.dnk + (p.r.lay ?? p.r.dnk)) / 2 + p.r.stre / 2 + (p.r.acc ?? 50) / 4) * roleK(p, 'Slasher', 1.2) * (p.tend?.draw ?? 1));
+      const sh = wpick(onO, p => foulDrawWeight(p, use(p)) * roleK(p, 'Slasher', 1.2));
       keep = this.freeThrows(O, D, onO, onD, sh, Math.random() < 0.08 ? 3 : 2, score, ev, foul(), 'shot', cAdv);
     } else {
       // Field goal attempt: usage picks the shooter, his profile picks the tier.
@@ -832,7 +857,7 @@ export class GameSim {
       const pool = off ? onO : onD, S = off ? O : D;
       // Guards get back on defense instead of crashing the offensive glass and pick up long defensive rebounds;
       // bigs live on the offensive glass (NBA: about 17% of a guard's rebounds are offensive, 29% of a big's).
-      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) * (off ? REB_OFF[p.grp] ?? 1 : REB_DEF[p.grp] ?? 1) * roleK(p, 'Rebounder', 1.3) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
+      const rb = wpick(pool, p => Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) * (off ? (REB_OFF[p.grp] ?? 1) * (p.tend?.orb ?? 1) : REB_DEF[p.grp] ?? 1) * roleK(p, 'Rebounder', 1.3) * (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) * (1 - 0.35 * this.tired(p)));
       if (off) S.box[rb.id].orb++; else S.box[rb.id].drb++;
       ev([rb.id], () => rb.name + ' grabs the ' + (off ? 'offensive' : 'defensive') + ' rebound', () => '(' + (S.box[rb.id].orb + S.box[rb.id].drb) + ' REB)');
     }

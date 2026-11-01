@@ -118,12 +118,12 @@ export class Game {
     g.db.dlV = 1; // (from the stored, compressed true potential: Game.draftNightLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
-    g.db.cardV = 4; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
+    g.db.cardV = 5; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
     { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k], roles: g.rolesOf(g.db.P[id]) }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
     g.db.usgV = 1; g.db.ten3 = 1; // shot volume follows the offensive game and role; tendencies are the NBA's shot categories (tendencies.ts)
-    g.refreshNorms(g.state);
+    g.refreshNorms(g.state); g.db.rimV = 2; g.db.ftV = 4;
     g.state.intel = scoutTick(g, g.state, g.state.overseas);
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
     ccpNewSeason(g, g.state); ccpTopUp(g, g.state, g.state.fa); // the CCP (development league) season
@@ -319,7 +319,7 @@ export class Game {
     (g.state.cards || []).forEach((c: any) => upgradePresetCard(c)); // ready-made cards' playing style, 2026-10-08
     // 2026-10-18: the ready-made cards were retuned for today's engine (then Luka's again, for his shot zones); players given an
     // earlier build take the new one (growth kept).
-    if ((g.db.cardV || 0) < 4) { retuneCarriers(g.db.P); g.db.cardV = 4; } // 4: historical-season card audit, variant-safe retunes
+    if ((g.db.cardV || 0) < 5) { retuneCarriers(g.db.P); g.db.cardV = 5; } // 5: historical styles and contact/rebounding habits
     if (!g.db.askV) { (g.state.fa || []).forEach((id: number) => { const p = g.db.P[id]; if (p && !p.rfa) p.ask = Math.min(p.ask || 0, askOf(g, p)); }); g.db.askV = 1; }
     // A U.S. state left on a player now born elsewhere (changing his nationality used to keep it).
     if (!g.db.stateV) { Object.values(g.db.P).forEach((p: any) => { if (p.state && p.born !== 'US') delete p.state; }); g.db.stateV = 1; }
@@ -406,9 +406,9 @@ export class Game {
       Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.retired && !p.gone) autoTen(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number], roles: g.rolesOf(p) }); });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.tenAuto = 1; }
     // 2026-10: height and length count for more at the rim (sim.ts zoneSkill): re-center the league's rim norms once.
-    if (!g.db.rimV) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 1; }
+    if ((g.db.rimV || 0) < 2) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 2; }
     // 2026-10: free throws fall off faster below a 40 rating and the best shooters reach 90%+ (sim.ts curve): re-center the league's free throw norm once.
-    if ((g.db.ftV || 0) < 2) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, ftOffset: nw.ftOffset }; g.db.ftV = 2; }
+    if ((g.db.ftV || 0) < 4) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, ftOffset: nw.ftOffset, draw: nw.draw }; g.db.ftV = 4; }
     // Monthly reports written before Acceleration had a short name read "undefined +0.2": fix the text.
     { const fixR = (x: any) => x && JSON.parse(JSON.stringify(x).replace(/undefined ([+-]\d)/g, 'Acc $1')); if (g.state.reports) g.state.reports = fixR(g.state.reports); if (g.state.clubs) Object.values(g.state.clubs).forEach((c: any) => { if (c?.reports) c.reports = fixR(c.reports); }); }
     // Saves from before wingspan counted toward the overall.
@@ -1559,7 +1559,7 @@ export class Game {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
-      (d.cls[this.Y] || []).forEach((id: number) => { const p = P[id]; if (p?.r && !p.am) p.am = { r: { ...p.r }, rx: p.rx ? { ...p.rx } : null, grp: p.grp, feel: p.intg?.feel }; }); // the class's college/club game, before camp and the summer change it: their amateur stats stay put (amateurStats.ts)
+      (d.cls[this.Y] || []).forEach((id: number) => { const p = P[id]; if (p?.r && !p.am) p.am = { r: { ...p.r }, rx: p.rx ? { ...p.rx } : null, grp: p.grp, feel: p.intg?.feel, habits: Object.fromEntries(['usage', 'ftr', 'turnovers', 'fouls', 'crash'].map(k => [k, p.ten?.[k] ?? 50])), ...(p.tenBase ? { zones: Object.fromEntries(['ra', 'paint', 'mid', 'c3', 'atb'].map(k => [k, p.ten[k]])) } : {}) }; }); // the class's college/club game, before camp and the summer change it: their amateur stats stay put (amateurStats.ts)
       const dl = dealsYearTurn(this, s, Y); dealNote = dl.notice; // local TV and sponsorship deals: raises, renewals, new partners (mediaDeals.ts), on last season's record
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = dl.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.

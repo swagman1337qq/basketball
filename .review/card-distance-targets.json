@@ -1,0 +1,146 @@
+{
+  "note": "Distance bins 0–3 / 3–10 / 10–3P / 3P. These approximate, rather than equal, NBA restricted-area and paint zones. Source fractions rounded.",
+  "rows": [
+    {
+      "index": 3,
+      "shares": [
+        0.412,
+        0.251,
+        0.329,
+        0.007
+      ],
+      "corner": 0,
+      "source": "https://www.basketball-reference.com/leagues/NBA_2008_shooting.html",
+      "rimPct": 0.64,
+      "paintPct": 0.429,
+      "outsideMidPct": 0.387
+    },
+    {
+      "index": 5,
+      "shares": [
+        0.153,
+        0.084,
+        0.39,
+        0.373
+      ],
+      "corner": 0.213,
+      "source": "https://www.basketball-reference.com/players/t/thompkl01.html",
+      "rimPct": 0.7,
+      "paintPct": 0.217,
+      "outsideMidPct": 0.418
+    },
+    {
+      "index": 6,
+      "shares": [
+        0.369,
+        0.176,
+        0.186,
+        0.27
+      ],
+      "corner": 0.45,
+      "source": "https://www.basketball-reference.com/players/l/leonaka01.html",
+      "rimPct": 0.698,
+      "paintPct": 0.394,
+      "outsideMidPct": 0.346
+    },
+    {
+      "index": 8,
+      "shares": [
+        0.364,
+        0.146,
+        0.371,
+        0.118
+      ],
+      "corner": 0.113,
+      "source": "https://www.basketball-reference.com/players/w/walljo01.html",
+      "rimPct": 0.605,
+      "paintPct": 0.261,
+      "outsideMidPct": 0.313
+    },
+    {
+      "index": 9,
+      "shares": [
+        0.288,
+        0.088,
+        0.583,
+        0.04
+      ],
+      "corner": 0.095,
+      "source": "https://www.basketball-reference.com/players/j/jianlyi01.html",
+      "rimPct": 0.473,
+      "paintPct": 0.261,
+      "outsideMidPct": 0.429
+    },
+    {
+      "index": 14,
+      "shares": [
+        0.5,
+        0.356,
+        0.144,
+        0
+      ],
+      "corner": 0,
+      "source": "https://www.basketball-reference.com/leagues/NBA_2012_shooting.html",
+      "rimPct": 0.619,
+      "paintPct": 0.354,
+      "outsideMidPct": 0.2
+    },
+    {
+      "index": 7,
+      "shares": [
+        0.592,
+        0.301,
+        0.103,
+        0.003
+      ],
+      "corner": 0,
+      "source": "https://www.basketball-reference.com/players/h/howardw01.html",
+      "rimPct": 0.623,
+      "paintPct": 0.407,
+      "outsideMidPct": 0.271
+    },
+    {
+      "index": 10,
+      "shares": [
+        0.586,
+        0.076,
+        0.18,
+        0.158
+      ],
+      "corner": 0.25,
+      "source": "https://www.basketball-reference.com/leagues/NBA_2002_shooting.html",
+      "rimPct": 0.601,
+      "paintPct": 0.208,
+      "outsideMidPct": 0.237
+    },
+    {
+      "index": 13,
+      "shares": [
+        0.665,
+        0.197,
+        0.133,
+        0.005
+      ],
+      "corner": 0,
+      "rimPct": 0.731,
+      "paintPct": 0.186,
+      "outsideMidPct": 0.103,
+      "source": "https://www.basketball-reference.com/leagues/NBA_2012_shooting.html"
+    },
+    {
+      "index": 20,
+      "shares": [
+        0.324,
+        0.191,
+        0.256,
+        0.228
+      ],
+      "corner": 0.02,
+      "rimPct": 0.64,
+      "paintPct": 0.366,
+      "outsideMidPct": 0.409,
+      "source": "https://www.basketball-reference.com/teams/PHI/2017.html",
+      "accessed": "https://fandai.donguapan.workers.dev/https/www.basketball-reference.com/teams/PHI/2017.html"
+    }
+  ]
+}

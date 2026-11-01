@@ -33,14 +33,18 @@ import { BASE, CRE_BASE, DEFAULT_NORMS, offAbility, PAINT_SHARE, shotProfile, us
 export { offAbility };
 
 export const TEN_KEYS = ['usage', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'step', 'fade', 'ftr'] as const;
-export type TenKey = (typeof TEN_KEYS)[number];
+export const HABIT_TEN = ['turnovers', 'fouls', 'crash'] as const;
+export type TenKey = (typeof TEN_KEYS)[number] | (typeof HABIT_TEN)[number];
 export const ZONE_TEN = ['ra', 'paint', 'mid', 'c3', 'atb'] as const;
 export type ZoneTen = (typeof ZONE_TEN)[number];
 export const CRE_TEN = ['cns', 'pullup', 'step', 'fade'] as const;
 export type CreTen = (typeof CRE_TEN)[number];
-export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', ra: 'Restricted Area', paint: 'In the Paint (Non-RA)', mid: 'Mid-Range', c3: 'Corner 3', atb: 'Above the Break 3', cns: 'Catch & Shoot', pullup: 'Pull-Up', step: 'Stepback', fade: 'Fadeaway', ftr: 'Free throw rate' };
+export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', ra: 'Restricted Area', paint: 'In the Paint (Non-RA)', mid: 'Mid-Range', c3: 'Corner 3', atb: 'Above the Break 3', cns: 'Catch & Shoot', pullup: 'Pull-Up', step: 'Stepback', fade: 'Fadeaway', ftr: 'Free throw rate', turnovers: 'Turnover risk', fouls: 'Foul frequency', crash: 'Crash offensive glass' };
 // The NBA's definitions (NBA.com stats: advanced, shooting by zone, shot dashboard, four factors).
 export const TEN_DESC: Record<TenKey, string> = {
+  turnovers: 'Risk on passes, catches and other touches, beyond his skills and offensive role. 50 is neutral; higher means more turnovers. It changes who gets the turnovers, not a fixed turnovers-per-game target.',
+  fouls: 'How often he commits contact or reach-in fouls beyond his position and defensive skills. 50 is neutral; higher means more fouls. Not a defensive ability rating.',
+  crash: 'How often he pursues offensive rebounds instead of getting back. 50 is neutral; higher means a larger share of offensive boards. His rebounding skills and opportunities still matter.',
   usage: 'Usage rate (USG%): the share of his team’s plays he uses (shots, free-throw trips, turnovers) while he’s on the floor',
   ra: 'Restricted Area (shooting by zone): shots inside the restricted-area arc, four feet from the basket, as a share of his shots',
   paint: 'In the Paint (Non-RA) (shooting by zone): shots in the paint outside the restricted area (floaters, hooks, short turnarounds), as a share of his shots',
@@ -76,7 +80,7 @@ const hash = (id: number, salt: number) => ((((id + 1) * 2654435761) ^ (salt * 4
 const nrmH = (id: number, salt: number) => (hash(id, salt) + hash(id, salt + 7) + hash(id, salt + 13) - 1.5) * 2; // about N(0, 1)
 
 // His personal quirks: fixed per player (and per tendency), about ±7 on the 0–100 scale (±3.5 for shot volume).
-const SALT: Record<TenKey, number> = { usage: 0, cns: 6, pullup: 7, mid: 8, ra: 11, paint: 12, c3: 13, atb: 14, ftr: 15, step: 16, fade: 17 }; // fixed, so quirks survive list changes
+const SALT: Record<TenKey, number> = { usage: 0, cns: 6, pullup: 7, mid: 8, ra: 11, paint: 12, c3: 13, atb: 14, ftr: 15, step: 16, fade: 17, turnovers: 18, fouls: 19, crash: 20 }; // fixed, so quirks survive list changes
 export const quirkOf = (p: any, k: TenKey) => (p.tenQ?.[k] ?? +(nrmH(p.id, 101 + SALT[k]) * (k === 'usage' ? 3.5 : 7)).toFixed(1));
 
 // Defense and rebounding, on the same scale as offAbility: the gap says scorer or specialist.
@@ -104,6 +108,7 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   // Drawing fouls: attacking off the dribble, or a big's strength and touch inside.
   const attack = big ? postSk * 0.45 + r.dnk * 0.3 + r.stre * 0.25 : acc * 0.3 + r.spd * 0.15 + r.drb * 0.25 + finish * 0.3;
   const out: Record<TenKey, number> = {
+    turnovers: 50, fouls: 50, crash: 50,
     // A big who can't shoot lives at the rim (NBA: the 60%-shooting bigs take 70–85% of their shots there, 1–5% from 10 feet out).
     ra: t(41 + rel(rimSk) * 1.1 + (big ? 10 + Math.max(0, 55 - Math.max(r.fg, r.tp)) * 0.5 : guard ? -3 : 0) + (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) - (age >= 31 ? (age - 30) * 1.5 : 0)),
     paint: t(42 + rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 + (big ? 8 : guard ? -2 : 0) + (age >= 30 && big ? 3 : 0)), // a big's hooks, a guard's floaters
@@ -179,10 +184,35 @@ export function sharesFromScores(sc: Partial<Record<TenKey, number>>, roles: str
 }
 const quirks = (p: any) => Object.fromEntries(TEN_KEYS.map(k => [k, quirkOf(p, k)])) as Record<TenKey, number>;
 // His targets: usage and free throw rate as scores, location and creation as shares, quirks included.
-export function targetTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
+function naturalTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
   const tg = tenTargets(p, ctx), q = quirks(p), sc = {} as Record<TenKey, number>;
   TEN_KEYS.forEach(k => (sc[k] = cl(tg[k] + q[k], 2, 98)));
-  return { ...sharesFromScores(sc, ctxOf(ctx).roles || []), usage: Math.round(sc.usage * 10) / 10, ftr: Math.round(sc.ftr * 10) / 10 };
+  return { ...sharesFromScores(sc, ctxOf(ctx).roles || []), usage: Math.round(sc.usage * 10) / 10, ftr: Math.round(sc.ftr * 10) / 10, turnovers: 50, fouls: 50, crash: 50 };
+}
+
+// A supplied card's playing style is part of its build. Keep that preference as
+// skills and age evolve instead of replacing it with the generic archetype each
+// month. Changes are relative to its starting natural style; team role still
+// changes volume. Ordinary generated players have no anchor and use naturalTen.
+export function targetTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
+  const out = naturalTen(p, ctx), a = p.tenBase;
+  if (!a?.ten || !a?.natural) return out;
+  const now = naturalTen(p);
+  for (const keys of [ZONE_TEN, CRE_TEN]) {
+    const weights = Object.fromEntries(keys.map(k => [k, Math.max(0, a.ten[k] ?? 0) * (now[k] + 0.1) / (a.natural[k] + 0.1)]));
+    Object.assign(out, round100(weights));
+  }
+  out.usage = +cl(a.ten.usage + out.usage - a.natural.usage, 2, 98).toFixed(1);
+  out.ftr = +cl(a.ten.ftr + now.ftr - a.natural.ftr, 2, 98).toFixed(1);
+  HABIT_TEN.forEach(k => (out[k] = cl(a.ten[k] ?? 50, 2, 98)));
+  return out;
+}
+
+export function anchorCardStyle(p: any, style: Record<string, number>, age = p.age, ratings = p.r) {
+  // The authored style already supplies the personal preferences. Recipient
+  // quirks must not silently turn the same card into a different shot diet.
+  p.tenQ = Object.fromEntries(TEN_KEYS.map(k => [k, 0]));
+  p.tenBase = { ten: { ...style }, natural: naturalTen({ ...p, r: ratings, age }) };
 }
 
 // A new player (or one from an older save): his tendencies start where his game points, plus quirks.
@@ -234,6 +264,7 @@ export function ensureTen(p: any, norms?: Norms | null, roles?: string[]) {
     if (p.tend) applyMult(p, p.tend);
     fromLegacy(p, norms, roles);
   }
+  HABIT_TEN.forEach(k => { if (!Number.isFinite(p.ten[k])) p.ten[k] = 50; });
   delete p.tend;
   return p.ten;
 }
@@ -258,6 +289,7 @@ export function effTend(p: any): Tend | undefined {
     cre: { cns: t.cns / 100, pullup: t.pullup / 100, step: t.step / 100, fade: t.fade / 100 },
     draw: Math.exp((t.ftr - 50) / FTR_K), // his share of the team's shooting fouls
     usg: ex(t.usage, USG_K),
+    tov: ex(t.turnovers ?? 50, 35), foul: ex(t.fouls ?? 50, 35), orb: ex(t.crash ?? 50, 35),
   };
 }
 

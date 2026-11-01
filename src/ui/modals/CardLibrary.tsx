@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { cardLib, cardsVersion, loadCards, setCardLib, subscribeCards } from '../../db/cards';
 import type { VM } from '../vm';
 import { Combo, CountryPicker, FtInInput, muted, NumInput, ruleH4 } from '../kit';
-import { applyCard, BLANK_CARD, exportCard } from '../../engine/playerCard';
+import { applyCard, BLANK_CARD, cardUndoSnapshot, exportCard, restoreCardUndo } from '../../engine/playerCard';
 import { badgesOf, ovrExact } from '../../engine/ratings';
 import { TRAITS } from '../../engine/traits';
 import { TendencyEditor } from '../TendencyEditor';
@@ -49,7 +49,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
 
   const apply = (card: any, label: string) => {
     if (!p) return say('✗ Pick a player to apply it to first.');
-    const before = { ...exportCard(p), _gem: p.gem, _rx: p.rx, _px: p.px }, err = applyCard(p, card, C);
+    const before = cardUndoSnapshot(p), err = applyCard(p, card, C);
     if (err) return say('✗ ' + err);
     gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, cardUndo: { pid: p.id, prev: before } })); gm.enforceRetirement();
     say('✓ Applied ' + label + ' to this player: ' + p.name + ', ' + p.ovr + ' overall / ' + p.pot + ' potential.');
@@ -80,7 +80,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
       <Combo value={who} options={playerOpts(gm, s)} placeholder="New card from any player…" width={220} onChange={setWho}
         onPick={o => { const q = gm.db.P[(o as any).id]; setWho(''); if (q) { open(newId(), { ...exportCard(q), label: q.name }); say('Filled a new card from ' + q.name + '. Edit it, then Save or Apply.'); } }} />
       <label className="btn btn-ghost" style={{ fontSize: '12px', cursor: 'pointer' }}>Import file…<input type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) importText(await f.text(), f.name.replace(/\.json$/, '')); e.target.value = ''; }} /></label>
-      {undo && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => { applyCard(p, undo.prev, C); gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, cardUndo: null })); say('Undone: ' + p.name + ' is back to his old build.'); }}>Undo last apply</button>}
+      {undo && <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => { restoreCardUndo(p, undo.prev, C); gm.resetFace(p.id); gm.setState(st => ({ gv: (st.gv || 0) + 1, cardUndo: null })); say('Undone: ' + p.name + ' is back to his old build.'); }}>Undo last apply</button>}
     </div>
     <textarea className="input" value={paste} onChange={e => setPaste(e.target.value)} placeholder="…or paste a card’s JSON here" rows={paste ? 5 : 1} style={{ width: '100%', marginTop: 6, fontFamily: 'monospace', fontSize: '11.5px' }} />
     {paste.trim() && <button className="btn btn-secondary" style={{ fontSize: '12px', marginTop: 4 }} onClick={() => { importText(paste, 'Pasted card'); setPaste(''); }}>Open pasted card</button>}
@@ -142,8 +142,7 @@ export function CardLibrary({ vm, p }: { vm: VM; p: any | null }) {
 // The card's playing style, edited like a player's (TendencyEditor): usage rate, his shots by zone and how
 // he creates his jumpers (each adding up to 100%), free throw rate. Shown on a stand-in player built from
 // the card, so usage reads in USG% for these ratings; older cards (0–100 scores) show the mix they play.
-// A card with no tendencies of its own plays the way its ratings point; either way, once applied the AI refreshes
-// them every month unless they're taken over with Edit tendencies in Edit player.
+// Cards without an authored style use the generic targets; explicit preferences stay anchored as skills and age change.
 function cardPlayer(draft: any) {
   const q: any = { id: 0, pos: draft.pos || 'SF', grp: GRP[draft.pos] || 'W', age: draft.age ?? 25, r: { ...(draft.r || {}) }, hgt: draft.hgt, wing: draft.wing, pers: { ...(draft.pers || {}) }, intg: { ...(draft.intg || {}) } };
   q.ovr = Math.round(ovrExact(q)); q.pot = Math.max(q.ovr, draft.pot ?? q.ovr);
@@ -159,7 +158,7 @@ function CardStyle({ gm, draft, set }: { gm: any; draft: any; set: (f: (d: any) 
         <span style={{ ...muted, fontSize: '12px' }}>{own ? 'Set on this card.' : 'From his ratings (change any number to set your own).'}</span>
         {own && <button className="btn btn-ghost" style={{ fontSize: '11.5px', padding: '1px 8px', marginLeft: 'auto' }} onClick={() => set(d => { delete d.ten; delete d.tend; })} title="Drop the card's own tendencies: he plays the way his ratings point">Match his ratings</button>}
       </div>
-      <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} auto={() => targetTen(q, { roles: gm.rolesOf(q) })} />
-      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>What you set is what he takes once the card is applied; his ratings decide how many go in. He starts with these; after that the AI refreshes them every month, like every player’s, unless you press Edit tendencies on him in Edit player.</div>
+      <TendencyEditor p={q} gm={gm} onTen={ten => set(d => { d.ten = { ...ten }; delete d.tend; })} auto={() => targetTen({ ...q, tenBase: undefined }, { roles: gm.rolesOf(q) })} />
+      <div style={{ ...muted, fontSize: '11.5px', marginTop: 4 }}>His card preferences stay with him as the AI adapts his style to changes in skills, age and role. Freeze tendencies on the player to keep every value fixed.</div>
     </div>);
 }

@@ -1,5 +1,7 @@
 # Player-card historical accuracy audit — 2026-10-29
 
+> Superseded by the [2026-10-30 realism fixes](PLAYER_CARD_REALISM_FIXES_2026-10-30.md). The tables below preserve the earlier audit.
+
 All 25 built-in cards were tested against their actual named seasons. Ten presets were adjusted after independent validation. Fifteen retain their earlier ratings because the tested changes did not pass the statistical or skill-plausibility guardrails. Full realism remains an open objective: the tests do not establish accuracy in every category.
 
 ## Method
