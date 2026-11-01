@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-46-gxcMJ.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-kaggU5P0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-01
 
 ### Changed
+- **Standings look like the NBA's.** A team's roster strength used to decide its record almost completely, so seasons had 74- and 77-win teams and 6-win teams. Now the better team in each game plays a little below its paper strength and the underdog a little above it, so best records land around 62–67 wins and worst around 13–23 (tested over five leagues), with real upsets. A strong roster still wins most nights; scoring, stars and every player card's numbers are unchanged.
 - **Overalls follow what wins games now.** With defense, passing, steals and blocks mattering more in games, the overall's weights were measured again from 150,000 simulated games: a guard's passing and steals, a big's shot-blocking and a wing's speed count for more, a few rarely-used skills a little less. Every league updates once as it loads: most overalls move less than a point (a few unusual players up to 2–6), and each player's potential moves with his overall, so his room to grow is unchanged. Average overalls by position stay where they were.
 - **DARKO updates after every game, like the real one.** Each stat is now a running rate that forgets old games at its own speed (scoring and shooting fastest, rebounds, steals and blocks slowest), and a summer away counts too. The speeds were fitted by how well they predict a player's next 20 games. His DARKO moves through the season with hot and cold stretches, instead of being worked out once from his season totals. Seasons played before this keep the old method. League Leaders now just say EPM, LEBRON and DARKO (no "estimate"): they come from every lineup's possessions.
 - **PER is Hollinger's real formula.** Every PER in the game (profiles, stats pages, rosters, leaders, the Hall of Fame and scouting) now uses John Hollinger's full calculation: the box score weighted by the league's value of a possession, rebound share and foul cost, his team's assist rate, adjusted for his team's pace, with the league average at 15. It used to be a simpler efficiency per minute. Stars land around 25–33, a little more spread out than before.
