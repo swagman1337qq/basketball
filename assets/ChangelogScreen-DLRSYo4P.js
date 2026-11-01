@@ -1,10 +1,22 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-nyaWfMsU.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DhvhaQC0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
-## 2026-10-30
+## 2026-10-31
 
 ### Added
+- **Jeremy Lin’s Linsanity season card.** A separate 2011–12 Knicks build joins his Warriors rookie card. Tested against his full historical season for scoring, shooting, passing, rebounding, steals, blocks, turnovers and fouls; also available as an importable JSON file.
+
+## 2026-10-30
+
+### Fixed
+- **Player cards keep their playing style.** Monthly AI updates preserve a card’s preferences while adapting them to changes in skills, age and role. Every preset was recalibrated against its actual historical season.
+- **Big-man shooting, turnovers and fouls are closer to real life.** Poor finishing matters more; low-usage players can turn the ball over on short touches; contact and individual habits affect foul rates. Strong foul-drawing lineups can create more free-throw trips.
+- **College stats follow the card’s style.** Free throws use the correct attempt ratio, authored shot preferences affect the mix, and elite rebounders have room to reach their real numbers. College styles and habits stay fixed after the draft.
+- **Undoing a card restores the previous style.** The previous card variant, tendency preferences and freeze setting return with the build.
+
+### Added
+- **Three more playing-style controls.** Turnover risk, foul frequency and crashing the offensive glass are editable on players and cards, and shown on player profiles.
 - **What each advanced stat means.** Rest the mouse anywhere on an advanced stat's column header (TS%, USG%, BPM, Win Shares, LEBRON and the rest), on any screen, and a one-line description pops up right away.
 - **Sort a player's stats by anything.** In a player's profile, Stats tab, click any column header in any of its tables to sort his seasons by it: highest first, click again for lowest first, a third time for the usual order. A traded season's team rows stay under it, and the career and per-team totals stay at the bottom.
 - **Pick several players at once, then right-click.** On the draft board, free agency, overseas and your shortlists: click a row to pick a player, drag across rows to pick several, shift-click to pick everything between, ctrl-click (cmd on a Mac) to add or drop one. Right-click for a menu with **Scouting** (have one of your scouts follow them, or stop) and **Add to shortlist** (any of your lists, or a new one). Clicking a player's name still opens his profile.
