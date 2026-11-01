@@ -8,6 +8,8 @@
 // record: the game generates his amateur seasons like any prospect's.
 export interface HistLine { y: number; team: string; note?: string; cls?: string; gp?: number; gs?: number; mp?: number; fg?: number; fga?: number; tp?: number; tpa?: number; ft?: number; fta?: number; orb?: number; drb?: number; trb?: number; ast?: number; stl?: number; blk?: number; tov?: number | null; pf?: number | null; pts?: number; est?: number }
 export interface HistProspect { first: string; last: string; pos: string; hgt: [number, number] | null; wt: number | null; born: string | null; age: number; rep: string; num: number | null; kind: 'col' | 'hs' | 'club'; from: { team: string; lg: string; country: string }; pers: Record<string, any>; tpot: number; ovr: number; read: number; real: HistLine[] | null }
+import { DRAFT_2013 } from './historical2013';
+
 export const HISTORICAL_CLASSES: Record<number, { label: string; players: HistProspect[] }> = {
   2000: { label: '2000 draft class', players: [
     {"first":"Kenton","last":"Marden","pos":"FC","hgt":[6,9],"wt":234,"born":"12-30","age":22,"rep":"US","num":6,"kind":"col","from":{"team":"Xavier","lg":"NCAA","country":"US"},"pers":{"mot":"Winning","work":70,"volatile":1,"fearless":1,"alpha":1},"tpot":60.4,"ovr":45.8,"read":72,"real":[{"y":-3,"team":"Xavier","cls":"FR","gp":22,"gs":3,"mp":10.6,"fg":1.2,"fga":1.8,"tp":0,"tpa":0,"ft":0.5,"fta":1.5,"orb":1.2,"drb":2.2,"trb":3.4,"ast":0.5,"stl":0.6,"blk":1.1,"tov":0.7,"pf":2.3,"pts":2.8,"est":1},{"y":-2,"team":"Xavier","cls":"SO","gp":30,"gs":30,"mp":28.6,"fg":4.1,"fga":6.6,"tp":0,"tpa":0,"ft":1.7,"fta":3.5,"orb":3.2,"drb":5.7,"trb":8.9,"ast":1.4,"stl":1,"blk":2.8,"tov":1.7,"pf":3.6,"pts":9.9,"est":1},{"y":-1,"team":"Xavier","cls":"JR","gp":33,"gs":33,"mp":27.3,"fg":4.3,"fga":7.5,"tp":0,"tpa":0,"ft":1.5,"fta":2.7,"orb":2.5,"drb":4.4,"trb":6.9,"ast":1.5,"stl":1.1,"blk":2.4,"tov":2,"pf":3.3,"pts":10.1,"est":1},{"y":0,"team":"Xavier","cls":"SR","gp":31,"gs":31,"mp":29.3,"fg":7.1,"fga":12.5,"tp":0.1,"tpa":0.2,"ft":4.5,"fta":6.6,"orb":2.5,"drb":7.2,"trb":9.7,"ast":1.4,"stl":1.4,"blk":3.5,"tov":1.8,"pf":2.3,"pts":18.9}]},
@@ -80,5 +82,5 @@ export const HISTORICAL_CLASSES: Record<number, { label: string; players: HistPr
     {"first":"Davit","last":"Mukhidiani","pos":"F","hgt":null,"wt":null,"born":null,"age":21,"rep":"GE","num":null,"kind":"club","from":{"team":"Levski Sofia","lg":"NBL Bulgaria","country":"BG"},"pers":{"mot":"Winning","work":55},"tpot":40,"ovr":28,"read":47,"real":null},
     {"first":"Stefan","last":"Nedeljić","pos":"F","hgt":null,"wt":null,"born":null,"age":21,"rep":"RS","num":null,"kind":"club","from":{"team":"FMP Belgrade","lg":"ABA League","country":"RS"},"pers":{"mot":"Winning","work":55},"tpot":40,"ovr":28,"read":47,"real":null}
   ] },
+  2013: DRAFT_2013,
 };
-

@@ -40,3 +40,7 @@ God Mode → **Draft classes** (or **Load draft class…** on the Draft board): 
 All 69 entries were reviewed individually. Each fictional full name keeps the historical player's first and last initial, with the first-name and surname syllable counts matched separately using the usual basketball pronunciation. Where possible, the replacements also keep a similar sound and cultural style. Familiar first names can be shared; the complete names remain fictional. The real-name identity key is not part of the game or published source.
 
 See [the fictional-name pronunciation sheet](DRAFT_CLASS_NAMES.md) for every alias and its intended syllables. This update changes 39 names; 30 already fit. Name changes reach the ready-made library after refreshing the game and apply when that class is loaded. Previously loaded prospects and user-imported copies retain their saved names.
+
+## 2013 class (2026-11-01)
+
+The 100-player 2013 preset follows the same naming and rival-school rules. It excludes Giannis Antetokounmpo and Rudy Gobert entirely. See [coverage, sources, estimates and fictional pronunciations](DRAFT_CLASS_2013.md). A [downloadable class file](../public/draft-classes/2013.json) uses this format.

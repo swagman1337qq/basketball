@@ -7,7 +7,7 @@
 import type { Game } from './Game';
 import type { HistProspect } from '../data/historicalClasses';
 import { deletePlayer } from './godPlayer';
-import { shiftOvr, syncOvr } from './ratings';
+import { inchesOf, shiftOvr, syncOvr } from './ratings';
 import { refreshPot, setTruePot } from './potential';
 import { ensureTen, initTendencies } from './tendencies';
 
@@ -72,7 +72,12 @@ export function loadDraftClass(g: Game, H: { label: string; players: HistProspec
     p.dAge = h.age; p.pos = h.pos; p.grp = grp; p.posLock = true;
     p.first = h.first; p.last = h.last; p.name = h.first + ' ' + h.last; delete p.native; delete p.nativeFirst; delete p.nativeLast; delete p.familyFirst; delete p.nOrder; delete p.nSep;
     const rep = g.db.C[h.rep] ? h.rep : 'US'; p.rep = rep; p.born = rep; p.raised = rep; p.her = rep; p.elig = [{ c: rep, why: 'citizen by birth' }];
-    if (h.hgt) { p.hgt = h.hgt[0] + '′' + h.hgt[1] + '″'; }
+    if (h.hgt) {
+      const delta = h.hgt[0] * 12 + h.hgt[1] - inchesOf(p.hgt);
+      p.hgt = h.hgt[0] + '′' + h.hgt[1] + '″';
+      p.r.hgt = cl(p.r.hgt + delta * 4, 4, 99);
+      if (p.wing != null) p.wing += delta;
+    }
     if (h.wt) p.wt = h.wt;
     if (h.born) { const by = year - h.age - (h.born > '06-28' ? 1 : 0); p.dob = by + '-' + h.born; }
     if (h.num != null) { p.num = String(h.num); p.numFav = String(h.num); }

@@ -34,3 +34,6 @@ build-lin-card.mjs
 
 # Private name review and incoming-source backups
 name-update/
+
+# Private historical draft research and validation
+draft-2013/
