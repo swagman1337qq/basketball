@@ -109,6 +109,13 @@ export const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.
 // shot; the differences between its own players stay. Without it, team shooting spread about twice
 // as wide as the NBA's (2025-26 team eFG%: .520 to .577).
 const LINEUP_REG = 0.66;
+// Competitive balance (2026-11-01): each shot's make chance goes down PARITY per point the shooting team's roster
+// strength tonight (its players' overall weighted by their minute targets) is above the defense's, and up the same
+// when it's below: a better team coasts a little and an underdog plays harder. Without it a team's strength decided
+// its record almost completely (r .92 with win%) and standings were wider than the NBA's (win% sd about .20, best
+// records up to .90–.94, worst .07–.11); with it .137–.165 (mean .158, 5 leagues), best .756–.817, worst .159–.280. A middle team
+// facing the league is untouched on average (the player cards' test).
+export const PARITY = 0.0035;
 // The scoreboard: a team well ahead relaxes (looser shots, careless passes) and one well behind plays
 // with urgency, so margins drift back a little, as in real games: NBA margins vary about 12–13 points
 // around what the two teams' strength predicts (independent trips alone would give about 18).
@@ -437,6 +444,7 @@ export class GameSim {
   // minutes (p.fat). A tired player (below about 88) shoots, handles, defends and rebounds worse, and the
   // rotation brings him out sooner.
   en = new Map<SimPlayer, number>(); // read by the live game view
+  str: Record<Side, number> = { home: 50, away: 50 }; // roster strength tonight (minutes-weighted overall), for PARITY
   private tired(p: SimPlayer) { return cl((88 - (this.en.get(p) ?? 100)) / 60, 0, 1); }
   private drain(sec: number) {
     (['home', 'away'] as Side[]).forEach(k => this.teams[k].players.forEach(p => { const e = this.en.get(p) ?? 100, on = this.on[k].includes(p);
@@ -454,6 +462,8 @@ export class GameSim {
     const side = (t: SimTeam): SideState => ({ pts: 0, qs: [0, 0, 0, 0], box: Object.fromEntries(t.players.map(p => [p.id, blankLine()])), tiers: {}, poss: 0, fouls: 0 });
     this.home = side(home);
     this.away = side(away);
+    const strOf = (t: SimTeam) => { const w = t.players.reduce((a, p) => a + Math.max(0, p.target || 0), 0); return w > 0 ? t.players.reduce((a, p) => a + p.ovr * Math.max(0, p.target || 0), 0) / w : 50; };
+    this.str = { home: strOf(home), away: strOf(away) };
     [...home.players, ...away.players].forEach(p => this.en.set(p, cl(100 - 0.35 * (p.fat || 0) - (p.dtd ? 5 : 0), 55, 100)));
     // Each coaching staff's plan for tonight's opponent (coach.ts).
     (['home', 'away'] as Side[]).forEach(k => { const T = this.teams[k]; if (T.aiKeys?.length) this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65, Math.random, this.norms.quick); });
@@ -736,7 +746,7 @@ export class GameSim {
       const small = z === 'rim' ? cl(1 + (55 - sh.r.hgt) / 100, 0.75, 1.3) : 1; // good rim protection bothers a small finisher more than a big one, who shoots over it
       const blkTop = z === 'rim' ? (() => { const b = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a); return (b[0] + (b[1] ?? b[0])) / 2; })() : 0;
       const man = manOf(sh), pD = (1 - MATCH_W) * pressD + MATCH_W * perimD(man.r), intM = sh.grp === 'B' ? (1 - MATCH_W) * intD + MATCH_W * interiorD(man.r) : intD, stay = sh.grp === 'B' ? 0 : MATCH_RIM * (perimD(man.r) - pressD);
-      const defAdj = (z === 'rim' ? small * (0.0021 * (intM - n.interiorD) + 0.007 * rimPro + BLK_RIM * (blkTop - (n.blkL ?? n.blk ?? 58))) + stay - GAMBLE.rim * gamB : z === 'mid' ? 0.001 * (pD - n.perimD) - GAMBLE.mid * gamS : 0.0008 * (pD - n.perimD) - GAMBLE.three * gamS) + 0.0008 * diqD;
+      const defAdj = ((z === 'rim' ? small * (0.0021 * (intM - n.interiorD) + 0.007 * rimPro + BLK_RIM * (blkTop - (n.blkL ?? n.blk ?? 58))) + stay - GAMBLE.rim * gamB : z === 'mid' ? 0.001 * (pD - n.perimD) - GAMBLE.mid * gamS : 0.0008 * (pD - n.perimD) - GAMBLE.three * gamS) + 0.0008 * diqD);
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -769,7 +779,7 @@ export class GameSim {
       if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
       const setter = putback || !cands.length ? null : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
       const setup = setter && Math.random() < aChance ? setter : null;
-      const pct = setupD + creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - rawBig(sh) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = -PARITY * (this.str[offK] - this.str[defK]) + setupD + creD + hotD + readD + moodD + leadD + BASE.zone[z].pct + subD + CAL[z] + curve(CURVE_OF[z], sk) + n.offset[z] + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - rawBig(sh) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++; if (cre) (b as any)[CRE_KEY[cre][1]]++;
       const T0 = O.tiers[z] || [0, 0]; O.tiers[z] = [T0[0], T0[1] + 1];
