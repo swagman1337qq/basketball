@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-XaLPWutr.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-lsekhsUE.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-01
+
+### Changed
+- **Closer fictional names for the 2000 draft class.** Reviewed all 69 prospects and updated 39 names so the first and last initials and their separate spoken syllable counts match the real players as closely as possible. Newly loaded copies use the revised names; prospects already loaded into a league keep their saved names.
 
 ### Added
 - **Draft classes (God Mode).** A new **Draft classes** screen, like Player cards: a library shared by all your leagues where you browse each class (every prospect's position, age, height, school, overall, the scouts' read, true potential and last real season), add your own from a file, and load one into any class that hasn't been drafted (also from **Load draft class…** on the Draft board). Loaded prospects are edited in God Mode like any player. The library lives in your browser, not in your saves, and loads only when you open it. The first ready-made class is a real draft from 2000: all 69 players who declared, every name made up and every school swapped for a rival, with their real draft-night age, birthday, height, weight, jersey and real college seasons (advanced stats worked out from them). Players with no stats on record get generated ones like any prospect. Each player's true potential follows the career he really had, while the board shows how the scouts saw him then, so a second-round pick can turn out to be the star. **Save the class as a file** downloads any of your league's classes to edit into your own and add back.
