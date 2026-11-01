@@ -7,8 +7,8 @@ import type { Game } from '../engine/Game';
 import { CRE_TEN, ensureTen, expUsg, HABIT_TEN, styleLine, TEN_DESC, TEN_LABEL, tenUnit, typShare, ZONE_TEN, type TenKey } from '../engine/tendencies';
 import { muted, ruleH4 } from './kit';
 
-const GROUP: Partial<Record<TenKey, string>> = { usage: 'Shot volume', ra: 'Where his shots come from (% of his shots)', cns: 'How he creates his jump shots (% of his jumpers)', ftr: 'Getting to the line', turnovers: 'Other habits (50 = neutral)' };
-const ORDER: TenKey[] = ['usage', ...ZONE_TEN, ...CRE_TEN, 'ftr', ...HABIT_TEN];
+const GROUP: Partial<Record<TenKey, string>> = { usage: 'His role in the offense', ra: 'Where his shots come from (% of his shots)', cns: 'How he creates his jump shots (% of his jumpers)', ftr: 'Getting to the line', turnovers: 'Other habits (50 = neutral)' };
+const ORDER: TenKey[] = ['usage', 'dom', ...ZONE_TEN, ...CRE_TEN, 'ftr', ...HABIT_TEN];
 
 export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
   const t = ensureTen(p); if (!t) return null;
@@ -18,7 +18,7 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
   // This season's real numbers, where the box score keeps them (paint split from 2026-10, creation from 2026-10-08).
   const actual: Partial<Record<TenKey, string>> = live ? { usage: gm.usgOf(tot).toFixed(1) + '%', ra: share(tot.ra || 0, tot.fga), ...(tot.ka != null ? { paint: share(tot.ka, tot.fga), mid: share((tot.ma || 0) - tot.ka, tot.fga) } : {}), c3: share(tot.ca || 0, tot.fga), atb: share(tot.ba || 0, tot.fga),
     ...(jumpers >= 20 ? { cns: share(tot.qa || 0, jumpers), pullup: share(tot.ua || 0, jumpers), step: share(tot.sa || 0, jumpers), fade: share(tot.da || 0, jumpers) } : {}), ftr: (tot.fta / tot.fga).toFixed(3).replace(/^0/, '') } : {};
-  const isScore = (k: TenKey) => k === 'usage' || k === 'ftr' || HABIT_TEN.includes(k as any);
+  const isScore = (k: TenKey) => k === 'usage' || k === 'ftr' || k === 'dom' || HABIT_TEN.includes(k as any);
   return (
     <div>
       <h4 style={{ ...ruleH4, marginTop: '14px' }}>Playing style</h4>
@@ -26,7 +26,7 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
       {ORDER.map(k => {
         const v = t[k] ?? 0, typ = isScore(k) ? 50 : typShare(k as any), d = prev && prev[k] != null ? v - prev[k] : 0;
         const hi = isScore(k) ? v >= 65 : v >= typ * 1.5 && v >= 8, lo = isScore(k) ? v <= 35 : v <= typ * 0.5, c = hi ? 'var(--color-accent-700)' : lo ? 'var(--color-neutral-600)' : 'var(--color-text)';
-        const text = k === 'usage' ? expUsg(p, norms, roles).toFixed(1) + '% of plays' : k === 'ftr' ? tenUnit('ftr', v).toFixed(3).replace(/^0/, '') + ' FTA per FGA' : HABIT_TEN.includes(k as any) ? Math.round(v) + ' / 100' : (Math.round(v * 10) / 10) + '%';
+        const text = k === 'usage' ? expUsg(p, norms, roles).toFixed(1) + '% of plays' : k === 'dom' ? Math.round(v) + ' / 100' : k === 'ftr' ? tenUnit('ftr', v).toFixed(3).replace(/^0/, '') + ' FTA per FGA' : HABIT_TEN.includes(k as any) ? Math.round(v) + ' / 100' : (Math.round(v * 10) / 10) + '%';
         const width = isScore(k) ? v : Math.min(100, v), mark = isScore(k) ? 50 : Math.min(100, typ);
         return (
           <div key={k}>
@@ -41,7 +41,7 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
               <span title={prev ? 'Since last summer' : ''} style={{ fontSize: '11px', fontWeight: 700, color: d >= 1 ? 'var(--gm-good)' : d <= -1 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{prev && Math.abs(d) >= 1 ? (d > 0 ? '▲' : '▼') : ''}</span>
             </div>
           </div>); })}
-      <p style={{ ...muted, fontSize: '11px', margin: '4px 0 0' }}>Hover a row for its definition. Other habits use a 0–100 scale, with 50 neutral. The line marks the league's typical share (for usage and free throws, a typical rotation player). His zones add up to 100% of his shots, and his four ways of creating add up to 100% of his jump shots (mid-range and threes).</p>
+      <p style={{ ...muted, fontSize: '11px', margin: '4px 0 0' }}>Hover a row for its definition. Other habits use a 0–100 scale, with 50 neutral. The line marks the league's typical share (for usage, ball dominance and free throws, a typical rotation player). His zones add up to 100% of his shots, and his four ways of creating add up to 100% of his jump shots (mid-range and threes).</p>
     </div>
   );
 }

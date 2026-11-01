@@ -158,10 +158,15 @@ export function zoneSkill(r: any): Record<Zone, number> {
 }
 // Offensive ability as a scorer and creator (not his overall: a defensive specialist can be a 70
 // and still not a scorer). Rotation players average about 57.
-export function offAbility(r: any) {
+// His scoring alone: his best way to score counts most (at the rim, mid-range or from three), then the next, plus free throws.
+export function scoringOf(r: any) {
   const rim = 0.25 * r.dnk + 0.25 * (r.lay ?? r.dnk) + 0.3 * r.ins + 0.1 * r.hgt + 0.1 * r.jmp, z = [rim, r.fg, r.tp].sort((a, b) => b - a);
-  const scoring = z[0] * 0.5 + z[1] * 0.3 + z[2] * 0.1 + r.ft * 0.1;
-  return scoring * 0.55 + r.drb * 0.17 + r.oiq * 0.15 + (r.acc ?? r.spd) * 0.13;
+  return z[0] * 0.5 + z[1] * 0.3 + z[2] * 0.1 + r.ft * 0.1;
+}
+// Playmaking: passing first, then the handle and the reads to get the ball where it should go.
+export const playmaking = (r: any) => r.pss * 0.5 + r.drb * 0.25 + r.oiq * 0.25;
+export function offAbility(r: any) {
+  return scoringOf(r) * 0.55 + r.drb * 0.17 + r.oiq * 0.15 + (r.acc ?? r.spd) * 0.13;
 }
 
 // Raw usage weight: how often he ends a possession while on the floor. USG% in the UI is
@@ -173,8 +178,7 @@ export function offAbility(r: any) {
 // tendency, which carries his role, confidence and habits and moves over seasons (tendencies.ts).
 export function usageRaw(p: { ovr: number; r: any; alpha?: boolean; touches?: boolean; roles?: string[]; tend?: Tend }) {
   let u = Math.exp(0.019 * (offAbility(p.r) - 57)) * (p.tend?.usg ?? 1);
-  if (p.alpha) u *= 1.05;
-  if (p.touches) u *= 1.06;
+  if (p.alpha) u *= 1.05; // wanting touches (pers.touches) is ball dominance now, not shots (tendencies.ts dom, 2026-10-30)
   u *= roleK(p, 'Primary creator', 1.05);
   return u;
 }
@@ -264,7 +268,7 @@ export const DEFAULT_NORMS: Norms = { season: 0, usage: 1, skill: { rim: 58, mid
 // his shots from three while making 33%). Multipliers on each zone's share and on drawing shooting
 // fouls, and how loose he is with the ball (risky passes); 1 (or missing) = what his skills and
 // roles suggest. Set per player in God Mode.
-export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; foul?: number; orb?: number; ast?: number; usg?: number; pass?: number; zs?: Record<Zone, number>; cre?: Record<Cre, number> } // zs: his shot mix as fractions (tendencies.ts, version 4: what he takes, used as is); cre: how he creates his jump shots // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
+export interface Tend { rim?: number; mid?: number; c3?: number; atb?: number; pf?: number; draw?: number; tov?: number; foul?: number; orb?: number; ast?: number; usg?: number; pass?: number; sf?: number; inv?: number; zs?: Record<Zone, number>; cre?: Record<Cre, number> } // zs: his shot mix as fractions (tendencies.ts, version 4: what he takes, used as is); cre: how he creates his jump shots // usg: how often he ends a possession (shot volume); pf: the share of his mid-tier shots taken in the paint; pass: how often he's the passer on a teammate's make
 // Players carry evolving playing-style tendencies (tendencies.ts, effTend) that fill these in; autoTend
 // below is only the fallback for a player without them.
 // Every player's default shot diet, from his skills and personality (a hand-set tendency for a zone
@@ -577,12 +581,17 @@ export class GameSim {
     // volatile one who's missed three straight (or just missed with his team down 18+) forces bad shots.
     const trail = O.pts - D.pts <= -18, mood = (p: SimPlayer) => { const k = this.streak.get(p.id) || 0; return clutch ? '' : p.heat && k >= 2 ? 'heat' : p.volatile && (k <= -3 || (trail && k < 0)) ? 'tilt' : ''; };
     const useMood = (p: SimPlayer) => { const m = mood(p); return (m === 'heat' ? 1.45 : m === 'tilt' ? 1.3 : 1) * (awayOff && p.villain ? 1.08 : 1) * (clutch && p.fearless ? 1.6 : 1); };
-    const uw = onO.map(p => useBase(p) * useMood(p)), ut = uw.reduce((a, b) => a + b, 0), ui = uw.indexOf(Math.max(...uw));
-    const gapO = onO[ui].ovr - onO.filter((_, i) => i !== ui).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1), USG_CAP = 0.33 + 0.17 * cl((gapO - 28) / 27, 0, 1);
-    // A star far better than everyone around him has to take over: his share grows with the gap (up to the ceiling).
-    const takeover = 1 + Math.max(0, gapO - 25) / 20; uw[ui] *= takeover; const ut2 = uw.reduce((a, b) => a + b, 0);
-    const uF = !clutch && uw[ui] / ut2 > USG_CAP ? takeover * (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : takeover;
-    const use = (p: SimPlayer) => useBase(p) * useMood(p) * (p === onO[ui] ? uF : 1);
+    const uw = onO.map(p => useBase(p) * useMood(p)), others = (i: number) => onO.filter((_, j) => j !== i).reduce((a, p) => a + p.ovr, 0) / Math.max(1, onO.length - 1);
+    // A star far better than everyone around him has to take over (2026-10-30: the best player, not the busiest
+    // shooter). How he takes over is his style: a scorer shoots more, a pass-first star (ball dominance well above his
+    // usage: tendencies.ts sf) runs more of the offense and sets more of it up; a player with little part in the
+    // offense (inv) hardly takes over at all.
+    const bi = onO.reduce((a, p, i) => (p.ovr > onO[a].ovr ? i : a), 0), bp = onO[bi], tk = (Math.max(0, bp.ovr - others(bi) - 25) / 20) * (bp.tend?.inv ?? 1), sfB = bp.tend?.sf ?? 1;
+    uw[bi] *= 1 + tk * sfB; const tkPass = 1 + 2 * tk * (1 - sfB);
+    // The usage ceiling holds whoever ends up with the biggest share.
+    const ui = uw.indexOf(Math.max(...uw)), gapO = onO[ui].ovr - others(ui), USG_CAP = 0.33 + 0.17 * cl((gapO - 28) / 27, 0, 1), ut2 = uw.reduce((a, b) => a + b, 0);
+    const uF = !clutch && uw[ui] / ut2 > USG_CAP ? (USG_CAP / (1 - USG_CAP)) * (ut2 - uw[ui]) / uw[ui] : 1;
+    const use = (p: SimPlayer) => { const i = onO.indexOf(p); return i < 0 ? useBase(p) * useMood(p) : uw[i] * (i === ui ? uF : 1); };
     const pTov = (1 + 0.02 * onO.filter(p => p.flashy).length) * (1 + 0.3 * (avg(onO, p => this.tired(p)) - TIRED0)) * RATE.tov * (n.tovM ?? 1) * Math.exp(-(handleO - n.handle) / TOV_K.handle + (pressD - n.perimD) / TOV_K.press - (feelO - FEEL_MID) / TOV_K.feelO + (feelD - FEEL_MID) / TOV_K.feelD) * (1 - 0.015 * connectors) * (1 + 0.025 * poa) * (1 - 0.08 * cAdv) * Math.exp(-oiqO / TOV_K.oiq + handsD / TOV_K.hands) + (fx ? fx.tov * (fx.tov > 0 ? cl(1 - (poiseO - POISE_MID) / 100, 0.5, 1.5) : 1) : 0) - (fb ? 0.03 : 0);
     const drawO = onO.reduce((a, p) => a + foulDrawWeight(p, use(p)), 0) / Math.max(1e-6, onO.reduce((a, p) => a + use(p), 0));
     // Foul drawing must create trips as well as decide who takes them. Previously
@@ -723,7 +732,7 @@ export class GameSim {
         const aRate = RATE.astF * BASE.zone[z].ast * ZONE_AST[z] * Math.exp((avg(onO.filter(p => p !== sh), p => Math.max(p.r.pss, (p.r.pss + p.r.drb) / 2)) - n.pss) / 60) * (fx ? fx.ast : 1) * Math.exp((feelO - FEEL_MID) / 120) * Math.exp((avg(onO.filter(p => p !== sh), p => p.r.oiq) - (n.oiq ?? 52)) / 110) + 0.02 * connectors;
         const stopper = onO.some(p => p.selfish && p !== sh) ? 0.9 : 1, iso = sh.selfish ? 0.85 : 1; // a selfish player stops the ball: less sharing around him, and he makes his own shots off the dribble
         if (!putback && Math.random() < cl(aRate * (cre && cm ? CRE_AST[cre] / cm.ast : 1) * stopper * iso, 0.05, 0.97)) { // a self-creator's makes come off his own dribble
-          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
+          passer = wpick(onO.filter(p => p.id !== sh.id), p => Math.pow(Math.max(PASS_FLOOR, p.r.pss * (1 + ((p.feel ?? FEEL_MID) - FEEL_MID) / 300 + (p.r.oiq - 50) / 400)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p === bp ? tkPass : 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)); // vision (Feel) and decision-making (Offensive IQ) sharpen his passing a little; the best passer gets about 40% of his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7)
           O.box[passer.id].ast++;
         }
         ev(passer ? [sh.id, passer.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => (passer ? 'Assisted by ' + passer.name + ' (' + O.box[passer.id].ast + ' AST)' : ''), true);

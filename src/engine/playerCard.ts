@@ -3,7 +3,7 @@
 // who he is in this league: his ID, team, contract, stats and history.
 import { syncOvr } from './ratings';
 import { setTruePot } from './potential';
-import { anchorCardStyle, CRE_TEN, ensureTen, HABIT_TEN, initTendencies, quirkOf, round100, tenTargets, ZONE_TEN } from './tendencies';
+import { anchorCardStyle, cardDom, CRE_TEN, ensureTen, HABIT_TEN, initTendencies, quirkOf, round100, tenTargets, ZONE_TEN } from './tendencies';
 import { groupsOf } from '../data/heritage';
 import { refreshElig } from './eligibility';
 import { OLD_CARD_BUILDS, OLD_CARD_TENS } from '../data/cardBuilds';
@@ -59,7 +59,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   initTendencies(p);
   const ct = card.ten && typeof card.ten === 'object' ? card.ten : null, num = (v: any) => typeof v === 'number' && isFinite(v);
   if (ct && (num(ct.step) || num(ct.fade))) {
-    (['usage', 'ftr', ...HABIT_TEN] as const).forEach(k => { if (num(ct[k])) p.ten[k] = Math.max(2, Math.min(98, ct[k])); });
+    (['usage', 'ftr', 'dom', ...HABIT_TEN] as const).forEach(k => { if (num(ct[k])) p.ten[k] = Math.max(2, Math.min(98, ct[k])); }); // ball dominance (2026-10-30): the card's, else from his game
     for (const keys of [ZONE_TEN, CRE_TEN] as readonly (readonly string[])[]) { const g = Object.fromEntries(keys.map(k => [k, num(ct[k]) ? Math.max(0, ct[k]) : p.ten[k]])); if (keys.some(k => num(ct[k]))) Object.assign(p.ten, round100(g)); }
   } else if (ct || card.tend) {
     const tg = tenTargets(p, null), v3 = ['usage', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'ftr'] as const;
@@ -70,6 +70,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (ct) HABIT_TEN.forEach(k => { if (num(ct[k])) p.ten[k] = Math.max(2, Math.min(98, ct[k])); });
   // Card preferences survive AI refreshes and evolve with his skills/age. A card
   // without an authored style continues to use the generic AI targets.
+  if (ct && !num(ct.dom)) p.ten.dom = cardDom(p.ten.dom, p.ten.usage); // a card from before ball dominance keeps the shot volume it was tuned for
   if (ct || card.tend) anchorCardStyle(p, p.ten, card.age ?? p.age);
   delete p.tenLock;
   const preset = PRESET_CARDS.findIndex(x => x.card.name === card.name && JSON.stringify(x.card.r) === JSON.stringify(card.r));

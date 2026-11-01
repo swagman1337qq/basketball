@@ -56,7 +56,7 @@ A card can still carry the real player's name and bio. The card library shows th
     "team": false, "legacy": false, "streaky": false
   },
   "ten": {
-    "usage": 50, "ftr": 50,
+    "usage": 50, "dom": 50, "ftr": 50,
     "ra": 31, "paint": 13.5, "mid": 12.5, "c3": 10.5, "atb": 32.5,
     "cns": 52, "pullup": 32, "step": 9, "fade": 7
   }
@@ -198,7 +198,8 @@ Stored the way the NBA reports it.
 
 | Key | What it controls |
 |---|---|
-| `usage` | Shot volume on top of what his game earns him. +20 means about 40% more of the offense. |
+| `usage` | Shot volume on top of what his game earns him. +20 means about 40% more of the offense. For a pass-first player (ball dominance 20 or more above usage), it falls off faster below 30, so a star who chooses to pass can take a role player's share of shots. |
+| `dom` | Ball dominance (2026-10-30), 0–100, 50 typical: how much the offense runs through him, apart from how often he shoots. Raises his share of the team's assists (passing still decides how many of his passes turn into baskets) and turnovers. When he's far the best player on the floor and takes over, a high-dominance, lower-usage player sets more up instead of shooting more. Luka ~95 usage / 95 dominance; prime Chris Paul ~25–35 / 95; Klay ~65 / 20. Leave it out and it comes from his game (passing, handle, reads, guard, Wants touches), capped at usage + 20 so a card made before ball dominance keeps the shot volume it was tuned for. |
 | `ftr` | Foul drawing: changes his share of free throws and the lineup’s shooting-foul frequency. |
 | `turnovers` | Risk on touches and passes, beyond skills and role. 50 is neutral; higher means more turnovers. |
 | `fouls` | Foul frequency beyond defensive skills, position and contact. 50 is neutral; higher means more fouls. |
@@ -611,7 +612,7 @@ Otherwise, in this order:
 5. Hidden decimal progress is cleared (unless the card carries `_rx`, `_px` or `_gem`, which only an undo does). His overall is computed from the ratings.
 6. **His skill ceilings are rebuilt from scratch.** `pot` (kept between his overall and 100) becomes his exact true potential as God Mode's word. His ceilings may go up to 100, his growth plan restarts from today, and the league's read of his potential is reset to the truth (no scouting miss).
 7. **Tendencies:**
-   - With the current format (`step` or `fade` present): `usage` and `ftr` are kept between 2 and 98; each group of shares (zones, then creation) is scaled to add up to 100; missing shares come from his ratings.
+   - With the current format (`step` or `fade` present): `usage`, `dom` and `ftr` are kept between 2 and 98; each group of shares (zones, then creation) is scaled to add up to 100; missing shares come from his ratings.
    - With an older format (0–100 scores per tendency, or multipliers in `tend`): the cards play the shot mix they played back then.
    - Without `ten`: tendencies come from his ratings plus his personal quirks.
 8. **Freeze tendencies is turned off.** Press it again if you want the card's mix kept.

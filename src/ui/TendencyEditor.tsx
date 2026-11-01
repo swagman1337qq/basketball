@@ -35,8 +35,9 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto, onFreeze }: { p: an
         <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => (onAuto ? onAuto() : onTen(auto()))} title="Set every number to what fits him now: his ratings, personality, age and role on his team">Auto (let the AI set them)</button>
         <span style={{ ...muted, fontSize: '11.5px' }}>What the game would pick for him from his ratings, personality, age and role.</span>
       </div>}
-      {head('Shot volume')}
+      {head('His role in the offense')}
       {row('usage', 'Usage rate', Math.round(expUsg(p, norms, roles)), uLo, uHi, v => onTen({ ...t, usage: usageScoreFor(p, norms, roles, v) }), '% USG', 'typical 20% (his game sets his range: ' + uLo + '–' + uHi + ')', TEN_DESC.usage)}
+      {row('dom', 'Ball dominance', Math.round(t.dom ?? 50), 2, 98, v => onTen({ ...t, dom: v }), '/100', 'typical 50 · how much the offense runs through him (assists, turnovers); usage is how often he shoots', TEN_DESC.dom)}
       {head('Where his shots come from (% of his shots)')}
       {ZONE_TEN.map(share)}{total(ZONE_TEN)}
       {head('How he creates his jump shots (% of his jumpers)')}
