@@ -7,6 +7,7 @@ import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
 import { useSearchFilter } from '../SearchFilter';
+import { LoadDraftClass } from '../LoadDraftClass';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 const pickBtn = { fontSize: "11px", padding: "2px 8px", minHeight: 0, lineHeight: 1.5 } as const;
@@ -65,6 +66,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <div style={{ flex: "1", color: vm.ctx.s.god ? GOD_PINK : "var(--color-neutral-700)", fontSize: "12px" }}>
           {vm.dr.classNote}
         </div>
+        {vm.ctx.s.god && view === 'board' && <LoadDraftClass gm={vm.ctx.gm} year={vm.ctx.s.dClass} canLoad={vm.ctx.s.dClass > vm.ctx.gm.Y || (vm.ctx.s.dClass === vm.ctx.gm.Y && !(vm.ctx.s.phase === 'draft' ? (vm.ctx.s.pi || 0) > 0 : ['preFA', 'fa', 'preseason'].includes(vm.ctx.s.phase)))} />}
         {!!vm.dr.isCurrent && (<>
           <div style={{ display: "flex", gap: "6px" }}>
             <button className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice} style={{ whiteSpace: "nowrap" }}>

@@ -167,11 +167,22 @@ export function schoolPath(p: any): Stint[] {
 
 // A whole class's lines with their advanced stats (memoized per class, season and edit counter).
 const MEMO = new WeakMap<object, { key: string; v: Record<number, (AmLine & { adv: StatLine })[]> }>();
+// A loaded draft class's real seasons (engine/historical.ts, p.real: per game), as season lines in the same shape as
+// generated ones, so his advanced stats come from the same formulas. Only seasons already played show (a class loaded
+// years ahead plays them out); pace 70 a game, about college basketball's in 2000.
+export function realLines(g: Game, p: any): AmLine[] {
+  return (p.real || []).filter((l: any) => l.season <= g.Y).map((l: any) => {
+    const from = { team: l.team, lg: l.lg || p.from?.lg || 'NCAA' }, lv = compLevel(from), gp = l.gp || 0, n = (v: any) => (v || 0) * gp, age = (p.dAge ?? p.age) - (p.cls - l.season);
+    if (!gp) return { season: l.season, team: l.team, lg: from.lg, level: lv.label, age, gp: 0, mpg: 0, tq: 0, disp: {}, t: {}, note: l.note === 'sitout' ? NOTE.sitout : NOTE.redshirt } as AmLine;
+    const disp: StatLine = { gp, gs: l.gs || 0, min: n(l.mp), pts: n(l.pts), fgm: n(l.fg), fga: n(l.fga), tpm: n(l.tp), tpa: n(l.tpa), ftm: n(l.ft), fta: n(l.fta), orb: n(l.orb), drb: n(l.drb), ast: n(l.ast), stl: n(l.stl), blk: n(l.blk), tov: n(l.tov), pf: n(l.pf) };
+    return { season: l.season, team: l.team, lg: from.lg, level: lv.label, age, gp, mpg: l.mp || 0, tq: 0, disp, t: { ...disp, min: disp.min * 48 / 40, ...scale(disp, 100 / 70) } };
+  });
+}
 export function classStats(g: Game, cls: number, ids: number[], gv = 0): Record<number, (AmLine & { adv: StatLine })[]> {
   const key = cls + '|' + g.Y + '|' + gv + '|' + ids.length;
   const memo = MEMO.get(g.db); if (memo?.key === key) return memo.v;
   const P = g.db.P, bySeason: Record<number, { p: any; line: AmLine }[]> = {};
-  ids.forEach(id => { const p = P[id]; amateurSeasons(g, p).forEach(({ season, back, st }) => (bySeason[season] = bySeason[season] || []).push({ p, line: seasonLine(p, season, back, st) })); });
+  ids.forEach(id => { const p = P[id]; if (p?.real) { realLines(g, p).forEach(line => (bySeason[line.season] = bySeason[line.season] || []).push({ p, line })); return; } amateurSeasons(g, p).forEach(({ season, back, st }) => (bySeason[season] = bySeason[season] || []).push({ p, line: seasonLine(p, season, back, st) })); });
   const out: Record<number, (AmLine & { adv: StatLine })[]> = {};
   Object.keys(bySeason).forEach(y => {
     const list = bySeason[+y], adv = amateurAdvanced(g, list.filter(x => x.line.gp > 0).map(x => ({ p: x.p, t: x.line.t, tq: x.line.tq }))); // (a season he didn't play has no advanced stats)
