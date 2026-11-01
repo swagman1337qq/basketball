@@ -113,7 +113,7 @@ function fit() {
     const ki = idx(k), pi = ['drb', 'stl', 'blk', 'pf'].includes(k) ? idx('onPD') : idx('onPO');
     let num = 0, den = 0; byP.forEach((gs, pk) => gs.forEach(r => { if (!bench.has(pk + ':' + r[1])) return; num += r[ki]; den += r[pi]; })); const lg = num / den;
     let best: any = null;
-    for (const d of [0.95, 0.97, 0.98, 0.985, 0.99, 0.993, 0.996, 0.998, 1]) for (const m of [0.3, 0.5, 0.7, 1]) for (const K of [100, 300, 700, 1500]) {
+    for (const d of [0.95, 0.97, 0.98, 0.985, 0.99, 0.993, 0.996, 0.998, 1]) for (const m of [0.1, 0.2, 0.3, 0.5, 0.7, 1]) for (const K of [30, 60, 100, 300, 700, 1500]) {
       let err = 0, w = 0;
       byP.forEach(gs => { const cs = pre.get(gs)!, cv = cs[ki], cp = cs[pi]; let s = 0, n = 0; for (let i = 0; i < gs.length - 20; i++) { const r = gs[i];
         if (i && gs[i - 1][1] !== r[1]) { s *= m; n *= m; }
