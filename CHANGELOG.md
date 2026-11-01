@@ -7,6 +7,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ### Added
 - **Ball dominance: pass-first point guards are real now.** A new playing-style setting, next to usage, says how much the offense runs through a player, apart from how often he shoots. Usage is still his shot volume; ball dominance decides how many of his team's assists (and turnovers) are his. So a Luka can be high on both, a Chris Paul high dominance with moderate usage (about 20 points and 10+ assists instead of 30 and 12), a Rondo high dominance and low usage (about 11 and 11), a Klay high usage and low dominance. Set it in Edit player → Tendencies, see it in a player's Playing style, and player cards carry it. The AI sets it from passing, handle and reads, a guard's job and his place on the team; Wants touches now means wanting the ball, not more shots, and a player who passes much better than he scores shoots less. When a star far better than his teammates takes over, he takes over his way: a scorer shoots more, a pass-first star sets up more. League scoring, assists and turnovers are unchanged in total; tested over full seasons, the assist leaders now reach 10+ a game like real seasons, pass-first guards score a few points less and pass more, and every preset player card plays as before (the playmakers a few assists closer to their real seasons).
 
+### Changed
+- **No more 15-assist seasons.** One player can only collect so much of his team's assists: past a point, his share grows much more slowly. A pass-first star set to run the offense now tops out around 12–13 assists a game, like the real Chris Paul and Rondo, instead of 15. The league's assist leaders stay around 10.
+
 ## 2026-10-31
 
 ### Added

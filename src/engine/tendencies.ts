@@ -307,7 +307,7 @@ export function autoTen(p: any, ctx?: number | null | TenCtx): boolean {
 // take a role player's share of shots. A low-usage player who doesn't run the offense (a Biyombo) is unaffected.
 const USG_KNEE = 30, USG_LOW_K = 25;
 export const usgMult = (v: number, dom = 50) => Math.exp((v - 50) / USG_K - (Math.max(0, USG_KNEE - v) / USG_LOW_K) * cl((dom - v - 20) / 30, 0, 1));
-const ex = (v: number, k: number) => Math.exp((v - 50) / k), USG_K = 60, FTR_K = 28, DOM_PASS_K = 250, DOM_TOV_K = 160; // shot volume: +20 on the tendency is about 40% more of the offense
+const ex = (v: number, k: number) => Math.exp((v - 50) / k), USG_K = 60, FTR_K = 28, DOM_PASS_K = 150, DOM_TOV_K = 160; // shot volume: +20 on the tendency is about 40% more of the offense
 export function effTend(p: any): Tend | undefined {
   const t = ensureTen(p);
   if (!t) return undefined;
