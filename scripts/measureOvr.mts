@@ -39,9 +39,8 @@ function work(N: number, seed: number, out: string) {
     const y = (100 * (r.home.pts - r.away.pts)) / Math.max(1, poss / 2) / 2; // net per 100 possessions (each team's)
     for (let u = 0; u < K; u++) { if (!f[u]) continue; Xy[u] += f[u] * y; for (let v = 0; v < K; v++) if (f[v]) XX[u][v] += f[u] * f[v]; }
     yy += y * y; n++;
-    if (i % 2000 === 0) console.log('seed', seed, 'game', i);
+    if (i % 2000 === 1999 || i === N - 1) { writeFileSync(out, JSON.stringify({ n, yy, XX: XX.map(r => Array.from(r)), Xy: Array.from(Xy) })); console.log('seed', seed, 'games', n); } // saved as it goes: combine any time
   }
-  writeFileSync(out, JSON.stringify({ n, yy, XX: XX.map(r => Array.from(r)), Xy: Array.from(Xy) }));
 }
 
 function combine(files: string[]) {

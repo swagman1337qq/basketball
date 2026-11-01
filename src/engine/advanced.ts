@@ -32,7 +32,7 @@ const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: '
 //   points (luck removed), with its own weights by position group (its role adjustment);
 // - decay: DARKO's, per stat: how much of the past each game keeps (d), how much a summer keeps (m), and the
 //   prior (a bench player's rate) worth K possessions, chosen by how well they predict the next 20 games.
-export type ImpactFit = { epm: { o: number[]; d: number[] }; lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> }; decay: Record<string, { d: number; m: number; K: number; prior: number }> };
+export type ImpactFit = { usePrior?: boolean; epm: { o: number[]; d: number[] }; lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> }; decay: Record<string, { d: number; m: number; K: number; prior: number }> };
 export const IMPACT_FIT: ImpactFit | null = null; // FILLED BY THE FIT
 let FIT: ImpactFit | null = IMPACT_FIT;
 // The tests switch between the fitted method (undefined: the built-in fit), a fit of their own, or null (the method
@@ -350,11 +350,11 @@ function finishImpact(g: Game, season: number, rows: Row[], out: Record<number, 
   // EPM and LEBRON: RAPM where the season's lineups were tracked (regular season), else the box score blended
   // with on/off; the on/off weight counts how few possessions he had OFF the floor too (n = 1/(1/on + 1/off)).
   const R = !po ? (g.db.rapm || {})[season] : null;
-  const RP = R ? rapm(R, id => { const x = out[id]; return !x ? null : FIT ? { o: x.sO, d: x.sD, oL: x.lO, dL: x.lD } : { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) }; }) : null;
+  const RP = R ? rapm(R, id => { const x = out[id]; return !x ? null : FIT?.usePrior ? { o: x.sO, d: x.sD, oL: x.lO, dL: x.lD } : { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) }; }) : null;
   rows.forEach(({ p }) => { const x = out[p.id], r = RP?.[p.id];
     if (r) { x.oepm = r.o; x.depm = r.d; x.olebron = r.oX; x.dlebron = r.dX; return; }
     const wO = x.nOff / (x.nOff + 6000), wD = x.nDef / (x.nDef + 6000), lO = x.nOff / (x.nOff + 5000), lD = x.nDef / (x.nDef + 5000);
-    const bO = FIT ? x.sOA : x.obpm, bD = FIT ? x.sDA : x.dbpm, bLO = FIT ? x.lOA : x.obpm - x.luckBox, bLD = FIT ? x.lDA : x.dbpm;
+    const FP = !!FIT?.usePrior, bO = FP ? x.sOA : x.obpm, bD = FP ? x.sDA : x.dbpm, bLO = FP ? x.lOA : x.obpm - x.luckBox, bLD = FP ? x.lDA : x.dbpm;
     x.oepm = bO * (1 - wO) + x.ooff * wO; x.depm = bD * (1 - wD) + x.doff * wD;
     x.olebron = bLO * (1 - lO) + x.ooffX * lO; x.dlebron = bLD * (1 - lD) + x.doffX * lD; });
   // DARKO: his current level. This season's unshrunk box score and his last three (each in its own season's
