@@ -221,7 +221,7 @@ export function realLines(g: Game, p: any): AmLine[] {
   const source = p.real || [], years = [...new Set<number>(source.map((l: any) => l.season))].sort((a, b) => a - b);
   const retained = p.amAgeEdit ? new Set(years.slice(-p.amAgeEdit.years)) : null;
   return source.filter((l: any) => l.season <= g.Y && (!retained || retained.has(l.season))).map((l: any) => {
-    const from = { team: l.team, lg: l.lg || p.from?.lg || 'NCAA' }, lv = compLevel(from), gp = l.gp || 0, n = (v: any) => (v || 0) * gp, age = (p.dAge ?? p.age) - (p.cls - l.season);
+    const from = { team: l.team, lg: l.lg || p.from?.lg || 'NCAA' }, lv = compLevel(from), gp = l.gp || 0, n = (v: any) => (v || 0) * gp, age = (p.dAge ?? p.age) - (amClass(p) - l.season);
     if (!gp) return { season: l.season, team: l.team, lg: from.lg, level: lv.label, age, gp: 0, mpg: 0, tq: 0, disp: {}, t: {}, note: l.note === 'sitout' ? NOTE.sitout : NOTE.redshirt } as AmLine;
     const disp: StatLine = { gp, gs: l.gs || 0, min: n(l.mp), pts: n(l.pts), fgm: n(l.fg), fga: n(l.fga), tpm: n(l.tp), tpa: n(l.tpa), ftm: n(l.ft), fta: n(l.fta), orb: n(l.orb), drb: n(l.drb), ast: n(l.ast), stl: n(l.stl), blk: n(l.blk), tov: n(l.tov), pf: n(l.pf) };
     return { season: l.season, team: l.team, lg: from.lg, level: lv.label, age, gp, mpg: l.mp || 0, tq: 0, disp, t: { ...disp, min: disp.min * 48 / 40, ...scale(disp, 100 / 70) } };

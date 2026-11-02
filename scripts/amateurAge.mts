@@ -50,3 +50,8 @@ setGodPlayerAge(g,veteran,36);
 assert.equal(veteran.dAge,28);assert.equal(schoolPath(veteran).length,4);
 const plain:any={age:25};setGodPlayerAge(g,plain,28);assert.equal(plain.age,28);assert.equal(plain.dAge,undefined);
 console.log('College age edits: older four-year history, freshman trimming, unchanged season stats, memo invalidation, transfers, source preservation, veteran tenure and save roundtrip passed.');
+
+const undrafted:any=structuredClone(h);delete undrafted.amAgeEdit;Object.assign(undrafted,{age:22,dAge:22,cls:0,undrafted:g.Y});
+assert.equal(realLines(g,undrafted).at(-1)!.age,22);setGodPlayerAge(g,undrafted,19);
+assert.equal(realLines(g,undrafted).length,2);assert.ok(realLines(g,undrafted).every(x=>x.age===19));
+console.log('Undrafted historical players retain correct college ages.');
