@@ -27,11 +27,11 @@
     "jmp": 66,
     "endu": 78,
     "ins": 35,
-    "dnk": 10,
+    "dnk": 55,
     "lay": 40,
     "ft": 56,
-    "fg": 65,
-    "tp": 45,
+    "fg": 48,
+    "tp": 41,
     "oiq": 55,
     "diq": 50,
     "blk": 23,
@@ -68,8 +68,8 @@
     "ambition": 70
   },
   "ten": {
-    "usage": 45.5,
-    "ftr": 81.5,
+    "usage": 53.5,
+    "ftr": 79,
     "ra": 39.7,
     "paint": 20.1,
     "mid": 20.6,
@@ -81,10 +81,11 @@
     "fade": 3,
     "turnovers": 71.5,
     "fouls": 57.5,
-    "crash": 53.22
+    "crash": 53.22,
+    "dunk": 2
   },
   "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
-  "notes": "Full 35-game 2011–12 Knicks regular season, not the February hot streak. Zone attempt shares use the official NBA shot chart. Creation shares and individual finishing ratings are estimates; the engine blends finishing skills. Applying keeps the recipient’s identity, age, contract and history.",
+  "notes": "Full 35-game Knicks regular season. Separate shot-type execution; 2% desired rim dunk share from three recorded dunks. Dunk execution uses a neutral prior because three attempts cannot identify ability. Inside describes post/hook skill; it is not layup skill. Creation shares remain estimates.",
   "sources": [
     "https://www.nba.com/stats/player/202391/shooting?Season=2011-12",
     "https://www.basketball-reference.com/players/l/linje01.html",

@@ -7,8 +7,8 @@ import type { Game } from '../engine/Game';
 import { CRE_TEN, ensureTen, expUsg, HABIT_TEN, styleLine, TEN_DESC, TEN_LABEL, tenUnit, typShare, ZONE_TEN, type TenKey } from '../engine/tendencies';
 import { muted, ruleH4 } from './kit';
 
-const GROUP: Partial<Record<TenKey, string>> = { usage: 'His role in the offense', ra: 'Where his shots come from (% of his shots)', cns: 'How he creates his jump shots (% of his jumpers)', ftr: 'Getting to the line', turnovers: 'Other habits (50 = neutral)' };
-const ORDER: TenKey[] = ['usage', 'dom', ...ZONE_TEN, ...CRE_TEN, 'ftr', ...HABIT_TEN];
+const GROUP: Partial<Record<TenKey, string>> = { usage: 'His role in the offense', ra: 'Where his shots come from (% of his shots)', dunk: 'Finishing choice (% of restricted-area attempts)', cns: 'How he creates his jump shots (% of his jumpers)', ftr: 'Getting to the line', turnovers: 'Other habits (50 = neutral)' };
+const ORDER: TenKey[] = ['usage', 'dom', ...ZONE_TEN, 'dunk', ...CRE_TEN, 'ftr', ...HABIT_TEN];
 
 export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
   const t = ensureTen(p); if (!t) return null;
@@ -17,17 +17,20 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
   const jumpers = live ? (tot.qa || 0) + (tot.ua || 0) + (tot.sa || 0) + (tot.da || 0) : 0;
   // This season's real numbers, where the box score keeps them (paint split from 2026-10, creation from 2026-10-08).
   const actual: Partial<Record<TenKey, string>> = live ? { usage: gm.usgOf(tot).toFixed(1) + '%', ra: share(tot.ra || 0, tot.fga), ...(tot.ka != null ? { paint: share(tot.ka, tot.fga), mid: share((tot.ma || 0) - tot.ka, tot.fga) } : {}), c3: share(tot.ca || 0, tot.fga), atb: share(tot.ba || 0, tot.fga),
-    ...(jumpers >= 20 ? { cns: share(tot.qa || 0, jumpers), pullup: share(tot.ua || 0, jumpers), step: share(tot.sa || 0, jumpers), fade: share(tot.da || 0, jumpers) } : {}), ftr: (tot.fta / tot.fga).toFixed(3).replace(/^0/, '') } : {};
+    ...(jumpers >= 20 ? { cns: share(tot.qa || 0, jumpers), pullup: share(tot.ua || 0, jumpers), step: share(tot.sa || 0, jumpers), fade: share(tot.da || 0, jumpers) } : {}),
+    ...(Number.isFinite(tot.finishRaA) && tot.finishRaA >= 20 && Number.isFinite(tot.dunkA) ? { dunk: share(tot.dunkA, tot.finishRaA) } : {}), ftr: (tot.fta / tot.fga).toFixed(3).replace(/^0/, '') } : {};
+  const finishes = [['Layups', 'layup'], ['Dunks', 'dunk'], ['Floaters', 'floater'], ['Hooks', 'hook'], ['Tips', 'tip'], ['Paint jumpers', 'paintJump']] as const;
+  const trackedFinishes = live && finishes.some(([, key]) => Number.isFinite(tot[key + 'A']) && tot[key + 'A'] > 0);
   const isScore = (k: TenKey) => k === 'usage' || k === 'ftr' || k === 'dom' || HABIT_TEN.includes(k as any);
   return (
     <div>
       <h4 style={{ ...ruleH4, marginTop: '14px' }}>Playing style</h4>
       <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{styleLine(p)} His shooting preferences and other habits: {p.tenLock ? 'frozen in God Mode, so the AI leaves them alone.' : p.tenBase ? 'his card preferences are kept while the AI adapts them to his skills, age and role.' : 'the AI sets them from his skills, personality, role and team, and updates them every month and every summer.'}</p>
       {ORDER.map(k => {
-        const v = t[k] ?? 0, typ = isScore(k) ? 50 : typShare(k as any), d = prev && prev[k] != null ? v - prev[k] : 0;
-        const hi = isScore(k) ? v >= 65 : v >= typ * 1.5 && v >= 8, lo = isScore(k) ? v <= 35 : v <= typ * 0.5, c = hi ? 'var(--color-accent-700)' : lo ? 'var(--color-neutral-600)' : 'var(--color-text)';
+        const v = t[k] ?? 0, typ = isScore(k) ? 50 : k === 'dunk' ? null : typShare(k as any), d = prev && prev[k] != null ? v - prev[k] : 0;
+        const hi = isScore(k) ? v >= 65 : typ != null && v >= typ * 1.5 && v >= 8, lo = isScore(k) ? v <= 35 : typ != null && v <= typ * 0.5, c = hi ? 'var(--color-accent-700)' : lo ? 'var(--color-neutral-600)' : 'var(--color-text)';
         const text = k === 'usage' ? expUsg(p, norms, roles).toFixed(1) + '% of plays' : k === 'dom' ? Math.round(v) + ' / 100' : k === 'ftr' ? tenUnit('ftr', v).toFixed(3).replace(/^0/, '') + ' FTA per FGA' : HABIT_TEN.includes(k as any) ? Math.round(v) + ' / 100' : (Math.round(v * 10) / 10) + '%';
-        const width = isScore(k) ? v : Math.min(100, v), mark = isScore(k) ? 50 : Math.min(100, typ);
+        const width = isScore(k) ? v : Math.min(100, v), mark = isScore(k) ? 50 : typ == null ? null : Math.min(100, typ);
         return (
           <div key={k}>
             {GROUP[k] && <div style={{ ...muted, fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', margin: k === 'usage' ? '2px 0 1px' : '7px 0 1px' }}>{GROUP[k]}</div>}
@@ -35,13 +38,20 @@ export function PlayingStyle({ p, gm }: { p: any; gm: Game }) {
               <span style={k === 'usage' ? { fontWeight: 600 } : undefined}>{TEN_LABEL[k]}</span>
               <div style={{ position: 'relative', height: 7, background: 'color-mix(in srgb, var(--color-text) 12%, transparent)', borderRadius: 4 }}>
                 <div style={{ height: 7, width: Math.round(width) + '%', background: c, borderRadius: 4, opacity: 0.8 }} />
-                <div title={'League typical' + (isScore(k) ? '' : ': ' + typ + '%')} style={{ position: 'absolute', left: mark + '%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 40%, transparent)' }} />
+                {mark != null && <div title={'League typical' + (isScore(k) ? '' : ': ' + typ + '%')} style={{ position: 'absolute', left: mark + '%', top: -2, bottom: -2, width: 1, background: 'color-mix(in srgb, var(--color-text) 40%, transparent)' }} />}
               </div>
               <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><b style={{ color: c }}>{text}</b>{actual[k] && <span title="This season, actual" style={{ ...muted, fontSize: '11px', display: 'block' }}>this season {actual[k]}</span>}</span>
               <span title={prev ? 'Since last summer' : ''} style={{ fontSize: '11px', fontWeight: 700, color: d >= 1 ? 'var(--gm-good)' : d <= -1 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{prev && Math.abs(d) >= 1 ? (d > 0 ? '▲' : '▼') : ''}</span>
             </div>
           </div>); })}
       <p style={{ ...muted, fontSize: '11px', margin: '4px 0 0' }}>Hover a row for its definition. Other habits use a 0–100 scale, with 50 neutral. The line marks the league's typical share (for usage, ball dominance and free throws, a typical rotation player). His zones add up to 100% of his shots, and his four ways of creating add up to 100% of his jump shots (mid-range and threes).</p>
+      {trackedFinishes && <div style={{ marginTop: 12 }}>
+        <h4 style={{ ...ruleH4, marginBottom: 4 }}>Finishing this season</h4>
+        <table style={{ fontSize: '12px', width: '100%' }}><thead><tr><th style={{ textAlign: 'left' }}>Shot</th><th>Made / att</th><th>FG%</th></tr></thead><tbody>
+          {finishes.map(([label, key]) => { const attempts = tot[key + 'A'], made = tot[key + 'M']; return Number.isFinite(attempts) && Number.isFinite(made) ? <tr key={key}><td>{label}</td><td style={{ textAlign: 'center' }}>{made} / {attempts}</td><td style={{ textAlign: 'center' }}>{attempts > 0 ? (100 * made / attempts).toFixed(1) + '%' : '—'}</td></tr> : null; })}
+        </tbody></table>
+        <p style={{ ...muted, fontSize: '11px', margin: '3px 0 0' }}>Tracked attempts only. Earlier games without finishing details are not included.</p>
+      </div>}
     </div>
   );
 }

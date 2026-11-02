@@ -17,7 +17,7 @@ const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 // His skills from his real college numbers (per 40 minutes over his last two playing seasons), blended half and half
 // with the generated build, so a 40% three-point shooter shoots and a shot-blocker blocks; the overall is set after.
-function shapeFromStats(p: any, h: HistProspect) {
+export function shapeFromStats(p: any, h: HistProspect) {
   const played = (h.real || []).filter(l => l.gp && l.mp).slice(-2); if (!played.length) return;
   const min = played.reduce((a, l) => a + l.gp! * l.mp!, 0); if (min < 200) return;
   const per40 = (k: keyof typeof played[0]) => (played.reduce((a, l) => a + l.gp! * ((l[k] as number) || 0), 0) / min) * 40;
@@ -30,9 +30,12 @@ function shapeFromStats(p: any, h: HistProspect) {
     pss: cl(30 + per40('ast') * 6, 20, 90), drb: cl(32 + per40('ast') * 4.5 + (GRP[h.pos] === 'G' ? 12 : GRP[h.pos] === 'W' ? 5 : -5), 15, 90),
     reb: cl(24 + per40('trb') * 3.3, 15, 90), box: cl(26 + per40('trb') * 3, 15, 88),
     blk: cl(24 + per40('blk') * 11, 10, 92), stl: cl(28 + per40('stl') * 12, 15, 90),
-    ins: cl(36 + ((two ?? 0.48) - 0.45) * 110 + per40('fta') * 1.8, 15, 88), lay: cl(38 + ((two ?? 0.48) - 0.45) * 100 + per40('fta') * 1.5, 15, 88), dnk: cl(34 + ((two ?? 0.48) - 0.45) * 90 + per40('fta') * 1.8, 10, 90),
+    // Aggregate two-point shooting is weak evidence about general non-dunk touch.
+    // It does not identify dunk execution or post/hook scoring: preserve those
+    // generated archetype priors unless an import supplies actual type evidence.
+    lay: cl(38 + ((two ?? 0.48) - 0.45) * 100 + per40('fta') * 1.5, 15, 88),
   };
-  Object.entries(want).forEach(([k, v]) => { if (p.r[k] != null) p.r[k] = Math.round((p.r[k] + v) / 2); });
+  Object.entries(want).forEach(([k, v]) => { if (p.r[k] != null) { const weight = k === 'lay' ? 0.25 : 0.5; p.r[k] = Math.round(p.r[k] * (1 - weight) + v * weight); } });
   syncOvr(p);
 }
 

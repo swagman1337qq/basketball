@@ -8,7 +8,8 @@
 import type { Game } from './Game';
 import { mulberry32 } from './rng';
 import { ovrExact } from './ratings';
-import { blockSkill, offAbility, rebSkill, stealSkill, zoneSkill } from './sim';
+import { blockSkill, offAbility, PAINT_SHARE, rebSkill, stealSkill, zoneSkill } from './sim';
+import { FINISH_TYPES, finishMix, finishingPct, naturalDunkShare, type FinishType } from './finishing';
 import { SKILLS } from './development';
 import { amateurAdvanced, type StatLine } from './advanced';
 import { COLLEGES, D2, D3, IVY_LEAGUE, JUCO, LOW_MAJORS, MID_MAJORS, MORE_COLLEGES, NAIA } from '../data/world';
@@ -86,7 +87,15 @@ export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint
   const w = hasZones ? { rim: authored.ra, mid: authored.paint + authored.mid, three: authored.c3 + authored.atb }
     : { rim: Math.exp((zs.rim - 55) / 15), mid: 0.6 * Math.exp((zs.mid - 55) / 15), three: 1.1 * Math.exp((r.tp - 55) / 12) };
   const wt = w.rim + w.mid + w.three;
-  const pct = { rim: cl(0.62 + 0.0035 * (zs.rim - C - 12) + sit.eff, 0.4, 0.8), mid: cl(0.41 + 0.003 * (zs.mid - C - 12) + sit.eff, 0.25, 0.56), three: cl(0.355 + 0.003 * (zs.atb - C - 12) + sit.eff, 0.18, 0.47), ft: cl(0.7 + 0.005 * (r.ft - 45), 0.4, 0.93) };
+  // Keep the execution kernel's NBA-relative skill meanings. Competition moves
+  // the skill reference, rather than blending dunk ability into every layup.
+  // Physical access and the player's preference remain those of his snapshot.
+  const finishGroup = p.am?.grp || p.grp;
+  const finishRatings = { ...r };
+  for (const k of ['lay', 'dnk', 'ins', 'fg']) finishRatings[k] = cl(55 + (r[k] - C - 12), 1, 99);
+  const dunk = cl((habits?.dunk ?? authored?.dunk ?? naturalDunkShare(r, finishGroup) * 100) / 100, 0, 1);
+  const finisher = { r: finishRatings, grp: finishGroup, tend: { dunk } };
+  const pct = { mid: cl(0.41 + 0.003 * (zs.mid - C - 12) + sit.eff, 0.25, 0.56), three: cl(0.355 + 0.003 * (zs.atb - C - 12) + sit.eff, 0.18, 0.47), ft: cl(0.7 + 0.005 * (r.ft - 45), 0.4, 0.93) };
   const astR = cl(0.2 * Math.exp((r.pss * 0.6 + r.oiq * 0.2 + r.drb * 0.2 - C - 18) / 22) * nz(0.08) * sit.ast, 0.03, 0.48);
   const rb = rebSkill(r), orbR = cl(0.05 * Math.exp((rb - C - 16) / 18) * nz(0.08) * sit.reb * habit('crash'), 0.01, 0.2), drbR = cl(0.14 * Math.exp((rb - C - 16) / 22) * nz(0.06) * sit.reb, 0.05, 0.35);
   const stlR = cl(0.016 * Math.exp((stealSkill(r) - C - 12) / 20) * nz(0.1), 0.005, 0.045), blkR = cl(0.03 * Math.exp((blockSkill(r) - C - 16) / 14) * nz(0.12), 0.002, 0.15);
@@ -96,25 +105,37 @@ export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint
     * cl(1.18 - 0.07 * Math.max(0, age - 19), 0.85, 1.18) * habit('fouls');
   // A season at a given pace: possessions on the floor → attempts → makes (with their luck).
   const binom = (n: number, q: number) => Math.max(0, Math.min(n, Math.round(n * q + Math.sqrt(n * q * (1 - q)) * (rnd() + rnd() + rnd() - 1.5) * 2)));
+  const finishKeys: Record<FinishType, [string, string]> = { layup: ['layupM', 'layupA'], dunk: ['dunkM', 'dunkA'], floater: ['floaterM', 'floaterA'], hook: ['hookM', 'hookA'], tip: ['tipM', 'tipA'], paintJumper: ['paintJumpM', 'paintJumpA'] };
   const build = (pace40: number, minFrame: number) => {
     const poss = (pace40 * mpg / 40) * gp, used = usg * poss, tov = Math.round(tovR * used);
     // ftr is FTA/FGA. Solve FGA + .44 * FTA = used - TOV together;
     // the former extra .6 multiplier suppressed free throws and inflated FGA.
     const { fga, fta } = amateurAttempts(used, tov, ftr);
     const tpa = Math.round(fga * w.three / wt), rimA = Math.round(fga * w.rim / wt), midA = fga - tpa - rimA;
-    const paintShare = hasZones && w.mid > 0 ? authored.paint / w.mid : 0;
-    const paintPct = cl(0.41 + 0.003 * ((zs.mid + zs.rim) / 2 - C - 12) + sit.eff, 0.25, 0.6);
-    const midPct = paintShare * paintPct + (1 - paintShare) * pct.mid;
-    const tpm = binom(tpa, pct.three), rimM = binom(rimA, pct.rim), midM = binom(midA, midPct), ftm = binom(fta, pct.ft), fgm = tpm + rimM + midM;
+    const paintShare = hasZones && w.mid > 0 ? authored.paint / w.mid : PAINT_SHARE;
+    const paintA = Math.round(midA * paintShare), outsideA = midA - paintA;
+    const finishCounts: Record<string, number> = Object.fromEntries(FINISH_TYPES.flatMap(type => finishKeys[type].map(key => [key, 0])));
+    const finishShots = (attempts: number, zone: 'rim' | 'paint') => {
+      const mix = finishMix(finisher, zone); let left = attempts, mass = 1, made = 0;
+      const types = FINISH_TYPES.filter(type => mix[type] > 0);
+      types.forEach((type, i) => {
+        const n = i === types.length - 1 ? left : binom(left, cl(mix[type] / mass, 0, 1));
+        const m = binom(n, cl(finishingPct(finisher, type) + sit.eff, 0.05, type === 'dunk' ? 0.995 : 0.95));
+        const [mk, at] = finishKeys[type]; finishCounts[mk] = (finishCounts[mk] || 0) + m; finishCounts[at] = (finishCounts[at] || 0) + n;
+        left -= n; mass -= mix[type]; made += m;
+      });
+      return made;
+    };
+    const tpm = binom(tpa, pct.three), rimM = finishShots(rimA, 'rim'), paintM = finishShots(paintA, 'paint'), midM = paintM + binom(outsideA, pct.mid), ftm = binom(fta, pct.ft), fgm = tpm + rimM + midM;
     const ast = Math.round(astR * Math.max(0, poss * 0.42 - fgm)), orb = Math.round(orbR * poss * 0.52), drb = Math.round(drbR * poss * 0.52);
-    return { gp, gs: gp, min: mpg * gp * minFrame, pts: 2 * (rimM + midM) + 3 * tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb, ast, stl: Math.round(stlR * poss), blk: Math.round(blkR * poss * 0.55), tov, pf: Math.min(5 * gp, Math.round(pf40 * mpg / 40 * gp)) } as StatLine;
+    return { gp, gs: gp, min: mpg * gp * minFrame, pts: 2 * (rimM + midM) + 3 * tpm + ftm, fgm, fga, tpm, tpa, ftm, fta, orb, drb, ast, stl: Math.round(stlR * poss), blk: Math.round(blkR * poss * 0.55), tov, pf: Math.min(5 * gp, Math.round(pf40 * mpg / 40 * gp)), rm: rimM, ra: rimA, mm: midM, ma: midA, km: paintM, ka: paintA, finishRaA: rimA, finishPaintA: paintA, ...finishCounts } as StatLine;
   };
   // What he did (his level's pace in 40-minute games) and the same rates at an NBA pace in 48-minute terms for the formulas.
   const pace = Math.round(lv.college ? cl(68 + 4 * sit.pace, 61, 76) : cl(72 + 3 * sit.pace, 66, 78)), disp = build(pace, 1);
   return { season, team: from?.team || '—', lg: from?.lg || '', level: lv.label, age, gp, mpg: gp ? mpg : 0, tq: sit.team, disp, t: { ...disp, min: disp.min * 48 / 40, ...scale(disp, 100 / pace) }, ...(kind ? { note: NOTE[kind] } : {}) };
 }
 // Counting stats at another pace (the formulas' 48-minute, NBA-pace frame).
-function scale(t: StatLine, f: number): StatLine { const o: StatLine = {}; ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'].forEach(k => (o[k] = t[k] * f)); return o; }
+function scale(t: StatLine, f: number): StatLine { const o: StatLine = {}; for (const [k, v] of Object.entries(t)) if (typeof v === 'number' && !['gp', 'gs', 'min'].includes(k)) o[k] = v * f; return o; }
 
 // The seasons he played before the draft: up to four in college (from 18), four abroad (from 16), one in high
 // school or a junior team; shown through the league's current season.

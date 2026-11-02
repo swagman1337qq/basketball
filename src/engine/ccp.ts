@@ -12,7 +12,8 @@
 // There are no owners, coaches or finances: just teams, players and games.
 import type { Game } from './Game';
 import { effTend } from './tendencies';
-import { GameSim, blankLine, BASE, BLOCK_ON_MISS, CAL, CURVE_OF, DEFAULT_NORMS, ZONES, blockSkill, curve, glassSkill, interiorD, perimD, rebSkill, shotProfile, stealSkill, usageRaw, zoneSkill, type Norms, type Zone } from './sim';
+import { GameSim, blankLine, BASE, BLOCK_ON_MISS, CAL, CURVE_OF, DEFAULT_NORMS, PAINT_SHARE, TIER_KEY, ZONES, blockSkill, curve, glassSkill, interiorD, perimD, rebSkill, shotProfile, stealSkill, usageRaw, zoneSkill, type Norms, type Zone } from './sim';
+import { finishMean, finishMix, finishingPct, type FinishType } from './finishing';
 import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
@@ -109,7 +110,7 @@ function simTeamOf(g: Game, s: any, t: CcpTeam) {
 // tenth of the full engine while the box scores and season lines still look like basketball.
 // Settings can switch CCP games to the full engine.
 const Q_FOUL: Record<Zone, number> = { rim: 0.27, mid: 0.1, c3: 0.025, atb: 0.025 };
-function quickGame(g: Game, hT: any, aT: any) {
+export function ccpQuickGame(g: Game, hT: any, aT: any) {
   const R = Math.random, n: Norms = g.db.norms || DEFAULT_NORMS, gauss = () => (R() + R() + R() + R() - 2) * 1.7;
   const cl = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
   const pick = (w: number[], tot: number) => { let x = R() * tot; for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) return i; } return w.length - 1; };
@@ -119,14 +120,23 @@ function quickGame(g: Game, hT: any, aT: any) {
     const on = raw.map((v: number) => Math.min(1, (v / rt) * 5)); // share of the game on the floor
     const avg = (f: (p: any) => number) => ps.reduce((a: number, p: any, i: number) => a + f(p) * on[i], 0) / 5;
     const prof = ps.map((p: any) => shotProfile(p, n)), form = ps.map(() => gauss() * 0.012); // tonight's touch
-    const pct = ps.map((p: any, i: number) => { const sk = zoneSkill(p.r); return Object.fromEntries(ZONES.map(z => [z, BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk[z]) + n.offset[z] + (z === 'rim' ? 0.0009 * (p.r.hgt - (n.rimHgt ?? 55)) : 0) + form[i]])) as Record<Zone, number>; });
+    const pct = ps.map((p: any, i: number) => {
+      const sk = zoneSkill(p.r), paint = p.tend?.pf ?? PAINT_SHARE;
+      const jump = BASE.zone.mid.pct + CAL.mid + curve('jumper', sk.mid) + n.offset.mid - 0.01 * PAINT_SHARE / (1 - PAINT_SHARE);
+      return Object.fromEntries(ZONES.map(z => [z, z === 'rim' ? finishMean(p, 'rim', n.finish) + CAL.rim + 0.0009 * (p.r.hgt - (n.rimHgt ?? 55)) + form[i]
+        : z === 'mid' ? paint * (finishMean(p, 'paint', n.finish) + CAL.mid) + (1 - paint) * jump + form[i]
+          : BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk[z]) + n.offset[z] + form[i]])) as Record<Zone, number>;
+    });
+    // Cache technique execution, not a common rim make rate. The fast CCP path
+    // samples the same type mixture and execution kernel as the full engine.
+    const finish = ps.map((p: any, i: number) => Object.fromEntries(Object.keys(finishMix(p, 'rim')).map(type => [type, finishingPct(p, type as FinishType, n.finish) + form[i]])) as Record<FinishType, number>);
     const use = ps.map((p: any, i: number) => usageRaw(p) * on[i] * Math.exp(gauss() * 0.15));
     // A side full of shot-makers gets guarded tighter (the engine's lineup regression).
     const uT = use.reduce((a: number, v: number) => a + v, 0) || 1, edge = ps.reduce((a: number, _: any, i: number) => a + use[i] * ZONES.reduce((b, z) => b + prof[i][z] * (pct[i][z] - BASE.zone[z].pct - CAL[z]), 0), 0) / uT;
     const sec = (r: any) => 0.5 * r.drb + 0.3 * r.pss + 0.2 * r.oiq;
     const w = (f: (p: any) => number) => { const a = ps.map((p: any, i: number) => f(p) * on[i]); return { a, t: a.reduce((x: number, v: number) => x + v, 0) || 1 }; };
     return {
-      ps, on, prof, pct, use, uT, edge, box: ps.map((_: any, i: number) => ({ min: 0, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, pm: 0, gs: i < 5 ? 1 : 0 })),
+      ps, on, prof, pct, finish, form, use, uT, edge, box: ps.map((_: any, i: number) => ({ ...blankLine(), gs: i < 5 ? 1 : 0 })),
       ft: ps.map((p: any) => (p.r.ft >= 98.5 ? 0.98 : BASE.ft + CAL.ft + curve('ft', p.r.ft) + n.ftOffset)),
       tov: ps.map((p: any) => 0.1 * Math.exp((n.handle - sec(p.r)) / 70) * (p.tend?.tov ?? 1)),
       draw: ps.map((p: any) => p.tend?.draw ?? 1),
@@ -139,30 +149,43 @@ function quickGame(g: Game, hT: any, aT: any) {
     };
   };
   const H = side(hT), A = side(aT);
-  const defAdj = (D: any, z: Zone) => (z === 'rim' ? 0.0021 * (D.inner - n.interiorD) : z === 'mid' ? 0.001 * (D.perim - n.perimD) : 0.0008 * (D.perim - n.perimD));
+  const defAdj = (D: any, z: Zone, type: FinishType | null) => (z === 'rim' ? 0.0021 * (D.inner - n.interiorD)
+    : type === 'hook' || type === 'tip' ? 0.0015 * (D.inner - n.interiorD)
+      : type === 'floater' ? 0.0008 * (D.inner - n.interiorD) + 0.0005 * (D.perim - n.perimD)
+        : z === 'mid' ? 0.001 * (D.perim - n.perimD) : 0.0008 * (D.perim - n.perimD));
+  const finishKeys: Record<FinishType, [string, string]> = { layup: ['layupM', 'layupA'], dunk: ['dunkM', 'dunkA'], floater: ['floaterM', 'floaterA'], hook: ['hookM', 'hookA'], tip: ['tipM', 'tipA'], paintJumper: ['paintJumpM', 'paintJumpA'] };
   const fts = (O: any, i: number, k: number) => { let m = 0; for (let j = 0; j < k; j++) if (R() < O.ft[i]) m++; O.box[i].fta += k; O.box[i].ftm += m; O.box[i].pts += m; return m; };
   // One trip down the floor; offensive rebounds keep it going. Returns the points scored. A side well
   // ahead relaxes a little and one well behind presses, as in the engine, so margins stay realistic.
   const trip = (O: any, D: any, home: boolean, lead: number) => {
     let pts = 0;
     if (R() < 0.035) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; if (R() < 0.45) return fts(O, pick(O.use, O.uT), 2); } // a foul away from the ball (in the bonus: two shots)
+    let rebounder = -1;
     for (let chance = 0; chance < 5; chance++) {
-      const i = pick(O.use, O.uT), b = O.box[i];
+      const putback = rebounder >= 0, i = putback ? rebounder : pick(O.use, O.uT), b = O.box[i]; rebounder = -1;
       if (R() < O.tov[i]) { b.tov++; if (R() < 0.52) D.box[pick(D.stlW.a, D.stlW.t)].stl++; return pts; }
       const pr = O.prof[i]; let x = R(), z: Zone = 'atb'; for (const zz of ZONES) { x -= pr[zz]; if (x <= 0) { z = zz; break; } }
-      const three = z === 'c3' || z === 'atb', p = cl(O.pct[i][z] - 0.66 * O.edge - defAdj(D, z) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, 0.9);
-      const fouled = R() < Q_FOUL[z] * O.draw[i], made = R() < (fouled ? p * 0.45 : p);
-      if (fouled) D.box[pick(D.pfW.a, D.pfW.t)].pf++;
+      if (putback) z = 'rim';
+      const paint = z === 'mid' && R() < (O.ps[i].tend?.pf ?? PAINT_SHARE), close = z === 'rim' || paint;
+      let type: FinishType | null = null;
+      if (close) { const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback })).filter(([, w]) => w > 0); let draw = R(); type = choices.at(-1)![0] as FinishType; for (const [key, weight] of choices) { draw -= weight; if (draw <= 0) { type = key as FinishType; break; } } }
+      const three = z === 'c3' || z === 'atb', rawPct = type ? O.finish[i][type] + CAL[z] + (z === 'rim' ? 0.0009 * (O.ps[i].r.hgt - (n.rimHgt ?? 55)) : 0)
+        : z === 'mid' ? BASE.zone.mid.pct + CAL.mid + curve('jumper', zoneSkill(O.ps[i].r).mid) + n.offset.mid - 0.01 * PAINT_SHARE / (1 - PAINT_SHARE) + O.form[i] : O.pct[i][z];
+      const p = cl(rawPct - 0.66 * O.edge - defAdj(D, z, type) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, type === 'dunk' ? 0.995 : 0.95);
+      const contact = type === 'dunk' ? 0.85 : type === 'hook' ? 1.15 : type === 'floater' ? 0.75 : type === 'paintJumper' ? 0.65 : 1;
+      const fouled = R() < Q_FOUL[z] * O.draw[i] * contact, made = R() < (fouled ? p * 0.45 : p);
+      if (fouled) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; b.shotFoulA++; if (close) b.closeFoulA++; }
       if (fouled && !made) return pts + fts(O, i, three ? 3 : 2);
-      b.fga++; if (three) b.tpa++;
+      b.fga++; if (three) b.tpa++; const [zm, za] = TIER_KEY[z]; b[za]++; if (paint) b.ka++;
+      if (type) { b[finishKeys[type][1]]++; if (z === 'rim') b.finishRaA++; else b.finishPaintA++; }
       if (made) {
-        const v = three ? 3 : 2; b.fgm++; if (three) b.tpm++; b.pts += v; pts += v;
+        const v = three ? 3 : 2; b.fgm++; b[zm]++; if (three) b.tpm++; if (paint) b.km++; if (type) b[finishKeys[type][0]]++; b.pts += v; pts += v;
         if (R() < BASE.zone[z].ast * 0.8) for (let k = 0; k < 4; k++) { const j = pick(O.astW.a, O.astW.t); if (j !== i) { O.box[j].ast++; break; } }
         if (fouled) pts += fts(O, i, 1);
         return pts;
       }
       if (R() < BLOCK_ON_MISS[z]) D.box[pick(D.blkW.a, D.blkW.t)].blk++;
-      if (R() < cl(BASE.orbPct + 0.004 * (O.glass - D.glass), 0.12, 0.45)) { O.box[pick(O.rebW.a, O.rebW.t)].orb++; continue; }
+      if (R() < cl(BASE.orbPct + 0.004 * (O.glass - D.glass), 0.12, 0.45)) { const rb = pick(O.rebW.a, O.rebW.t); O.box[rb].orb++; if (R() < 0.6) rebounder = rb; continue; }
       D.box[pick(D.rebW.a, D.rebW.t)].drb++; return pts;
     }
     return pts;
@@ -181,7 +204,7 @@ function quickGame(g: Game, hT: any, aT: any) {
 function play(g: Game, s: any, x: CcpGame) {
   const c = s.ccp, P = g.db.P, H = c.teams[x.h], A = c.teams[x.a], hT = simTeamOf(g, s, H), aT = simTeamOf(g, s, A);
   if (hT.players.length < 5 || aT.players.length < 5) { x.hs = hT.players.length >= aT.players.length ? 1 : 0; x.as = 1 - x.hs; return; } // forfeit (shouldn't happen)
-  const r: any = s.ccpFull ? new GameSim(hT as any, aT as any, { norms: g.db.norms }).run() : quickGame(g, hT, aT);
+  const r: any = s.ccpFull ? new GameSim(hT as any, aT as any, { norms: g.db.norms }).run() : ccpQuickGame(g, hT, aT);
   x.hs = r.home.pts; x.as = r.away.pts; if (r.ot) x.ot = r.ot;
   const topOf = (box: any) => { let best = 0, bp = -1; Object.entries(box).forEach(([id, b]: any) => { if (b.pts > bp) { bp = b.pts; best = +id; } }); return [best, bp]; };
   const th = topOf(r.home.box), ta = topOf(r.away.box); x.top = [th[0], th[1], ta[0], ta[1]];

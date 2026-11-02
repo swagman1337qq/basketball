@@ -14,7 +14,7 @@ import type { Game } from './Game';
 
 const DEV_ONLY = ['dk', 'feed', 'rx', 'ox', 'glx', 'last5', 'dy', 'dyS', 'padding', 'ceil', 'tenPrev', 'ph', 'dv0', 'dx', 'dxDone', 'devK', 'dyT', 'minorCount', 'protect', 'minMin', 'moodAdj', 'hot', 'fat', 'rot', 'dev', 'gem', 'tenQ', 'nz', 'ix', 'pth', 'ovrF', 'signed'];
 // Shot-zone and shot-type splits on a stat line (sim.ts): the live season's shooting chart and playing style.
-export const ZONE_KEYS = ['rm', 'ra', 'mm', 'ma', 'cm', 'ca', 'bm', 'ba', 'km', 'ka', 'qm', 'qa', 'um', 'ua', 'sm', 'sa', 'dm', 'da'];
+export const ZONE_KEYS = ['rm', 'ra', 'mm', 'ma', 'cm', 'ca', 'bm', 'ba', 'km', 'ka', 'qm', 'qa', 'um', 'ua', 'sm', 'sa', 'dm', 'da', 'dunkM', 'dunkA', 'layupM', 'layupA', 'floaterM', 'floaterA', 'hookM', 'hookA', 'tipM', 'tipA', 'paintJumpM', 'paintJumpA', 'finishRaA', 'finishPaintA', 'shotFoulA', 'closeFoulA'];
 const SLIM = 3;
 const r1 = (x: number) => Math.round(x * 10) / 10;
 // A finished season's stat line: minutes to a tenth, expected points whole (they carry 13 decimals).

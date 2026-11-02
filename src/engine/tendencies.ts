@@ -30,21 +30,23 @@
 // declines, or who joins a team with better options, gives some back. Egotistic, ball-dominant and
 // selfish players take more shots than their game earns, and believe in shots they can't make.
 import { BASE, CRE_BASE, DEFAULT_NORMS, offAbility, PAINT_SHARE, playmaking, scoringOf, shotProfile, usageRaw, type Cre, type Norms, type Tend } from './sim';
+import { naturalDunkShare } from './finishing';
 export { offAbility };
 
-export const TEN_KEYS = ['usage', 'dom', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'step', 'fade', 'ftr'] as const;
+export const TEN_KEYS = ['usage', 'dom', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'step', 'fade', 'ftr', 'dunk'] as const;
 export const HABIT_TEN = ['turnovers', 'fouls', 'crash'] as const;
 export type TenKey = (typeof TEN_KEYS)[number] | (typeof HABIT_TEN)[number];
 export const ZONE_TEN = ['ra', 'paint', 'mid', 'c3', 'atb'] as const;
 export type ZoneTen = (typeof ZONE_TEN)[number];
 export const CRE_TEN = ['cns', 'pullup', 'step', 'fade'] as const;
 export type CreTen = (typeof CRE_TEN)[number];
-export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', dom: 'Ball dominance', ra: 'Restricted Area', paint: 'In the Paint (Non-RA)', mid: 'Mid-Range', c3: 'Corner 3', atb: 'Above the Break 3', cns: 'Catch & Shoot', pullup: 'Pull-Up', step: 'Stepback', fade: 'Fadeaway', ftr: 'Free throw rate', turnovers: 'Turnover risk', fouls: 'Foul frequency', crash: 'Crash offensive glass' };
+export const TEN_LABEL: Record<TenKey, string> = { usage: 'Usage rate', dom: 'Ball dominance', ra: 'Restricted Area', paint: 'In the Paint (Non-RA)', mid: 'Mid-Range', c3: 'Corner 3', atb: 'Above the Break 3', cns: 'Catch & Shoot', pullup: 'Pull-Up', step: 'Stepback', fade: 'Fadeaway', ftr: 'Free throw rate', dunk: 'Dunk share', turnovers: 'Turnover risk', fouls: 'Foul frequency', crash: 'Crash offensive glass' };
 // The NBA's definitions (NBA.com stats: advanced, shooting by zone, shot dashboard, four factors).
 export const TEN_DESC: Record<TenKey, string> = {
   turnovers: 'Risk on passes, catches and other touches, beyond his skills and offensive role. 50 is neutral; higher means more turnovers. It changes who gets the turnovers, not a fixed turnovers-per-game target.',
   fouls: 'How often he commits contact or reach-in fouls beyond his position and defensive skills. 50 is neutral; higher means more fouls. Not a defensive ability rating.',
   crash: 'How often he pursues offensive rebounds instead of getting back. 50 is neutral; higher means a larger share of offensive boards. His rebounding skills and opportunities still matter.',
+  dunk: 'Desired dunks as a percentage of his restricted-area attempts, separate from dunking ability. Zero means he does not choose dunks. Reach, lift, fatigue and the defense constrain which dunks are available; transition and putbacks can change the observed share.',
   usage: 'Usage rate (USG%): the share of his team’s plays he uses (shots, free-throw trips, turnovers) while he’s on the floor',
   dom: 'Ball dominance (0–100, 50 = typical): how much the offense runs through his hands. A ball-dominant player makes more of his team’s passes into baskets (assists) and more of its turnovers; whether he shoots or passes is his usage rate. Luka: high on both; Chris Paul: high dominance, moderate usage; Klay Thompson: low dominance, high usage',
   ra: 'Restricted Area (shooting by zone): shots inside the restricted-area arc, four feet from the basket, as a share of his shots',
@@ -81,7 +83,7 @@ const hash = (id: number, salt: number) => ((((id + 1) * 2654435761) ^ (salt * 4
 const nrmH = (id: number, salt: number) => (hash(id, salt) + hash(id, salt + 7) + hash(id, salt + 13) - 1.5) * 2; // about N(0, 1)
 
 // His personal quirks: fixed per player (and per tendency), about ±7 on the 0–100 scale (±3.5 for shot volume).
-const SALT: Record<TenKey, number> = { usage: 0, cns: 6, pullup: 7, mid: 8, ra: 11, paint: 12, c3: 13, atb: 14, ftr: 15, step: 16, fade: 17, turnovers: 18, fouls: 19, crash: 20, dom: 21 }; // fixed, so quirks survive list changes
+const SALT: Record<TenKey, number> = { usage: 0, cns: 6, pullup: 7, mid: 8, ra: 11, paint: 12, c3: 13, atb: 14, ftr: 15, step: 16, fade: 17, turnovers: 18, fouls: 19, crash: 20, dom: 21, dunk: 22 }; // fixed, so quirks survive list changes
 export const quirkOf = (p: any, k: TenKey) => (p.tenQ?.[k] ?? +(nrmH(p.id, 101 + SALT[k]) * (k === 'usage' ? 3.5 : k === 'dom' ? 5 : 7)).toFixed(1));
 
 // Defense and rebounding, on the same scale as offAbility: the gap says scorer or specialist.
@@ -112,6 +114,7 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
   const attack = big ? postSk * 0.45 + r.dnk * 0.3 + r.stre * 0.25 : acc * 0.3 + r.spd * 0.15 + r.drb * 0.25 + finish * 0.3;
   const out: Record<TenKey, number> = {
     turnovers: 50, fouls: 50, crash: 50,
+    dunk: naturalDunkShare(r, g) * 100,
     // A big who can't shoot lives at the rim (NBA: the 60%-shooting bigs take 70–85% of their shots there, 1–5% from 10 feet out).
     ra: t(41 + rel(rimSk) * 1.1 + (big ? 10 + Math.max(0, 55 - Math.max(r.fg, r.tp)) * 0.5 : guard ? -3 : 0) + (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) - (age >= 31 ? (age - 30) * 1.5 : 0)),
     paint: t(42 + rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 + (big ? 8 : guard ? -2 : 0) + (age >= 30 && big ? 3 : 0)), // a big's hooks, a guard's floaters
@@ -201,8 +204,8 @@ const quirks = (p: any) => Object.fromEntries(TEN_KEYS.map(k => [k, quirkOf(p, k
 // His targets: usage and free throw rate as scores, location and creation as shares, quirks included.
 function naturalTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
   const tg = tenTargets(p, ctx), q = quirks(p), sc = {} as Record<TenKey, number>;
-  TEN_KEYS.forEach(k => (sc[k] = cl(tg[k] + q[k], 2, 98)));
-  return { ...sharesFromScores(sc, ctxOf(ctx).roles || []), usage: Math.round(sc.usage * 10) / 10, dom: Math.round(sc.dom * 10) / 10, ftr: Math.round(sc.ftr * 10) / 10, turnovers: 50, fouls: 50, crash: 50 };
+  TEN_KEYS.forEach(k => (sc[k] = cl(tg[k] + q[k], k === 'dunk' ? 0 : 2, k === 'dunk' ? 100 : 98)));
+  return { ...sharesFromScores(sc, ctxOf(ctx).roles || []), usage: Math.round(sc.usage * 10) / 10, dom: Math.round(sc.dom * 10) / 10, ftr: Math.round(sc.ftr * 10) / 10, dunk: Math.round(sc.dunk * 10) / 10, turnovers: 50, fouls: 50, crash: 50 };
 }
 
 // A supplied card's playing style is part of its build. Keep that preference as
@@ -220,18 +223,22 @@ export function targetTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, 
   out.usage = +cl(a.ten.usage + out.usage - a.natural.usage, 2, 98).toFixed(1);
   out.ftr = +cl(a.ten.ftr + now.ftr - a.natural.ftr, 2, 98).toFixed(1);
   if (a.ten.dom != null && a.natural.dom != null) out.dom = +cl(a.ten.dom + out.dom - a.natural.dom, 2, 98).toFixed(1); // ball dominance follows the card's like usage
+  // A zero authored dunk preference remains zero. A nonzero preference follows
+  // changes in his own opportunity profile rather than becoming a generic dunker.
+  if (Number.isFinite(a.ten.dunk) && Number.isFinite(a.natural.dunk)) out.dunk = +cl(a.ten.dunk * (now.dunk + 0.1) / (a.natural.dunk + 0.1), 0, 100).toFixed(1);
   HABIT_TEN.forEach(k => (out[k] = cl(a.ten[k] ?? 50, 2, 98)));
   return out;
 }
 
-export function anchorCardStyle(p: any, style: Record<string, number>, age = p.age, ratings = p.r) {
+export function anchorCardStyle(p: any, style: Record<string, number>, age = p.age, ratings = p.r, dunkAuthored = Number.isFinite(style.dunk)) {
   // The authored style already supplies the personal preferences. Recipient
   // quirks must not silently turn the same card into a different shot diet.
   p.tenQ = Object.fromEntries(TEN_KEYS.map(k => [k, 0]));
   const natural = naturalTen({ ...p, r: ratings, age }), ten = { ...style };
   if (ten.dom == null) ten.dom = cardDom(natural.dom, ten.usage);
-  p.tenBase = { ten, natural };
-  if (p.ten && style === p.ten) p.ten.dom = ten.dom;
+  ten.dunk = Number.isFinite(ten.dunk) ? cl(ten.dunk, 0, 100) : natural.dunk;
+  p.tenBase = { ten, natural, dunkAuthored };
+  if (p.ten && style === p.ten) { p.ten.dom = ten.dom; p.ten.dunk = ten.dunk; }
 }
 // A card from before ball dominance (no dom of its own): his game's dominance, capped at usage + 20 so the faster
 // fall-off for pass-first players (usgMult) doesn't change the shot volume the card was tuned for (2026-11-01).
@@ -264,7 +271,7 @@ export function fromLegacy(p: any, norms?: Norms | null, roles: string[] = []) {
   const tg = targetTen({ ...p, ten: undefined }, { roles }), sf = Math.min(60, tg.step + tg.fade);
   const wc = 0.53 * tenUnit('cns', t.cns ?? 50) / UNIT.cns.typ, wu = 0.47 * tenUnit('pullup', t.pullup ?? 50) / UNIT.pullup.typ;
   const cre = round100({ cns: (100 - sf) * wc / (wc + wu), pullup: (100 - sf) * wu / (wc + wu), step: tg.step, fade: tg.fade });
-  p.ten = { usage: t.usage ?? 50, ftr: t.ftr ?? 50, ...zones, ...cre }; p.tenV = 4; // ball dominance: ensureTen
+  p.ten = { usage: t.usage ?? 50, ftr: t.ftr ?? 50, ...(Number.isFinite(t.dunk) ? { dunk: cl(t.dunk, 0, 100) } : {}), ...zones, ...cre }; p.tenV = 4; // ball dominance: ensureTen
   p.tenQ = { ...quirks(p), ...(p.tenQ || {}) }; delete p.tenPrev; // last summer's arrows were on the old scale
   return p.ten;
 }
@@ -276,7 +283,7 @@ const V3_KEYS = ['usage', 'ra', 'paint', 'mid', 'c3', 'atb', 'cns', 'pullup', 'f
 // engine used then (Game passes them when a save loads; defaults otherwise).
 export function ensureTen(p: any, norms?: Norms | null, roles?: string[]) {
   if (!p?.r) return null;
-  if (!p.ten || !p.tenQ) { if (p.ten && p.tenV === 3 && !p.tenQ) p.tenQ = quirks(p); else { initTendencies(p); delete p.tend; return p.ten; } }
+  if (!p.ten || !p.tenQ) { if (p.ten && p.tenV === 3 && !p.tenQ) p.tenQ = quirks(p); else { const dunk = p.ten?.dunk; initTendencies(p); if (Number.isFinite(dunk)) p.ten.dunk = cl(dunk, 0, 100); delete p.tend; return p.ten; } }
   if (p.tenV !== 4) {
     if (p.tenV !== 3 || V3_KEYS.some(k => p.ten[k] == null)) { // from before the NBA's categories: keep usage, catch & shoot, pull-ups and mid-range
       const tg = tenTargets(p, null), keep = p.tenV === 3 ? V3_KEYS : ['usage', 'cns', 'pullup', 'mid'];
@@ -288,6 +295,15 @@ export function ensureTen(p: any, norms?: Norms | null, roles?: string[]) {
   }
   HABIT_TEN.forEach(k => { if (!Number.isFinite(p.ten[k])) p.ten[k] = 50; });
   if (p.ten.dom == null) { p.tenQ.dom = quirkOf(p, 'dom'); p.ten.dom = Math.round(cl(tenTargets(p, null).dom + p.tenQ.dom, 2, 98) * 10) / 10; } // saves from before ball dominance (2026-10-30)
+  if (!Number.isFinite(p.ten.dunk)) p.ten.dunk = Math.round(naturalDunkShare(p.r, p.grp) * 1000) / 10;
+  else p.ten.dunk = cl(p.ten.dunk, 0, 100);
+  // Old anchored cards gain a reference for the new preference without changing
+  // their other authored choices. Unknown historical attempt counts stay unknown.
+  if (p.tenBase?.ten && p.tenBase?.natural) {
+    if (p.tenBase.dunkAuthored == null) p.tenBase.dunkAuthored = Number.isFinite(p.tenBase.ten.dunk);
+    if (!Number.isFinite(p.tenBase.ten.dunk)) p.tenBase.ten.dunk = p.ten.dunk;
+    if (!Number.isFinite(p.tenBase.natural.dunk)) p.tenBase.natural.dunk = naturalTen(p).dunk;
+  }
   delete p.tend;
   return p.ten;
 }
@@ -315,6 +331,7 @@ export function effTend(p: any): Tend | undefined {
   return {
     zs: { rim: t.ra / 100, mid: mid / 100, c3: t.c3 / 100, atb: t.atb / 100 }, pf: mid > 0 ? t.paint / mid : PAINT_SHARE,
     cre: { cns: t.cns / 100, pullup: t.pullup / 100, step: t.step / 100, fade: t.fade / 100 },
+    dunk: t.dunk / 100,
     draw: Math.exp((t.ftr - 50) / FTR_K), // his share of the team's shooting fouls
     usg: usgMult(t.usage, t.dom ?? 50),
     // Ball dominance: his share of the passes into baskets and of the turnovers (with his turnover habit); when he's far

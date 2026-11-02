@@ -1,3 +1,4 @@
+import { naturalDunkShare } from './finishing';
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
@@ -125,7 +126,7 @@ export class Game {
     g.db.dlV = 1; // (from the stored, compressed true potential: Game.draftNightLevel)
     g.db.ceilV = 1; g.db.topV = 1; g.db.r99V = 1; g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
-    g.db.cardV = 5; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
+    g.db.finishV = 1; g.db.cardV = 5; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) { const T = Array.isArray(tids) ? tids : [tids]; hopelessPicks(g, g.state, T); g.state.notices = addNotice(g.state, { tone: 'info', title: 'What you inherited: the most hopeless situation in the league', lines: hopelessReport(g, g.state, T[0]) }); }
     { const rk = optionRanks(g.db.P, g.state.rosters), md = g.strategies(g.state.teams, g.state, true); Object.keys(g.state.rosters).forEach(k => g.state.rosters[k].forEach((id: number) => { if (rk.has(id)) initTendencies(g.db.P[id], { rank: rk.get(id), mode: md[k], roles: g.rolesOf(g.db.P[id]) }); })); } // playing styles that fit each player's role on his team (tendencies.ts)
@@ -420,6 +421,7 @@ export class Game {
       Object.values(g.db.P).forEach((p: any) => { if (p.r && !p.retired && !p.gone) autoTen(p, { rank: rk.get(p.id) ?? null, mode: md[tOf.get(p.id) as number], roles: g.rolesOf(p) }); });
       const old = g.db.norms; g.refreshNorms(st); if (old) g.db.norms = { ...old, usage: g.db.norms.usage }; g.db.tenAuto = 1; }
     // 2026-10: height and length count for more at the rim (sim.ts zoneSkill): re-center the league's rim norms once.
+    if (!g.db.finishV || !g.db.norms?.finish) { g.refreshNorms(g.state); if (g.db.norms.adj) { g.db.norms.adj.rim = 0; g.db.norms.adj.mid = 0; } g.db.finishV = 1; } // type-specific finishing; preserve skills and old statistics
     if ((g.db.rimV || 0) < 2) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, skill: { ...old.skill, rim: nw.skill.rim }, offset: { ...old.offset, rim: nw.offset.rim }, rimHgt: nw.rimHgt }; g.db.rimV = 2; }
     // 2026-10: free throws fall off faster below a 40 rating and the best shooters reach 90%+ (sim.ts curve): re-center the league's free throw norm once.
     if ((g.db.ftV || 0) < 4) { const old = g.db.norms; g.refreshNorms(g.state); const nw = g.db.norms; if (old) g.db.norms = { ...old, ftOffset: nw.ftOffset, draw: nw.draw }; g.db.ftV = 4; }
@@ -1174,7 +1176,7 @@ export class Game {
       if (!po && s) {
         const me = tot[k], op = tot[k === 'home' ? 'away' : 'home'], T = (s.tstats[side.tid] = s.tstats[side.tid] || { gp: 0 });
         T.gp++;
-        [['pts', 'pts'], ['fgm', 'fgm'], ['fga', 'fga'], ['tpm', 'tpm'], ['tpa', 'tpa'], ['ftm', 'ftm'], ['fta', 'fta'], ['orb', 'orb'], ['drb', 'drb'], ['ast', 'ast'], ['stl', 'stl'], ['blk', 'blk'], ['tov', 'tov'], ['pf', 'pf'], ['rm', 'rm'], ['ra', 'ra'], ['mm', 'mm'], ['ma', 'ma'], ['cm', 'cm'], ['ca', 'ca'], ['bm', 'bm'], ['ba', 'ba']].forEach(([f]) => (T[f] = (T[f] || 0) + me[f]));
+        [['pts', 'pts'], ['fgm', 'fgm'], ['fga', 'fga'], ['tpm', 'tpm'], ['tpa', 'tpa'], ['ftm', 'ftm'], ['fta', 'fta'], ['orb', 'orb'], ['drb', 'drb'], ['ast', 'ast'], ['stl', 'stl'], ['blk', 'blk'], ['tov', 'tov'], ['pf', 'pf'], ['rm', 'rm'], ['ra', 'ra'], ['mm', 'mm'], ['ma', 'ma'], ['cm', 'cm'], ['ca', 'ca'], ['bm', 'bm'], ['ba', 'ba'], ...['dunkM', 'dunkA', 'layupM', 'layupA', 'floaterM', 'floaterA', 'hookM', 'hookA', 'tipM', 'tipA', 'paintJumpM', 'paintJumpA', 'finishRaA', 'finishPaintA', 'shotFoulA', 'closeFoulA'].map(k => [k, k])].forEach(([f]) => (T[f] = (T[f] || 0) + me[f]));
         [['oPts', 'pts'], ['oFgm', 'fgm'], ['oFga', 'fga'], ['oTpm', 'tpm'], ['oTpa', 'tpa'], ['oFtm', 'ftm'], ['oFta', 'fta'], ['oOrb', 'orb'], ['oDrb', 'drb'], ['oTov', 'tov']].forEach(([f, g]) => (T[f] = (T[f] || 0) + op[g]));
       }
     });
@@ -1596,7 +1598,7 @@ export class Game {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length || this.mailWaiting(s)) return null;
       snapEnd(this, s); // ratings at the end of the season, before summer development
       const P = this.db.P, d = this.db, Y = this.Y + 1, focusOf = (k, id) => { const c = this.clubOf(s, +k); return c ? ((c.coachAuto || {})[id] ? coachFocus(P[id]).focus : c.train?.[id] || 'Balanced') : 'Balanced'; }, progBy: Record<number, any[]> = {};
-      (d.cls[this.Y] || []).forEach((id: number) => { const p = P[id]; if (p?.r && !p.am) p.am = { r: { ...p.r }, rx: p.rx ? { ...p.rx } : null, grp: p.grp, feel: p.intg?.feel, habits: Object.fromEntries(['usage', 'ftr', 'turnovers', 'fouls', 'crash'].map(k => [k, p.ten?.[k] ?? 50])), ...(p.tenBase ? { zones: Object.fromEntries(['ra', 'paint', 'mid', 'c3', 'atb'].map(k => [k, p.ten[k]])) } : {}) }; }); // the class's college/club game, before camp and the summer change it: their amateur stats stay put (amateurStats.ts)
+      (d.cls[this.Y] || []).forEach((id: number) => { const p = P[id]; if (p?.r && !p.am) p.am = { r: { ...p.r }, rx: p.rx ? { ...p.rx } : null, grp: p.grp, feel: p.intg?.feel, habits: Object.fromEntries(['usage', 'ftr', 'turnovers', 'fouls', 'crash', 'dunk'].map(k => [k, p.ten?.[k] ?? (k === 'dunk' ? naturalDunkShare(p.r, p.grp) * 100 : 50)])), ...(p.tenBase ? { zones: Object.fromEntries(['ra', 'paint', 'mid', 'c3', 'atb'].map(k => [k, p.ten[k]])) } : {}) }; }); // the class's college/club game, before camp and the summer change it: their amateur stats stay put (amateurStats.ts)
       const dl = dealsYearTurn(this, s, Y); dealNote = dl.notice; // local TV and sponsorship deals: raises, renewals, new partners (mediaDeals.ts), on last season's record
       let rosters = { ...s.rosters }, fa = s.fa.slice(), teams = dl.teams.map(t => ({ ...t, seq: [], w: 0, l: 0, hw: 0, hl: 0, rw: 0, rl: 0 })), assets = s.assets.filter(a => a.yr > this.Y), log = s.log, lgLog = s.lgLog, prog = [];
       // Annual raises on contracts that began before this season.

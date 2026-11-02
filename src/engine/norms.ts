@@ -2,6 +2,7 @@
 // start of every season (and when a league is created or loaded), so the 2026
 // baselines stay the league mean even as ratings drift upward or downward over time.
 import { effTend } from './tendencies';
+import { computeFinishNorms } from './finishing';
 import { BASE, blockSkill, PASS_FLOOR, PASS_KNEE, PASS_SLOPE, passQ, creMeanOf, creSkill, lineupCre, curve, CURVE_OF, DEFAULT_NORMS, foulDrawWeight, gambleB, gambleS, interiorD, perimD, stealSkill, rebSkill, shotProfile, usageRaw, ZONES, zoneSkill, type JumpZone, type Norms, type Zone } from './sim';
 
 export interface NormEntry { p: any; roles: string[]; min: number; tid: number }
@@ -64,12 +65,19 @@ export function computeNorms(entries: NormEntry[], season: number): Norms {
     for (const z of ZONES) {
       const share = E.reduce((a, e, i) => a + vol(e) * prof[i][z], 0) / tot;
       if (legacy) n.shareCorr[z] *= BASE.zone[z].share / share;
-      n.skill[z] = wmean(E.map((e, i) => ({ v: e.sk[z], w: vol(e) * prof[i][z] })));
+      n.skill[z] = wmean(E.map((e, i) => ({ v: e.sk[z], w: vol(e) * prof[i][z] * (z === 'mid' ? 1 - (effTend(e.p)?.pf ?? 0.52) : 1) })));
     }
   }
   const prof = E.map(e => shotProfile({ r: e.p.r, roles: e.roles, tend: effTend(e.p), pers: e.p.pers, grp: e.p.grp }, n));
+  // Use the same authored mix and technique choice as the game. Each technique
+  // centers its own execution curve; dunk ability no longer re-centers layups.
+  n.finish = computeFinishNorms(E.map((e, i) => ({
+    p: { r: e.p.r, grp: e.p.grp, tend: effTend(e.p) },
+    rimWeight: vol(e) * prof[i].rim,
+    paintWeight: vol(e) * prof[i].mid * (effTend(e.p)?.pf ?? 0.52),
+  })));
   n.rimHgt = wmean(E.map((e, i) => ({ v: e.p.r.hgt, w: vol(e) * prof[i].rim })));
-  for (const z of ZONES) n.offset[z] = Math.max(-0.08, Math.min(0.08, -wmean(E.map((e, i) => ({ v: curve(CURVE_OF[z as Zone], e.sk[z]), w: vol(e) * prof[i][z] })))));
+  for (const z of ZONES) n.offset[z] = Math.max(-0.08, Math.min(0.08, -wmean(E.map((e, i) => ({ v: curve(CURVE_OF[z as Zone], e.sk[z]), w: vol(e) * prof[i][z] * (z === 'mid' ? 1 - (effTend(e.p)?.pf ?? 0.52) : 1) })))));
   // Jump-shot creation, per tier, weighted by each player's jump shots there (the paint's floaters and hooks aren't jumpers).
   n.cre = {} as Record<JumpZone, any>;
   (['mid', 'c3', 'atb'] as JumpZone[]).forEach(z => { const xs = E.map((e, i) => { const t = effTend(e.p), w = vol(e) * prof[i][z] * (z === 'mid' ? 1 - (t?.pf ?? 0.52) : 1); return { m: creMeanOf(e.p.r, t?.cre, z), w }; }), W = xs.reduce((a, x) => a + x.w, 0) || 1;

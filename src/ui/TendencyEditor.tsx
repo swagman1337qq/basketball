@@ -4,6 +4,7 @@
 // attempts per 100 shots. Used by the player editor and the card editor.
 import type { Game } from '../engine/Game';
 import { CRE_TEN, expUsg, HABIT_TEN, roleOf, setShare, TEN_DESC, TEN_LABEL, tenScore, tenUnit, typShare, usageScoreFor, ZONE_TEN, type CreTen, type ZoneTen } from '../engine/tendencies';
+import { naturalDunkShare } from '../engine/finishing';
 import { GOD_PINK, muted, NumInput } from './kit';
 
 // `auto`: what the game's AI would set for him (tendencies.ts targetTen: his ratings, personality, age and role),
@@ -41,6 +42,8 @@ export function TendencyEditor({ p, gm, onTen, auto, onAuto, onFreeze }: { p: an
       <div style={{ ...muted, fontSize: '11.5px', paddingLeft: 158 }}>Together: <b style={{ color: 'var(--color-text)' }}>{roleOf(t).replace(/^A /, 'a ')}</b></div>
       {head('Where his shots come from (% of his shots)')}
       {ZONE_TEN.map(share)}{total(ZONE_TEN)}
+      {head('Finishing choice (% of restricted-area attempts)')}
+      {row('dunk', TEN_LABEL.dunk, Math.round(t.dunk ?? naturalDunkShare(p.r, p.grp) * 100), 0, 100, v => onTen({ ...t, dunk: v }), '%', 'desired dunk share · available chances still depend on his reach, lift and the defense', TEN_DESC.dunk)}
       {head('How he creates his jump shots (% of his jumpers)')}
       {CRE_TEN.map(share)}{total(CRE_TEN)}
       {head('Getting to the line')}

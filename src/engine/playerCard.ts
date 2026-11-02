@@ -68,10 +68,13 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
     ensureTen(p);
   }
   if (ct) HABIT_TEN.forEach(k => { if (num(ct[k])) p.ten[k] = Math.max(2, Math.min(98, ct[k])); });
+  // Finishing frequency is a share, not an ability/habit score: authored zero
+  // must survive import. Old cards use the new build's natural opportunity mix.
+  if (ct) p.ten.dunk = num(ct.dunk) ? Math.max(0, Math.min(100, ct.dunk)) : Math.round(tenTargets(p, null).dunk * 10) / 10;
   // Card preferences survive AI refreshes and evolve with his skills/age. A card
   // without an authored style continues to use the generic AI targets.
   if (ct && !num(ct.dom)) p.ten.dom = cardDom(p.ten.dom, p.ten.usage); // a card from before ball dominance keeps the shot volume it was tuned for
-  if (ct || card.tend) anchorCardStyle(p, p.ten, card.age ?? p.age);
+  if (ct || card.tend) anchorCardStyle(p, p.ten, card.age ?? p.age, p.r, num(ct?.dunk));
   delete p.tenLock;
   const preset = PRESET_CARDS.findIndex(x => x.card.name === card.name && JSON.stringify(x.card.r) === JSON.stringify(card.r));
   if (preset >= 0) p.cardPreset = preset; else delete p.cardPreset;
@@ -144,18 +147,25 @@ export function retuneCarriers(P: Record<number, any>): number {
       if (c.ten && !p.tenBase) anchorCardStyle(p, c.ten, c.age, c.r);
       return;
     }
+    const savedDunk = p.ten?.dunk;
+    const customDunk = Number.isFinite(savedDunk) && (p.tenLock || (o.ten?.dunk != null ? Math.abs(savedDunk - o.ten.dunk) > 0.001
+      : p.tenBase?.dunkAuthored === true || p.tenBase?.ten?.dunk != null && Math.abs(savedDunk - p.tenBase.ten.dunk) > 0.001));
     Object.keys(c.r).forEach(k => { p.r[k] = Math.max(1, Math.min(99, Math.round(c.r[k] + (o.r[k] != null ? p.r[k] - o.r[k] : 0)))); });
     // Update an untouched authored style; keep AI-generated and manually edited styles.
     if (o.ten && c.ten && p.ten && !p.tenLock) {
-      const authored: any = { usage: Math.max(2, Math.min(98, o.ten.usage)), ftr: Math.max(2, Math.min(98, o.ten.ftr)), ...Object.fromEntries(HABIT_TEN.map(k => [k, o.ten[k] ?? 50])) };
+      const authored: any = { usage: Math.max(2, Math.min(98, o.ten.usage)), ftr: Math.max(2, Math.min(98, o.ten.ftr)), ...(o.ten.dunk != null ? { dunk: Math.max(0, Math.min(100, o.ten.dunk)) } : {}), ...Object.fromEntries(HABIT_TEN.map(k => [k, o.ten[k] ?? 50])) };
       for (const keys of [ZONE_TEN, CRE_TEN]) Object.assign(authored, round100(Object.fromEntries(keys.map(k => [k, o.ten[k] || 0]))));
       if (Object.keys(authored).every(k => typeof (p.ten[k] ?? (HABIT_TEN.includes(k as any) ? 50 : undefined)) === 'number' && Math.abs((p.ten[k] ?? 50) - authored[k]) < 0.001)) {
         p.ten = { ...p.ten, usage: c.ten.usage, ftr: c.ten.ftr, ...Object.fromEntries(HABIT_TEN.map(k => [k, c.ten[k] ?? 50])) };
+        // An explicit new preference is an edit, even when the archived old
+        // style predates it. Do not erase it while migrating other tendencies.
+        if (!customDunk) p.ten.dunk = Math.max(0, Math.min(100, c.ten.dunk ?? Math.round(tenTargets(p, null).dunk * 10) / 10));
         for (const keys of [ZONE_TEN, CRE_TEN]) Object.assign(p.ten, round100(Object.fromEntries(keys.map(k => [k, c.ten[k] || 0]))));
       }
     }
     const pot0 = p.tpot; syncOvr(p);
     if (c.ten) anchorCardStyle(p, c.ten, c.age, c.r);
+    if (customDunk && p.tenBase) { p.tenBase.ten.dunk = savedDunk; p.tenBase.dunkAuthored = true; }
     if (pot0 === o.pot && c.pot !== o.pot) setTruePot(p, Math.max(c.pot, p.ovr), true);
     else if (p.tpot != null && p.tpot < p.ovr) p.tpot = p.ovr;
     n++;
@@ -183,7 +193,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 77, intg: { feel: 90, poise: 85 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: true, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, work: 58, loyalty: 60, ambition: 80 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 30.5%: 20% of his shots at the rim, 14% in the paint, 25% mid-range, 41% threes (3% corner); pull-ups over catch-and-shoot about 5 to 1; .38 FTA per FGA.
-    ten: { usage: 47.27111055978809, ftr: 75.7444334484112, ra: 19.31176168464304, paint: 13.518233179250128, mid: 24.1397021058038, c3: 3.1485587583148558, atb: 39.881744271988175, cns: 10, pullup: 50, step: 30, fade: 10, turnovers: 55.93453908026964, fouls: 41.82691046909602, crash: 38.237606429139106 },
+    ten: { usage: 47.27111055978809, ftr: 69.7444334484112, ra: 19.31176168464304, paint: 13.518233179250128, mid: 24.1397021058038, c3: 3.1485587583148558, atb: 39.881744271988175, cns: 10, pullup: 50, step: 30, fade: 10, turnovers: 55.93453908026964, fouls: 41.82691046909602, crash: 38.237606429139106 },
   } },
   // The rookie cards below were tuned the same way, against each player's real rookie season (Basketball-
   // Reference: per game, advanced, shooting by distance, splits) translated to today's league: volume per
@@ -261,7 +271,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 78, intg: { feel: 79, poise: 86 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: true, fearless: true, clutch: true, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 92, loyalty: 45, ambition: 86 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 23.5%: 25% at the rim, 20% paint, 43% mid-range, 12% threes; mostly pull-ups; .41 FTA per FGA.
-    ten: { usage: 27.111634289833038, ftr: 88, ra: 61.04531727774464, paint: 12.06062499408329, mid: 7.8857932653621505, c3: 0.7483568686145636, atb: 18.25990759419535, cns: 6, pullup: 61.4, step: 31, fade: 1.6, turnovers: 64.26372439545905, fouls: 72.46252764103828, crash: 49.79474315487292 },
+    ten: { usage: 27.111634289833038, ftr: 83, ra: 61.04531727774464, paint: 12.06062499408329, mid: 7.8857932653621505, c3: 0.7483568686145636, atb: 18.25990759419535, cns: 6, pullup: 61.4, step: 31, fade: 1.6, turnovers: 64.26372439545905, fouls: 72.46252764103828, crash: 49.79474315487292 },
   } },
   { label: 'Klay Thompson – Rookie year (2011–12)', card: {
     card: 1, name: 'Klay Thompson', first: 'Klay', last: 'Thompson', pos: 'SG', age: 21, dob: '1990-02-08', hgt: '6′7″', wt: 205, wing: 81,
@@ -314,7 +324,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 77, intg: { feel: 47, poise: 45 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: false, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: false, work: 62, loyalty: 50, ambition: 70 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
-    ten: { usage: 48.07398799875734, ftr: 85.63504681686865, ra: 59.259437751004015, paint: 30.130220883534136, mid: 10.310341365461847, c3: 0, atb: 0.3, cns: 32, pullup: 14.8, step: 3.2, fade: 50, turnovers: 45.23766118289093, fouls: 44.48831951170427, crash: 54.25793071243049 },
+    ten: { usage: 40.07398799875734, ftr: 85.63504681686865, ra: 59.259437751004015, paint: 30.130220883534136, mid: 10.310341365461847, c3: 0, atb: 0.3, cns: 32, pullup: 14.8, step: 3.2, fade: 50, turnovers: 45.23766118289093, fouls: 44.48831951170427, crash: 54.25793071243049 },
   } },
   { label: 'John Wall – Rookie year (2010–11)', card: {
     card: 1, name: 'John Wall', first: 'John', last: 'Wall', pos: 'PG', age: 20, dob: '1990-09-06', hgt: '6′4″', wt: 195, wing: 81,
@@ -369,7 +379,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // real minutes and role on a mid-table team: 7.9 pts, 4.3 reb, 0.9 ast, 1.0 stl, 1.9 blk, 0.6 tov, .518 FG on 5.7, .289 on 1.7 threes, .800 FT on 1.8 in 27.9 min.
     // 62 overall; potential 75 (79 before potentials above 70 were compressed).
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 60, stre: 54, spd: 84, acc: 70, jmp: 88, endu: 86, ins: 40, dnk: 44, lay: 44, ft: 48, fg: 15, tp: 31, oiq: 35, diq: 86, blk: 97, stl: 51, drb: 30, pss: 42, reb: 46, box: 52 },
+    r: { hgt: 60, stre: 54, spd: 84, acc: 70, jmp: 88, endu: 86, ins: 40, dnk: 44, lay: 24, ft: 48, fg: 15, tp: 31, oiq: 35, diq: 86, blk: 97, stl: 51, drb: 30, pss: 42, reb: 46, box: 52 },
     pot: 75, intg: { feel: 70, poise: 62 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 82, loyalty: 75, ambition: 55 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots at the rim (cuts, transition, putbacks), 15% threes; .58 FTA per FGA.
@@ -426,7 +436,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // real minutes and role on a mid-table team: 4.0 pts, 4.0 reb, 0.5 ast, 0.7 stl, 0.6 blk, 0.3 tov, .668 FG on 2.6, .077 on 0.0 threes, .522 FT on 1.0 in 17.7 min.
     // 45 overall; potential 52.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 66, stre: 50, spd: 74, acc: 67, jmp: 84, endu: 70, ins: 44, dnk: 52, lay: 46, ft: 16, fg: 34, tp: 14, oiq: 29, diq: 50, blk: 72, stl: 82, drb: 15, pss: 25, reb: 52, box: 53 },
+    r: { hgt: 66, stre: 50, spd: 74, acc: 67, jmp: 84, endu: 70, ins: 44, dnk: 52, lay: 30, ft: 16, fg: 34, tp: 14, oiq: 29, diq: 50, blk: 72, stl: 82, drb: 15, pss: 25, reb: 52, box: 53 },
     pot: 52, intg: { feel: 40, poise: 40 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 70, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
@@ -566,7 +576,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 34.6 minutes: about 33 pts, 9.9 reb; fewer free throws than his real 11.7, the engine's limit for a post scorer).
     // 69 overall (68.5): the top of today's scale, where MVP seasons sit.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 70, stre: 95, spd: 60, acc: 71, jmp: 62, endu: 65, ins: 80, dnk: 64, lay: 70, ft: 67, fg: 66, tp: 53, oiq: 80, diq: 73, blk: 48, stl: 32, drb: 60, pss: 60, reb: 83, box: 68 },
+    r: { hgt: 70, stre: 95, spd: 60, acc: 71, jmp: 62, endu: 65, ins: 80, dnk: 64, lay: 50, ft: 67, fg: 66, tp: 53, oiq: 80, diq: 73, blk: 48, stl: 32, drb: 60, pss: 60, reb: 83, box: 68 },
     pot: 69, intg: { feel: 70, poise: 75 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
     // Playing style: the AI's own for these ratings and a first option's role.
@@ -660,11 +670,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "jmp": 66,
         "endu": 78,
         "ins": 35,
-        "dnk": 10,
+        "dnk": 55,
         "lay": 40,
         "ft": 56,
-        "fg": 65,
-        "tp": 45,
+        "fg": 48,
+        "tp": 41,
         "oiq": 55,
         "diq": 50,
         "blk": 23,
@@ -701,8 +711,9 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "ambition": 70
       },
       "ten": {
-        "usage": 45.5,
-        "ftr": 81.5,
+        "usage": 53.5,
+        "dunk": 2,
+        "ftr": 79,
         "ra": 39.7,
         "paint": 20.1,
         "mid": 20.6,
@@ -717,7 +728,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "crash": 53.22
       },
       "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
-      "notes": "Full 35-game 2011–12 Knicks regular season, not the February hot streak. Zone attempt shares use the official NBA shot chart. Creation shares and individual finishing ratings are estimates; the engine blends finishing skills. Applying keeps the recipient’s identity, age, contract and history.",
+      "notes": "Full 35-game Knicks regular season. Separate shot-type execution; 2% desired rim dunk share from three recorded dunks. Dunk execution uses a neutral prior because three attempts cannot identify ability. Inside describes post/hook skill; it is not layup skill. Creation shares remain estimates.",
       "sources": [
         "https://www.nba.com/stats/player/202391/shooting?Season=2011-12",
         "https://www.basketball-reference.com/players/l/linje01.html",

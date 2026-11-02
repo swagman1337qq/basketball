@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-02
 
 ### Fixed
+- **Finishing skills now control the shots they describe.** Layups, dunks, floaters and hooks are resolved separately, with a new dunk-frequency preference and actual finishing results on the profile. Watched and quick games use the same shot events; shooting fouls and rebounder putbacks follow those events. Older card builds were adapted and checked across the library.
 - **Jeremy Lin’s Knicks card follows his actual shot chart.** Rebuilt the full 2011–12 season card using recorded NBA shot locations, corrected its finishing/mid-range balance and excessive stepbacks, and rechecked scoring, passing, rebounds and defensive box scores. Untouched library copies update when reopened; apply the revised card to update a player already in a league.
 
 ## 2026-11-01

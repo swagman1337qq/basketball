@@ -833,3 +833,7 @@ The separate **Jeremy Lin – Linsanity season (2011–12 Knicks)** preset targe
 His Knicks card now uses official NBA `SHOT_ZONE_BASIC` counts, not guessed zone preferences or a conversion of Basketball Reference’s 0–3-foot bins. Fit rim, non-RA paint and outside-paint mid-range results separately before reviewing aggregate FG% and scoring volume. Hold physical ratings fixed; do not move Inside, Dunks, Layups and Mid-range together to solve overall FG%. Three dunks and thirteen corner threes are too few to infer precise separate abilities.
 
 The current engine blends finishing skills, and its paint tier also uses rim/jumper touch; matching three zone rates cannot uniquely identify individual finishing ratings. Report that limitation and residual differences. See [the source counts, measured results and update instructions](JEREMY_LIN_CARD.md).
+
+## Finishing execution correction (2026-11-02)
+
+The current formulas supersede the earlier blended-rim descriptions above. Layups resolve non-dunk finishes; Inside resolves hooks/post touch; Dunks resolves actual dunks. Floaters use layup/jumper touch, while paint jumpers use FG. The optional ten.dunk is a 0–100 percentage preference among restricted-area attempts, not an ability score. Zero is valid and remains zero through card AI refreshes. Actual shot techniques and fouls now determine counters and descriptions. See [the implementation and validation report](FINISHING_UPDATE_2026-11-02.md).
