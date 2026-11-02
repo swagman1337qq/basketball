@@ -827,3 +827,9 @@ See the current realism-fix report for every card’s measured results and remai
 ## Jeremy Lin’s Knicks season card (2026-10-31)
 
 The separate **Jeremy Lin – Linsanity season (2011–12 Knicks)** preset targets his complete historical regular season. See [the comparison and import instructions](JEREMY_LIN_CARD.md); the Warriors rookie preset stays available.
+
+## Jeremy Lin finishing review (2026-11-02)
+
+His Knicks card now uses official NBA `SHOT_ZONE_BASIC` counts, not guessed zone preferences or a conversion of Basketball Reference’s 0–3-foot bins. Fit rim, non-RA paint and outside-paint mid-range results separately before reviewing aggregate FG% and scoring volume. Hold physical ratings fixed; do not move Inside, Dunks, Layups and Mid-range together to solve overall FG%. Three dunks and thirteen corner threes are too few to infer precise separate abilities.
+
+The current engine blends finishing skills, and its paint tier also uses rim/jumper touch; matching three zone rates cannot uniquely identify individual finishing ratings. Report that limitation and residual differences. See [the source counts, measured results and update instructions](JEREMY_LIN_CARD.md).

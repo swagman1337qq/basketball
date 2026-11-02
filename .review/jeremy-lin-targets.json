@@ -1,0 +1,347 @@
+{
+  "playerId": 202391,
+  "name": "Jeremy Lin",
+  "season": "2011-12",
+  "team": "New York Knicks",
+  "seasonType": "Regular Season",
+  "retrieved": "2026-11-02",
+  "source": "https://stats.nba.com/stats/shotchartdetail?PlayerID=202391&Season=2011-12&SeasonType=Regular%20Season&TeamID=0&GameID=&ContextMeasure=FGA&LastNGames=0&LeagueID=00&Month=0&OpponentTeamID=0&Period=0&DateFrom=&DateTo=&SeasonSegment=&Location=&Outcome=&VsConference=&VsDivision=&GameSegment=",
+  "games": 35,
+  "minutes": 940,
+  "points": 512,
+  "fgm": 171,
+  "fga": 383,
+  "tpm": 24,
+  "tpa": 75,
+  "ftm": 146,
+  "fta": 183,
+  "orb": 18,
+  "drb": 89,
+  "ast": 216,
+  "stl": 55,
+  "blk": 9,
+  "tov": 126,
+  "pf": 78,
+  "zones": {
+    "Mid-Range": {
+      "fg": 36,
+      "fga": 79,
+      "types": {
+        "Jump Shot": {
+          "fg": 25,
+          "fga": 60
+        },
+        "Running Jump Shot": {
+          "fg": 1,
+          "fga": 1
+        },
+        "Fadeaway Jump Shot": {
+          "fg": 1,
+          "fga": 2
+        },
+        "Jump Bank Shot": {
+          "fg": 3,
+          "fga": 4
+        },
+        "Step Back Jump shot": {
+          "fg": 2,
+          "fga": 2
+        },
+        "Pullup Jump shot": {
+          "fg": 3,
+          "fga": 6
+        },
+        "Floating Jump shot": {
+          "fg": 0,
+          "fga": 2
+        },
+        "Driving Jump shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Fadeaway Bank shot": {
+          "fg": 1,
+          "fga": 1
+        }
+      }
+    },
+    "Restricted Area": {
+      "fg": 74,
+      "fga": 152,
+      "types": {
+        "Driving Layup Shot": {
+          "fg": 46,
+          "fga": 73
+        },
+        "Layup Shot": {
+          "fg": 12,
+          "fga": 46
+        },
+        "Jump Shot": {
+          "fg": 1,
+          "fga": 10
+        },
+        "Driving Jump shot": {
+          "fg": 1,
+          "fga": 3
+        },
+        "Driving Reverse Layup Shot": {
+          "fg": 10,
+          "fga": 12
+        },
+        "Driving Dunk Shot": {
+          "fg": 2,
+          "fga": 2
+        },
+        "Running Bank shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Slam Dunk Shot": {
+          "fg": 1,
+          "fga": 1
+        },
+        "Turnaround Jump Shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Driving Finger Roll Layup Shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Jump Bank Shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Running Layup Shot": {
+          "fg": 1,
+          "fga": 1
+        }
+      }
+    },
+    "In The Paint (Non-RA)": {
+      "fg": 37,
+      "fga": 77,
+      "types": {
+        "Driving Bank shot": {
+          "fg": 2,
+          "fga": 2
+        },
+        "Running Jump Shot": {
+          "fg": 2,
+          "fga": 9
+        },
+        "Jump Shot": {
+          "fg": 8,
+          "fga": 28
+        },
+        "Floating Jump shot": {
+          "fg": 7,
+          "fga": 11
+        },
+        "Pullup Jump shot": {
+          "fg": 2,
+          "fga": 3
+        },
+        "Turnaround Jump Shot": {
+          "fg": 1,
+          "fga": 4
+        },
+        "Fadeaway Jump Shot": {
+          "fg": 6,
+          "fga": 9
+        },
+        "Driving Hook Shot": {
+          "fg": 0,
+          "fga": 1
+        },
+        "Driving Jump shot": {
+          "fg": 3,
+          "fga": 4
+        },
+        "Pullup Bank shot": {
+          "fg": 1,
+          "fga": 1
+        },
+        "Running Bank shot": {
+          "fg": 2,
+          "fga": 2
+        },
+        "Turnaround Fadeaway shot": {
+          "fg": 1,
+          "fga": 1
+        },
+        "Jump Bank Shot": {
+          "fg": 2,
+          "fga": 2
+        }
+      }
+    },
+    "Above the Break 3": {
+      "fg": 18,
+      "fga": 62,
+      "types": {
+        "Jump Shot": {
+          "fg": 17,
+          "fga": 61
+        },
+        "Pullup Jump shot": {
+          "fg": 1,
+          "fga": 1
+        }
+      }
+    },
+    "Left Corner 3": {
+      "fg": 4,
+      "fga": 6,
+      "types": {
+        "Jump Shot": {
+          "fg": 4,
+          "fga": 6
+        }
+      }
+    },
+    "Right Corner 3": {
+      "fg": 2,
+      "fga": 7,
+      "types": {
+        "Jump Shot": {
+          "fg": 2,
+          "fga": 7
+        }
+      }
+    }
+  },
+  "actions": {
+    "layups": {
+      "made": 69,
+      "attempts": 133
+    },
+    "dunks": {
+      "made": 3,
+      "attempts": 3
+    }
+  },
+  "leagueZones": {
+    "Above the Break 3": {
+      "fga": 26287,
+      "fgm": 8994
+    },
+    "Backcourt": {
+      "fga": 304,
+      "fgm": 10
+    },
+    "In The Paint (Non-RA)": {
+      "fga": 23943,
+      "fgm": 9119
+    },
+    "Left Corner 3": {
+      "fga": 4998,
+      "fgm": 1880
+    },
+    "Mid-Range": {
+      "fga": 48783,
+      "fgm": 18893
+    },
+    "Restricted Area": {
+      "fga": 52099,
+      "fgm": 31512
+    },
+    "Right Corner 3": {
+      "fga": 4791,
+      "fgm": 1799
+    }
+  },
+  "previousCard": {
+    "card": 1,
+    "name": "Jeremy Lin",
+    "first": "Jeremy",
+    "last": "Lin",
+    "native": "林書豪",
+    "nativeFirst": "書豪",
+    "nativeLast": "林",
+    "pos": "PG",
+    "age": 23,
+    "dob": "1988-08-23",
+    "hgt": "6′3″",
+    "wt": 200,
+    "wing": 79,
+    "rep": "US",
+    "born": "US",
+    "raised": "US",
+    "city": "Torrance",
+    "state": "CA",
+    "her": "TW",
+    "race": "asian",
+    "r": {
+      "hgt": 36,
+      "stre": 52,
+      "spd": 82,
+      "acc": 85,
+      "jmp": 66,
+      "endu": 78,
+      "ins": 29,
+      "dnk": 29,
+      "lay": 49,
+      "ft": 57,
+      "fg": 42,
+      "tp": 45,
+      "oiq": 55,
+      "diq": 50,
+      "blk": 23,
+      "stl": 86,
+      "drb": 69,
+      "pss": 72,
+      "reb": 46,
+      "box": 28
+    },
+    "pot": 60,
+    "intg": {
+      "feel": 70,
+      "poise": 74
+    },
+    "pers": {
+      "mot": "Winning",
+      "alpha": false,
+      "touches": false,
+      "pro": true,
+      "volatile": false,
+      "flashy": true,
+      "heat": false,
+      "crowd": true,
+      "villain": false,
+      "fearless": true,
+      "clutch": true,
+      "prone": false,
+      "padder": false,
+      "team": true,
+      "legacy": false,
+      "streaky": true,
+      "work": 90,
+      "loyalty": 60,
+      "ambition": 70
+    },
+    "ten": {
+      "usage": 56.34,
+      "ftr": 82.51,
+      "ra": 45,
+      "paint": 16,
+      "mid": 19.4,
+      "c3": 2,
+      "atb": 17.6,
+      "cns": 20,
+      "pullup": 55,
+      "step": 20,
+      "fade": 5,
+      "turnovers": 76.33,
+      "fouls": 58,
+      "crash": 53.22
+    },
+    "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
+    "notes": "Full 35-game Knicks regular season. Shot-location and creation shares are scouting estimates; box-score targets use historical totals. Applying a card keeps the recipient’s identity, age, contract and history.",
+    "sources": [
+      "https://www.basketball-reference.com/players/l/linje01.html",
+      "https://www.landofbasketball.com/nba_players_season_stats/2012/jeremy_lin_full.htm"
+    ]
+  }
+}

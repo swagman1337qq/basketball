@@ -108,7 +108,10 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
   // and leave explicit style/potential/feel/work edits alone.
   if (previous?.ten && (c.pot !== previous.pot || !sameStyle(c.ten, previous.ten) || !same(c.intg, P0.intg) || c.pers?.work !== P0.pers.work)) return false;
   if (c.name === P0.name && same(c.r, P0.r) && previous?.ten && sameStyle(c.ten, previous.ten) && P0.ten && !sameStyle(c.ten, P0.ten)) { c.ten = { ...P0.ten }; return true; }
-  if (c.name === P0.name && c.r && !same(c.r, P0.r) && previous) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; } return true; }
+  if (c.name === P0.name && c.r && !same(c.r, P0.r) && previous) { c.r = { ...P0.r }; c.pot = P0.pot; c.intg = { ...P0.intg }; c.pers = { ...(c.pers || {}), work: P0.pers.work }; if (P0.ten) { c.ten = { ...P0.ten }; delete c.tend; }
+    // Refresh obsolete source notes only when the library copy still has the archived text.
+    for (const key of ['notes', 'sources'] as const) if (previous[key] !== undefined && P0[key] !== undefined && same(c[key], previous[key])) c[key] = JSON.parse(JSON.stringify(P0[key]));
+    return true; }
   if (c.ten && (OLD_CARD_TENS[P0.name] || []).some(t => same(c.ten, t)) && P0.ten && !same(c.ten, P0.ten)) { c.ten = { ...P0.ten }; delete c.tend; return true; }
   if (!(c.ten ? same(c.ten, OLD_PRESET_TEN3[i]) : c.tend && same(c.tend, OLD_PRESET_TEND[i]))) return changed;
   delete c.tend; c.ten = { ...P0.ten }; return true;
@@ -656,19 +659,19 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "acc": 85,
         "jmp": 66,
         "endu": 78,
-        "ins": 29,
-        "dnk": 29,
-        "lay": 49,
-        "ft": 57,
-        "fg": 42,
+        "ins": 35,
+        "dnk": 10,
+        "lay": 40,
+        "ft": 56,
+        "fg": 65,
         "tp": 45,
         "oiq": 55,
         "diq": 50,
         "blk": 23,
-        "stl": 86,
+        "stl": 94,
         "drb": 69,
-        "pss": 72,
-        "reb": 46,
+        "pss": 74,
+        "reb": 42,
         "box": 28
       },
       "pot": 60,
@@ -698,24 +701,25 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "ambition": 70
       },
       "ten": {
-        "usage": 56.34,
-        "ftr": 82.51,
-        "ra": 45,
-        "paint": 16,
-        "mid": 19.4,
-        "c3": 2,
-        "atb": 17.6,
-        "cns": 20,
-        "pullup": 55,
-        "step": 20,
-        "fade": 5,
-        "turnovers": 76.33,
-        "fouls": 58,
+        "usage": 45.5,
+        "ftr": 81.5,
+        "ra": 39.7,
+        "paint": 20.1,
+        "mid": 20.6,
+        "c3": 3.4,
+        "atb": 16.2,
+        "cns": 25,
+        "pullup": 70,
+        "step": 2,
+        "fade": 3,
+        "turnovers": 71.5,
+        "fouls": 57.5,
         "crash": 53.22
       },
       "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
-      "notes": "Full 35-game Knicks regular season. Shot-location and creation shares are scouting estimates; box-score targets use historical totals. Applying a card keeps the recipient’s identity, age, contract and history.",
+      "notes": "Full 35-game 2011–12 Knicks regular season, not the February hot streak. Zone attempt shares use the official NBA shot chart. Creation shares and individual finishing ratings are estimates; the engine blends finishing skills. Applying keeps the recipient’s identity, age, contract and history.",
       "sources": [
+        "https://www.nba.com/stats/player/202391/shooting?Season=2011-12",
         "https://www.basketball-reference.com/players/l/linje01.html",
         "https://www.landofbasketball.com/nba_players_season_stats/2012/jeremy_lin_full.htm"
       ]
