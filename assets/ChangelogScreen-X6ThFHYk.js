@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-kaggU5P0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Di0xDoiQ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-02
+
+### Fixed
+- **Jeremy Lin’s Knicks card follows his actual shot chart.** Rebuilt the full 2011–12 season card using recorded NBA shot locations, corrected its finishing/mid-range balance and excessive stepbacks, and rechecked scoring, passing, rebounds and defensive box scores. Untouched library copies update when reopened; apply the revised card to update a player already in a league.
 
 ## 2026-11-01
 
