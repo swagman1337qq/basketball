@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-B21bIkmT.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-spM2DTVA.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-02
 
 ### Fixed
+- **College-stat ages follow God Mode age edits.** Aging a player up shifts his existing college history without adding seasons; aging him down trims the earliest years, so a 19-year-old has one freshman season. This works with the Age control, birthdays and imported historical records.
 - **Finishing skills now control the shots they describe.** Layups, dunks, floaters and hooks are resolved separately, with a new dunk-frequency preference and actual finishing results on the profile. Watched and quick games use the same shot events; shooting fouls and rebounder putbacks follow those events. Older card builds were adapted and checked across the library.
 - **Jeremy Lin’s Knicks card follows his actual shot chart.** Rebuilt the full 2011–12 season card using recorded NBA shot locations, corrected its finishing/mid-range balance and excessive stepbacks, and rechecked scoring, passing, rebounds and defensive box scores. Untouched library copies update when reopened; apply the revised card to update a player already in a league.
 
