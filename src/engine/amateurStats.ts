@@ -39,9 +39,9 @@ export function compLevel(from: any): { c: number; label: string; college: boole
 // His game in an earlier season: the skills he had yet to add by the draft (about 3 a year in his teens, 2 at
 // 20–21, 1 after), his body a little less grown.
 function snapshot(p: any, yearsBack: number) {
-  const r = { ...(p.am?.r || p.r) }; let age = p.dAge ?? p.age;
+  const r = { ...(p.am?.r || p.r) }; let age = p.amAgeEdit?.ratingAge ?? p.dAge ?? p.age;
   for (let k = 0; k < yearsBack; k++) { age--; const d = age < 20 ? 3 : age < 22 ? 2.2 : 1.2; SKILLS.forEach(s => (r[s] = Math.max(4, r[s] - d))); ['spd', 'acc', 'jmp', 'stre'].forEach(s => (r[s] = Math.max(4, r[s] - d * 0.4))); }
-  return { r, age };
+  return { r, age, displayAge: (p.dAge ?? p.age) - yearsBack };
 }
 
 // His team situation in a season (2026-10-27), drawn by chance and never shown: part of it stays with him for
@@ -68,7 +68,7 @@ const NOTE: Record<string, string> = { redshirt: 'Redshirt (practiced, didn’t 
 export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint): AmLine {
   const rnd = mulberry32(((p.id * 2654435761) ^ (season * 40503) ^ 0xa11) >>> 0), nz = (s: number) => Math.exp(s * (rnd() + rnd() + rnd() - 1.5) * 2);
   const from = st ? { team: st.team, lg: st.lg } : p.from, kind = st?.kind;
-  const { r, age } = snapshot(p, yearsBack), lv = compLevel(from), o = ovrExact(p.am ? { ...p, r, grp: p.am.grp, intg: { ...p.intg, feel: p.am.feel }, rx: p.am.rx } : { ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
+  const { r, age, displayAge } = snapshot(p, yearsBack), lv = compLevel(from), o = ovrExact(p.am ? { ...p, r, grp: p.am.grp, intg: { ...p.intg, feel: p.am.feel }, rx: p.am.rx } : { ...p, r }), dom = o - lv.c, zs = zoneSkill(r), off = offAbility(r);
   const sit = situation(p.id, season);
   // Freeze these with the amateur skill snapshot after the draft. Older frozen
   // snapshots have neutral habits, never the player's later NBA playing style.
@@ -132,7 +132,7 @@ export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint
   };
   // What he did (his level's pace in 40-minute games) and the same rates at an NBA pace in 48-minute terms for the formulas.
   const pace = Math.round(lv.college ? cl(68 + 4 * sit.pace, 61, 76) : cl(72 + 3 * sit.pace, 66, 78)), disp = build(pace, 1);
-  return { season, team: from?.team || '—', lg: from?.lg || '', level: lv.label, age, gp, mpg: gp ? mpg : 0, tq: sit.team, disp, t: { ...disp, min: disp.min * 48 / 40, ...scale(disp, 100 / pace) }, ...(kind ? { note: NOTE[kind] } : {}) };
+  return { season, team: from?.team || '—', lg: from?.lg || '', level: lv.label, age: displayAge, gp, mpg: gp ? mpg : 0, tq: sit.team, disp, t: { ...disp, min: disp.min * 48 / 40, ...scale(disp, 100 / pace) }, ...(kind ? { note: NOTE[kind] } : {}) };
 }
 // Counting stats at another pace (the formulas' 48-minute, NBA-pace frame).
 function scale(t: StatLine, f: number): StatLine { const o: StatLine = {}; for (const [k, v] of Object.entries(t)) if (typeof v === 'number' && !['gp', 'gs', 'min'].includes(k)) o[k] = v * f; return o; }
@@ -158,6 +158,7 @@ export function amateurSeasons(g: Game, p: any): { season: number; back: number;
 // Years past the four (or, now and then, five) he can play are a redshirt, a medical redshirt or a transfer sitting out;
 // once in a while an injury cuts a season short.
 export function schoolPath(p: any): Stint[] {
+  if (Array.isArray(p.amAgeEdit?.path)) return p.amAgeEdit.path.map((s: Stint) => ({ ...s }));
   const fin = p.from || {}, dAge = p.dAge ?? p.age, Y = cl(dAge - 18, 1, 6), r = mulberry32(((p.id * 1597334677) ^ 0x5c4001) >>> 0);
   const pick = <T,>(L: T[]) => L[Math.floor(r() * L.length)], small = fin.lg === 'NAIA' || D2.includes(fin.team) || D3.includes(fin.team);
   const out: Stint[] = Array.from({ length: Y }, () => ({ team: fin.team, lg: fin.lg }));
@@ -188,11 +189,38 @@ export function schoolPath(p: any): Stint[] {
 
 // A whole class's lines with their advanced stats (memoized per class, season and edit counter).
 const MEMO = new WeakMap<object, { key: string; v: Record<number, (AmLine & { adv: StatLine })[]> }>();
+
+// God Mode changes the age of the same person, not how many extra seasons he
+// played. Keep existing rows when aging up; trim earliest college years when
+// aging down. Saved source histories stay intact; the visible window is saved.
+export function setGodPlayerAge(g: Game, p: any, value: number) {
+  if (!Number.isFinite(value)) return;
+  const age = cl(Math.round(value), 16, 50), delta = age - p.age;
+  if (!delta) return;
+  const cls = amClass(p), hasHistory = cls && (p.am || hasAmateur(g, p) || p.real?.length);
+  if (hasHistory) {
+    const oldDraftAge = p.dAge ?? p.age + cls - g.Y;
+    const college = compLevel(p.from).college && compLevel(p.from).label !== 'High school';
+    if (college) {
+      const sourceYears = p.real?.length ? new Set(p.real.map((r: any) => r.season)).size : 0;
+      const path = sourceYears ? undefined : schoolPath(p);
+      const edit = p.amAgeEdit ?? { ratingAge: oldDraftAge, years: sourceYears || path!.length, ...(path ? { path } : {}) };
+      edit.years = Math.min(edit.years, Math.max(1, oldDraftAge + delta - 18));
+      if (edit.path) edit.path = edit.path.slice(-edit.years);
+      p.amAgeEdit = edit;
+    }
+    p.dAge = oldDraftAge + delta;
+  }
+  p.age = age;
+  MEMO.delete(g.db);
+}
 // A loaded draft class's real seasons (engine/historical.ts, p.real: per game), as season lines in the same shape as
 // generated ones, so his advanced stats come from the same formulas. Only seasons already played show (a class loaded
 // years ahead plays them out); pace 70 a game, about college basketball's in 2000.
 export function realLines(g: Game, p: any): AmLine[] {
-  return (p.real || []).filter((l: any) => l.season <= g.Y).map((l: any) => {
+  const source = p.real || [], years = [...new Set<number>(source.map((l: any) => l.season))].sort((a, b) => a - b);
+  const retained = p.amAgeEdit ? new Set(years.slice(-p.amAgeEdit.years)) : null;
+  return source.filter((l: any) => l.season <= g.Y && (!retained || retained.has(l.season))).map((l: any) => {
     const from = { team: l.team, lg: l.lg || p.from?.lg || 'NCAA' }, lv = compLevel(from), gp = l.gp || 0, n = (v: any) => (v || 0) * gp, age = (p.dAge ?? p.age) - (p.cls - l.season);
     if (!gp) return { season: l.season, team: l.team, lg: from.lg, level: lv.label, age, gp: 0, mpg: 0, tq: 0, disp: {}, t: {}, note: l.note === 'sitout' ? NOTE.sitout : NOTE.redshirt } as AmLine;
     const disp: StatLine = { gp, gs: l.gs || 0, min: n(l.mp), pts: n(l.pts), fgm: n(l.fg), fga: n(l.fga), tpm: n(l.tp), tpa: n(l.tpa), ftm: n(l.ft), fta: n(l.fta), orb: n(l.orb), drb: n(l.drb), ast: n(l.ast), stl: n(l.stl), blk: n(l.blk), tov: n(l.tov), pf: n(l.pf) };
