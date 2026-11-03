@@ -13,9 +13,24 @@
 //    potential isn't touched: if he doesn't develop, his ratings and play make the case over time.
 import type { Game } from './Game';
 import { remainingGuaranteed, stdIds } from './cba';
+import { decisionOverall } from './ratings';
 import { agingLoss, typicalLoss } from './agingOutlook';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+// Form is a secondary signal and needs NBA minutes to earn weight.
+export function rotationValue(p: any): number {
+  const level = decisionOverall(p);
+  const games = p.gp || 0;
+  const expectedPER = 15 + (level - 50) * 0.75;
+  const form = games >= 20 && Number.isFinite(p.per) ? cl((p.per - expectedPER) / 8, -1, 1) : 0;
+  return level + 2 * form * games / (games + 30);
+}
+
+export function draftValue(p: any, potential: number, timeline: string = 'middle'): number {
+  const readiness = timeline === 'contend' ? 0.40 : timeline === 'rebuild' ? 0.22 : 0.30;
+  return readiness * decisionOverall(p) + (1 - readiness) * potential;
+}
+
 const MIN_GRP: Record<string, number> = { G: 4, W: 4, B: 3 }; // a roster needs this many at each position group
 
 // A team's timeline: an AI team's strategy, or for a team you run, where it stands in the league.
@@ -38,7 +53,8 @@ export function rosterValue(g: Game, s: any, tid: number, p: any, ids: number[],
   const P = g.db.P, Y = g.Y, age = p.age;
   const wNow = tl === 'contend' ? 1.15 : tl === 'rebuild' ? 0.8 : 1, wFut = tl === 'contend' ? 0.5 : tl === 'rebuild' ? 1.3 : 0.9;
   const pot = g.potRead(p, tid, s), youth = age <= 21 ? 0.75 : age <= 23 ? 0.6 : age <= 25 ? 0.35 : age <= 27 ? 0.12 : 0;
-  let v = p.ovr * wNow + Math.max(0, pot - p.ovr) * youth * wFut;
+  const level = decisionOverall(p);
+  let v = level * wNow + Math.max(0, pot - level) * youth * wFut;
   // Which way he's heading: this year's change, for players still growing.
   const ref = p.rh?.[Y]?.o?.ovrI ?? p.rh?.[Y - 1]?.o?.ovrI; if (ref != null && age <= 26) v += cl(p.ovr - ref, -4, 6) * 0.5;
   // Age against the timeline.
@@ -50,7 +66,7 @@ export function rosterValue(g: Game, s: any, tid: number, p: any, ids: number[],
   // The team's draft investment.
   v += draftInvestment(g, p, tid);
   // His role and the roster around him.
-  const others = ids.filter(id => id !== p.id && P[id]), rank = others.filter(id => P[id].ovr > p.ovr).length; // players better than him
+  const others = ids.filter(id => id !== p.id && P[id]), rank = others.filter(id => decisionOverall(P[id]) > level).length; // players better than him
   if (rank < 8) v += 3; else if (rank < 10) v += 1.5; // a rotation player
   const sameGrp = others.filter(id => P[id].grp === p.grp).length; if (sameGrp < (MIN_GRP[p.grp] ?? 3)) v += 6; // the last of his position group
   const mine = g.rolesOf(p), theirs = new Set(others.filter(id => others.filter(x => P[x].ovr > P[id].ovr).length < 10).flatMap(id => g.rolesOf(P[id])));

@@ -18,7 +18,7 @@ import type { Game } from './Game';
 import { checkTrade, nums, seasonMax, teamSalary } from './cba';
 import { expectedByRank } from './lottery';
 import { protFactor } from './pickRules';
-import { teamRating } from './ratings';
+import { decisionOverall, teamRating } from './ratings';
 import { agingPath } from './agingOutlook';
 import { ovrExact } from './ratings';
 
@@ -31,7 +31,7 @@ const OUT = new WeakMap<object, Map<number, number[]>>(); // state → years ahe
 // A team's projected strength n seasons ahead (a team-rating number, ~40–70).
 export function projStrength(g: Game, s: any, tid: number, n: number) {
   const P = g.db.P, Y = g.Y, ids: number[] = s.rosters[tid] || [], REPL = 44;
-  const vals = ids.map(id => { const p = P[id]; if (!p) return REPL; let o = p.ovr;
+  const vals = ids.map(id => { const p = P[id]; if (!p) return REPL; let o = decisionOverall(p);
     // Growth for the young; aging from the same code that ages him (agingOutlook.ts: a shooter holds up, an athlete fades).
     const path = n > 0 && p.age + n >= 27 ? agingPath(p, n) : null, o0 = ovrExact(p);
     for (let i = 0; i < n; i++) { const a = p.age + i; o += a <= 26 ? Math.min(Math.max(0, (p.pot ?? o) - o), a <= 22 ? 3 : a <= 24 ? 2 : 1) : path ? path[i] - (i ? path[i - 1] : o0) : 0; }
@@ -89,7 +89,7 @@ export function contractK(g: Game, s: any, tid: number, st: string) {
 // What a contract adds to or takes from a player's worth: years × (pay − worth), growing for an
 // aging player (his later years are worse).
 export function contractValue(g: Game, p: any, k: number) {
-  const yrs = Math.max(1, p.exp - (g.Y - 1)), over = p.amt - g.fair(p.ovr);
+  const yrs = Math.max(1, p.exp - (g.Y - 1)), over = p.amt - g.fair(decisionOverall(p));
   return over > 0 ? -over * yrs * k * (1 + 0.08 * Math.max(0, p.age - 29) * (yrs - 1)) : -over * yrs * 0.3;
 }
 

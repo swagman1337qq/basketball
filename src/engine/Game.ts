@@ -17,7 +17,7 @@ import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { americanFirst, applyNativeMix, deepenLook, MIXED_NATIVE_SHARE, NATIVE_MIX, nameFromGroup, pickGroup, randomName, scriptOk, TRIBE_CITIES, TRIBE_TOWNS, TWO_TRIBES_SHARE } from '../data/heritage';
 import { voteHof } from './hof';
 import { autoTen, effTend, ensureTen, initTendencies, optionRanks, quirkOf, tenTargets } from './tendencies';
-import { blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, OVR_ADJ_V7, FEEL_W_V5, FEEL_W_V6, OVR_W, OVR_W_V5, OVR_W_V6, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrShare, POS_GROUP, recommendPos, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
+import { decisionOverall, blendHeight, inchesOf, liftRebounding, deriveDefense, deriveDefenseKeepOvr, OVR_ADJ_V1, OVR_ADJ_V2, OVR_ADJ_V3, OVR_ADJ_V4, OVR_ADJ_V5, OVR_ADJ_V6, OVR_ADJ_V7, FEEL_W_V5, FEEL_W_V6, OVR_W, OVR_W_V5, OVR_W_V6, OVR_W_V1, OVR_W_V2, OVR_W_V3, OVR_W_V4, ovrExact, ovrExactV7, ovrShare, POS_GROUP, recommendPos, setHgtKeepOvr, setRating, shiftOvr, skillTop, syncOvr, teamRating, wngBonus, wngRating } from './ratings';
 import { ensureIntg, gemTick, rollGem } from './intangibles';
 import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
@@ -41,7 +41,7 @@ import { applyTranslation, ensureTranslation, translationLine } from './translat
 import { applyChange, bodyAhead, coachAging, coachMult, develop, skillChange, SKILLS, skillWeights, workEthicOf } from './development';
 import { capToT, ceilMax, fitCeilToT, floorCeil, compressT, squeezeTop, unsqueezeTop, compressTruePot, fullCeil, initCeil, moveTruePot, trueT, paceOf, planRate, planStatus, potView, refreshPot, rollPerr, scoutSd, sharpen, softTop, teamRead, TYPICAL } from './potential';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
-import { devMinutes, pickCut, rosterValue } from './rosterAI';
+import { devMinutes, draftValue, pickCut, rosterValue, rotationValue } from './rosterAI';
 import { aiTradeIdea, contractK, floorTradeIdea, contractValue, offerToUser, pickHorizon, pickWorth, slotDist, swapWorth, teamGain } from './tradeLogic';
 import { BROTHER_RATE, legacyCareer, maybeBrother, maybeSon, familyTag } from './family';
 import { regionOfCountry } from '../data/world';
@@ -385,24 +385,37 @@ export class Game {
     // potential and plan move by the same amount so his growth room is unchanged.
     // 2026-10-16 (iqV 4): weights measured from the engine (ratings.ts OVR_W); same recompute and shift.
     // 2026-10-17 (iqV 5): Feel joins the overall (ratings.ts FEEL_W); same recompute and shift.
+    const recalibrateValue = (g.db.iqV || 0) < 8;
     if ((g.db.iqV || 0) < 5) { const v = g.db.iqV || 0, WV = v === 4 ? OVR_W_V5 : v === 3 ? OVR_W_V4 : v === 2 ? OVR_W_V3 : v === 1 ? OVR_W_V2 : OVR_W_V1, AV = v === 4 ? OVR_ADJ_V5 : v === 3 ? OVR_ADJ_V4 : v === 2 ? OVR_ADJ_V3 : v === 1 ? OVR_ADJ_V2 : OVR_ADJ_V1; const oldOvr = (p: any) => { const W = WV[p.grp] || WV.W; let a = 0, t = 0; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (AV[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 7; } // straight to today's weights
+      g.refreshNorms(g.state); g.db.iqV = 8; } // straight to today's weights
     // 2026-10-23 (iqV 6): weights measured again after shot creation joined the engine (sim.ts creSkill); same recompute and shift.
     if ((g.db.iqV || 0) < 6) { const oldOvr = (p: any) => { const W = OVR_W_V5[p.grp] || OVR_W_V5.W, fw = FEEL_W_V5[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (OVR_ADJ_V6[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 7; } // straight to today's weights
+      g.refreshNorms(g.state); g.db.iqV = 8; } // straight to today's weights
     // 2026-11-01 (iqV 7): weights measured again after one-on-one defense, the pass that sets up a shot, and steals and
     // blocks that help (sim.ts matchups, setupD, GAMBLE/BLK_RIM); same recompute and shift.
     if ((g.db.iqV || 0) < 7) { const oldOvr = (p: any) => { const W = OVR_W_V6[p.grp] || OVR_W_V6.W, fw = FEEL_W_V6[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw; for (const k in W) { const v = p.r[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; } return Math.max(1, Math.min(100, a / t + wngBonus(p) - (OVR_ADJ_V7[p.grp] ?? 2.5))); };
       (Object.values(g.db.P) as any[]).forEach(p => { if (!p?.r || p.gone) return; const d = ovrExact(p) - oldOvr(p), di = Math.round(d);
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
-      g.refreshNorms(g.state); g.db.iqV = 7; }
+      g.refreshNorms(g.state); g.db.iqV = 8; }
+    // Recalibrate overall without rewriting skills, past statistics, or contracts.
+    if ((g.db.iqV || 0) < 8) {
+      for (const p of Object.values(g.db.P) as any[]) {
+        if (!p?.r || p.gone) continue;
+        const old = ovrExactV7(p), next = ovrExact(p), delta = Math.round(next) - Math.round(old);
+        if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + delta));
+        if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + next - old).toFixed(2);
+        syncOvr(p, true);
+        if (!p.retired) refreshPot(p);
+      }
+      g.db.iqV = 8;
+    }
     // 2026-11-01 (retAgeV 1): retired players' ages used to stop when they retired; bring them to this season's age.
     // A summer retiree's stored age is already the next season's (his season is the one he finished); one who hit the
     // mandatory retirement age retired after the season turned over; the league's starting legends were made at their
@@ -444,6 +457,17 @@ export class Game {
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.work == null) p.pers.work = workEthicOf(p.id); }); // 2026-10: every player has a work ethic (it was missing)
     Object.values(g.db.P).forEach((p: any) => { if (p.pers && p.pers.team === undefined) p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && ((p.id * 2654435761) >>> 0) % 100 < 30; if (p.pers && p.pers.legacy === undefined) p.pers.legacy = ((p.id * 40503 + 7) >>> 0) % 100 < 12; if (p.pers && p.pers.mal === undefined) { const h = (x: number) => ((p.id * x + 11) >>> 0) % 1000 / 1000; p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45))); } });
     assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams)); g._rosterRef = g.state.rosters;
+    if (recalibrateValue) {
+      g.refreshPrices(g.state.rosters);
+      g.refreshNorms(g.state);
+      for (const year of Object.keys(g.db.cls || {})) {
+        if (+year < g.Y || (+year === g.Y && g.state.phase === 'draft')) continue;
+        const ids: number[] = g.db.cls[year];
+        if (ids.some(id => !g.db.P[id]?.r || g.db.P[id].dr)) continue;
+        ids.sort((a, b) => draftValue(g.db.P[b], g.db.P[b].pot) - draftValue(g.db.P[a], g.db.P[a].pot));
+        ids.forEach((id, i) => { g.db.rank[id] = i + 1; });
+      }
+    }
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
     return g;
   }
@@ -565,7 +589,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 7, retAgeV: 1, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 8, retAgeV: 1, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -653,7 +677,7 @@ export class Game {
     const everyone = [...Object.values(rosters).flat(), ...fa, ...os, ...cls[2027], ...cls[2028], ...cls[2029]] as number[];
     everyone.forEach(id => { const p = P[id]; if (p.family) return; if (!maybeSon(this, p, rnd) && rnd() < BROTHER_RATE / 2) maybeBrother(this, { ...st0, rosters }, p, rnd, true); });
     const rank = {};
-    Object.keys(cls).forEach(y => { cls[y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)); cls[y].forEach((id, i) => rank[id] = i + 1); });
+    Object.keys(cls).forEach(y => { cls[y].sort((a, b) => draftValue(P[b], P[b].pot) - draftValue(P[a], P[a].pot)); cls[y].forEach((id, i) => rank[id] = i + 1); });
     const order = teams.slice().sort((a, b) => a.w - b.w || b.l - a.l).map(t => t.tid);
     const assets = [];
     [2027, 2028, 2029].forEach(yr => [1, 2].forEach(rd => teams.forEach(t => assets.push({ id: yr + '-' + rd + '-' + t.tid, yr, rd, orig: t.tid, owner: t.tid }))));
@@ -1011,10 +1035,10 @@ export class Game {
 
   // Your team's minutes targets for tonight, in the order of `ids` (who can play). A player whose minutes you set
   // plays them; the rest are the coach's call (2026-10-18): he ranks them by overall and how well they're playing
-  // this season (seasonForm: PER against what his overall predicts), and the minutes left over after yours follow
+  // this season (PER against what his overall predicts), and the minutes left over after yours follow
   // the rotation curve in that order, whatever their place on the roster (the order still decides who starts, and a
   // starter is ranked as if 6 points better).
-  coachValue(p) { return p.ovr + 4 * this.seasonForm(p); }
+  coachValue(p) { return rotationValue(p); }
   userTargets(s, ids: number[], ROT: number[]) {
     const P = this.db.P, man = ids.filter(id => P[id].rot != null), auto = ids.filter(id => P[id].rot == null);
     const v = (id: number) => this.coachValue(P[id]) + (ids.indexOf(id) < 5 ? 6 : 0); // your starters get the benefit of the doubt
@@ -1034,8 +1058,13 @@ export class Game {
   // real minutes for a young high pick, rosterAI devMinutes), then anyone who can't play. The Roster page
   // shows AI teams in this order, so its starting five is the one that takes the floor.
   aiOrder(s, tid) {
-    const P = this.db.P, k = (id: number) => P[id].ovr + devMinutes(this, s, tid, P[id]), ok = (id: number) => (this.canPlay1(s, P[id]) ? 1 : 0);
-    return (s.rosters[tid] || []).filter((id: number) => P[id]).slice().sort((a: number, b: number) => ok(b) - ok(a) || k(b) - k(a));
+    const P = this.db.P;
+    const available = (s.rosters[tid] || []).filter((id: number) => P[id]);
+    return available.map((id: number) => ({
+      id,
+      fit: this.canPlay1(s, P[id]) ? 1 : 0,
+      value: rotationValue(P[id]) + devMinutes(this, s, tid, P[id]),
+    })).sort((a, b) => b.fit - a.fit || b.value - a.value).map(row => row.id);
   }
 
   // An AI team's pace (a multiplier on the length of its trips): its coach's taste, new each season, plus
@@ -1752,7 +1781,7 @@ export class Game {
       abroadOut.forEach(id => { const q = P[id]; q.retired = { season: this.Y, age: q.age, tid: -1, why: 'Retired abroad' }; delete q.abroad; });
       [Y, Y + 1].forEach(yr => (d.cls[yr] || []).forEach(id => { const p = P[id]; p.age++; if (p.pth) { if (yr === Y && p.pth.k === 'hs') p.pth = { ...p.pth, k: 'col', to: { team: pickCollege(), lg: 'NCAA', country: 'US' } }; p.from = this.prospectFrom(p); return; } if (yr === Y) { if (p.from.lg === 'High school') p.from = { team: pickCollege(), lg: 'NCAA', country: 'US' }; else if (p.from.lg === 'Junior') p.from = { ...p.from, team: p.from.team.replace(' U18', ''), lg: 'Senior club' }; } }));
       d.cls[Y + 2] = []; for (let k = 0; k < 100 + 3 * (teams.length - 30); k++) { const p = this.mkProspect(23 + Math.random() * 12, Y + 2, 2, s.natW || natDefault()); if (!maybeSon(this, p, Math.random)) maybeBrother(this, { rosters, fa }, p, Math.random); p.pot = this.prospectPot(p, Math.random); p.exp = Y + 5; d.cls[Y + 2].push(p.id); }
-      d.cls[Y + 2].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
+      d.cls[Y + 2].sort((a, b) => draftValue(P[b], P[b].pot) - draftValue(P[a], P[a].pot)).forEach((id, i) => d.rank[id] = i + 1);
       // Picks two years out, unless the trading horizon already made them (it usually has: adding them
       // again duplicated every one of them).
       { const have = new Set(assets.map(a => a.id)); teams.forEach(t => [1, 2].forEach(rd => { const id = (Y + 2) + '-' + rd + '-' + t.tid; if (!have.has(id)) assets.push({ id, yr: Y + 2, rd, orig: t.tid, owner: t.tid }); })); }
@@ -1819,7 +1848,7 @@ export class Game {
       d.calendarV = 1;
       d.days = this.buildSchedule(teams.length, Math.random, true);
       const order = teams.slice().sort((a, b) => a.str - b.str).map(t => t.tid);
-      d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
+      d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => draftValue(P[b], P[b].pot) - draftValue(P[a], P[a].pot)).forEach((id, i) => d.rank[id] = i + 1);
       Object.values(progBy).forEach(x => x.sort((a, b) => (b.to - b.from) - (a.to - a.from)));
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => { if (P[id].twoWay) P[id].twoWay.games = 0; delete P[id].poIneligible; P[id].fat = 0; P[id].last5 = []; P[id].protect = false; P[id].minMin = 0; P[id].padding = false; P[id].moodAdj = Math.round((P[id].moodAdj || 0) / 2); });
       this.refreshNorms({ rosters, season: Y });
@@ -1991,8 +2020,9 @@ export class Game {
   }
   // A player's worth to a team with strategy st; tid: whose eyes (its read of his potential).
   pVal(p, st, tid?: number) {
-    const pot = tid == null ? p.pot : this.potRead(p, tid), base = Math.pow(Math.max(0, p.ovr - 38), 1.9) / 10;
-    const gap = Math.max(0, pot - p.ovr), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
+    const pot = tid == null ? p.pot : this.potRead(p, tid), level = decisionOverall(p);
+    const base = Math.pow(Math.max(0, level - 38), 1.9) / 10;
+    const gap = Math.max(0, pot - level), youth = p.age <= 22 ? gap * 1.2 : p.age <= 25 ? gap * 0.6 : 0;
     const agePen = p.age >= 31 ? 0.65 : p.age >= 29 ? 0.85 : 1;
     const M = { rebuild: [p.age >= 29 ? 0.55 : 0.9, 1.7, 0.35], middle: [0.9, 1.4, 1.0], contend: [1.35, 0.5, 0.75] }[st];
     let v = base * agePen * agingEdge(this, p) * M[0] + youth * M[1]; // agingEdge: a veteran who'll hold up (a shooter) is worth more than one who'll fade (agingOutlook.ts)
@@ -2501,7 +2531,7 @@ export class Game {
     Object.values(rosters).flat().forEach((id: any) => { const p = P[id], m = mins[id] || 0;
       p.fat = Math.max(0, Math.min(100, (p.fat || 0) - recovery * (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
   }
-  // How close (in draft value: 0.7 × potential read + 0.3 × overall) a prospect must be to an AI team's top
+  // How close in draft value a prospect must be to an AI team's top
   // choice for it to take him instead.
   static DRAFT_CLOSE = 3;
   rookieAmt(n) { return +(2.9 + Math.pow((30 - n) / 29, 1.6) * 10.9).toFixed(1); }
@@ -2517,6 +2547,7 @@ export class Game {
       const setClub = (t, f) => { const pt = this.clubPatch({ ...st, clubs }, t, f, clubs); if (pt.clubs) clubs = pt.clubs; else top = { ...top, ...pt }; st = { ...s, ...top, clubs }; };
       const promiseOwner = id => s.managed.find(t => (this.clubOf(st, t)?.promises || {})[id]);
       let made = 0;
+      const timelines = this.strategies(s.teams, s, true);
       while (pi < picks.length && made < limit && !(untilMine && !s.easy?.draft && this.isUser(s, this.owner2027(picks[pi].orig, s.assets, picks[pi].rd)))) {
         const ow = this.owner2027(picks[pi].orig, s.assets, picks[pi].rd), ai = !this.isUser(s, ow);
         const avail0 = this.db.cls[this.Y].filter(id => !taken.has(id));
@@ -2528,7 +2559,7 @@ export class Game {
         // It takes its top choice most of the time, else one of the next two, but only among prospects close
         // to the best on its board (within DRAFT_CLOSE): a clear-cut best player always goes first.
         let close = 3;
-        const ranked = ai ? (() => { const val = (x: number) => { const q = this.db.P[x]; return this.potRead(q, ow, s) * 0.7 + q.ovr * 0.3; }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); const r = avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); close = r.filter(x => v.get(r[0])! - v.get(x)! <= Game.DRAFT_CLOSE).length; return r; })() : avail;
+        const ranked = ai ? (() => { const val = (x: number) => { const q = this.db.P[x]; return draftValue(q, this.potRead(q, ow, s), timelines[ow]); }; const v = new Map<number, number>(avail.map((x: number) => [x, val(x)] as [number, number])); const r = avail.slice().sort((a2, b2) => v.get(b2)! - v.get(a2)!); close = r.filter(x => v.get(r[0])! - v.get(x)! <= Game.DRAFT_CLOSE).length; return r; })() : avail;
         const id = ranked[Math.min(ranked.length - 1, close - 1, Math.floor(Math.random() * Math.random() * 3))];
         picks[pi].pid = id; taken.add(id);
         const p = this.db.P[id], T = s.teams[ow];

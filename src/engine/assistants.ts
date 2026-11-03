@@ -5,6 +5,7 @@ import type { Game } from './Game';
 import { mulberry32 } from './rng';
 import { capRoom, nums, seasonMax, signingMethods, stdIds, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { teamRating } from './ratings';
+import { rotationValue } from './rosterAI';
 
 export interface AdviceLine { pid: number; kind: 'start' | 'bench' | 'more' | 'less' | 'rest' | 'dev' | 'hurt'; text: string; by: string }
 export interface Advice { staff: { name: string; role: string }[]; lines: AdviceLine[]; order: number[]; minutes: Record<number, number>; summary: string }
@@ -24,8 +25,8 @@ export function lineupAdvice(g: Game, s: any, tid: number): Advice {
   const out = (id: number) => { const p = P[id]; return (p.inj && !p.inj.dtd) || p.dev || (p.ctype === 'twoWay' && (p.twoWay?.games || 0) >= 50); };
   const avail = ids.filter(id => !out(id));
   const season = (p: any) => (p.stats || []).filter((x: any) => x.season === g.Y && !x.po).reduce((a: any, x: any) => ({ gp: a.gp + x.gp, min: a.min + x.min }), { gp: 0, min: 0 });
-  // Value: rating, plus current form (PER vs league average) once there's a sample, plus staff noise.
-  const val = (id: number) => { const p = P[id], sn = season(p), form = sn.gp >= 5 ? ((p.per || 15) - 15) * 0.35 : 0; return p.ovr + form - (p.fat || 0) * 0.04 - (p.inj?.dtd ? 2 : 0) + (r() - 0.5) * noise; };
+  // Calibrated rotation value with staff uncertainty and availability costs.
+  const val = (id: number) => { const p = P[id]; return rotationValue(p) - (p.fat || 0) * 0.04 - (p.inj?.dtd ? 2 : 0) + (r() - 0.5) * noise; };
   const V: Record<number, number> = {}; avail.forEach(id => (V[id] = val(id)));
   // Best five by value with a balanced mix (at least one guard and one big, at most three of either).
   const pool = avail.slice().sort((a, b) => V[b] - V[a]).slice(0, 9);

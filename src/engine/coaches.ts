@@ -16,9 +16,10 @@ export function coachFocus(p: any): { focus: string; why: string } {
   if (p.age >= 31) return { focus: 'Conditioning', why: 'At ' + p.age + ', keeping his legs matters most.' };
   const W = OVR_W[p.grp] || OVR_W.W;
   let best = 'Balanced', score = 0, gaps: string[] = [];
+  const trainableGap = (k: string) => (W[k] ?? 0) * Math.max(0, Math.min(72, p.ceil?.[k] ?? 99) - p.r[k]);
   Object.entries(FOCUS).forEach(([f, ks]) => {
-    const sc = ks.reduce((a, k) => a + W[k] * Math.max(0, 72 - p.r[k]), 0) / Math.sqrt(ks.length) * (f === 'Athleticism' ? (p.age >= 27 ? 0.55 : p.age >= 24 ? 0.8 : 1) : 1); // athleticism is hard to add once he's in his mid-20s
-    if (sc > score) { score = sc; best = f; gaps = ks.filter(k => p.r[k] < 72).sort((a, b) => p.r[a] - p.r[b]).slice(0, 2).map(k => NAME[k] + ' ' + p.r[k]); }
+    const sc = ks.reduce((a, k) => a + trainableGap(k), 0) / Math.sqrt(ks.length) * (f === 'Athleticism' ? (p.age >= 27 ? 0.55 : p.age >= 24 ? 0.8 : 1) : 1); // athleticism is hard to add once he's in his mid-20s
+    if (sc > score) { score = sc; best = f; gaps = ks.filter(k => trainableGap(k) > 0).sort((a, b) => trainableGap(b) - trainableGap(a)).slice(0, 2).map(k => NAME[k] + ' ' + p.r[k]); }
   });
   if (best === 'Balanced' || score < 8) return { focus: 'Balanced', why: 'No big hole for a ' + GRP_NAME[p.grp] + '; keep everything moving.' };
   return { focus: best, why: 'Biggest gap for a ' + GRP_NAME[p.grp] + ': ' + gaps.join(', ') + '.' };
