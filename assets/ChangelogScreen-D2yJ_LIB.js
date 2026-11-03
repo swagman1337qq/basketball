@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BK-AyKZc.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Pu64xaEd.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -7,6 +7,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ### Added
 - **Teams play on their own calendars.** New seasons include back-to-backs and uneven rest. Fatigue recovers on off days, injuries track the team’s upcoming games, and coaches reduce tired players’ minutes on short rest.
 - **Finishes reflect how the shot was created.** Drives, cuts, rolls and post entries react to where help defenders are. The engine tracks open, pressured and contested looks separately.
+
+### Changed
+- **Overalls use a fresh measurement of what wins possessions.** Updated how skills count for guards, wings and bigs after 75,000 simulated games. The recalibrated ratings feed AI rotations, training, draft boards and trade values. Contenders put more weight on draft readiness, and rebuilding teams put more weight on upside.
+- **18 historical player cards are closer to their actual season averages.** Checked all 26 presets and accepted changes that held up on separate test seeds. Untouched library copies update when opened.
 
 ### Fixed
 - **Retired players keep getting older.** A retired player's age on his profile now goes up every year like everyone else's, while "Retired after the … season, at 36" keeps the age he retired at. Leagues you already have catch up when they load. The age column in a retired player's past seasons is right now too (it read a year old for most retirees).
