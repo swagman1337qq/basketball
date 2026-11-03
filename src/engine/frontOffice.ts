@@ -505,14 +505,15 @@ export function incentiveProgress(g: Game, s: any, p: any, tid: number, x: any) 
 
 // ── Inbox: stat-padding dilemmas and owner mandates ───────────────────────────────
 export function inboxTick(g: Game, s: any, day: number, rosters: any) {
-  const P = g.db.P, out: Record<number, any[]> = {}, left = 82 - day;
+  const P = g.db.P, out: Record<number, any[]> = {};
   const push = (tid, x) => (out[tid] = out[tid] || []).push({ id: 'i' + g.Y + '-' + day + '-' + x.pid + '-' + x.kind, tid, day, season: g.Y, done: false, ...x });
   s.managed.forEach(tid => {
+    const left = g.db.calendarV ? g.remainingGames(tid, day) : 82 - day;
     rosters[tid].forEach(id => {
       const p = P[id]; if (p.dilemma === g.Y) return;
       const t = g.seasonTotals(p, g.Y), gp = t?.gp || 0;
       for (const x of p.inc || []) {
-        if (x.k === 'avail' && day >= 55 && gp < x.target && gp + left >= x.target && x.target - gp >= left - 4 && (p.last5?.[0]?.min || 0) < 4) {
+        if (x.k === 'avail' && day >= g.ruleSlot(55) && gp < x.target && gp + left >= x.target && x.target - gp >= left - 4 && (p.last5?.[0]?.min || 0) < 4) {
           push(tid, { pid: id, kind: 'avail', title: p.name + '’s agent wants minutes', text: 'He has ' + gp + ' games; his bonus needs ' + x.target + '. The agent asks for garbage-time minutes in the remaining ' + left + ' games so he reaches the ' + money(x.amt) + ' availability bonus.', options: [{ k: 'yes', label: 'Give him minutes' }, { k: 'no', label: 'Stick to the rotation' }] });
           p.dilemma = g.Y; return;
         }

@@ -173,12 +173,12 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
     out.push(m('bae', 'Bi-annual exception', exc.bae, 2, 0.05, 'Up to ' + exc.bae.toFixed(2) + 'M, 2 years; not in back-to-back seasons; hard-caps you at the 1st apron.', baeOk, baeOk ? undefined : cs.baeLast === Y - 1 ? 'Used last season' : exc.bae <= 0.1 ? 'Already used' : 'Would put you over the 1st apron', 'AP1'));
   }
   const dpe = (s.cap?.[tid]?.dpe);
-  if (dpe && inSeason && s.day <= DAY.DPE_DEADLINE) out.push(m('dpe', 'Disabled player exception', dpe.amt, 1, 0, 'Replaces ' + (g.db.P[dpe.pid]?.name || 'an injured player') + ': one season, up to ' + dpe.amt.toFixed(2) + 'M.'));
+  if (dpe && inSeason && s.day <= g.ruleSlot(DAY.DPE_DEADLINE)) out.push(m('dpe', 'Disabled player exception', dpe.amt, 1, 0, 'Replaces ' + (g.db.P[dpe.pid]?.name || 'an injured player') + ': one season, up to ' + dpe.amt.toFixed(2) + 'M.'));
   const minOk = sal + minS <= hard;
   out.push(m('min', 'Minimum exception', minS, 2, 0.05, 'The ' + yos + '-year minimum (' + minS.toFixed(2) + 'M); over the cap is fine.' + (yos >= 2 ? ' One-year deals count as the 2-year minimum on your cap; the league pays the rest.' : ''), minOk, minOk ? undefined : 'Hard-capped', undefined, minS));
   if (yos <= 3) out.push(m('twoWay', 'Two-way contract', N.TWO_WAY, 2, 0, 'Up to 3 per team, for players with under 4 years of service; off the ' + seasonMax(s) + '-man roster and the cap; up to 50 NBA games a season.', twCount < TWO_WAY_MAX, twCount >= TWO_WAY_MAX ? 'You already have 3 two-way players' : undefined));
   if (pre || phase === 'fa') out.push(m('ex10', 'Exhibit 10 (training camp)', minS, 1, 0, 'One-year, non-guaranteed minimum deal for camp. Convert him to a two-way before opening night, keep him (he becomes a standard contract) or waive him for nothing; if waived and he joins your CCP team he earns a bonus of up to ' + N.E10_BONUS.toFixed(2) + 'M.', stdCount < 21, stdCount >= 21 ? 'Camp roster full (21)' : undefined));
-  if (inSeason && s.day >= DAY.TEN_DAY_START) { const n = (p.tenDayWith || {})[tid] || 0; out.push(m('tenDay', '10-day contract', +(minS * 10 / 174).toFixed(3), 0, 0, 'Prorated minimum for 10 days; at most two with the same team, then rest of season.', n < 2, n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined)); }
+  if (inSeason && s.day >= g.ruleSlot(DAY.TEN_DAY_START)) { const n = (p.tenDayWith || {})[tid] || 0; out.push(m('tenDay', '10-day contract', +(minS * 10 / 174).toFixed(3), 0, 0, 'Prorated minimum for 10 days; at most two with the same team, then rest of season.', n < 2, n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined)); }
   const injured = (s.rosters[tid] || []).filter(id => g.db.P[id].inj && !g.db.P[id].inj.dtd).length;
   if (inSeason && injured >= 4 && stdCount >= seasonMax(s) && !hardshipSlots(g, s, tid)) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: one player past the ' + seasonMax(s) + '-man limit, on a non-guaranteed minimum deal until the roster is healthy.'));
   // Roster room.
@@ -219,14 +219,14 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
     const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length, lim = rosterMax(s); if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
     // Newly signed players can't be traded yet.
     out.forEach(id => { const q = P[id], sg = q.signed; if (!sg) return;
-      const wait = sg.season === g.Y && (sg.phase === 'fa' || sg.phase === 'draft' || sg.phase === 'preseason') ? (s.phase === 'regular' ? s.day < DAY.SIGNEE_TRADE : true) : sg.season === g.Y && sg.phase === 'regular' ? s.day - sg.day < DAY.INSEASON_SIGNEE_WAIT : false;
-      if (wait && !s.god) errs.push(q.name + ' signed recently and can’t be traded until ' + (sg.phase === 'regular' ? g.fmtS(sg.day + DAY.INSEASON_SIGNEE_WAIT) : g.fmtS(DAY.SIGNEE_TRADE)) + '.'); });
+      const wait = sg.season === g.Y && (sg.phase === 'fa' || sg.phase === 'draft' || sg.phase === 'preseason') ? (s.phase === 'regular' ? s.day < g.ruleSlot(DAY.SIGNEE_TRADE) : true) : sg.season === g.Y && sg.phase === 'regular' ? s.day < g.ruleWaitSlot(sg.day, DAY.INSEASON_SIGNEE_WAIT) : false;
+      if (wait && !s.god) errs.push(q.name + ' signed recently and can’t be traded until ' + (sg.phase === 'regular' ? g.fmtRuleWait(sg.day, DAY.INSEASON_SIGNEE_WAIT) : g.fmtS(g.ruleSlot(DAY.SIGNEE_TRADE))) + '.'); });
     // Extend-and-trade rule: an extension with a raise over 5% blocks trades for six months.
     out.forEach(id => { const x = P[id].extNoTrade; if (!x || s.god) return; const inSeason = x.phase === 'regular' || x.phase === 'playin' || x.phase === 'playoffs';
-      const until = inSeason ? null : DAY.EXT_TRADE, blocked = inSeason ? x.season === g.Y : (x.season === g.Y && (s.phase !== 'regular' || s.day < (until as number))) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'regular' && s.day < (until as number) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'preseason';
+      const until = inSeason ? null : g.ruleSlot(DAY.EXT_TRADE), blocked = inSeason ? x.season === g.Y : (x.season === g.Y && (s.phase !== 'regular' || s.day < (until as number))) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'regular' && s.day < (until as number) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'preseason';
       if (blocked) errs.push(P[id].name + ' signed an extension with a raise over 5% and can’t be traded for six months' + (inSeason ? ' (not again this season).' : ' (until ' + g.fmtS(until as number) + ').')); });
     out.forEach(id => { if (P[id].ntc && !s.god) errs.push(P[id].name + ' has a no-trade clause and won’t waive it.'); });
-    if (s.phase === 'regular' && s.day > DAY.TRADE_DEADLINE) errs.push('The trade deadline (' + g.fmtS(DAY.TRADE_DEADLINE) + ') has passed.');
+    if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.TRADE_DEADLINE)) errs.push('The trade deadline (' + g.fmtS(g.ruleSlot(DAY.TRADE_DEADLINE)) + ') has passed.');
     // TPE created when sending out more than taking back (over the cap, single-player out).
     if (after > N.CAP && o > i && out.length === 1) notes.push(nm + ' creates a ' + (o - i).toFixed(2) + 'M traded player exception (one year).');
     return { after };

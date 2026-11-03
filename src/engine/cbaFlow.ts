@@ -462,25 +462,25 @@ export function trimRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
 // ── In season ───────────────────────────────────────────────────────────────────
 // 10-day and hardship contracts run out, two-way players count NBA games, season-ending
 // injuries before the deadline grant a disabled player exception, TPEs expire.
-export function seasonTick(g: Game, s: any, day: number, box: Box, lgLog: any[], by: Record<number, string[]>, played: number[], injuries: any[]) {
+export function seasonTick(g: Game, s: any, day: number, box: Box, lgLog: any[], by: Record<number, string[]>, played: number[], injuries: any[], routineDay = true) {
   const P = g.db.P, N = nums(g), now = stamp(g, { ...s, day });
   played.forEach(id => { const p = P[id]; if (p.ctype === 'twoWay' && p.twoWay) p.twoWay.games = (p.twoWay.games || 0) + 1; });
   // Nobody signed him: in season, a free agent's price falls toward his minimum.
-  box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); if ((p.ask || 0) > minS) p.ask = +Math.max(minS, p.ask * 0.97).toFixed(2); });
+  if (routineDay) box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)); if ((p.ask || 0) > minS) p.ask = +Math.max(minS, p.ask * 0.97).toFixed(2); });
   Object.keys(box.rosters).forEach(k => { const t = +k;
     const out = box.rosters[t].filter(id => { const p = P[id]; if (!p.tenDay) return false;
-      if (p.ctype === 'hardship') { const hurt = box.rosters[t].filter(x => P[x].inj && !P[x].inj.dtd).length; return hurt < 4 || day - p.tenDay.start >= 10; }
-      return day - p.tenDay.start >= DAY.TEN_DAY_LEN; });
+      if (p.ctype === 'hardship') { const hurt = box.rosters[t].filter(x => P[x].inj && !P[x].inj.dtd).length; return hurt < 4 || g.ruleElapsed(p.tenDay.start, day) >= 10; }
+      return g.ruleElapsed(p.tenDay.start, day) >= DAY.TEN_DAY_LEN; });
     out.forEach(id => { const p = P[id], n = (p.tenDayWith || {})[t] || 0; box.rosters[t] = box.rosters[t].filter(x => x !== id); box.fa.push(id); const kind = p.ctype === 'hardship' ? 'hardship' : '10-day';
       delete p.tenDay; p.ctype = 'standard'; p.ask = N.min(yosOf(g, p)); p.birdTid = null;
       if (g.isUser(s, t)) (by[t] = by[t] || []).push(p.name + '’s ' + kind + ' contract expired' + (kind === '10-day' ? (n >= 2 ? ' (his second with you: next time it has to be for the rest of the season)' : ' (you can sign him to a second 10-day)') : ' (roster healthy again)'));
       lgLog.unshift({ day, type: 'Release', teams: s.teams[t].abbr, pids: [id], text: p.name + '’s ' + kind + ' contract with ' + s.teams[t].abbr + ' expired' }); });
     const c = box.cap[t]; if (c?.tpe?.some(x => x.until <= now)) box.cap[t] = { ...c, tpe: c.tpe.filter(x => x.until > now) };
-    if (c?.dpe && day > DAY.DPE_DEADLINE) box.cap[t] = { ...box.cap[t], dpe: null };
+    if (c?.dpe && day > g.ruleSlot(DAY.DPE_DEADLINE)) box.cap[t] = { ...box.cap[t], dpe: null };
   });
-  injuries.filter(x => x.major && x.pid != null && day <= DAY.DPE_DEADLINE).forEach(x => { const p = P[x.pid], left = 82 - day; if (!p.inj || p.inj.games < left) return;
+  injuries.filter(x => x.major && x.pid != null && day <= g.ruleSlot(DAY.DPE_DEADLINE)).forEach(x => { const p = P[x.pid], left = g.db.calendarV ? g.remainingGames(x.tid, day + 1) : 82 - day; if (!p.inj || p.inj.games < left) return;
     const amt = +Math.min(N.NTMLE, g.capHit(p) * 0.5).toFixed(2); box.cap[x.tid] = { ...(box.cap[x.tid] || {}), dpe: { pid: p.id, amt, day } };
-    if (g.isUser(s, x.tid)) (by[x.tid] = by[x.tid] || []).push('The league granted a ' + amt.toFixed(2) + 'M disabled player exception for ' + p.name + ' (out for the season). Use it to sign or trade for a player by ' + g.fmtS(DAY.DPE_DEADLINE) + '.'); });
+    if (g.isUser(s, x.tid)) (by[x.tid] = by[x.tid] || []).push('The league granted a ' + amt.toFixed(2) + 'M disabled player exception for ' + p.name + ' (out for the season). Use it to sign or trade for a player by ' + g.fmtS(g.ruleSlot(DAY.DPE_DEADLINE)) + '.'); });
 }
 
 // ── Trades: the cap side ─────────────────────────────────────────────────────────

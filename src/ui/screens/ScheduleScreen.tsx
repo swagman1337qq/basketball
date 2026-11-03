@@ -21,8 +21,8 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
   // your play-in and playoff games, played or next up.
   const res = new Map<number, any>(gm.resultsOf(s, me).filter((r: any) => !r.po).map((r: any) => [r.day, r]));
   const inPost = s.phase === 'playin' || (s.phase === 'playoffs' && s.po?.champ == null);
-  const played = T[me].w + T[me].l, today = s.phase === 'regular' ? played : inPost ? s.day : 999;
-  const reg = Array.from({ length: 82 }, (_, d) => ({ d, date: gm.dateOf(d), g: gm.userGame(d, me), r: res.get(d), stage: '', label: '' }));
+  const today = s.phase === 'regular' ? (gm.nextUserGame(s.day, me)?.day ?? 999) : inPost ? s.day : 999;
+  const reg = gm.db.days.flatMap((_, d) => { const g = gm.userGame(d, me); return g ? [{ d, date: gm.dateOf(d), g, r: res.get(d), stage: '', label: '' }] : []; });
   const postDays = (gm.postSchedule(s) as any[]).flatMap(p => p.games.filter((x: any) => x.h === me || x.a === me).map((x: any) => {
     const home = x.h === me, r = x.r && { win: home ? x.r.hp > x.r.ap : x.r.ap > x.r.hp, us: home ? x.r.hp : x.r.ap, them: home ? x.r.ap : x.r.hp, bid: x.r.bid };
     return { d: p.day, date: gm.dateOf(p.day), g: { opp: home ? x.a : x.h, home }, r, stage: x.stage, label: x.label };
@@ -46,7 +46,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
     return (
       <div key={dn} style={{ minHeight: 92, border: '1px solid ' + (isNext ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 6, padding: '5px 6px', display: 'flex', flexDirection: 'column', gap: 4,
         background: isNext ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : r ? 'color-mix(in srgb, ' + (r.win ? 'var(--gm-good)' : 'var(--gm-bad)') + ' 7%, transparent)' : undefined }}>
-        <div style={{ fontSize: '11px', ...muted, display: 'flex', justifyContent: 'space-between', gap: 4 }}><span>{dn}</span>{isNext ? <b style={{ color: 'var(--color-accent-700)' }}>NEXT</b> : x?.stage ? <b title={x.stage + (x.label ? ' · ' + x.label : '')} style={{ color: 'var(--color-accent-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SHORT[x.stage] || x.stage}{/Game (\d+)/.exec(x.label) ? ' G' + /Game (\d+)/.exec(x.label)![1] : ''}</b> : null}</div>
+        <div style={{ fontSize: '11px', ...muted, display: 'flex', justifyContent: 'space-between', gap: 4 }}><span>{dn}</span>{isNext ? <b style={{ color: 'var(--color-accent-700)' }}>NEXT</b> : x && !x.stage && gm.restDays(me, x.d) === 0 ? <b title='Second game on consecutive days'>B2B</b> : x?.stage ? <b title={x.stage + (x.label ? ' · ' + x.label : '')} style={{ color: 'var(--color-accent-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{SHORT[x.stage] || x.stage}{/Game (\d+)/.exec(x.label) ? ' G' + /Game (\d+)/.exec(x.label)![1] : ''}</b> : null}</div>
         {x && <>
           <button className="hv4" onClick={() => openTeam(x.g.opp)} title={T[x.g.opp].region + ' ' + T[x.g.opp].name} style={{ all: 'unset', cursor: 'pointer', display: 'flex', gap: 5, alignItems: 'center', fontSize: '12.5px', fontWeight: 600 }}>
             <span style={{ ...muted, fontWeight: 400, fontSize: '11px' }}>{x.g.home ? 'vs' : '@'}</span>{logo(x.g.opp, 18)}{T[x.g.opp].abbr}

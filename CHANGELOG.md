@@ -4,7 +4,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-03
 
+### Added
+- **Teams play on their own calendars.** New seasons include back-to-backs and uneven rest. Fatigue recovers on off days, injuries track the team’s upcoming games, and coaches reduce tired players’ minutes on short rest.
+- **Finishes reflect how the shot was created.** Drives, cuts, rolls and post entries react to where help defenders are. The engine tracks open, pressured and contested looks separately.
+
 ### Fixed
+- **Retired players keep getting older.** A retired player's age on his profile now goes up every year like everyone else's, while "Retired after the … season, at 36" keeps the age he retired at. Leagues you already have catch up when they load. The age column in a retired player's past seasons is right now too (it read a year old for most retirees).
 - **Rim attempts depend on the opening the offense creates.** Help defense, spacing, creation and workload determine whether players get a clear gather. Defenses can steer predictable rim attacks toward tougher shots, and dunk preference applies when a dunk is available.
 - **Overall ratings no longer handicap shooting.** Shot chances come from the players and the matchup, with game-to-game shooting variation. Updated the MVP Embiid and rookie Simmons presets for the new shot model.
 
@@ -14,11 +19,6 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **College-stat ages follow God Mode age edits.** Aging a player up shifts his existing college history without adding seasons; aging him down trims the earliest years, so a 19-year-old has one freshman season. This works with the Age control, birthdays and imported historical records.
 - **Finishing skills now control the shots they describe.** Layups, dunks, floaters and hooks are resolved separately, with a new dunk-frequency preference and actual finishing results on the profile. Watched and quick games use the same shot events; shooting fouls and rebounder putbacks follow those events. Older card builds were adapted and checked across the library.
 - **Jeremy Lin’s Knicks card follows his actual shot chart.** Rebuilt the full 2011–12 season card using recorded NBA shot locations, corrected its finishing/mid-range balance and excessive stepbacks, and rechecked scoring, passing, rebounds and defensive box scores. Untouched library copies update when reopened; apply the revised card to update a player already in a league.
-
-## 2026-11-03
-
-### Fixed
-- **Retired players keep getting older.** A retired player's age on his profile now goes up every year like everyone else's, while "Retired after the … season, at 36" keeps the age he retired at. Leagues you already have catch up when they load. The age column in a retired player's past seasons is right now too (it read a year old for most retirees).
 
 ## 2026-11-01
 

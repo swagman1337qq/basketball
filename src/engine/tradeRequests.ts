@@ -67,7 +67,7 @@ function causeOf(g: Game, s: any, tid: number, p: any, hap: number, factors: [st
   };
   let best: ReqCause | null = null, bv = 0;
   (Object.keys(GROUP) as ReqCause[]).forEach(c => { if (!fits[c]) return; const v = sum(c); if (v <= -10 && v <= total * 0.4 && v < bv) { best = c; bv = v; } });
-  if (best !== 'ext' && s.day >= DAY.TRADE_DEADLINE - 5) return null; // too close to the deadline to get a trade done: only an extension can fix it
+  if (best !== 'ext' && s.day >= g.ruleSlot(DAY.TRADE_DEADLINE - 5)) return null; // too close to the deadline to get a trade done: only an extension can fix it
   return best;
 }
 
@@ -105,7 +105,7 @@ function reasonLine(g: Game, s: any, p: any, r: TradeRequest): string {
 // past the deadline). Returns the notices and the open-request list.
 export function tradeRequestTick(g: Game, s: any, day: number, notices: any[]): { notices: any[]; treqs: number[] } {
   if (s.spectator) return { notices, treqs: [] };
-  const P = g.db.P, Y = g.Y, gp = g.gamesPlayed(s), deadlinePast = day + 1 >= DAY.TRADE_DEADLINE, seasonOver = gp >= 82;
+  const P = g.db.P, Y = g.Y, gp = g.gamesPlayed(s), deadlinePast = day + 1 >= g.ruleSlot(DAY.TRADE_DEADLINE), seasonOver = gp >= 82;
   let treqs: number[] = (s.treqs || []).filter((id: number) => P[id]?.treq?.status === 'open');
   // Open requests: traded, extended, or out of time.
   treqs = treqs.filter(id => {
@@ -122,7 +122,7 @@ export function tradeRequestTick(g: Game, s: any, day: number, notices: any[]): 
     return false;
   });
   // New requests: a few players a day get looked at, so a grievance has to last a while before it boils over.
-  if (s.phase === 'regular' && gp >= 15 && !seasonOver) s.managed.forEach((tid: number) => {
+  if (s.phase === 'regular' && gp >= 15 && !seasonOver && (!g.db.calendarV || g.ruleElapsed(day - 1, day) > 0)) s.managed.forEach((tid: number) => {
     (s.rosters[tid] || []).forEach((id: number, idx: number) => {
       const p = P[id]; if (!p || p.treq?.season === Y || p.ovr < 45 || p.hapGod != null || ['twoWay', 'tenDay', 'hardship', 'ex10'].includes(p.ctype) || Math.random() > 0.12) return;
       const md = g.moodOf(p, idx, s, tid), cause = causeOf(g, s, tid, p, md.hap, md.factors as [string, number][]); if (!cause) return;
@@ -131,11 +131,11 @@ export function tradeRequestTick(g: Game, s: any, day: number, notices: any[]): 
       const r: TradeRequest = { season: Y, day, tid, cause, teams, status: 'open', ...(cause === 'ext' ? { ask: extAsk(g, p) } : {}) };
       p.treq = r; treqs.push(id);
       addTx(g, s, p, { k: 'request', tid, text: cause === 'ext' ? 'Demanded an extension at his price (' + money(r.ask!.amt) + ' × ' + r.ask!.years + ') or he leaves in free agency' : 'Asked for a trade (wants ' + teams.map(t => s.teams[t].abbr).join(', ') + ')' });
-      const dl = 'the trade deadline (' + g.fmtS(DAY.TRADE_DEADLINE) + ')';
+      const dl = 'the trade deadline (' + g.fmtS(g.ruleSlot(DAY.TRADE_DEADLINE)) + ')';
       notices = addNotice({ notices }, { tone: 'bad', title: cause === 'ext' ? p.name + ': extend me or I walk' : p.name + ' wants out', pids: [id], reqPid: id,
         lines: [reasonLine(g, s, p, r),
-          ...(cause !== 'ext' || s.day < DAY.TRADE_DEADLINE ? [(cause === 'ext' ? 'If you’d rather trade him, his camp says he’d welcome a move to the ' : 'He’d like to go to the ') + list(teams.map(t => teamName(s, t))) + ', and they’d want him.'] : ['Other teams are ready to pay him: ' + list(teams.map(t => 'the ' + teamName(s, t))) + ' have the room.']),
-          (cause === 'ext' ? 'Extend him at his price (his Contract tab) before the regular season ends' + (s.day < DAY.TRADE_DEADLINE ? ', or trade him by ' + dl : '') + '. If you don’t, he won’t re-sign with you, and his mood sinks.' : 'Trade him by ' + dl + '. If you don’t, his mood sinks for this season and next' + (p.exp === Y ? ', and he won’t re-sign with you.' : '.'))] });
+          ...(cause !== 'ext' || s.day < g.ruleSlot(DAY.TRADE_DEADLINE) ? [(cause === 'ext' ? 'If you’d rather trade him, his camp says he’d welcome a move to the ' : 'He’d like to go to the ') + list(teams.map(t => teamName(s, t))) + ', and they’d want him.'] : ['Other teams are ready to pay him: ' + list(teams.map(t => 'the ' + teamName(s, t))) + ' have the room.']),
+          (cause === 'ext' ? 'Extend him at his price (his Contract tab) before the regular season ends' + (s.day < g.ruleSlot(DAY.TRADE_DEADLINE) ? ', or trade him by ' + dl : '') + '. If you don’t, he won’t re-sign with you, and his mood sinks.' : 'Trade him by ' + dl + '. If you don’t, his mood sinks for this season and next' + (p.exp === Y ? ', and he won’t re-sign with you.' : '.'))] });
     });
   });
   return { notices, treqs };

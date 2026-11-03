@@ -8,7 +8,7 @@ export interface AllStarTeam { starters: number[]; reserves: number[] }
 export interface AllStarSeason { East: AllStarTeam; West: AllStarTeam; game?: { East: number; West: number; winner: 'East' | 'West'; mvp: number; mvpLine: string; mvpTid: number } }
 
 // The game day of the break: the first day on or after February 15.
-export function allStarDay(g: Game) { let d = 0; const t = new Date(g.Y, 1, 15).getTime(); while (d < 82 && g.dateOf(d).getTime() < t) d++; return d; }
+export function allStarDay(g: Game) { let d = 0; const t = new Date(g.Y, 1, 15).getTime(); while (d < g.db.days.length && g.dateOf(d).getTime() < t) d++; return d; }
 
 export function allStarsOf(s: any, y: number): number[] { const a = (s.allStars || {})[y]; return a ? [...a.East.starters, ...a.East.reserves, ...a.West.starters, ...a.West.reserves] : []; }
 

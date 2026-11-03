@@ -374,7 +374,10 @@ export interface SimTeam {
   aiKeys?: TacKey[]; // the settings its coaching staff runs (coach.ts); the rest come from `tactics` as set
   coach?: number; // the staff's quality, 0.35–0.95 (coach.ts coachQuality): how often it makes its reads
 }
-export interface ShotEvent { shooterId: number; zone: Zone | 'paint'; technique: FinishType | 'jumper'; origin: 'drive' | 'assisted' | 'post' | 'transition' | 'putback' | 'jumper'; fouled: boolean; made: boolean; attempt: boolean; blocked: boolean; probability: number }
+export type ShotAction = 'drive' | 'cut' | 'roll' | 'post' | 'transition' | 'putback' | 'perimeter';
+export type HelpPosition = 'stays-home' | 'in-lane' | 'at-rim';
+export type ShotContest = 'open' | 'pressured' | 'contested';
+export interface ShotEvent { action: ShotAction; help: HelpPosition; helperId: number | null; contest: ShotContest; shooterId: number; zone: Zone | 'paint'; technique: FinishType | 'jumper'; origin: 'drive' | 'assisted' | 'post' | 'transition' | 'putback' | 'jumper'; fouled: boolean; made: boolean; attempt: boolean; blocked: boolean; probability: number }
 export interface SimOpts { pbp?: boolean; norms?: Norms; onShot?: (event: Readonly<ShotEvent>) => void }
 
 export interface BoxLine {
@@ -733,8 +736,32 @@ export class GameSim {
       const intD = avg(bigs, p => interiorD(p.r));
       const rimShare = zw.rim / Math.max(1e-6, ZONES.reduce((sum, zone) => sum + zw[zone], 0));
       const ownCreation = 0.45 * sh.r.drb + 0.35 * (sh.r.acc ?? sh.r.spd) + 0.2 * sh.r.oiq;
-      const creation = 0.6 * (ownCreation - perimD(manOf(sh).r)) + 0.4 * (Math.max(...teammates.map(passQ)) - (n.passQ ?? 60));
-      const opening = rimOpening(creation, intD - n.interiorD - 150 * (fx?.pct.rim ?? 0), avg(teammates, p => p.r.tp) - 55, shS, rimShare, fb, putback);
+      const marker = manOf(sh);
+      const spacing = avg(teammates, p => p.r.tp) - 55;
+      const action: ShotAction = putback ? 'putback' : fb ? 'transition' : egZ === 'three' ? 'perimeter' : wpick<ShotAction>(
+        ['drive', 'cut', 'roll', 'post', 'perimeter'],
+        play => {
+          if (play === 'drive') return rimShare * (sh.grp === 'B' ? 0.45 : 1.2) * (tO.off === 'Dribble drive' ? 1.6 : 1);
+          if (play === 'cut') return rimShare * 0.45 * (tO.off === 'Motion' ? 1.5 : 1);
+          if (play === 'roll') return rimShare * (sh.grp === 'B' ? 0.95 : 0.2) * (tO.off === 'Pick and roll' ? 1.8 : 1);
+          if (play === 'post') return rimShare * (sh.grp === 'B' ? 0.85 : 0.15) * (tO.off === 'Post-up' ? 1.8 : 1);
+          return 1 - rimShare;
+        },
+      );
+      const assistedAction = action === 'cut' || action === 'roll';
+      const creator = assistedAction
+        ? wpick(teammates, p => Math.pow(Math.max(PASS_FLOOR, passQ(p)), 2.4) * (p.tend?.pass ?? 1))
+        : teammates.reduce((best, player) => passQ(player) > passQ(best) ? player : best);
+      const vision = passQ(creator) - (n.passQ ?? 60);
+      const creation = assistedAction ? 0.75 * vision + 0.25 * (sh.r.acc - 55)
+        : action === 'post' ? 0.45 * (sh.r.ins - marker.r.diq) + 0.35 * (sh.r.stre - marker.r.stre) + 0.2 * vision
+          : 0.6 * (ownCreation - perimD(marker.r)) + 0.4 * vision;
+      const helper = bigs.find(p => p !== marker);
+      const helpPressure = 0.65 * (intD - n.interiorD) - 150 * (fx?.pct.rim ?? 0);
+      const rotation = helper ? cl(0.53 + 0.011 * helpPressure - 0.012 * spacing + 0.42 * Math.max(0, rimShare - 0.32) - (fb ? 0.30 : 0), 0.07, 0.93) : 0;
+      const helpRead = Math.random();
+      const help: HelpPosition = helpRead < rotation * 0.52 ? 'at-rim' : helpRead < rotation ? 'in-lane' : 'stays-home';
+      const opening = rimOpening(creation, helpPressure + (help === 'at-rim' ? 9 : help === 'in-lane' ? 1 : -5), spacing, shS, rimShare, fb, putback);
       if (!putback && !fb && egZ !== 'three') {
         const denied = zw.rim * rimDenial(opening, shS, rimShare);
         zw.rim -= denied;
@@ -758,7 +785,12 @@ export class GameSim {
       const rush = this.q >= 4 ? (eg.last ? 0.25 : putback ? 0 : t0 <= 1.2 ? 0.12 : t0 <= 2.5 ? 0.05 : 0) : 0;
       const paint = z === 'mid' && Math.random() < (sh.tend?.pf ?? PAINT_SHARE), cs = C(sh).skill; // a mid-tier shot in the paint (non-RA) or from mid-range
       const close = z === 'rim' || paint;
-      const clearGather = z === 'rim' && Math.random() < opening;
+      const closeRead = close ? Math.random() : 0;
+      const clearGather = z === 'rim' && closeRead < opening;
+      const contest: ShotContest = close
+        ? closeRead < opening ? 'open' : help === 'at-rim' || closeRead > opening + 0.24 ? 'contested' : 'pressured'
+        : rush > 0 || perimD(marker.r) - ownCreation > 12 ? 'contested' : perimD(marker.r) < ownCreation - 8 ? 'open' : 'pressured';
+      const closeDifficulty = close ? (contest === 'open' ? (z === 'rim' ? 0.055 : 0.018) : contest === 'contested' ? -0.028 : -0.005) : 0;
       const mix = close ? finishMix(sh, paint ? 'paint' : 'rim', { transition: fb, putback: putback && sh === rebounder, opening: clearGather ? 1 : 0 }) : null;
       const finish: FinishType | null = mix ? wpick(Object.keys(mix) as FinishType[], type => mix[type]) : null;
       const sk = finish ? finishSkill(sh.r, finish) : cs[z], subD = z === 'mid' && !paint ? -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE) : 0;
@@ -807,9 +839,9 @@ export class GameSim {
       // his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7).
       const cands = onO.filter(p => p.id !== sh.id), ws = cands.map(p => Math.pow(Math.max(PASS_FLOOR, passQ(p)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p === bp ? tkPass : 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)), wt = ws.reduce((x, y) => x + y, 0), wi = ws.indexOf(Math.max(...ws)), top = wt > 0 ? ws[wi] / wt : 0;
       if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
-      const setter = putback || !cands.length ? null : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
+      const setter = putback || !cands.length ? null : assistedAction ? creator : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
       const setup = setter && Math.random() < aChance ? setter : null;
-      const pct = this.touch[offK] + (z === 'rim' ? (clearGather ? 0.055 : -0.016) : 0) + setupD + creD + hotD + readD + moodD + leadD + shotBase + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = this.touch[offK] + closeDifficulty + setupD + creD + hotD + readD + moodD + leadD + shotBase + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
 
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       const shootingFouler = shootingFoul ? foul(sh) : null;
@@ -817,6 +849,12 @@ export class GameSim {
       // The foul is already part of this action. A fouled miss is not an FGA;
       // a fouled make counts as a make/attempt and receives one extra free throw.
       const probability = cl(pct * (shootingFoul ? 0.45 : 1), 0.01, finish === 'dunk' ? 0.995 : 0.96);
+      const detail = () => {
+        if (!close) return '';
+        const play = action === 'post' ? 'Post entry' : action === 'perimeter' ? 'Perimeter action' : action[0].toUpperCase() + action.slice(1);
+        const rotationNote = help === 'stays-home' || !helper ? '' : ' · ' + helper.name + (help === 'at-rim' ? ' at the rim' : ' in the lane');
+        return play + ' · ' + contest + rotationNote;
+      };
       const origin: ShotEvent['origin'] = putback && sh === rebounder ? 'putback' : fb ? 'transition' : finish === 'hook' ? 'post' : setup ? 'assisted' : close ? 'drive' : 'jumper';
       const countAttempt = (made: boolean) => {
         b.fga++; b[at]++; if (three) b.tpa++; if (paint) b.ka++;
@@ -838,10 +876,10 @@ export class GameSim {
         this.streak.set(sh.id, Math.max(0, this.streak.get(sh.id) || 0) + 1);
         score(sh, three ? 3 : 2);
         if (setup) O.box[setup.id].ast++;
-        ev(setup ? [sh.id, setup.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => setup ? 'Assisted by ' + setup.name + ' (' + O.box[setup.id].ast + ' AST)' : '', true);
+        ev(setup ? [sh.id, setup.id] : [sh.id], () => sh.name + ' makes ' + lab() + ' (' + b.pts + ' PTS)', () => [setup ? 'Assisted by ' + setup.name + ' (' + O.box[setup.id].ast + ' AST)' : '', detail()].filter(Boolean).join(' · '), true);
         if (shootingFouler) keep = this.freeThrows(O, D, onO, onD, sh, 1, score, ev, shootingFouler, 'and1', cAdv);
       } else if (shootingFouler) {
-        ev([sh.id, shootingFouler.id], () => sh.name + ' is fouled attempting ' + lab());
+        ev([sh.id, shootingFouler.id], () => sh.name + ' is fouled attempting ' + lab(), detail);
         keep = this.freeThrows(O, D, onO, onD, sh, three ? 3 : 2, score, ev, shootingFouler, 'shot', cAdv);
       } else {
         countAttempt(false);
@@ -854,12 +892,12 @@ export class GameSim {
           blocked = true;
           const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6) * (p === man ? 1.5 : 1));
           D.box[bl.id].blk++;
-          ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name + ' on ' + lab(), () => '(' + D.box[bl.id].blk + ' BLK)');
-        } else ev([sh.id], () => sh.name + ' misses ' + lab());
+          ev([bl.id, sh.id], () => bl.name + ' blocks ' + sh.name + ' on ' + lab(), () => ['(' + D.box[bl.id].blk + ' BLK)', detail()].filter(Boolean).join(' · '));
+        } else ev([sh.id], () => sh.name + ' misses ' + lab(), detail);
         keep = this.rebound(O, D, onO, onD, cAdv, ev, fx ? fx.orb : 0);
         if (!keep && tO.reb === 'Crash the glass' && Math.random() < 0.35) this.fastBreak = true;
       }
-      this.opts.onShot?.(Object.freeze({ shooterId: sh.id, zone: paint ? 'paint' : z, technique: finish ?? 'jumper', origin, fouled: shootingFoul, made, attempt: !shootingFoul || made, blocked, probability }));
+      this.opts.onShot?.(Object.freeze({ shooterId: sh.id, action, help, helperId: help === 'stays-home' ? null : helper?.id ?? null, contest, zone: paint ? 'paint' : z, technique: finish ?? 'jumper', origin, fouled: shootingFoul, made, attempt: !shootingFoul || made, blocked, probability }));
 
     }
     if (!keep) { this.pos = defK; this[defK].poss++; this.newPoss = true; }

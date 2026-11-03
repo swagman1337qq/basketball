@@ -71,6 +71,8 @@ flowchart LR
 ## Feature areas
 
 ### Game simulation
+- Possession context (2026-11-03): `GameSim` chooses a drive, cut, roll, post, perimeter, transition or putback action before zone selection. A helper may stay home, enter the lane or meet the shooter at the rim. This changes rim access and finish difficulty. `ShotEvent` tracks action, helper and contest. Run `npm run realism -- --shots output.jsonl` for joint player-level volume and efficiency reports that reconcile to the box score.
+- Regular-season calendar (2026-11-03): `Game.buildSchedule` staggers balanced rounds across adjacent dates. Teams have 82 games, variable rest and no three games in three days. `calendarV` identifies date-indexed schedules. Older saves adopt the calendar at the next offseason schedule build. `ruleSlot` maps existing rule dates to their equivalent calendar slots. Recovery follows elapsed days, injury games count upcoming team fixtures, and AI rotations respond to short rest. Verified by `scripts/calendar.mts`.
 - Rim opportunities (2026-11-03): `rimOpening` and `rimDenial` use creation, help, spacing and workload. NBA and quick CCP resolve a clear gather before selecting a dunk. A closed lane can redirect a preferred rim attempt.
 - Finishing execution (2026-11-02): `engine/finishing.ts` shared by NBA/CCP/amateur paths; technique-specific execution and norms, actual subtype counters, zero-capable `ten.dunk`, deterministic event descriptions, joint shooting-foul outcomes and rebounder-owned putbacks. `db.finishV` 1 refreshes norms. Tests: `scripts/finishingKernel.mts`, `finishingPreferences.mts`, `finishingIntegration.mts`. Scope, calibration and limits: `docs/FINISHING_UPDATE_2026-11-02.md`.
 - One possession-by-possession engine plays every game, watched or simmed.

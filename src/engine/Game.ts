@@ -63,7 +63,7 @@ import { adjustGames, confidenceTick, leagueStr, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
 import { losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
-import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type SimTeam } from './sim';
+import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type ShotEvent, type SimTeam } from './sim';
 import { agingEdge } from './agingOutlook';
 
 // 2026–27 cap figures ($M). They rise 2% when the league expands, so they live on the save.
@@ -659,7 +659,8 @@ export class Game {
     [2027, 2028, 2029].forEach(yr => [1, 2].forEach(rd => teams.forEach(t => assets.push({ id: yr + '-' + rd + '-' + t.tid, yr, rd, orig: t.tid, owner: t.tid }))));
     for (let k = 0; k < 10; k++) { const a = pick(assets.filter(x => x.owner === x.orig && x.orig !== 0)); a.owner = 1 + Math.floor(rnd() * 29); }
     assets.find(a => a.yr === 2028 && a.rd === 2 && a.orig === 1).owner = 0;
-    const days = this.buildSchedule(teams.length, rnd);
+    db.calendarV = 1;
+    const days = this.buildSchedule(teams.length, rnd, true);
     const results = [];
     const BUD = { Coaching: [5, 40, 18, .5], Health: [3, 25, 10, .5], Facilities: [3, 30, 14, .5], Scouting: [1, 12, 4, .25], Tickets: [35, 450, 118, 1] };
     const lg = {}; (Object.entries(BUD) as [string, any][]).forEach(([k, [mn, mx, df]]) => { lg[k] = []; for (let i = 0; i < 29; i++) lg[k].push(+cl(df * (0.55 + rnd() * 0.9), mn, mx).toFixed(1)); });
@@ -884,7 +885,12 @@ export class Game {
   // retAgeV migration for older saves), so this holds for them too; p.retired.age is his age when he retired.
   ageIn(p: any, y: number) { return p.age - (this.Y - y); }
   // Game days are spread over the real calendar: opening night Oct 21, game 82 in mid-April.
-  dateOf(off) { return this.db.midStart && this.Y === 2027 ? new Date(2027, 0, 14 + Math.round(off * 1.1)) : new Date(this.Y - 1, 9, 21 + Math.round(off * 2.14)); }
+  dateOf(off) {
+    if (this.db.calendarV) {
+      const last = this.db.days.length - 1;
+      return new Date(this.Y - 1, 9, 21 + (off <= last ? off : last + Math.round((off - last) * 2.14)));
+    }
+    return this.db.midStart && this.Y === 2027 ? new Date(2027, 0, 14 + Math.round(off * 1.1)) : new Date(this.Y - 1, 9, 21 + Math.round(off * 2.14)); }
   // Play-in and playoff games are simulated in full; their stats go on the playoff line.
   gameWin(s, a, b, homeA) {
     const r = this.playGame(s, homeA ? a : b, homeA ? b : a);
@@ -992,10 +998,15 @@ export class Game {
     if (!user) ids = this.aiOrder(s, tid).filter(id => ids.includes(id)); // AI: best first, and real minutes for a young high pick (rosterAI)
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id])), tgt = user ? this.userTargets(s, ids, ROT) : null;
+    const shortRest = this.db.calendarV && s.phase === 'regular' && this.restDays(tid, s.day) === 0;
+    const target = (id: number, i: number) => {
+      const p = P[id], minutes = tgt ? tgt[i] : Math.max(p.minMin || 0, ROT[i] || 0);
+      return shortRest && (!user || p.rot == null || s.easy?.lineup) ? Math.max(p.minMin || 0, minutes - Math.min(5, Math.max(0, ((p.fat || 0) - 24) / 12))) : minutes;
+    };
     return { tid, name: T.region + ' ' + T.name, abbr: T.abbr, rec: T.w + '–' + T.l, ff: this.teamFF(s, tid), chem: lockerRoom(this, s, tid).score,
       // Tactics: yours where you set them, the coaching staff's everywhere else (coach.ts); AI teams' staffs run all of it.
       tactics: club ? club.tactics : {}, situ: club ? club.situ || null : null, aiKeys: this.aiTacKeys(club), coach: coachQuality(teamBudget(this, s, tid).Coaching),
-      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), rr: roleRamp(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: tgt ? tgt[i] : (p.minMin ? Math.max(p.minMin, ROT[i] ?? 0) : ROT[i] ?? 0), manual: user && p.rot != null }; }) };
+      players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, age: p.age, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - this.inches(p.hgt) : 4 }, roles: this.rolesOf(p), rr: roleRamp(p), crowd: p.pers.crowd, clutch: p.pers.clutch, padder: p.pers.padder || !!p.padding, selfish: !!p.pers.padder, conf: p.conf, alpha: p.pers.alpha, touches: p.pers.touches, adj: p.adjust > 0, dtd: !!(p.inj && (p.inj.dtd || hurt(p))), fat: p.fat || 0, protect: !!p.protect, feel: p.intg?.feel ?? 50, poise: p.intg?.poise ?? 50, tend: effTend(p), flashy: !!p.pers.flashy, heat: !!p.pers.heat, volatile: !!p.pers.volatile, hot: p.pers.streaky ? p.hot || 0 : 0, villain: !!p.pers.villain, fearless: !!p.pers.fearless, team: !!p.pers.team, pro: !!p.pers.pro, flag: this.flag(p.rep), target: target(id, i), manual: user && p.rot != null && !s.easy?.lineup }; }) };
   }
 
   // Your team's minutes targets for tonight, in the order of `ids` (who can play). A player whose minutes you set
@@ -1047,8 +1058,10 @@ export class Game {
     const coach = ((((tid + 1) * 2654435761) ^ (this.Y * 40503)) >>> 0) % 1000 / 1000 - 0.5;
     return this.cl(1 - coach * 0.075 - (quick - (this.db.norms?.quick ?? 42)) * 0.0012 + (age - 27) * 0.004, 0.945, 1.055);
   }
+  // Optional diagnostics hook. Shot details are streamed, never written to the save.
+  shotObserver?: (event: Readonly<ShotEvent>) => void;
   playGame(s, home, away): GameResult {
-    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms }).run();
+    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms, onShot: this.shotObserver }).run();
   }
   // God Mode: a game whose winner you picked. Played for real until that team wins (a few tries);
   // if it keeps losing, its best scorer gets the free throws that swing it, in the last quarter.
@@ -1263,8 +1276,8 @@ export class Game {
     });
   }
 
-  // Round-robin (circle method), repeated until every team has 82 games; everyone plays every day.
-  buildSchedule(n, rnd: () => number = Math.random) {
+  // Build the balanced rounds first. Stagger each round across adjacent dates.
+  buildSchedule(n, rnd: () => number = Math.random, calendar = false) {
     const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const ids = shuffle(Array.from({ length: n }, (_, i) => i)), rounds = [];
     for (let r = 0; r < n - 1; r++) {
@@ -1286,13 +1299,57 @@ export class Game {
         }));
       }
     }
-    return days;
+    if (!calendar) return days;
+    const dates: number[][][] = Array.from({ length: this.ruleCalendarDay(81) + 1 }, () => []);
+    days.forEach((pairs, round) => {
+      const date = this.ruleCalendarDay(round);
+      pairs.forEach((pair, i) => {
+        // Keep the final round together so awards and the play-in open after every club finishes.
+        const late = round > 0 && round < 81 && ((Math.imul(pair[0] + 1, 2654435761) ^ Math.imul(round + 1, 1597334677) ^ Math.imul(i + 3, 2246822519)) >>> 0) % 101 < 50;
+        dates[date + Number(late)].push(pair);
+      });
+    });
+    return dates;
+  }
+
+  private ruleCalendarDay(round: number) { return Math.round(round * 2.14); }
+  ruleSlot(round: number) { return this.db.calendarV ? this.ruleCalendarDay(round) : round; }
+  ruleElapsed(from: number, to: number) {
+    if (!this.db.calendarV) return to - from;
+    const round = (day: number) => {
+      const estimate = Math.floor(day / 2.14);
+      return this.ruleCalendarDay(estimate + 1) <= day ? estimate + 1 : estimate;
+    };
+    return round(to) - round(from);
+  }
+  ruleWaitSlot(from: number, rounds: number) {
+    return this.db.calendarV ? from + this.ruleSlot(rounds) : from + rounds;
+  }
+  fmtRuleWait(from: number, rounds: number) {
+    const slot = this.ruleWaitSlot(from, rounds);
+    return this.db.calendarV ? SHORT_DATE.format(new Date(this.Y - 1, 9, 21 + slot)) : this.fmtS(slot);
   }
 
   // The user's game on a schedule day: { opp, home }.
   userGame(day, tid = this.state.me) {
-    const days = this.db.days, g = (days[day] || days[days.length - 1]).find(x => x[0] === tid || x[1] === tid);
-    return g ? { opp: g[0] === tid ? g[1] : g[0], home: g[0] === tid } : { opp: tid === 0 ? 1 : 0, home: true };
+    const game = this.db.days[day]?.find(([home, away]) => home === tid || away === tid);
+    return game ? { day, opp: game[0] === tid ? game[1] : game[0], home: game[0] === tid } : null;
+  }
+  nextUserGame(day: number, tid = this.state.me) {
+    for (let slot = Math.max(0, day); slot < this.db.days.length; slot++) {
+      const game = this.userGame(slot, tid);
+      if (game) return game;
+    }
+    return null;
+  }
+  remainingGames(tid: number, day: number) {
+    return this.db.days.slice(day).filter(games => games.some(([h, a]) => h === tid || a === tid)).length;
+  }
+  restDays(tid: number, day: number) {
+    for (let slot = day - 1; slot >= 0; slot--) if (this.userGame(slot, tid)) {
+      return Math.max(0, Math.round((this.dateOf(day).getTime() - this.dateOf(slot).getTime()) / 86400000) - 1);
+    }
+    return 3;
   }
   seeds(s, conf) { return s.teams.filter(t => t.conf === conf).sort((a, b) => this.pct(b) - this.pct(a) || b.w - a.w).map(t => t.tid); }
   // ── Postseason ──────────────────────────────────────────────────────────────────
@@ -1759,7 +1816,8 @@ export class Game {
       rosters = box.rosters; fa = box.fa; lgLog = [...lgA, ...lgLog];
       [...Object.values(rosters).flat(), ...fa].forEach((id: any) => Object.assign(P[id], { gp: 0, min: 0, pts: 0, reb: 0, ast: 0, per: 0 }));
       Object.keys(rosters).forEach(k => { if (!this.isUser(s, +k)) { const o = rosters[k].map(id => P[id].ovr).sort((a, b) => b - a).slice(0, 8); teams[k].str = o.reduce((a, b) => a + b, 0) / o.length - 4.3; } });
-      d.days = this.buildSchedule(teams.length);
+      d.calendarV = 1;
+      d.days = this.buildSchedule(teams.length, Math.random, true);
       const order = teams.slice().sort((a, b) => a.str - b.str).map(t => t.tid);
       d.rank = { ...d.rank }; d.cls[Y].sort((a, b) => (P[b].pot * .7 + P[b].ovr * .3) - (P[a].pot * .7 + P[a].ovr * .3)).forEach((id, i) => d.rank[id] = i + 1);
       Object.values(progBy).forEach(x => x.sort((a, b) => (b.to - b.from) - (a.to - a.from)));
@@ -1989,10 +2047,15 @@ export class Game {
   }
   // The day he's back after `games` more of his team's games. last: the last game day played; gp: games
   // played through it (between game days: the defaults; inside a day's injury tick: that day).
-  injUntil(s, games, last = s.day - 1, _gp?: number) {
+  injUntil(s, games, last = s.day - 1, tid = -1) {
     const dn = (d: Date) => Math.floor(d.getTime() / 864e5);
     // In season the game days run on through the playoffs and into the summer on the same calendar (dateOf):
     // the day of his first game back, or that much time later. Out of season: that much time from today.
+    if (s.phase === 'regular' && this.db.calendarV) {
+      const future = tid < 0 ? [] : this.db.days.flatMap((matches, day) => day > last && matches.some(([h, a]) => h === tid || a === tid) ? [day] : []);
+      if (future[games] != null) return dn(this.dateOf(future[games]));
+      return dn(this.dateOf(Math.max(0, last + 1))) + Math.round(Math.max(0, games) * 2.14);
+    }
     if (s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs') return dn(this.dateOf(last + Math.max(0, games) + 1));
     return this.calNow(s) + Math.round(Math.max(0, games) * 2.14);
   }
@@ -2003,9 +2066,9 @@ export class Game {
   // players miss the postseason games before that day; everyone else's games are next season's. Returns who healed.
   healCal(s, rosters = s.rosters, alive?: Set<number>) {
     const now = this.calNow(s), P = this.db.P, healed: number[] = [];
-    const step = (id: number, tid: number) => { const p = P[id]; if (!p?.inj) return; if (p.inj.until == null) p.inj.until = this.injUntil(s, p.inj.games);
-      if (p.inj.until <= now) { this.injDone(p, s); delete p.inj; if (tid >= 0) this.injBack(s, rosters, tid, p); else delete p.preInj; healed.push(id); return; }
-      if (s.phase === 'regular') { if (tid < 0) p.inj.games = this.injGamesTo(s, p.inj.until); }
+    const step = (id: number, tid: number) => { const p = P[id]; if (!p?.inj) return; if (p.inj.until == null) p.inj.until = this.injUntil(s, p.inj.games, s.day - 1, tid);
+      if (p.inj.until <= now) { if (this.db.calendarV && s.phase === 'regular') this.injuryRust(p); this.injDone(p, s); delete p.inj; if (tid >= 0) this.injBack(s, rosters, tid, p); else delete p.preInj; healed.push(id); return; }
+      if (s.phase === 'regular') { if (this.db.calendarV && tid >= 0) p.inj.games = this.injGamesOnCalendar(s, tid, p.inj.until); else if (tid < 0) p.inj.games = this.injGamesTo(s, p.inj.until); }
       else if (alive && tid >= 0 && alive.has(tid)) p.inj.games = Math.max(1, Math.ceil((p.inj.until - now) / 2.14)); // a postseason game every ~2.14 days
       else p.inj.games = this.injGamesNext(s, p.inj.until); };
     Object.keys(rosters || {}).forEach(k => (rosters[k] || []).slice().forEach((id: number) => step(id, +k)));
@@ -2014,6 +2077,17 @@ export class Game {
   }
   // His injury is over: its entry in his injury history (p.injHist) gets the day he was back and the games
   // he actually missed (his team's games he sat out; a day-to-day knock he played through misses none).
+  private injuryRust(p) {
+    if (!p.inj?.major || p.inj.god || p.frozen || Math.random() >= 0.5) return '';
+    const skills = ['drb', 'fg', 'tp', 'ins', 'pss'];
+    const key = skills[Math.floor(Math.random() * skills.length)];
+    const amount = 1 + Math.floor(Math.random() * 3);
+    p.r[key] = Math.max(4, p.r[key] - amount);
+    syncOvr(p);
+    const note = ' (lost ' + amount + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[key]) + ')';
+    if (p.injHist?.length) p.injHist[p.injHist.length - 1].lost = note;
+    return note;
+  }
   injDone(p, s = this.state) { const i = p?.inj, h = i?.h != null ? p.injHist?.[i.h] : null; if (!h || h.back != null) return; h.back = this.calNow(s); h.missed = i.miss || 0; }
   // A day number (calNow) as a date: "Mar 4, 2031".
   fmtDay(dn: number) { return new Date(dn * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
@@ -2025,7 +2099,7 @@ export class Game {
       const p = this.db.P[id]; if (!p || !name.trim() || !(games >= 1)) return null;
       if (p.inj) this.injDone(p, s);
       const g = Math.round(games), inj: any = { name: name.trim(), games: g, god: true, ...(o.major ? { major: true } : {}), ...(o.dtd ? { dtd: true } : {}) };
-      inj.until = this.injUntil(s, g);
+      inj.until = this.injUntil(s, g, s.day - 1, this.tidOf(s.rosters, id));
       const rosters = { ...s.rosters }, tid = this.tidOf(rosters, id);
       if (tid >= 0 && this.isUser(s, tid) && !inj.dtd && !p.preInj) { rosters[tid] = rosters[tid].slice(); this.injAway(rosters, tid, p); }
       const H = (p.injHist = p.injHist || []); inj.h = H.length;
@@ -2035,14 +2109,19 @@ export class Game {
     });
   }
   // Games and days left (null if healthy).
-  injLeft(p, s = this.state) { const i = p?.inj; if (!i) return null; if (i.until == null) i.until = this.injUntil(s, i.games); return { games: Math.max(0, i.games), days: Math.max(0, i.until - this.calNow(s)) }; }
+  injLeft(p, s = this.state) { const i = p?.inj; if (!i) return null; if (i.until == null) i.until = this.injUntil(s, i.games, s.day - 1, this.tidOf(s.rosters, p.id)); return { games: Math.max(0, i.games), days: Math.max(0, i.until - this.calNow(s)) }; }
   // "5 games / 12 days" (short: "5g / 12d").
   injText(p, short = false, s = this.state) { const l = this.injLeft(p, s); if (!l) return ''; const d = l.days + (short ? 'd' : ' day' + (l.days === 1 ? '' : 's'));
     return !l.games && s.phase !== 'regular' ? d + (short ? '' : ' (back before next season)') : short ? l.games + 'g / ' + d : l.games + ' game' + (l.games === 1 ? '' : 's') + ' / ' + d; }
   // Free agents and players abroad heal on the calendar; in season their games left follow the days.
   healIdle(s) { this.healCal(s, s.rosters); }
   // In season: how many of a team's games fall before that day (this season's, then next season's).
-  injGamesTo(s, until) { const dn = (d: Date) => Math.floor(d.getTime() / 864e5), gp = this.gamesPlayed(s), left = Math.max(0, 82 - gp), now = this.calNow(s), end = dn(this.dateOf(s.day - 1 + left)); if (until <= end) return Math.max(1, Math.round((until - now) / 2.14)); return left + Math.max(0, Math.round((until - dn(new Date(s.season || this.Y, 9, 21))) / 2.14)); }
+  injGamesOnCalendar(s, tid: number, until: number) {
+    const now = this.calNow(s);
+    const remaining = this.db.days.slice(s.day, s.day + Math.max(0, until - now));
+    return remaining.filter(games => games.some(([h, a]) => h === tid || a === tid)).length;
+  }
+  injGamesTo(s, until) { if (this.db.calendarV) return Math.max(0, Math.ceil((until - this.calNow(s)) / 2.14)); const dn = (d: Date) => Math.floor(d.getTime() / 864e5), gp = this.gamesPlayed(s), left = Math.max(0, 82 - gp), now = this.calNow(s), end = dn(this.dateOf(s.day - 1 + left)); if (until <= end) return Math.max(1, Math.round((until - now) / 2.14)); return left + Math.max(0, Math.round((until - dn(new Date(s.season || this.Y, 9, 21))) / 2.14)); }
   // A team you run: an injured player who won't play through it drops to the end of the roster (out of
   // the rotation), and when he's healthy he goes back to his old spot and minutes. (Without a record of
   // his spot: back among the healthy players by rating.)
@@ -2068,13 +2147,11 @@ export class Game {
   // A postseason game: his team played one, so his injury is one game shorter.
   injGame(s, rosters, tid) { (rosters[tid] || []).forEach((id: number) => { const p = this.db.P[id]; if (!p?.inj) return; p.inj.games--; if (!p.inj.dtd) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0) { this.injDone(p, s); delete p.inj; this.injBack(s, rosters, tid, p); } }); }
   injTick(rosters, day, s, out, mins: Record<number, number> = {}) {
-    const P = this.db.P, pk = a => a[Math.floor(Math.random() * a.length)];
+    const P = this.db.P;
     const hbOf = k => 1 - (teamBudget(this, s, +k).Health - 10) / 40; // the medical staff: yours from Finances, an AI team's from its owner
     const played = new Set(Object.keys(rosters).filter(k => rosters[k].some((id: number) => mins[id] > 0)).map(Number)); // teams that played today: their injured players missed a game
     Object.keys(rosters).forEach(k => rosters[k].forEach(id => { const p = P[id];
-      if (p.inj) { p.inj.games--; if (played.has(+k) && !mins[id]) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0) { let lost = '';
-          // A major injury can also cost skill once he's back (rust, lost feel).
-          if (p.inj.major && !p.inj.god && !p.frozen && Math.random() < .5) { const k2 = pk(['drb', 'fg', 'tp', 'ins', 'pss']), d2 = 1 + Math.floor(Math.random() * 3); p.r[k2] = Math.max(4, p.r[k2] - d2); lost = ' (lost ' + d2 + ' ' + ({ drb: 'dribbling', fg: 'mid-range', tp: 'three-point', ins: 'inside', pss: 'passing' }[k2]) + ')'; if (p.injHist?.length) p.injHist[p.injHist.length - 1].lost = lost; }
+      if (p.inj) { if (this.db.calendarV && !played.has(+k)) return; p.inj.games--; if (played.has(+k) && !mins[id]) p.inj.miss = (p.inj.miss || 0) + 1; if (p.inj.games <= 0 && (!this.db.calendarV || p.inj.until == null || p.inj.until <= this.calNow({ ...s, day: day + 1 }))) { const lost = this.injuryRust(p);
           if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost }); this.injDone(p, s); delete p.inj; this.injBack(s, rosters, +k, p); }
         if (!p.inj || !p.inj.dtd || !mins[id]) return; }
       // Injury rates from the NBA's own injury database (Mack et al., Sports Health 2024, seasons
@@ -2092,7 +2169,9 @@ export class Game {
       else if (x < .36) { inj = rollInjury(INJ_SHORT); p.minorCount = (p.minorCount || 0) + 1; }
       else inj = { ...rollInjury(INJ_DTD), dtd: true }; // plays through it, at reduced strength
       inj.games = Math.max(1, Math.round(inj.games * hbOf(k)));
-      inj.until = this.injUntil(s, inj.games, day, this.gamesPlayed(s) + 1);
+      inj.until = s.phase === 'regular' && this.db.calendarV
+        ? this.calNow(s) + Math.round(inj.games * 2.14)
+        : this.injUntil(s, inj.games, day, +k);
       if (this.isUser(s, +k) && !inj.dtd && !p.preInj) { const c = this.clubOf(s, +k), thr = s.easy?.injuries ? 0 : ((c?.ptInj || { reg: 0 })[s.phase === 'regular' ? 'reg' : 'po'] ?? 0); if (inj.games > thr) this.injAway(rosters, +k, p); }
       if (p.inj) this.injDone(p, s); // a new injury on top of a knock he was playing through: that one's over
       const H = (p.injHist = p.injHist || []); inj.h = H.length;
@@ -2265,14 +2344,14 @@ export class Game {
     if (!ai.length) return null;
     const st = { ...s, day, rosters: box.rosters, fa: box.fa, cap: box.cap };
     if (r < .4) { const t = tid(); if (stdIds(this, box.rosters[t]).length >= seasonMax(st) || !box.fa.length) return null; const c = box.fa.slice().filter(x => !P[x].rfa).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 5); const id = c[Math.floor(Math.random() * c.length)]; if (id == null) return null;
-      const p = P[id], terms = aiTerms(this, st, t, p); if (!terms || (s.day >= DAY.TEN_DAY_START && p.ovr < 45)) return null;
+      const p = P[id], terms = aiTerms(this, st, t, p); if (!terms || (s.day >= this.ruleSlot(DAY.TEN_DAY_START) && p.ovr < 45)) return null;
       if (terms.method !== 'min' && teamSalary(this, st, t) + terms.amt > this.teamCeiling(T[t])) return null;
       if (p.waived?.season === this.Y && p.waived.prevAmt > nums(this).NTMLE && teamSalary(this, st, t) > this.AP1) return null;
       return { day, type: 'Signing', teams: T[t].abbr, pids: [id], text: applySigning(this, st, box, t, p, terms) }; }
     // Trades for a reason (tradeLogic.ts): a contender fills a hole from a seller, a team over the tax
     // pays one with room to take a contract, two teams swap surplus for need. Both sides must come out
     // ahead by their own read, and the league office must approve; no deal, no trade.
-    if (r < .85 && box.assets && day < DAY.TRADE_DEADLINE) { const st2 = { ...st, assets: box.assets };
+    if (r < .85 && box.assets && day < this.ruleSlot(DAY.TRADE_DEADLINE)) { const st2 = { ...st, assets: box.assets };
       for (let i = 0; i < 6; i++) { const x = aiTradeIdea(this, st2); if (x) return this.execTrade(st2, box, x, day); }
       return null; }
     // A waiver: the least valuable player (rosterAI: worth to this team, the draft investment included),
@@ -2334,20 +2413,24 @@ export class Game {
 
   simDay(s, forced: GameResult | undefined, left: number) {
     if (s.phase !== 'regular' || this.gamesPlayed(s) >= 82) return null;
-    const day = s.day, games = this.db.days[day % this.db.days.length];
+    const day = s.day, games = this.db.days[day];
+    if (!games) return null;
+    const playing = new Set<number>(games.flat());
+    const routineDay = !this.db.calendarV || day === 0 || this.ruleElapsed(day - 1, day) > 0;
     const rosters = { ...s.rosters };
     s.managed.forEach(t => { if (this.clubOf(s, t)?.keepSorted) rosters[t] = this.autoSorted(rosters[t]); });
     easyLineups(this, s, rosters, day);
     // Streaky shooters' runs drift from game to game: hot and cold stretches that last a few weeks.
-    Object.values(rosters).forEach((ids: any) => ids.forEach((id: number) => { const q = this.db.P[id]; if (q?.pers?.streaky) q.hot = +Math.max(-1, Math.min(1, 0.85 * (q.hot || 0) + (Math.random() + Math.random() + Math.random() - 1.5) * 0.56)).toFixed(3); }));
+    Object.entries(rosters).filter(([tid]) => playing.has(+tid)).forEach(([, ids]: any) => ids.forEach((id: number) => { const q = this.db.P[id]; if (q?.pers?.streaky) q.hot = +Math.max(-1, Math.min(1, 0.85 * (q.hot || 0) + (Math.random() + Math.random() + Math.random() - 1.5) * 0.56)).toFixed(3); }));
     const fa = s.fa.slice(), lgLog = s.lgLog.slice(), inj = [], box: any = { rosters, fa, overseas: s.overseas || [], cap: { ...(s.cap || {}) }, assets: s.assets };
     const teams = s.teams.map(t => ({ ...t, seq: t.seq.slice() })), gameLog = (s.games || []).slice();
     const rec = (t, win, home) => { if (win) { t.w++; home ? t.hw++ : t.rw++; } else { t.l++; home ? t.hl++ : t.rl++; } t.seq.push(win); };
     let news = s.news || [];
-    if (Math.random() < .35) { const e = this.aiMove(box, day, s); if (e) { lgLog.unshift(e); if (e.type === 'Trade' && Math.random() < .6) { const ab = e.teams.split(' · '), tid = s.teams.find(t => t.abbr === ab[0])?.tid; const got = (e as any).got ?? e.pids[1]; if (tid != null && got != null && this.db.P[got]) news = [this.pressTrade(s, tid, this.db.P[got].name, [got]), ...news].slice(0, 80); } } }
+    if (routineDay && Math.random() < .35) { const e = this.aiMove(box, day, s); if (e) { lgLog.unshift(e); if (e.type === 'Trade' && Math.random() < .6) { const ab = e.teams.split(' · '), tid = s.teams.find(t => t.abbr === ab[0])?.tid; const got = (e as any).got ?? e.pids[1]; if (tid != null && got != null && this.db.P[got]) news = [this.pressTrade(s, tid, this.db.P[got].name, [got]), ...news].slice(0, 80); } } }
     const tstats = { ...(s.tstats || {}) };
     Object.keys(tstats).forEach(k => (tstats[k] = { ...tstats[k] }));
     const cur = { ...s, rosters, tstats }, touched: number[] = [], mins: Record<number, number> = {};
+    if (this.db.calendarV && games.length) this.healCal(cur, rosters);
     for (const [h, a] of games) {
       const pick = (s.godWin || {})[this.Y + ':' + day + ':' + h + ':' + a];
       const res = forced && forced.home.tid === h && forced.away.tid === a ? forced : pick != null ? this.playFixed(cur, h, a, pick) : this.playGame(cur, h, a);
@@ -2356,12 +2439,12 @@ export class Game {
       rec(teams[h], homeWon, true); rec(teams[a], !homeWon, false);
       gameLog.push({ day, h, a, hp: res.home.pts, ap: res.away.pts, ot: res.ot, bid });
     }
-    this.refreshAverages(touched);
+    if (touched.length) this.refreshAverages(touched);
     touched.forEach(id => { const q = this.db.P[id]; if (q.adjust > 0) { const c = this.clubOf(s, this.tidOf(rosters, id)); q.adjust = Math.max(0, q.adjust - 1 - (mins[id] >= 24 ? 0.5 : 0) - (c && c.budget.Coaching >= 25 ? 0.25 : 0)); } });
-    this.fatigueTick(rosters, mins);
-    this.injTick(rosters, day, s, inj, mins); this.healCal({ ...s, rosters }, rosters); // anyone whose day has come (free agents and players abroad too)
+    this.fatigueTick(rosters, mins, this.db.calendarV ? 1 / 2.14 : 1);
+    this.injTick(rosters, day, s, inj, mins); this.healCal({ ...s, day: this.db.calendarV ? day + 1 : day, rosters }, rosters); // anyone whose day has come (free agents and players abroad too)
     const cbaLog: Record<number, string[]> = {};
-    seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj);
+    seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj, routineDay);
     let clubs = { ...(s.clubs || {}) }, patch: any = {};
     // Monthly club upkeep: scouting intel, scouts with a brief picking their own players (scoutBrief.ts), dev reports, mentoring.
     const addClub = (tid, f) => { const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs); if (pt.clubs) clubs = pt.clubs; else patch = { ...patch, ...pt }; };
@@ -2392,10 +2475,10 @@ export class Game {
     ccpPlay(this, { ...s, fa: box.fa, rosters: box.rosters }, dnOf(this.Y, this.dateOf(day))); // today's CCP games
     // AI teams call you with trades that fit their plans (tradeLogic.ts offerToUser); an offer lasts about
     // ten days, and goes away if the players in it move.
-    let inOffers = (s.inOffers || []).filter((o: any) => day - o.day <= 10 && day < DAY.TRADE_DEADLINE && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
+    let inOffers = (s.inOffers || []).filter((o: any) => this.ruleElapsed(o.day, day) <= 10 && day < this.ruleSlot(DAY.TRADE_DEADLINE) && o.aP.every((id: number) => box.rosters[o.a]?.includes(id)) && o.bP.every((id: number) => box.rosters[o.b]?.includes(id)));
     let notices = patch.notices ?? s.notices;
     let offerPast: string[] = s.offerPast || []; const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
-    if (!s.spectator && day < DAY.TRADE_DEADLINE && inOffers.length < 2 && Math.random() < 0.15) {
+    if (!s.spectator && routineDay && day < this.ruleSlot(DAY.TRADE_DEADLINE) && inOffers.length < 2 && Math.random() < 0.15) {
       const st2 = { ...s, rosters: box.rosters, cap: box.cap, assets: box.assets }; let x: any = null;
       for (let i = 0; i < 4 && !x; i++) { x = offerToUser(this, st2, (gp, gv, gk, gvk) => teamGain(this, st2, s.me, gp, gv, gk, gvk)); if (x && offerPast.includes(okey(x))) x = null; }
       if (x) offerPast = [...offerPast, okey(x)].slice(-80);
@@ -2413,10 +2496,10 @@ export class Game {
   autoSorted(ids) { const P = this.db.P, ok = id => !P[id].inj || P[id].inj.dtd; return ids.slice().sort((a, b) => (ok(b) ? 1 : 0) - (ok(a) ? 1 : 0) || (P[a].ctype === 'twoWay' ? 1 : 0) - (P[b].ctype === 'twoWay' ? 1 : 0) || P[b].ovr - P[a].ovr); }
   tidOf(rosters, id) { for (const k of Object.keys(rosters)) if (rosters[k].includes(id)) return +k; return -1; }
   // Game-to-game fatigue: heavy minutes build it, a day off (and endurance) clears it.
-  fatigueTick(rosters, mins: Record<number, number>) {
+  fatigueTick(rosters, mins: Record<number, number>, recovery = 1) {
     const P = this.db.P;
     Object.values(rosters).flat().forEach((id: any) => { const p = P[id], m = mins[id] || 0;
-      p.fat = Math.max(0, Math.min(100, (p.fat || 0) - (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
+      p.fat = Math.max(0, Math.min(100, (p.fat || 0) - recovery * (8 + p.r.endu / 10) + Math.max(0, m - 20) * 1.1 + (m && p.age > 30 ? (p.age - 30) * 0.3 : 0))); });
   }
   // How close (in draft value: 0.7 × potential read + 0.3 × overall) a prospect must be to an AI team's top
   // choice for it to take him instead.

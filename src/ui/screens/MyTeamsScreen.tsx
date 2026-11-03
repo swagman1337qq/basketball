@@ -18,7 +18,7 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
         {s.managed.map(tid => {
           const t = T[tid], club = gm.clubOf(s, tid), ids = s.rosters[tid], pay = teamSalary(gm, s, tid), ceil = gm.teamCeiling(t);
           const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w), seed = conf.indexOf(t) + 1;
-          const post = gm.nextPostGame(s, tid), g = post ? { opp: post.home === tid ? post.away : post.home, home: post.home === tid } : s.phase === 'regular' ? gm.userGame(s.day, tid) : null;
+          const post = gm.nextPostGame(s, tid), g = post ? { opp: post.home === tid ? post.away : post.home, home: post.home === tid } : s.phase === 'regular' ? gm.nextUserGame(s.day, tid) : null;
           const inj = ids.filter(id => P[id].inj), inbox = (club?.inbox || []).filter(x => !x.done).length;
           const alerts: [string, string][] = [];
           const std = stdIds(gm, ids).length, lim = rosterMax(s);
@@ -39,7 +39,7 @@ export function MyTeamsScreen({ vm }: { vm: VM }) {
                 </div>
               </div>
               <div style={{ fontSize: '12px', borderTop: '1px solid var(--color-divider)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <div><span style={muted}>Next: </span>{g ? <>{post ? post.label + ' · ' : gm.fmtS(s.day) + ' · '}{g.home ? 'vs ' : 'at '}<Link onClick={() => openTeam(g.opp)}>{T[g.opp].region}</Link> ({T[g.opp].w}–{T[g.opp].l})</> : s.phase === 'playoffs' || s.phase === 'playin' ? 'Season over' : 'No games until the regular season'}</div>
+                <div><span style={muted}>Next: </span>{g ? <>{post ? post.label + ' · ' : gm.fmtS(g.day) + ' · '}{g.home ? 'vs ' : 'at '}<Link onClick={() => openTeam(g.opp)}>{T[g.opp].region}</Link> ({T[g.opp].w}–{T[g.opp].l})</> : s.phase === 'playoffs' || s.phase === 'playin' ? 'Season over' : 'No games until the regular season'}</div>
                 <div><span style={muted}>Payroll: </span>{money(pay)} · {ids.length} players</div>
                 <div><span style={muted}>Injuries: </span>{inj.length ? inj.map((id, i) => <span key={id}>{i ? ', ' : ''}<Link pid={id} onClick={() => open(id)}>{P[id].name}</Link> ({P[id].inj.dtd ? 'DTD' : vm.ctx.gm.injText(P[id], true)})</span>) : 'None'}</div>
               </div>

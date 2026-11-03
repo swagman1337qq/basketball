@@ -66,6 +66,19 @@ assert.ok(observed.some(e => e.fouled && !e.made), 'missed-foul branch exercised
 assert.ok(observed.some(e => e.fouled && e.made), 'and-one branch exercised');
 assert.ok(observed.some(e => e.blocked), 'blocked branch exercised');
 assert.ok(observed.some(e => e.origin === 'putback'), 'immediate putback branch exercised');
+const rim = observed.filter(e => e.zone === 'rim' && e.technique === 'layup' && !e.fouled);
+const averageChance = (contest: ShotEvent['contest']) => {
+  const shots = rim.filter(e => e.contest === contest);
+  assert.ok(shots.length >= 20, contest + ' layups exercised');
+  return shots.reduce((sum, shot) => sum + shot.probability, 0) / shots.length;
+};
+assert.ok(averageChance('open') > averageChance('contested'), 'open layups are easier than contested ones');
+assert.ok(observed.some(e => e.action === 'roll' && e.help === 'at-rim' && e.helperId != null));
+assert.ok(observed.some(e => e.action === 'cut' && e.help === 'stays-home'));
+for (const e of observed) {
+  assert.equal(e.helperId == null, e.help === 'stays-home');
+  if (e.technique === 'dunk') assert.equal(e.contest, 'open', 'a dunk requires a clear gather');
+}
 
 // A zero frequency remains zero in both engines, even for capable dunkers.
 const noDunkHome = structuredClone(home), noDunkAway = structuredClone(away);

@@ -9,10 +9,14 @@
 //
 // A band is where real seasons sit with some room for a game league's spread; a failure means "look at this",
 // not always "this is wrong". Bands live in BANDS below.
+import { appendFileSync, writeFileSync } from 'node:fs';
+import type { ShotEvent } from '../src/engine/sim';
 import { seasonMax, stdIds, twoWayIds, TWO_WAY_MAX } from '../src/engine/cba';
 import { newLeague, offseason, playRegular, rostered } from './lib/headless.mts';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
+const shotReport = arg('shots', '');
+if (shotReport) writeFileSync(shotReport, '');
 const seeds = arg('seeds', '11,12,13').split(',').map(Number), seasons = Math.max(1, +arg('seasons', '1'));
 
 // [low, high] for each check. Team numbers are per team per game.
@@ -69,6 +73,20 @@ function measure(g: any, rows: Row[]) {
   const wp = teams.map(t => t.w / Math.max(1, t.w + t.l)); check(rows, 'best record (win%)', Math.max(...wp)); check(rows, 'worst record (win%)', Math.min(...wp)); { const m = wp.reduce((a, b) => a + b, 0) / wp.length; check(rows, 'standings spread (win% sd)', Math.sqrt(wp.reduce((a, b) => a + (b - m) ** 2, 0) / wp.length)); }
 }
 
+type ShotBucket = { releases: number; attempts: number; makes: number; expectedMakes: number; expectedAttempts: number };
+function observeShot(players: Map<number, Map<string, ShotBucket>>, shot: Readonly<ShotEvent>) {
+  let buckets = players.get(shot.shooterId);
+  if (!buckets) players.set(shot.shooterId, buckets = new Map());
+  const key = [shot.zone, shot.technique, shot.action, shot.help, shot.contest].join('/');
+  let counts = buckets.get(key);
+  if (!counts) buckets.set(key, counts = { releases: 0, attempts: 0, makes: 0, expectedMakes: 0, expectedAttempts: 0 });
+  counts.releases++;
+  counts.attempts += Number(shot.attempt);
+  counts.makes += Number(shot.made);
+  counts.expectedMakes += shot.probability;
+  counts.expectedAttempts += shot.fouled ? shot.probability : 1;
+}
+
 const t0 = Date.now();
 for (const seed of seeds) {
   const g: any = newLeague(seed);
@@ -76,7 +94,27 @@ for (const seed of seeds) {
   for (let s = 0; s < seasons; s++) {
     if (s > 0) offseason(g);
     const rows: Row[] = [], broken = invariants(g);
-    await playRegular(g); broken.push(...invariants(g));
+    const shots = new Map<number, Map<string, ShotBucket>>();
+    if (shotReport) g.shotObserver = shot => observeShot(shots, shot);
+    await playRegular(g);
+    g.shotObserver = undefined;
+    broken.push(...invariants(g));
+    if (g.state.teams.some(t => t.w + t.l !== 82)) broken.push('Regular season ended before all teams played 82 games');
+    if (shotReport) {
+      const players = Object.values(g.db.P).flatMap((p: any) => {
+        const lines = (p.stats || []).filter(r => r.season === g.Y && !r.po);
+        if (!lines.length) return [];
+        const totals = (key: string) => lines.reduce((sum, r) => sum + (r[key] || 0), 0);
+        const attempts = totals('fga'), makes = totals('fgm'), games = totals('gp');
+        const buckets = Object.fromEntries(shots.get(p.id) || []);
+        const counts = Object.values(buckets) as ShotBucket[];
+        if (counts.reduce((sum, x) => sum + x.attempts, 0) !== attempts ||
+            counts.reduce((sum, x) => sum + x.makes, 0) !== makes) broken.push('Shot event totals differ from the box score for ' + p.name);
+        return [{ id: p.id, name: p.name, games, minutes: totals('min'), points: totals('pts'), attempts, makes, dunks: totals('dunkM'), buckets }];
+      });
+      const volumeEfficiencyOutliers = players.filter(p => p.games >= 50 && p.points / p.games >= 30 && p.makes / Math.max(1, p.attempts) >= 0.65).map(p => p.id);
+      appendFileSync(shotReport, JSON.stringify({ seed, season: g.Y, volumeEfficiencyOutliers, players }) + '\n');
+    }
     measure(g, rows);
     if (s > 0) { const ps = rostered(g); check(rows, 'mean overall drift', ps.reduce((a, p) => a + p.ovr, 0) / ps.length - mean0); check(rows, 'players 60+ (change)', ps.filter(p => p.ovr >= 60).length - top0); }
     results.push({ seed, season: g.Y, rows, broken });

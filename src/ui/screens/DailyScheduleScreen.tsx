@@ -25,7 +25,7 @@ export function DailyScheduleScreen({ vm }: { vm: VM }) {
   const resOf = (h: number, a: number) => pd ? pd.games.find((g: any) => g.h === h && g.a === a)?.r : results.find((g: any) => g.day === d && g.h === h && g.a === a);
   const labelOf = (h: number, a: number) => pd?.games.find((g: any) => g.h === h && g.a === a)?.label || '';
   const played = games.filter(([h, a]) => resOf(h, a)).length;
-  const isNext = d === next && (s.phase === 'regular' || inPost) && played < games.length;
+  const isNext = d === next && (s.phase === 'regular' || inPost) && (played < games.length || (!pd && games.length === 0));
   const simDay = () => (s.phase === 'playin' ? gm.simPlayin() : s.phase === 'playoffs' ? gm.simPo('game') : gm.sim(1));
   const picks = s.godWin || {}, nPicked = s.god ? games.filter(([h, a]) => picks[gm.Y + ':' + d + ':' + h + ':' + a] != null).length : 0;
   const fmt = (x: number) => gm.dateOf(x).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

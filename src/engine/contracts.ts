@@ -42,7 +42,7 @@ export function applySigning(g: Game, s: any, box: { rosters: any; fa: number[];
   p.opt = t.opt && t.years >= 2 ? { kind: t.opt, season: p.exp } : undefined; p.kicker = t.kicker || 0; p.ntc = !!t.ntc;
   p.ctype = t.method === 'twoWay' ? 'twoWay' : t.method === 'ex10' ? 'ex10' : t.method === 'tenDay' ? 'tenDay' : t.method === 'hardship' ? 'hardship' : t.amt >= N.max(yos) - 0.05 ? 'max' : t.amt <= minS * 1.02 ? 'min' : 'standard';
   p.capOverride = t.method === 'twoWay' ? 0 : t.method === 'min' && t.years === 1 && yos >= 2 ? N.min(2) : undefined; // two-ways are off the cap; one-year veteran minimums count as the 2-year minimum
-  if (s.phase === 'regular' && s.day > DAY.PLAYOFF_WAIVE && p.waived?.season === g.Y) p.poIneligible = g.Y; // waived after March 1: not playoff-eligible elsewhere
+  if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.PLAYOFF_WAIVE) && p.waived?.season === g.Y) p.poIneligible = g.Y; // waived after March 1: not playoff-eligible elsewhere
   delete p.waived;
   p.signed = { season: Y1, day: s.day, phase: s.phase, tid, method: t.method, ovr: p.ovr, ask: p.ask }; // (his level and ask when he signed)
   if (t.method !== 'bird') { if (prevTid != null && prevTid !== tid) p.leftAsFA = true; p.yrsWith = 0; }

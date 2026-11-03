@@ -38,7 +38,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
       const st: [string, string] | undefined = !r || r.season !== m.season ? undefined : r.status === 'open' ? ['Waiting on you', 'var(--accent-ink)'] : r.status === 'traded' ? ['Traded' + (r.by != null && r.by >= 0 ? ' to ' + abbr(r.by) : ''), 'var(--color-neutral-600)'] : r.status === 'extended' ? ['Extended', 'var(--gm-good)'] : ['You kept him', 'var(--gm-bad)'];
       items.push({ key: 'm' + m.id, kind: 'request', ms: when(m.date, m.season), date: m.date, title: m.title, lines: m.lines || [], pids: m.pids, isNew: (m.seq || 0) > readTo, status: st,
         actions: !mineNow ? [] : [...(r.cause === 'ext' ? [{ label: 'Open his contract', primary: true, go: () => { open(p.id); gm.setState({ ptab: 'contract' }); } }] : []),
-          ...(gm.state.day < DAY.TRADE_DEADLINE ? r.teams.map((t: number, i: number) => ({ label: 'Shop him to ' + abbr(t), primary: i === 0 && r.cause !== 'ext', go: () => gm.setState({ modal: false, teamModal: null, screen: 'trade', tTid: t, tMine: [p.id], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }) })) : [])] });
+          ...(gm.state.day < gm.ruleSlot(DAY.TRADE_DEADLINE) ? r.teams.map((t: number, i: number) => ({ label: 'Shop him to ' + abbr(t), primary: i === 0 && r.cause !== 'ext', go: () => gm.setState({ modal: false, teamModal: null, screen: 'trade', tTid: t, tMine: [p.id], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }) })) : [])] });
       continue;
     }
     const live = m.offerId ? vm.inOffersV.has(m.offerId) : false;
