@@ -106,7 +106,8 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
   let changed = false;
   const P0 = PRESET_CARDS[i].card, olds = (OLD_CARD_BUILDS[P0.name] || []).filter(o => o.preset == null || o.preset === i);
   const sameStyle = (a: any, b: any) => same(a && { ...a, ...Object.fromEntries(HABIT_TEN.map(k => [k, a[k] ?? 50])) }, b && { ...b, ...Object.fromEntries(HABIT_TEN.map(k => [k, b[k] ?? 50])) });
-  const previous = olds.find(o => same(c.r, o.r));
+  const previous = olds.find(o => same(c.r, o.r) && o.ten && c.pot === o.pot && sameStyle(c.ten, o.ten))
+    ?? olds.find(o => same(c.r, o.r));
   // The audited builds include their original style: recognize an untouched library copy,
   // and leave explicit style/potential/feel/work edits alone.
   if (previous?.ten && (c.pot !== previous.pot || !sameStyle(c.ten, previous.ten) || !same(c.intg, P0.intg) || c.pers?.work !== P0.pers.work)) return false;
@@ -237,7 +238,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 69, intg: { feel: 70, poise: 40 },
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: false, flashy: true, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: true, padder: false, team: false, legacy: false, streaky: false, work: 45, loyalty: 30, ambition: 72 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 22.5%: 46% at the rim, 33% from 3–10 ft, 21% jumpers, no threes; .34 FTA per FGA.
-    ten: { usage: 42.38873013776312, ftr: 68.9287413032303, ra: 81.1529933481153, paint: 12.022665681202266, mid: 6.011332840601133, c3: 0.16260162601626016, atb: 0.6504065040650406, cns: 12.6, pullup: 44, step: 28.5, fade: 14.9, turnovers: 52.045257920271254, fouls: 70.40145967613746, crash: 67.42399932738901 },
+    ten: { usage: 46, ftr: 68.9287413032303, ra: 81.1529933481153, paint: 12.022665681202266, mid: 6.011332840601133, c3: 0.16260162601626016, atb: 0.6504065040650406, cns: 12.6, pullup: 44, step: 28.5, fade: 14.9, turnovers: 52.045257920271254, fouls: 70.40145967613746, crash: 67.42399932738901 },
   } },
   { label: 'Al Horford – Rookie year (2007–08)', card: {
     card: 1, name: 'Al Horford', first: 'Al', last: 'Horford', pos: 'C', age: 21, dob: '1986-06-03', hgt: '6′10″', wt: 245, wing: 85,
@@ -580,7 +581,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     pot: 69, intg: { feel: 70, poise: 75 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
     // Playing style: the AI's own for these ratings and a first option's role.
-    ten: { usage: 64.96221363581, ftr: 88, ra: 46.97831596733315, paint: 20.3323007603492, mid: 17.764010137989303, c3: 5.751729159082635, atb: 9.17364397524572, cns: 56.2, pullup: 25.6, step: 4.3, fade: 13.9, turnovers: 66.93864689207547, fouls: 63.13832287967018, crash: 2 },
+    ten: { usage: 79, ftr: 85, ra: 46.97831596733315, paint: 20.3323007603492, mid: 17.764010137989303, c3: 5.751729159082635, atb: 9.17364397524572, cns: 56.2, pullup: 25.6, step: 4.3, fade: 13.9, turnovers: 66.93864689207547, fouls: 63.13832287967018, crash: 2 },
   } },
   { label: 'Anthony Bennett – Draft night (2013, UNLV)', card: {
     card: 1, name: 'Anthony Bennett', first: 'Anthony', last: 'Bennett', pos: 'PF', age: 20, dob: '1993-03-14', hgt: '6′8″', wt: 240, wing: 85,

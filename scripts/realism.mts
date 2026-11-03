@@ -22,6 +22,7 @@ const BANDS: Record<string, [number, number]> = {
   'scoring leader (ppg)': [26, 37], 'players at 25+ ppg': [4, 20], 'players at 20+ ppg': [18, 50],
   'assist leader (apg)': [8.5, 13.5], 'players at 10+ apg': [0, 5], 'rebound leader (rpg)': [10.5, 16.5], 'highest usage %': [30, 40],
   'best record (win%)': [0.65, 0.86], 'standings spread (win% sd)': [0.12, 0.19], 'worst record (win%)': [0.12, 0.36],
+  'most made dunks': [0, 500],
   'mean overall drift': [-2.5, 2.5], 'players 60+ (change)': [-25, 25],
 };
 
@@ -60,6 +61,7 @@ function measure(g: any, rows: Row[]) {
   check(rows, 'team points', per('pts')); check(rows, 'pace (possessions)', teams.reduce((a, t) => a + g.possOf(g.state.tstats[t.tid] || {}), 0) / Math.max(1, teams.reduce((a, t) => a + (g.state.tstats[t.tid]?.gp || 0), 0))); check(rows, 'team assists', per('ast')); check(rows, 'team turnovers', per('tov'));
   check(rows, 'team FGA', per('fga')); check(rows, 'team 3PA', per('tpa')); check(rows, 'team FTA', per('fta')); check(rows, 'team rebounds', per('orb') + per('drb'));
   check(rows, 'FG%', (100 * tot.fgm) / tot.fga); check(rows, '3P%', (100 * tot.tpm) / tot.tpa); check(rows, 'FT%', (100 * tot.ftm) / tot.fta);
+  check(rows, 'most made dunks', Math.max(0, ...players.map(p => p.t.dunkM ?? 0)));
   const pg = (k: string) => players.map(x => (k === 'reb' ? x.t.orb + x.t.drb : x.t[k]) / x.t.gp), ppg = pg('pts'), apg = pg('ast');
   check(rows, 'scoring leader (ppg)', Math.max(...ppg)); check(rows, 'players at 25+ ppg', ppg.filter(x => x >= 25).length); check(rows, 'players at 20+ ppg', ppg.filter(x => x >= 20).length);
   check(rows, 'assist leader (apg)', Math.max(...apg)); check(rows, 'players at 10+ apg', apg.filter(x => x >= 10).length);

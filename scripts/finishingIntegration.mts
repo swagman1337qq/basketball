@@ -134,3 +134,15 @@ const aggregateSample=new GameSim(structuredClone(home),structuredClone(away),{n
 g.addBox(aggregateSample,false,undefined,undefined,g.state);
 for(const side of [aggregateSample.home,aggregateSample.away])for(const k of ['dunkA','layupA','finishRaA','finishPaintA'])assert.equal(g.state.tstats[side.tid][k],sum(Object.values(side.box) as any[],k));
 console.log('Team finishing aggregates reconcile with player counters.');
+
+{
+  const play = (overallDelta: number) => {
+    const h = structuredClone(home), a = structuredClone(away);
+    h.aiKeys = [];
+    a.aiKeys = [];
+    for (const p of h.players) p.ovr += overallDelta;
+    Math.random = mulberry32(99111);
+    return new GameSim(h, a, { norms: g.db.norms }).run();
+  };
+  assert.deepEqual(play(0), play(10), 'a uniform overall-only edit must not change a game with fixed lineups and tactics');
+}

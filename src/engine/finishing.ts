@@ -4,7 +4,7 @@
 export const FINISH_TYPES = ['layup', 'dunk', 'floater', 'hook', 'tip', 'paintJumper'] as const;
 export type FinishType = (typeof FINISH_TYPES)[number];
 export interface FinishPlayer { r: any; grp?: string; tend?: { dunk?: number } }
-export interface FinishContext { transition?: boolean; putback?: boolean }
+export interface FinishContext { transition?: boolean; putback?: boolean; opening?: number }
 export interface FinishNorms {
   offset: Record<FinishType, number>;
   skill: Record<FinishType, number>;
@@ -29,6 +29,16 @@ export function naturalDunkShare(r: any, _grp?: string): number {
   return 0.70 * sigmoid((reach - 60) / 12) * sigmoid((rating(r, 'dnk') - 35) / 15);
 }
 
+// A clear gather depends on creation, help defense and how predictable the attack is.
+export function rimOpening(creation: number, help: number, spacing: number, usage: number, rimShare: number, transition: boolean, putback: boolean): number {
+  const attention = Math.max(0, usage - 0.19) * 4 + Math.max(0, rimShare - 0.38) * 1.8;
+  return sigmoid(0.1 + 0.055 * creation - 0.045 * help + 0.024 * spacing - attention + (transition ? 2 : putback ? 0.65 : 0));
+}
+
+export function rimDenial(opening: number, usage: number, rimShare: number): number {
+  return (1 - opening) * clamp(0.10 + 0.78 * Math.max(0, rimShare - 0.32) + 0.8 * Math.max(0, usage - 0.20), 0, 1);
+}
+
 export function finishMix(p: FinishPlayer, zone: 'rim' | 'paint', context: FinishContext = {}): Record<FinishType, number> {
   const r = p.r, mix = empty(), big = p.grp === 'B', guard = p.grp === 'G';
   if (zone === 'paint') {
@@ -48,7 +58,7 @@ export function finishMix(p: FinishPlayer, zone: 'rim' | 'paint', context: Finis
   preference = preference * tilt / (1 + preference * (tilt - 1));
   const access = 0.55 * rating(r, 'hgt') + 0.35 * rating(r, 'jmp') + 0.10 * rating(r, 'dnk');
   const availability = sigmoid((access - 30) / 7);
-  mix.dunk = preference * availability;
+  mix.dunk = preference * availability * (context.opening ?? 1);
   const rest = 1 - mix.dunk;
   const tip = context.putback ? 0.40 : big ? 0.025 : 0.003;
   const hook = context.putback ? (big ? 0.04 : 0.01) : big ? 0.08 : guard ? 0.005 : 0.025;

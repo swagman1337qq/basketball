@@ -1,7 +1,7 @@
 // Mechanism tests: technique semantics, preferences and normalization. Run with
 // `npx tsx scripts/finishingKernel.mts`; full-game validation is separate.
 import assert from 'node:assert/strict';
-import { FINISH_BASE, FINISH_TYPES, computeFinishNorms, finishMean, finishMix, finishingPct, naturalDunkShare } from '../src/engine/finishing';
+import { rimOpening, rimDenial, FINISH_BASE, FINISH_TYPES, computeFinishNorms, finishMean, finishMix, finishingPct, naturalDunkShare } from '../src/engine/finishing';
 
 const r = { hgt: 40, jmp: 65, stre: 55, lay: 60, dnk: 30, ins: 40, fg: 60 };
 const p = { r, grp: 'G', tend: { dunk: 0.1 } };
@@ -65,3 +65,14 @@ for (const type of FINISH_TYPES) {
 assert.ok(Object.values(computeFinishNorms([]).offset).every(v => v === 0));
 assert.ok(Object.values(finishMix({ r: {} }, 'rim')).every(Number.isFinite));
 console.log('Finishing technique independence, conditional monotonicity, zero preferences, smooth availability and type-weighted normalization passed.');
+
+{
+  const open = rimOpening(10, -10, 10, 0.20, 0.40, false, false);
+  const crowded = rimOpening(10, 10, -10, 0.33, 0.75, false, false);
+  const transition = rimOpening(10, 10, -10, 0.33, 0.75, true, false);
+  assert.ok(open > crowded && transition > crowded);
+  assert.ok(rimDenial(crowded, 0.33, 0.75) > rimDenial(open, 0.20, 0.40));
+  const finisher = { r: { hgt: 95, dnk: 95, jmp: 95 }, grp: 'B', tend: { dunk: 1 } };
+  assert.equal(finishMix(finisher, 'rim', { opening: 0 }).dunk, 0);
+  assert.ok(finishMix(finisher, 'rim', { opening: 1 }).dunk > 0.8);
+}

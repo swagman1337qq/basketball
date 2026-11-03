@@ -13,7 +13,7 @@
 import type { Game } from './Game';
 import { effTend } from './tendencies';
 import { GameSim, blankLine, BASE, BLOCK_ON_MISS, CAL, CURVE_OF, DEFAULT_NORMS, PAINT_SHARE, TIER_KEY, ZONES, blockSkill, curve, glassSkill, interiorD, perimD, rebSkill, shotProfile, stealSkill, usageRaw, zoneSkill, type Norms, type Zone } from './sim';
-import { finishMean, finishMix, finishingPct, type FinishType } from './finishing';
+import { rimDenial, rimOpening, finishMean, finishMix, finishingPct, type FinishType } from './finishing';
 import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
@@ -164,14 +164,22 @@ export function ccpQuickGame(g: Game, hT: any, aT: any) {
     for (let chance = 0; chance < 5; chance++) {
       const putback = rebounder >= 0, i = putback ? rebounder : pick(O.use, O.uT), b = O.box[i]; rebounder = -1;
       if (R() < O.tov[i]) { b.tov++; if (R() < 0.52) D.box[pick(D.stlW.a, D.stlW.t)].stl++; return pts; }
-      const pr = O.prof[i]; let x = R(), z: Zone = 'atb'; for (const zz of ZONES) { x -= pr[zz]; if (x <= 0) { z = zz; break; } }
+      const preferred = O.prof[i], shooter = O.ps[i];
+      const usage = O.use[i] / O.uT;
+      const spacing = O.ps.reduce((sum: number, p: any, j: number) => sum + (j === i ? 0 : O.on[j] * (p.r.tp - 55)), 0) / 4;
+      const creation = 0.6 * (0.45 * shooter.r.drb + 0.35 * (shooter.r.acc ?? shooter.r.spd) + 0.2 * shooter.r.oiq - D.perim);
+      const opening = rimOpening(creation, D.inner - n.interiorD, spacing, usage, preferred.rim, false, putback);
+      const denied = putback ? 0 : preferred.rim * rimDenial(opening, usage, preferred.rim);
+      const pr = { ...preferred, rim: preferred.rim - denied, mid: preferred.mid + denied };
+      let x = R(), z: Zone = 'atb'; for (const zz of ZONES) { x -= pr[zz]; if (x <= 0) { z = zz; break; } }
       if (putback) z = 'rim';
       const paint = z === 'mid' && R() < (O.ps[i].tend?.pf ?? PAINT_SHARE), close = z === 'rim' || paint;
+      const clearGather = z === 'rim' && R() < opening;
       let type: FinishType | null = null;
-      if (close) { const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback })).filter(([, w]) => w > 0); let draw = R(); type = choices.at(-1)![0] as FinishType; for (const [key, weight] of choices) { draw -= weight; if (draw <= 0) { type = key as FinishType; break; } } }
+      if (close) { const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback, opening: clearGather ? 1 : 0 })).filter(([, w]) => w > 0); let draw = R(); type = choices.at(-1)![0] as FinishType; for (const [key, weight] of choices) { draw -= weight; if (draw <= 0) { type = key as FinishType; break; } } }
       const three = z === 'c3' || z === 'atb', rawPct = type ? O.finish[i][type] + CAL[z] + (z === 'rim' ? 0.0009 * (O.ps[i].r.hgt - (n.rimHgt ?? 55)) : 0)
         : z === 'mid' ? BASE.zone.mid.pct + CAL.mid + curve('jumper', zoneSkill(O.ps[i].r).mid) + n.offset.mid - 0.01 * PAINT_SHARE / (1 - PAINT_SHARE) + O.form[i] : O.pct[i][z];
-      const p = cl(rawPct - 0.66 * O.edge - defAdj(D, z, type) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, type === 'dunk' ? 0.995 : 0.95);
+      const p = cl(rawPct + (z === 'rim' ? (clearGather ? 0.055 : -0.016) : 0) - 0.66 * O.edge - defAdj(D, z, type) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, type === 'dunk' ? 0.995 : 0.95);
       const contact = type === 'dunk' ? 0.85 : type === 'hook' ? 1.15 : type === 'floater' ? 0.75 : type === 'paintJumper' ? 0.65 : 1;
       const fouled = R() < Q_FOUL[z] * O.draw[i] * contact, made = R() < (fouled ? p * 0.45 : p);
       if (fouled) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; b.shotFoulA++; if (close) b.closeFoulA++; }
