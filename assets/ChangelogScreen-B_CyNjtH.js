@@ -1,6 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BWECgbRY.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index--DgwMOqQ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-03
+
+### Fixed
+- **Rim attempts depend on the opening the offense creates.** Help defense, spacing, creation and workload determine whether players get a clear gather. Defenses can steer predictable rim attacks toward tougher shots, and dunk preference applies when a dunk is available.
+- **Overall ratings no longer handicap shooting.** Shot chances come from the players and the matchup, with game-to-game shooting variation. Updated the MVP Embiid and rookie Simmons presets for the new shot model.
 
 ## 2026-11-02
 
