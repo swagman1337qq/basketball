@@ -15,6 +15,11 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Finishing skills now control the shots they describe.** Layups, dunks, floaters and hooks are resolved separately, with a new dunk-frequency preference and actual finishing results on the profile. Watched and quick games use the same shot events; shooting fouls and rebounder putbacks follow those events. Older card builds were adapted and checked across the library.
 - **Jeremy Lin’s Knicks card follows his actual shot chart.** Rebuilt the full 2011–12 season card using recorded NBA shot locations, corrected its finishing/mid-range balance and excessive stepbacks, and rechecked scoring, passing, rebounds and defensive box scores. Untouched library copies update when reopened; apply the revised card to update a player already in a league.
 
+## 2026-11-03
+
+### Fixed
+- **Retired players keep getting older.** A retired player's age on his profile now goes up every year like everyone else's, while "Retired after the … season, at 36" keeps the age he retired at. Leagues you already have catch up when they load. The age column in a retired player's past seasons is right now too (it read a year old for most retirees).
+
 ## 2026-11-01
 
 ### Changed

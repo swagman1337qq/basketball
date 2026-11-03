@@ -403,6 +403,16 @@ export class Game {
         if (p.tpot != null) p.tpot = Math.max(1, Math.min(99, p.tpot + di)); if (p.godPot != null) p.godPot = Math.max(1, Math.min(100, p.godPot + di)); if (p.dv0?.o != null) p.dv0.o = +(p.dv0.o + d).toFixed(2);
         syncOvr(p, true); if (!p.retired) refreshPot(p); });
       g.refreshNorms(g.state); g.db.iqV = 7; }
+    // 2026-11-01 (retAgeV 1): retired players' ages used to stop when they retired; bring them to this season's age.
+    // A summer retiree's stored age is already the next season's (his season is the one he finished); one who hit the
+    // mandatory retirement age retired after the season turned over; the league's starting legends were made at their
+    // age in its first season.
+    if (!g.db.retAgeV) { const Y = g.Y, first = g.db.firstSeason ?? 2027;
+      (Object.values(g.db.P) as any[]).forEach(p => { const r = p?.retired; if (!r || p.gone || p.age == null) return;
+        if (r.legacy) { p.age += Math.max(0, Y - first); return; }
+        if (r.age == null || r.season == null) return;
+        const base = /^Reached the retirement age/.test(r.why || '') ? r.season : r.season + 1; p.age = r.age + Math.max(0, Y - base); });
+      g.db.retAgeV = 1; }
     // Positions follow each player's game unless set by hand (Game.autoPos), in every league as it loads.
     (Object.values(g.db.P) as any[]).forEach(p => g.autoPos(p));
     // 2026-10-16: rebounding and box-out at least what a player's body gives him (ratings.ts rebFloor); his overall
@@ -555,7 +565,7 @@ export class Game {
   }
 
   makeDB(seed: number) {
-    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 7, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
+    const db: any = this.db = { v: 2, ovrV: 1, askV: 2, ten4: 1, hwV: 1, tenAuto: 1, perrV: 1, hgtV2: 1, iqV: 7, retAgeV: 1, dyV: 1, rebV: 1, seed, rs: seed, nid: 1, P: {}, C: countries(), caps: { ...CAPS0 }, firstSeason: 2027, lgRate: {} };
     const rnd = () => this.rnd(), cl = this.cl, pick = a => a[Math.floor(rnd() * a.length)];
     const P = db.P, NP = namePools(), CLUBS = clubs(), W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
@@ -870,9 +880,9 @@ export class Game {
   }
   get Y() { return (this.state && this.state.season) || 2027; }
   seasonLbl() { return (this.Y - 1) + '–' + String(this.Y).slice(2); }
-  // His age in season y. A retired player's age stops at retirement (p.retired.age in p.retired.season),
-  // so count back from there, not from this season (which made a 2027 season read as age 9 decades on).
-  ageIn(p: any, y: number) { return p.retired?.age != null && p.retired.season != null ? p.retired.age - (p.retired.season - y) : p.age - (this.Y - y); }
+  // His age in season y, counted back from his age this season. Retired players keep aging (startPreseason, and the
+  // retAgeV migration for older saves), so this holds for them too; p.retired.age is his age when he retired.
+  ageIn(p: any, y: number) { return p.age - (this.Y - y); }
   // Game days are spread over the real calendar: opening night Oct 21, game 82 in mid-April.
   dateOf(off) { return this.db.midStart && this.Y === 2027 ? new Date(2027, 0, 14 + Math.round(off * 1.1)) : new Date(this.Y - 1, 9, 21 + Math.round(off * 2.14)); }
   // Play-in and playoff games are simulated in full; their stats go on the playoff line.
@@ -1664,6 +1674,9 @@ export class Game {
       // (tendencies.ts autoTen; hand-set tendencies stay). tenPrev keeps last season's for the arrows.
       { const rk = optionRanks(P, rosters), md = this.strategies(s.teams, s, true), tOf = new Map<number, number>(); Object.keys(rosters).forEach(k => rosters[k].forEach((id: number) => tOf.set(id, +k)));
         [...Object.values(rosters).flat(), ...fa, ...(s.overseas || [])].forEach((id: any) => { const p = P[id]; if (!p?.r || p.retired) return; this.autoPos(p); ensureTen(p); p.tenPrev = { ...p.ten }; autoTen(p, { rank: rk.get(id) ?? null, mode: md[tOf.get(id) as number], roles: this.rolesOf(p) }); }); }
+      // Retired players keep getting older (2026-11-01): a year for everyone who retired before this summer (this
+      // summer's retirees were aged above). His age when he retired stays in p.retired.age.
+      (Object.values(P) as any[]).forEach(p => { if (p?.retired && !p.gone && p.age != null) p.age++; });
       // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
       const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < .35);
       fa = fa.filter(id => { if (!retire(id)) return true; P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' }; addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age }); return false; });
