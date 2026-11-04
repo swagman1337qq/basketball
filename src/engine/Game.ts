@@ -614,13 +614,15 @@ export class Game {
     };
     teams.forEach((t, ti) => {
       const kind = kinds[ti % kinds.length], K = KIND.find(x => x[0] === kind)!; t.kind = kind; t.str = K[2] + rnd() * (K[3] - K[2]);
+      // Keep recognizable team tiers without concentrating every strong reserve on a few clubs.
+      const rosterStrength = 50 + 0.56 * (t.str - 50);
       const slots = ['G', 'G', 'G', 'G', 'G', 'W', 'W', 'W', 'W', 'B', 'B', 'B', 'B', 'B'];
       for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
       const ps = []; for (let k = 0; k < 14; k++) {
         // 2026-10-17: the shape a league settles into after a few seasons, so a new league doesn't drift: 2.2 a slot to
         // the 8th man, 0.9 a slot to the 11th (about 44, NBA-level bench), then 3.5 a slot for the last three (raw
         // young players and fringe guys, down to about 33). It was 2.2 a slot all the way, a deep bench of 33–42.
-        let base = t.str + 12 - Math.min(k, 7) * 2.2 - Math.max(0, Math.min(k, 10) - 7) * 0.4 - Math.max(0, k - 10) * 4 + (rnd() - .5) * 6;
+        let base = rosterStrength + 12 - Math.min(k, 7) * 2.2 - Math.max(0, Math.min(k, 10) - 7) * 0.4 - Math.max(0, k - 10) * 4 + (rnd() - .5) * 6;
         // Real superstars (75+): contenders and good teams build around one; capped-out and hopeless teams don't have one.
         if (k === 0) base += ({ contender: 9, good: 7, middling: 5, rebuild: 3, capped: 2, hopeless: 0 } as any)[kind] + rnd() * 5;
         if (k === 1 && (kind === 'contender' || kind === 'good')) base += 2 + rnd() * 3;

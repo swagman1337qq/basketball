@@ -2,6 +2,13 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-04
+
+### Changed
+
+- **New leagues start with a tighter spread of roster talent.** Contenders and rebuilders still have distinct rosters, with less of the gap coming from the initial team tier.
+- **11 historical presets moved closer to their real seasons.** Tested all 26 cards again. The Knicks Jeremy Lin card is closer on scoring, assists and shot volume and keeps his recorded shot mix.
+
 ## 2026-11-03
 
 ### Added

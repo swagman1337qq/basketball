@@ -216,11 +216,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 48 overall; potential 51.
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 47, stre: 46, spd: 66, acc: 82, jmp: 86, endu: 56, ins: 40, dnk: 58, lay: 73, ft: 55, fg: 65, tp: 78, oiq: 51, diq: 25, blk: 17, stl: 1, drb: 34, pss: 27, reb: 55, box: 60 },
+    r: { hgt: 47, stre: 46, spd: 66, acc: 82, jmp: 86, endu: 56, ins: 40, dnk: 58, lay: 73, ft: 49, fg: 62, tp: 76, oiq: 51, diq: 25, blk: 18, stl: 1, drb: 34, pss: 28, reb: 55, box: 60 },
     pot: 51, intg: { feel: 57, poise: 62 },
     pers: { mot: 'Playing time', alpha: false, touches: false, pro: false, volatile: false, flashy: false, heat: true, crowd: false, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: true, work: 74, loyalty: 50, ambition: 62 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 21%: 22% at the rim, 9% paint, 8% mid-range, 61% threes (27% of them corners); mostly catch-and-shoot; .14 FTA per FGA.
-    ten: { usage: 43.74628984291049, ftr: 15.575320701977004, ra: 23.865954346770273, paint: 7.081107333657113, mid: 7.081107333657113, c3: 16.123644521999253, atb: 45.84818646391625, cns: 72.8, pullup: 16.7, step: 8, fade: 2.5, turnovers: 27.128669483060428, fouls: 39.38063677886867, crash: 35.195882670507416 },
+    ten: { usage: 46.38, ftr: 19.39, ra: 23.5599, paint: 6.9903, mid: 6.9903, c3: 16.2505, atb: 46.2089, cns: 72.8, pullup: 16.7, step: 8, fade: 2.5, turnovers: 28.19, fouls: 34.89, crash: 39.12, dom: 69.22 },
   } },
   { label: 'Ben Simmons – Rookie year (2017–18)', card: {
     card: 1, name: 'Ben Simmons', first: 'Ben', last: 'Simmons', pos: 'PG', age: 21, dob: '1996-07-20', hgt: '6′10″', wt: 240, wing: 84,
@@ -321,11 +321,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 57 overall; potential 77 (82 before potentials above 70 were compressed).
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 70, stre: 80, spd: 64, acc: 59, jmp: 86, endu: 72, ins: 46, dnk: 46, lay: 34, ft: 35, fg: 21, tp: 1, oiq: 44, diq: 55, blk: 52, stl: 48, drb: 6, pss: 24, reb: 73, box: 94 },
+    r: { hgt: 70, stre: 80, spd: 64, acc: 59, jmp: 86, endu: 72, ins: 46, dnk: 46, lay: 35, ft: 38, fg: 23, tp: 1, oiq: 44, diq: 55, blk: 54, stl: 49, drb: 6, pss: 23, reb: 74, box: 94 },
     pot: 77, intg: { feel: 47, poise: 45 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: false, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: false, legacy: false, streaky: false, work: 62, loyalty: 50, ambition: 70 },
     // Playing style from his real rookie numbers, as the NBA reports it (zones and how he created his jumpers add up to 100%; usage and free throws as scores): USG 17.5%: 65% at the rim, 27% in the paint, 8% from 10 ft out, no threes; .66 FTA per FGA.
-    ten: { usage: 39.65, ftr: 87.74, ra: 59.259437751004015, paint: 30.130220883534136, mid: 10.310341365461847, c3: 0, atb: 0.3, cns: 32, pullup: 14.8, step: 3.2, fade: 50, turnovers: 54.11, fouls: 42.26, crash: 53.79 },
+    ten: { usage: 36.33, ftr: 87.17, ra: 59.2686, paint: 30.1349, mid: 10.3119, c3: 0, atb: 0.2846, cns: 32, pullup: 14.8, step: 3.2, fade: 50, turnovers: 59.57, fouls: 40.67, crash: 49.12, dom: 53.27 },
   } },
   { label: 'John Wall – Rookie year (2010–11)', card: {
     card: 1, name: 'John Wall', first: 'John', last: 'Wall', pos: 'PG', age: 20, dob: '1990-09-06', hgt: '6′4″', wt: 195, wing: 81,
@@ -340,11 +340,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 54 overall; potential 74 (78 before potentials above 70 were compressed).
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 40, stre: 50, spd: 97, acc: 86, jmp: 80, endu: 84, ins: 38, dnk: 62, lay: 58, ft: 51, fg: 25, tp: 49, oiq: 22, diq: 44, blk: 31, stl: 63, drb: 87, pss: 72, reb: 44, box: 44 },
+    r: { hgt: 40, stre: 50, spd: 97, acc: 86, jmp: 80, endu: 84, ins: 38, dnk: 62, lay: 58, ft: 50, fg: 21, tp: 44, oiq: 22, diq: 44, blk: 28, stl: 64, drb: 87, pss: 73, reb: 42, box: 44 },
     pot: 74, intg: { feel: 74, poise: 50 },
     pers: { mot: 'Fame', alpha: true, touches: true, pro: false, volatile: true, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: false, padder: false, team: false, legacy: true, streaky: false, work: 55, loyalty: 70, ambition: 75 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): 32% at the rim, 16% paint, 40% mid-range, 12% threes; mostly pull-ups; .35 FTA per FGA.
-    ten: { usage: 36.69, ftr: 72.38, ra: 36.4051, paint: 14.6021, mid: 37.1052, c3: 1.3433, atb: 10.5443, cns: 5.1, pullup: 54, step: 39.8, fade: 1.1, turnovers: 54.97, fouls: 46.86, crash: 36.22 },
+    ten: { usage: 38.87, ftr: 68.89, ra: 36.4708, paint: 14.6284, mid: 37.1721, c3: 1.3253, atb: 10.4033, cns: 5.1, pullup: 54, step: 39.8, fade: 1.1, turnovers: 52.45, fouls: 48.48, crash: 35.43, dom: 65.67 },
   } },
   { label: 'Yi Jianlian – Rookie year (2007–08)', card: {
     card: 1, name: 'Yi Jianlian', first: 'Jianlian', last: 'Yi', familyFirst: true, native: '易建联', nativeFirst: '建联', nativeLast: '易', pos: 'PF', age: 20, dob: '1987-10-27', hgt: '7′0″', wt: 245, wing: 86,
@@ -359,11 +359,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // from 10 feet out, a quarter at the rim, a few threes) under the AI's own tendencies: 9.1 pts, 5.2 reb, .484 FG on 8.1,
     // .595 at the rim on 3.4, 3.7 mid-range shots, .286 on 0.5 threes, .860 FT on 1.3. 47 overall; potential 62.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 68, stre: 42, spd: 70, acc: 68, jmp: 78, endu: 78, ins: 1, dnk: 21, lay: 1, ft: 66, fg: 75, tp: 50, oiq: 25, diq: 40, blk: 74, stl: 34, drb: 50, pss: 1, reb: 55, box: 46 },
+    r: { hgt: 68, stre: 42, spd: 70, acc: 68, jmp: 78, endu: 78, ins: 1, dnk: 21, lay: 1, ft: 64, fg: 74, tp: 50, oiq: 25, diq: 40, blk: 75, stl: 38, drb: 50, pss: 1, reb: 54, box: 46 },
     pot: 62, intg: { feel: 40, poise: 48 },
     pers: { mot: 'Fame', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: true, work: 70, loyalty: 70, ambition: 60 },
     // Playing style from his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores): about half his shots long twos, a quarter at the rim; almost no threes; .28 FTA per FGA.
-    ten: { usage: 43.01931823604933, ftr: 64.51320314262054, ra: 28.830031282586024, paint: 8.80917622523462, mid: 58.36079249217935, c3: 0.38, atb: 3.62, cns: 23.6, pullup: 34.1, step: 14.6, fade: 27.7, turnovers: 62.71089873295873, fouls: 28.30637786101578, crash: 45.04871142115795 },
+    ten: { usage: 44.27, ftr: 60.56, ra: 28.8084, paint: 8.8026, mid: 58.317, c3: 0.3868, atb: 3.6851, cns: 23.6, pullup: 34.1, step: 14.6, fade: 27.7, turnovers: 74.86, fouls: 27.18, crash: 42.84, dom: 64.5 },
   } },
   { label: 'Andrei Kirilenko – Rookie year (2001–02)', card: {
     card: 1, name: 'Andrei Kirilenko', first: 'Andrei', last: 'Kirilenko', native: 'Андрей Кириленко', nativeFirst: 'Андрей', nativeLast: 'Кириленко', pos: 'SF', age: 20, dob: '1981-02-18', hgt: '6′9″', wt: 215, wing: 85,
@@ -454,11 +454,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // real minutes and role on a mid-table team: 4.6 pts, 3.4 reb, 0.8 ast, 0.3 stl, 2.2 blk, 0.3 tov, .657 FG on 3.1, .000 on 0.0 threes, .409 FT on 1.1 in 24.0 min.
     // 47 overall; potential 60.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 60, stre: 72, spd: 62, acc: 65, jmp: 95, endu: 70, ins: 37, dnk: 43, lay: 34, ft: 6, fg: 1, tp: 1, oiq: 30, diq: 70, blk: 81, stl: 1, drb: 15, pss: 1, reb: 53, box: 37 },
+    r: { hgt: 60, stre: 72, spd: 62, acc: 65, jmp: 95, endu: 70, ins: 37, dnk: 43, lay: 36, ft: 7, fg: 5, tp: 1, oiq: 30, diq: 70, blk: 79, stl: 1, drb: 15, pss: 1, reb: 56, box: 37 },
     pot: 60, intg: { feel: 35, poise: 45 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 85, loyalty: 60, ambition: 55 },
     // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 33.18, ftr: 76.92, ra: 50, paint: 35.6, mid: 14.399999999999999, c3: 0, atb: 0, cns: 36.4, pullup: 22.1, step: 8.5, fade: 33, turnovers: 64.89, fouls: 61.92, crash: 49.23 },
+    ten: { usage: 28.66, ftr: 74.17, ra: 50, paint: 35.6, mid: 14.4, c3: 0, atb: 0, cns: 36.4, pullup: 22.1, step: 8.5, fade: 33, turnovers: 83.89, fouls: 57.83, crash: 38.31, dom: 29.66 },
   } },
   { label: 'Bronny James – Rookie year (2024–25)', card: {
     card: 1, name: 'Bronny James', first: 'Bronny', last: 'James', pos: 'SG', age: 20, dob: '2004-10-06', hgt: '6′2″', wt: 210, wing: 79,
@@ -545,11 +545,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 56 overall on draft night; potential 69, his MVP peak (2022–23), the top of today's scale.
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 70, stre: 78, spd: 60, acc: 75, jmp: 68, endu: 50, ins: 86, dnk: 82, lay: 75, ft: 42, fg: 80, tp: 38, oiq: 47, diq: 65, blk: 98, stl: 52, drb: 1, pss: 53, reb: 69, box: 88 },
+    r: { hgt: 70, stre: 78, spd: 60, acc: 75, jmp: 68, endu: 50, ins: 86, dnk: 82, lay: 74, ft: 42, fg: 79, tp: 38, oiq: 47, diq: 65, blk: 99, stl: 55, drb: 1, pss: 55, reb: 72, box: 88 },
     pot: 69, intg: { feel: 58, poise: 58 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
     // Playing style from his Kansas season: post-ups, hooks and finishes inside, a few face-up jumpers, almost no threes; a huge free-throw rate.
-    ten: { usage: 31.28, ftr: 65.27, ra: 52.39071038251366, paint: 30.225409836065573, mid: 14.1051912568306, c3: 0.8196721311475409, atb: 2.4590163934426226, cns: 30, pullup: 15, step: 5, fade: 50, turnovers: 54.9, fouls: 65, crash: 49.34 },
+    ten: { usage: 36.59, ftr: 69.42, ra: 52.4178, paint: 30.241, mid: 14.1125, c3: 0.8072, atb: 2.4215, cns: 30, pullup: 15, step: 5, fade: 50, turnovers: 54.17, fouls: 64.7, crash: 48.06 },
   } },
   { label: 'Joel Embiid – Rookie year (2016–17)', card: {
     card: 1, name: 'Joel Embiid', first: 'Joel', last: 'Embiid', pos: 'C', age: 22, dob: '1994-03-16', hgt: '7′0″', wt: 250, wing: 89,
@@ -561,11 +561,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // threes, .810 FT on 6.2 (at his real 25.4 minutes: about 21 pts, 7.8 reb).
     // 63 overall; potential 69, his MVP peak.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 70, stre: 89, spd: 60, acc: 72, jmp: 66, endu: 45, ins: 44, dnk: 39, lay: 36, ft: 54, fg: 52, tp: 86, oiq: 48, diq: 71, blk: 92, stl: 54, drb: 50, pss: 58, reb: 75, box: 64 },
+    r: { hgt: 70, stre: 89, spd: 60, acc: 72, jmp: 66, endu: 45, ins: 44, dnk: 39, lay: 36, ft: 56, fg: 48, tp: 82, oiq: 48, diq: 71, blk: 90, stl: 58, drb: 50, pss: 57, reb: 75, box: 64 },
     pot: 69, intg: { feel: 58, poise: 60 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: true, villain: true, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 75, loyalty: 80, ambition: 85 },
     // Playing style: the AI's own for these ratings and a first option's role (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
-    ten: { usage: 75.66, ftr: 89.23, ra: 33.089, paint: 19.5062, mid: 26.1444, c3: 0.4252, atb: 20.8351, cns: 61.9, pullup: 22.2, step: 3.2, fade: 12.7, turnovers: 85, fouls: 69.03, crash: 34.17 },
+    ten: { usage: 77.84, ftr: 86.36, ra: 33.2134, paint: 19.5795, mid: 26.2427, c3: 0.4193, atb: 20.5451, cns: 61.9, pullup: 22.2, step: 3.2, fade: 12.7, turnovers: 88.43, fouls: 67.94, crash: 29.73, dom: 77.5 },
   } },
   { label: 'Joel Embiid – MVP season (2022–23)', card: {
     card: 1, name: 'Joel Embiid', first: 'Joel', last: 'Embiid', pos: 'C', age: 28, dob: '1994-03-16', hgt: '7′0″', wt: 280, wing: 89,
@@ -596,11 +596,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // itself is his first camp's hidden roll if you put the card on a prospect (translation.ts), not the card.
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 54, stre: 75, spd: 62, acc: 65, jmp: 69, endu: 45, ins: 48, dnk: 56, lay: 46, ft: 45, fg: 56, tp: 44, oiq: 26, diq: 48, blk: 37, stl: 24, drb: 63, pss: 8, reb: 48, box: 81 },
+    r: { hgt: 54, stre: 75, spd: 62, acc: 65, jmp: 69, endu: 45, ins: 48, dnk: 56, lay: 46, ft: 45, fg: 56, tp: 44, oiq: 26, diq: 48, blk: 36, stl: 24, drb: 63, pss: 5, reb: 48, box: 81 },
     pot: 50, intg: { feel: 45, poise: 45 },
     pers: { mot: 'Fame', alpha: false, touches: true, pro: false, volatile: false, flashy: false, heat: false, crowd: false, villain: false, fearless: false, clutch: false, prone: true, padder: false, team: false, legacy: false, streaky: true, work: 35, loyalty: 55, ambition: 50 },
     // Playing style from his UNLV season: face-up drives and dunks, pick-and-pop jumpers, a real three.
-    ten: { usage: 38.12, ftr: 50, ra: 40.3943, paint: 13.8495, mid: 20.7742, c3: 7.1377, atb: 17.8443, cns: 55, pullup: 25, step: 5, fade: 15, turnovers: 45.79, fouls: 48.83, crash: 52.75 },
+    ten: { usage: 35.35, ftr: 48.65, ra: 40.3921, paint: 13.8487, mid: 20.7731, c3: 7.1389, atb: 17.8472, cns: 55, pullup: 25, step: 5, fade: 15, turnovers: 43.58, fouls: 48.83, crash: 53.36 },
   } },
   { label: 'Tyler Hansbrough – Draft night (2009, North Carolina)', card: {
     card: 1, name: 'Tyler Hansbrough', first: 'Tyler', last: 'Hansbrough', pos: 'PF', age: 23, dob: '1985-11-03', hgt: '6′9″', wt: 250, wing: 83,
@@ -615,11 +615,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 51 overall on draft night, a polished 23-year-old; potential 52: he is about what he is.
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 58, stre: 86, spd: 55, acc: 68, jmp: 46, endu: 85, ins: 51, dnk: 40, lay: 45, ft: 73, fg: 63, tp: 58, oiq: 45, diq: 41, blk: 14, stl: 42, drb: 79, pss: 3, reb: 45, box: 40 },
+    r: { hgt: 58, stre: 86, spd: 55, acc: 68, jmp: 46, endu: 85, ins: 51, dnk: 40, lay: 45, ft: 73, fg: 60, tp: 54, oiq: 45, diq: 41, blk: 11, stl: 37, drb: 79, pss: 1, reb: 42, box: 40 },
     pot: 52, intg: { feel: 55, poise: 65 },
     pers: { mot: 'Winning', alpha: false, touches: false, pro: true, volatile: false, flashy: false, heat: false, crowd: false, villain: true, fearless: true, clutch: false, prone: false, padder: false, team: true, legacy: false, streaky: false, work: 95, loyalty: 85, ambition: 60 },
     // Playing style from his North Carolina years: post-ups and put-backs, short jumpers off the catch, a huge free-throw rate.
-    ten: { usage: 27.55, ftr: 78.01, ra: 35.5892, paint: 28.4713, mid: 30.505, c3: 1.5527, atb: 3.8818, cns: 45, pullup: 25, step: 5, fade: 25, turnovers: 43.91, fouls: 50.64, crash: 64.35 },
+    ten: { usage: 30.35, ftr: 75.37, ra: 35.5971, paint: 28.4777, mid: 30.5118, c3: 1.5467, atb: 3.8667, cns: 45, pullup: 25, step: 5, fade: 25, turnovers: 40.61, fouls: 50.64, crash: 64.69 },
   } },
   { label: 'Blake Griffin – Draft night (2009, Oklahoma)', card: {
     card: 1, name: 'Blake Griffin', first: 'Blake', last: 'Griffin', pos: 'PF', age: 20, dob: '1989-03-16', hgt: '6′10″', wt: 251, wing: 83,
@@ -633,11 +633,11 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     // 54 overall on draft night; potential 67, his All-Star peak (2013–14), near the top of today's scale.
     // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
     // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
-    r: { hgt: 62, stre: 88, spd: 70, acc: 82, jmp: 87, endu: 70, ins: 74, dnk: 92, lay: 67, ft: 23, fg: 76, tp: 31, oiq: 67, diq: 50, blk: 38, stl: 37, drb: 35, pss: 40, reb: 77, box: 69 },
+    r: { hgt: 62, stre: 88, spd: 70, acc: 82, jmp: 87, endu: 70, ins: 74, dnk: 92, lay: 63, ft: 23, fg: 70, tp: 31, oiq: 67, diq: 50, blk: 38, stl: 37, drb: 35, pss: 41, reb: 78, box: 69 },
     pot: 67, intg: { feel: 60, poise: 60 },
     pers: { mot: 'Winning', alpha: true, touches: true, pro: true, volatile: false, flashy: true, heat: false, crowd: true, villain: false, fearless: true, clutch: false, prone: true, padder: false, team: false, legacy: true, streaky: false, work: 80, loyalty: 60, ambition: 85 },
     // Playing style from his Oklahoma season: dunks and finishes at the rim, post-ups, a huge free-throw rate, almost no threes.
-    ten: { usage: 45.93, ftr: 48.94, ra: 63.597328244274806, paint: 22.56679389312977, mid: 12.30916030534351, c3: 0.38167938931297707, atb: 1.1450381679389312, cns: 30, pullup: 30, step: 5, fade: 35, turnovers: 50.41, fouls: 45.02, crash: 36.02 },
+    ten: { usage: 42.63, ftr: 49.22, ra: 63.578, paint: 22.5599, mid: 12.3054, c3: 0.3892, atb: 1.1675, cns: 30, pullup: 30, step: 5, fade: 35, turnovers: 49.56, fouls: 45.01, crash: 35.28 },
   } },
   // Full historical season; calibration and limits: docs/JEREMY_LIN_CARD.md.
   {
@@ -674,12 +674,12 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "dnk": 55,
         "lay": 40,
         "ft": 56,
-        "fg": 48,
-        "tp": 41,
+        "fg": 45,
+        "tp": 39,
         "oiq": 55,
         "diq": 50,
         "blk": 23,
-        "stl": 94,
+        "stl": 97,
         "drb": 69,
         "pss": 74,
         "reb": 42,
@@ -712,9 +712,9 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "ambition": 70
       },
       "ten": {
-        "usage": 53.5,
+        "usage": 61.5,
         "dunk": 2,
-        "ftr": 79,
+        "ftr": 74,
         "ra": 39.7,
         "paint": 20.1,
         "mid": 20.6,
@@ -724,9 +724,9 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         "pullup": 70,
         "step": 2,
         "fade": 3,
-        "turnovers": 71.5,
+        "turnovers": 75.5,
         "fouls": 57.5,
-        "crash": 53.22
+        "crash": 55.22
       },
       "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
       "notes": "Full 35-game Knicks regular season. Separate shot-type execution; 2% desired rim dunk share from three recorded dunks. Dunk execution uses a neutral prior because three attempts cannot identify ability. Inside describes post/hook skill; it is not layup skill. Creation shares remain estimates.",

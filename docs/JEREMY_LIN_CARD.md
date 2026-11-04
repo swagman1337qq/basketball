@@ -6,7 +6,29 @@ The card now separates **Dunk ability 55** (a neutral, uncertain prior) from **2
 
 The historical targets are unchanged: 69/133 labeled layups; 3/3 dunks; RA74/152, non-RA paint37/77, mid-range36/79. The authored zone attempt shares remain39.7/20.1/20.6/3.4/16.2. NBA action tags are observational labels, not tracking-derived difficulty.
 
-## Current production-engine comparison
+## November 4 production-engine comparison
+
+The revision adjusts usage, foul drawing, turnover tendency, offensive glass, jump shooting and steals. The five authored shot-location shares, Layups 40, Inside 35, Dunk ability 55 and 2% desired dunk share stay intact. The first four-seed check was inconclusive. The same candidate was then compared with the prior build across 1,000 games per build on ten league seeds, split evenly between authored and AI-adjusted styles. All lines use the historical 26.86 minutes per game.
+
+| Category | Historical | Prior build | Revised build |
+|---|---:|---:|---:|
+| Points | 14.63 | 14.20 | 14.41 |
+| FGA | 10.94 | 10.05 | 10.67 |
+| 3PA | 2.14 | 1.81 | 2.07 |
+| FTA | 5.23 | 5.30 | 4.95 |
+| Assists | 6.17 | 5.84 | 5.97 |
+| Rebounds | 3.06 | 3.23 | 3.30 |
+| Turnovers | 3.60 | 3.34 | 3.83 |
+| FG% | 44.6% | 46.6% | 45.7% |
+| 3P% | 32.0% | 33.7% | 33.3% |
+| FT% | 79.8% | 79.6% | 80.0% |
+| Restricted-area FG% | 48.7% | 55.3% | 54.2% |
+| Non-RA paint FG% | 48.1% | 47.0% | 44.9% |
+| Outside-paint mid-range FG% | 45.6% | 41.4% | 42.5% |
+
+The weighted box-score error fell 52% in this comparison. Restricted-area conversion still runs high. The revised build also draws fewer free throws and collects more rebounds than the historical line.
+
+## November 2 production-engine comparison
 
 1,200 games on held-out world seeds101/202/303, authored and AI-refreshed styles, normalized to940/35minutes.
 
