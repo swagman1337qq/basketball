@@ -102,6 +102,12 @@ const ZONE_AST: Record<Zone, number> = { rim: 0.94, mid: 0.68, c3: 2.2, atb: 2.1
 // 0.010) and turnovers drove too much of the gap between good and bad teams.
 const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 130 };
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.088, nonShoot: 0.066, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.075 };
+// Extra ball-security risk replaces an ordinary shot, keeping the shooting-foul
+// interval intact. All categorical boundaries must include the same turnover risk.
+export function possessionKind(roll: number, nonShoot: number, tov: number, trip: number, extraTov = 0) {
+  const turnoverEnd = nonShoot + tov + extraTov;
+  return roll < nonShoot ? 'nsf' : roll < turnoverEnd ? 'tov' : roll < turnoverEnd + trip ? 'trip' : 'fga';
+}
 // Small constant nudges (fatigue, venue and adjustment penalties sit below zero on average);
 // found by simulating full seasons against the baselines.
 export const CAL: Record<Zone | 'ft', number> = { rim: 0.007, mid: 0.008, c3: 0.007, atb: 0.005, ft: 0.019 };
@@ -658,7 +664,7 @@ export class GameSim {
     // only trims that a little.
     const handler = wpick(onO, p => turnoverWeight(p, use(p)));
     const r = Math.random();
-    const kind0 = hackT && Math.random() < 0.5 ? 'hack' : r < pNsf ? 'nsf' : r < pNsf + pTov + roadPen(handler) + (handler.adj ? 0.015 : 0) ? 'tov' : r < pNsf + pTov + pTrip ? 'trip' : 'fga';
+    const kind0 = hackT && Math.random() < 0.5 ? 'hack' : possessionKind(r, pNsf, pTov, pTrip, roadPen(handler) + (handler.adj ? 0.015 : 0));
     // Defensive three seconds: bigs who don't read the play camp in the lane (about 0.4 a game).
     const p3 = putback ? 0 : 0.0011 * onD.reduce((a, p) => a + (p.grp === 'B' ? Math.exp((52 - p.r.diq) / 12) : 0), 0);
     const kind1 = kind0 === 'fga' && Math.random() < p3 ? 'd3' : kind0;

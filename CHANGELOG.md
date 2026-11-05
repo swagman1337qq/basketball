@@ -2,6 +2,12 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-05
+
+### Fixed
+
+- **Road and adjustment turnovers no longer erase shooting fouls.** Their extra ball-security risk now replaces ordinary shot attempts, preserving the chance to draw a shooting foul.
+
 ## 2026-11-04
 
 ### Changed

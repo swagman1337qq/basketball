@@ -333,6 +333,9 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Road/adjustment turnover penalties reduced shooting fouls.** Fixed 2026-11-05 in `sim.ts` `possessionKind`. The turnover and shooting-foul boundaries include the same extra turnover risk. `scripts/possessionEvents.mts` checks the categorical distribution. Audit details in `docs/ENGINE_AUDIT_2026_11_05.md`.
+- [ ] **Long-save standings still have too many extreme teams and blowouts.** The November 4 baseline audit ran 100 seasons. Sequential audits are investigating shot context, rebounding and roster construction. The turnover interval fix alone does not resolve the overall spread.
+
 - [x] **Lin’s Knicks card hid a weak shot-location fit behind overall FG%.** Rebuilt 2026-11-02 from the official 383-attempt NBA shot chart, with separate zone-accuracy and attempt-share checks plus full box-score diagnostics. Untouched `preset25` library copies receive updated ratings, style and unchanged archived source notes; custom edits are preserved. Already-applied players require reapplying the card.
 - [ ] **Older card carrier migration retains stale ball dominance.** `.review/test-card-migrations.mjs` fails the Luka authored-style equality (`dom` 72 vs 67.3) on both the published `fa3db2f` baseline and the Lin rebuild. `retuneCarriers` refreshes usage but does not regenerate untouched dominance. Reapplying a card uses the current authored style; the dedicated Lin library/apply/undo checks pass.
 - [x] **Finishing types shared a model.** Fixed 2026-11-02: actual techniques precede outcomes and use separate execution skills. Context/default mixes remain approximations; overall weights still need remeasurement. See the finishing update report.
