@@ -10,7 +10,7 @@
 import { tacticEffects, type TacFx, type Tactics } from './tactics';
 import { gamePlan, liveTactics, type CoachPlan, type LiveMemory, type TacKey } from './coach';
 import { roleRamp } from '../data/world';
-import { rimDenial, rimOpening, finishLabel, finishMean, finishMix, finishSkill, finishingPct, type FinishNorms, type FinishType } from './finishing';
+import { closeContestExposure, closeDefenseAdjustment, rimDenial, rimOpening, finishLabel, finishMean, finishMix, finishSkill, finishingPct, type FinishNorms, type FinishType } from './finishing';
 export type { Tactics } from './tactics';
 
 export type Side = 'home' | 'away';
@@ -796,7 +796,6 @@ export class GameSim {
       const contest: ShotContest = close
         ? closeRead < opening ? 'open' : help === 'at-rim' || closeRead > opening + 0.24 ? 'contested' : 'pressured'
         : rush > 0 || perimD(marker.r) - ownCreation > 12 ? 'contested' : perimD(marker.r) < ownCreation - 8 ? 'open' : 'pressured';
-      const closeDifficulty = close ? (contest === 'open' ? (z === 'rim' ? 0.055 : 0.018) : contest === 'contested' ? -0.028 : -0.005) : 0;
       const mix = close ? finishMix(sh, paint ? 'paint' : 'rim', { transition: fb, putback: putback && sh === rebounder, opening: clearGather ? 1 : 0 }) : null;
       const finish: FinishType | null = mix ? wpick(Object.keys(mix) as FinishType[], type => mix[type]) : null;
       const sk = finish ? finishSkill(sh.r, finish) : cs[z], subD = z === 'mid' && !paint ? -PAINT_D * PAINT_SHARE / (1 - PAINT_SHARE) : 0;
@@ -814,7 +813,8 @@ export class GameSim {
       const interiorWeight = z === 'rim' ? 1 : paint ? (finish === 'hook' || finish === 'layup' || finish === 'tip' ? 0.8 : finish === 'floater' ? 0.45 : 0.2) : 0;
       const interiorContest = small * (0.0021 * (intM - n.interiorD) + 0.007 * rimPro + BLK_RIM * (blkTop - (n.blkL ?? n.blk ?? 58))) + stay - GAMBLE.rim * gamB;
       const perimeterContest = z === 'mid' ? 0.001 * (pD - n.perimD) - GAMBLE.mid * gamS : 0.0008 * (pD - n.perimD) - GAMBLE.three * gamS;
-      const defAdj = interiorWeight * interiorContest + (1 - interiorWeight) * perimeterContest + 0.0008 * diqD;
+      const contestExposure = close ? closeContestExposure(contest, paint) : 1;
+      const defAdj = (close ? closeDefenseAdjustment(interiorWeight * interiorContest, contest, paint) : 0) + (1 - interiorWeight) * perimeterContest + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -847,7 +847,7 @@ export class GameSim {
       if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
       const setter = putback || !cands.length ? null : assistedAction ? creator : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
       const setup = setter && Math.random() < aChance ? setter : null;
-      const pct = this.touch[offK] + closeDifficulty + setupD + creD + hotD + readD + moodD + leadD + shotBase + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+      const pct = this.touch[offK] + setupD + creD + hotD + readD + moodD + leadD + shotBase + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
 
       const three = z === 'c3' || z === 'atb', b = O.box[sh.id], [mk, at] = TIER_KEY[z];
       const shootingFouler = shootingFoul ? foul(sh) : null;
@@ -893,7 +893,7 @@ export class GameSim {
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
         const blockBase = paint ? (finish === 'hook' || finish === 'layup' ? 0.14 : finish === 'floater' ? 0.10 : BLOCK_ON_MISS.mid) : BLOCK_ON_MISS[z];
         const typeBlock = finish === 'dunk' ? 0.45 : finish === 'tip' ? 0.7 : 1;
-        const blkP = cl(1.18 * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
+        const blkP = cl(1.18 * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? contestExposure * Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
         if (Math.random() < blkP) {
           blocked = true;
           const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6) * (p === man ? 1.5 : 1));

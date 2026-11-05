@@ -15,6 +15,23 @@ const rating = (r: any, key: string, fallback = 55) => Number.isFinite(r?.[key])
 const sigmoid = (v: number) => 1 / (1 + Math.exp(-v));
 const empty = (): Record<FinishType, number> => ({ layup: 0, dunk: 0, floater: 0, hook: 0, tip: 0, paintJumper: 0 });
 
+// A rim protector's execution effect depends on whether he can contest this
+// finish. Positioning already determines how often each opening occurs.
+type CloseContest = 'open' | 'pressured' | 'contested';
+const neutralDifficulty = (contest: CloseContest, paint: boolean) => contest === 'open' ? (paint ? 0.018 : 0.055) : contest === 'contested' ? -0.028 : -0.005;
+export function closeContestExposure(contest: CloseContest, paint = false): number {
+  const anchor = paint ? 0.06 : 0.11;
+  return 1 - (neutralDifficulty(contest, paint) + 0.028) / anchor;
+}
+
+export function closeDefenseAdjustment(interior: number, contest: CloseContest, paint = false): number {
+  const anchor = paint ? 0.06 : 0.11;
+  // The league-average contest reproduces the previous difficulty curve. Scale
+  // actual, nonnegative pressure, so a weak defender cannot make a tightly
+  // contested finish easier than the identical open finish.
+  return closeContestExposure(contest, paint) * Math.max(0, anchor + interior) - anchor + 0.028;
+}
+
 // Baseline attempts by technique, before matchup, fatigue, venue and the other
 // game-context terms in sim.ts. This is a population model, not a conversion of
 // any one player's observed FG% directly into a skill rating.

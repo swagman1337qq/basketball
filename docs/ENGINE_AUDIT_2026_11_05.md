@@ -18,3 +18,19 @@ The proposed turnover-to-transition explanation was checked and rejected. The ba
 ### Decision
 
 Keep the event-interval correction because it fixes a demonstrated probability-allocation error. It does not materially fix league parity. Continue to shot context, then rebounding, then roster construction.
+
+## 2. Close-shot contest exposure
+
+Accepted the revised contest model after rejecting a first candidate that could reverse the open/contested ordering against weak rim protection. The final model scales nonnegative interior pressure by how much of the finish the defense can contest. Its neutral-pressure case reproduces the prior open, pressured and contested difficulty values. It also reduces close-shot block probability when a finisher gets clear. Jump-shot defense and shooting ratings are unchanged. The pressure anchors, 0.11 at the rim and 0.06 in non-RA paint, are model parameters, not measured NBA tracking estimates.
+
+### Validation
+
+- `scripts/shotContext.mts` plays 320 games with matched offense and weak/strong shot-blocking opponents. Raising the defenders' block rating from 35 to 75 reduces expected layup accuracy by 2.37 percentage points on open looks and 10.59 points on contested looks. A deterministic pressure sweep verifies open <= pressured <= contested defensive difficulty, including very weak defenses.
+- 1,200 paired neutral-schedule games per version, with identical teams, venues and seeds. Absolute margin fell from 14.58 to 13.99, and 20-point blowouts from 28.92% to 24.58%. Team scoring stayed near 110.2–110.4. Blocks fell from 5.86 to 4.02 per team. That count remains a calibration limitation against the engine's 4.8 baseline.
+- Six archived outlier schedules, four independent 82-game replays per team per version, total 3,936 games. Expected net rating moved toward zero for five of six cases. Denver's expected net was essentially unchanged (-16.89 before and after). Birmingham's actual net moved the wrong way despite a better expected net. Small replay samples do not establish long-save extreme-record frequency.
+- Two fresh spectator leagues, three seasons each, total 7,380 regular-season games and zero roster flags. Against step 1, standings spread moved from 16.02% to 15.27%, absolute margin from 14.01 to 13.82, 30-point blowouts from 8.21% to 7.78%. The 20-point rate barely changed, 25.56% to 25.51%. The best record was 65 wins and the worst 9. The weak-team tail remains unresolved. FG% stayed 47.09% and FTA/FGA 26.62%.
+- Typecheck, production build, finishing integration and the new shot-context regression passed.
+
+### Decision
+
+Keep the revised shot-context behavior. It improves the relationship between an opening and rim protection, with encouraging but incomplete parity results. Do not mark extreme records solved. Rebounding and roster construction follow as separate steps.

@@ -333,6 +333,9 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Open finishes still received the full interior-defense effect.** Fixed 2026-11-05. `finishing.ts` `closeDefenseAdjustment` applies nonnegative contest pressure at the shot's exposure, preserving the previous league-average difficulty curve. `sim.ts` uses the exposure for close-shot block probability as well. `scripts/shotContext.mts` checks actual weak/strong defender games and ordering across the full pressure range.
+
+
 - [x] **Road/adjustment turnover penalties reduced shooting fouls.** Fixed 2026-11-05 in `sim.ts` `possessionKind`. The turnover and shooting-foul boundaries include the same extra turnover risk. `scripts/possessionEvents.mts` checks the categorical distribution. Audit details in `docs/ENGINE_AUDIT_2026_11_05.md`.
 - [ ] **Long-save standings still have too many extreme teams and blowouts.** The November 4 baseline audit ran 100 seasons. Sequential audits are investigating shot context, rebounding and roster construction. The turnover interval fix alone does not resolve the overall spread.
 

@@ -6,6 +6,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ### Fixed
 
+- **Getting open reduces the rim protector’s effect on a finish.** Close-shot accuracy and blocks now respond to the actual contest, while weak rim protection cannot make an otherwise identical contested finish easier than an open one.
 - **Road and adjustment turnovers no longer erase shooting fouls.** Their extra ball-security risk now replaces ordinary shot attempts, preserving the chance to draw a shooting foul.
 
 ## 2026-11-04
