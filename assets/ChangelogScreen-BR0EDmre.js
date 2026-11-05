@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CI9XLCmm.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BO0ZxJae.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -6,6 +6,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ### Fixed
 
+- **Rebounding skill creates a slightly smaller team advantage.** Retuned against recent NBA team rebound-rate differences and checked that rebounding and box-outs still help control possessions.
 - **Getting open reduces the rim protector’s effect on a finish.** Close-shot accuracy and blocks now respond to the actual contest, while weak rim protection cannot make an otherwise identical contested finish easier than an open one.
 - **Road and adjustment turnovers no longer erase shooting fouls.** Their extra ball-security risk now replaces ordinary shot attempts, preserving the chance to draw a shooting foul.
 
