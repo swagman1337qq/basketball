@@ -333,6 +333,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Rebound-rate skill sensitivity exceeded recent NBA averages.** Recalibrated 2026-11-05 in `sim.ts`, `ORB_K` 0.0019. Baseline and player credit weights unchanged. `scripts/reboundResponse.mts` exercises offensive and defensive skill/box-out responses. See the sequential engine audit for limits.
+
 - [x] **Open finishes still received the full interior-defense effect.** Fixed 2026-11-05. `finishing.ts` `closeDefenseAdjustment` applies nonnegative contest pressure at the shot's exposure, preserving the previous league-average difficulty curve. `sim.ts` uses the exposure for close-shot block probability as well. `scripts/shotContext.mts` checks actual weak/strong defender games and ordering across the full pressure range.
 
 

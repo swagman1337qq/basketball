@@ -34,3 +34,22 @@ Accepted the revised contest model after rejecting a first candidate that could 
 ### Decision
 
 Keep the revised shot-context behavior. It improves the relationship between an opening and rim protection, with encouraging but incomplete parity results. Do not mark extreme records solved. Rebounding and roster construction follow as separate steps.
+
+## 3. Rebounding sensitivity
+
+Accepted a modest calibration from ORB_K 0.0022 to 0.0019. Rebound control still responds continuously to glass skill, box-outs, fatigue, tactics and clutch context. The baseline 26% chance and player rebound-credit weights are unchanged.
+
+The 100-season baseline averaged team ORB-rate spread 3.07 percentage points and DRB-rate spread 1.78. Calculating population standard deviations from RealGM's 30-team tables gives ORB/DRB spreads of 2.27/1.40 in 2023–24, 2.48/1.48 in 2024–25, and 3.09/1.65 in 2025–26. Large offensive-rebounding advantages can be real. This supports a small sensitivity change, not removing that team strength. [2023–24](https://basketball.realgm.com/nba/team-stats/2024/Advanced_Stats/Team_Totals/Regular_Season/ortg/desc), [2024–25](https://basketball.realgm.com/nba/team-stats/2025/Advanced_Stats/Team_Totals/Regular_Season/ortg/desc), [2025–26](https://basketball.realgm.com/nba/team-stats/2026/Advanced_Stats/Team_Totals/Regular_Season/ortg/desc).
+
+### Validation
+
+- `scripts/reboundResponse.mts`, 200,000 live rebound decisions. Matched glass skill returned 25.98% offensive control. Better offensive box-outs raised it to 27.39%, better defensive box-outs lowered it to 24.53%, and rebounding skill still moved control in both directions.
+- Six archived outlier schedules, four replays per version, total 3,936 games, with all bookkeeping/probability checks passing. Cincinnati's rebound-rate gap fell from 10.23 to 9.88 points, Vancouver's deficit from 10.80 to 10.01 points. The high/low-record problem persists in these rosters.
+- 1,200 paired neutral-schedule games per version showed essentially unchanged means, margins and blowout rate. Team offensive rebounds were 11.552 before and 11.552 after. This is evidence against a large immediate parity effect.
+- Six fresh spectator seasons, 7,380 games and zero roster flags. Relative to step 2, absolute margin was 13.82 before and 13.34 after, 20-point blowouts 25.51% and 23.50%, 30-point blowouts 7.78% and 7.01%, best/worst records 65/9 and 68/10. Offseason random paths diverge after an engine change, so these differences cannot be attributed solely to the rebound coefficient.
+- Fresh-season ORB spread was 2.42 before and 2.72 after, and DRB spread 1.58 before and 1.48 after. Both resulting spreads are within the three NBA season ranges above. The increase in ORB spread illustrates why league averages and selected teams alone are inadequate validation.
+- Typecheck, production build and the rebound-response regression passed.
+
+### Decision
+
+Keep the modest sensitivity adjustment. Its direct matchup effect is small. Roster formation still needs correction and a new long-save audit remains necessary.

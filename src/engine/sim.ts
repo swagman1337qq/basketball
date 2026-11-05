@@ -89,8 +89,8 @@ const CRE_KEY: Record<Cre, [keyof BoxLine, keyof BoxLine]> = { cns: ['qm', 'qa']
 const CRE_LABEL: Record<Cre, string> = { cns: 'a catch-and-shoot', pullup: 'a pull-up', step: 'a stepback', fade: 'a fadeaway' };
 
 // Per offensive trip at league average (≈115 trips a game: 89 FGA, 14.5 TOV, FT-only trips).
-// Offensive-rebound chance per point of glass-skill edge between the lineups (2026-10-17: 0.004 → 0.0022).
-const ORB_K = 0.0022;
+// Offensive-rebound chance per point of glass-skill edge between the lineups (2026-11-05: 0.0022 → 0.0019).
+const ORB_K = 0.0019;
 // Assisted share of makes by tier, calibrated (2026-10-17) on measured runs toward the NBA's (rim 0.55–0.65 counting
 // putbacks, mid-range 0.45–0.50, corner three about 0.95, above the break 0.80–0.85): now 0.57 / 0.49 / 0.89 / 0.79
 // (it was 0.60 / 0.65 / 0.83 / 0.66; pull-ups and stepbacks are rarely assisted, which caps the threes), and
@@ -1016,7 +1016,9 @@ export class GameSim {
   }
 
   private rebound(O: SideState, D: SideState, onO: SimPlayer[], onD: SimPlayer[], cAdv: number, ev: Ev, tacOrb = 0) {
-    // Glass skill edge per point 0.004 → 0.0028 (2026-10-17): team ORB% spread was about 0.035 against the NBA's 0.025.
+    // November 5 calibration: the 100-season audit's ORB/DRB spreads were
+    // 3.07/1.78 percentage points, above the recent three-season NBA means.
+    // A smaller continuous skill response preserves the league mean and tactics.
     const orbP = cl(BASE.orbPct + ORB_K * (avg(onO, p => glassSkill(p.r)) - avg(onD, p => glassSkill(p.r))) + 0.03 * (avg(onD, p => this.tired(p)) - avg(onO, p => this.tired(p))) + 0.015 * cAdv + tacOrb, 0.12, 0.45);
     const off = Math.random() < orbP;
     if (Math.random() < RATE.rebCredit) {
