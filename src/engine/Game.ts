@@ -23,10 +23,10 @@ import { runBriefs } from './scoutBrief';
 import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
-import { capState, checkTrade, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
+import { capState, checkTrade, deadSchedule, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
 import { agentCallNotice, askOf, settleAbroad, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, floorSigning, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { hardshipSlots } from './cba';
-import { aiTerms, applySigning, waivePlayer } from './contracts';
+import { acceptance, aiTerms, applySigning, buyoutBlocked, validateSigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
 import { assignNumbers, numsWith, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
@@ -2389,8 +2389,24 @@ export class Game {
     // A waiver: the least valuable player (rosterAI: worth to this team, the draft investment included),
     // only for a free agent clearly worth more to the team.
     const t = tid(), std = stdIds(this, box.rosters[t]); if (std.length < seasonMax(st)) return null; const st2 = { ...st, rosters: box.rosters }, cut = pickCut(this, st2, t, box.rosters[t]); if (!cut) return null; const w = cut.p;
-    const cand = box.fa.map(id => P[id]).filter(q => q && !q.inj && q.ovr >= w.ovr - 2).sort((a, b) => b.ovr - a.ovr).slice(0, 6), best = Math.max(-Infinity, ...cand.map(q => rosterValue(this, st2, t, q, std.filter(x => x !== w.id).concat(q.id)))); if (best < cut.v + 4) return null;
-    const lines = waivePlayer(this, st, box, t, w, 'waive'); return { day, type: 'Release', teams: T[t].abbr, pids: [w.id], text: lines[0] };
+    // Plan the whole upgrade before cutting anyone. Use the no-claim case so his
+    // guaranteed money still counts when checking the replacement's contract.
+    const amts = deadSchedule(this, st2, w, false), cap = box.cap[t] || {};
+    const projected = { ...st2, rosters: { ...box.rosters, [t]: box.rosters[t].filter(id => id !== w.id) },
+      cap: { ...box.cap, [t]: { ...cap, dead: [...(cap.dead || []), ...(Object.values(amts).some(x => x > 0) ? [{ pid: w.id, name: w.name, amts, mode: 'waive', season: this.Y }] : [])] } } };
+    const cand = box.fa.map(id => P[id]).filter(q => q && !q.inj && !q.retired && !q.abroad && !q.rfa && q.ovr >= w.ovr - 2)
+      .sort((a, b) => b.ovr - a.ovr).slice(0, 6)
+      .map(q => ({ q, value: rosterValue(this, st2, t, q, std.filter(x => x !== w.id).concat(q.id)) })).sort((a, b) => b.value - a.value);
+    for (const { q, value } of cand) {
+      if (value < cut.v + 4 || buyoutBlocked(this, projected, t, q)) continue;
+      const terms = aiTerms(this, projected, t, q);
+      if (!terms || !validateSigning(this, projected, t, q, terms).ok || !acceptance(this, projected, t, q, terms).ok) continue;
+      if (terms.method !== 'min' && teamSalary(this, projected, t) + terms.amt > this.teamCeiling(T[t])) continue;
+      const lines = waivePlayer(this, st, box, t, w, 'waive');
+      const signed = applySigning(this, { ...st, rosters: box.rosters, cap: box.cap, fa: box.fa }, box, t, q, terms);
+      return { day, type: 'Signing', teams: T[t].abbr, pids: [q.id, w.id], text: [...lines, signed].join(' ') };
+    }
+    return null;
   }
   busy = false;
   _rosterRef: any = null;

@@ -53,3 +53,19 @@ The 100-season baseline averaged team ORB-rate spread 3.07 percentage points and
 ### Decision
 
 Keep the modest sensitivity adjustment. Its direct matchup effect is small. Roster formation still needs correction and a new long-save audit remains necessary.
+
+## 4. Complete and validate AI roster upgrades
+
+Accepted a roster-decision correctness fix. The old upgrade branch checked whether a free agent was more valuable, waived the incumbent, and stopped. It did not verify that the free agent was affordable or sign him. A deterministic reproduction with a $100,000M asking price still released Xavier Jones and added $5.39M of dead money, leaving the team with 14 standard players.
+
+The AI now previews the vacancy and existing guaranteed-salary debt, finds acceptable legal terms for a valuable replacement, and completes both actions in one decision. If no replacement clears the existing signing, acceptance, buyout and owner-budget checks, nobody is waived. The preview assumes no waiver claim, so it cannot count on another team clearing the outgoing salary. Existing salary, guarantee, cap and CBA rules are reused without modification.
+
+### Validation
+
+- `scripts/aiRosterUpgrade.mts` reproduces the old Release-only behavior in four scenarios. With the correction, an affordable upgrade leaves 15 standard players and signs the replacement immediately. An unaffordable ask, a hard-cap block, and the existing apron buyout restriction each return no move and preserve roster, free agents and cap data. Guaranteed dead money and unique roster membership are checked.
+- Six fresh spectator seasons including offseasons, 7,380 regular-season games, zero roster-integrity flags. Best/worst records were 72/12. Relative to step 3, average absolute margin increased from 13.34 to 13.94, 20-point blowouts from 23.50% to 26.25%, and standings spread from 13.93% to 15.18%. The roster fix does not establish better parity.
+- Typecheck, production build, calendar/save compatibility, player-value migration and rotation guards, finishing kernel/preferences, the shot-context regression and possession-event tests passed.
+
+### Decision
+
+Keep the correction because teams should not waive players for a replacement they cannot sign, and successful upgrades should complete. Broader roster quality and extreme records remain under investigation. A separately frozen 100-season combined audit is running, with the same ten league seeds and ten seasons per league as the original audit. Its conclusions will be added after completion.
