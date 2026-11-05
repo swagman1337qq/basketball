@@ -333,6 +333,9 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [ ] **Recheck skill-value weights after the November 5 possession changes.** Existing overall weights predate the revised close-contest model. Keep this distinct from the completed November 3 recalibration.
+- [ ] **Close-shot block counts need recalibration.** The combined audit averaged 3.90 team blocks against the engine baseline of 4.8 after making blocks respond to clear gathers.
+
 - [x] **AI waived players for unsigned or unaffordable upgrades.** Fixed 2026-11-05 in `Game.aiMove`. Preview the vacancy with guaranteed dead salary, then use existing contract methods, validation, acceptance and buyout restrictions before completing waive/sign together. `scripts/aiRosterUpgrade.mts` tests success and three blocked paths. Cap/CBA rules are unchanged.
 
 - [x] **Rebound-rate skill sensitivity exceeded recent NBA averages.** Recalibrated 2026-11-05 in `sim.ts`, `ORB_K` 0.0019. Baseline and player credit weights unchanged. `scripts/reboundResponse.mts` exercises offensive and defensive skill/box-out responses. See the sequential engine audit for limits.
@@ -341,7 +344,7 @@ All in `src/engine/`.
 
 
 - [x] **Road/adjustment turnover penalties reduced shooting fouls.** Fixed 2026-11-05 in `sim.ts` `possessionKind`. The turnover and shooting-foul boundaries include the same extra turnover risk. `scripts/possessionEvents.mts` checks the categorical distribution. Audit details in `docs/ENGINE_AUDIT_2026_11_05.md`.
-- [ ] **Long-save standings still have too many extreme teams and blowouts.** The November 4 baseline audit ran 100 seasons. Sequential audits are investigating shot context, rebounding and roster construction. The turnover interval fix alone does not resolve the overall spread.
+- [ ] **Long-save standings still have too many extreme teams and blowouts.** November 5 combined audit: 100 seasons, 123,000 games, zero roster flags. Seasons with 70-win teams increased from 18 to 25; seasons with teams at 10 wins or fewer fell from 7 to 3. Best/worst records were 76/8. Mean absolute margin improved from 14.11 to 13.92 but remains high. Four steps and their separate audits are in `docs/ENGINE_AUDIT_2026_11_05.md`; repeatable runner: `scripts/standingsAudit.mts`.
 
 - [x] **Lin’s Knicks card hid a weak shot-location fit behind overall FG%.** Rebuilt 2026-11-02 from the official 383-attempt NBA shot chart, with separate zone-accuracy and attempt-share checks plus full box-score diagnostics. Untouched `preset25` library copies receive updated ratings, style and unchanged archived source notes; custom edits are preserved. Already-applied players require reapplying the card.
 - [ ] **Older card carrier migration retains stale ball dominance.** `.review/test-card-migrations.mjs` fails the Luka authored-style equality (`dom` 72 vs 67.3) on both the published `fa3db2f` baseline and the Lin rebuild. `retuneCarriers` refreshes usage but does not regenerate untouched dominance. Reapplying a card uses the current authored style; the dedicated Lin library/apply/undo checks pass.

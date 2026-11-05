@@ -68,4 +68,63 @@ The AI now previews the vacancy and existing guaranteed-salary debt, finds accep
 
 ### Decision
 
-Keep the correction because teams should not waive players for a replacement they cannot sign, and successful upgrades should complete. Broader roster quality and extreme records remain under investigation. A separately frozen 100-season combined audit is running, with the same ten league seeds and ten seasons per league as the original audit. Its conclusions will be added after completion.
+Keep the correction because teams should not waive players for a replacement they cannot sign, and successful upgrades should complete. Broader roster quality and extreme records remain under investigation. The separately frozen 100-season combined audit is complete. Its results and remaining failures are recorded below.
+
+## 5. Combined 100-season audit
+
+**The functional repairs passed. The overall balance target did not pass.**
+
+Completed ten spectator leagues for ten consecutive seasons each, using seeds 11, 12, 13, 17, 21, 41, 77, 82, 134 and 211 and normal offseasons. The run contains 123,000 regular-season games. Each team played 82 games per season. All ten workers finished successfully. The 92 frozen engine/data/helper files still matched the working source at completion. Tested production revision: 7b2842611e55c01e43dde8c2bbdb6bbbf722874c.
+
+The original comparison is the November 4 production engine at 1a65ddeb988179431495573084d07062356ef0c0. Both audits use the same league seeds and external random-stream scheme. Engine and AI changes cause subsequent rosters and random paths to diverge, so the long runs are aggregate comparisons rather than identical game pairs.
+
+| Measure | Original 100 seasons | Combined 100 seasons |
+|---|---:|---:|
+| Best record seen | 73 wins | 76 wins |
+| Worst record seen | 4 wins | 8 wins |
+| Median season leader | 66 wins | 66 wins |
+| Median last-place team | 16 wins | 17 wins |
+| Seasons with a 70-win team | 18 | 25 |
+| Seasons with a team at 10 wins or fewer | 7 | 3 |
+| Average absolute game margin | 14.11 | 13.92 |
+| Games decided by 20 or more | 26.00% | 25.53% |
+| Games decided by 30 or more | 8.69% | 8.10% |
+| Team point-differential spread | 6.37 | 6.08 |
+| Standings win-percentage spread | 16.10% | 15.46% |
+| Roster-integrity flags | 0 | 0 |
+
+Threshold counts are league-seasons. Multiple teams can share a season. The run also passed independent post-run checks of season scoring identities, team/opponent totals, finite statistics, makes versus attempts, total wins and losses, and unique season journals. It recorded 472 completed regular-season AI waiver/sign upgrades.
+
+The first year produced one 70-win team in ten leagues. Years 2–10 produced 24 such seasons out of 90, so dominant teams remain a long-save issue. The low-record tail improved in this sample, while dominant records became more frequent. Ten leagues with related seasons are not 100 independent experiments, and these counts do not establish a precise real-world frequency.
+
+### New outlier replays
+
+Each case was rerun six times against its exact 82 opponents, dates and venues. The as-played condition preserved original game-day availability, targets and condition. The opening condition used both sides' opening-night teams. Total 2,952 additional simulated games.
+
+| Team and observed record | As-played wins, average and range | Opening wins, average | Threshold repeats with as-played teams |
+|---|---:|---:|---:|
+| Vancouver Drought, 8–74 | 15.00 (10–22) | 13.67 | 2 of 6 at 10 or fewer |
+| Dallas Axolotls, 72–10 | 66.67 (63–70) | 64.00 | 1 of 6 at 70 or more |
+| Los Angeles Strollers, 76–6 | 71.00 (68–74) | 68.83 | 5 of 6 at 70 or more |
+
+Luck contributed to the observed extremes. Persistent strength differences remain. Replay expected net ratings were -13.21 for Vancouver, +15.10 for Dallas and +16.04 for Los Angeles. The Strollers' opening rotation contained 67-, 65- and 63-overall players plus strong complementary creators and defenders. The current evidence identifies a durable advantage; it does not uniquely establish which roster-acquisition or possession interaction causes its size.
+
+### Remaining problems
+
+- Dominant-team frequency and blowouts remain too high. The earlier NBA comparison is about 12.4 average absolute margin, 19.5% 20-point games and 6.1% 30-point games from a five-season analysis of game logs. Nine full NBA seasons averaged 14.9% standings spread and 4.97 team point-differential spread. These NBA samples are smaller and come from a different league. [Game-margin comparison](https://vertizesports.com/blog/nba-blowouts-margin-of-victory).
+- Blocks averaged 3.90 per team against the engine's 4.8 baseline. Clear finishes receive fewer implausible blocks, but block-count calibration needs follow-up.
+- Team ORB/DRB spreads averaged 2.95/1.72 percentage points, compared with 3.07/1.78 before. The small rebound change has not eliminated the spread mismatch.
+- Overall weights were measured before the November 5 possession changes. A fresh skill-sensitivity check is still needed once the possession model is settled.
+- Shot coverage remains a probability model, without player coordinates or a fitted NBA tracking model. Steals still do not start transition possessions in this engine. No player-card ratings or contract/CBA rules were changed.
+
+### Decision
+
+Retain the demonstrated event and roster corrections and the audited close-shot behavior. Treat rebounding as a modest calibration adjustment. Do not describe the engine's rare-record problem as solved. The next investigation should trace how dominant cores form and isolate how creation, rim protection, turnover pressure and rebounding combine in the same lineup. That needs controlled tests rather than assuming another global coefficient change will solve it.
+
+### Reproduction and artifacts
+
+Use the recorded source revision and a fresh output directory. Run each seed with:
+
+    npx tsx scripts/standingsAudit.mts SEED .review/new-audit 10
+
+The runner records season journals, shot-context totals, completed upgrades and compressed outlier replay inputs. It rejects an existing journal rather than mixing runs. Its invalid-seed and existing-journal guards were checked. Raw artifacts, source hashes, summaries, reconciliation results and the three new replay reports remain in .review/sequential-audit/final. Per-step comparisons remain in .review/sequential-audit.
