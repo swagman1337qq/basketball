@@ -1,6 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bk5ZRqYy.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BeXLJNuT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-06
+
+### Fixed
+- **Steals help you win again.** After the November 5 possession changes, a team's guards getting better at steals was worth nothing. Quick hands now force more turnovers, and players who go for steals no longer give up easier jump shots for it. Tested over 45,000 games: steals, passing and three-point shooting now each matter about as much for a guard.
+- **Passing no longer counts twice.** On a cut or a roll, the passer's vision already decided how open the finish was, and then the same pass made the shot easier again. It counts once now, so a great passer is worth about what a great shooter is, not double.
+- **Blocks are back to NBA levels.** About 4.9 a team per game (they had dropped to about 4.0). Only how often a missed shot is recorded as a block changed; shooting is the same.
+- **Offer sheets are answered in one place: your Mailbox.** The season bar, the Free agency banner and the Cap sheet all send you to the Mailbox now, where the offer sheet waits at the top with Match and Decline (it used to sink below hundreds of older messages, so the season bar pointed to the Cap sheet instead). If a match fails, the reason shows right there.
+
+### Added
+- **Qualifying offers you have out are easy to see.** Free agency lists every restricted free agent holding your qualifying offer, with the amount, and counts them on your roster line: unsigned at training camp they accept and join your team, so it shows what your roster becomes and warns in red when that's over 15. They're tagged "Your QO" in the lists, and signing someone shows a roster check when the qualifying offers would put you over the limit. To take one back, renounce him on the Cap sheet.
 
 ## 2026-11-05
 
