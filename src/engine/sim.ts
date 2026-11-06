@@ -100,7 +100,7 @@ const ZONE_AST: Record<Zone, number> = { rim: 0.94, mid: 0.68, c3: 2.2, atb: 2.1
 // the turnover rate: a 1/k change in the exponent per rating point (2025-26 team TOV% spread).
 // 2026-10-17: handle 200 → 240, press 85 → 110: team TOV% spread was wider than the NBA's (sd 0.011–0.014 vs about
 // 0.010) and turnovers drove too much of the gap between good and bad teams.
-const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 130 };
+const TOV_K = { handle: 240, press: 110, feelO: 400, feelD: 210, oiq: 350, hands: 90 }; // hands 90 (2026-11-06, was 130): quick hands force enough turnovers that steals help win
 const RATE = { tov: 0.118, stealShare: 0.573, offFoul: 0.1, foulTrip: 0.088, nonShoot: 0.066, rebCredit: 0.89, liveFt: 0.9, astF: 1.39, dt: 1.075 };
 // Extra ball-security risk replaces an ordinary shot, keeping the shooting-foul
 // interval intact. All categorical boundaries must include the same turnover risk.
@@ -258,7 +258,13 @@ export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
 // just block shots that would have missed anyway. Before this, +10 steals for a team's guards cost it 0.76 points
 // per 100 possessions and +10 blocks for its bigs 0.09; now they're worth about +0.3 and +0.3 to +0.8 (3,000-game
 // tests; +10 three-point shooting for the guards is about +0.4).
-const GAMBLE = { rim: 0.00005, mid: 0.00003, three: 0.00004 }, BLK_RIM = 0.008;
+// 2026-11-06: after the Nov 5 possession changes steals were worth nothing again (+10 for a team's guards about 0 net
+// per 100): forced turnovers stronger (TOV_K.hands 130 → 90) and no easier jumpers for steal-gamblers (GAMBLE mid/three
+// were .00003/.00004; shot-blocking gamblers still give up easier rim shots). Blocks fell to about 4.0 a team (NBA
+// about 4.9) when clear finishes stopped being blocked: BLK_CAL 1.22 on the block chance of a miss (a label on a
+// missed shot, so shooting is unchanged). Measured (45,000-game regression, +10 per rotation player): guards' steals
+// +0.19, passing +0.12, threes +0.17; bigs' blocks +0.13.
+const GAMBLE = { rim: 0.00005, mid: 0, three: 0 }, BLK_RIM = 0.008, BLK_CAL = 1.22;
 // Shot creation (2026-10-23): breaking a defender down, getting into the paint and making the defense
 // collapse, which hands everyone on the floor an easier shot. Handle and burst first, the threat of the
 // finish and the pull-up, and the read. A lineup's creation leans on its best creators (half its best,
@@ -845,7 +851,7 @@ export class GameSim {
       // his team's assists while he's on the floor, like an NBA lead guard (Chris Paul's rookie AST% was 36.7).
       const cands = onO.filter(p => p.id !== sh.id), ws = cands.map(p => Math.pow(Math.max(PASS_FLOOR, passQ(p)), 2.4) * cl(0.45 + p.r.drb / 80, 0.75, 1.45) * (p.roles?.includes('Primary creator') ? 1.2 : 1) * (p.tend?.pass ?? 1) * (p === bp ? tkPass : 1) * (p.selfish ? 0.85 : 1) * (p.flashy ? 1.12 : 1)), wt = ws.reduce((x, y) => x + y, 0), wi = ws.indexOf(Math.max(...ws)), top = wt > 0 ? ws[wi] / wt : 0;
       if (top > PASS_KNEE) { const sh2 = PASS_KNEE + (top - PASS_KNEE) * PASS_SLOPE; ws[wi] = (sh2 * (wt - ws[wi])) / (1 - sh2); }
-      const setter = putback || !cands.length ? null : assistedAction ? creator : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0;
+      const setter = putback || !cands.length ? null : assistedAction ? creator : wpick(cands, p => ws[cands.indexOf(p)]), setupD = setter && !assistedAction ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0; // a cut or roll's passer already made the opening (creation): his vision counts once
       const setup = setter && Math.random() < aChance ? setter : null;
       const pct = this.touch[offK] + setupD + creD + hotD + readD + moodD + leadD + shotBase + (n.adj?.[z] ?? 0) - rush - 0.055 * (this.tired(sh) - TIRED0) * (z === 'rim' ? 0.8 : 1.15) + 0.025 * (avg(onD, p => this.tired(p)) - TIRED0) - LINEUP_REG * lineQ - defAdj + CRE_K * (lineupCre(onO.map(p => C(p).cre)) - (n.creL ?? 62)) + tacD + fbD - usgPen + 0.00012 * (feelO - FEEL_MID) - 0.0001 * (feelD - FEEL_MID) + (clutch ? 0.0005 * ((sh.fearless ? Math.max(80, sh.poise ?? POISE_MID) : sh.poise ?? POISE_MID) - POISE_MID) : 0) + (awayOff && sh.villain ? 0.02 : 0) + roadDef + 0.012 * cAdv + (clutch && sh.clutch ? 0.03 : 0) - roadPen(sh) - condPen(sh) + (z === 'rim' ? RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)) - (sh.grp !== 'B' && !putback ? 0.15 * cl((55 - Math.max(sh.r.tp, sh.r.fg)) / 100, 0, 0.4) : 0) + 0.0006 * (avg(onO.filter(p => p !== sh), p => p.r.tp) - 50) : 0) - (sh.protect && z !== 'rim' ? 0.02 : 0) - (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) + (onD.some(p => p.selfish) ? 0.012 : 0) + ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
 
@@ -893,7 +899,7 @@ export class GameSim {
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
         const blockBase = paint ? (finish === 'hook' || finish === 'layup' ? 0.14 : finish === 'floater' ? 0.10 : BLOCK_ON_MISS.mid) : BLOCK_ON_MISS[z];
         const typeBlock = finish === 'dunk' ? 0.45 : finish === 'tip' ? 0.7 : 1;
-        const blkP = cl(1.18 * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? contestExposure * Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
+        const blkP = cl(BLK_CAL * 1.18 * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? contestExposure * Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
         if (Math.random() < blkP) {
           blocked = true;
           const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6) * (p === man ? 1.5 : 1));
