@@ -50,8 +50,8 @@ export function MailboxScreen({ vm }: { vm: VM }) {
     isNew: s.letterUnread === y, status: s.letterUnread === y ? ['Unread', 'var(--accent-ink)'] : undefined, actions: [{ label: 'Read the letter', primary: s.letterUnread === y, go: () => gm.setState((st: any) => ({ letterOpen: y, letterUnread: st.letterUnread === y ? null : st.letterUnread })) }] }));
   // Offer sheets on your restricted free agents.
   (s.offerSheets || []).filter((o: any) => s.managed.includes(o.to) && P[o.pid]).forEach((o: any) => { const p = P[o.pid];
-    items.push({ key: 's' + o.id, kind: 'sheet', ms: Date.now(), date: 'Now', isNew: true, pids: [p.id], title: p.name + ' signed an offer sheet with the ' + T[o.from].region + ' ' + T[o.from].name,
-      lines: [fmtMoney(o.terms.amt) + ' × ' + o.terms.years + ' years' + (o.terms.opt ? ', ' + o.terms.opt + ' option' : '') + '. Match with Bird rights and he stays on those exact terms; decline and he leaves.'],
+    items.push({ key: 's' + o.id, kind: 'sheet', ms: Number.MAX_SAFE_INTEGER, date: 'Now', /* waiting on you: always on top (Date.now() was the real clock, below every in-game date from 2027 on) */ isNew: true, pids: [p.id], title: p.name + ' signed an offer sheet with the ' + T[o.from].region + ' ' + T[o.from].name,
+      lines: [fmtMoney(o.terms.amt) + ' × ' + o.terms.years + ' years' + (o.terms.opt ? ', ' + o.terms.opt + ' option' : '') + '. Match with Bird rights and he stays on those exact terms; decline and he leaves.', ...(s.offerMsg ? [<span key="e" style={{ color: 'var(--gm-bad)' }}>{s.offerMsg}</span>] : [])],
       status: ['Waiting on you', 'var(--accent-ink)'], actions: [{ label: 'Match', primary: true, go: () => answerOfferSheet(gm, o.id, true) }, { label: 'Decline', go: () => answerOfferSheet(gm, o.id, false) }] }); });
   // Moves by players on your shortlists (this season and last).
   const listed = new Map<number, string[]>(); (s.lists || []).forEach((l: any) => l.ids.forEach((id: number) => listed.set(id, [...(listed.get(id) || []), l.name])));

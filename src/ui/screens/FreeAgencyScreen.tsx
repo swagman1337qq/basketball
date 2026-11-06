@@ -8,7 +8,9 @@ import { useSearchFilter } from '../SearchFilter';
 import { Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
-import { rosterMax, stdIds, twoWayIds } from '../../engine/cba';
+import { rosterMax, seasonMax, stdIds, twoWayIds } from '../../engine/cba';
+import { pendingQOs } from '../../engine/cbaFlow';
+import { fmtMoney as fmtM } from '../../engine/capModel';
 import { faAdvice, type FaAdvice } from '../../engine/assistants';
 
 // The free agency clock: where we are on the NBA calendar, how much of the market has signed,
@@ -48,7 +50,7 @@ function FATracker({ vm }: { vm: VM }) {
           <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>Best still available</div>
           {best.map((p: any) => (
             <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: '12.5px', padding: '2px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-divider) 50%, transparent)' }}>
-              <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link><span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age}{p.birdTid != null && T[p.birdTid] ? ' · last with ' + T[p.birdTid].abbr : ''}{p.rfa ? ' · restricted' : ''}{p.ask ? ' · asking $' + p.ask.toFixed(1) + 'M' : ''}</span>
+              <span style={{ fontWeight: 700, width: 22, color: vm.ctx.tone(p.ovr) }}>{p.ovr}</span><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link><span style={{ ...muted, fontSize: '11.5px' }}>{p.pos} · {p.age}{p.birdTid != null && T[p.birdTid] ? ' · last with ' + T[p.birdTid].abbr : ''}{p.rfa ? (p.rfa.tid === vm.ctx.s.me ? ' · your QO' : ' · restricted') : ''}{p.ask ? ' · asking $' + p.ask.toFixed(1) + 'M' : ''}</span>
             </div>))}
         </div>
       </div>
@@ -80,6 +82,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
   const active = f !== 'all' || !!tk || sf.active || Object.entries(F).some(([k, v]) => v != null && v !== false && !(k === 'pos' && v === 'any'));
   const reset = () => { setF('all'); setTk(''); sf.clear(); gm.setState({ faF: {} }); };
   const ids = s.rosters[s.me] || [], lim = rosterMax(s), std = stdIds(gm, ids).length, tw = twoWayIds(gm, ids).length, inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase);
+  const qos = s.phase === 'fa' ? pendingQOs(gm, s, s.me) : [];
   // The assistant GM: press to highlight his picks (the rest dim); press again to turn it off.
   // The picks stay put while you page, sort or filter, until you turn him off.
   const adv: FaAdvice | null = s.faAsk || null, advPick = new Map((adv?.picks || []).map(x => [x.pid, x]));
@@ -92,13 +95,18 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
       <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} />
       {(vm.ctx.s.offerSheets || []).length > 0 && (
         <div style={{ padding: "8px 12px", marginBottom: "12px", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-md)", fontSize: "13px", display: "flex", gap: "10px", alignItems: "center" }}>
-          <span style={{ flex: 1 }}>Another team signed one of your restricted free agents to an offer sheet. Match it or let him go before preseason.</span>
-          <button className="btn btn-primary" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Open the cap sheet</button>
+          <span style={{ flex: 1 }}>Another team signed one of your restricted free agents to an offer sheet. Match it or let him go in your Mailbox.</span>
+          <button className="btn btn-primary" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => vm.ctx.gm.setState({ screen: 'mail' })}>Open the Mailbox</button>
         </div>
       )}
       <div style={{ fontSize: '12.5px', margin: '0 0 8px', color: std > (inSeason ? 15 : 21) ? 'var(--gm-bad)' : undefined }}>
-        <b>Your roster:</b> {std} of {lim} standard contracts{lim > 15 ? <span style={muted}> (up to 21 in the offseason, including Exhibit 10 camp deals; cut to 15 by opening night{std > 15 ? ': ' + (std - 15) + ' to go' : ''})</span> : <span style={muted}> (15 in season; a hardship exception can add a 16th when 4+ players are out)</span>} · {tw} of 3 two-way
+        <b>Your roster:</b> {std} of {lim} standard contracts{qos.length > 0 && <b style={{ color: std + qos.length > seasonMax(vm.ctx.s) ? 'var(--gm-bad)' : 'var(--accent-ink)' }}> + {qos.length} qualifying offer{qos.length === 1 ? '' : 's'} out</b>}{lim > 15 ? <span style={muted}> (up to 21 in the offseason, including Exhibit 10 camp deals; cut to 15 by opening night{std > 15 ? ': ' + (std - 15) + ' to go' : ''})</span> : <span style={muted}> (15 in season; a hardship exception can add a 16th when 4+ players are out)</span>} · {tw} of 3 two-way
       </div>
+      {qos.length > 0 && (() => { const max = seasonMax(vm.ctx.s), tot = std + qos.length, over = tot - max; return (
+        <div style={{ padding: '8px 12px', margin: '0 0 10px', border: '1px solid ' + (over > 0 ? 'var(--gm-bad)' : 'var(--color-accent)'), borderRadius: 'var(--radius-md)', fontSize: '12.5px' }}>
+          <b>Qualifying offers out ({qos.length}):</b> {qos.map((q: any, i: number) => <span key={q.id}>{i ? ', ' : ''}<Link pid={q.id} onClick={() => vm.ctx.open(q.id)}>{q.name}</Link> <span style={muted}>({fmtM(q.rfa.qo)})</span></span>)}.
+          {' '}If no other team signs them by training camp, they take your offer (one year) and join your roster. With them you’d have <b>{tot}</b> standard contracts; opening night allows {max}{over > 0 ? <b style={{ color: 'var(--gm-bad)' }}>: {over} too many, and cutting a player costs his guaranteed salary</b> : ''}. To take one back, renounce him on the <Link onClick={() => vm.ctx.gm.setState({ screen: 'capsheet' })}>Cap sheet</Link> (that also clears his cap hold and Bird rights).
+        </div>); })()}
       <div className="card" style={{ padding: '10px 12px', margin: '0 0 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button className={F.can ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12.5px' }} onClick={() => setFF({ can: true })} title="Only players you can sign right now: your cap room, an exception or his Bird rights reaches what he asks of you, and he’d sign on those terms (roster spots, hard caps and the two-way limit count too)">Players you can sign now · {nCan}</button>
@@ -160,6 +168,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                     {p.name}
                   </button>
                   {sc.tag(p.id)}
+                  {vm.ctx.gm.db.P[p.id]?.rfa?.tid === vm.ctx.s.me && <span title={'You extended him a ' + fmtM(vm.ctx.gm.db.P[p.id].rfa.qo) + ' qualifying offer: unsigned at training camp, he takes it and joins your roster'} style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--accent-ink)', whiteSpace: 'nowrap', fontWeight: 600 }}>Your QO · {fmtM(vm.ctx.gm.db.P[p.id].rfa.qo)}</span>}
                   {(p.topBadges || []).map((b: any) => <BadgeChip key={b.key} b={b} small />)}
                   {p.udT && <span style={{ fontSize: "10.5px", padding: "0 6px", borderRadius: 999, border: "1px solid var(--color-divider)", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>{p.udT}</span>}
                   {advPick.has(p.id) && <span title={advPick.get(p.id)!.why} style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--accent-ink)', whiteSpace: 'nowrap', fontWeight: 600 }}>{advPick.get(p.id)!.kind === 'twoWay' ? 'Assistant: two-way' : 'Assistant pick'}</span>}

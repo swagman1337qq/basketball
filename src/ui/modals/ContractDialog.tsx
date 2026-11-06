@@ -5,9 +5,9 @@
 // overseas buyout clause (you can't play a game over the limit). Release: waive, stretch or
 // buy out, with the dead money each season.
 import type { VM } from '../vm';
-import { BIRD_LABEL, birdOf, capState, deadSchedule, nums, remainingGuaranteed, rosterMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf } from '../../engine/cba';
+import { BIRD_LABEL, birdOf, capState, deadSchedule, nums, remainingGuaranteed, rosterMax, seasonMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf } from '../../engine/cba';
 import { acceptance, validateSigning } from '../../engine/contracts';
-import { buyoutWilling, defaultTerms } from '../../engine/cbaFlow';
+import { buyoutWilling, defaultTerms, pendingQOs } from '../../engine/cbaFlow';
 import { incentiveOptions } from '../../engine/frontOffice';
 import { fmtMoney } from '../../engine/capModel';
 import { muted, NumInput, Seg, godFill } from '../kit';
@@ -51,6 +51,10 @@ function Sign({ vm }: { vm: VM }) {
       <div className="dialog-title">{dg.offer ? 'Offer sheet: ' : 'Sign '}{p.name}</div>
       <div className="dialog-body" style={{ fontSize: '13px' }}>
         <div style={muted}>{p.pos} · {p.age} · {p.ovr} ovr · {yos} year{yos === 1 ? '' : 's'} of service{bird ? ' · you hold ' + BIRD_LABEL[bird] + ' rights' : ''}{p.rfa ? ' · restricted FA (' + s.teams[p.rfa.tid].abbr + ' can match)' : ''}{p.abroad ? ' · under contract at ' + p.abroad.club : ''}</div>
+        {(() => { // qualifying offers you still have out: unsigned at camp, they join this roster too
+          const qos = s.phase === 'fa' && m.key !== 'twoWay' ? pendingQOs(gm, s, tid).filter((q: any) => q.id !== p.id) : [], max = seasonMax(s), tot = stdIds(gm, ids0).length + 1 + qos.length;
+          return qos.length > 0 && tot > max ? <div style={{ marginTop: 6, padding: '6px 10px', border: '1px solid var(--gm-bad)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}>
+            <b>Roster check:</b> you have {qos.length} qualifying offer{qos.length === 1 ? '' : 's'} out ({qos.map((q: any) => q.name).join(', ')}). If {qos.length === 1 ? 'he takes it' : 'they take them'} at training camp, signing {p.name} puts you at {tot} standard contracts, {tot - max} over the {max} allowed on opening night.</div> : null; })()}
         <div style={lab}>How you sign him</div>
         <select value={m.key} onChange={e => pickMethod(e.target.value)} style={{ width: '100%' }}>
           {methods.map(x => <option key={x.key} value={x.key} disabled={!x.ok && !s.god}>{x.label}{x.ok ? ' · up to ' + fmtMoney(x.maxFirst) : ' · ' + (x.why || 'unavailable')}</option>)}

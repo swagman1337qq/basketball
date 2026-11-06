@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { BIRD_LABEL, birdOf, campMax, capHold, capState, DAY, describeContract, exceptionsOf, nums, qoFor, rosterMax, rosterMin, seasonMax, stdIds, taxBill, teamSalary, twoWayIds, yosOf } from '../../engine/cba';
-import { answerOfferSheet, convertContract, convOptions, decisionsFor, renounce } from '../../engine/cbaFlow';
+import { convertContract, convOptions, decisionsFor, renounce } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { Link, muted, ruleH4 } from '../kit';
 
@@ -45,16 +45,10 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
       <div style={{ padding: '8px 12px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', marginBottom: '18px', fontSize: '13px' }}><b>{status[0]}{payS !== pay ? ' (counting cap holds)' : ''}.</b> {status[1]} Salary floor {fmtMoney(N.FLOOR)}{pay < N.FLOOR ? ': you’re ' + fmtMoney(N.FLOOR - pay) + ' short, and the shortfall is paid to your players at season’s end.' : '.'}</div>
 
       {sheets.length > 0 && (
-        <section style={{ marginBottom: '18px' }}>
-          <h4 style={{ ...ruleH4, color: 'var(--color-accent-800)' }}>Offer sheets to answer</h4>
-          {sheets.map(o => { const p = P[o.pid]; return (
-            <div key={o.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid var(--color-divider)', fontSize: '13px' }}>
-              <span style={{ flex: 1, minWidth: '240px' }}><Link pid={p.id} onClick={() => open(p.id)}>{p.name}</Link> ({p.ovr}) signed an offer sheet with the {T[o.from].region} {T[o.from].name}: {fmtMoney(o.terms.amt)} × {o.terms.years} years{o.terms.opt ? ', ' + o.terms.opt + ' option' : ''}. Match with Bird rights and he stays on those exact terms; decline and he leaves.{s.managed.length > 1 && o.to !== tid ? ' (For ' + T[o.to].abbr + '.)' : ''}</span>
-              <button className="btn btn-primary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => answerOfferSheet(gm, o.id, true)}>Match</button>
-              <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => answerOfferSheet(gm, o.id, false)}>Decline</button>
-            </div>); })}
-          {s.offerMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', marginTop: '4px' }}>{s.offerMsg}</div>}
-        </section>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', padding: '8px 12px', marginBottom: '18px', border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', fontSize: '13px' }}>
+          <span style={{ flex: 1, minWidth: '240px' }}><b>{sheets.length} offer sheet{sheets.length === 1 ? '' : 's'} to answer:</b> {sheets.map((o, i) => <span key={o.id}>{i ? ', ' : ''}<Link pid={o.pid} onClick={() => open(o.pid)}>{P[o.pid]?.name}</Link> ({fmtMoney(o.terms.amt)} × {o.terms.years})</span>)}. Match or decline in your Mailbox (matching adds his salary here).</span>
+          <button className="btn btn-primary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => gm.setState({ screen: 'mail' })}>Open the Mailbox</button>
+        </div>
       )}
 
       {decs.length > 0 && s.phase !== 'fa' && (

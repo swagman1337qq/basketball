@@ -421,6 +421,10 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
   }
 }
 
+// Your restricted free agents still holding your qualifying offer (2026-11-06): if nobody signs them by training camp
+// they accept it and join your roster (acceptQualifyingOffers), so free agency shows them and counts them.
+export function pendingQOs(g: Game, s: any, tid: number): any[] { return (s.fa || []).map((id: number) => g.db.P[id]).filter((p: any) => p && p.rfa?.tid === tid); }
+
 // Restricted free agents nobody signed take their one-year qualifying offer.
 export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], by: Record<number, string[]>) {
   const P = g.db.P;
