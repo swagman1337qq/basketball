@@ -509,7 +509,15 @@ export class GameSim {
     const S = this[k], ps = this.avail(k), diff = Math.abs(this.home.pts - this.away.pts);
     if (ps.length <= 5) { this.on[k] = ps; return; }
     const late = this.q >= 4 && this.t < 300;
-    if ((late && diff > 20) || (this.q >= 4 && this.t < 480 && diff > 24) || (this.q >= 4 && this.t < 180 && diff > 15)) { // garbage time
+    const lead = this[k].pts - this[other(k)].pts, rem = this.q === 4 ? this.t : this.q === 3 ? this.t + 720 : 1e9;
+    // Garbage time (2026-11-07): the team well ahead empties its bench first; the trailing team keeps its starters a little
+    // longer. Before, both went to their benches at the same moment (only in the last 3–8 minutes), so big leads held
+    // through the 4th: a 20–24-point lead after three quarters changed by 0 on average (now about −2, 25+ about −3), and
+    // final margins ran wide (average 13.4, 23.6% of games by 20+, 7.1% by 30+; now 12.6, 19.4%, 5.0%; NBA about 12.4,
+    // 19.5%, 6.1%). `rem`: seconds left in regulation (none in overtime).
+    const garbage = lead > 0 ? (rem < 540 && lead >= 26) || (rem < 360 && lead >= 21) || (rem < 180 && lead >= 16)
+      : (rem < 300 && -lead >= 26) || (rem < 180 && -lead >= 20) || (rem < 90 && -lead >= 15);
+    if (garbage) { // garbage time
       const deep = ps.slice(5).sort((a, b) => a.target - b.target);
       this.on[k] = (deep.length >= 5 ? deep : [...deep, ...ps.slice(0, 5)]).slice(0, 5);
       return;

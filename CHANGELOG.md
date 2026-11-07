@@ -2,6 +2,12 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-07
+
+### Changed
+- **Blowouts end like real ones.** The team that's way ahead now empties its bench sooner in the 4th, while the team behind keeps its starters in a little longer, so a 20-point lead after three quarters usually shrinks by a few points instead of holding. Final margins now match the NBA (about 12.5 points on average, one game in five decided by 20 or more), and the best teams no longer win by NBA-record margins every season.
+- **Teams with nothing left to play for rest their stars.** In the last ten games, an AI team whose playoff seed can no longer change sits each of its three best players in about two games of five, as NBA contenders do. Teams you run play whoever you choose.
+
 ## 2026-11-06
 
 ### Fixed

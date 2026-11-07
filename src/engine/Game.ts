@@ -1022,6 +1022,11 @@ export class Game {
     const thr = user && !s.easy?.injuries ? ((club?.ptInj || { reg: 0, po: 4 })[post ? 'po' : 'reg'] ?? 0) : 0, hurt = (p: any) => !!p.inj && !p.inj.dtd && p.inj.games <= thr;
     let ids = s.rosters[tid].filter(id => this.canPlay1(s, P[id], post, hurt));
     if (!user) ids = this.aiOrder(s, tid).filter(id => ids.includes(id)); // AI: best first, and real minutes for a young high pick (rosterAI)
+    // Late-season rest (2026-11-07): an AI team whose playoff seed can no longer change rests its best players in its last
+    // REST_GAMES games, as NBA contenders do: each of its top three sits about two games in five (decided per day, so a
+    // preview and the game agree). Teams you run play whoever you choose.
+    if (!user && s.phase === 'regular' && ids.length >= 10) { const t = s.teams[tid], left = 82 - t.w - t.l;
+      if (left > 0 && left <= Game.REST_GAMES && this.seedLocked(s, tid)) { const sit = ids.slice(0, 3).filter(id => ((s.day * 31 + id * 17 + tid * 7) % 100) / 100 < Game.REST_P); if (sit.length) ids = ids.filter(id => !sit.includes(id)); } }
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT = this.starMinutes(this.rotationFor(s, tid), ids.map(id => P[id])), tgt = user ? this.userTargets(s, ids, ROT) : null;
     const shortRest = this.db.calendarV && s.phase === 'regular' && this.restDays(tid, s.day) === 0;
@@ -1381,6 +1386,15 @@ export class Game {
       return Math.max(0, Math.round((this.dateOf(day).getTime() - this.dateOf(slot).getTime()) / 86400000) - 1);
     }
     return 3;
+  }
+  static REST_GAMES = 10; static REST_P = 0.4;
+  // His team's playoff seed can't change any more: a top-six seed it can't climb from (the team above is out of reach) or
+  // fall from (the team below can't catch it), with the games each has left.
+  seedLocked(s, tid) {
+    const t = s.teams[tid], conf = this.seeds(s, t.conf), i = conf.indexOf(tid), left = (x: any) => Math.max(0, 82 - x.w - x.l);
+    if (i < 0 || i > 5) return false;
+    const up = i > 0 ? s.teams[conf[i - 1]] : null, down = conf[i + 1] != null ? s.teams[conf[i + 1]] : null;
+    return (!up || t.w + left(t) < up.w) && (!down || down.w + left(down) < t.w);
   }
   seeds(s, conf) { return s.teams.filter(t => t.conf === conf).sort((a, b) => this.pct(b) - this.pct(a) || b.w - a.w).map(t => t.tid); }
   // ── Postseason ──────────────────────────────────────────────────────────────────
