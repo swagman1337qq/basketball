@@ -1,10 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cwx0OAvV.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-tZrf3Ay_.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-08
 
+### Added
+- **Unhappy stars ask out.** A star on a losing AI team may ask for a trade during the season (most often if he cares about winning, almost never if he's loyal). His team takes offers from several teams and keeps the best one, through the trade deadline and the summer. Top players now change teams about 16 times every ten seasons instead of four or five, and you'll see "asked for a trade" in the league log.
+
 ### Changed
+- **Heavy-usage scorers pay for it.** The more of the offense runs through one player, the more the defense keys on him, so his shots get a little harder (a little less so for smart players). The best player's PER is now about 31 a season, as in the NBA (it was about 33), with fewer 25-point scorers shooting like role players.
+- **Strength matters.** It now helps in post defense and in holding position for rebounds; before, it did nothing in games.
+- **Overalls re-measured.** What each rating is worth in the overall was measured again against how games are played now; about half of all players move by a point. Your saves update when you open them.
+- **New leagues have fewer MVP-level players, and no star rookies.** The very top of the rating scale is a little tighter for new leagues and new players, and a starting player good enough to be a star is at least 23 (new leagues used to open with 65–68-overall rookies scoring 30 points a game).
 - **Contenders manage their stars.** An AI team winning 60% of its games plays its three best players about 2½ minutes less a night and gives those minutes to its bench, and AI stars sometimes sit the second night of a back-to-back (more often at 30 and older, or on a contender). Stars now play about 68 games a season, as in the NBA (73 before), and the league's best team wins about 65 games on average instead of 66, with 65-win seasons about a third rarer. Teams you run play whoever you choose.
 - **Stars sometimes leave their teams.** When an AI team's star (a top-30 player) nears the end of his contract, he decides once whether to stay or test free agency. Loyal players, veterans of 32+, players who've been with the team seven years and young stars finishing their rookie deals usually stay; players chasing money, a winner (on a team that isn't one) or a bigger market, and third options who want their own team, are likelier to go. He only leaves when another team has the cap room to pay him, and he signs there in the first days of free agency; if nobody does within two weeks, his old team can bring him back. In 80 test seasons top-30 players changed teams 36 times (29 before), mostly to weaker teams, and 70-win seasons fell from 14 to 9.
 - **Repeat luxury-tax teams stop spending.** An AI team that paid the tax in three of the last four seasons, or went past the second apron last season, holds its payroll to the tax line (a big-spending owner, or after a single season past the second apron: the first apron). It won't pay to keep its third and fourth best players and is more willing to trade away a bad contract. Teams you run are left to you and your owner.
