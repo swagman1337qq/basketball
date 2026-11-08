@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-tZrf3Ay_.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-sxVQiodb.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -8,6 +8,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Unhappy stars ask out.** A star on a losing AI team may ask for a trade during the season (most often if he cares about winning, almost never if he's loyal). His team takes offers from several teams and keeps the best one, through the trade deadline and the summer. Top players now change teams about 16 times every ten seasons instead of four or five, and you'll see "asked for a trade" in the league log.
 
 ### Changed
+- **Teams spend like NBA teams.** League payroll used to sit right at the salary cap, with only 2–4 teams paying the luxury tax. Now league payroll averages about 1.08× the cap with about 7 teams in the tax a season, and the best team wins about 63 games instead of 65, since contenders can't keep everyone. Why:
+  - young players are paid partly for what they're expected to become, and teams pay them to grow into their deals;
+  - a contender pays over the asking price to land or keep a rotation player, because it wants to compete;
+  - starters and sixth men are paid more (the max holds stars below their worth, so the money goes to the middle);
+  - AI teams keep three in four of their rotation players whose deals run out (half before);
+  - rebuilding teams take bad contracts off other teams' hands in exchange for picks.
 - **Heavy-usage scorers pay for it.** The more of the offense runs through one player, the more the defense keys on him, so his shots get a little harder (a little less so for smart players). The best player's PER is now about 31 a season, as in the NBA (it was about 33), with fewer 25-point scorers shooting like role players.
 - **Strength matters.** It now helps in post defense and in holding position for rebounds; before, it did nothing in games.
 - **Overalls re-measured.** What each rating is worth in the overall was measured again against how games are played now; about half of all players move by a point. Your saves update when you open them.
