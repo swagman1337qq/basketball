@@ -1,17 +1,18 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BlU6p4G9.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Cwx0OAvV.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-08
 
+### Changed
+- **Contenders manage their stars.** An AI team winning 60% of its games plays its three best players about 2½ minutes less a night and gives those minutes to its bench, and AI stars sometimes sit the second night of a back-to-back (more often at 30 and older, or on a contender). Stars now play about 68 games a season, as in the NBA (73 before), and the league's best team wins about 65 games on average instead of 66, with 65-win seasons about a third rarer. Teams you run play whoever you choose.
+- **Stars sometimes leave their teams.** When an AI team's star (a top-30 player) nears the end of his contract, he decides once whether to stay or test free agency. Loyal players, veterans of 32+, players who've been with the team seven years and young stars finishing their rookie deals usually stay; players chasing money, a winner (on a team that isn't one) or a bigger market, and third options who want their own team, are likelier to go. He only leaves when another team has the cap room to pay him, and he signs there in the first days of free agency; if nobody does within two weeks, his old team can bring him back. In 80 test seasons top-30 players changed teams 36 times (29 before), mostly to weaker teams, and 70-win seasons fell from 14 to 9.
+- **Repeat luxury-tax teams stop spending.** An AI team that paid the tax in three of the last four seasons, or went past the second apron last season, holds its payroll to the tax line (a big-spending owner, or after a single season past the second apron: the first apron). It won't pay to keep its third and fourth best players and is more willing to trade away a bad contract. Teams you run are left to you and your owner.
+
 ### Fixed
 - **No more short-handed teams on opening night.** A salary-floor trade or an owner's fire sale on opening night could take a player after rosters were filled, leaving a team with 12 or 13. Every team now fills back to 14 (yours too, with a note saying who signed).
 - **Hard caps hold.** A team that used its mid-level could still take on its restricted free agent's qualifying offer and minimum deals at training camp and end up $21M over the apron it was hard-capped at. Using an exception that hard-caps you now leaves room for your pending qualifying offers and the minimum deals you'll need to fill the roster, and a qualifying offer that would still break a team's hard cap is withdrawn (the player becomes an unrestricted free agent).
 - **Good free agents no longer start the season on minimum deals.** A player still waiting for his asking price at training camp now takes the best offer left (cap room or a mid-level exception, one or two years) instead of being signed for the minimum by whichever team needed a body. In 80 test seasons, top-30 players starting a season on a minimum deal went from 17 to none (one was a 69 overall).
-
-### Changed
-- **Stars sometimes leave their teams.** When an AI team's star (a top-30 player) nears the end of his contract, he decides once whether to stay or test free agency. Loyal players, veterans of 32+, players who've been with the team seven years and young stars finishing their rookie deals usually stay; players chasing money, a winner (on a team that isn't one) or a bigger market, and third options who want their own team, are likelier to go. He only leaves when another team has the cap room to pay him, and he signs there in the first days of free agency; if nobody does within two weeks, his old team can bring him back. In 80 test seasons top-30 players changed teams 36 times (29 before), mostly to weaker teams, and 70-win seasons fell from 14 to 9.
-- **Repeat luxury-tax teams stop spending.** An AI team that paid the tax in three of the last four seasons, or went past the second apron last season, holds its payroll to the tax line (a big-spending owner, or after a single season past the second apron: the first apron). It won't pay to keep its third and fourth best players and is more willing to trade away a bad contract. Teams you run are left to you and your owner.
 
 ## 2026-11-07
 
