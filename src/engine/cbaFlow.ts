@@ -474,6 +474,11 @@ export function pendingQOs(g: Game, s: any, tid: number): any[] { return (s.fa |
 export function acceptQualifyingOffers(g: Game, s: any, box: Box, lgLog: any[], by: Record<number, string[]>) {
   const P = g.db.P;
   box.fa.slice().forEach(id => { const p = P[id]; if (!p.rfa) return; const t = p.rfa.tid;
+    // A hard-capped team can't take him over its apron (2026-11-08): the offer is withdrawn and he's an unrestricted free agent.
+    const hc = capState({ ...s, cap: box.cap }, t).hardCap, lim = hc === 'AP1' ? nums(g).AP1 : hc === 'AP2' ? nums(g).AP2 : Infinity;
+    if (teamSalary(g, { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa }, t) + p.rfa.qo > lim) { const qo = p.rfa.qo; delete p.rfa; p.birdTid = null;
+      lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[t].abbr, pids: [id], text: 'The ' + s.teams[t].region + ' ' + s.teams[t].name + ' withdrew their qualifying offer to ' + p.name + ' (hard-capped): he’s an unrestricted free agent' });
+      if (g.isUser(s, t)) (by[t] = by[t] || []).push('Your ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' would put you over the hard cap: it was withdrawn and he’s an unrestricted free agent.'); return; }
     const line = applySigning(g, s, box, t, p, { method: 'bird', amt: p.rfa.qo, years: 1 });
     lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[t].abbr, pids: [id], text: line.replace('(Bird rights)', '(accepted his qualifying offer)') });
     if (g.isUser(s, t)) (by[t] = by[t] || []).push(p.name + ' accepted his ' + p.amt.toFixed(2) + 'M qualifying offer'); });

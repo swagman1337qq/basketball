@@ -127,7 +127,7 @@ export function TeamHistoryScreen({ vm }: { vm: VM }) {
     const done = retired.filter(x => x.pid === r.id), lit = !!ROW_BG[r.st], look = { ...btnS, ...(lit ? (godOnly ? godLit(r.st) : litBtn(r.st)) : godOnly ? godBtn : {}) };
     if (done.length) return <span style={{ fontSize: '12px' }}>No. {done.map(x => x.num).join(', ')} retired</span>;
     if (r.st === 'now') return <button className="btn btn-secondary" disabled title="He’s on the team: retire his number after he leaves or retires" style={{ ...btnS, ...(lit ? litBtn(r.st) : {}) }}>Retire jersey</button>;
-    if (ask?.pid === r.id) {
+    if (ask && ask.pid === r.id) {
       const ok = JERSEY_RE.test(ask.num), set = (num: string) => setAsk({ pid: r.id, num });
       return (
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>

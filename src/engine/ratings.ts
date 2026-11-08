@@ -192,6 +192,13 @@ function weightedOverall(p: any, weights: typeof OVR_W, feel: typeof FEEL_W, adj
 
 export const ovrExact = (p: any) => weightedOverall(p, OVR_W, FEEL_W, OVR_ADJ);
 export const ovrExactV7 = (p: any) => weightedOverall(p, OVR_W_V7, FEEL_W_V7, OVR_ADJ_V8);
+// The weights a save's overalls were computed with (2026-11-08). Each save records them (db.ovrW); when OVR_W, FEEL_W
+// or OVR_ADJ change, Game.load recomputes every overall from the recorded ones (Game.migrateOverallWeights), so a new
+// measurement only edits the constants above: no more hand-written iqV steps or kept _V copies.
+export type OvrWeights = { W: typeof OVR_W; F: typeof FEEL_W; A: typeof OVR_ADJ };
+export const ovrWeights = (): OvrWeights => JSON.parse(JSON.stringify({ W: OVR_W, F: FEEL_W, A: OVR_ADJ }));
+export const sameOvrWeights = (a: OvrWeights, b: OvrWeights) => JSON.stringify(a) === JSON.stringify(b);
+export const overallWith = (p: any, w: OvrWeights) => weightedOverall(p, w.W, w.F, w.A);
 // Recompute the overall from the ratings (after any rating change). movePot: the ceiling moves by the
 // same amount (edits); growth toward the ceiling leaves it alone.
 export function syncOvr(p: any, movePot = false) {

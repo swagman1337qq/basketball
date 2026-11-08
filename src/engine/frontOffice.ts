@@ -326,7 +326,7 @@ export function seasonReview(g: Game) {
     aiT.slice().sort((a, b) => g.pct(a) - g.pct(b)).slice(0, fired.length && fired.length >= s.managed.length ? 3 : 1).forEach(t => { if (!vac.includes(t.tid)) vac.push(t.tid); });
     const vacancies = vac.map(tid => ({ tid, reason: T[tid].owner + ' fired GM ' + T[tid].gm + ' after a ' + T[tid].w + '–' + T[tid].l + ' season' }));
     vacancies.forEach(v => lgLog.unshift({ day: s.day, type: 'Career', teams: T[v.tid].abbr, text: v.reason }));
-    const offers = [], allFired0 = fired.length > 0 && fired.length >= s.managed.length;
+    const offers: any[] = [], allFired0 = fired.length > 0 && fired.length >= s.managed.length;
     if (!s.spectator) vacancies.slice().sort((a, b) => teamNeed(g, s, a.tid) - teamNeed(g, s, b.tid)).forEach(v => { if (offers.length < 3 && (rep >= teamNeed(g, s, v.tid) - 5 || (allFired0 && offers.length < 2))) offers.push({ id: 'o' + v.tid + Y, tid: v.tid, from: 'vacancy', note: T[v.tid].owner + ' wants you to rebuild the ' + T[v.tid].name + '.', options: contractOptions(s, v.tid, rep) }); });
     if (rep >= 65 && !s.spectator) aiT.filter(t => g.pct(t) >= 0.55 && !vac.includes(t.tid)).slice(0, 3).forEach(t => { if (Math.random() < (rep - 55) / 100) offers.push({ id: 'o' + t.tid + Y, tid: t.tid, from: 'poach', note: t.owner + ' (' + t.arch + ') would replace ' + t.gm + ' to bring you in.', options: contractOptions(s, t.tid, rep + 10) }); });
     const OQ = ['We’ve reached out. The job is theirs if they want it.', 'I want a builder, and I think we’ve found one. We’ve made our pitch.', 'Their record speaks for itself. We’d love to have them here.', 'We’ve made an offer. Now it’s their call.'];

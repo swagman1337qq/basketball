@@ -147,11 +147,16 @@ export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
   const phase = s.phase, inSeason = phase === 'regular', pre = phase === 'preseason', off = phase === 'fa' || phase === 'draft' || pre;
   const stdCount = stdIds(g, s.rosters[tid] || []).length, twCount = twoWayIds(g, s.rosters[tid] || []).length, lim = rosterMax(s);
   const hard = cs.hardCap === 'AP1' ? N.AP1 : cs.hardCap === 'AP2' ? N.AP2 : Infinity;
+  // Under a hard cap the team must still fit what it already owes (2026-11-08: a team used its mid-level, then its
+  // restricted free agent took his qualifying offer at camp and minimum deals filled the roster, $21M over the apron):
+  // its pending qualifying offers and minimum deals up to the roster minimum.
+  const qos = (s.fa || []).map((id: number) => g.db.P[id]).filter((q: any) => q && q.id !== p.id && q.rfa?.tid === tid);
+  const owed = qos.reduce((a: number, q: any) => a + q.rfa.qo, 0) + Math.max(0, rosterMin(s) - stdCount - 1 - qos.length) * N.min(0);
   const lvl = birdOf(p, tid), prev = p.prevAmt || p.amt || minS, age = p.age;
   const yearsCap = (n: number) => (n >= 4 && age + n - 1 > 38 ? Math.max(1, 38 - age + 1, 3) : n); // over-38 rule
   // A hard cap (the team's, or the one this method triggers) also limits the first-year salary.
   const m = (key, label, maxFirst, maxYears, raise, note, ok = true, why?, hardCap?, minFirst?): Method => {
-    const lim = Math.min(hard, hardCap === 'AP1' ? N.AP1 : hardCap === 'AP2' ? N.AP2 : Infinity), fit = key === 'twoWay' ? Infinity : lim - sal;
+    const lim = Math.min(hard, hardCap === 'AP1' ? N.AP1 : hardCap === 'AP2' ? N.AP2 : Infinity), fit = key === 'twoWay' ? Infinity : lim - sal - (lim < Infinity ? owed : 0);
     const mf = +Math.min(max, maxFirst, fit).toFixed(2);
     if (ok && fit < Math.min(maxFirst, minS) - 0.005) { ok = false; why = why || (capEasy(g) ? 'Would put you over the hard cap' : 'Would put you over the ' + (lim === N.AP1 ? '1st' : '2nd') + ' apron'); }
     return { key, label, maxFirst: Math.max(0, mf), maxYears: yearsCap(maxYears), raise, note, ok, why, hardCap, minFirst };

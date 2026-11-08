@@ -89,7 +89,7 @@ export function CapSheetScreen({ vm }: { vm: VM }) {
                 <tr key={id}>
                   <td style={tdc}><Link pid={id} onClick={() => open(id)}>{p.name}</Link> <span style={muted}>{p.ovr}</span></td>
                   <td style={{ ...tdc, fontSize: '11.5px' }} title={describeContract(gm, p)}>{typeTag(p)}{p.kicker ? ' · kicker' : ''}{p.ntc ? ' · NTC' : ''}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</td>
-                  {years.map(y => { const v = sal(p, y); return <td key={y} style={{ ...tdr, color: p.opt?.season === y ? 'var(--color-accent-700)' : v ? undefined : 'var(--color-neutral-500)' }}>{v ? fmtMoney(v) + mark(p, y) : y === p.exp + 1 && qoFor && qoOk(gm, p) ? 'RFA' : y === p.exp + 1 ? 'UFA' : ''}</td>; })}
+                  {years.map(y => { const v = sal(p, y); return <td key={y} style={{ ...tdr, color: p.opt?.season === y ? 'var(--color-accent-700)' : v ? undefined : 'var(--color-neutral-500)' }}>{v ? fmtMoney(v) + mark(p, y) : y === p.exp + 1 && qoOk(gm, p) ? 'RFA' : y === p.exp + 1 ? 'UFA' : ''}</td>; })}
                   <td style={{ ...tdc, fontSize: '11.5px' }}>{(p.yrsWith || 0) >= 3 ? 'Full' : p.yrsWith === 2 ? 'Early' : 'Non'}</td>
                   <td style={{ ...tdc, whiteSpace: 'nowrap' }}>
                     {convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" style={{ fontSize: '11px', padding: '1px 6px' }} title={o.label + ': ' + o.why} onClick={() => convertContract(gm, id, o.to)}>{o.short}</button>)}

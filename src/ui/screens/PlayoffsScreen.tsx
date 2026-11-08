@@ -96,7 +96,7 @@ export function PlayoffsScreen({ vm }: { vm: VM }) {
   let projected = false;
   if (!rounds) {
     projected = true;
-    const r1 = [];
+    const r1: any[] = [];
     ['West', 'East'].forEach(c => {
       const sd = s.seeds?.[c] || gm.seeds(s, c), pin = s.playin?.[c];
       const seven = pin?.[0]?.done ? pin[0].w : null, eight = pin?.[2]?.done ? pin[2].w : null;

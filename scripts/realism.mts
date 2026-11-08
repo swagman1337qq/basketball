@@ -2,16 +2,19 @@
 // every team and checks the league against real-NBA bands: team box scores, the leaders, how spread out the
 // standings are, and that nothing is broken (a player on two rosters, a NaN rating or salary, a roster over the
 // limit). With --seasons N it also plays the playoffs, draft and free agency between seasons and checks that the
-// league's talent doesn't drift. Exits 1 if any check fails, so it can guard an engine change.
+// league's talent doesn't drift and that the offseason's contracts make sense (`economy`). Exits 1 if any check
+// fails, so it can guard an engine or contract change.
 //
 //   npm run realism                       3 leagues (seeds 11, 12, 13), one regular season each
 //   npm run realism -- --seeds 11,12 --seasons 3
+//   npm run test:league                   the same with seeds 11, 12 and 3 seasons (offseasons included)
 //
 // A band is where real seasons sit with some room for a game league's spread; a failure means "look at this",
 // not always "this is wrong". Bands live in BANDS below.
 import { appendFileSync, writeFileSync } from 'node:fs';
 import type { ShotEvent } from '../src/engine/sim';
-import { seasonMax, stdIds, twoWayIds, TWO_WAY_MAX } from '../src/engine/cba';
+import { capState, nums, rosterMin, seasonMax, stdIds, teamSalary, twoWayIds, TWO_WAY_MAX, yosOf } from '../src/engine/cba';
+import { STAR_B } from '../src/engine/cbaFlow';
 import { newLeague, offseason, playRegular, rostered } from './lib/headless.mts';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -28,6 +31,10 @@ const BANDS: Record<string, [number, number]> = {
   'best record (win%)': [0.65, 0.86], 'standings spread (win% sd)': [0.12, 0.19], 'worst record (win%)': [0.12, 0.36],
   'most made dunks': [0, 500],
   'mean overall drift': [-2.5, 2.5], 'players 60+ (change)': [-25, 25],
+  // Opening night after an offseason (economy). NBA: 5–10 tax teams, 35–40 max deals, payroll about the cap and
+  // a little over, several top players changing teams a summer. Teams under the floor pay the shortfall at season's
+  // end; this game has 0–9 of them on opening nights (most just under), so the band only catches a collapse.
+  'tax teams': [1, 12], 'max deals': [15, 45], 'league payroll / cap': [0.95, 1.2], 'teams under the floor': [0, 10], 'top-30 who changed teams': [0, 10],
 };
 
 type Row = { name: string; v: number; band: [number, number]; ok: boolean };
@@ -52,6 +59,33 @@ function invariants(g: any): string[] {
   });
   return out.slice(0, 10);
 }
+
+// League economy (2026-11-08), at each opening night after an offseason: contract outcomes that should never
+// happen, and bands for the market as a whole. Several of these once went wrong for weeks without anyone noticing
+// (a 69 overall started a season on a minimum deal: the star ask floor and the camp roster fill disagreed).
+function economy(g: any, rows: Row[], before: Map<number, number>): string[] {
+  const out: string[] = [], s = g.state, P = g.db.P, N = nums(g), Y = g.Y, team = new Map<number, number>();
+  const star = (p: any) => g.priceOvr(p.ovr) >= STAR_B, abbr = (t: number) => s.teams[t]?.abbr ?? t;
+  Object.entries(s.rosters as Record<string, number[]>).forEach(([t, ids]) => ids.forEach(id => team.set(id, +t)));
+  team.forEach((t, id) => { const p = P[id]; if (!p) return;
+    if (p.exp != null && p.exp < Y) out.push(p.name + ' (' + abbr(t) + ') is on a roster with a contract that ended in ' + p.exp);
+    if (!['twoWay', 'tenDay', 'hardship', 'ex10'].includes(p.ctype) && !(p.amt >= 0.8 * N.min(0))) out.push(p.name + ' (' + abbr(t) + ') is paid ' + p.amt + 'M, below the minimum');
+    if (p.amt > 1.3 * N.max(10)) out.push(p.name + ' (' + abbr(t) + ') is paid ' + p.amt + 'M, far above the max');
+    if (star(p) && p.ctype === 'min') out.push('top-30 player ' + p.name + ' (' + p.ovr + ', ' + abbr(t) + ') is on a minimum deal'); });
+  (s.fa || []).forEach((id: number) => { const p = P[id]; if (p && !p.retired && !p.abroad && star(p)) out.push('top-30 player ' + p.name + ' (' + p.ovr + ') is unsigned on opening night'); });
+  const pay = s.teams.map((T: any) => teamSalary(g, s, T.tid));
+  s.teams.forEach((T: any, i: number) => { const hc = capState(s, T.tid).hardCap, lim = hc === 'AP1' ? N.AP1 : hc === 'AP2' ? N.AP2 : Infinity, std = stdIds(g, s.rosters[T.tid]).length;
+    if (pay[i] > lim + 0.5) out.push(T.abbr + ' is hard-capped at the ' + (hc === 'AP1' ? '1st' : '2nd') + ' apron but pays ' + pay[i].toFixed(1) + 'M (limit ' + lim.toFixed(1) + 'M)');
+    if (std < rosterMin(s)) out.push(T.abbr + ' has ' + std + ' players, under the roster minimum of ' + rosterMin(s)); });
+  check(rows, 'tax teams', pay.filter((x: number) => x > N.TAX).length);
+  check(rows, 'max deals', [...team.keys()].filter(id => { const p = P[id]; return p && (p.ctype === 'max' || p.amt >= 0.95 * N.max(yosOf(g, p))); }).length);
+  check(rows, 'league payroll / cap', pay.reduce((a: number, x: number) => a + x, 0) / pay.length / N.CAP);
+  check(rows, 'teams under the floor', pay.filter((x: number) => x < N.FLOOR).length);
+  const top = [...team.keys()].map(id => P[id]).filter(Boolean).sort((a: any, b: any) => b.ovr - a.ovr).slice(0, 30);
+  check(rows, 'top-30 who changed teams', top.filter((p: any) => before.has(p.id) && before.get(p.id) !== team.get(p.id)).length);
+  return out.slice(0, 10);
+}
+const teamsOf = (g: any) => { const m = new Map<number, number>(); Object.entries(g.state.rosters as Record<string, number[]>).forEach(([t, ids]) => ids.forEach(id => m.set(id, +t))); return m; };
 
 function measure(g: any, rows: Row[]) {
   const Y = g.Y, P = g.db.P, tot: Record<string, number> = {}, players: { t: Record<string, number> }[] = [];
@@ -91,9 +125,11 @@ const t0 = Date.now();
 for (const seed of seeds) {
   const g: any = newLeague(seed);
   const start = rostered(g), mean0 = start.reduce((a, p) => a + p.ovr, 0) / start.length, top0 = start.filter(p => p.ovr >= 60).length;
+  let before = teamsOf(g);
   for (let s = 0; s < seasons; s++) {
     if (s > 0) offseason(g);
     const rows: Row[] = [], broken = invariants(g);
+    if (s > 0) { broken.push(...economy(g, rows, before)); before = teamsOf(g); }
     const shots = new Map<number, Map<string, ShotBucket>>();
     if (shotReport) g.shotObserver = shot => observeShot(shots, shot);
     await playRegular(g);

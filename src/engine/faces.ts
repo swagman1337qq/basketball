@@ -202,7 +202,7 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   const fw = age < 20 ? { none: 50, patchy: 18, stubble: 18, mustache: 4, soulpatch: 4, chinpuff: 6 }
     : age < 23 ? { none: 34, stubble: 18, patchy: 8, heavyStubble: 6, goatee: 6, circle: 6, mustache: 4, shortBeard: 8, chinstrap: 3, soulpatch: 3, chinpuff: 3, fullBeard: 1 }
     : { none: 26, stubble: 14, heavyStubble: 9, mustache: 4, goatee: 6, circle: 8, vandyke: 2, chinstrap: 3, chinstrapMustache: 3, shortBeard: 10, fullBeard: 8, thickBeard: 3, soulpatch: 2, chinpuff: 2, patchy: 2 };
-  const fStyle = fem ? 'none' : wpick(rnd, fw), fDen = rnd();
+  const fStyle = fem ? 'none' : wpick(rnd, fw as Record<string, number>), fDen = rnd();
   const facial: any = { style: fStyle, density: r2(fStyle === 'patchy' ? 0.45 : 0.65 + 0.35 * fDen), grey: beardGrey };
   // Accessories, each drawn on its own: headbands are common, earrings fairly common, nose studs
   // uncommon, lip and eyebrow rings rare, glasses and face shields exceptionally rare.

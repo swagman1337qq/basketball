@@ -264,7 +264,9 @@ export const gambleS = (r: any) => Math.max(0, (r.stl ?? r.diq) - r.diq - 8);
 // about 4.9) when clear finishes stopped being blocked: BLK_CAL 1.22 on the block chance of a miss (a label on a
 // missed shot, so shooting is unchanged). Measured (45,000-game regression, +10 per rotation player): guards' steals
 // +0.19, passing +0.12, threes +0.17; bigs' blocks +0.13.
-const GAMBLE = { rim: 0.00005, mid: 0, three: 0 }, BLK_RIM = 0.008, BLK_CAL = 1.22;
+// BLK_CAL is the one scale on the block chance of a miss: 1.4396 = the 1.18 it had before and the 1.22 added on
+// 2026-11-06, folded into one number (2026-11-08; same value, so games are unchanged).
+const GAMBLE = { rim: 0.00005, mid: 0, three: 0 }, BLK_RIM = 0.008, BLK_CAL = 1.4396;
 // Shot creation (2026-10-23): breaking a defender down, getting into the paint and making the defense
 // collapse, which hands everyone on the floor an easier shot. Handle and burst first, the threat of the
 // finish and the pull-up, and the read. A lineup's creation leans on its best creators (half its best,
@@ -468,7 +470,7 @@ export class GameSim {
   private tired(p: SimPlayer) { return cl((88 - (this.en.get(p) ?? 100)) / 60, 0, 1); }
   private drain(sec: number) {
     (['home', 'away'] as Side[]).forEach(k => this.teams[k].players.forEach(p => { const e = this.en.get(p) ?? 100, on = this.on[k].includes(p);
-      this.en.set(p, cl(on ? e - (sec / 60) * 3.7 * (1.55 - p.r.endu / 100) * (p.age >= 33 ? 1.1 : 1) : e + (sec / 60) * 2.8, 0, 100)); }));
+      this.en.set(p, cl(on ? e - (sec / 60) * 3.7 * (1.55 - p.r.endu / 100) * ((p.age ?? 0) >= 33 ? 1.1 : 1) : e + (sec / 60) * 2.8, 0, 100)); }));
   }
   private rest(x: number) { this.en.forEach((e, p) => this.en.set(p, Math.min(100, e + x))); }
   private curSt: [[number, number, number], [number, number, number]] = [[0, 0, 0], [0, 0, 0]]; // this trip's stint entries (free-throw expected points)
@@ -907,7 +909,7 @@ export class GameSim {
         const bs2 = onD.map(p => blockSkill(p.r)).sort((a, b) => b - a), blkT = (bs2[0] + (bs2[1] ?? bs2[0])) / 2;
         const blockBase = paint ? (finish === 'hook' || finish === 'layup' ? 0.14 : finish === 'floater' ? 0.10 : BLOCK_ON_MISS.mid) : BLOCK_ON_MISS[z];
         const typeBlock = finish === 'dunk' ? 0.45 : finish === 'tip' ? 0.7 : 1;
-        const blkP = cl(BLK_CAL * 1.18 * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? contestExposure * Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
+        const blkP = cl(BLK_CAL * blockBase * typeBlock * Math.exp((blkT - (n.blk ?? 58)) / 22) * (1 + 0.3 * rimPro) * (close ? contestExposure * Math.exp((55 - sh.r.hgt) / 150) : 1) * (cre && cm ? CRE_BLK[cre] / cm.blk : 1), 0, 0.95);
         if (Math.random() < blkP) {
           blocked = true;
           const bl = wpick(onD, p => Math.pow(Math.max(BLOCK_FLOOR, blockSkill(p.r)), 3) * roleK(p, 'Rim protector', 1.6) * (p === man ? 1.5 : 1));

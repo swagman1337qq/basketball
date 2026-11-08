@@ -87,7 +87,7 @@ export function computeAwards(g: Game, s: any): SeasonAwards {
       vars = { ...vars, ...wonVars(s, Y, pid, defs) };
       const v = fn.run(vars);
       return v <= INELIGIBLE ? null : { pid, v, x, tid: x.tid };
-    }).filter(Boolean).sort((a, b) => b.v - a.v);
+    }).filter(Boolean).sort((a: any, b: any) => b.v - a.v) as any[];
     const lineOf = (e: any) => d.mip && prevAdv[e.pid] ? statLine(e.x, d.showStats) + ' · ' + (e.x.pts - prevAdv[e.pid].pts >= 0 ? '+' : '') + f1(e.x.pts - prevAdv[e.pid].pts) + ' pts vs last year' : statLine(e.x, d.showStats);
     if (d.numTeams) {
       const tms = teamsOf(scored, d.numTeams, P, d.shortName !== 'ALR');

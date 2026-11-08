@@ -7,7 +7,13 @@
 //
 //   npx tsx scripts/measureOvr.mts <games> <seed> <out.json>      one worker (run several seeds, then combine)
 //   npx tsx scripts/measureOvr.mts combine out1.json out2.json ...  solves the regression and prints the weights
-import { readFileSync, writeFileSync } from 'fs';
+//   npm run test:ratings  (measureOvr.mts check [games] [workers])  the guard after an engine change, below
+//   npx tsx scripts/measureOvr.mts baseline [games] [workers]       records the values the guard checks against
+import { mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { spawn } from 'child_process';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { FEEL_W, OVR_W } from '../src/engine/ratings';
 import { Game } from '../src/engine/Game';
 import { GameSim } from '../src/engine/sim';
 import { mulberry32 } from '../src/engine/rng';
@@ -43,7 +49,8 @@ function work(N: number, seed: number, out: string) {
   }
 }
 
-function combine(files: string[]) {
+// The regression from saved worker files: each coefficient (net per 100 for +10 across a group's rotation) and its standard error.
+function solve(files: string[]) {
   const parts = files.map(f => JSON.parse(readFileSync(f, 'utf8'))), K = NF + 1;
   const XX = Array.from({ length: K }, (_, u) => Array.from({ length: K }, (_, v) => parts.reduce((a, p) => a + p.XX[u][v], 0))), Xy = Array.from({ length: K }, (_, u) => parts.reduce((a, p) => a + p.Xy[u], 0)), n = parts.reduce((a, p) => a + p.n, 0);
   const M = XX.map((r, i) => [...r, Xy[i]]);
@@ -54,11 +61,17 @@ function combine(files: string[]) {
   const inv = (() => { const A = XX.map((r, i) => [...r, ...Array.from({ length: K }, (_, j) => (i === j ? 1 : 0))]);
     for (let c = 0; c < K; c++) { let pv = c; for (let r = c + 1; r < K; r++) if (Math.abs(A[r][c]) > Math.abs(A[pv][c])) pv = r; [A[c], A[pv]] = [A[pv], A[c]]; const d = A[c][c] || 1e-12; for (let k = 0; k < 2 * K; k++) A[c][k] /= d; for (let r = 0; r < K; r++) if (r !== c) { const q = A[r][c]; if (q) for (let k = 0; k < 2 * K; k++) A[r][k] -= q * A[c][k]; } }
     return A.map(r => r.slice(K)); })();
-  console.log('games', n, '| home court', beta[0].toFixed(2), 'per 100');
+  const val = (gi: number) => KEYS.map((k, ki) => { const j = 1 + gi * KEYS.length + ki; return { k, b: beta[j] * 10, se: Math.sqrt(Math.max(0, s2 * inv[j][j])) * 10 }; });
+  return { n, home: beta[0], val };
+}
+
+function combine(files: string[]) {
+  const { n, home, val } = solve(files);
+  console.log('games', n, '| home court', home.toFixed(2), 'per 100');
   const out: any = {};
   GRPS.forEach((G, gi) => {
     // A group's rotation plays about these minute shares together (a guard-heavy five: two guards, two wings, one big).
-    const v = KEYS.map((k, ki) => { const j = 1 + gi * KEYS.length + ki; return { k, b: beta[j] * 10, se: Math.sqrt(Math.max(0, s2 * inv[j][j])) * 10 }; });
+    const v = val(gi);
     const tot = v.reduce((a, x) => a + Math.max(0, x.b), 0), floor = 0.01 * tot / 0.79;
     const w = v.map(x => ({ ...x, raw: Math.max(floor, x.b) })), T = w.reduce((a, x) => a + x.raw, 0);
     out[G] = Object.fromEntries(w.map(x => [x.k, +(Math.round((100 * x.raw) / T * 2) / 2).toFixed(1)]));
@@ -67,4 +80,46 @@ function combine(files: string[]) {
   console.log(JSON.stringify(out));
 }
 
-if (process.argv[2] === 'combine') combine(process.argv.slice(3)); else work(+process.argv[2], +process.argv[3], process.argv[4]);
+// The guard (2026-11-08), for after any engine change: a fresh measurement compared with the last recorded one
+// (scripts/ratingValues.json, written by `baseline`). It fails when a rating's value in games drops clearly (more
+// than 0.1 net per 100 for +10 and 3.2 standard errors, about a 4% chance of a false alarm over all 63 ratings), the way steals once quietly stopped mattering after a
+// possession change. It also reports, without failing, ratings whose share of the value is well away from their
+// weight in the overall (ratings.ts OVR_W, FEEL_W: the overall is going stale) and ratings that count for 4% or more
+// of an overall without clearly helping win. 100,000 games: about 8 minutes on 4 cores.
+//   npm run test:ratings                                   check against the recorded values
+//   npx tsx scripts/measureOvr.mts baseline 160000          record new values (after a deliberate engine change)
+const BASE_FILE = new URL('./ratingValues.json', import.meta.url);
+async function measure(games: number, workers: number, seed0: number) {
+  const dir = mkdtempSync(join(tmpdir(), 'ovrcheck-')), files: string[] = [], self = process.argv[1];
+  await Promise.all(Array.from({ length: workers }, (_, i) => new Promise<void>((done, fail) => {
+    const out = join(dir, 'w' + i + '.json'); files.push(out);
+    const c = spawn(process.execPath, [...process.execArgv, self, String(Math.ceil(games / workers)), String(seed0 + i), out], { stdio: 'ignore' });
+    c.on('exit', code => (code === 0 ? done() : fail(new Error('worker ' + i + ' exited ' + code)))); })));
+  return solve(files);
+}
+async function baseline(games: number, workers: number) {
+  const { n, val } = await measure(games, workers, 7001);
+  const grp = (gi: number) => '{ ' + val(gi).map(x => JSON.stringify(x.k) + ': [' + +x.b.toFixed(3) + ', ' + +x.se.toFixed(3) + ']').join(', ') + ' }';
+  writeFileSync(BASE_FILE, '{\n "measured": "' + new Date().toISOString().slice(0, 10) + '",\n "games": ' + n + ',\n "note": "Net points per 100 possessions for +10 in a rating across a position group\'s rotation, with its standard error (scripts/measureOvr.mts baseline). npm run test:ratings fails when a rating falls clearly below this.",\n "values": {\n' + GRPS.map((G, gi) => '  "' + G + '": ' + grp(gi)).join(',\n') + '\n }\n}\n'); console.log('Recorded the values of ' + n + ' games in scripts/ratingValues.json');
+}
+async function check(games: number, workers: number) {
+  const base = JSON.parse(readFileSync(BASE_FILE, 'utf8')), { n, val } = await measure(games, workers, 9001), drops: string[] = [], weak: string[] = [], drift: string[] = [];
+  GRPS.forEach((G, gi) => {
+    const v = val(gi), W: Record<string, number> = { ...OVR_W[G], feel: FEEL_W[G] }, wt = KEYS.reduce((a, k) => a + (W[k] ?? 0), 0), tot = v.reduce((a, x) => a + Math.max(0, x.b), 0);
+    v.forEach(x => { const [b0, se0] = base.values[G][x.k], drop = b0 - x.b, z = drop / Math.hypot(x.se, se0), share = (100 * (W[x.k] ?? 0)) / wt, got = (100 * Math.max(0, x.b)) / tot;
+      if (drop > 0.1 && z > 3.2) drops.push(G + ' ' + x.k + ': ' + b0.toFixed(2) + ' → ' + x.b.toFixed(2) + ' ± ' + x.se.toFixed(2) + ' net per 100 for +10');
+      if (share >= 4 && x.b < 1.5 * x.se) weak.push(G + ' ' + x.k + ' (' + share.toFixed(1) + '% of the overall, ' + x.b.toFixed(2) + ')');
+      if (Math.abs(got - share) >= 4) drift.push(G + ' ' + x.k + ' ' + share.toFixed(1) + '% → ' + got.toFixed(1) + '%'); });
+    console.log(G, v.map(x => x.k + ' ' + x.b.toFixed(2)).join(' | '));
+  });
+  console.log('\n' + n + ' games, against ' + base.games + ' recorded on ' + base.measured + '.');
+  if (weak.length) console.log('Count for 4%+ of an overall without clearly helping win: ' + weak.join(', '));
+  if (drift.length) console.log('Weight → measured share, 4+ points apart (the overall is going stale): ' + drift.join(', '));
+  if (drops.length) { console.log('\nFAIL: ratings worth clearly less than recorded:\n  ' + drops.join('\n  ')); process.exit(1); }
+  console.log('PASS: no rating is worth clearly less than recorded.');
+}
+
+if (process.argv[2] === 'combine') combine(process.argv.slice(3));
+else if (process.argv[2] === 'check') await check(+(process.argv[3] || 100000), +(process.argv[4] || 4));
+else if (process.argv[2] === 'baseline') await baseline(+(process.argv[3] || 160000), +(process.argv[4] || 4));
+else work(+process.argv[2], +process.argv[3], process.argv[4]);

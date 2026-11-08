@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy-pages.sh",
     "realism": "tsx scripts/realism.mts",
+    "test:league": "tsx scripts/realism.mts --seeds 11,12 --seasons 3",
+    "test:ratings": "tsx scripts/measureOvr.mts check",
     "test:finishing": "tsx scripts/finishingKernel.mts && tsx scripts/finishingPreferences.mts && tsx scripts/finishingIntegration.mts"
   },
   "dependencies": {
