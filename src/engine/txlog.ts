@@ -5,21 +5,60 @@
 // Lives in the database (with the players), so it's saved with the league.
 import type { Game } from './Game';
 
-export interface Tx { k: 'draft' | 'sign' | 'waive' | 'trade' | 'expansion' | 'retire' | 'abroad' | 'extend' | 'request' | 'god'; season: number; date: string; tid?: number; from?: number; to?: number; trade?: number; n?: number; rd?: number; orig?: number; text?: string }
-export interface Trade { id: number; season: number; date: string; a: number; b: number; aP: number[]; bP: number[]; aK: string[]; bK: string[]; note?: string }
+export interface Tx {
+  k: 'draft' | 'sign' | 'waive' | 'trade' | 'expansion' | 'retire' | 'abroad' | 'extend' | 'request' | 'god';
+  season: number;
+  date: string;
+  tid?: number;
+  from?: number;
+  to?: number;
+  trade?: number;
+  n?: number;
+  rd?: number;
+  orig?: number;
+  text?: string;
+}
+export interface Trade {
+  id: number;
+  season: number;
+  date: string;
+  a: number;
+  b: number;
+  aP: number[];
+  bP: number[];
+  aK: string[];
+  bK: string[];
+  note?: string;
+}
 
 export const dateOf = (g: Game, s: any) => {
-  const ph = s.phase, Y = g.Y;
-  if (ph === 'regular' || ph === 'preseason') return g.dateOf(s.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  if (ph === 'fa' && s.faStart != null) return g.faDate(s, Math.max(0, s.day - s.faStart)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  return { playin: 'Apr ' + Y, playoffs: 'May ' + Y, lottery: 'May ' + Y, draft: 'Jun ' + Y, fa: 'Jul ' + Y } [ph as string] || String(Y);
+  const ph = s.phase,
+    Y = g.Y;
+  if (ph === 'regular' || ph === 'preseason')
+    return g.dateOf(s.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (ph === 'fa' && s.faStart != null)
+    return g.faDate(s, Math.max(0, s.day - s.faStart)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return { playin: 'Apr ' + Y, playoffs: 'May ' + Y, lottery: 'May ' + Y, draft: 'Jun ' + Y, fa: 'Jul ' + Y }[ph as string] || String(Y);
 };
 export function addTx(g: Game, s: any, p: any, e: Omit<Tx, 'season' | 'date'>) {
   if (!p) return;
   (p.tx = p.tx || []).push({ season: g.Y, date: dateOf(g, s), ...e });
 }
-export function recordTrade(g: Game, s: any, a: number, b: number, aP: number[], bP: number[], aK: string[] = [], bK: string[] = [], note?: string) {
-  const d: any = g.db, P = d.P, list: Trade[] = (d.trades = d.trades || []), id = list.length;
+export function recordTrade(
+  g: Game,
+  s: any,
+  a: number,
+  b: number,
+  aP: number[],
+  bP: number[],
+  aK: string[] = [],
+  bK: string[] = [],
+  note?: string,
+) {
+  const d: any = g.db,
+    P = d.P,
+    list: Trade[] = (d.trades = d.trades || []),
+    id = list.length;
   list.push({ id, season: g.Y, date: dateOf(g, s), a, b, aP: aP.slice(), bP: bP.slice(), aK: aK.slice(), bK: bK.slice(), note });
   aP.forEach(pid => addTx(g, s, P[pid], { k: 'trade', from: a, to: b, trade: id }));
   bP.forEach(pid => addTx(g, s, P[pid], { k: 'trade', from: b, to: a, trade: id }));
@@ -27,7 +66,9 @@ export function recordTrade(g: Game, s: any, a: number, b: number, aP: number[],
 }
 // A draft pick was used: remember which player it became.
 export function recordPick(g: Game, s: any, p: any, pk: { n: number; rd?: number; orig?: number }, tid: number) {
-  const rd = pk.rd || 1, orig = pk.orig ?? tid, d: any = g.db;
+  const rd = pk.rd || 1,
+    orig = pk.orig ?? tid,
+    d: any = g.db;
   (d.pickUsed = d.pickUsed || {})[g.Y + '-' + rd + '-' + orig] = { n: pk.n, pid: p.id, tid, ovr: p.ovr, pot: p.pot }; // how he rated on draft night (past drafts)
   addTx(g, s, p, { k: 'draft', tid, n: pk.n, rd, orig });
 }
@@ -41,19 +82,43 @@ export const pickTrades = (g: Game, assetId: string) => tradesOf(g).filter(t => 
 // re-signing ("extended 2028"). Players already on the roster when the league began get nothing
 // (unless they've since re-signed or extended).
 export function howAcquired(g: Game, s: any, p: any, tid: number): string {
-  const tx: Tx[] = p.tx || [], T = s.teams, yr = (e: Tx) => { const m = String(e.date || '').match(/(\d{4})$/); return m ? m[1] : String(e.season); };
+  const tx: Tx[] = p.tx || [],
+    T = s.teams,
+    yr = (e: Tx) => {
+      const m = String(e.date || '').match(/(\d{4})$/);
+      return m ? m[1] : String(e.season);
+    };
   let arrive = -1;
-  tx.forEach((e, i) => { if ((e.k === 'draft' && e.tid === tid) || (e.k === 'trade' && e.to === tid) || (e.k === 'expansion' && e.to === tid) || (e.k === 'sign' && e.tid === tid && !/^Re-signed/.test(e.text || ''))) arrive = i; });
+  tx.forEach((e, i) => {
+    if (
+      (e.k === 'draft' && e.tid === tid) ||
+      (e.k === 'trade' && e.to === tid) ||
+      (e.k === 'expansion' && e.to === tid) ||
+      (e.k === 'sign' && e.tid === tid && !/^Re-signed/.test(e.text || ''))
+    )
+      arrive = i;
+  });
   let head = '';
   if (arrive >= 0) {
     const e = tx[arrive];
-    head = e.k === 'draft' ? '#' + e.n + ' pick in ' + e.season
-      : e.k === 'trade' ? 'Traded from ' + (T[e.from!]?.abbr || '?') + ' in ' + yr(e)
-      : e.k === 'expansion' ? 'Expansion draft, ' + yr(e)
-      : /two-way/i.test(e.text || '') ? 'Signed to a two-way in ' + yr(e) : /10-day/i.test(e.text || '') ? 'Signed to a 10-day in ' + yr(e) : 'Signed as a free agent in ' + yr(e);
+    head =
+      e.k === 'draft'
+        ? '#' + e.n + ' pick in ' + e.season
+        : e.k === 'trade'
+          ? 'Traded from ' + (T[e.from!]?.abbr || '?') + ' in ' + yr(e)
+          : e.k === 'expansion'
+            ? 'Expansion draft, ' + yr(e)
+            : /two-way/i.test(e.text || '')
+              ? 'Signed to a two-way in ' + yr(e)
+              : /10-day/i.test(e.text || '')
+                ? 'Signed to a 10-day in ' + yr(e)
+                : 'Signed as a free agent in ' + yr(e);
   }
   // The latest extension or re-signing since he arrived.
-  const later = tx.slice(arrive + 1).reverse().find(e => (e.k === 'extend' && e.tid === tid) || (e.k === 'sign' && e.tid === tid && /^Re-signed/.test(e.text || '')));
+  const later = tx
+    .slice(arrive + 1)
+    .reverse()
+    .find(e => (e.k === 'extend' && e.tid === tid) || (e.k === 'sign' && e.tid === tid && /^Re-signed/.test(e.text || '')));
   const tail = later ? (later.k === 'extend' ? 'extended ' : 're-signed ') + yr(later) : '';
   return [head, tail].filter(Boolean).join(' · ');
 }
@@ -64,10 +129,12 @@ export function howAcquired(g: Game, s: any, p: any, tid: number): string {
 export function lastTeam(s: any, p: any): { tid: number; season: number; drafted?: boolean } | null {
   const T = s.teams || [];
   let best: { tid: number; season: number; drafted?: boolean } | null = null;
-  for (const r of p.stats || []) if (r.tid != null && T[r.tid] && (!best || r.season >= best.season)) best = { tid: r.tid, season: r.season };
+  for (const r of p.stats || [])
+    if (r.tid != null && T[r.tid] && (!best || r.season >= best.season)) best = { tid: r.tid, season: r.season };
   for (const e of (p.tx || []) as Tx[]) {
     const tid = e.k === 'trade' ? e.to : ['sign', 'draft', 'waive', 'expansion', 'extend'].includes(e.k) ? e.tid : undefined;
-    if (tid != null && T[tid] && (!best || e.season >= best.season)) best = { tid, season: e.season, drafted: e.k === 'draft' && !(p.stats || []).some((r: any) => r.tid === tid) };
+    if (tid != null && T[tid] && (!best || e.season >= best.season))
+      best = { tid, season: e.season, drafted: e.k === 'draft' && !(p.stats || []).some((r: any) => r.tid === tid) };
   }
   const w = p.waived?.tid ?? p.lastTid;
   if (!best && w != null && T[w]) best = { tid: w, season: p.waived?.season ?? 0 };

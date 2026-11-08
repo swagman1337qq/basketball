@@ -20,7 +20,29 @@ import { dealLine } from '../engine/mediaDeals';
 import { knownBadges } from '../engine/scoutReport';
 import { applyCoachPlans, coachAssign, coachFocus, isCoached } from '../engine/coaches';
 import { acceptance, prefYears } from '../engine/contracts';
-import { DAY, BIRD_LABEL, birdOf, capHold, checkTrade, describeContract, exceptionsOf, extWindow, maxFor, nums, qoEligible, qoFor, rosterMax, rosterMin, seasonMax, signingMethods, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf } from '../engine/cba';
+import {
+  DAY,
+  BIRD_LABEL,
+  birdOf,
+  capHold,
+  checkTrade,
+  describeContract,
+  exceptionsOf,
+  extWindow,
+  maxFor,
+  nums,
+  qoEligible,
+  qoFor,
+  rosterMax,
+  rosterMin,
+  seasonMax,
+  signingMethods,
+  stdIds,
+  teamSalary,
+  TWO_WAY_MAX,
+  twoWayIds,
+  yosOf,
+} from '../engine/cba';
 import { preFAPending } from '../engine/preFA';
 import { applyNav, loadNav, moveNav, navCustom, resetNav, stepNav } from './navLayout';
 import { applyAutoBudget, autoBudget, financesOf, ownerReview, reputation, seasonReview, aiTicketPrice } from '../engine/frontOffice';
@@ -47,265 +69,1405 @@ import { mulberry32 } from '../engine/rng';
 import { TACTIC_GROUPS } from '../engine/tactics';
 import type { VM } from './vm';
 
-export interface ViewExtras { saveId: string; saveName: string; onExit: () => void; onExport: () => void; onSwitch: (id: string) => void; saveStatus: string }
+export interface ViewExtras {
+  saveId: string;
+  saveName: string;
+  onExit: () => void;
+  onExport: () => void;
+  onSwitch: (id: string) => void;
+  saveStatus: string;
+}
 
 export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, extra: ViewExtras): VM {
-  const s = gm.state, d = gm.db, P = d.P, C = d.C, cl = gm.cl, variant = s.variant ?? 'A';
+  const s = gm.state,
+    d = gm.db,
+    P = d.P,
+    C = d.C,
+    cl = gm.cl,
+    variant = s.variant ?? 'A';
   const money = fmtMoney;
-  const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
-  const tone = v => v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(--color-neutral-500)' : 'var(--color-text)';
+  const ord = n => n + (['th', 'st', 'nd', 'rd'][((n % 100) - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+  const tone = v => (v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(--color-neutral-500)' : 'var(--color-text)');
   // Player and team pages replace the screen; Back returns to wherever you came from.
   // Back remembers where you were: the page, the tab you were on and how far you'd scrolled.
-  const mainEl = () => rootRef.current?.querySelector('main') as HTMLElement | null, curY = () => mainEl()?.scrollTop || 0;
+  const mainEl = () => rootRef.current?.querySelector('main') as HTMLElement | null,
+    curY = () => mainEl()?.scrollTop || 0;
   // Restore after the screen has drawn (long lists can take a few frames to reach full height).
-  const scrollTo = (y: number) => { let n = 0; const tick = () => { const m = mainEl(); if (m) m.scrollTop = y || 0; if (m && Math.abs(m.scrollTop - (y || 0)) > 2 && n++ < 20) setTimeout(tick, 25); }; setTimeout(tick, 0); };
+  const scrollTo = (y: number) => {
+    let n = 0;
+    const tick = () => {
+      const m = mainEl();
+      if (m) m.scrollTop = y || 0;
+      if (m && Math.abs(m.scrollTop - (y || 0)) > 2 && n++ < 20) setTimeout(tick, 25);
+    };
+    setTimeout(tick, 0);
+  };
   // A plain screen is part of the history too (with the team a Roster page was showing), so Back from
   // a team's roster returns to the page you clicked the team on.
-  const cur0 = () => (s.modal ? { p: s.pid, tab: s.ptab || 'overview', tabs: s.ptabHist || [], y: curY() } : s.teamModal != null ? { t: s.teamModal, y: curY() } : s.boxId ? null : { sc: s.screen, rv: s.rosterView || null, y: curY() });
+  const cur0 = () =>
+    s.modal
+      ? { p: s.pid, tab: s.ptab || 'overview', tabs: s.ptabHist || [], y: curY() }
+      : s.teamModal != null
+        ? { t: s.teamModal, y: curY() }
+        : s.boxId
+          ? null
+          : { sc: s.screen, rv: s.rosterView || null, y: curY() };
   // A popup list (a country, a draft class) is part of the history too: Back from a player you
   // opened from it returns to the list, with the page you opened the list from behind it.
-  const trail = st => { const c = cur0(); return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20); };
+  const trail = st => {
+    const c = cur0();
+    return [...(st.pageStack || []), ...(c ? [c] : []), ...(st.listModal ? [{ l: st.listModal }] : [])].slice(-20);
+  };
   // (the handler carries the player's id, __pid: hovering anything it's on shows his stats, PlayerHover.tsx)
-  const open = id => { const f: any = e => { e && e.stopPropagation && e.stopPropagation(); if (!P[id] || P[id].gone) return; gm.setState(st => ({ pid: id, modal: true, teamModal: null, listModal: null, ptab: 'overview', ptabHist: [], extYears: null, extAmt: null, extMsg: null, q: '', showJson: false, baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
-  f.__pid = id; return f; };
-  const go = k => () => gm.setState(st => ({ screen: k, q: '', modal: false, teamModal: null, boxId: null, awardsYear: null, rosterView: null, pageStack: [], navTick: (st.navTick || 0) + 1 })); // clicking the tab you're on starts it fresh (your team, this season)
+  const open = id => {
+    const f: any = e => {
+      e && e.stopPropagation && e.stopPropagation();
+      if (!P[id] || P[id].gone) return;
+      gm.setState(st => ({
+        pid: id,
+        modal: true,
+        teamModal: null,
+        listModal: null,
+        ptab: 'overview',
+        ptabHist: [],
+        extYears: null,
+        extAmt: null,
+        extMsg: null,
+        q: '',
+        showJson: false,
+        baseY: st.modal || st.teamModal != null ? st.baseY : curY(),
+        pageStack: trail(st),
+      }));
+      scrollTo(0);
+    };
+    f.__pid = id;
+    return f;
+  };
+  const go = k => () =>
+    gm.setState(st => ({
+      screen: k,
+      q: '',
+      modal: false,
+      teamModal: null,
+      boxId: null,
+      awardsYear: null,
+      rosterView: null,
+      pageStack: [],
+      navTick: (st.navTick || 0) + 1,
+    })); // clicking the tab you're on starts it fresh (your team, this season)
   // Clicking a team anywhere opens its Roster page (this season); the team overview is a button there.
-  const openTeam = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0 || !s.teams[tid]) return; gm.setState(st => ({ screen: 'roster', rosterView: { tid, season: gm.Y }, teamModal: null, modal: false, boxId: null, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st), navTick: (st.navTick || 0) + 1 })); scrollTo(0); };
-  const openTeamPage = tid => e => { e && e.stopPropagation && e.stopPropagation(); if (tid < 0) return; gm.setState(st => ({ teamModal: tid, modal: false, listModal: null, q: '', baseY: st.modal || st.teamModal != null ? st.baseY : curY(), pageStack: trail(st) })); scrollTo(0); };
+  const openTeam = tid => e => {
+    e && e.stopPropagation && e.stopPropagation();
+    if (tid < 0 || !s.teams[tid]) return;
+    gm.setState(st => ({
+      screen: 'roster',
+      rosterView: { tid, season: gm.Y },
+      teamModal: null,
+      modal: false,
+      boxId: null,
+      listModal: null,
+      q: '',
+      baseY: st.modal || st.teamModal != null ? st.baseY : curY(),
+      pageStack: trail(st),
+      navTick: (st.navTick || 0) + 1,
+    }));
+    scrollTo(0);
+  };
+  const openTeamPage = tid => e => {
+    e && e.stopPropagation && e.stopPropagation();
+    if (tid < 0) return;
+    gm.setState(st => ({
+      teamModal: tid,
+      modal: false,
+      listModal: null,
+      q: '',
+      baseY: st.modal || st.teamModal != null ? st.baseY : curY(),
+      pageStack: trail(st),
+    }));
+    scrollTo(0);
+  };
   const goBack = () => {
     const st0 = gm.state;
     // On a player page, Back first steps back through the tabs you visited (Edit player → Overview).
-    if (st0.modal && (st0.ptabHist || []).length) { const h = st0.ptabHist.slice(), t = h.pop(); gm.setState({ ptab: t, ptabHist: h }); return; }
+    if (st0.modal && (st0.ptabHist || []).length) {
+      const h = st0.ptabHist.slice(),
+        t = h.pop();
+      gm.setState({ ptab: t, ptabHist: h });
+      return;
+    }
     let y = 0;
     gm.setState(st => {
-      const stack = (st.pageStack || []).slice(); let prev = stack.pop(), list = null;
-      if (prev && prev.l) { list = prev.l; const under = stack[stack.length - 1]; prev = under && under.l == null ? stack.pop() : null; }
+      const stack = (st.pageStack || []).slice();
+      let prev = stack.pop(),
+        list = null;
+      if (prev && prev.l) {
+        list = prev.l;
+        const under = stack[stack.length - 1];
+        prev = under && under.l == null ? stack.pop() : null;
+      }
       y = prev ? prev.y || 0 : st.baseY || 0;
-      const page = !prev ? { modal: false, teamModal: null } : prev.p != null ? { modal: true, pid: prev.p, teamModal: null, ptab: prev.tab || 'overview', ptabHist: prev.tabs || [] } : prev.sc != null ? { modal: false, teamModal: null, screen: prev.sc, rosterView: prev.rv, navTick: (st.navTick || 0) + 1 } : { teamModal: prev.t, modal: false };
+      const page = !prev
+        ? { modal: false, teamModal: null }
+        : prev.p != null
+          ? { modal: true, pid: prev.p, teamModal: null, ptab: prev.tab || 'overview', ptabHist: prev.tabs || [] }
+          : prev.sc != null
+            ? { modal: false, teamModal: null, screen: prev.sc, rosterView: prev.rv, navTick: (st.navTick || 0) + 1 }
+            : { teamModal: prev.t, modal: false };
       return { ...page, listModal: list, pageStack: stack };
     });
     scrollTo(y);
   };
-  const T = s.teams, me = T[s.me], mine = s.rosters[s.me], pct = t => gm.pct(t), mine2 = t => gm.isUser(s, t);
+  const T = s.teams,
+    me = T[s.me],
+    mine = s.rosters[s.me],
+    pct = t => gm.pct(t),
+    mine2 = t => gm.isUser(s, t);
   const spect = !!s.spectator; // Spectator Mode (spectator.ts): no team is yours
   const logo = (tid, size = 18) => (tid >= 0 && T[tid] ? createElement(TeamLogo, { team: T[tid], size }) : null);
   const myName = me.region + ' ' + me.name;
-  const tidOf = {}; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => tidOf[id] = +t)); s.fa.forEach(id => tidOf[id] = -1); (s.overseas || []).forEach(id => tidOf[id] = -2);
-  const fpct = t => pct(t).toFixed(3).replace(/^0/, ''), byPct = (a, b) => pct(b) - pct(a) || b.w - a.w;
-  const gb = (t, lead) => { const g = ((lead.w - t.w) + (t.l - lead.l)) / 2; return g <= 0 ? '—' : String(g); };
-  const strk = t => { const q = t.seq; if (!q.length) return '—'; const last = q[q.length - 1]; let n = 0; for (let i = q.length - 1; i >= 0 && q[i] === last; i--) n++; return (last ? 'W' : 'L') + n; };
-  const l10 = t => { const q = t.seq.slice(-10), w = q.filter(Boolean).length; return w + '–' + (q.length - w); };
-  const payroll = teamSalary(gm, s, s.me), capRoom = +(gm.CAP - payroll).toFixed(2);
-  const confT = T.filter(t => t.conf === me.conf).sort(byPct), seed = confT.indexOf(me) + 1;
-  const dateLong = (s.phase === 'fa' ? gm.faDate(s) : gm.dateOf(s.day)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const lastKey = r => (String(r.last ?? (r.familyFirst ? String(r.name).split(' ')[0] : String(r.name).split(' ').slice(-1)[0])) + ' ' + r.name).toLowerCase();
-  const sortBy = (arr, [k, dir]) => arr.slice().sort((a, b) => { const x = k === 'name' ? lastKey(a) : a[k], y = k === 'name' ? lastKey(b) : b[k]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir; });
-  const hdr = (tbl, cols) => cols.map(([k, label, al]) => { const [sk, sd] = s.sort[tbl]; return { key: k, label, align: al || 'right', arrow: sk === k ? (sd > 0 ? ' ↑' : ' ↓') : '', color: sk === k ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)', onClick: () => gm.setState(st => ({ sort: { ...st.sort, [tbl]: [k, st.sort[tbl][0] === k ? -st.sort[tbl][1] : (['rk', 'name', 'pos', 'last', 'rank', 'fromT', 'age', 'mood'].includes(k) ? 1 : -1)] } })) }; });
+  const tidOf = {};
+  Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => (tidOf[id] = +t)));
+  s.fa.forEach(id => (tidOf[id] = -1));
+  (s.overseas || []).forEach(id => (tidOf[id] = -2));
+  const fpct = t => pct(t).toFixed(3).replace(/^0/, ''),
+    byPct = (a, b) => pct(b) - pct(a) || b.w - a.w;
+  const gb = (t, lead) => {
+    const g = (lead.w - t.w + (t.l - lead.l)) / 2;
+    return g <= 0 ? '—' : String(g);
+  };
+  const strk = t => {
+    const q = t.seq;
+    if (!q.length) return '—';
+    const last = q[q.length - 1];
+    let n = 0;
+    for (let i = q.length - 1; i >= 0 && q[i] === last; i--) n++;
+    return (last ? 'W' : 'L') + n;
+  };
+  const l10 = t => {
+    const q = t.seq.slice(-10),
+      w = q.filter(Boolean).length;
+    return w + '–' + (q.length - w);
+  };
+  const payroll = teamSalary(gm, s, s.me),
+    capRoom = +(gm.CAP - payroll).toFixed(2);
+  const confT = T.filter(t => t.conf === me.conf).sort(byPct),
+    seed = confT.indexOf(me) + 1;
+  const dateLong = (s.phase === 'fa' ? gm.faDate(s) : gm.dateOf(s.day)).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const lastKey = r =>
+    (
+      String(r.last ?? (r.familyFirst ? String(r.name).split(' ')[0] : String(r.name).split(' ').slice(-1)[0])) +
+      ' ' +
+      r.name
+    ).toLowerCase();
+  const sortBy = (arr, [k, dir]) =>
+    arr.slice().sort((a, b) => {
+      const x = k === 'name' ? lastKey(a) : a[k],
+        y = k === 'name' ? lastKey(b) : b[k];
+      return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir;
+    });
+  const hdr = (tbl, cols) =>
+    cols.map(([k, label, al]) => {
+      const [sk, sd] = s.sort[tbl];
+      return {
+        key: k,
+        label,
+        align: al || 'right',
+        arrow: sk === k ? (sd > 0 ? ' ↑' : ' ↓') : '',
+        color: sk === k ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)',
+        onClick: () =>
+          gm.setState(st => ({
+            sort: {
+              ...st.sort,
+              [tbl]: [
+                k,
+                st.sort[tbl][0] === k
+                  ? -st.sort[tbl][1]
+                  : ['rk', 'name', 'pos', 'last', 'rank', 'fromT', 'age', 'mood'].includes(k)
+                    ? 1
+                    : -1,
+              ],
+            },
+          })),
+      };
+    });
   // Potential as you see it (potential.ts): God Mode the truth, your staff's read of your own players,
   // your scouts' read of everyone else (a prospect in a later class is fuzzier still, as on the draft board).
-  const ownIds = new Set<number>((s.managed || []).flatMap(t => s.rosters[t] || [])), mySd = scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting);
-  const potOf = (p, id) => { const v = potView(p, { god: !!s.god, own: ownIds.has(id), tid: s.me, sd: mySd }); if (s.god || ownIds.has(id) || !p.cls || p.cls <= gm.Y) return v; const yo = p.cls - gm.Y, scoutF = 1.5 - ((s.budget?.Scouting ?? 4) - 1) / 11; return Math.max(p.ovr, Math.round(v + (p.nz?.[1] ?? 0) * yo * 5 * scoutF * 1.6)); };
-  const pBase = id => { const p = P[id]; return { ...p, pot: potOf(p, id), topBadges: knownBadges(gm, s, p).list.slice(0, 3), native: p.native || '', injTag: p.inj ? 'Out ' + gm.injText(p, true) + ' · ' + p.inj.name : '', flag: gm.flag(p.rep), cname: C[p.rep].n, tone: tone(p.ovr), ptone: tone(potOf(p, id)), open: open(id) }; };
+  const ownIds = new Set<number>((s.managed || []).flatMap(t => s.rosters[t] || [])),
+    mySd = scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting);
+  const potOf = (p, id) => {
+    const v = potView(p, { god: !!s.god, own: ownIds.has(id), tid: s.me, sd: mySd });
+    if (s.god || ownIds.has(id) || !p.cls || p.cls <= gm.Y) return v;
+    const yo = p.cls - gm.Y,
+      scoutF = 1.5 - ((s.budget?.Scouting ?? 4) - 1) / 11;
+    return Math.max(p.ovr, Math.round(v + (p.nz?.[1] ?? 0) * yo * 5 * scoutF * 1.6));
+  };
+  const pBase = id => {
+    const p = P[id];
+    return {
+      ...p,
+      pot: potOf(p, id),
+      topBadges: knownBadges(gm, s, p).list.slice(0, 3),
+      native: p.native || '',
+      injTag: p.inj ? 'Out ' + gm.injText(p, true) + ' · ' + p.inj.name : '',
+      flag: gm.flag(p.rep),
+      cname: C[p.rep].n,
+      tone: tone(p.ovr),
+      ptone: tone(potOf(p, id)),
+      open: open(id),
+    };
+  };
   const strat = gm.strategies(T);
-  const STRAT = { rebuild: ['Rebuilding', 'Prioritizing draft capital and young upside. Willing to absorb unfavorable contracts as the cost of acquiring picks.'], middle: ['On the rise', 'Building around a young core. Values high-upside players and is reluctant to move picks except for a priority target.'], contend: ['Contending', 'In win-now mode. Will part with draft picks for proven, immediate contributors.'] };
+  const STRAT = {
+    rebuild: [
+      'Rebuilding',
+      'Prioritizing draft capital and young upside. Willing to absorb unfavorable contracts as the cost of acquiring picks.',
+    ],
+    middle: [
+      'On the rise',
+      'Building around a young core. Values high-upside players and is reluctant to move picks except for a priority target.',
+    ],
+    contend: ['Contending', 'In win-now mode. Will part with draft picks for proven, immediate contributors.'],
+  };
 
   // Mailbox (MailboxScreen): pop-ups you haven't seen there yet, an unread owner letter and offer sheets waiting on you.
-  const mailNew = ((s.mail || []).filter((m: any) => (m.seq || 0) > (s.mailRead || 0)).length) + (s.letterUnread ? 1 : 0) + (s.offerSheets || []).filter((o: any) => s.managed.includes(o.to)).length + (s.agentCalls || []).filter((c: any) => !(s.mail || []).some((m: any) => m.callId === c.id && (m.seq || 0) > (s.mailRead || 0))).length;
-  const NAV = [['dash', 'Dashboard', 'Team'], ...(s.managed.length > 1 || s.god ? [['teams', 'My teams', 'League']] : []), ['standings', 'Standings', 'League'], ['schedule', 'Team schedule', 'Team'], ['daily', 'Daily schedule', 'League'], ['tx', 'Transactions', 'League'], ['playoffs', 'Playoffs', 'League'], ['awards', 'Awards', 'League'], ['preds', 'Predictions', 'League'], ['hof', 'Hall of Fame', 'League'], ['stats', 'Stats', 'League'], ['leaders', 'League leaders', 'League'], ['caps', 'Cap outlook', 'League'], ['lgfin', 'League finances', 'League'], ['settings', 'Settings', 'League'], ['tutorial', 'Tutorial', 'League'], ['changelog', 'What\'s new', 'League'], ...(s.god ? [['editor', 'League editor', 'League']] : []), ['roster', 'Roster', 'Team'], ['depth', 'Depth chart', 'Team'], ['dev', 'Development', 'Team'], ['tactics', 'Tactics', 'Team'], ['fin', 'Finances', 'Team'], ['capsheet', 'Cap sheet', 'Team'], ['contracts', 'Contracts', 'Team'], ['history', 'Team history', 'Team'], ['mail', 'Mailbox' + (mailNew ? ' · ' + mailNew : ''), 'Management'], ['trade', 'Trade', 'Management'], ['prefa', 'Pre-Free Agency', 'Management'], ['fa', 'Free agency', 'Management'], ['ccp', 'CCP', 'Management'], ['draft', 'Draft', 'Management'], ['short', 'Shortlist', 'Management'], ['scouting', 'Scouting', 'Management'], ['overseas', 'Overseas', 'Management'], ['owner', 'Owner', 'Management'], ['career', 'Career', 'Management'], ...(s.god ? [['cards', 'Player cards', 'Management'], ['draftClasses', 'Draft classes', 'Management']] : []), ['press', 'Press room', 'League']];
-  const ICON = { mail: ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm22 6-10 7L2 6'], prefa: ['M9 3h6v3H9z', 'M8 4.5H6a2 2 0 0 0-2 2V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2', 'm9 14 2 2 4-4'], daily: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm9 16 2 2 4-4'], cards: ['M3 5h14v14H3z', 'M7 1h14v14', 'M6 9h8', 'M6 13h5'], draftClasses: ['M4 4h16v16H4z', 'M4 9h16', 'M9 9v11', 'M12 13h5', 'M12 16h5'], ccp: ['M14.6 4.4a7.6 7.6 0 1 1-9.4 10.5', 'M5.4 14.6 3 18.6', 'M7.8 7.8 18.4 18.4', 'M4.6 10 10 4.6'], contracts: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M8 13h8', 'M8 17h5'], changelog: ['M12 8v4l3 2', 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'], preds: ['M12 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M9 10a3 3 0 0 1 3-3', 'M7 21h10', 'M9 17l-1 4', 'M15 17l1 4'], dash: ['m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'], standings: ['M3 3v18h18', 'M18 17V9', 'M13 17V5', 'M8 17v-3'], roster: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75', 'M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0'], depth: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'], player: ['M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0'], fin: ['M12 2v20', 'M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'], trade: ['M8 3 4 7l4 4', 'M4 7h16', 'm16 21 4-4-4-4', 'M20 17H4'], fa: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'], draft: ['M10 6h11', 'M10 12h11', 'M10 18h11', 'M4 6h1v4', 'M4 10h2', 'M6 18H4c0-1 2-2 2-3s-1-1.5-2-1'], dev: ['m22 7-8.5 8.5-5-5L2 17', 'M16 7h6v6'], tactics: ['M3 4h18v16H3z', 'M12 4v16', 'M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4'], scouting: ['M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0'], overseas: ['M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', 'M2 12h20', 'M12 2a15 15 0 0 1 0 20', 'M12 2a15 15 0 0 0 0 20'], owner: ['M2 20h20', 'M4 20V9l8-5 8 5v11', 'M9 20v-6h6v6'], playoffs: ['M6 9H4.5a2.5 2.5 0 0 1 0-5H6', 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18', 'M4 22h16', 'M18 2H6v7a6 6 0 0 0 12 0V2Z'], settings: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'], schedule: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'], tx: ['M22 12h-4l-3 9L9 3l-3 9H2'], short: ['m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z'], awards: ['M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15', 'M11 12 5.12 2.2', 'm13 12 5.88-9.8', 'M8 7h8', 'M17 17a5 5 0 1 1-10 0 5 5 0 0 1 10 0'], caps: ['M3 3v18h18', 'M7 14l4-4 4 4 5-6'], lgfin: ['M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z', 'M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0', 'M6 12h.01', 'M18 12h.01'], stats: ['M3 3v18h18', 'M7 16V10', 'M12 16V6', 'M17 16v-4'], leaders: ['M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z', 'M5 21h14'], tutorial: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3', 'M12 17h.01'], capsheet: ['M4 4h16v16H4z', 'M4 9h16', 'M4 14h16', 'M10 4v16'], history: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5', 'M12 7v5l4 2'], hof: ['M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.5 6.5 19.5l1-6.3L3 8.9 9 8z'], editor: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'], league: ['M3 3v18h18', 'M7 16l4-6 4 3 5-8'], career: ['M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16', 'M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z'], press: ['M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2', 'M18 14h-8', 'M15 18h-5', 'M10 6h8v4h-8V6Z'], teams: ['M12 2 2 7l10 5 10-5-10-5Z', 'm2 17 10 5 10-5', 'm2 12 10 5 10-5'], search: ['m21 21-4.3-4.3', 'M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0'] };
-  const icon = k => { const sz = k === 'search' ? 15 : 19; return createElement('svg', { width: sz, height: sz, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' }, ...ICON[k].map((dd, i) => createElement('path', { d: dd, key: i }))); };
-  const SPEC_HIDE = new Set(['mail', 'teams', 'schedule', 'depth', 'dev', 'tactics', 'fin', 'capsheet', 'contracts', 'trade', 'prefa', 'fa', 'ccp', 'short', 'scouting', 'overseas', 'owner', 'career', 'cards']);
-  const NAVS = spect ? NAV.filter(([k]) => !SPEC_HIDE.has(k)).map(([k, l]) => [k, k === 'roster' ? 'Rosters' : l, 'League']) : NAV, scr = spect && SPEC_HIDE.has(s.screen) ? 'dash' : s.screen;
-  const nav = NAVS.map(([k, label, grp]) => { const on = s.screen === k, pink = !!s.god && (k === 'cards' || k === 'draftClasses' || k === 'editor' || (k === 'teams' && s.managed.length <= 1)); /* God Mode tools wear God Mode pink */ const A = pink ? GOD_PINK : 'var(--color-accent)'; return { key: k, label, grp, go: k === 'tutorial' ? () => gm.setState({ tour: 0, tourMode: null }) : go(k), icon: icon(k), color: pink ? GOD_PINK : on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on || pink ? 600 : 400, dot: on ? A : pink ? GOD_PINK : 'transparent', ul: on ? A : 'transparent', ring: on ? 'inset 0 0 0 1px ' + A : 'none' }; });
+  const mailNew =
+    (s.mail || []).filter((m: any) => (m.seq || 0) > (s.mailRead || 0)).length +
+    (s.letterUnread ? 1 : 0) +
+    (s.offerSheets || []).filter((o: any) => s.managed.includes(o.to)).length +
+    (s.agentCalls || []).filter((c: any) => !(s.mail || []).some((m: any) => m.callId === c.id && (m.seq || 0) > (s.mailRead || 0))).length;
+  const NAV = [
+    ['dash', 'Dashboard', 'Team'],
+    ...(s.managed.length > 1 || s.god ? [['teams', 'My teams', 'League']] : []),
+    ['standings', 'Standings', 'League'],
+    ['schedule', 'Team schedule', 'Team'],
+    ['daily', 'Daily schedule', 'League'],
+    ['tx', 'Transactions', 'League'],
+    ['playoffs', 'Playoffs', 'League'],
+    ['awards', 'Awards', 'League'],
+    ['preds', 'Predictions', 'League'],
+    ['hof', 'Hall of Fame', 'League'],
+    ['stats', 'Stats', 'League'],
+    ['leaders', 'League leaders', 'League'],
+    ['caps', 'Cap outlook', 'League'],
+    ['lgfin', 'League finances', 'League'],
+    ['settings', 'Settings', 'League'],
+    ['tutorial', 'Tutorial', 'League'],
+    ['changelog', "What's new", 'League'],
+    ...(s.god ? [['editor', 'League editor', 'League']] : []),
+    ['roster', 'Roster', 'Team'],
+    ['depth', 'Depth chart', 'Team'],
+    ['dev', 'Development', 'Team'],
+    ['tactics', 'Tactics', 'Team'],
+    ['fin', 'Finances', 'Team'],
+    ['capsheet', 'Cap sheet', 'Team'],
+    ['contracts', 'Contracts', 'Team'],
+    ['history', 'Team history', 'Team'],
+    ['mail', 'Mailbox' + (mailNew ? ' · ' + mailNew : ''), 'Management'],
+    ['trade', 'Trade', 'Management'],
+    ['prefa', 'Pre-Free Agency', 'Management'],
+    ['fa', 'Free agency', 'Management'],
+    ['ccp', 'CCP', 'Management'],
+    ['draft', 'Draft', 'Management'],
+    ['short', 'Shortlist', 'Management'],
+    ['scouting', 'Scouting', 'Management'],
+    ['overseas', 'Overseas', 'Management'],
+    ['owner', 'Owner', 'Management'],
+    ['career', 'Career', 'Management'],
+    ...(s.god
+      ? [
+          ['cards', 'Player cards', 'Management'],
+          ['draftClasses', 'Draft classes', 'Management'],
+        ]
+      : []),
+    ['press', 'Press room', 'League'],
+  ];
+  const ICON = {
+    mail: ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm22 6-10 7L2 6'],
+    prefa: ['M9 3h6v3H9z', 'M8 4.5H6a2 2 0 0 0-2 2V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2', 'm9 14 2 2 4-4'],
+    daily: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm9 16 2 2 4-4'],
+    cards: ['M3 5h14v14H3z', 'M7 1h14v14', 'M6 9h8', 'M6 13h5'],
+    draftClasses: ['M4 4h16v16H4z', 'M4 9h16', 'M9 9v11', 'M12 13h5', 'M12 16h5'],
+    ccp: ['M14.6 4.4a7.6 7.6 0 1 1-9.4 10.5', 'M5.4 14.6 3 18.6', 'M7.8 7.8 18.4 18.4', 'M4.6 10 10 4.6'],
+    contracts: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M8 13h8', 'M8 17h5'],
+    changelog: ['M12 8v4l3 2', 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'],
+    preds: ['M12 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z', 'M9 10a3 3 0 0 1 3-3', 'M7 21h10', 'M9 17l-1 4', 'M15 17l1 4'],
+    dash: ['m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'],
+    standings: ['M3 3v18h18', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
+    roster: [
+      'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2',
+      'M22 21v-2a4 4 0 0 0-3-3.87',
+      'M16 3.13a4 4 0 0 1 0 7.75',
+      'M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+    ],
+    depth: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
+    player: ['M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0'],
+    fin: ['M12 2v20', 'M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
+    trade: ['M8 3 4 7l4 4', 'M4 7h16', 'm16 21 4-4-4-4', 'M20 17H4'],
+    fa: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'],
+    draft: ['M10 6h11', 'M10 12h11', 'M10 18h11', 'M4 6h1v4', 'M4 10h2', 'M6 18H4c0-1 2-2 2-3s-1-1.5-2-1'],
+    dev: ['m22 7-8.5 8.5-5-5L2 17', 'M16 7h6v6'],
+    tactics: ['M3 4h18v16H3z', 'M12 4v16', 'M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4'],
+    scouting: ['M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0'],
+    overseas: ['M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', 'M2 12h20', 'M12 2a15 15 0 0 1 0 20', 'M12 2a15 15 0 0 0 0 20'],
+    owner: ['M2 20h20', 'M4 20V9l8-5 8 5v11', 'M9 20v-6h6v6'],
+    playoffs: ['M6 9H4.5a2.5 2.5 0 0 1 0-5H6', 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18', 'M4 22h16', 'M18 2H6v7a6 6 0 0 0 12 0V2Z'],
+    settings: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
+    schedule: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'],
+    tx: ['M22 12h-4l-3 9L9 3l-3 9H2'],
+    short: ['m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z'],
+    awards: [
+      'M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15',
+      'M11 12 5.12 2.2',
+      'm13 12 5.88-9.8',
+      'M8 7h8',
+      'M17 17a5 5 0 1 1-10 0 5 5 0 0 1 10 0',
+    ],
+    caps: ['M3 3v18h18', 'M7 14l4-4 4 4 5-6'],
+    lgfin: [
+      'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z',
+      'M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
+      'M6 12h.01',
+      'M18 12h.01',
+    ],
+    stats: ['M3 3v18h18', 'M7 16V10', 'M12 16V6', 'M17 16v-4'],
+    leaders: [
+      'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
+      'M5 21h14',
+    ],
+    tutorial: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3', 'M12 17h.01'],
+    capsheet: ['M4 4h16v16H4z', 'M4 9h16', 'M4 14h16', 'M10 4v16'],
+    history: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5', 'M12 7v5l4 2'],
+    hof: ['M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.5 6.5 19.5l1-6.3L3 8.9 9 8z'],
+    editor: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'],
+    league: ['M3 3v18h18', 'M7 16l4-6 4 3 5-8'],
+    career: ['M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16', 'M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z'],
+    press: [
+      'M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2',
+      'M18 14h-8',
+      'M15 18h-5',
+      'M10 6h8v4h-8V6Z',
+    ],
+    teams: ['M12 2 2 7l10 5 10-5-10-5Z', 'm2 17 10 5 10-5', 'm2 12 10 5 10-5'],
+    search: ['m21 21-4.3-4.3', 'M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0'],
+  };
+  const icon = k => {
+    const sz = k === 'search' ? 15 : 19;
+    return createElement(
+      'svg',
+      {
+        width: sz,
+        height: sz,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.6,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      },
+      ...ICON[k].map((dd, i) => createElement('path', { d: dd, key: i })),
+    );
+  };
+  const SPEC_HIDE = new Set([
+    'mail',
+    'teams',
+    'schedule',
+    'depth',
+    'dev',
+    'tactics',
+    'fin',
+    'capsheet',
+    'contracts',
+    'trade',
+    'prefa',
+    'fa',
+    'ccp',
+    'short',
+    'scouting',
+    'overseas',
+    'owner',
+    'career',
+    'cards',
+  ]);
+  const NAVS = spect ? NAV.filter(([k]) => !SPEC_HIDE.has(k)).map(([k, l]) => [k, k === 'roster' ? 'Rosters' : l, 'League']) : NAV,
+    scr = spect && SPEC_HIDE.has(s.screen) ? 'dash' : s.screen;
+  const nav = NAVS.map(([k, label, grp]) => {
+    const on = s.screen === k,
+      pink = !!s.god && (k === 'cards' || k === 'draftClasses' || k === 'editor' || (k === 'teams' && s.managed.length <= 1));
+    /* God Mode tools wear God Mode pink */ const A = pink ? GOD_PINK : 'var(--color-accent)';
+    return {
+      key: k,
+      label,
+      grp,
+      go: k === 'tutorial' ? () => gm.setState({ tour: 0, tourMode: null }) : go(k),
+      icon: icon(k),
+      color: pink ? GOD_PINK : on ? 'var(--color-accent-700)' : 'var(--color-text)',
+      fw: on || pink ? 600 : 400,
+      dot: on ? A : pink ? GOD_PINK : 'transparent',
+      ul: on ? A : 'transparent',
+      ring: on ? 'inset 0 0 0 1px ' + A : 'none',
+    };
+  });
   // Your own menu order and sections (navLayout.ts): drag tabs in the sidebar, or Arrange with the arrows.
-  const NAV_GROUPS = ['Team', 'Management', 'League'], navL = loadNav(), navOrd = applyNav(nav, navL, NAV_GROUPS, spect);
+  const NAV_GROUPS = ['Team', 'Management', 'League'],
+    navL = loadNav(),
+    navOrd = applyNav(nav, navL, NAV_GROUPS, spect);
   const navGroups = NAV_GROUPS.map(g => ({ label: g, items: navOrd.filter(n => n.grp === g) })).filter(g => g.items.length);
-  const navEdit = { custom: navCustom(navL), arrange: !!s.navArrange, toggleArrange: () => gm.setState(st => ({ navArrange: !st.navArrange })), redraw: () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })),
-    move: (key: string, toGrp: string, before: string | null) => { moveNav(navOrd, key, spect ? (navOrd.find(n => n.key === key)?.grp ?? toGrp) : toGrp, before); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); },
-    step: (key: string, dir: -1 | 1) => { stepNav(navOrd, key, dir, spect ? ['League'] : NAV_GROUPS); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); },
-    reset: () => { resetNav(); gm.setState(st => ({ gv: (st.gv || 0) + 1, navArrange: false })); } };
-  const is: any = {}; NAV.forEach(([k]) => is[k] = scr === k); is.cards = s.screen === 'cards' && !!s.god; is.draftClasses = s.screen === 'draftClasses' && !!s.god; is.game = s.screen === 'game'; is.playin = s.screen === 'playin'; is.lottery = s.screen === 'lottery';
+  const navEdit = {
+    custom: navCustom(navL),
+    arrange: !!s.navArrange,
+    toggleArrange: () => gm.setState(st => ({ navArrange: !st.navArrange })),
+    redraw: () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })),
+    move: (key: string, toGrp: string, before: string | null) => {
+      moveNav(navOrd, key, spect ? (navOrd.find(n => n.key === key)?.grp ?? toGrp) : toGrp, before);
+      gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+    },
+    step: (key: string, dir: -1 | 1) => {
+      stepNav(navOrd, key, dir, spect ? ['League'] : NAV_GROUPS);
+      gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+    },
+    reset: () => {
+      resetNav();
+      gm.setState(st => ({ gv: (st.gv || 0) + 1, navArrange: false }));
+    },
+  };
+  const is: any = {};
+  NAV.forEach(([k]) => (is[k] = scr === k));
+  is.cards = s.screen === 'cards' && !!s.god;
+  is.draftClasses = s.screen === 'draftClasses' && !!s.god;
+  is.game = s.screen === 'game';
+  is.playin = s.screen === 'playin';
+  is.lottery = s.screen === 'lottery';
 
   // Your next game: the regular-season schedule, or your next play-in / playoff game.
   const post = s.phase === 'playin' || s.phase === 'playoffs' ? gm.nextPostGame(s, s.me) : null;
   const regularGame = gm.nextUserGame(s.day);
   const toNext = regularGame ? regularGame.day - s.day + 1 : 1;
   const toWeek = gm.db.calendarV ? 7 : 4;
-  const g = post ? { opp: post.home === s.me ? post.away : post.home, home: post.home === s.me } : regularGame ?? { opp: s.me === 0 ? 1 : 0, home: true }, opp = T[g.opp];
+  const g = post
+      ? { opp: post.home === s.me ? post.away : post.home, home: post.home === s.me }
+      : (regularGame ?? { opp: s.me === 0 ? 1 : 0, home: true }),
+    opp = T[g.opp];
   const canWatch = !s.simming && ((s.phase === 'regular' && !!regularGame) || !!post);
   const rest = regularGame && s.phase === 'regular' && gm.db.calendarV ? gm.restDays(s.me, regularGame.day) : null;
-  const next = { logo: logo(g.opp, 40), myLogo: logo(s.me, 40), smLogo: logo(g.opp, 22), openT: openTeam(g.opp), when: post ? post.label : regularGame ? gm.fmtS(regularGame.day) : '—', vs: g.home ? 'vs' : 'at', abbr: opp.abbr, oppName: opp.region + ' ' + opp.name, oppRec: opp.w + '–' + opp.l, myRec: me.w + '–' + me.l, line: (g.home ? 'Home · ' + me.region : 'Road · ' + opp.region) + ' · ' + ord(T.filter(t => t.conf === opp.conf).sort(byPct).indexOf(opp) + 1) + ' in the ' + opp.conf + (rest === 0 ? ' · Back-to-back' : rest != null && regularGame?.day > 0 ? ' · ' + rest + (rest === 1 ? ' day off' : ' days off') : '') };
+  const next = {
+    logo: logo(g.opp, 40),
+    myLogo: logo(s.me, 40),
+    smLogo: logo(g.opp, 22),
+    openT: openTeam(g.opp),
+    when: post ? post.label : regularGame ? gm.fmtS(regularGame.day) : '—',
+    vs: g.home ? 'vs' : 'at',
+    abbr: opp.abbr,
+    oppName: opp.region + ' ' + opp.name,
+    oppRec: opp.w + '–' + opp.l,
+    myRec: me.w + '–' + me.l,
+    line:
+      (g.home ? 'Home · ' + me.region : 'Road · ' + opp.region) +
+      ' · ' +
+      ord(
+        T.filter(t => t.conf === opp.conf)
+          .sort(byPct)
+          .indexOf(opp) + 1,
+      ) +
+      ' in the ' +
+      opp.conf +
+      (rest === 0 ? ' · Back-to-back' : rest != null && regularGame?.day > 0 ? ' · ' + rest + (rest === 1 ? ' day off' : ' days off') : ''),
+  };
   const myResults = gm.resultsOf(s, s.me);
-  const results = myResults.slice(0, 6).map(r => ({ logo: logo(r.opp, 16), openT: openTeam(r.opp), date: gm.fmtS(r.day), opp: (r.home ? 'vs ' : 'at ') + T[r.opp].abbr, wl: r.win ? 'W' : 'L', color: r.win ? 'var(--gm-good)' : 'var(--gm-bad)', score: r.us + '–' + r.them, openBox: r.bid && (gm.db as any).boxes?.[r.bid] ? () => gm.setState({ boxId: r.bid }) : null }));
+  const results = myResults.slice(0, 6).map(r => ({
+    logo: logo(r.opp, 16),
+    openT: openTeam(r.opp),
+    date: gm.fmtS(r.day),
+    opp: (r.home ? 'vs ' : 'at ') + T[r.opp].abbr,
+    wl: r.win ? 'W' : 'L',
+    color: r.win ? 'var(--gm-good)' : 'var(--gm-bad)',
+    score: r.us + '–' + r.them,
+    openBox: r.bid && (gm.db as any).boxes?.[r.bid] ? () => gm.setState({ boxId: r.bid }) : null,
+  }));
   const played = mine.map(id => P[id]).filter(p => p.gp > 0);
-  const leaders = [['pts', 'Pts'], ['reb', 'Reb'], ['ast', 'Ast']].map(([k, label]) => { const p = played.slice().sort((a, b) => b[k] - a[k])[0]; return p ? { label, name: p.name, value: p[k].toFixed(1), open: open(p.id) } : { label, name: '—', value: '', open: () => {} }; });
+  const leaders = [
+    ['pts', 'Pts'],
+    ['reb', 'Reb'],
+    ['ast', 'Ast'],
+  ].map(([k, label]) => {
+    const p = played.slice().sort((a, b) => b[k] - a[k])[0];
+    return p ? { label, name: p.name, value: p[k].toFixed(1), open: open(p.id) } : { label, name: '—', value: '', open: () => {} };
+  });
   const lineup = mine.slice(0, 5).map(id => ({ ...pBase(id), face: gm.faceEl(id, s.me) }));
-  const confMini = confT.slice(0, 10).map((t, i) => ({ logo: logo(t.tid, 18), seed: i + 1, name: t.region + ' ' + t.name, rec: t.w + '–' + t.l, gb: gb(t, confT[0]), bg: t.tid === s.me ? 'var(--color-accent-100)' : mine2(t.tid) ? 'color-mix(in srgb, var(--color-accent-100) 55%, transparent)' : 'transparent', fw: mine2(t.tid) ? 600 : 400, openT: openTeam(t.tid), line: i === 5 ? '1px solid var(--color-text)' : '1px solid var(--color-divider)' }));
-  const trOf = tid => teamRating(P, s.rosters[tid] || []), trRank = tid => 1 + T.filter(t => trOf(t.tid) > trOf(tid)).length;
+  const confMini = confT.slice(0, 10).map((t, i) => ({
+    logo: logo(t.tid, 18),
+    seed: i + 1,
+    name: t.region + ' ' + t.name,
+    rec: t.w + '–' + t.l,
+    gb: gb(t, confT[0]),
+    bg:
+      t.tid === s.me
+        ? 'var(--color-accent-100)'
+        : mine2(t.tid)
+          ? 'color-mix(in srgb, var(--color-accent-100) 55%, transparent)'
+          : 'transparent',
+    fw: mine2(t.tid) ? 600 : 400,
+    openT: openTeam(t.tid),
+    line: i === 5 ? '1px solid var(--color-text)' : '1px solid var(--color-divider)',
+  }));
+  const trOf = tid => teamRating(P, s.rosters[tid] || []),
+    trRank = tid => 1 + T.filter(t => trOf(t.tid) > trOf(tid)).length;
   const dashStats = [
     { label: 'Record', value: me.w + '–' + me.l, sub: strk(me) + ' streak · ' + l10(me) + ' in last 10' },
-    { label: me.conf + ' seed', value: ord(seed), sub: seed === 1 ? 'Leading the conference' : gb(me, confT[0]) + ' games back of ' + confT[0].abbr },
-    { label: 'Payroll', value: money(payroll), sub: (capRoom >= 0 ? money(capRoom) + ' under the cap' : money(-capRoom) + ' over the cap') + ' · ' + money(gm.TAX - payroll) + ' to the tax' },
-    { label: 'Team rating', value: String(trOf(s.me)), sub: ord(trRank(s.me)) + ' of ' + T.length + ' · ' + mine.length + '/15 players' }];
+    {
+      label: me.conf + ' seed',
+      value: ord(seed),
+      sub: seed === 1 ? 'Leading the conference' : gb(me, confT[0]) + ' games back of ' + confT[0].abbr,
+    },
+    {
+      label: 'Payroll',
+      value: money(payroll),
+      sub:
+        (capRoom >= 0 ? money(capRoom) + ' under the cap' : money(-capRoom) + ' over the cap') +
+        ' · ' +
+        money(gm.TAX - payroll) +
+        ' to the tax',
+    },
+    { label: 'Team rating', value: String(trOf(s.me)), sub: ord(trRank(s.me)) + ' of ' + T.length + ' · ' + mine.length + '/15 players' },
+  ];
 
   const byOrder = s.sort.roster[0] === 'rk' && s.sort.roster[1] === 1;
-  const moveTo = (id, to) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[st.me].filter(x => x !== id); o.splice(cl(to, 0, o.length), 0, id); return { ...gm.handOrder(st, st.me, o), sort: { ...st.sort, roster: ['rk', 1] }, dragId: null, overId: null }; });
-  const stopThen = fn => e => { e.stopPropagation(); fn(); };
-  const rows = mine.map((id, i) => ({ ...pBase(id), rk: i + 1, role: i < 5 ? 'S' : '', contract: money(P[id].amt), ...gm.moodOf(P[id], i, s),
-    up: stopThen(() => moveTo(id, i - 1)), down: stopThen(() => moveTo(id, i + 1)),
-    dragStart: e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); gm.setState({ dragId: id }); },
-    dragOver: e => { e.preventDefault(); if (s.overId !== id) gm.setState({ overId: id }); },
-    drop: e => { e.preventDefault(); const from = +e.dataTransfer.getData('text/plain'); if (from && from !== id) moveTo(from, i); else gm.setState({ dragId: null, overId: null }); },
-    bg: s.dragId === id ? 'var(--color-accent-100)' : 'transparent', dropLine: s.dragId && s.overId === id && s.dragId !== id ? 'inset 0 2px 0 var(--color-accent)' : 'none' }));
-  const rosterRows = [...sortBy(rows.slice(0, 5), s.sort.roster), ...sortBy(rows.slice(5), s.sort.roster)].map((r, i) => ({ ...r, line: i === 4 ? '1px solid var(--color-text)' : '1px solid var(--color-divider)' }));
-  const rosterCols = hdr('roster', [['rk', '#'], ['name', 'Player', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age'], ['ovr', 'Ovr'], ['pot', 'Pot'], ['amt', 'Contract'], ['exp', 'Exp'], ['gp', 'GP'], ['min', 'Min'], ['pts', 'Pts'], ['reb', 'Reb'], ['ast', 'Ast'], ['per', 'PER'], ['hap', 'Mood', 'left']]);
-  const starterOvr = mine.slice(0, 5).map(id => P[id].ovr), benchBest = Math.max(...mine.slice(5).map(id => P[id].ovr));
+  const moveTo = (id, to) =>
+    gm.setState(st => {
+      delete P[id]?.preInj;
+      /* you placed him: he stays there when he heals */ const o = st.rosters[st.me].filter(x => x !== id);
+      o.splice(cl(to, 0, o.length), 0, id);
+      return { ...gm.handOrder(st, st.me, o), sort: { ...st.sort, roster: ['rk', 1] }, dragId: null, overId: null };
+    });
+  const stopThen = fn => e => {
+    e.stopPropagation();
+    fn();
+  };
+  const rows = mine.map((id, i) => ({
+    ...pBase(id),
+    rk: i + 1,
+    role: i < 5 ? 'S' : '',
+    contract: money(P[id].amt),
+    ...gm.moodOf(P[id], i, s),
+    up: stopThen(() => moveTo(id, i - 1)),
+    down: stopThen(() => moveTo(id, i + 1)),
+    dragStart: e => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(id));
+      gm.setState({ dragId: id });
+    },
+    dragOver: e => {
+      e.preventDefault();
+      if (s.overId !== id) gm.setState({ overId: id });
+    },
+    drop: e => {
+      e.preventDefault();
+      const from = +e.dataTransfer.getData('text/plain');
+      if (from && from !== id) moveTo(from, i);
+      else gm.setState({ dragId: null, overId: null });
+    },
+    bg: s.dragId === id ? 'var(--color-accent-100)' : 'transparent',
+    dropLine: s.dragId && s.overId === id && s.dragId !== id ? 'inset 0 2px 0 var(--color-accent)' : 'none',
+  }));
+  const rosterRows = [...sortBy(rows.slice(0, 5), s.sort.roster), ...sortBy(rows.slice(5), s.sort.roster)].map((r, i) => ({
+    ...r,
+    line: i === 4 ? '1px solid var(--color-text)' : '1px solid var(--color-divider)',
+  }));
+  const rosterCols = hdr('roster', [
+    ['rk', '#'],
+    ['name', 'Player', 'left'],
+    ['pos', 'Pos', 'left'],
+    ['age', 'Age'],
+    ['ovr', 'Ovr'],
+    ['pot', 'Pot'],
+    ['amt', 'Contract'],
+    ['exp', 'Exp'],
+    ['gp', 'GP'],
+    ['min', 'Min'],
+    ['pts', 'Pts'],
+    ['reb', 'Reb'],
+    ['ast', 'Ast'],
+    ['per', 'PER'],
+    ['hap', 'Mood', 'left'],
+  ]);
+  const starterOvr = mine.slice(0, 5).map(id => P[id].ovr),
+    benchBest = Math.max(...mine.slice(5).map(id => P[id].ovr));
   const lineupHint = benchBest > Math.min(...starterOvr) ? 'Your best bench player is rated higher than one of your starters.' : '';
 
   const SL = ['PG', 'SG', 'SF', 'PF', 'C'];
-  const POSF = { PG: [1, .7, .3, .1, 0], SG: [.6, 1, .7, .2, 0], G: [.9, .9, .4, .1, 0], SF: [.2, .7, 1, .7, .2], GF: [.3, .9, .9, .4, .1], F: [.1, .4, .9, .9, .4], PF: [0, .1, .6, 1, .6], FC: [0, 0, .3, .9, .9], C: [0, 0, .1, .6, 1] };
-  const st5 = mine.slice(0, 5); let bestPerm = [0, 1, 2, 3, 4], bestFit = -1;
-  const perm = (a, k) => { if (k === a.length) { const f = a.reduce((x, pi, j) => x + (st5[pi] ? POSF[P[st5[pi]].pos][j] : 0), 0); if (f > bestFit) { bestFit = f; bestPerm = a.slice(); } return; } for (let i = k; i < a.length; i++) { [a[k], a[i]] = [a[i], a[k]]; perm(a, k + 1); [a[k], a[i]] = [a[i], a[k]]; } };
+  const POSF = {
+    PG: [1, 0.7, 0.3, 0.1, 0],
+    SG: [0.6, 1, 0.7, 0.2, 0],
+    G: [0.9, 0.9, 0.4, 0.1, 0],
+    SF: [0.2, 0.7, 1, 0.7, 0.2],
+    GF: [0.3, 0.9, 0.9, 0.4, 0.1],
+    F: [0.1, 0.4, 0.9, 0.9, 0.4],
+    PF: [0, 0.1, 0.6, 1, 0.6],
+    FC: [0, 0, 0.3, 0.9, 0.9],
+    C: [0, 0, 0.1, 0.6, 1],
+  };
+  const st5 = mine.slice(0, 5);
+  let bestPerm = [0, 1, 2, 3, 4],
+    bestFit = -1;
+  const perm = (a, k) => {
+    if (k === a.length) {
+      const f = a.reduce((x, pi, j) => x + (st5[pi] ? POSF[P[st5[pi]].pos][j] : 0), 0);
+      if (f > bestFit) {
+        bestFit = f;
+        bestPerm = a.slice();
+      }
+      return;
+    }
+    for (let i = k; i < a.length; i++) {
+      [a[k], a[i]] = [a[i], a[k]];
+      perm(a, k + 1);
+      [a[k], a[i]] = [a[i], a[k]];
+    }
+  };
   perm([0, 1, 2, 3, 4], 0);
   const benchBy = SL.map((): number[] => []);
-  mine.slice(5).forEach(id => { const f = POSF[P[id].pos]; benchBy[f.indexOf(Math.max(...f))].push(id); });
-  const depth = SL.map((pos, j) => { const sid = st5[bestPerm[j]], sp = P[sid], fit = sp ? POSF[sp.pos][j] : 0; return { pos, count: (1 + benchBy[j].length) + ' deep', s: sp ? { name: sp.name, pos: sp.pos, ovr: sp.ovr, open: open(sid), face: gm.faceEl(sid, s.me), note: fit < 0.8 ? 'Out of position' : '' } : { name: '—', pos: '', ovr: '', open: () => {}, face: null, note: '' }, bench: benchBy[j].map(id => ({ name: P[id].name, pos: P[id].pos, ovr: P[id].ovr, tone: tone(P[id].ovr), open: open(id) })) }; });
-  const roleMap = {}; mine.forEach(id => gm.rolesOf(P[id]).forEach(r => (roleMap[r] = roleMap[r] || []).push(P[id].name)));
-  const roles = roleDefs().map(([name, desc, mn, mx]) => { const ps = roleMap[name] || [], n = ps.length, stt = n < mn ? 'Thin' : n > mx ? 'Surplus' : 'Covered'; return { name, desc, count: n, target: mn + '–' + mx, status: stt, color: stt === 'Thin' ? 'var(--color-accent-800)' : stt === 'Surplus' ? 'var(--color-neutral-700)' : 'var(--color-text)', fw: stt === 'Thin' ? 600 : 400, players: ps.join(', ') || '—' }; });
+  mine.slice(5).forEach(id => {
+    const f = POSF[P[id].pos];
+    benchBy[f.indexOf(Math.max(...f))].push(id);
+  });
+  const depth = SL.map((pos, j) => {
+    const sid = st5[bestPerm[j]],
+      sp = P[sid],
+      fit = sp ? POSF[sp.pos][j] : 0;
+    return {
+      pos,
+      count: 1 + benchBy[j].length + ' deep',
+      s: sp
+        ? { name: sp.name, pos: sp.pos, ovr: sp.ovr, open: open(sid), face: gm.faceEl(sid, s.me), note: fit < 0.8 ? 'Out of position' : '' }
+        : { name: '—', pos: '', ovr: '', open: () => {}, face: null, note: '' },
+      bench: benchBy[j].map(id => ({ name: P[id].name, pos: P[id].pos, ovr: P[id].ovr, tone: tone(P[id].ovr), open: open(id) })),
+    };
+  });
+  const roleMap = {};
+  mine.forEach(id => gm.rolesOf(P[id]).forEach(r => (roleMap[r] = roleMap[r] || []).push(P[id].name)));
+  const roles = roleDefs().map(([name, desc, mn, mx]) => {
+    const ps = roleMap[name] || [],
+      n = ps.length,
+      stt = n < mn ? 'Thin' : n > mx ? 'Surplus' : 'Covered';
+    return {
+      name,
+      desc,
+      count: n,
+      target: mn + '–' + mx,
+      status: stt,
+      color: stt === 'Thin' ? 'var(--color-accent-800)' : stt === 'Surplus' ? 'var(--color-neutral-700)' : 'var(--color-text)',
+      fw: stt === 'Thin' ? 600 : 400,
+      players: ps.join(', ') || '—',
+    };
+  });
   const gaps = roles.filter(r => r.status === 'Thin').map(r => r.name);
   const grpN = k => mine.filter(id => P[id].grp === k).length;
   const avgAge = mine.reduce((a, id) => a + P[id].age, 0) / mine.length;
   const intl = mine.filter(id => P[id].rep !== 'US').length;
-  const comp = [{ label: 'Guards · wings · bigs', value: grpN('G') + ' · ' + grpN('W') + ' · ' + grpN('B'), sub: 'By listed position' }, { label: 'Average age', value: avgAge.toFixed(1), sub: mine.filter(id => P[id].age <= 23).length + ' players 23 or younger' }, { label: 'Thin spots', value: String(gaps.length), sub: gaps.slice(0, 2).join(', ') || 'Every role is covered' }, { label: 'International', value: String(intl), sub: 'Represent a country other than the US' }];
+  const comp = [
+    { label: 'Guards · wings · bigs', value: grpN('G') + ' · ' + grpN('W') + ' · ' + grpN('B'), sub: 'By listed position' },
+    { label: 'Average age', value: avgAge.toFixed(1), sub: mine.filter(id => P[id].age <= 23).length + ' players 23 or younger' },
+    { label: 'Thin spots', value: String(gaps.length), sub: gaps.slice(0, 2).join(', ') || 'Every role is covered' },
+    { label: 'International', value: String(intl), sub: 'Represent a country other than the US' },
+  ];
 
-  const pp = P[s.pid] || P[mine[0]], ptid = tidOf[pp.id];
+  const pp = P[s.pid] || P[mine[0]],
+    ptid = tidOf[pp.id];
   const pk = s.picks.find(x => x.pid === pp.id);
-  const status = ptid === s.me && !spect ? 'mine' : ptid === -1 ? 'fa' : ptid === -2 ? 'abroad' : ptid >= 0 ? 'other' : pp.retired ? 'retired' : 'pro';
+  const status =
+    ptid === s.me && !spect ? 'mine' : ptid === -1 ? 'fa' : ptid === -2 ? 'abroad' : ptid >= 0 ? 'other' : pp.retired ? 'retired' : 'pro';
   // The header's line for a player with no team (2026-10-30): retired, a prospect in a class still to come, or just
   // without a team; never "Class of 0".
-  const headStatus = () => pp.retired ? 'Retired' + (pp.retired.season ? ' after the ' + (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) + ' season' : '')
-    : pp.gone ? 'Out of the league' : pp.cls && pp.cls >= gm.Y ? 'Class of ' + pp.cls + ' prospect' : 'Free agent';
+  const headStatus = () =>
+    pp.retired
+      ? 'Retired' +
+        (pp.retired.season ? ' after the ' + (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) + ' season' : '')
+      : pp.gone
+        ? 'Out of the league'
+        : pp.cls && pp.cls >= gm.Y
+          ? 'Class of ' + pp.cls + ' prospect'
+          : 'Free agent';
   // Height in feet and inches. The height rating and the measurement move together: every 4
   // rating points is an inch (wingspan follows, so arm length for his size stays the same).
   const ftIn = (n: number) => Math.floor(n / 12) + '′' + (n % 12) + '″';
-  const POS_GRP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', SF: 'W', GF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' }, POS_NAME: Record<string, string> = { PG: 'Point guard', SG: 'Shooting guard', G: 'Guard', SF: 'Small forward', GF: 'Guard-forward', F: 'Forward', PF: 'Power forward', FC: 'Forward-center', C: 'Center' };
+  const POS_GRP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', SF: 'W', GF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' },
+    POS_NAME: Record<string, string> = {
+      PG: 'Point guard',
+      SG: 'Shooting guard',
+      G: 'Guard',
+      SF: 'Small forward',
+      GF: 'Guard-forward',
+      F: 'Forward',
+      PF: 'Power forward',
+      FC: 'Forward-center',
+      C: 'Center',
+    };
   // Height typed in feet and inches: the rating moves 4 points an inch, and wingspan follows.
-  const setHgtIn = (p: any, n: number) => { const hIn = gm.inches(p.hgt), nIn = cl(n, 66, 91), d = nIn - hIn; if (!d) return; p.hgt = ftIn(nIn); setRating(p, 'hgt', cl(p.r.hgt + d * 4, 1, 99)); if (p.wing != null) p.wing += d; };
-  const setHgt = (p: any, v: number) => { const d = Math.floor(v / 4) - Math.floor(p.r.hgt / 4), hIn = gm.inches(p.hgt), nIn = cl(hIn + d, 66, 91); setRating(p, 'hgt', v); if (nIn !== hIn) { p.hgt = ftIn(nIn); if (p.wing != null) p.wing += nIn - hIn; } };
-  const RG: any[] = [['Physical', [['hgt', 'Height'], ['stre', 'Strength'], ['spd', 'Speed'], ['acc', 'Acceleration'], ['jmp', 'Jumping'], ['endu', 'Endurance']]], ['Shooting', [['ins', 'Inside'], ['dnk', 'Dunks'], ['lay', 'Layups'], ['ft', 'Free throws'], ['fg', 'Mid-range'], ['tp', 'Three-pointers']]], ['Skill', [['oiq', 'Offensive IQ'], ['diq', 'Defensive IQ'], ['blk', 'Blocks'], ['stl', 'Steals'], ['drb', 'Dribbling'], ['pss', 'Passing'], ['reb', 'Rebounding'], ['box', 'Boxing out']]]];
+  const setHgtIn = (p: any, n: number) => {
+    const hIn = gm.inches(p.hgt),
+      nIn = cl(n, 66, 91),
+      d = nIn - hIn;
+    if (!d) return;
+    p.hgt = ftIn(nIn);
+    setRating(p, 'hgt', cl(p.r.hgt + d * 4, 1, 99));
+    if (p.wing != null) p.wing += d;
+  };
+  const setHgt = (p: any, v: number) => {
+    const d = Math.floor(v / 4) - Math.floor(p.r.hgt / 4),
+      hIn = gm.inches(p.hgt),
+      nIn = cl(hIn + d, 66, 91);
+    setRating(p, 'hgt', v);
+    if (nIn !== hIn) {
+      p.hgt = ftIn(nIn);
+      if (p.wing != null) p.wing += nIn - hIn;
+    }
+  };
+  const RG: any[] = [
+    [
+      'Physical',
+      [
+        ['hgt', 'Height'],
+        ['stre', 'Strength'],
+        ['spd', 'Speed'],
+        ['acc', 'Acceleration'],
+        ['jmp', 'Jumping'],
+        ['endu', 'Endurance'],
+      ],
+    ],
+    [
+      'Shooting',
+      [
+        ['ins', 'Inside'],
+        ['dnk', 'Dunks'],
+        ['lay', 'Layups'],
+        ['ft', 'Free throws'],
+        ['fg', 'Mid-range'],
+        ['tp', 'Three-pointers'],
+      ],
+    ],
+    [
+      'Skill',
+      [
+        ['oiq', 'Offensive IQ'],
+        ['diq', 'Defensive IQ'],
+        ['blk', 'Blocks'],
+        ['stl', 'Steals'],
+        ['drb', 'Dribbling'],
+        ['pss', 'Passing'],
+        ['reb', 'Rebounding'],
+        ['box', 'Boxing out'],
+      ],
+    ],
+  ];
   const career: any[] = [];
   if (status !== 'pro') {
     // Seasons before the league began are scouting estimates; seasons since are real totals ÷ games.
-    const first = d.firstSeason || 2027, rows = (pp.stats || []).slice().sort((a, b) => a.season - b.season || (a.po ? 1 : 0) - (b.po ? 1 : 0));
-    const firstTeam = rows.length ? T[rows[0].tid] : ptid >= 0 ? T[ptid] : null, abbr = firstTeam ? firstTeam.region + ' ' + firstTeam.name : 'Free agent';
+    const first = d.firstSeason || 2027,
+      rows = (pp.stats || []).slice().sort((a, b) => a.season - b.season || (a.po ? 1 : 0) - (b.po ? 1 : 0));
+    const firstTeam = rows.length ? T[rows[0].tid] : ptid >= 0 ? T[ptid] : null,
+      abbr = firstTeam ? firstTeam.region + ' ' + firstTeam.name : 'Free agent';
     for (let E = first - 4; E <= first - 1; E++) {
-      const k = gm.Y - E; if (pp.age - k < 19) continue;
-      const yr = E - 1, pre = yr < pp.draft, o = pp.ovr - k * (pp.age - k < 27 ? 3 : -1), f = cl((o - 36) / 30, 0.12, 1) * (pre ? 1.15 : 1);
-      career.push({ season: yr + '–' + String(yr + 1 - 2000).padStart(2, '0'), team: pre ? pp.from.team : abbr, lg: pre ? pp.from.lg : 'League (est.)', gp: pre ? ((pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA') ? 30 + (pp.id + k) % 8 : 28 + (pp.id + k) % 12) : 58 + ((pp.id * 7 + k * 13) % 24), min: (10 + Math.min(1, f) * 24).toFixed(1), pts: (Math.max(2, (o - 32) * 0.72) * f).toFixed(1), reb: (f * pp.r.reb / 7.5).toFixed(1), ast: (f * pp.r.pss / 9).toFixed(1), per: cl(15 + (o - 50) * 0.75, 3, 32).toFixed(1), fw: 400 });
+      const k = gm.Y - E;
+      if (pp.age - k < 19) continue;
+      const yr = E - 1,
+        pre = yr < pp.draft,
+        o = pp.ovr - k * (pp.age - k < 27 ? 3 : -1),
+        f = cl((o - 36) / 30, 0.12, 1) * (pre ? 1.15 : 1);
+      career.push({
+        season: yr + '–' + String(yr + 1 - 2000).padStart(2, '0'),
+        team: pre ? pp.from.team : abbr,
+        lg: pre ? pp.from.lg : 'League (est.)',
+        gp: pre
+          ? pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA'
+            ? 30 + ((pp.id + k) % 8)
+            : 28 + ((pp.id + k) % 12)
+          : 58 + ((pp.id * 7 + k * 13) % 24),
+        min: (10 + Math.min(1, f) * 24).toFixed(1),
+        pts: (Math.max(2, (o - 32) * 0.72) * f).toFixed(1),
+        reb: ((f * pp.r.reb) / 7.5).toFixed(1),
+        ast: ((f * pp.r.pss) / 9).toFixed(1),
+        per: cl(15 + (o - 50) * 0.75, 3, 32).toFixed(1),
+        fw: 400,
+      });
     }
-    rows.forEach(r => { const g1 = v => (v / r.gp).toFixed(1), t = T[r.tid];
-      career.push({ season: (r.season - 1) + '–' + String(r.season).slice(2), team: t ? t.region + ' ' + t.name : '—', lg: r.po ? 'Playoffs' : 'League', gp: r.gp, min: g1(r.min), pts: g1(r.pts), reb: g1(r.orb + r.drb), ast: g1(r.ast), per: gm.perOf(r, r.season).toFixed(1), fw: r.season === gm.Y && !r.po ? 600 : 400 }); });
+    rows.forEach(r => {
+      const g1 = v => (v / r.gp).toFixed(1),
+        t = T[r.tid];
+      career.push({
+        season: r.season - 1 + '–' + String(r.season).slice(2),
+        team: t ? t.region + ' ' + t.name : '—',
+        lg: r.po ? 'Playoffs' : 'League',
+        gp: r.gp,
+        min: g1(r.min),
+        pts: g1(r.pts),
+        reb: g1(r.orb + r.drb),
+        ast: g1(r.ast),
+        per: gm.perOf(r, r.season).toFixed(1),
+        fw: r.season === gm.Y && !r.po ? 600 : 400,
+      });
+    });
   }
   const fc = gm.face(pp.id);
-  const progB = baseline(gm, pp), progD = progB ? deltas(pp, progB.snap) : null;
-  const pl = { ...pp, progLabel: progB ? progB.label : null, progOvr: progD ? progD.ovr : null, progPot: progD ? progD.pot : null, flag: gm.flag(pp.rep), cname: C[pp.rep].n, tone: tone(pp.ovr), face: gm.faceEl(pp.id, ptid),
-    groups: RG.map(([label, ks]) => ({ label, items: ks.flatMap(([k, n]) => { const row: any = { k, name: n, v: pp.r[k], w: pp.r[k] + '%', tone: tone(pp.r[k]), d: progD && progD.r[k] != null ? progD.r[k] : null }; if (k === 'hgt') Object.assign(row, { text: pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)), hint: 'Height rating ' + pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)) + ' tall' });
-      if (k !== 'hgt' || !pp.wing) return [row];
-      // Wingspan is a measurement, not a rating: the bar shows how long his arms are for his height (the league averages +4″).
-      const hIn = gm.inches(pp.hgt), ape = pp.wing - hIn, len = wngOf(pp.wing, hIn);
-      return [row, { name: 'Wingspan', v: len, w: len + '%', tone: tone(len), text: len + ' · ' + ftIn(pp.wing), sub: (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″', hint: 'Wingspan rating ' + len + ' (counts toward his overall) · ' + ftIn(pp.wing) + ', ' + (ape >= 0 ? ape + '″ longer' : -ape + '″ shorter') + ' than his height (league average: +4″)' }];
-    }) })),
-    teamLogo: ptid >= 0 ? logo(ptid, 16) : null, teamLabel: ptid === -2 ? 'Overseas · ' + pp.abroad.club + ' (' + pp.abroad.lg + ')' : ptid >= 0 ? T[ptid].region + ' ' + T[ptid].name : ptid === -1 ? (glLabel(s, pp) ? 'CCP · ' + glLabel(s, pp) : 'Free agent') : pk ? 'Drafted #' + pk.n + ' by ' + T[gm.owner2027(pk.orig, s.assets, pk.rd)].abbr : headStatus(),
-    bio: 'Age ' + pp.age + ' · ' + pp.hgt + ' · ' + pp.wt + ' lb · ' + (() => { const fr = isPlainHS(pp.from) ? 'high school' : pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA' || pp.from.lg === 'High school' ? pp.from.team + ' (' + pp.from.lg + ')' : pp.from.team + ', ' + C[pp.from.country].n; if (status === 'pro' && !pk) return 'Playing for ' + fr; const dd = pk ? { rd: 1, pick: pk.n } : pp.dr; return dd ? 'Drafted ' + pp.draft + ' in round ' + dd.rd + ', pick #' + dd.pick + ', overall #' + ((dd.rd - 1) * 30 + dd.pick) + ' – out of ' + fr : 'Undrafted in ' + pp.draft + ' – out of ' + fr; })(),
-    contractLine: status === 'retired' ? ((s.hof || []).some(h => h.pid === pp.id) ? 'Hall of Famer · ' : '') + 'Retired after the ' + (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) + ' season, at ' + pp.retired.age : status === 'fa' ? 'Asking ' + money(gm.askFor(pp, s)) + ' per year through ' + pp.exp + ' · ' + pp.mood.toLowerCase() + ' to sign' : status === 'pro' ? 'Projected #' + d.rank[pp.id] + ' on the ' + pp.cls + ' big board' : money(pp.amt) + ' per year through ' + pp.exp,
-    bgRows: [{ k: 'Health', hasFlag: false, flag: '', v: pp.inj ? pp.inj.name + (pp.inj.dtd ? ', day-to-day: ' : ', out ') + gm.injText(pp) : 'Healthy' + ((pp.injHist || []).length ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record' : '') }, { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) }, { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' }],
+  const progB = baseline(gm, pp),
+    progD = progB ? deltas(pp, progB.snap) : null;
+  const pl = {
+    ...pp,
+    progLabel: progB ? progB.label : null,
+    progOvr: progD ? progD.ovr : null,
+    progPot: progD ? progD.pot : null,
+    flag: gm.flag(pp.rep),
+    cname: C[pp.rep].n,
+    tone: tone(pp.ovr),
+    face: gm.faceEl(pp.id, ptid),
+    groups: RG.map(([label, ks]) => ({
+      label,
+      items: ks.flatMap(([k, n]) => {
+        const row: any = {
+          k,
+          name: n,
+          v: pp.r[k],
+          w: pp.r[k] + '%',
+          tone: tone(pp.r[k]),
+          d: progD && progD.r[k] != null ? progD.r[k] : null,
+        };
+        if (k === 'hgt')
+          Object.assign(row, {
+            text: pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)),
+            hint: 'Height rating ' + pp.r.hgt + ' · ' + ftIn(gm.inches(pp.hgt)) + ' tall',
+          });
+        if (k !== 'hgt' || !pp.wing) return [row];
+        // Wingspan is a measurement, not a rating: the bar shows how long his arms are for his height (the league averages +4″).
+        const hIn = gm.inches(pp.hgt),
+          ape = pp.wing - hIn,
+          len = wngOf(pp.wing, hIn);
+        return [
+          row,
+          {
+            name: 'Wingspan',
+            v: len,
+            w: len + '%',
+            tone: tone(len),
+            text: len + ' · ' + ftIn(pp.wing),
+            sub: (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″',
+            hint:
+              'Wingspan rating ' +
+              len +
+              ' (counts toward his overall) · ' +
+              ftIn(pp.wing) +
+              ', ' +
+              (ape >= 0 ? ape + '″ longer' : -ape + '″ shorter') +
+              ' than his height (league average: +4″)',
+          },
+        ];
+      }),
+    })),
+    teamLogo: ptid >= 0 ? logo(ptid, 16) : null,
+    teamLabel:
+      ptid === -2
+        ? 'Overseas · ' + pp.abroad.club + ' (' + pp.abroad.lg + ')'
+        : ptid >= 0
+          ? T[ptid].region + ' ' + T[ptid].name
+          : ptid === -1
+            ? glLabel(s, pp)
+              ? 'CCP · ' + glLabel(s, pp)
+              : 'Free agent'
+            : pk
+              ? 'Drafted #' + pk.n + ' by ' + T[gm.owner2027(pk.orig, s.assets, pk.rd)].abbr
+              : headStatus(),
+    bio:
+      'Age ' +
+      pp.age +
+      ' · ' +
+      pp.hgt +
+      ' · ' +
+      pp.wt +
+      ' lb · ' +
+      (() => {
+        const fr = isPlainHS(pp.from)
+          ? 'high school'
+          : pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA' || pp.from.lg === 'High school'
+            ? pp.from.team + ' (' + pp.from.lg + ')'
+            : pp.from.team + ', ' + C[pp.from.country].n;
+        if (status === 'pro' && !pk) return 'Playing for ' + fr;
+        const dd = pk ? { rd: 1, pick: pk.n } : pp.dr;
+        return dd
+          ? 'Drafted ' +
+              pp.draft +
+              ' in round ' +
+              dd.rd +
+              ', pick #' +
+              dd.pick +
+              ', overall #' +
+              ((dd.rd - 1) * 30 + dd.pick) +
+              ' – out of ' +
+              fr
+          : 'Undrafted in ' + pp.draft + ' – out of ' + fr;
+      })(),
+    contractLine:
+      status === 'retired'
+        ? ((s.hof || []).some(h => h.pid === pp.id) ? 'Hall of Famer · ' : '') +
+          'Retired after the ' +
+          (pp.retired.season - 1) +
+          '–' +
+          String(pp.retired.season).slice(2) +
+          ' season, at ' +
+          pp.retired.age
+        : status === 'fa'
+          ? 'Asking ' + money(gm.askFor(pp, s)) + ' per year through ' + pp.exp + ' · ' + pp.mood.toLowerCase() + ' to sign'
+          : status === 'pro'
+            ? 'Projected #' + d.rank[pp.id] + ' on the ' + pp.cls + ' big board'
+            : money(pp.amt) + ' per year through ' + pp.exp,
+    bgRows: [
+      {
+        k: 'Health',
+        hasFlag: false,
+        flag: '',
+        v: pp.inj
+          ? pp.inj.name + (pp.inj.dtd ? ', day-to-day: ' : ', out ') + gm.injText(pp)
+          : 'Healthy' +
+            ((pp.injHist || []).length
+              ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record'
+              : ''),
+      },
+      { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) },
+      { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' },
+    ],
     elig: pp.elig.map(e => ({ flag: gm.flag(e.c), name: C[e.c].n, why: e.why })),
-    career, hasCareer: career.length > 0, noCareer: career.length === 0, ask: money(gm.askFor(pp, s)),
-    isMine: status === 'mine', isOther: status === 'other' && !spect, isFA: (status === 'fa' || status === 'abroad') && !spect, abroadBtn: status === 'mine', toAbroad: () => gm.setState({ dialog: { type: 'abroad', pid: pp.id } }),
-    jsonLabel: s.showJson ? 'Hide face JSON' : 'Show face JSON', faceJson: JSON.stringify(fc, null, 2),
-    release: () => gm.setState({ dialog: { type: 'release', pid: pp.id } }), sign: () => gm.setState({ dialog: { type: 'sign', pid: pp.id } }),
-    tradeFor: () => gm.setState({ modal: false, screen: 'trade', tTid: ptid, tTheirs: [pp.id], tMine: [], tkMine: [], tkTheirs: [], tMsg: null }) };
+    career,
+    hasCareer: career.length > 0,
+    noCareer: career.length === 0,
+    ask: money(gm.askFor(pp, s)),
+    isMine: status === 'mine',
+    isOther: status === 'other' && !spect,
+    isFA: (status === 'fa' || status === 'abroad') && !spect,
+    abroadBtn: status === 'mine',
+    toAbroad: () => gm.setState({ dialog: { type: 'abroad', pid: pp.id } }),
+    jsonLabel: s.showJson ? 'Hide face JSON' : 'Show face JSON',
+    faceJson: JSON.stringify(fc, null, 2),
+    release: () => gm.setState({ dialog: { type: 'release', pid: pp.id } }),
+    sign: () => gm.setState({ dialog: { type: 'sign', pid: pp.id } }),
+    tradeFor: () =>
+      gm.setState({ modal: false, screen: 'trade', tTid: ptid, tTheirs: [pp.id], tMine: [], tkMine: [], tkTheirs: [], tMsg: null }),
+  };
 
   const conf = s.stand === 'conf';
-  const grs = conf ? ['West', 'East'].map(c => ({ label: c + 'ern Conference', ts: T.filter(t => t.conf === c) })) : ['Northwest', 'Atlantic', 'Pacific', 'Central', 'Southwest', 'Southeast'].map(v => ({ label: v + ' Division', ts: T.filter(t => t.div === v) }));
-  const standGroups = grs.map(gr => { const ts = gr.ts.slice().sort(byPct); return { label: gr.label, rows: ts.map((t, i) => ({ logo: logo(t.tid), seed: i + 1, name: t.region + ' ' + t.name, w: t.w, l: t.l, pct: fpct(t), gb: gb(t, ts[0]), home: t.hw + '–' + t.hl, road: t.rw + '–' + t.rl, l10: l10(t), strk: strk(t), bg: t.tid === s.me ? 'var(--color-accent-100)' : mine2(t.tid) ? 'color-mix(in srgb, var(--color-accent-100) 55%, transparent)' : 'transparent', fw: mine2(t.tid) ? 600 : 400, openT: openTeam(t.tid), line: conf && i === 5 ? '1px solid var(--color-text)' : conf && i === 9 ? '1px dashed var(--color-neutral-500)' : '1px solid var(--color-divider)' })) }; });
-  const standSegs = [['conf', 'Conference'], ['div', 'Division']].map(([k, label]) => ({ label, onClick: () => gm.setState({ stand: k }), color: s.stand === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.stand === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
+  const grs = conf
+    ? ['West', 'East'].map(c => ({ label: c + 'ern Conference', ts: T.filter(t => t.conf === c) }))
+    : ['Northwest', 'Atlantic', 'Pacific', 'Central', 'Southwest', 'Southeast'].map(v => ({
+        label: v + ' Division',
+        ts: T.filter(t => t.div === v),
+      }));
+  const standGroups = grs.map(gr => {
+    const ts = gr.ts.slice().sort(byPct);
+    return {
+      label: gr.label,
+      rows: ts.map((t, i) => ({
+        logo: logo(t.tid),
+        seed: i + 1,
+        name: t.region + ' ' + t.name,
+        w: t.w,
+        l: t.l,
+        pct: fpct(t),
+        gb: gb(t, ts[0]),
+        home: t.hw + '–' + t.hl,
+        road: t.rw + '–' + t.rl,
+        l10: l10(t),
+        strk: strk(t),
+        bg:
+          t.tid === s.me
+            ? 'var(--color-accent-100)'
+            : mine2(t.tid)
+              ? 'color-mix(in srgb, var(--color-accent-100) 55%, transparent)'
+              : 'transparent',
+        fw: mine2(t.tid) ? 600 : 400,
+        openT: openTeam(t.tid),
+        line:
+          conf && i === 5
+            ? '1px solid var(--color-text)'
+            : conf && i === 9
+              ? '1px dashed var(--color-neutral-500)'
+              : '1px solid var(--color-divider)',
+      })),
+    };
+  });
+  const standSegs = [
+    ['conf', 'Conference'],
+    ['div', 'Division'],
+  ].map(([k, label]) => ({
+    label,
+    onClick: () => gm.setState({ stand: k }),
+    color: s.stand === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+    ring: s.stand === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+  }));
 
-  const box = on => ({ box: on ? 'var(--color-accent)' : 'transparent', mark: on ? '✓' : '', bg: on ? 'var(--color-accent-100)' : 'transparent' });
-  const tog = (key, id) => () => gm.setState(st => key === 'tkMine' || key === 'tkTheirs' ? toggleTradePick(st, key, id) : ({ [key]: st[key].includes(id) ? st[key].filter(x => x !== id) : [...st[key], id], tMsg: null }));
+  const box = on => ({
+    box: on ? 'var(--color-accent)' : 'transparent',
+    mark: on ? '✓' : '',
+    bg: on ? 'var(--color-accent-100)' : 'transparent',
+  });
+  const tog = (key, id) => () =>
+    gm.setState(st =>
+      key === 'tkMine' || key === 'tkTheirs'
+        ? toggleTradePick(st, key, id)
+        : { [key]: st[key].includes(id) ? st[key].filter(x => x !== id) : [...st[key], id], tMsg: null },
+    );
   const tRow = key => id => ({ ...pBase(id), contract: money(P[id].amt), ...box(s[key].includes(id)), toggle: tog(key, id) });
   const usedPick = a => a.yr === gm.Y && s.picks.some(x => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid);
-  const projTxt = a => { if (a.rd === 2) return 'Second round'; const sl = Math.round(gm.projSlot(a, T)); return a.yr === gm.Y ? 'Proj. #' + sl : sl <= 14 ? 'Proj. lottery' : sl <= 22 ? 'Proj. mid first' : 'Proj. late first'; };
+  const projTxt = a => {
+    if (a.rd === 2) return 'Second round';
+    const sl = Math.round(gm.projSlot(a, T));
+    return a.yr === gm.Y ? 'Proj. #' + sl : sl <= 14 ? 'Proj. lottery' : sl <= 22 ? 'Proj. mid first' : 'Proj. late first';
+  };
   // A first you're trading can carry a protection for the team giving it (not one that already has one).
-  const protSel = (key, a) => { if (!s[key].includes(a.id) || a.rd !== 1 || a.prot || gm.draftRights(a, s)) return null; return { v: (s.tProt || {})[a.id] || 0, set: e => { const v = +e.target.value; gm.setState(st => ({ tProt: { ...(st.tProt || {}), [a.id]: v } })); } }; };
+  const protSel = (key, a) => {
+    if (!s[key].includes(a.id) || a.rd !== 1 || a.prot || gm.draftRights(a, s)) return null;
+    return {
+      v: (s.tProt || {})[a.id] || 0,
+      set: e => {
+        const v = +e.target.value;
+        gm.setState(st => ({ tProt: { ...(st.tProt || {}), [a.id]: v } }));
+      },
+    };
+  };
   // Swap rights for the years both teams' firsts are still to come (this year's until the lottery).
-  const swapYears = Array.from({ length: pickHorizon(s) + 1 }, (_, i) => gm.Y + i).filter(yr => (yr > gm.Y || ['regular', 'playin', 'playoffs'].includes(s.phase)) && canOfferSwap(s, yr, s.me, s.tTid) && ![...s.tkMine, ...s.tkTheirs].some(id => s.assets.some(a => a.id === id && a.rd === 1 && a.yr === yr)));
-  const sRow = (key, mineSide) => yr => { const id = 'swap:' + yr; return { label: yr + ' first-round swap', proj: mineSide ? 'They may swap their 1st for yours' : 'You may swap your 1st for theirs', swap: true, ...box(s[key].includes(id)), toggle: tog(key, id) }; };
-  const kRow = key => a => ({ prot: protSel(key, a), label: gm.pickLabel(a, T), proj: gm.draftRights(a, s) ? (() => { const q = P[gm.draftRights(a, s).pid]; return q.age + ' · ' + est(q, 0) + '/' + est(q, 1); })() : projTxt(a), ...box(s[key].includes(a.id)), toggle: tog(key, a.id) });
+  const swapYears = Array.from({ length: pickHorizon(s) + 1 }, (_, i) => gm.Y + i).filter(
+    yr =>
+      (yr > gm.Y || ['regular', 'playin', 'playoffs'].includes(s.phase)) &&
+      canOfferSwap(s, yr, s.me, s.tTid) &&
+      ![...s.tkMine, ...s.tkTheirs].some(id => s.assets.some(a => a.id === id && a.rd === 1 && a.yr === yr)),
+  );
+  const sRow = (key, mineSide) => yr => {
+    const id = 'swap:' + yr;
+    return {
+      label: yr + ' first-round swap',
+      proj: mineSide ? 'They may swap their 1st for yours' : 'You may swap your 1st for theirs',
+      swap: true,
+      ...box(s[key].includes(id)),
+      toggle: tog(key, id),
+    };
+  };
+  const kRow = key => a => ({
+    prot: protSel(key, a),
+    label: gm.pickLabel(a, T),
+    proj: gm.draftRights(a, s)
+      ? (() => {
+          const q = P[gm.draftRights(a, s).pid];
+          return q.age + ' · ' + est(q, 0) + '/' + est(q, 1);
+        })()
+      : projTxt(a),
+    ...box(s[key].includes(a.id)),
+    toggle: tog(key, a.id),
+  });
   // Used picks drop off, except on draft night: an AI team's pick that hasn't signed is his draft rights.
   const inH = a => a.yr <= gm.Y + pickHorizon(s); // the God Mode trading horizon (tradeLogic.ts)
-  const myAssets = s.assets.filter(a => a.owner === s.me && inH(a) && (!usedPick(a) || gm.draftRights(a, s))), theirAssets = s.assets.filter(a => a.owner === s.tTid && inH(a) && (!usedPick(a) || gm.draftRights(a, s)));
-  const send = s.tMine.map(id => P[id]), get = s.tTheirs.map(id => P[id]);
-  const out = send.reduce((a, p) => a + gm.capHit(p), 0), inc = get.reduce((a, p) => a + gm.capHit(p), 0), after = payroll - out + inc;
-  const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs), salOk = chk.ok, rosOk = true;
+  const myAssets = s.assets.filter(a => a.owner === s.me && inH(a) && (!usedPick(a) || gm.draftRights(a, s))),
+    theirAssets = s.assets.filter(a => a.owner === s.tTid && inH(a) && (!usedPick(a) || gm.draftRights(a, s)));
+  const send = s.tMine.map(id => P[id]),
+    get = s.tTheirs.map(id => P[id]);
+  const out = send.reduce((a, p) => a + gm.capHit(p), 0),
+    inc = get.reduce((a, p) => a + gm.capHit(p), 0),
+    after = payroll - out + inc;
+  const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs),
+    salOk = chk.ok,
+    rosOk = true;
   const any = send.length + get.length + s.tkMine.length + s.tkTheirs.length > 0;
   const ev = gm.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
   const tst = strat[s.tTid] || 'middle';
-  const tr = { out: money(out), in: money(inc), after: money(after), sal: chk.ok ? (after <= gm.CAP ? 'Under the cap' : 'Passes the league office') : chk.errs[0], salColor: chk.ok ? 'var(--color-text)' : 'var(--gm-bad)', ros: chk.errs.length > 1 ? chk.errs.slice(1).join(' ') : chk.notes.join(' ') || 'OK', rosColor: chk.errs.length > 1 ? 'var(--gm-bad)' : 'var(--color-text)',
-    stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0], stratDesc: mine2(s.tTid) ? 'You run both franchises, so any trade you build goes through (salary rules still apply).' : STRAT[tst][1],
-    meter: (any ? cl(50 + ev.diff / Math.max(10, Math.abs(ev.give)) * 60, 2, 98) : 50) + '%', verdict: !any ? 'Pick players or picks on either side to build an offer.' : ev.ok ? 'They would likely accept.' : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4 ? 'Not close yet.' : 'Close. A little more should do it.',
-    cantPropose: !any || !salOk || !rosOk, cantForce: !any, god: !!s.god, cantBalance: !any, hasMsg: !!s.tMsg, msg: s.tMsg,
-    delta: inc - out, afterNum: after, advice: any && s.tAdvice && s.screen === 'trade' ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal') : null, askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })) };
+  const tr = {
+    out: money(out),
+    in: money(inc),
+    after: money(after),
+    sal: chk.ok ? (after <= gm.CAP ? 'Under the cap' : 'Passes the league office') : chk.errs[0],
+    salColor: chk.ok ? 'var(--color-text)' : 'var(--gm-bad)',
+    ros: chk.errs.length > 1 ? chk.errs.slice(1).join(' ') : chk.notes.join(' ') || 'OK',
+    rosColor: chk.errs.length > 1 ? 'var(--gm-bad)' : 'var(--color-text)',
+    stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0],
+    stratDesc: mine2(s.tTid) ? 'You run both franchises, so any trade you build goes through (salary rules still apply).' : STRAT[tst][1],
+    meter: (any ? cl(50 + (ev.diff / Math.max(10, Math.abs(ev.give))) * 60, 2, 98) : 50) + '%',
+    verdict: !any
+      ? 'Pick players or picks on either side to build an offer.'
+      : ev.ok
+        ? 'They would likely accept.'
+        : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4
+          ? 'Not close yet.'
+          : 'Close. A little more should do it.',
+    cantPropose: !any || !salOk || !rosOk,
+    cantForce: !any,
+    god: !!s.god,
+    cantBalance: !any,
+    hasMsg: !!s.tMsg,
+    msg: s.tMsg,
+    delta: inc - out,
+    afterNum: after,
+    advice:
+      any && s.tAdvice && s.screen === 'trade' ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal') : null,
+    askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })),
+  };
   // Offers on request: shop your selected players/picks around the league, or ask the other team
   // what it wants for its selected players/picks. Step through them, then accept, decline or negotiate.
   const assetName = id => gm.tradeItemLabel(s, id, T);
-  const pLine = id => { const q = P[id]; return { name: q.name, sub: q.pos + ' · ' + q.age + ' · ' + q.ovr + '/' + q.pot + ' · ' + money(q.amt) + (q.exp > gm.Y ? ' thru ' + q.exp : ''), ovr: q.ovr, open: open(id) }; };
-  const kLine = id => ({ name: assetName(id), sub: (() => { const a = s.assets.find(x => x.id === id); return a ? projTxt(a) : ''; })(), open: null });
+  const pLine = id => {
+    const q = P[id];
+    return {
+      name: q.name,
+      sub: q.pos + ' · ' + q.age + ' · ' + q.ovr + '/' + q.pot + ' · ' + money(q.amt) + (q.exp > gm.Y ? ' thru ' + q.exp : ''),
+      ovr: q.ovr,
+      open: open(id),
+    };
+  };
+  const kLine = id => ({
+    name: assetName(id),
+    sub: (() => {
+      const a = s.assets.find(x => x.id === id);
+      return a ? projTxt(a) : '';
+    })(),
+    open: null,
+  });
   const offerAsk = kind => () => {
-    const what = kind === 'shop' ? [...s.tMine.map(id => P[id].name), ...s.tkMine.map(assetName)].join(', ') : [...s.tTheirs.map(id => P[id].name), ...s.tkTheirs.map(assetName)].join(', ');
+    const what =
+      kind === 'shop'
+        ? [...s.tMine.map(id => P[id].name), ...s.tkMine.map(assetName)].join(', ')
+        : [...s.tTheirs.map(id => P[id].name), ...s.tkTheirs.map(assetName)].join(', ');
     gm.setState({ offers: { kind, list: [], i: 0, what, tid: s.tTid, loading: true }, tMsg: null });
     // Let the "calling around" message paint before the search runs.
-    setTimeout(() => { const st = gm.state as any; const list = kind === 'shop' ? shopOffers(gm, st, st.tMine, st.tkMine) : askOffers(gm, st, st.tTid, st.tTheirs, st.tkTheirs);
-      gm.setState(x => (x.offers && x.offers.loading ? { offers: { ...x.offers, list, loading: false } } : null)); }, 30); };
-  const OF = s.offers, ofc = OF && OF.list[OF.i];
+    setTimeout(() => {
+      const st = gm.state as any;
+      const list = kind === 'shop' ? shopOffers(gm, st, st.tMine, st.tkMine) : askOffers(gm, st, st.tTid, st.tTheirs, st.tkTheirs);
+      gm.setState(x => (x.offers && x.offers.loading ? { offers: { ...x.offers, list, loading: false } } : null));
+    }, 30);
+  };
+  const OF = s.offers,
+    ofc = OF && OF.list[OF.i];
   const setOf = patch => gm.setState(st => ({ offers: st.offers ? { ...st.offers, ...patch } : null }));
   const load = o => ({ tTid: o.tid, tMine: o.mine, tTheirs: o.theirs, tkMine: o.kMine, tkTheirs: o.kTheirs });
-  const offersV = !OF ? null : {
-    title: OF.kind === 'incoming' ? 'Trade offers to you' : OF.kind === 'shop' ? 'Offers for ' + OF.what : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
-    loading: !!OF.loading, count: OF.list.length, pos: OF.list.length ? OF.i + 1 : 0, empty: !OF.loading && OF.list.length === 0,
-    emptyMsg: OF.kind === 'shop' ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' + (s.phase === 'regular' && s.day > gm.ruleSlot(DAY.TRADE_DEADLINE) ? ' (the trade deadline has passed)' : '') + '.' : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
-    ...(ofc ? { logo: logo(ofc.tid, 34), team: T[ofc.tid].region + ' ' + T[ofc.tid].name, strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0], note: ofc.note,
-      get: [...ofc.theirs.map(pLine), ...ofc.kTheirs.map(kLine)], send: [...ofc.mine.map(pLine), ...ofc.kMine.map(kLine)],
-      gm: T[ofc.tid].gm, advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null } : {}),
-    askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })), adviceOn: !!s.ofAdvice,
-    prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }), next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
-    accept: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null }); gm.propose(false, OF.kind === 'incoming' ? ofc.id : null); }, // an offer they called with stands; if the league office stops it, it stays in your offers
-    decline: () => gm.setState(st => { const o = st.offers; if (!o) return null; const gone = o.list[o.i], list = o.list.filter((_, j) => j !== o.i); return { offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) }, ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}) }; }),
-    negotiate: () => { if (!ofc) return; gm.setState({ ...load(ofc), offers: null, tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”' }); },
-    close: () => gm.setState({ offers: null }) };
-  const teamOptions = alphaTeams(T.filter(t => t.tid !== s.me)).map(t => ({ value: t.tid, label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]) }));
+  const offersV = !OF
+    ? null
+    : {
+        title:
+          OF.kind === 'incoming'
+            ? 'Trade offers to you'
+            : OF.kind === 'shop'
+              ? 'Offers for ' + OF.what
+              : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
+        loading: !!OF.loading,
+        count: OF.list.length,
+        pos: OF.list.length ? OF.i + 1 : 0,
+        empty: !OF.loading && OF.list.length === 0,
+        emptyMsg:
+          OF.kind === 'shop'
+            ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' +
+              (s.phase === 'regular' && s.day > gm.ruleSlot(DAY.TRADE_DEADLINE) ? ' (the trade deadline has passed)' : '') +
+              '.'
+            : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
+        ...(ofc
+          ? {
+              logo: logo(ofc.tid, 34),
+              team: T[ofc.tid].region + ' ' + T[ofc.tid].name,
+              strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0],
+              note: ofc.note,
+              get: [...ofc.theirs.map(pLine), ...ofc.kTheirs.map(kLine)],
+              send: [...ofc.mine.map(pLine), ...ofc.kMine.map(kLine)],
+              gm: T[ofc.tid].gm,
+              advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null,
+            }
+          : {}),
+        askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })),
+        adviceOn: !!s.ofAdvice,
+        prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }),
+        next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
+        accept: () => {
+          if (!ofc) return;
+          gm.setState({ ...load(ofc), offers: null });
+          gm.propose(false, OF.kind === 'incoming' ? ofc.id : null);
+        }, // an offer they called with stands; if the league office stops it, it stays in your offers
+        decline: () =>
+          gm.setState(st => {
+            const o = st.offers;
+            if (!o) return null;
+            const gone = o.list[o.i],
+              list = o.list.filter((_, j) => j !== o.i);
+            return {
+              offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) },
+              ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}),
+            };
+          }),
+        negotiate: () => {
+          if (!ofc) return;
+          gm.setState({
+            ...load(ofc),
+            offers: null,
+            tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”',
+          });
+        },
+        close: () => gm.setState({ offers: null }),
+      };
+  const teamOptions = alphaTeams(T.filter(t => t.tid !== s.me)).map(t => ({
+    value: t.tid,
+    label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]),
+  }));
 
-  const MOOD = { Eager: ['var(--color-accent-100)', 'var(--color-accent-800)'], Open: ['var(--color-neutral-100)', 'var(--color-neutral-800)'], Reluctant: ['transparent', 'var(--color-neutral-600)'] };
-  const faCols = hdr('fa', [['name', 'Player', 'left'], ['pos', 'Pos', 'left'], ['last', 'Last team', 'left'], ['age', 'Age'], ['ovr', 'Ovr'], ['pot', 'Pot'], ['ask', 'Asking'], ['exp', 'Through'], ['mood', 'Mood', 'left'], ['mot', 'Wants', 'left']]);
+  const MOOD = {
+    Eager: ['var(--color-accent-100)', 'var(--color-accent-800)'],
+    Open: ['var(--color-neutral-100)', 'var(--color-neutral-800)'],
+    Reluctant: ['transparent', 'var(--color-neutral-600)'],
+  };
+  const faCols = hdr('fa', [
+    ['name', 'Player', 'left'],
+    ['pos', 'Pos', 'left'],
+    ['last', 'Last team', 'left'],
+    ['age', 'Age'],
+    ['ovr', 'Ovr'],
+    ['pot', 'Pot'],
+    ['ask', 'Asking'],
+    ['exp', 'Through'],
+    ['mood', 'Mood', 'left'],
+    ['mot', 'Wants', 'left'],
+  ]);
   // Free agents (with every contract option) are only worked out on the Free agency screen.
   // Signable now: a way to pay him (room, an exception, his Bird rights, the minimum) that reaches what he asks of
   // you, and terms he'd accept (contracts.ts acceptance: his asking price for your team, years near what he wants).
-  const faRows = s.screen !== 'fa' ? [] : sortBy(s.fa.map(id => { const p = P[id], ask = gm.askFor(p, s), ms0 = signingMethods(gm, s, s.me, p).filter(m => m.ok), ms = ms0.filter(m => m.maxFirst + 0.005 >= ask && acceptance(gm, s, s.me, p, { method: m.key, amt: ask, years: m.maxYears > 0 ? Math.max(1, Math.min(m.maxYears, prefYears(p))) : 1 } as any).ok), how = ms.length ? ms.slice(0, 2).map(m => m.label.replace(' (restricted FA)', '')).join(' / ') : null, best = ms0.slice().sort((x, y) => y.maxFirst - x.maxFirst)[0]; const lt = lastTeam(s, p), LT = lt ? s.teams[lt.tid] : null; return { ...pBase(id), last: LT ? LT.abbr : 'ZZZ', lastAbbr: LT ? LT.abbr : '', lastD: !!lt?.drafted, lastTitle: LT ? (lt!.drafted ? 'Drafted by the ' + LT.region + ' ' + LT.name + ' in ' + lt!.season + '; never played for them' : 'Last on the ' + LT.region + ' ' + LT.name + ' (' + (lt!.season - 1) + '–' + String(lt!.season).slice(2) + ')') : 'Never on an NBA roster', lastOpen: LT ? openTeam(lt!.tid) : null, lastLogo: LT ? logo(lt!.tid, 16) : null, udT: p.undrafted ? 'Undrafted ' + p.undrafted + (gm.Y - p.undrafted >= 2 ? ' · ' + (gm.Y - p.undrafted) + ' yrs unsigned' : '') : '', glT: glLabel(s, p), glLine: p.gl?.tid != null ? 'CCP: ' + p.gl.pts + ' pts · ' + p.gl.reb + ' reb · ' + p.gl.ast + ' ast' : '', ask: gm.askFor(p, s), askS: money(gm.askFor(p, s)) + (p.rfa ? ' · RFA' : ''), mot: p.pers.mot, moodBg: MOOD[p.mood][0], moodFg: MOOD[p.mood][1], cant: !how, how: how || (best ? 'Asks ' + money(ask) + ' of you; the most you can offer is ' + money(best.maxFirst) + ' (' + best.label.replace(' (restricted FA)', '') + ')' : signingMethods(gm, s, s.me, p).find(m => !m.ok)?.why || 'Can\u2019t fit'), sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }) }; }), s.sort.fa);
-  const faNote = (() => { const e = exceptionsOf(gm, s, s.me), N = nums(gm); return 'Every signing uses a CBA mechanism (pick it in the signing dialog). Your room: ' + money(Math.max(0, N.CAP - teamSalary(gm, s, s.me, { holds: true }))) + ' counting cap holds. Mid-level: ' + (e.used.includes('ntmle') || e.used.includes('tpmle') ? 'used' : e.used.includes('cap') ? 'gone (you used cap space; the room exception is ' + money(e.room) + ')' : money(e.ntmle) + ' non-taxpayer / ' + money(e.tpmle) + ' taxpayer') + '. Bi-annual: ' + (e.used.includes('bae') ? 'used' : money(e.bae)) + '. Minimum deals always work below a hard cap. RFA = restricted free agent: his team can match an offer sheet.'; })();
+  const faRows =
+    s.screen !== 'fa'
+      ? []
+      : sortBy(
+          s.fa.map(id => {
+            const p = P[id],
+              ask = gm.askFor(p, s),
+              ms0 = signingMethods(gm, s, s.me, p).filter(m => m.ok),
+              ms = ms0.filter(
+                m =>
+                  m.maxFirst + 0.005 >= ask &&
+                  acceptance(gm, s, s.me, p, {
+                    method: m.key,
+                    amt: ask,
+                    years: m.maxYears > 0 ? Math.max(1, Math.min(m.maxYears, prefYears(p))) : 1,
+                  } as any).ok,
+              ),
+              how = ms.length
+                ? ms
+                    .slice(0, 2)
+                    .map(m => m.label.replace(' (restricted FA)', ''))
+                    .join(' / ')
+                : null,
+              best = ms0.slice().sort((x, y) => y.maxFirst - x.maxFirst)[0];
+            const lt = lastTeam(s, p),
+              LT = lt ? s.teams[lt.tid] : null;
+            return {
+              ...pBase(id),
+              last: LT ? LT.abbr : 'ZZZ',
+              lastAbbr: LT ? LT.abbr : '',
+              lastD: !!lt?.drafted,
+              lastTitle: LT
+                ? lt!.drafted
+                  ? 'Drafted by the ' + LT.region + ' ' + LT.name + ' in ' + lt!.season + '; never played for them'
+                  : 'Last on the ' + LT.region + ' ' + LT.name + ' (' + (lt!.season - 1) + '–' + String(lt!.season).slice(2) + ')'
+                : 'Never on an NBA roster',
+              lastOpen: LT ? openTeam(lt!.tid) : null,
+              lastLogo: LT ? logo(lt!.tid, 16) : null,
+              udT: p.undrafted
+                ? 'Undrafted ' + p.undrafted + (gm.Y - p.undrafted >= 2 ? ' · ' + (gm.Y - p.undrafted) + ' yrs unsigned' : '')
+                : '',
+              glT: glLabel(s, p),
+              glLine: p.gl?.tid != null ? 'CCP: ' + p.gl.pts + ' pts · ' + p.gl.reb + ' reb · ' + p.gl.ast + ' ast' : '',
+              ask: gm.askFor(p, s),
+              askS: money(gm.askFor(p, s)) + (p.rfa ? ' · RFA' : ''),
+              mot: p.pers.mot,
+              moodBg: MOOD[p.mood][0],
+              moodFg: MOOD[p.mood][1],
+              cant: !how,
+              how:
+                how ||
+                (best
+                  ? 'Asks ' +
+                    money(ask) +
+                    ' of you; the most you can offer is ' +
+                    money(best.maxFirst) +
+                    ' (' +
+                    best.label.replace(' (restricted FA)', '') +
+                    ')'
+                  : signingMethods(gm, s, s.me, p).find(m => !m.ok)?.why || 'Can\u2019t fit'),
+              sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }),
+            };
+          }),
+          s.sort.fa,
+        );
+  const faNote = (() => {
+    const e = exceptionsOf(gm, s, s.me),
+      N = nums(gm);
+    return (
+      'Every signing uses a CBA mechanism (pick it in the signing dialog). Your room: ' +
+      money(Math.max(0, N.CAP - teamSalary(gm, s, s.me, { holds: true }))) +
+      ' counting cap holds. Mid-level: ' +
+      (e.used.includes('ntmle') || e.used.includes('tpmle')
+        ? 'used'
+        : e.used.includes('cap')
+          ? 'gone (you used cap space; the room exception is ' + money(e.room) + ')'
+          : money(e.ntmle) + ' non-taxpayer / ' + money(e.tpmle) + ' taxpayer') +
+      '. Bi-annual: ' +
+      (e.used.includes('bae') ? 'used' : money(e.bae)) +
+      '. Minimum deals always work below a hard cap. RFA = restricted free agent: his team can match an offer sheet.'
+    );
+  })();
 
   const scoutF = 1.5 - (s.budget.Scouting - 1) / 11;
-  const yearsOut = s.dClass - gm.Y, spread = (yearsOut * 5 + 3) * scoutF;
+  const yearsOut = s.dClass - gm.Y,
+    spread = (yearsOut * 5 + 3) * scoutF;
   // God Mode sees true ratings; otherwise these are your scouts' estimates.
-  const est = (p, i) => s.god ? (i ? (p.tpot ?? p.pot) : p.ovr) : i ? potOf(p, p.id) : Math.round(p.ovr + p.nz[i] * spread * 1.6); // potential: your scouts' read (potOf)
-  const cur = s.phase === 'draft' ? s.picks[s.pi] : null, onClock = !!cur && mine2(gm.owner2027(cur.orig, s.assets, cur.rd)), taken = new Set(s.picks.filter(x => x.pid).map(x => x.pid));
-  const myPicks = s.picks.filter(x => mine2(gm.owner2027(x.orig, s.assets, x.rd))), myNext = myPicks.find(x => !x.pid);
+  const est = (p, i) => (s.god ? (i ? (p.tpot ?? p.pot) : p.ovr) : i ? potOf(p, p.id) : Math.round(p.ovr + p.nz[i] * spread * 1.6)); // potential: your scouts' read (potOf)
+  const cur = s.phase === 'draft' ? s.picks[s.pi] : null,
+    onClock = !!cur && mine2(gm.owner2027(cur.orig, s.assets, cur.rd)),
+    taken = new Set(s.picks.filter(x => x.pid).map(x => x.pid));
+  const myPicks = s.picks.filter(x => mine2(gm.owner2027(x.orig, s.assets, x.rd))),
+    myNext = myPicks.find(x => !x.pid);
   const isCur = s.dClass === gm.Y;
   const clsIds = s.dClass < gm.Y ? [] : (d.cls[s.dClass] || []).filter(id => P[id] && !P[id].gone && (!isCur || !taken.has(id))); // a past draft has its own view (DraftScreen → PastDraft)
-  const draftCols = hdr('draft', [['rank', 'Rk'], ['name', 'Prospect', 'left'], ['pos', 'Pos', 'left'], ['age', 'Age'], ['fromT', 'Playing for', 'left'], ['hgt', 'Hgt'], ['ovr', isCur ? 'Ovr' : 'Ovr range'], ['pot', isCur ? 'Pot' : 'Pot range']]);
-  const rng = (p, i) => { const e = est(p, i), w = Math.round(spread); return isCur ? String(e) : Math.max(20, e - w) + '–' + Math.min(90, e + w); };
-  const draftRows = sortBy(clsIds.map(id => { const p = P[id]; return { ...pBase(id), rank: d.rank[id], ovr: est(p, 0), pot: est(p, 1), ovrS: rng(p, 0), potS: rng(p, 1), tone: tone(est(p, 0)), ptone: tone(est(p, 1)), fromT: p.from.team, fromL: p.from.lg, showDraft: isCur, cant: !onClock, draft: () => gm.draftPick(id) }; }), s.sort.draft);
+  const draftCols = hdr('draft', [
+    ['rank', 'Rk'],
+    ['name', 'Prospect', 'left'],
+    ['pos', 'Pos', 'left'],
+    ['age', 'Age'],
+    ['fromT', 'Playing for', 'left'],
+    ['hgt', 'Hgt'],
+    ['ovr', isCur ? 'Ovr' : 'Ovr range'],
+    ['pot', isCur ? 'Pot' : 'Pot range'],
+  ]);
+  const rng = (p, i) => {
+    const e = est(p, i),
+      w = Math.round(spread);
+    return isCur ? String(e) : Math.max(20, e - w) + '–' + Math.min(90, e + w);
+  };
+  const draftRows = sortBy(
+    clsIds.map(id => {
+      const p = P[id];
+      return {
+        ...pBase(id),
+        rank: d.rank[id],
+        ovr: est(p, 0),
+        pot: est(p, 1),
+        ovrS: rng(p, 0),
+        potS: rng(p, 1),
+        tone: tone(est(p, 0)),
+        ptone: tone(est(p, 1)),
+        fromT: p.from.team,
+        fromL: p.from.lg,
+        showDraft: isCur,
+        cant: !onClock,
+        draft: () => gm.draftPick(id),
+      };
+    }),
+    s.sort.draft,
+  );
   const scoutRank = ord(1 + s.teams.filter(t => !gm.isUser(s, t.tid) && teamBudget(gm, s, t.tid).Scouting > s.budget.Scouting).length);
-  const conf2 = s.budget.Scouting >= 7 ? 'We have seen him plenty; high confidence.' : s.budget.Scouting >= 3.5 ? 'Moderate confidence in the read.' : 'Limited film on him. A bigger scouting budget would sharpen gm.';
+  const conf2 =
+    s.budget.Scouting >= 7
+      ? 'We have seen him plenty; high confidence.'
+      : s.budget.Scouting >= 3.5
+        ? 'Moderate confidence in the read.'
+        : 'Limited film on him. A bigger scouting budget would sharpen gm.';
   const advice: any[] = [];
   if (isCur && myNext) {
     const ahead = Math.max(0, myNext.n - 1 - s.pi);
@@ -313,377 +1475,2917 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     const pool = avail.slice(Math.round(ahead * 0.85));
     const where = ahead ? 'likely there at #' + myNext.n : 'on the board now';
     if (s.adv.scouts && pool.length) {
-      const b = pool.slice(0, 12).sort((x, y) => (est(P[y], 1) * .75 + est(P[y], 0) * .25) - (est(P[x], 1) * .75 + est(P[x], 0) * .25))[0], p = P[b];
-      advice.push({ who: 'Scouting department', name: p.name, meta: p.pos + ' · ' + p.age + ' · ' + (isPlainHS(p.from) ? 'High school' : p.from.team + ' (' + p.from.lg + ')') + ' · ' + C[p.rep].n, open: open(b), canDraft: onClock, draft: () => gm.draftPick(b), why: 'Highest ceiling we project among players ' + where + ': potential around ' + est(p, 1) + ', overall ' + est(p, 0) + ' today. ' + conf2 + ' Our scouting budget ranks ' + scoutRank + '.' });
+      const b = pool
+          .slice(0, 12)
+          .sort((x, y) => est(P[y], 1) * 0.75 + est(P[y], 0) * 0.25 - (est(P[x], 1) * 0.75 + est(P[x], 0) * 0.25))[0],
+        p = P[b];
+      advice.push({
+        who: 'Scouting department',
+        name: p.name,
+        meta:
+          p.pos + ' · ' + p.age + ' · ' + (isPlainHS(p.from) ? 'High school' : p.from.team + ' (' + p.from.lg + ')') + ' · ' + C[p.rep].n,
+        open: open(b),
+        canDraft: onClock,
+        draft: () => gm.draftPick(b),
+        why:
+          'Highest ceiling we project among players ' +
+          where +
+          ': potential around ' +
+          est(p, 1) +
+          ', overall ' +
+          est(p, 0) +
+          ' today. ' +
+          conf2 +
+          ' Our scouting budget ranks ' +
+          scoutRank +
+          '.',
+      });
     }
     if (s.adv.agm && pool.length) {
       const top = pool.slice(0, 10);
-      const sc = id => { const fit = gm.rolesOf(P[id], est(P[id], 1)).filter(r => gaps.includes(r)); return { id, fit, v: (est(P[id], 1) * .7 + est(P[id], 0) * .3) + fit.length * 6 + (P[id].age <= 19 ? 2 : 0) }; };
-      const b = top.map(sc).sort((x, y) => y.v - x.v)[0], p = P[b.id], bpa = top[0] === b.id;
-      const roleName = (r: string) => r.toLowerCase().replace('3-and-d', '3-and-D'), listOf = (xs: string[]) => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
-      const fitTxt = listOf(b.fit.slice(0, 2).map(r => (/^[aeiou]/i.test(r) ? 'an ' : 'a ') + roleName(r))) + (b.fit.length > 2 ? ', plus ' + (b.fit.length - 2) + ' more of our needs' : '');
-      const why = b.fit.length ? 'We\u2019re thin at ' + listOf(gaps.slice(0, 2).map(roleName)) + '. ' + p.name + ' projects as ' + fitTxt + (bpa ? ', and he\u2019s also the best player ' + where + '.' : '. He\u2019s #' + d.rank[b.id] + ' on the board, so it\u2019s a slight reach for fit, but he fills a hole.') : 'No need is worth reaching for. Take the best player ' + where + ': ' + p.name + ' (#' + d.rank[b.id] + ').';
-      advice.push({ who: 'Assistant GM', name: p.name, meta: p.pos + ' · ' + p.age + ' · ' + (isPlainHS(p.from) ? 'High school' : p.from.team + ' (' + p.from.lg + ')') + ' · ' + C[p.rep].n, open: open(b.id), canDraft: onClock, draft: () => gm.draftPick(b.id), why });
+      const sc = id => {
+        const fit = gm.rolesOf(P[id], est(P[id], 1)).filter(r => gaps.includes(r));
+        return { id, fit, v: est(P[id], 1) * 0.7 + est(P[id], 0) * 0.3 + fit.length * 6 + (P[id].age <= 19 ? 2 : 0) };
+      };
+      const b = top.map(sc).sort((x, y) => y.v - x.v)[0],
+        p = P[b.id],
+        bpa = top[0] === b.id;
+      const roleName = (r: string) => r.toLowerCase().replace('3-and-d', '3-and-D'),
+        listOf = (xs: string[]) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
+      const fitTxt =
+        listOf(b.fit.slice(0, 2).map(r => (/^[aeiou]/i.test(r) ? 'an ' : 'a ') + roleName(r))) +
+        (b.fit.length > 2 ? ', plus ' + (b.fit.length - 2) + ' more of our needs' : '');
+      const why = b.fit.length
+        ? 'We\u2019re thin at ' +
+          listOf(gaps.slice(0, 2).map(roleName)) +
+          '. ' +
+          p.name +
+          ' projects as ' +
+          fitTxt +
+          (bpa
+            ? ', and he\u2019s also the best player ' + where + '.'
+            : '. He\u2019s #' + d.rank[b.id] + ' on the board, so it\u2019s a slight reach for fit, but he fills a hole.')
+        : 'No need is worth reaching for. Take the best player ' + where + ': ' + p.name + ' (#' + d.rank[b.id] + ').';
+      advice.push({
+        who: 'Assistant GM',
+        name: p.name,
+        meta:
+          p.pos + ' · ' + p.age + ' · ' + (isPlainHS(p.from) ? 'High school' : p.from.team + ' (' + p.from.lg + ')') + ' · ' + C[p.rep].n,
+        open: open(b.id),
+        canDraft: onClock,
+        draft: () => gm.draftPick(b.id),
+        why,
+      });
     }
   }
   // Before draft night the order is projected: the lottery by expected pick (3-2-1 odds), then the rest by record.
   const pkList = gm.boardOrder(s);
-  const dr = { isCurrent: isCur, isFuture: s.dClass > gm.Y, past: s.dClass < gm.Y, hasAdvice: advice.length > 0, advice, noAdvice: !myNext,
-    classNote: s.dClass < gm.Y ? 'The ' + s.dClass + ' draft: every pick, and how each player has turned out.' : s.god ? 'God Mode: true ratings shown (as amateurs: how each game carries over to the NBA shows at his first camp; God Mode profiles reveal it).' : isCur ? 'Ratings are your scouts\u2019 estimates (±' + Math.round(spread) + ').' : 'Early look, ' + yearsOut + ' year' + (yearsOut > 1 ? 's' : '') + ' out. Ranges narrow as prospects develop and as you spend more on scouting.',
-    scoutLine: 'Scouting budget ' + money(s.budget.Scouting) + ' (' + scoutRank + ' in the league). Ranges shown are ±' + Math.round(spread) + '.',
-    myFuture: s.assets.filter(a => a.owner === s.me && a.yr === s.dClass).map(a => ({ label: gm.pickLabel(a, T), proj: projTxt(a), tradePick: () => gm.pickToTrade(a.id, true), proposeTrade: () => gm.pickToTrade(a.id, false) })),
-    status: cur ? 'Pick ' + cur.n + ' · ' + (onClock ? 'You are on the clock' + (gm.owner2027(cur.orig, s.assets, cur.rd) !== s.me ? ' as ' + T[gm.owner2027(cur.orig, s.assets, cur.rd)].abbr : '') : T[gm.owner2027(cur.orig, s.assets, cur.rd)].region + ' ' + T[gm.owner2027(cur.orig, s.assets, cur.rd)].name + ' on the clock') : 'First round complete',
-    sub: myPicks.length ? (myNext ? 'Your next pick: #' + myNext.n : 'Your picks are in') : 'You don\u2019t own a first this year', noSimMine: !cur || onClock || !myNext, done: !cur, mineClock: !!cur && !!onClock,
-    order: pkList.map((x, i) => { const ow = gm.owner2027(x.orig, s.assets, x.rd), a0 = s.assets.find(a => a.yr === gm.Y && a.rd === (x.rd || 1) && a.orig === x.orig), ak = a0 && (!x.pid || gm.draftRights(a0, s)) ? a0 : null; return { n: x.n, canTrade: !!ak && !spect, tradeLbl: x.pid ? 'Trade for player' : mine2(ow) ? 'Trade pick' : 'Trade for pick', tradePick: ak ? () => gm.pickToTrade(ak.id, true) : null, proposeTrade: ak ? () => gm.pickToTrade(ak.id, false) : null, logoLg: logo(ow, 26), team: T[ow].region + ' ' + T[ow].name, via: ow !== x.orig ? 'via ' + T[x.orig].abbr : '', onClock: s.phase === 'draft' && i === s.pi && !x.pid, pid: x.pid, pmeta: x.pid ? P[x.pid].pos + ' · ' + P[x.pid].ovr + '/' + P[x.pid].pot + ' · ' + (P[x.pid].from?.team || '') : '', openP: x.pid ? open(x.pid) : null, mine: mine2(ow), logo: logo(ow, 16), openT: openTeam(ow), abbr: T[ow].abbr, who: x.pid ? P[x.pid].name : s.phase === 'draft' && i === s.pi ? 'On the clock' : (ow !== x.orig ? 'via ' + T[x.orig].abbr : ''), fs: x.pid ? 'normal' : 'italic', bg: s.phase === 'draft' && i === s.pi ? 'var(--color-accent-100)' : 'transparent', color: mine2(ow) ? 'var(--color-accent-700)' : 'var(--color-text)', fw: mine2(ow) ? 600 : 400 }; }) };
+  const dr = {
+    isCurrent: isCur,
+    isFuture: s.dClass > gm.Y,
+    past: s.dClass < gm.Y,
+    hasAdvice: advice.length > 0,
+    advice,
+    noAdvice: !myNext,
+    classNote:
+      s.dClass < gm.Y
+        ? 'The ' + s.dClass + ' draft: every pick, and how each player has turned out.'
+        : s.god
+          ? 'God Mode: true ratings shown (as amateurs: how each game carries over to the NBA shows at his first camp; God Mode profiles reveal it).'
+          : isCur
+            ? 'Ratings are your scouts\u2019 estimates (±' + Math.round(spread) + ').'
+            : 'Early look, ' +
+              yearsOut +
+              ' year' +
+              (yearsOut > 1 ? 's' : '') +
+              ' out. Ranges narrow as prospects develop and as you spend more on scouting.',
+    scoutLine:
+      'Scouting budget ' + money(s.budget.Scouting) + ' (' + scoutRank + ' in the league). Ranges shown are ±' + Math.round(spread) + '.',
+    myFuture: s.assets
+      .filter(a => a.owner === s.me && a.yr === s.dClass)
+      .map(a => ({
+        label: gm.pickLabel(a, T),
+        proj: projTxt(a),
+        tradePick: () => gm.pickToTrade(a.id, true),
+        proposeTrade: () => gm.pickToTrade(a.id, false),
+      })),
+    status: cur
+      ? 'Pick ' +
+        cur.n +
+        ' · ' +
+        (onClock
+          ? 'You are on the clock' +
+            (gm.owner2027(cur.orig, s.assets, cur.rd) !== s.me ? ' as ' + T[gm.owner2027(cur.orig, s.assets, cur.rd)].abbr : '')
+          : T[gm.owner2027(cur.orig, s.assets, cur.rd)].region + ' ' + T[gm.owner2027(cur.orig, s.assets, cur.rd)].name + ' on the clock')
+      : 'First round complete',
+    sub: myPicks.length ? (myNext ? 'Your next pick: #' + myNext.n : 'Your picks are in') : 'You don\u2019t own a first this year',
+    noSimMine: !cur || onClock || !myNext,
+    done: !cur,
+    mineClock: !!cur && !!onClock,
+    order: pkList.map((x, i) => {
+      const ow = gm.owner2027(x.orig, s.assets, x.rd),
+        a0 = s.assets.find(a => a.yr === gm.Y && a.rd === (x.rd || 1) && a.orig === x.orig),
+        ak = a0 && (!x.pid || gm.draftRights(a0, s)) ? a0 : null;
+      return {
+        n: x.n,
+        canTrade: !!ak && !spect,
+        tradeLbl: x.pid ? 'Trade for player' : mine2(ow) ? 'Trade pick' : 'Trade for pick',
+        tradePick: ak ? () => gm.pickToTrade(ak.id, true) : null,
+        proposeTrade: ak ? () => gm.pickToTrade(ak.id, false) : null,
+        logoLg: logo(ow, 26),
+        team: T[ow].region + ' ' + T[ow].name,
+        via: ow !== x.orig ? 'via ' + T[x.orig].abbr : '',
+        onClock: s.phase === 'draft' && i === s.pi && !x.pid,
+        pid: x.pid,
+        pmeta: x.pid ? P[x.pid].pos + ' · ' + P[x.pid].ovr + '/' + P[x.pid].pot + ' · ' + (P[x.pid].from?.team || '') : '',
+        openP: x.pid ? open(x.pid) : null,
+        mine: mine2(ow),
+        logo: logo(ow, 16),
+        openT: openTeam(ow),
+        abbr: T[ow].abbr,
+        who: x.pid ? P[x.pid].name : s.phase === 'draft' && i === s.pi ? 'On the clock' : ow !== x.orig ? 'via ' + T[x.orig].abbr : '',
+        fs: x.pid ? 'normal' : 'italic',
+        bg: s.phase === 'draft' && i === s.pi ? 'var(--color-accent-100)' : 'transparent',
+        color: mine2(ow) ? 'var(--color-accent-700)' : 'var(--color-text)',
+        fw: mine2(ow) ? 600 : 400,
+      };
+    }),
+  };
   if (dr.myFuture.length === 0) dr.myFuture = [{ label: 'No picks in this class', proj: '' }];
-  if (s.phase !== 'draft') { const pre = ['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase); dr.status = pre ? 'Draft night comes after the playoffs and lottery' : 'The ' + gm.Y + ' draft is complete'; dr.sub = pre ? 'Order shown is projected: lottery teams by their expected pick under the 3-2-1 lottery, then everyone else by record. Click Lottery in the bar above for the odds.' : ''; dr.noSimMine = true; dr.done = true; }
-  const dClasses = [gm.Y, (gm.Y + 1), (gm.Y + 2)].map(y => ({ label: y === gm.Y ? y + ' · this June' : String(y), onClick: () => gm.setState({ dClass: y, adv: {} }), color: s.dClass === y ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.dClass === y ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
+  if (s.phase !== 'draft') {
+    const pre = ['regular', 'playin', 'playoffs', 'lottery'].includes(s.phase);
+    dr.status = pre ? 'Draft night comes after the playoffs and lottery' : 'The ' + gm.Y + ' draft is complete';
+    dr.sub = pre
+      ? 'Order shown is projected: lottery teams by their expected pick under the 3-2-1 lottery, then everyone else by record. Click Lottery in the bar above for the odds.'
+      : '';
+    dr.noSimMine = true;
+    dr.done = true;
+  }
+  const dClasses = [gm.Y, gm.Y + 1, gm.Y + 2].map(y => ({
+    label: y === gm.Y ? y + ' · this June' : String(y),
+    onClick: () => gm.setState({ dClass: y, adv: {} }),
+    color: s.dClass === y ? 'var(--color-accent-700)' : 'var(--color-text)',
+    ring: s.dClass === y ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+  }));
 
-  const lgOf = k => s.teams.filter(t => !gm.isUser(s, t.tid)).map(t => k === 'Tickets' ? aiTicketPrice(gm, s, t.tid, teamBudget(gm, s, t.tid).Facilities) : teamBudget(gm, s, t.tid)[k]); // what the other clubs actually spend and charge
+  const lgOf = k =>
+    s.teams
+      .filter(t => !gm.isUser(s, t.tid))
+      .map(t => (k === 'Tickets' ? aiTicketPrice(gm, s, t.tid, teamBudget(gm, s, t.tid).Facilities) : teamBudget(gm, s, t.tid)[k])); // what the other clubs actually spend and charge
   // The Finances screen for any club in God Mode (s.finTid; read-only for clubs you don't run), else yours.
-  const finOf = (tid: number) => { const me = T[tid], mine = s.rosters[tid] || [], payroll = teamSalary(gm, s, tid), capRoom = +(gm.CAP - payroll).toFixed(2), ro = tid !== s.me;
-  const F = financesOf(gm, s, tid), b = ro ? F.budget : s.budget, lgAvg = k => lgOf(k).reduce((a, x) => a + x, 0) / lgOf(k).length, rel = k => (b[k] / lgAvg(k) - 1);
-  const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + '%';
-  const wp = pct(me);
-  const att = F.att, taxBill = F.taxBill, rev = F.rev, exp = F.exp, net = F.net;
-  const EFF = { Coaching: 'Player growth ' + sgn((coachMult(b.Coaching) - 1) * 100) + ' and slower aging (capped with the rest of his environment; counts most for fringe players)', Health: 'Injury recovery ' + sgn(rel('Health') * 30) + ' vs league average', Facilities: 'Attendance and hype ' + sgn(rel('Facilities') * 15) + ', player growth ' + sgn(facEffect(b.Facilities) * 100) + ', builds over seasons', Scouting: 'Draft ratings ±' + Math.round(3 * scoutF) + ' this year, ±' + Math.round(13 * scoutF) + ' two classes out', Tickets: att.toLocaleString() + ' per game · ' + Math.round(F.full * 100) + '% of ' + F.cap.toLocaleString() + ' seats' };
-  const YRS = [gm.Y, (gm.Y + 1), (gm.Y + 2), (gm.Y + 3), (gm.Y + 4)];
-  const led = mine.map(id => P[id]).sort((x, y) => y.amt - x.amt);
-  const pos = v => (cl(v, 120, 240) - 120) / 120 * 100 + '%';
-  const fin = { payroll: money(payroll), payW: pos(payroll), status: s.capEasy ? (payroll > gm.AP2 ? 'Over the hard cap: you can’t add salary.' : payroll > gm.TAX ? 'In the tax: paying ' + money(taxBill) + ' this season; ' + money(gm.AP2 - payroll) + ' left until the hard cap.' : payroll > gm.CAP ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax.' : money(capRoom) + ' in cap space.') : payroll > gm.AP2 ? 'Above the 2nd apron: heavy trade and signing restrictions.' : payroll > gm.AP1 ? 'Above the 1st apron: no mid-level, trades must match 100%.' : payroll > gm.TAX ? 'In the tax: paying ' + money(taxBill) + ' this season.' : payroll > gm.CAP ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax and ' + money(gm.AP1 - payroll) + ' under the 1st apron.' : money(capRoom) + ' in cap space.',
-    marks: (s.capEasy ? [['Minimum', gm.MINP, 1], ['Cap', gm.CAP, 0], ['Tax', gm.TAX, 1], ['Hard cap', gm.AP2, 0]] : [['Minimum', gm.MINP, 1], ['Cap', gm.CAP, 0], ['Tax', gm.TAX, 1], ['1st apron', gm.AP1, 0], ['2nd apron', gm.AP2, 1]]).map(([label, v, below]) => ({ label, val: money(v), left: pos(v), top: below ? '28px' : '-20px' })),
-    rev: rev.map(([name, v]) => ({ name, v: money(v) })), exp: exp.map(([name, v]) => ({ name, v: money(v) })), net: money(net), netColor: net < 0 ? 'var(--color-accent-800)' : 'var(--color-text)',
-    budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => { const [mn, mx, , stp] = d.BUD[k]; return { name: k === 'Tickets' ? 'Ticket price' : k, min: mn, max: mx, step: stp, v: b[k], range: k === 'Tickets' ? '$' + mn + '–$' + mx + ' average' : money(mn) + '–' + money(mx), amt: k === 'Tickets' ? '$' + b[k] : money(b[k]), rank: ord(1 + lgOf(k).filter(x => x > b[k]).length), effect: EFF[k], auto: !ro && !!(s.budgetAuto || {})[k], rec: k === 'Tickets' ? '$' + autoBudget(gm, s, tid, k, b) : money(autoBudget(gm, s, tid, k, b)),
-      set: ro ? () => {} : e => { const v = +e.target.value; gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; delete ba[k]; return { budget: { ...st.budget, [k]: v }, budgetAuto: ba }; }); },
-      toggleAuto: ro ? () => {} : () => gm.setState(st => { const ba = { ...(st.budgetAuto || {}) }; if (ba[k]) delete ba[k]; else ba[k] = true; return { budgetAuto: ba, budget: applyAutoBudget(gm, st, st.me, st.budget, { [k]: !!ba[k] }) }; }) }; }),
-    readOnly: ro, team: me.region + ' ' + me.name, deals: [['Local TV', dealLine(me.tv, true)], ['Lead sponsor', dealLine(me.spon)]], allAuto: !ro && ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].every(k => (s.budgetAuto || {})[k]),
-    setAllAuto: ro ? () => {} : (on: boolean) => gm.setState(st => { const ba: Record<string, boolean> = on ? { Tickets: true, Coaching: true, Health: true, Facilities: true, Scouting: true } : {}; return { budgetAuto: ba, budget: on ? applyAutoBudget(gm, st, st.me, st.budget, ba) : st.budget }; }),
-    years: YRS.map(y => '’' + String(y - 1).slice(2) + '–' + String(y).slice(2)), ledger: led.map(p => ({ name: p.name, open: open(p.id), cells: YRS.map(y => gm.salAt(p, y) ? money(gm.salAt(p, y)) : '') })), totals: YRS.map(y => money(led.reduce((a, p) => a + gm.salAt(p, y), 0))) };
-    return fin; };
+  const finOf = (tid: number) => {
+    const me = T[tid],
+      mine = s.rosters[tid] || [],
+      payroll = teamSalary(gm, s, tid),
+      capRoom = +(gm.CAP - payroll).toFixed(2),
+      ro = tid !== s.me;
+    const F = financesOf(gm, s, tid),
+      b = ro ? F.budget : s.budget,
+      lgAvg = k => lgOf(k).reduce((a, x) => a + x, 0) / lgOf(k).length,
+      rel = k => b[k] / lgAvg(k) - 1;
+    const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + '%';
+    const wp = pct(me);
+    const att = F.att,
+      taxBill = F.taxBill,
+      rev = F.rev,
+      exp = F.exp,
+      net = F.net;
+    const EFF = {
+      Coaching:
+        'Player growth ' +
+        sgn((coachMult(b.Coaching) - 1) * 100) +
+        ' and slower aging (capped with the rest of his environment; counts most for fringe players)',
+      Health: 'Injury recovery ' + sgn(rel('Health') * 30) + ' vs league average',
+      Facilities:
+        'Attendance and hype ' +
+        sgn(rel('Facilities') * 15) +
+        ', player growth ' +
+        sgn(facEffect(b.Facilities) * 100) +
+        ', builds over seasons',
+      Scouting: 'Draft ratings ±' + Math.round(3 * scoutF) + ' this year, ±' + Math.round(13 * scoutF) + ' two classes out',
+      Tickets: att.toLocaleString() + ' per game · ' + Math.round(F.full * 100) + '% of ' + F.cap.toLocaleString() + ' seats',
+    };
+    const YRS = [gm.Y, gm.Y + 1, gm.Y + 2, gm.Y + 3, gm.Y + 4];
+    const led = mine.map(id => P[id]).sort((x, y) => y.amt - x.amt);
+    const pos = v => ((cl(v, 120, 240) - 120) / 120) * 100 + '%';
+    const fin = {
+      payroll: money(payroll),
+      payW: pos(payroll),
+      status: s.capEasy
+        ? payroll > gm.AP2
+          ? 'Over the hard cap: you can’t add salary.'
+          : payroll > gm.TAX
+            ? 'In the tax: paying ' + money(taxBill) + ' this season; ' + money(gm.AP2 - payroll) + ' left until the hard cap.'
+            : payroll > gm.CAP
+              ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax.'
+              : money(capRoom) + ' in cap space.'
+        : payroll > gm.AP2
+          ? 'Above the 2nd apron: heavy trade and signing restrictions.'
+          : payroll > gm.AP1
+            ? 'Above the 1st apron: no mid-level, trades must match 100%.'
+            : payroll > gm.TAX
+              ? 'In the tax: paying ' + money(taxBill) + ' this season.'
+              : payroll > gm.CAP
+                ? 'Over the cap, ' + money(gm.TAX - payroll) + ' under the tax and ' + money(gm.AP1 - payroll) + ' under the 1st apron.'
+                : money(capRoom) + ' in cap space.',
+      marks: (s.capEasy
+        ? [
+            ['Minimum', gm.MINP, 1],
+            ['Cap', gm.CAP, 0],
+            ['Tax', gm.TAX, 1],
+            ['Hard cap', gm.AP2, 0],
+          ]
+        : [
+            ['Minimum', gm.MINP, 1],
+            ['Cap', gm.CAP, 0],
+            ['Tax', gm.TAX, 1],
+            ['1st apron', gm.AP1, 0],
+            ['2nd apron', gm.AP2, 1],
+          ]
+      ).map(([label, v, below]) => ({ label, val: money(v), left: pos(v), top: below ? '28px' : '-20px' })),
+      rev: rev.map(([name, v]) => ({ name, v: money(v) })),
+      exp: exp.map(([name, v]) => ({ name, v: money(v) })),
+      net: money(net),
+      netColor: net < 0 ? 'var(--color-accent-800)' : 'var(--color-text)',
+      budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => {
+        const [mn, mx, , stp] = d.BUD[k];
+        return {
+          name: k === 'Tickets' ? 'Ticket price' : k,
+          min: mn,
+          max: mx,
+          step: stp,
+          v: b[k],
+          range: k === 'Tickets' ? '$' + mn + '–$' + mx + ' average' : money(mn) + '–' + money(mx),
+          amt: k === 'Tickets' ? '$' + b[k] : money(b[k]),
+          rank: ord(1 + lgOf(k).filter(x => x > b[k]).length),
+          effect: EFF[k],
+          auto: !ro && !!(s.budgetAuto || {})[k],
+          rec: k === 'Tickets' ? '$' + autoBudget(gm, s, tid, k, b) : money(autoBudget(gm, s, tid, k, b)),
+          set: ro
+            ? () => {}
+            : e => {
+                const v = +e.target.value;
+                gm.setState(st => {
+                  const ba = { ...(st.budgetAuto || {}) };
+                  delete ba[k];
+                  return { budget: { ...st.budget, [k]: v }, budgetAuto: ba };
+                });
+              },
+          toggleAuto: ro
+            ? () => {}
+            : () =>
+                gm.setState(st => {
+                  const ba = { ...(st.budgetAuto || {}) };
+                  if (ba[k]) delete ba[k];
+                  else ba[k] = true;
+                  return { budgetAuto: ba, budget: applyAutoBudget(gm, st, st.me, st.budget, { [k]: !!ba[k] }) };
+                }),
+        };
+      }),
+      readOnly: ro,
+      team: me.region + ' ' + me.name,
+      deals: [
+        ['Local TV', dealLine(me.tv, true)],
+        ['Lead sponsor', dealLine(me.spon)],
+      ],
+      allAuto: !ro && ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].every(k => (s.budgetAuto || {})[k]),
+      setAllAuto: ro
+        ? () => {}
+        : (on: boolean) =>
+            gm.setState(st => {
+              const ba: Record<string, boolean> = on
+                ? { Tickets: true, Coaching: true, Health: true, Facilities: true, Scouting: true }
+                : {};
+              return { budgetAuto: ba, budget: on ? applyAutoBudget(gm, st, st.me, st.budget, ba) : st.budget };
+            }),
+      years: YRS.map(y => '’' + String(y - 1).slice(2) + '–' + String(y).slice(2)),
+      ledger: led.map(p => ({ name: p.name, open: open(p.id), cells: YRS.map(y => (gm.salAt(p, y) ? money(gm.salAt(p, y)) : '')) })),
+      totals: YRS.map(y => money(led.reduce((a, p) => a + gm.salAt(p, y), 0))),
+    };
+    return fin;
+  };
   const finT = s.god && s.finTid != null && T[s.finTid] ? s.finTid : s.me;
-  const fin = { ...finOf(finT), teams: s.god ? T.map(t => ({ v: t.tid, label: t.region + ' ' + t.name + (t.tid === s.me ? ' (yours)' : '') })).sort((a, c) => a.label.localeCompare(c.label)) : null, teamV: finT, setTeam: (e: any) => gm.setState({ finTid: +e.target.value }) };
+  const fin = {
+    ...finOf(finT),
+    teams: s.god
+      ? T.map(t => ({ v: t.tid, label: t.region + ' ' + t.name + (t.tid === s.me ? ' (yours)' : '') })).sort((a, c) =>
+          a.label.localeCompare(c.label),
+        )
+      : null,
+    teamV: finT,
+    setTeam: (e: any) => gm.setState({ finTid: +e.target.value }),
+  };
 
-
-  const onGame = s.screen === 'game', usL = onGame ? gm.simTeam(s, s.me) : null, themL = onGame ? gm.simTeam(s, g.opp) : null, [hT, aT] = g.home ? [s.me, g.opp] : [g.opp, s.me];
-  const live = { home: g.home ? usL : themL, away: g.home ? themL : usL, userSide: g.home ? 'home' : 'away', norms: d.norms, logos: { home: logo(hT, 44), away: logo(aT, 44), homeSm: logo(hT, 22), awaySm: logo(aT, 22) }, onPlayer: id => gm.setState({ pid: id, modal: true, ptab: 'overview', extYears: null, extAmt: null, extMsg: null }), onTeam: tid => gm.setState({ teamModal: tid }), onFinish: r => { if (s.phase === 'playin') gm.simPlayin(r); else if (s.phase === 'playoffs') gm.simPo('game', r); else gm.sim(1, r); gm.setState({ screen: s.phase === 'regular' ? 'dash' : 'playoffs' }); } };
+  const onGame = s.screen === 'game',
+    usL = onGame ? gm.simTeam(s, s.me) : null,
+    themL = onGame ? gm.simTeam(s, g.opp) : null,
+    [hT, aT] = g.home ? [s.me, g.opp] : [g.opp, s.me];
+  const live = {
+    home: g.home ? usL : themL,
+    away: g.home ? themL : usL,
+    userSide: g.home ? 'home' : 'away',
+    norms: d.norms,
+    logos: { home: logo(hT, 44), away: logo(aT, 44), homeSm: logo(hT, 22), awaySm: logo(aT, 22) },
+    onPlayer: id => gm.setState({ pid: id, modal: true, ptab: 'overview', extYears: null, extAmt: null, extMsg: null }),
+    onTeam: tid => gm.setState({ teamModal: tid }),
+    onFinish: r => {
+      if (s.phase === 'playin') gm.simPlayin(r);
+      else if (s.phase === 'playoffs') gm.simPo('game', r);
+      else gm.sim(1, r);
+      gm.setState({ screen: s.phase === 'regular' ? 'dash' : 'playoffs' });
+    },
+  };
   const left = s.phase === 'regular' ? Math.max(0, 82 - me.w - me.l) : 0;
-  const postLbl = new Map<string, string>(), postNext: any[] = [];
-  if (s.screen === 'schedule') (gm.postSchedule(s) as any[]).forEach(p => p.games.forEach((x: any) => { if (x.r?.bid) postLbl.set(x.r.bid, x.stage + (/Game \d+/.exec(x.label) ? ' ' + /Game \d+/.exec(x.label)![0] : '')); else if (!x.r && x.h != null && (x.h === s.me || x.a === s.me)) postNext.push({ day: p.day, ...x }); }));
-  const schedRows = [...myResults.slice().reverse().map(r => ({ logo: logo(r.opp), openT: openTeam(r.opp), date: gm.fmtS(r.day), opp: (r.home ? 'vs ' : 'at ') + T[r.opp].region + ' ' + T[r.opp].name + (r.po ? ' · ' + (postLbl.get(r.bid) || (r.po === 'playin' ? 'Play-in' : 'Playoffs')) : ''), rec: T[r.opp].w + '–' + T[r.opp].l, res: (r.win ? 'W ' : 'L ') + r.us + '–' + r.them, openBox: r.bid && (gm.db as any).boxes?.[r.bid] ? () => gm.setState({ boxId: r.bid }) : null, resColor: r.win ? 'var(--gm-good)' : 'var(--gm-bad)', isNext: false, notNext: true, bg: 'transparent' })),
-    ...gm.db.days.flatMap((_, day) => { const game = left && day >= s.day ? gm.userGame(day) : null; return game ? [game] : []; }).slice(0, 15).map((gg, k) => { const o = T[gg.opp]; return { day: gg.day, h: gg.home ? s.me : gg.opp, a: gg.home ? gg.opp : s.me, logo: logo(gg.opp), openT: openTeam(gg.opp), date: gm.fmtS(gg.day), opp: (gg.home ? 'vs ' : 'at ') + o.region + ' ' + o.name, rec: o.w + '–' + o.l, res: '—', resColor: 'var(--color-neutral-600)', isNext: k === 0, notNext: k !== 0, bg: k === 0 ? 'var(--color-accent-100)' : 'transparent' }; }),
-    ...postNext.map(x => { const opp = x.h === s.me ? x.a : x.h, o = T[opp]; return { day: x.day, h: x.h, a: x.a, logo: logo(opp), openT: openTeam(opp), date: gm.fmtS(x.day), opp: (x.h === s.me ? 'vs ' : 'at ') + o.region + ' ' + o.name + ' · ' + x.stage + (/Game \d+/.exec(x.label) ? ' ' + /Game \d+/.exec(x.label)![0] : ''), rec: o.w + '–' + o.l, res: '—', resColor: 'var(--color-neutral-600)', isNext: true, notNext: false, bg: 'var(--color-accent-100)' }; })];
-  const typeOf = t => /^Traded/.test(t) ? 'Trade' : /^Signed/.test(t) ? 'Signing' : /^Released/.test(t) ? 'Release' : 'Draft';
+  const postLbl = new Map<string, string>(),
+    postNext: any[] = [];
+  if (s.screen === 'schedule')
+    (gm.postSchedule(s) as any[]).forEach(p =>
+      p.games.forEach((x: any) => {
+        if (x.r?.bid) postLbl.set(x.r.bid, x.stage + (/Game \d+/.exec(x.label) ? ' ' + /Game \d+/.exec(x.label)![0] : ''));
+        else if (!x.r && x.h != null && (x.h === s.me || x.a === s.me)) postNext.push({ day: p.day, ...x });
+      }),
+    );
+  const schedRows = [
+    ...myResults
+      .slice()
+      .reverse()
+      .map(r => ({
+        logo: logo(r.opp),
+        openT: openTeam(r.opp),
+        date: gm.fmtS(r.day),
+        opp:
+          (r.home ? 'vs ' : 'at ') +
+          T[r.opp].region +
+          ' ' +
+          T[r.opp].name +
+          (r.po ? ' · ' + (postLbl.get(r.bid) || (r.po === 'playin' ? 'Play-in' : 'Playoffs')) : ''),
+        rec: T[r.opp].w + '–' + T[r.opp].l,
+        res: (r.win ? 'W ' : 'L ') + r.us + '–' + r.them,
+        openBox: r.bid && (gm.db as any).boxes?.[r.bid] ? () => gm.setState({ boxId: r.bid }) : null,
+        resColor: r.win ? 'var(--gm-good)' : 'var(--gm-bad)',
+        isNext: false,
+        notNext: true,
+        bg: 'transparent',
+      })),
+    ...gm.db.days
+      .flatMap((_, day) => {
+        const game = left && day >= s.day ? gm.userGame(day) : null;
+        return game ? [game] : [];
+      })
+      .slice(0, 15)
+      .map((gg, k) => {
+        const o = T[gg.opp];
+        return {
+          day: gg.day,
+          h: gg.home ? s.me : gg.opp,
+          a: gg.home ? gg.opp : s.me,
+          logo: logo(gg.opp),
+          openT: openTeam(gg.opp),
+          date: gm.fmtS(gg.day),
+          opp: (gg.home ? 'vs ' : 'at ') + o.region + ' ' + o.name,
+          rec: o.w + '–' + o.l,
+          res: '—',
+          resColor: 'var(--color-neutral-600)',
+          isNext: k === 0,
+          notNext: k !== 0,
+          bg: k === 0 ? 'var(--color-accent-100)' : 'transparent',
+        };
+      }),
+    ...postNext.map(x => {
+      const opp = x.h === s.me ? x.a : x.h,
+        o = T[opp];
+      return {
+        day: x.day,
+        h: x.h,
+        a: x.a,
+        logo: logo(opp),
+        openT: openTeam(opp),
+        date: gm.fmtS(x.day),
+        opp:
+          (x.h === s.me ? 'vs ' : 'at ') +
+          o.region +
+          ' ' +
+          o.name +
+          ' · ' +
+          x.stage +
+          (/Game \d+/.exec(x.label) ? ' ' + /Game \d+/.exec(x.label)![0] : ''),
+        rec: o.w + '–' + o.l,
+        res: '—',
+        resColor: 'var(--color-neutral-600)',
+        isNext: true,
+        notNext: false,
+        bg: 'var(--color-accent-100)',
+      };
+    }),
+  ];
+  const typeOf = t => (/^Traded/.test(t) ? 'Trade' : /^Signed/.test(t) ? 'Signing' : /^Released/.test(t) ? 'Release' : 'Draft');
   // This season only: the league year starts when free agency opens (the "salary cap is" line in
   // the league log, "Free agency opened" in yours); before the first free agency, everything counts.
   // League years (each starts when free agency opens, with the new salary cap): this one by default,
   // any earlier one from the picker, so past seasons' moves stay readable.
-  const capIdx: number[] = s.lgLog.reduce((a, e, i) => (e.teams === 'League' && /salary cap is/.test(e.text || '') ? [...a, i] : a), []), myCut = s.log.findIndex(l => /^Free agency opened/.test(l.text || ''));
-  const first0 = gm.db.firstSeason || 2027, txYears = [...capIdx.map((ci, k) => ({ from: k ? capIdx[k - 1] + 1 : 0, to: ci, label: (/The (\d{4}–\d{2}) salary cap/.exec(s.lgLog[ci].text) || [])[1] || 'Season' })), { from: capIdx.length ? capIdx[capIdx.length - 1] + 1 : 0, to: s.lgLog.length - 1, label: (first0 - 1) + '–' + String(first0).slice(2) }].filter(y => y.to >= y.from);
-  const txYi = Math.min(s.txYear || 0, Math.max(0, txYears.length - 1)), txSeg = txYears[txYi] || { from: 0, to: s.lgLog.length - 1 };
-  const lgNow = s.lgLog.slice(txSeg.from, txSeg.to + 1), myNow = txYi > 0 ? [] : myCut >= 0 ? s.log.slice(0, myCut + 1) : s.log;
+  const capIdx: number[] = s.lgLog.reduce((a, e, i) => (e.teams === 'League' && /salary cap is/.test(e.text || '') ? [...a, i] : a), []),
+    myCut = s.log.findIndex(l => /^Free agency opened/.test(l.text || ''));
+  const first0 = gm.db.firstSeason || 2027,
+    txYears = [
+      ...capIdx.map((ci, k) => ({
+        from: k ? capIdx[k - 1] + 1 : 0,
+        to: ci,
+        label: (/The (\d{4}–\d{2}) salary cap/.exec(s.lgLog[ci].text) || [])[1] || 'Season',
+      })),
+      {
+        from: capIdx.length ? capIdx[capIdx.length - 1] + 1 : 0,
+        to: s.lgLog.length - 1,
+        label: first0 - 1 + '–' + String(first0).slice(2),
+      },
+    ].filter(y => y.to >= y.from);
+  const txYi = Math.min(s.txYear || 0, Math.max(0, txYears.length - 1)),
+    txSeg = txYears[txYi] || { from: 0, to: s.lgLog.length - 1 };
+  const lgNow = s.lgLog.slice(txSeg.from, txSeg.to + 1),
+    myNow = txYi > 0 ? [] : myCut >= 0 ? s.log.slice(0, myCut + 1) : s.log;
   // Newest first. The day counter restarts at training camp, so order by (stage, day): walking each
   // log oldest → newest, a big drop in the day means camp has opened.
-  const keyed = (list: any[]) => { const out: any[] = []; let era = 0, prev = -1; for (let i = list.length - 1; i >= 0; i--) { const d = list[i].day ?? s.day; if (prev >= 0 && d < prev - 5) era++; prev = d; out.push({ ...list[i], _k: era * 100000 + d, _i: i }); } return out; };
-  const allTx = [...keyed(myNow).map(l => ({ ...l, day: l.day ?? s.day, type: typeOf(l.text), teams: me.abbr, mine: true })), ...keyed(lgNow).map(e => ({ ...e, mine: false }))].sort((x, y) => y._k - x._k || x._i - y._i);
-  const txRows = allTx.filter(x => s.txFilter === 'All' || x.type === s.txFilter).map(x => ({ date: x.date || gm.fmtS(x.day), type: x.type, teams: x.teams, teamLinks: String(x.teams).split(' · ').map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })), text: linkNames(x.text, id => open(id)(null), { P }), bg: x.mine ? 'var(--color-accent-100)' : 'transparent' }));
-  const txYearOpts = txYears.map((y, i) => ({ v: i, label: (i === 0 ? 'This league year · ' : '') + y.label })), setTxYear = (i: number) => gm.setState({ txYear: i });
-  const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft', 'Injury'].map(k => ({ label: k === 'All' ? 'All' : k === 'Trade' ? 'Trades' : k === 'Signing' ? 'Signings' : k === 'Release' ? 'Releases' : k === 'Injury' ? 'Injuries' : 'Draft', onClick: () => gm.setState({ txFilter: k }), color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' }));
-  const teamOf = id => { const t = tidOf[id]; return t >= 0 ? T[t].abbr : t === -1 ? 'Free agent' : t === -2 ? 'Overseas' : P[id].retired ? 'Retired' : P[id].cls && P[id].cls >= gm.Y ? 'Class of ' + P[id].cls : 'Free agent'; };
-  const openC = code => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'country', code } }); };
-  const openClass = yr => e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'class', year: yr } }); };
+  const keyed = (list: any[]) => {
+    const out: any[] = [];
+    let era = 0,
+      prev = -1;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const d = list[i].day ?? s.day;
+      if (prev >= 0 && d < prev - 5) era++;
+      prev = d;
+      out.push({ ...list[i], _k: era * 100000 + d, _i: i });
+    }
+    return out;
+  };
+  const allTx = [
+    ...keyed(myNow).map(l => ({ ...l, day: l.day ?? s.day, type: typeOf(l.text), teams: me.abbr, mine: true })),
+    ...keyed(lgNow).map(e => ({ ...e, mine: false })),
+  ].sort((x, y) => y._k - x._k || x._i - y._i);
+  const txRows = allTx
+    .filter(x => s.txFilter === 'All' || x.type === s.txFilter)
+    .map(x => ({
+      date: x.date || gm.fmtS(x.day),
+      type: x.type,
+      teams: x.teams,
+      teamLinks: String(x.teams)
+        .split(' · ')
+        .map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })),
+      text: linkNames(x.text, id => open(id)(null), { P }),
+      bg: x.mine ? 'var(--color-accent-100)' : 'transparent',
+    }));
+  const txYearOpts = txYears.map((y, i) => ({ v: i, label: (i === 0 ? 'This league year · ' : '') + y.label })),
+    setTxYear = (i: number) => gm.setState({ txYear: i });
+  const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft', 'Injury'].map(k => ({
+    label:
+      k === 'All'
+        ? 'All'
+        : k === 'Trade'
+          ? 'Trades'
+          : k === 'Signing'
+            ? 'Signings'
+            : k === 'Release'
+              ? 'Releases'
+              : k === 'Injury'
+                ? 'Injuries'
+                : 'Draft',
+    onClick: () => gm.setState({ txFilter: k }),
+    color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+    ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+  }));
+  const teamOf = id => {
+    const t = tidOf[id];
+    return t >= 0
+      ? T[t].abbr
+      : t === -1
+        ? 'Free agent'
+        : t === -2
+          ? 'Overseas'
+          : P[id].retired
+            ? 'Retired'
+            : P[id].cls && P[id].cls >= gm.Y
+              ? 'Class of ' + P[id].cls
+              : 'Free agent';
+  };
+  const openC = code => e => {
+    e && e.stopPropagation && e.stopPropagation();
+    gm.setState({ listModal: { type: 'country', code } });
+  };
+  const openClass = yr => e => {
+    e && e.stopPropagation && e.stopPropagation();
+    gm.setState({ listModal: { type: 'class', year: yr } });
+  };
   // Intangibles (Feel, Poise): exact for your players, veterans and God Mode; otherwise the scouts'
   // read, which is twice as fuzzy as for skills (film doesn't show them well).
-  { const it = ensureIntg(pp), k = kindOf(gm, s, pp), sure = s.god || k === 'mine' || (pp.stats || []).filter((r: any) => !r.po).reduce((a: number, r: any) => a + r.gp, 0) >= 120;
-    const m = sure ? 0 : Math.max(3, scoutRead(gm, s, pp).margin * 2), rr = mulberry32(pp.id * 131 + 7), est = (v: number) => cl(Math.round(v + (rr() * 2 - 1) * m), 1, 99);
-    const row = (name: string, v: number, hint: string) => { const x = sure ? v : est(v); return { name, v: x, w: x + '%', tone: tone(x), d: null, text: sure ? undefined : '~' + x, hint: hint + (sure ? '' : ' Scouts\u2019 read: intangibles are hard to judge from outside (±' + Math.round(m) + ').') }; };
-    pl.groups = [...(pl.groups || []), { label: 'Intangibles', items: [row('Feel', it.feel, 'Vision, processing speed, anticipation and passing feel: the game slows down for him. Makes teammates\u2019 shots better and cuts turnovers; not counted in his overall.'), row('Poise', it.poise, 'Composure and patience: not rattled by pressure, traps, crowds or the clutch. Not counted in his overall.')] }]; }
+  {
+    const it = ensureIntg(pp),
+      k = kindOf(gm, s, pp),
+      sure = s.god || k === 'mine' || (pp.stats || []).filter((r: any) => !r.po).reduce((a: number, r: any) => a + r.gp, 0) >= 120;
+    const m = sure ? 0 : Math.max(3, scoutRead(gm, s, pp).margin * 2),
+      rr = mulberry32(pp.id * 131 + 7),
+      est = (v: number) => cl(Math.round(v + (rr() * 2 - 1) * m), 1, 99);
+    const row = (name: string, v: number, hint: string) => {
+      const x = sure ? v : est(v);
+      return {
+        name,
+        v: x,
+        w: x + '%',
+        tone: tone(x),
+        d: null,
+        text: sure ? undefined : '~' + x,
+        hint: hint + (sure ? '' : ' Scouts\u2019 read: intangibles are hard to judge from outside (±' + Math.round(m) + ').'),
+      };
+    };
+    pl.groups = [
+      ...(pl.groups || []),
+      {
+        label: 'Intangibles',
+        items: [
+          row(
+            'Feel',
+            it.feel,
+            'Vision, processing speed, anticipation and passing feel: the game slows down for him. Makes teammates\u2019 shots better and cuts turnovers; not counted in his overall.',
+          ),
+          row(
+            'Poise',
+            it.poise,
+            'Composure and patience: not rattled by pressure, traps, crowds or the clutch. Not counted in his overall.',
+          ),
+        ],
+      },
+    ];
+  }
   pl.openRep = openC(pp.rep);
-  pl.bgRows = [...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : null })), ...(pp.from?.team ? [{ k: pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA' || isPlainHS(pp.from) ? 'College' : pp.from.lg === 'High school' ? 'High school' : 'Came from', hasFlag: false, flag: '', v: isPlainHS(pp.from) ? 'High school' : pp.from.team + (pp.from.lg && pp.from.lg !== 'NCAA' && pp.from.lg !== 'High school' ? ' (' + pp.from.lg + ')' : ''), open: e => { e && e.stopPropagation && e.stopPropagation(); gm.setState({ listModal: { type: 'from', team: pp.from.team, lg: pp.from.lg } }); } }] : []), { k: 'Draft class', hasFlag: false, flag: '', v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'), open: openClass(pp.cls || pp.draft) }, ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: heritageLabel(pp, C) }] : []), ...(pp.family || []).filter(x => P[x.pid]).map(x => ({ k: { father: 'Father', son: 'Son', brother: 'Brother' }[x.rel], hasFlag: false, flag: '', v: P[x.pid].name + (P[x.pid].retired ? ' (retired' + ((s.hof || []).some(h => h.pid === x.pid) ? ', Hall of Fame' : '') + ')' : tidOf[x.pid] >= 0 ? ' · ' + T[tidOf[x.pid]].abbr : ''), open: open(x.pid) }))];
+  pl.bgRows = [
+    ...pl.bgRows.map(r => ({ ...r, open: r.k === 'Born' ? openC(pp.born) : r.k === 'Represents' ? openC(pp.rep) : null })),
+    ...(pp.from?.team
+      ? [
+          {
+            k:
+              pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA' || isPlainHS(pp.from)
+                ? 'College'
+                : pp.from.lg === 'High school'
+                  ? 'High school'
+                  : 'Came from',
+            hasFlag: false,
+            flag: '',
+            v: isPlainHS(pp.from)
+              ? 'High school'
+              : pp.from.team + (pp.from.lg && pp.from.lg !== 'NCAA' && pp.from.lg !== 'High school' ? ' (' + pp.from.lg + ')' : ''),
+            open: e => {
+              e && e.stopPropagation && e.stopPropagation();
+              gm.setState({ listModal: { type: 'from', team: pp.from.team, lg: pp.from.lg } });
+            },
+          },
+        ]
+      : []),
+    {
+      k: 'Draft class',
+      hasFlag: false,
+      flag: '',
+      v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'),
+      open: openClass(pp.cls || pp.draft),
+    },
+    ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: heritageLabel(pp, C) }] : []),
+    ...(pp.family || [])
+      .filter(x => P[x.pid])
+      .map(x => ({
+        k: { father: 'Father', son: 'Son', brother: 'Brother' }[x.rel],
+        hasFlag: false,
+        flag: '',
+        v:
+          P[x.pid].name +
+          (P[x.pid].retired
+            ? ' (retired' + ((s.hof || []).some(h => h.pid === x.pid) ? ', Hall of Fame' : '') + ')'
+            : tidOf[x.pid] >= 0
+              ? ' · ' + T[tidOf[x.pid]].abbr
+              : ''),
+        open: open(x.pid),
+      })),
+  ];
   pl.elig = pl.elig.map((e, i) => ({ ...e, open: openC(pp.elig[i].c) }));
-  const LMs = s.listModal; let lm = {};
+  const LMs = s.listModal;
+  let lm = {};
   // Condensed per-game line for list pop-ups: this regular season, else his latest one.
-  const lineOf = (p: any) => { const ys = [...new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season))].sort((a: any, b: any) => b - a) as number[];
-    const y = ys[0]; const t = y != null ? gm.seasonTotals(p, y) : null; if (!t || !t.gp) return { sGp: 0 };
-    const q = (v: number) => +(v / t.gp).toFixed(1); return { sGp: t.gp, sYr: y === gm.Y ? '' : (y - 1) + '–' + String(y).slice(2), sPts: q(t.pts), sReb: q(t.orb + t.drb), sAst: q(t.ast), sStl: q(t.stl), sBlk: q(t.blk), sPer: +gm.perOf(t, y).toFixed(1) }; };
+  const lineOf = (p: any) => {
+    const ys = [...new Set((p.stats || []).filter((x: any) => !x.po).map((x: any) => x.season))].sort(
+      (a: any, b: any) => b - a,
+    ) as number[];
+    const y = ys[0];
+    const t = y != null ? gm.seasonTotals(p, y) : null;
+    if (!t || !t.gp) return { sGp: 0 };
+    const q = (v: number) => +(v / t.gp).toFixed(1);
+    return {
+      sGp: t.gp,
+      sYr: y === gm.Y ? '' : y - 1 + '–' + String(y).slice(2),
+      sPts: q(t.pts),
+      sReb: q(t.orb + t.drb),
+      sAst: q(t.ast),
+      sStl: q(t.stl),
+      sBlk: q(t.blk),
+      sPer: +gm.perOf(t, y).toFixed(1),
+    };
+  };
   if (LMs) {
-    const act = (Object.values(P) as any[]).filter(p => !p.gone && (tidOf[p.id] !== undefined || (p.cls && p.cls >= gm.Y) || ((LMs.type === 'class' || LMs.type === 'from') && (p.retired || p.dr || p.cls))));
+    const act = (Object.values(P) as any[]).filter(
+      p =>
+        !p.gone &&
+        (tidOf[p.id] !== undefined ||
+          (p.cls && p.cls >= gm.Y) ||
+          ((LMs.type === 'class' || LMs.type === 'from') && (p.retired || p.dr || p.cls))),
+    );
     const reads = LMs.type === 'trait' ? new Map(act.map(p => [p.id, traitRead(gm, s, p)])) : null;
-    let ps = LMs.type === 'from' ? act.filter(p => p.from?.team === LMs.team).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'trait' ? act.filter(p => reads!.get(p.id)!.keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'country' ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr) : LMs.type === 'group' ? act.filter(groupFilter(LMs.q, C)).sort((x, y) => y.ovr - x.ovr) : act.filter(p => p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls);
-    if (LMs.type === 'class') ps.sort((x, y) => (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) - (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99));
+    let ps =
+      LMs.type === 'from'
+        ? act.filter(p => p.from?.team === LMs.team).sort((x, y) => y.ovr - x.ovr)
+        : LMs.type === 'trait'
+          ? act.filter(p => reads!.get(p.id)!.keys.includes(LMs.k)).sort((x, y) => y.ovr - x.ovr)
+          : LMs.type === 'country'
+            ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr)
+            : LMs.type === 'group'
+              ? act.filter(groupFilter(LMs.q, C)).sort((x, y) => y.ovr - x.ovr)
+              : act.filter(p => (p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls));
+    if (LMs.type === 'class')
+      ps.sort(
+        (x, y) =>
+          (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) -
+          (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99),
+      );
     const TL = LMs.type === 'trait' ? TRAIT[LMs.k] : null;
     const FR = LMs.type === 'from';
     const GR = LMs.type === 'group';
-    lm = { drafted: LMs.type === 'class', title: FR ? LMs.team : TL ? TL.label : GR ? groupTitle(LMs.q, C) : LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class', flag: LMs.type === 'country' || (GR && LMs.q.kind === 'country') ? gm.flag(LMs.code || LMs.q.code) : '', hasFlag: LMs.type === 'country' || (GR && LMs.q.kind === 'country'), sub: GR ? ps.length + ' players' + (LMs.q.kind === 'country' ? ' represent ' + C[LMs.q.code].n + ', were born there or have roots there' : '') : FR ? (LMs.lg ? LMs.lg + ' · ' : '') + ps.length + ' players came from here' : TL ? TL.desc + ' ' + ps.length + ' players.' : ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''), extraH: GR ? 'Heritage' : FR ? 'Draft' : TL ? 'Pos' : LMs.type === 'country' ? 'Born' : 'Pick',
-      rows: ps.map(p => ({ ...pBase(p.id), ...lineOf(p), team: teamOf(p.id), openT: openTeam(tidOf[p.id] ?? -1), ...(LMs.type === 'class' ? (() => { const nw = nowLabel(gm, s, p), dt = draftedBy(gm, p); return { team: nw.label, openT: openTeam(nw.tid), draftedBy: draftedLabel(gm, s, p), openD: openTeam(dt ?? -1) }; })() : {}), extra: GR ? (heritageLabel(p, C) || C[p.her]?.n || '') : FR ? (p.cls ? 'Class of ' + p.cls : p.dr ? p.draft + ' · Rd ' + p.dr.rd + ', #' + p.dr.pick : 'Undrafted') : TL ? p.pos : LMs.type === 'country' ? C[p.born].n : p.cls ? 'Board #' + d.rank[p.id] : p.dr ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)' : 'Undrafted' })) };
+    lm = {
+      drafted: LMs.type === 'class',
+      title: FR ? LMs.team : TL ? TL.label : GR ? groupTitle(LMs.q, C) : LMs.type === 'country' ? C[LMs.code].n : LMs.year + ' draft class',
+      flag: LMs.type === 'country' || (GR && LMs.q.kind === 'country') ? gm.flag(LMs.code || LMs.q.code) : '',
+      hasFlag: LMs.type === 'country' || (GR && LMs.q.kind === 'country'),
+      sub: GR
+        ? ps.length +
+          ' players' +
+          (LMs.q.kind === 'country' ? ' represent ' + C[LMs.q.code].n + ', were born there or have roots there' : '')
+        : FR
+          ? (LMs.lg ? LMs.lg + ' · ' : '') + ps.length + ' players came from here'
+          : TL
+            ? TL.desc + ' ' + ps.length + ' players.'
+            : ps.length + ' players' + (LMs.type === 'country' ? ' represent ' + C[LMs.code].n : ''),
+      extraH: GR ? 'Heritage' : FR ? 'Draft' : TL ? 'Pos' : LMs.type === 'country' ? 'Born' : 'Pick',
+      rows: ps.map(p => ({
+        ...pBase(p.id),
+        ...lineOf(p),
+        team: teamOf(p.id),
+        openT: openTeam(tidOf[p.id] ?? -1),
+        ...(LMs.type === 'class'
+          ? (() => {
+              const nw = nowLabel(gm, s, p),
+                dt = draftedBy(gm, p);
+              return { team: nw.label, openT: openTeam(nw.tid), draftedBy: draftedLabel(gm, s, p), openD: openTeam(dt ?? -1) };
+            })()
+          : {}),
+        extra: GR
+          ? heritageLabel(p, C) || C[p.her]?.n || ''
+          : FR
+            ? p.cls
+              ? 'Class of ' + p.cls
+              : p.dr
+                ? p.draft + ' · Rd ' + p.dr.rd + ', #' + p.dr.pick
+                : 'Undrafted'
+            : TL
+              ? p.pos
+              : LMs.type === 'country'
+                ? C[p.born].n
+                : p.cls
+                  ? 'Board #' + d.rank[p.id]
+                  : p.dr
+                    ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)'
+                    : 'Undrafted',
+      })),
+    };
   }
-  const togList = (lid, pid) => () => gm.setState(st => ({ lists: st.lists.map(l => l.id !== lid ? l : { ...l, ids: l.ids.includes(pid) ? l.ids.filter(x => x !== pid) : [...l.ids, pid] }) }));
-  pl.lists = s.lists.map(l => { const on = l.ids.includes(pp.id); return { name: l.name, mark: on ? '✓ ' : '+ ', toggle: togList(l.id, pp.id), color: on ? 'var(--color-accent-800)' : 'var(--color-text)', bg: on ? 'var(--color-accent-100)' : 'transparent', border: on ? 'var(--color-accent)' : 'var(--color-divider)' }; });
+  const togList = (lid, pid) => () =>
+    gm.setState(st => ({
+      lists: st.lists.map(l => (l.id !== lid ? l : { ...l, ids: l.ids.includes(pid) ? l.ids.filter(x => x !== pid) : [...l.ids, pid] })),
+    }));
+  pl.lists = s.lists.map(l => {
+    const on = l.ids.includes(pp.id);
+    return {
+      name: l.name,
+      mark: on ? '✓ ' : '+ ',
+      toggle: togList(l.id, pp.id),
+      color: on ? 'var(--color-accent-800)' : 'var(--color-text)',
+      bg: on ? 'var(--color-accent-100)' : 'transparent',
+      border: on ? 'var(--color-accent)' : 'var(--color-divider)',
+    };
+  });
   // The profile's shortlist dropdown (2026-10-30): the list he's on, moving him to another (off every other list), or a new one.
   pl.listCur = s.lists.find(l => l.ids.includes(pp.id))?.id ?? '';
-  pl.listMore = s.lists.filter(l => l.ids.includes(pp.id)).slice(1).map(l => l.name);
-  pl.listMove = (lid: string) => gm.setState(st => ({ lists: st.lists.map(l => ({ ...l, ids: l.id === lid ? (l.ids.includes(pp.id) ? l.ids : [...l.ids, pp.id]) : l.ids.filter(x => x !== pp.id) })) }));
-  pl.listNew = (name: string) => { const nm = name.trim(); if (!nm) return; gm.setState(st => ({ lists: [...st.lists.map(l => ({ ...l, ids: l.ids.filter(x => x !== pp.id) })), { id: 'l' + Date.now(), name: nm, ids: [pp.id] }] })); };
-  const shortlists = s.lists.map(l => ({ id: l.id, name: l.name, count: l.ids.length + (l.ids.length === 1 ? ' player' : ' players'), empty: l.ids.length === 0, del: () => gm.setState(st => ({ lists: st.lists.filter(x => x.id !== l.id) })),
-    rows: l.ids.map(id => ({ ...pBase(id), team: teamOf(id), openT: openTeam(tidOf[id] ?? -1), money: tidOf[id] === -1 ? 'Asking ' + money(P[id].ask) : P[id].cls && tidOf[id] === undefined ? '—' : money(P[id].amt), remove: e => { e.stopPropagation(); togList(l.id, id)(); } })) }));
+  pl.listMore = s.lists
+    .filter(l => l.ids.includes(pp.id))
+    .slice(1)
+    .map(l => l.name);
+  pl.listMove = (lid: string) =>
+    gm.setState(st => ({
+      lists: st.lists.map(l => ({
+        ...l,
+        ids: l.id === lid ? (l.ids.includes(pp.id) ? l.ids : [...l.ids, pp.id]) : l.ids.filter(x => x !== pp.id),
+      })),
+    }));
+  pl.listNew = (name: string) => {
+    const nm = name.trim();
+    if (!nm) return;
+    gm.setState(st => ({
+      lists: [...st.lists.map(l => ({ ...l, ids: l.ids.filter(x => x !== pp.id) })), { id: 'l' + Date.now(), name: nm, ids: [pp.id] }],
+    }));
+  };
+  const shortlists = s.lists.map(l => ({
+    id: l.id,
+    name: l.name,
+    count: l.ids.length + (l.ids.length === 1 ? ' player' : ' players'),
+    empty: l.ids.length === 0,
+    del: () => gm.setState(st => ({ lists: st.lists.filter(x => x.id !== l.id) })),
+    rows: l.ids.map(id => ({
+      ...pBase(id),
+      team: teamOf(id),
+      openT: openTeam(tidOf[id] ?? -1),
+      money: tidOf[id] === -1 ? 'Asking ' + money(P[id].ask) : P[id].cls && tidOf[id] === undefined ? '—' : money(P[id].amt),
+      remove: e => {
+        e.stopPropagation();
+        togList(l.id, id)();
+      },
+    })),
+  }));
   {
-    const m = pp.pers.mot, conf = T.filter(t => t.conf === me.conf).sort(byPct), top = conf.indexOf(me) < 6;
-    const MOTD = { Winning: 'Wants to compete for titles. Will take less to join a contender and grows restless on a losing team.', Money: 'Chases the biggest contract on the table; veterans also push for more years.', Fame: 'Wants a big stage: large media markets and lifestyle cities.', Loyalty: 'Values stability and grows more attached the longer he stays.', 'Playing time': 'Wants minutes and a starting role above all else.' };
-    const FIT = { Winning: top ? 'Would see ' + me.region + ' as a contender.' : 'Your record would be a hard sell.', Money: 'Will follow the biggest offer.', Fame: me.mkt >= 1.1 ? me.region + '\u2019s market appeals to him.' : 'Would prefer a bigger market than ' + me.region + '.', Loyalty: 'Hard to pry away from his current team.', 'Playing time': 'Would want a clear path to starter minutes.' };
+    const m = pp.pers.mot,
+      conf = T.filter(t => t.conf === me.conf).sort(byPct),
+      top = conf.indexOf(me) < 6;
+    const MOTD = {
+      Winning: 'Wants to compete for titles. Will take less to join a contender and grows restless on a losing team.',
+      Money: 'Chases the biggest contract on the table; veterans also push for more years.',
+      Fame: 'Wants a big stage: large media markets and lifestyle cities.',
+      Loyalty: 'Values stability and grows more attached the longer he stays.',
+      'Playing time': 'Wants minutes and a starting role above all else.',
+    };
+    const FIT = {
+      Winning: top ? 'Would see ' + me.region + ' as a contender.' : 'Your record would be a hard sell.',
+      Money: 'Will follow the biggest offer.',
+      Fame: me.mkt >= 1.1 ? me.region + '\u2019s market appeals to him.' : 'Would prefer a bigger market than ' + me.region + '.',
+      Loyalty: 'Hard to pry away from his current team.',
+      'Playing time': 'Would want a clear path to starter minutes.',
+    };
     const md: any = status === 'mine' ? gm.moodOf(pp, mine.indexOf(pp.id), s) : null;
     pl.openT = openTeam(ptid >= 0 ? ptid : pk ? gm.owner2027(pk.orig, s.assets, pk.rd) : -1);
-    pl.mot = m; pl.motDesc = MOTD[m]; { const tr = traitRead(gm, s, pp); pl.traits = (tr.keys.length ? tr.keys.map(k => TRAIT[k]) : tr.none ? [] : [EVEN]).map(t => ({ ...t, open: t.k === 'even' ? null : () => gm.setState({ listModal: { type: 'trait', k: t.k } }) })); pl.traitNote = tr.note; pl.traitNone = tr.none; pl.traitExact = tr.exact; pl.mal = s.god ? (pp.pers.mal ?? 50) : null; }
-    pl.hasMood = !!md; pl.noMood = !md; pl.hapLabel = md ? md.hapLabel + ' · ' + md.hap : ''; pl.hapColor = md ? md.hapColor : 'var(--color-text)'; pl.hapW = md ? md.hap + '%' : '0%';
-    pl.factors = md ? md.factors.map(([n, v]) => ({ n, v: (v > 0 ? '+' : '') + v, color: v > 0 ? 'var(--gm-good)' : 'var(--gm-bad)' })) : [];
-    pl.fitNote = 'Happiness is tracked for players on your roster. ' + FIT[m];
-    const live = status !== 'pro' && status !== 'retired', yosP = live ? yosOf(gm, pp) : 0, N = nums(gm);
-    const mx = live ? maxFor(gm, s, pp, ptid >= 0 ? ptid : s.me, pp.rookieScale ? 'rookieExt' : status === 'fa' ? 'fa' : 'vetExt') : { amt: 0, tier: '' }, maxSal = mx.amt;
-    const lvl = (pp.yrsWith || 0) >= 3 ? 'full' : (pp.yrsWith || 0) === 2 ? 'early' : 'non', bird = BIRD_LABEL[lvl];
-    const birdCap = lvl === 'full' ? 'can re-sign him up to his max (' + money(maxSal) + ') while over the cap' : lvl === 'early' ? 'can re-sign him for up to 175% of his salary or 105% of the league average (' + money(Math.min(maxSal, Math.max(pp.amt * 1.75, 0))) + ') for 2+ years while over the cap' : 'can re-sign him for up to 120% of his salary (' + money(pp.amt * 1.2) + ') while over the cap';
-    const qo = live && qoEligible(gm, pp) ? qoFor(gm, pp) : 0;
-    const sched = live && status !== 'fa' ? Array.from({ length: Math.max(0, pp.exp - gm.Y + 1) }, (_, i) => gm.Y + i).map(y => (y - 1) + '–' + String(y).slice(2) + ' ' + money(gm.salAt(pp, y)) + (pp.opt?.season === y ? ' (' + pp.opt.kind + ' option)' : '')).join(' · ') : '';
-    const trWait = pp.signed && pp.signed.season === gm.Y && pp.signed.tid === ptid ? (pp.signed.phase === 'regular' ? 'Tradable from ' + gm.fmtS(pp.signed.day + 42) : 'Tradable from ' + gm.fmtS(26)) : '';
-    const holder = pp.birdTid != null && T[pp.birdTid] ? T[pp.birdTid].abbr + ' hold ' + BIRD_LABEL[birdOf(pp, pp.birdTid) || 'non'] + ' rights · cap hold ' + money(capHold(gm, s, pp)) : 'Nobody (he can sign anywhere with cap space or an exception)';
-    pl.cRows = status === 'retired' ? [{ k: 'Status', v: 'Retired (' + pp.retired.why + ')' }, { k: 'Final season', v: (pp.retired.season - 1) + '–' + String(pp.retired.season).slice(2) }] : status === 'pro' ? [{ k: 'Status', v: 'Draft prospect' }, { k: 'If drafted in round 1', v: '4-year rookie-scale contract (120% of the scale), team options on years 3 and 4' }, { k: 'If drafted in round 2', v: 'Two-way or minimum contract' }] : status === 'fa' ? [{ k: 'Asking', v: money(gm.askFor(pp, s)) + ' per year' }, ...(pp.rfa ? [{ k: 'Restricted', v: T[pp.rfa.tid].abbr + ' extended a ' + money(pp.rfa.qo) + ' qualifying offer and can match any offer sheet' }] : []), { k: 'Bird rights', v: holder }, { k: 'Wants', v: m }, { k: 'Service', v: yosP + ' season' + (yosP === 1 ? '' : 's') + ' · minimum ' + money(N.min(yosP)) }, { k: 'Max salary', v: money(maxSal) + ' (' + mx.tier + ')' }] :
-      [{ k: gm.seasonLbl() + ' salary', v: money(pp.amt) + (gm.capHit(pp) !== pp.amt ? ' · cap hit ' + money(gm.capHit(pp)) : '') }, { k: 'Contract', v: describeContract(gm, pp) + (pp.signed?.method ? ' · signed with ' + ({ bird: 'Bird rights', cap: 'cap space', ntmle: 'the non-taxpayer MLE', tpmle: 'the taxpayer MLE', bae: 'the bi-annual', room: 'the room exception', min: 'the minimum exception', twoWay: 'a two-way slot', ex10: 'an Exhibit 10', tenDay: 'a 10-day', hardship: 'the hardship exception', dpe: 'the DPE', rookie: 'the rookie scale', extension: 'an extension', offer: 'an offer sheet' } as any)[pp.signed.method] : '') }, { k: 'By season', v: sched + (pp.ext ? ' · then extended ' + pp.ext.yrs + ' yrs at ' + money(pp.ext.amt) : '') }, ...(pp.ctype === 'twoWay' ? [{ k: 'Two-way', v: (pp.twoWay?.games || 0) + ' of 50 NBA games used · off the cap · not playoff-eligible' }] : []), { k: 'Bird rights', v: bird + ' · ' + (pp.yrsWith || 0) + ' season' + (pp.yrsWith === 1 ? '' : 's') + ' with the team' }, { k: 'Service', v: yosP + ' season' + (yosP === 1 ? '' : 's') }, { k: 'Max salary', v: money(maxSal) + ' (' + mx.tier + ')' }, ...(trWait ? [{ k: 'Newly signed', v: trWait }] : [])];
-    pl.cStatus = status === 'retired' ? 'Retired.' : status === 'pro' ? 'Not yet drafted.' : status === 'fa' ? (pp.rfa ? 'Restricted free agent.' : 'Unrestricted free agent.') : pp.exp === gm.Y && !pp.ext ? (qo ? 'Restricted free agent in July if you extend his ' + money(qo) + ' qualifying offer (decide on the Cap sheet): you could then match any offer sheet.' : 'Unrestricted free agent in July.') + (status === 'mine' ? ' With ' + bird + ' rights you ' + birdCap + '.' : '') : 'Under contract through ' + (pp.ext ? pp.exp + pp.ext.yrs : pp.exp) + '.';
-    const xw = extWindow(gm, s, pp), canExt = status === 'mine' && xw.ok;
-    pl.canExt = canExt; pl.noExt = !canExt;
-    pl.extWhy = status !== 'mine' ? 'Only players on your roster can be extended.' : xw.why;
-    pl.tabOverview = (s.ptab || 'overview') === 'overview'; pl.tabContract = s.ptab === 'contract'; pl.tabHistory = s.ptab === 'history'; pl.tabEdit = s.ptab === 'edit' && !!s.god; pl.tabDev = s.ptab === 'dev'; pl.tabCompare = s.ptab === 'compare'; pl.nativeSep = pp.native ? '| ' + pp.native : '';
+    pl.mot = m;
+    pl.motDesc = MOTD[m];
     {
-      const mut = fn => { fn(pp); gm.autoPos(pp); liftCeil(pp); refreshPot(pp); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); gm.enforceRetirement(); }; // ceilings follow edits (potential.ts)
-      const chip = on => ({ bg: on ? 'var(--color-accent-100)' : 'transparent', color: on ? 'var(--color-accent-800)' : 'var(--color-text)', border: on ? 'var(--color-accent)' : 'var(--color-divider)', mark: on ? '✓ ' : '+ ' });
-      // The full name and the first/last fields (Biography) stay in sync, in the right order for family-name-first names.
-      const splitLatin = (p, v) => { const w = String(v).trim().split(/\s+/).filter(Boolean); if (p.familyFirst) { p.last = w[0] || ''; p.first = w.slice(1).join(' '); } else { p.first = w[0] || ''; p.last = w.slice(1).join(' '); } };
-      const splitNative = (p, v) => { const t = String(v).trim(); if (!t) { p.nativeFirst = ''; p.nativeLast = ''; return; } if (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(t) && !/\s/.test(t)) { p.nativeLast = t.slice(0, 1); p.nativeFirst = t.slice(1); return; } const w = t.split(/\s+/); if (p.familyFirst || p.nOrder === 'lf' || p.nOrder === 'lf ') { p.nativeLast = w[0]; p.nativeFirst = w.slice(1).join(' '); } else { p.nativeFirst = w[0]; p.nativeLast = w.slice(1).join(' '); } };
-      pl.ed = { name: pp.name, native: pp.native || '', setName: e => mut(p => { p.name = e.target.value; splitLatin(p, e.target.value); }), setNative: e => mut(p => { p.native = e.target.value; splitNative(p, e.target.value); }),
-        randName: () => { const undo = { pid: pp.id, name: pp.name, native: pp.native, first: pp.first, last: pp.last, nativeFirst: pp.nativeFirst, nativeLast: pp.nativeLast, familyFirst: pp.familyFirst }; mut(p => { const r: any = randomName(p.rep); ['name', 'native', 'first', 'last', 'nativeFirst', 'nativeLast', 'familyFirst', 'nOrder', 'nSep'].forEach(k => { if (r[k] !== undefined) p[k] = r[k]; }); }); gm.setState({ nameUndo: undo }); },
-        randNative: () => mut(p => { const r: any = randomName(p.rep); p.nativeFirst = r.nativeFirst || ''; p.nativeLast = r.nativeLast || ''; p.native = r.native || ''; }),
-        sliders: [['Age', 'age', 16, 50, 1], ['Overall', 'ovr', 1, 100, 1], ['True potential', 'pot', 1, 100, 1], ['Salary', 'amt', 1.1, gm.MAXC, .1], ['Contract through', 'exp', gm.Y, gm.Y + 5, 1]].map(([label, k, mn, mx, stp]) => ({ label, min: mn, max: mx, step: stp, v: k === 'pot' ? (pp.tpot ?? pp.pot) : pp[k], rand: () => { const R = Math.random(), v = k === 'age' ? 19 + Math.floor(R * 17) : k === 'ovr' ? 38 + Math.floor(R * 34) : k === 'pot' ? Math.min(90, pp.ovr + Math.floor(R * (pp.age < 23 ? 22 : pp.age < 27 ? 8 : 2))) : k === 'amt' ? +cl(gm.fair(pp.ovr) * (0.6 + R * 0.8), 1.1, gm.MAXC).toFixed(1) : gm.Y + Math.floor(R * 5); pl.ed.sliders.find(x => x.label === label).set({ target: { value: v } }); }, val: k === 'amt' ? money(pp[k]) : String(k === 'pot' ? (pp.tpot ?? pp.pot) : pp[k]), set: e => mut(p => { const v = +e.target.value; if (k === 'age') { const god = p.godPot != null ? p.tpot : null; setGodPlayerAge(gm, p, v); if (god != null) setTruePot(p, Math.max(god, p.ovr), true); /* God Mode's potential holds through an age change; otherwise his plan reads the new age (potential.ts) */ if (p.dob) p.dob = (gm.Y - 1 - v) + p.dob.slice(4); return; } if (k === 'ovr') { setOverall(p, v); return; } if (k === 'pot') { setTruePot(p, Math.max(v, p.ovr), true); return; } p[k] = v; }) })),
-        frozen: !!pp.frozen, setFrozen: (on: boolean) => mut(p => { if (on) p.frozen = true; else delete p.frozen; }), // God Mode's Freeze attributes (development only)
-        randRatings: () => mut(p => gm.randomRatings(p)), shiftAll: d => mut(p => { Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = cl(p.r[k] + d, 1, 99); }); syncOvr(p, true); }),
-        ratings: (RG.flatMap(([, ks]) => ks) as any[]).flatMap<any>(([k, label]) => { const r = { label, min: 1, max: 99, step: 1, v: pp.r[k], val: String(pp.r[k]), ftin: k === 'hgt' ? { inches: gm.inches(pp.hgt), min: 66, max: 91, set: (n: number) => mut(p => setHgtIn(p, n)) } : undefined, set: e => mut(p => k === 'hgt' ? setHgt(p, +e.target.value) : setRating(p, k, +e.target.value)), rand: () => mut(p => { const v = Math.round(cl(p.ovr + (Math.random() - .5) * 30, 4, 100)); if (k === 'hgt') setHgt(p, v); else setRating(p, k, v); }) };
-          if (k !== 'hgt') return [r];
-          // Wingspan is measured in inches; it moves with height when height changes.
-          const hIn = gm.inches(pp.hgt), wg = pp.wing ?? hIn + 4, ape = wg - hIn;
-          return [r, { label: 'Wingspan', min: hIn - 8, max: hIn + 14, step: 1, v: wg, val: String(wg), suffix: 'in', ftin: { inches: wg, min: hIn - 8, max: hIn + 14, set: (n: number) => mut(p => setWing(p, n)) }, note: (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″ vs height · rating ' + wngOf(wg, hIn), set: e => mut(p => setWing(p, +e.target.value)), rand: () => mut(p => { setWing(p, gm.inches(p.hgt) + Math.round(cl((Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8, -6, 12))); }) }]; }).concat((['feel', 'poise'] as const).map(k => { const it = ensureIntg(pp); return { label: k === 'feel' ? 'Feel (intangible)' : 'Poise (intangible)', min: 1, max: 99, step: 1, v: it[k], val: String(it[k]), set: e => mut(p => { ensureIntg(p)[k] = cl(+e.target.value, 1, 99); }), rand: () => mut(p => { ensureIntg(p)[k] = Math.round(cl(50 + (Math.random() + Math.random() + Math.random() - 1.5) * 40, 5, 99)); }) }; })),
-        randTraits: () => mut(p => { const R = () => Math.random(); Object.assign(p.pers, { alpha: R() < .2, touches: R() < .3, pro: R() < .35, volatile: R() < .15, crowd: R() < .15, clutch: R() < .1, prone: R() < .08, padder: R() < .08, legacy: R() < .12, flashy: R() < .08, heat: R() < .1, villain: R() < .05, fearless: R() < .07 }); p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && R() < .3; }),
-        randMot: () => mut(p => { p.pers.mot = ['Winning', 'Winning', 'Money', 'Money', 'Fame', 'Loyalty', 'Playing time', 'Playing time'][Math.floor(Math.random() * 8)]; }),
-        randRep: () => { const opts = Object.keys(C).filter(c => c !== pp.rep); pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } }); },
-        // Position: '(Auto) GF' (his game's position, kept up by Game.autoPos) or one picked by hand (p.posLock, stays put).
-        ...(() => { const x = recommendPos(pp); return { posOpts: [{ v: 'auto', label: '(Auto) ' + x.pos + ' · ' + POS_NAME[x.pos] }, ...['PG', 'SG', 'G', 'SF', 'GF', 'F', 'PF', 'FC', 'C'].map(v => ({ v, label: v + ' · ' + POS_NAME[v] }))],
-          posRec: { pos: x.pos, why: x.why, locked: !!pp.posLock }, posV: pp.posLock ? pp.pos : 'auto',
-          setPos: e => mut(p => { const v = e.target.value; if (v === 'auto') { delete p.posLock; gm.autoPos(p); } else { p.pos = v; p.grp = POS_GRP[v] || p.grp; p.posLock = true; syncOvr(p, true); } }) }; })(), // set by hand: it stays (Game.autoPos skips it); Use (the recommendation) puts him back on auto
-        motOpts: ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'].map(x => ({ v: x, label: x })), motV: pp.pers.mot, setMot: e => mut(p => p.pers.mot = e.target.value),
-        repOpts: Object.keys(C).filter(c => !C[c].repAs).sort((x, y) => C[x].n.localeCompare(C[y].n)).map(c => ({ v: c, label: C[c].n })), repV: pp.rep, setRep: e => { const code = e.target.value; const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, state: pp.state, from: pp.from, elig: pp.elig }; const undo: any = gm.renationalize(pp, code); if (undo) Object.assign(undo, prevHome);
-          // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).
-          const cs = C[code]?.cities || []; if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)]; pp.born = code; pp.raised = code; if (code === 'US') pp.state = regionOf(pp.city) || undefined; else delete pp.state; if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y)); refreshElig(pp, C); if (!pp.elig.some((x: any) => x.c === pp.rep)) pp.elig = [{ c: pp.rep, why: 'citizen by birth' }, ...pp.elig]; gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo })); }, // eligibility follows the new country
-        teamOpts: [{ v: '-1', label: 'Free agent' }, ...alphaTeams(T).map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))], teamV: String(ptid ?? -1),
-        setTeam: e => { const to = +e.target.value; gm.setState(st => { const rosters = { ...st.rosters }; let fa = st.fa.filter(x => x !== pp.id); Object.keys(rosters).forEach(k => rosters[k] = rosters[k].filter(x => x !== pp.id)); if (to === -1) fa = [pp.id, ...fa]; else rosters[to] = [...rosters[to], pp.id]; return { rosters, fa, log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)) }; }); },
-        traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({ label, ...chip(!!pp.pers[k]), toggle: () => mut(p => p.pers[k] = !p.pers[k]) })),
-        health: pp.inj ? pp.inj.name + ', ' + gm.injText(pp) + ' left' : 'Healthy',
-        heal: () => mut(p => { delete p.inj; delete p.preInj; }) };
+      const tr = traitRead(gm, s, pp);
+      pl.traits = (tr.keys.length ? tr.keys.map(k => TRAIT[k]) : tr.none ? [] : [EVEN]).map(t => ({
+        ...t,
+        open: t.k === 'even' ? null : () => gm.setState({ listModal: { type: 'trait', k: t.k } }),
+      }));
+      pl.traitNote = tr.note;
+      pl.traitNone = tr.none;
+      pl.traitExact = tr.exact;
+      pl.mal = s.god ? (pp.pers.mal ?? 50) : null;
     }
-    var ptabs = [['overview', 'Overview'], ['stats', 'Stats'], ...(hasAmateur(gm, pp) ? [['amateur', 'College / Club']] : []), ['accolades', 'Accolades'], ['contract', 'Contract'], ['dev', 'Development'], ['history', 'History'], ['tx', 'Transactions'], ['scout', 'Scouting'], ['compare', 'Comparison'], ...(s.god ? [['edit', 'Edit player']] : [])].map(([k, label]) => { const on = (s.ptab || 'overview') === k, pink = k === 'edit'; return { label, go: () => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), color: pink ? GOD_PINK : on ? 'var(--color-accent-700)' : 'var(--color-text)', fw: on ? 600 : 400, ul: on ? (pink ? GOD_PINK : 'var(--color-accent)') : 'transparent' }; });
+    pl.hasMood = !!md;
+    pl.noMood = !md;
+    pl.hapLabel = md ? md.hapLabel + ' · ' + md.hap : '';
+    pl.hapColor = md ? md.hapColor : 'var(--color-text)';
+    pl.hapW = md ? md.hap + '%' : '0%';
+    pl.factors = md
+      ? md.factors.map(([n, v]) => ({ n, v: (v > 0 ? '+' : '') + v, color: v > 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }))
+      : [];
+    pl.fitNote = 'Happiness is tracked for players on your roster. ' + FIT[m];
+    const live = status !== 'pro' && status !== 'retired',
+      yosP = live ? yosOf(gm, pp) : 0,
+      N = nums(gm);
+    const mx = live
+        ? maxFor(gm, s, pp, ptid >= 0 ? ptid : s.me, pp.rookieScale ? 'rookieExt' : status === 'fa' ? 'fa' : 'vetExt')
+        : { amt: 0, tier: '' },
+      maxSal = mx.amt;
+    const lvl = (pp.yrsWith || 0) >= 3 ? 'full' : (pp.yrsWith || 0) === 2 ? 'early' : 'non',
+      bird = BIRD_LABEL[lvl];
+    const birdCap =
+      lvl === 'full'
+        ? 'can re-sign him up to his max (' + money(maxSal) + ') while over the cap'
+        : lvl === 'early'
+          ? 'can re-sign him for up to 175% of his salary or 105% of the league average (' +
+            money(Math.min(maxSal, Math.max(pp.amt * 1.75, 0))) +
+            ') for 2+ years while over the cap'
+          : 'can re-sign him for up to 120% of his salary (' + money(pp.amt * 1.2) + ') while over the cap';
+    const qo = live && qoEligible(gm, pp) ? qoFor(gm, pp) : 0;
+    const sched =
+      live && status !== 'fa'
+        ? Array.from({ length: Math.max(0, pp.exp - gm.Y + 1) }, (_, i) => gm.Y + i)
+            .map(
+              y =>
+                y -
+                1 +
+                '–' +
+                String(y).slice(2) +
+                ' ' +
+                money(gm.salAt(pp, y)) +
+                (pp.opt?.season === y ? ' (' + pp.opt.kind + ' option)' : ''),
+            )
+            .join(' · ')
+        : '';
+    const trWait =
+      pp.signed && pp.signed.season === gm.Y && pp.signed.tid === ptid
+        ? pp.signed.phase === 'regular'
+          ? 'Tradable from ' + gm.fmtS(pp.signed.day + 42)
+          : 'Tradable from ' + gm.fmtS(26)
+        : '';
+    const holder =
+      pp.birdTid != null && T[pp.birdTid]
+        ? T[pp.birdTid].abbr + ' hold ' + BIRD_LABEL[birdOf(pp, pp.birdTid) || 'non'] + ' rights · cap hold ' + money(capHold(gm, s, pp))
+        : 'Nobody (he can sign anywhere with cap space or an exception)';
+    pl.cRows =
+      status === 'retired'
+        ? [
+            { k: 'Status', v: 'Retired (' + pp.retired.why + ')' },
+            { k: 'Final season', v: pp.retired.season - 1 + '–' + String(pp.retired.season).slice(2) },
+          ]
+        : status === 'pro'
+          ? [
+              { k: 'Status', v: 'Draft prospect' },
+              { k: 'If drafted in round 1', v: '4-year rookie-scale contract (120% of the scale), team options on years 3 and 4' },
+              { k: 'If drafted in round 2', v: 'Two-way or minimum contract' },
+            ]
+          : status === 'fa'
+            ? [
+                { k: 'Asking', v: money(gm.askFor(pp, s)) + ' per year' },
+                ...(pp.rfa
+                  ? [
+                      {
+                        k: 'Restricted',
+                        v: T[pp.rfa.tid].abbr + ' extended a ' + money(pp.rfa.qo) + ' qualifying offer and can match any offer sheet',
+                      },
+                    ]
+                  : []),
+                { k: 'Bird rights', v: holder },
+                { k: 'Wants', v: m },
+                { k: 'Service', v: yosP + ' season' + (yosP === 1 ? '' : 's') + ' · minimum ' + money(N.min(yosP)) },
+                { k: 'Max salary', v: money(maxSal) + ' (' + mx.tier + ')' },
+              ]
+            : [
+                {
+                  k: gm.seasonLbl() + ' salary',
+                  v: money(pp.amt) + (gm.capHit(pp) !== pp.amt ? ' · cap hit ' + money(gm.capHit(pp)) : ''),
+                },
+                {
+                  k: 'Contract',
+                  v:
+                    describeContract(gm, pp) +
+                    (pp.signed?.method
+                      ? ' · signed with ' +
+                        (
+                          {
+                            bird: 'Bird rights',
+                            cap: 'cap space',
+                            ntmle: 'the non-taxpayer MLE',
+                            tpmle: 'the taxpayer MLE',
+                            bae: 'the bi-annual',
+                            room: 'the room exception',
+                            min: 'the minimum exception',
+                            twoWay: 'a two-way slot',
+                            ex10: 'an Exhibit 10',
+                            tenDay: 'a 10-day',
+                            hardship: 'the hardship exception',
+                            dpe: 'the DPE',
+                            rookie: 'the rookie scale',
+                            extension: 'an extension',
+                            offer: 'an offer sheet',
+                          } as any
+                        )[pp.signed.method]
+                      : ''),
+                },
+                { k: 'By season', v: sched + (pp.ext ? ' · then extended ' + pp.ext.yrs + ' yrs at ' + money(pp.ext.amt) : '') },
+                ...(pp.ctype === 'twoWay'
+                  ? [{ k: 'Two-way', v: (pp.twoWay?.games || 0) + ' of 50 NBA games used · off the cap · not playoff-eligible' }]
+                  : []),
+                { k: 'Bird rights', v: bird + ' · ' + (pp.yrsWith || 0) + ' season' + (pp.yrsWith === 1 ? '' : 's') + ' with the team' },
+                { k: 'Service', v: yosP + ' season' + (yosP === 1 ? '' : 's') },
+                { k: 'Max salary', v: money(maxSal) + ' (' + mx.tier + ')' },
+                ...(trWait ? [{ k: 'Newly signed', v: trWait }] : []),
+              ];
+    pl.cStatus =
+      status === 'retired'
+        ? 'Retired.'
+        : status === 'pro'
+          ? 'Not yet drafted.'
+          : status === 'fa'
+            ? pp.rfa
+              ? 'Restricted free agent.'
+              : 'Unrestricted free agent.'
+            : pp.exp === gm.Y && !pp.ext
+              ? (qo
+                  ? 'Restricted free agent in July if you extend his ' +
+                    money(qo) +
+                    ' qualifying offer (decide on the Cap sheet): you could then match any offer sheet.'
+                  : 'Unrestricted free agent in July.') + (status === 'mine' ? ' With ' + bird + ' rights you ' + birdCap + '.' : '')
+              : 'Under contract through ' + (pp.ext ? pp.exp + pp.ext.yrs : pp.exp) + '.';
+    const xw = extWindow(gm, s, pp),
+      canExt = status === 'mine' && xw.ok;
+    pl.canExt = canExt;
+    pl.noExt = !canExt;
+    pl.extWhy = status !== 'mine' ? 'Only players on your roster can be extended.' : xw.why;
+    pl.tabOverview = (s.ptab || 'overview') === 'overview';
+    pl.tabContract = s.ptab === 'contract';
+    pl.tabHistory = s.ptab === 'history';
+    pl.tabEdit = s.ptab === 'edit' && !!s.god;
+    pl.tabDev = s.ptab === 'dev';
+    pl.tabCompare = s.ptab === 'compare';
+    pl.nativeSep = pp.native ? '| ' + pp.native : '';
+    {
+      const mut = fn => {
+        fn(pp);
+        gm.autoPos(pp);
+        liftCeil(pp);
+        refreshPot(pp);
+        gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+        gm.enforceRetirement();
+      }; // ceilings follow edits (potential.ts)
+      const chip = on => ({
+        bg: on ? 'var(--color-accent-100)' : 'transparent',
+        color: on ? 'var(--color-accent-800)' : 'var(--color-text)',
+        border: on ? 'var(--color-accent)' : 'var(--color-divider)',
+        mark: on ? '✓ ' : '+ ',
+      });
+      // The full name and the first/last fields (Biography) stay in sync, in the right order for family-name-first names.
+      const splitLatin = (p, v) => {
+        const w = String(v).trim().split(/\s+/).filter(Boolean);
+        if (p.familyFirst) {
+          p.last = w[0] || '';
+          p.first = w.slice(1).join(' ');
+        } else {
+          p.first = w[0] || '';
+          p.last = w.slice(1).join(' ');
+        }
+      };
+      const splitNative = (p, v) => {
+        const t = String(v).trim();
+        if (!t) {
+          p.nativeFirst = '';
+          p.nativeLast = '';
+          return;
+        }
+        if (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(t) && !/\s/.test(t)) {
+          p.nativeLast = t.slice(0, 1);
+          p.nativeFirst = t.slice(1);
+          return;
+        }
+        const w = t.split(/\s+/);
+        if (p.familyFirst || p.nOrder === 'lf' || p.nOrder === 'lf ') {
+          p.nativeLast = w[0];
+          p.nativeFirst = w.slice(1).join(' ');
+        } else {
+          p.nativeFirst = w[0];
+          p.nativeLast = w.slice(1).join(' ');
+        }
+      };
+      pl.ed = {
+        name: pp.name,
+        native: pp.native || '',
+        setName: e =>
+          mut(p => {
+            p.name = e.target.value;
+            splitLatin(p, e.target.value);
+          }),
+        setNative: e =>
+          mut(p => {
+            p.native = e.target.value;
+            splitNative(p, e.target.value);
+          }),
+        randName: () => {
+          const undo = {
+            pid: pp.id,
+            name: pp.name,
+            native: pp.native,
+            first: pp.first,
+            last: pp.last,
+            nativeFirst: pp.nativeFirst,
+            nativeLast: pp.nativeLast,
+            familyFirst: pp.familyFirst,
+          };
+          mut(p => {
+            const r: any = randomName(p.rep);
+            ['name', 'native', 'first', 'last', 'nativeFirst', 'nativeLast', 'familyFirst', 'nOrder', 'nSep'].forEach(k => {
+              if (r[k] !== undefined) p[k] = r[k];
+            });
+          });
+          gm.setState({ nameUndo: undo });
+        },
+        randNative: () =>
+          mut(p => {
+            const r: any = randomName(p.rep);
+            p.nativeFirst = r.nativeFirst || '';
+            p.nativeLast = r.nativeLast || '';
+            p.native = r.native || '';
+          }),
+        sliders: [
+          ['Age', 'age', 16, 50, 1],
+          ['Overall', 'ovr', 1, 100, 1],
+          ['True potential', 'pot', 1, 100, 1],
+          ['Salary', 'amt', 1.1, gm.MAXC, 0.1],
+          ['Contract through', 'exp', gm.Y, gm.Y + 5, 1],
+        ].map(([label, k, mn, mx, stp]) => ({
+          label,
+          min: mn,
+          max: mx,
+          step: stp,
+          v: k === 'pot' ? (pp.tpot ?? pp.pot) : pp[k],
+          rand: () => {
+            const R = Math.random(),
+              v =
+                k === 'age'
+                  ? 19 + Math.floor(R * 17)
+                  : k === 'ovr'
+                    ? 38 + Math.floor(R * 34)
+                    : k === 'pot'
+                      ? Math.min(90, pp.ovr + Math.floor(R * (pp.age < 23 ? 22 : pp.age < 27 ? 8 : 2)))
+                      : k === 'amt'
+                        ? +cl(gm.fair(pp.ovr) * (0.6 + R * 0.8), 1.1, gm.MAXC).toFixed(1)
+                        : gm.Y + Math.floor(R * 5);
+            pl.ed.sliders.find(x => x.label === label).set({ target: { value: v } });
+          },
+          val: k === 'amt' ? money(pp[k]) : String(k === 'pot' ? (pp.tpot ?? pp.pot) : pp[k]),
+          set: e =>
+            mut(p => {
+              const v = +e.target.value;
+              if (k === 'age') {
+                const god = p.godPot != null ? p.tpot : null;
+                setGodPlayerAge(gm, p, v);
+                if (god != null) setTruePot(p, Math.max(god, p.ovr), true);
+                /* God Mode's potential holds through an age change; otherwise his plan reads the new age (potential.ts) */ if (p.dob)
+                  p.dob = gm.Y - 1 - v + p.dob.slice(4);
+                return;
+              }
+              if (k === 'ovr') {
+                setOverall(p, v);
+                return;
+              }
+              if (k === 'pot') {
+                setTruePot(p, Math.max(v, p.ovr), true);
+                return;
+              }
+              p[k] = v;
+            }),
+        })),
+        frozen: !!pp.frozen,
+        setFrozen: (on: boolean) =>
+          mut(p => {
+            if (on) p.frozen = true;
+            else delete p.frozen;
+          }), // God Mode's Freeze attributes (development only)
+        randRatings: () => mut(p => gm.randomRatings(p)),
+        shiftAll: d =>
+          mut(p => {
+            Object.keys(p.r).forEach(k => {
+              if (k !== 'hgt') p.r[k] = cl(p.r[k] + d, 1, 99);
+            });
+            syncOvr(p, true);
+          }),
+        ratings: (RG.flatMap(([, ks]) => ks) as any[])
+          .flatMap<any>(([k, label]) => {
+            const r = {
+              label,
+              min: 1,
+              max: 99,
+              step: 1,
+              v: pp.r[k],
+              val: String(pp.r[k]),
+              ftin: k === 'hgt' ? { inches: gm.inches(pp.hgt), min: 66, max: 91, set: (n: number) => mut(p => setHgtIn(p, n)) } : undefined,
+              set: e => mut(p => (k === 'hgt' ? setHgt(p, +e.target.value) : setRating(p, k, +e.target.value))),
+              rand: () =>
+                mut(p => {
+                  const v = Math.round(cl(p.ovr + (Math.random() - 0.5) * 30, 4, 100));
+                  if (k === 'hgt') setHgt(p, v);
+                  else setRating(p, k, v);
+                }),
+            };
+            if (k !== 'hgt') return [r];
+            // Wingspan is measured in inches; it moves with height when height changes.
+            const hIn = gm.inches(pp.hgt),
+              wg = pp.wing ?? hIn + 4,
+              ape = wg - hIn;
+            return [
+              r,
+              {
+                label: 'Wingspan',
+                min: hIn - 8,
+                max: hIn + 14,
+                step: 1,
+                v: wg,
+                val: String(wg),
+                suffix: 'in',
+                ftin: { inches: wg, min: hIn - 8, max: hIn + 14, set: (n: number) => mut(p => setWing(p, n)) },
+                note: (ape >= 0 ? '+' : '−') + Math.abs(ape) + '″ vs height · rating ' + wngOf(wg, hIn),
+                set: e => mut(p => setWing(p, +e.target.value)),
+                rand: () =>
+                  mut(p => {
+                    setWing(p, gm.inches(p.hgt) + Math.round(cl((Math.random() + Math.random() + Math.random() - 1.5) * 6 + 3.8, -6, 12)));
+                  }),
+              },
+            ];
+          })
+          .concat(
+            (['feel', 'poise'] as const).map(k => {
+              const it = ensureIntg(pp);
+              return {
+                label: k === 'feel' ? 'Feel (intangible)' : 'Poise (intangible)',
+                min: 1,
+                max: 99,
+                step: 1,
+                v: it[k],
+                val: String(it[k]),
+                set: e =>
+                  mut(p => {
+                    ensureIntg(p)[k] = cl(+e.target.value, 1, 99);
+                  }),
+                rand: () =>
+                  mut(p => {
+                    ensureIntg(p)[k] = Math.round(cl(50 + (Math.random() + Math.random() + Math.random() - 1.5) * 40, 5, 99));
+                  }),
+              };
+            }),
+          ),
+        randTraits: () =>
+          mut(p => {
+            const R = () => Math.random();
+            Object.assign(p.pers, {
+              alpha: R() < 0.2,
+              touches: R() < 0.3,
+              pro: R() < 0.35,
+              volatile: R() < 0.15,
+              crowd: R() < 0.15,
+              clutch: R() < 0.1,
+              prone: R() < 0.08,
+              padder: R() < 0.08,
+              legacy: R() < 0.12,
+              flashy: R() < 0.08,
+              heat: R() < 0.1,
+              villain: R() < 0.05,
+              fearless: R() < 0.07,
+            });
+            p.pers.team = !p.pers.alpha && !p.pers.padder && !p.pers.touches && R() < 0.3;
+          }),
+        randMot: () =>
+          mut(p => {
+            p.pers.mot = ['Winning', 'Winning', 'Money', 'Money', 'Fame', 'Loyalty', 'Playing time', 'Playing time'][
+              Math.floor(Math.random() * 8)
+            ];
+          }),
+        randRep: () => {
+          const opts = Object.keys(C).filter(c => c !== pp.rep);
+          pl.ed.setRep({ target: { value: opts[Math.floor(Math.random() * opts.length)] } });
+        },
+        // Position: '(Auto) GF' (his game's position, kept up by Game.autoPos) or one picked by hand (p.posLock, stays put).
+        ...(() => {
+          const x = recommendPos(pp);
+          return {
+            posOpts: [
+              { v: 'auto', label: '(Auto) ' + x.pos + ' · ' + POS_NAME[x.pos] },
+              ...['PG', 'SG', 'G', 'SF', 'GF', 'F', 'PF', 'FC', 'C'].map(v => ({ v, label: v + ' · ' + POS_NAME[v] })),
+            ],
+            posRec: { pos: x.pos, why: x.why, locked: !!pp.posLock },
+            posV: pp.posLock ? pp.pos : 'auto',
+            setPos: e =>
+              mut(p => {
+                const v = e.target.value;
+                if (v === 'auto') {
+                  delete p.posLock;
+                  gm.autoPos(p);
+                } else {
+                  p.pos = v;
+                  p.grp = POS_GRP[v] || p.grp;
+                  p.posLock = true;
+                  syncOvr(p, true);
+                }
+              }),
+          };
+        })(), // set by hand: it stays (Game.autoPos skips it); Use (the recommendation) puts him back on auto
+        motOpts: ['Winning', 'Money', 'Fame', 'Loyalty', 'Playing time'].map(x => ({ v: x, label: x })),
+        motV: pp.pers.mot,
+        setMot: e => mut(p => (p.pers.mot = e.target.value)),
+        repOpts: Object.keys(C)
+          .filter(c => !C[c].repAs)
+          .sort((x, y) => C[x].n.localeCompare(C[y].n))
+          .map(c => ({ v: c, label: C[c].n })),
+        repV: pp.rep,
+        setRep: e => {
+          const code = e.target.value;
+          const prevHome = { born: pp.born, raised: pp.raised, city: pp.city, state: pp.state, from: pp.from, elig: pp.elig };
+          const undo: any = gm.renationalize(pp, code);
+          if (undo) Object.assign(undo, prevHome);
+          // Hometown and pre-NBA team follow the new country (adjust either by hand afterwards).
+          const cs = C[code]?.cities || [];
+          if (cs.length) pp.city = cs[Math.floor(Math.random() * cs.length)];
+          pp.born = code;
+          pp.raised = code;
+          if (code === 'US') pp.state = regionOf(pp.city) || undefined;
+          else delete pp.state;
+          if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y));
+          refreshElig(pp, C);
+          if (!pp.elig.some((x: any) => x.c === pp.rep)) pp.elig = [{ c: pp.rep, why: 'citizen by birth' }, ...pp.elig];
+          gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo }));
+        }, // eligibility follows the new country
+        teamOpts: [{ v: '-1', label: 'Free agent' }, ...alphaTeams(T).map(t => ({ v: String(t.tid), label: t.region + ' ' + t.name }))],
+        teamV: String(ptid ?? -1),
+        setTeam: e => {
+          const to = +e.target.value;
+          gm.setState(st => {
+            const rosters = { ...st.rosters };
+            let fa = st.fa.filter(x => x !== pp.id);
+            Object.keys(rosters).forEach(k => (rosters[k] = rosters[k].filter(x => x !== pp.id)));
+            if (to === -1) fa = [pp.id, ...fa];
+            else rosters[to] = [...rosters[to], pp.id];
+            return {
+              rosters,
+              fa,
+              log: gm.logEntry(st, 'God Mode: moved ' + pp.name + ' to ' + (to === -1 ? 'free agency' : st.teams[to].abbr)),
+            };
+          });
+        },
+        traits: TRAITS.map(t => [t.k, t.label]).map(([k, label]) => ({
+          label,
+          ...chip(!!pp.pers[k]),
+          toggle: () => mut(p => (p.pers[k] = !p.pers[k])),
+        })),
+        health: pp.inj ? pp.inj.name + ', ' + gm.injText(pp) + ' left' : 'Healthy',
+        heal: () =>
+          mut(p => {
+            delete p.inj;
+            delete p.preInj;
+          }),
+      };
+    }
+    var ptabs = [
+      ['overview', 'Overview'],
+      ['stats', 'Stats'],
+      ...(hasAmateur(gm, pp) ? [['amateur', 'College / Club']] : []),
+      ['accolades', 'Accolades'],
+      ['contract', 'Contract'],
+      ['dev', 'Development'],
+      ['history', 'History'],
+      ['tx', 'Transactions'],
+      ['scout', 'Scouting'],
+      ['compare', 'Comparison'],
+      ...(s.god ? [['edit', 'Edit player']] : []),
+    ].map(([k, label]) => {
+      const on = (s.ptab || 'overview') === k,
+        pink = k === 'edit';
+      return {
+        label,
+        go: () =>
+          gm.setState(st =>
+            (st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) },
+          ),
+        color: pink ? GOD_PINK : on ? 'var(--color-accent-700)' : 'var(--color-text)',
+        fw: on ? 600 : 400,
+        ul: on ? (pink ? GOD_PINK : 'var(--color-accent)') : 'transparent',
+      };
+    });
     var ext = {};
     if (canExt) {
-      const rook = !!pp.rookieScale, avg = (Object.values(s.rosters).flat() as number[]).reduce((a, id) => a + P[id].amt, 0) / Math.max(1, (Object.values(s.rosters).flat() as number[]).length);
-      const maxAllowed = +(rook ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2), minS = N.min(yosP + 1);
+      const rook = !!pp.rookieScale,
+        avg =
+          (Object.values(s.rosters).flat() as number[]).reduce((a, id) => a + P[id].amt, 0) /
+          Math.max(1, (Object.values(s.rosters).flat() as number[]).length);
+      const maxAllowed = +(rook ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2),
+        minS = N.min(yosP + 1);
       // A trade request in play (tradeRequests.ts): an ultimatum names his price; one you ignored ends the talks.
-      const ult = pp.treq?.status === 'open' && pp.treq.cause === 'ext' && pp.treq.season === gm.Y ? pp.treq.ask : null, walks = pp.noResign?.tid === ptid && pp.noResign.season === gm.Y;
-      let ask = ult ? ult.amt : gm.fair(pp.ovr) * (m === 'Money' ? 1.15 : m === 'Winning' && top ? .9 : m === 'Loyalty' ? .92 : 1) * (md.hap < 45 ? 1.2 : 1);
+      const ult = pp.treq?.status === 'open' && pp.treq.cause === 'ext' && pp.treq.season === gm.Y ? pp.treq.ask : null,
+        walks = pp.noResign?.tid === ptid && pp.noResign.season === gm.Y;
+      let ask = ult
+        ? ult.amt
+        : gm.fair(pp.ovr) * (m === 'Money' ? 1.15 : m === 'Winning' && top ? 0.9 : m === 'Loyalty' ? 0.92 : 1) * (md.hap < 45 ? 1.2 : 1);
       ask = +gm.cl(ask, minS, maxAllowed).toFixed(2);
-      const super5 = /supermax|Rose/.test(mx.tier), over38 = Math.max(1, 38 - (pp.age + (pp.exp - gm.Y) + 1) + 1);
-      const minYears0 = m === 'Money' && pp.age >= 30 ? 4 : m === 'Loyalty' ? 1 : 2, maxYears = Math.max(1, Math.min(rook ? 5 : (super5 ? 6 : 5) - xw.left, pp.age >= 33 ? Math.max(3, over38) : 5));
+      const super5 = /supermax|Rose/.test(mx.tier),
+        over38 = Math.max(1, 38 - (pp.age + (pp.exp - gm.Y) + 1) + 1);
+      const minYears0 = m === 'Money' && pp.age >= 30 ? 4 : m === 'Loyalty' ? 1 : 2,
+        maxYears = Math.max(1, Math.min(rook ? 5 : (super5 ? 6 : 5) - xw.left, pp.age >= 33 ? Math.max(3, over38) : 5));
       const minYears = Math.min(ult ? ult.years : minYears0, maxYears);
-      const yrs = Math.min(s.extYears ?? 3, maxYears), amt = s.extAmt ?? ask;
-      ext = { maxYears, years: yrs, yearsLabel: yrs + (yrs === 1 ? ' year' : ' years'), min: minS, max: maxAllowed, amt, amtLabel: money(amt),
-        rule: rook ? 'Rookie-scale extension (' + xw.why.replace(/^Rookie-scale extension window: /, '').replace(/\.$/, '') + '): up to 5 years; first year up to ' + money(maxSal) + ' (' + mx.tier + '). The Rose Rule raises it to 30% of the cap if he makes an All-League team or wins MVP.' : 'Veteran extension: ' + xw.why + ' Up to ' + maxYears + ' new season' + (maxYears === 1 ? '' : 's') + ' (' + (super5 ? 6 : 5) + ' including what’s left of his deal); the first year can be at most 140% of his salary or of the league-average salary (' + money(maxAllowed) + ')' + (super5 ? '. He qualifies for the designated veteran supermax (35%).' : '.') + (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
-        askLine: walks ? 'He asked for a trade and you kept him: he won’t extend, and he’ll leave in free agency.' : ult ? 'His ultimatum: ' + money(ask) + ' a year over at least ' + minYears + ' years, or he walks in free agency.' : md.hap < 30 ? 'His camp says he wants a fresh start.' : 'His camp is looking for about ' + money(ask) + ' a year over at least ' + minYears + ' year' + (minYears > 1 ? 's' : '') + '.',
-        setYears: e => gm.setState({ extYears: +e.target.value, extMsg: null }), setAmt: e => gm.setState({ extAmt: +e.target.value, extMsg: null }),
-        hasMsg: !!s.extMsg, msg: s.extMsg,
+      const yrs = Math.min(s.extYears ?? 3, maxYears),
+        amt = s.extAmt ?? ask;
+      ext = {
+        maxYears,
+        years: yrs,
+        yearsLabel: yrs + (yrs === 1 ? ' year' : ' years'),
+        min: minS,
+        max: maxAllowed,
+        amt,
+        amtLabel: money(amt),
+        rule: rook
+          ? 'Rookie-scale extension (' +
+            xw.why.replace(/^Rookie-scale extension window: /, '').replace(/\.$/, '') +
+            '): up to 5 years; first year up to ' +
+            money(maxSal) +
+            ' (' +
+            mx.tier +
+            '). The Rose Rule raises it to 30% of the cap if he makes an All-League team or wins MVP.'
+          : 'Veteran extension: ' +
+            xw.why +
+            ' Up to ' +
+            maxYears +
+            ' new season' +
+            (maxYears === 1 ? '' : 's') +
+            ' (' +
+            (super5 ? 6 : 5) +
+            ' including what’s left of his deal); the first year can be at most 140% of his salary or of the league-average salary (' +
+            money(maxAllowed) +
+            ')' +
+            (super5 ? '. He qualifies for the designated veteran supermax (35%).' : '.') +
+            (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
+        askLine: walks
+          ? 'He asked for a trade and you kept him: he won’t extend, and he’ll leave in free agency.'
+          : ult
+            ? 'His ultimatum: ' + money(ask) + ' a year over at least ' + minYears + ' years, or he walks in free agency.'
+            : md.hap < 30
+              ? 'His camp says he wants a fresh start.'
+              : 'His camp is looking for about ' +
+                money(ask) +
+                ' a year over at least ' +
+                minYears +
+                ' year' +
+                (minYears > 1 ? 's' : '') +
+                '.',
+        setYears: e => gm.setState({ extYears: +e.target.value, extMsg: null }),
+        setAmt: e => gm.setState({ extAmt: +e.target.value, extMsg: null }),
+        hasMsg: !!s.extMsg,
+        msg: s.extMsg,
         // God Mode: he signs these exact terms, whatever his mood, his ask or the league office says.
-        force: () => { pp.ext = { amt, yrs, raise: 0.08 }; addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) + ' (God Mode)' }); gm.setState(st => ({ extMsg: 'God Mode: signed for ' + yrs + ' years from ' + money(amt) + ' (8% raises), starting ' + pp.exp + '–' + String(pp.exp + 1).slice(2) + '.', log: gm.logEntry(st, 'Extended ' + pp.name + ' (God Mode): ' + yrs + ' yrs from ' + money(amt)) })); },
-        offer: () => { if (walks) return gm.setState({ extMsg: pp.name + ' won’t talk: you kept him after he asked out.' }); if (md.hap < 30 && !ult) return gm.setState({ extMsg: pp.name + ' declined to discuss an extension.' }); if (amt > maxAllowed + 0.005) return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' }); if (amt >= ask - 0.05 && yrs >= minYears) { pp.ext = { amt, yrs, raise: 0.08 }; if (amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day }; addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) }); gm.setState(st => ({ extMsg: 'Agreed: ' + yrs + ' years from ' + money(amt) + ' (8% raises), starting ' + (pp.exp) + '–' + String(pp.exp + 1).slice(2) + '.', log: gm.logEntry(st, 'Extended ' + pp.name + ': ' + yrs + ' yrs from ' + money(amt) + (rook ? ' (rookie-scale extension)' : ' (veteran extension)')) })); } else gm.setState({ extMsg: 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.' }); } };
+        force: () => {
+          pp.ext = { amt, yrs, raise: 0.08 };
+          addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) + ' (God Mode)' });
+          gm.setState(st => ({
+            extMsg:
+              'God Mode: signed for ' +
+              yrs +
+              ' years from ' +
+              money(amt) +
+              ' (8% raises), starting ' +
+              pp.exp +
+              '–' +
+              String(pp.exp + 1).slice(2) +
+              '.',
+            log: gm.logEntry(st, 'Extended ' + pp.name + ' (God Mode): ' + yrs + ' yrs from ' + money(amt)),
+          }));
+        },
+        offer: () => {
+          if (walks) return gm.setState({ extMsg: pp.name + ' won’t talk: you kept him after he asked out.' });
+          if (md.hap < 30 && !ult) return gm.setState({ extMsg: pp.name + ' declined to discuss an extension.' });
+          if (amt > maxAllowed + 0.005)
+            return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' });
+          if (amt >= ask - 0.05 && yrs >= minYears) {
+            pp.ext = { amt, yrs, raise: 0.08 };
+            if (amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day };
+            addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) });
+            gm.setState(st => ({
+              extMsg:
+                'Agreed: ' +
+                yrs +
+                ' years from ' +
+                money(amt) +
+                ' (8% raises), starting ' +
+                pp.exp +
+                '–' +
+                String(pp.exp + 1).slice(2) +
+                '.',
+              log: gm.logEntry(
+                st,
+                'Extended ' +
+                  pp.name +
+                  ': ' +
+                  yrs +
+                  ' yrs from ' +
+                  money(amt) +
+                  (rook ? ' (rookie-scale extension)' : ' (veteran extension)'),
+              ),
+            }));
+          } else gm.setState({ extMsg: 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.' });
+        },
+      };
     }
   }
   const tmT = s.teamModal != null ? T[s.teamModal] : null;
-  const tm = !tmT ? {} : (() => { const tid = tmT.tid, ids = mine2(tid) ? s.rosters[tid].slice() : s.rosters[tid].slice().sort((x, y) => P[y].ovr - P[x].ovr), pay = ids.reduce((a, id) => a + P[id].amt, 0), cs = T.filter(t => t.conf === tmT.conf).sort(byPct), ks = s.assets.filter(a => a.owner === tid && !usedPick(a));
-    return { rating: trOf(tid), ratingRank: ord(trRank(tid)) + ' of ' + T.length, logo: logo(tid, 58), abbr: tmT.abbr, name: tmT.region + ' ' + tmT.name, line: ord(cs.indexOf(tmT) + 1) + ' in the ' + tmT.conf + ' · ' + tmT.div + ' Division', rec: tmT.w + '–' + tmT.l + ' · ' + strk(tmT) + ' · ' + l10(tmT) + ' last 10', market: (tmT.mkt >= 1.15 ? 'Large' : tmT.mkt >= .95 ? 'Mid-large' : tmT.mkt >= .85 ? 'Mid-size' : 'Small') + ' market',
-      strat: tid === s.me ? 'Your team' : mine2(tid) ? 'Also yours' : STRAT[strat[tid]][0], stratDesc: mine2(tid) ? '' : STRAT[strat[tid]][1], payroll: money(pay), cap: pay > gm.TAX ? money(pay - gm.TAX) + ' over the tax' : pay > gm.CAP ? money(pay - gm.CAP) + ' over the cap' : money(gm.CAP - pay) + ' in cap space',
-      staff: 'Owner ' + tmT.owner + ' (' + tmT.arch + ') · GM ' + tmT.gm, region: tmT.region, nm: tmT.name, setRegion: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, region: v } : t) })); }, setName: e => { const v = e.target.value; gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, name: v } : t) })); }, setAbbr: e => { const v = e.target.value.toUpperCase().slice(0, 4); gm.setState(st => ({ teams: st.teams.map(t => t.tid === tid ? { ...t, abbr: v } : t) })); },
-      rows: ids.map(id => ({ ...pBase(id), contract: money(P[id].amt) })), picks: (ks.length ? ks.map(a => gm.pickLabel(a, T) + ' (' + projTxt(a).replace('Proj. ', '') + ')').join(' · ') : 'None') + (s.swaps || []).filter(w => w.to === tid || w.from === tid).map(w => ' · ' + w.yr + ' swap ' + (w.to === tid ? 'rights with ' + T[w.from].abbr : 'owed to ' + T[w.to].abbr)).join(''), isOther: tid !== s.me && !spect,
-      trade: () => gm.setState({ teamModal: null, modal: false, screen: 'trade', tTid: tid, tTheirs: [], tkTheirs: [], tMsg: null }),
-      canSwitch: mine2(tid) && tid !== s.me, switchTo: () => gm.switchTeam(tid), spect, canTake: (!!s.god || spect) && !mine2(tid), takeOver: () => { gm.setState({ teamModal: null }); if (spect) gm.manageTeam(tid); else gm.takeOver(tid); }, canResign: mine2(tid) && s.managed.length > 1, resign: () => { gm.setState({ teamModal: null }); gm.handToAI(tid, 'Resigned from'); } }; })();
+  const tm = !tmT
+    ? {}
+    : (() => {
+        const tid = tmT.tid,
+          ids = mine2(tid) ? s.rosters[tid].slice() : s.rosters[tid].slice().sort((x, y) => P[y].ovr - P[x].ovr),
+          pay = ids.reduce((a, id) => a + P[id].amt, 0),
+          cs = T.filter(t => t.conf === tmT.conf).sort(byPct),
+          ks = s.assets.filter(a => a.owner === tid && !usedPick(a));
+        return {
+          rating: trOf(tid),
+          ratingRank: ord(trRank(tid)) + ' of ' + T.length,
+          logo: logo(tid, 58),
+          abbr: tmT.abbr,
+          name: tmT.region + ' ' + tmT.name,
+          line: ord(cs.indexOf(tmT) + 1) + ' in the ' + tmT.conf + ' · ' + tmT.div + ' Division',
+          rec: tmT.w + '–' + tmT.l + ' · ' + strk(tmT) + ' · ' + l10(tmT) + ' last 10',
+          market: (tmT.mkt >= 1.15 ? 'Large' : tmT.mkt >= 0.95 ? 'Mid-large' : tmT.mkt >= 0.85 ? 'Mid-size' : 'Small') + ' market',
+          strat: tid === s.me ? 'Your team' : mine2(tid) ? 'Also yours' : STRAT[strat[tid]][0],
+          stratDesc: mine2(tid) ? '' : STRAT[strat[tid]][1],
+          payroll: money(pay),
+          cap:
+            pay > gm.TAX
+              ? money(pay - gm.TAX) + ' over the tax'
+              : pay > gm.CAP
+                ? money(pay - gm.CAP) + ' over the cap'
+                : money(gm.CAP - pay) + ' in cap space',
+          staff: 'Owner ' + tmT.owner + ' (' + tmT.arch + ') · GM ' + tmT.gm,
+          region: tmT.region,
+          nm: tmT.name,
+          setRegion: e => {
+            const v = e.target.value;
+            gm.setState(st => ({ teams: st.teams.map(t => (t.tid === tid ? { ...t, region: v } : t)) }));
+          },
+          setName: e => {
+            const v = e.target.value;
+            gm.setState(st => ({ teams: st.teams.map(t => (t.tid === tid ? { ...t, name: v } : t)) }));
+          },
+          setAbbr: e => {
+            const v = e.target.value.toUpperCase().slice(0, 4);
+            gm.setState(st => ({ teams: st.teams.map(t => (t.tid === tid ? { ...t, abbr: v } : t)) }));
+          },
+          rows: ids.map(id => ({ ...pBase(id), contract: money(P[id].amt) })),
+          picks:
+            (ks.length ? ks.map(a => gm.pickLabel(a, T) + ' (' + projTxt(a).replace('Proj. ', '') + ')').join(' · ') : 'None') +
+            (s.swaps || [])
+              .filter(w => w.to === tid || w.from === tid)
+              .map(w => ' · ' + w.yr + ' swap ' + (w.to === tid ? 'rights with ' + T[w.from].abbr : 'owed to ' + T[w.to].abbr))
+              .join(''),
+          isOther: tid !== s.me && !spect,
+          trade: () => gm.setState({ teamModal: null, modal: false, screen: 'trade', tTid: tid, tTheirs: [], tkTheirs: [], tMsg: null }),
+          canSwitch: mine2(tid) && tid !== s.me,
+          switchTo: () => gm.switchTeam(tid),
+          spect,
+          canTake: (!!s.god || spect) && !mine2(tid),
+          takeOver: () => {
+            gm.setState({ teamModal: null });
+            if (spect) gm.manageTeam(tid);
+            else gm.takeOver(tid);
+          },
+          canResign: mine2(tid) && s.managed.length > 1,
+          resign: () => {
+            gm.setState({ teamModal: null });
+            gm.handToAI(tid, 'Resigned from');
+          },
+        };
+      })();
   const dark = (s.theme ?? 'dark') === 'dark';
-  const RV = ownerReview(gm, s, s.me), secV = RV.sec;
-  const own = { name: me.owner, arch: me.arch, desc: RV.desc, sec: secV, secW: secV + '%', secLabel: RV.label, secColor: secV >= 70 ? 'var(--gm-good)' : secV >= 40 ? 'var(--color-text)' : 'var(--gm-bad)',
-    demands: RV.demands.map(([d0, cur, stt]) => ({ d: d0, cur, stt, color: stt === 'Met' ? 'var(--gm-good)' : stt === 'At risk' ? 'var(--color-accent-700)' : 'var(--gm-bad)' })), limits: s.god ? ['None in God Mode: payroll, spending and the books are yours to run'] : RV.limits, fire: s.god ? ['Never. In God Mode the owner has no power over you: no firing, no payroll orders, no fire sales, and your contract renews itself.'] : s.ownerFiring === false ? ['Firing is off in Settings: the owner still reviews you, but can’t fire you.'] : RV.fire, god: !!s.god,
-    hist: ((s.teamHist || {})[s.me] || []).slice().reverse(), fails: (s.mandateFails || {})[s.me] || 0, sales: (me.sales || []).slice().reverse(), newOwner: me.ownerSince === gm.Y || (me.ownerSince === gm.Y + 1 && ['fa', 'preseason'].includes(s.phase)) };
+  const RV = ownerReview(gm, s, s.me),
+    secV = RV.sec;
+  const own = {
+    name: me.owner,
+    arch: me.arch,
+    desc: RV.desc,
+    sec: secV,
+    secW: secV + '%',
+    secLabel: RV.label,
+    secColor: secV >= 70 ? 'var(--gm-good)' : secV >= 40 ? 'var(--color-text)' : 'var(--gm-bad)',
+    demands: RV.demands.map(([d0, cur, stt]) => ({
+      d: d0,
+      cur,
+      stt,
+      color: stt === 'Met' ? 'var(--gm-good)' : stt === 'At risk' ? 'var(--color-accent-700)' : 'var(--gm-bad)',
+    })),
+    limits: s.god ? ['None in God Mode: payroll, spending and the books are yours to run'] : RV.limits,
+    fire: s.god
+      ? [
+          'Never. In God Mode the owner has no power over you: no firing, no payroll orders, no fire sales, and your contract renews itself.',
+        ]
+      : s.ownerFiring === false
+        ? ['Firing is off in Settings: the owner still reviews you, but can’t fire you.']
+        : RV.fire,
+    god: !!s.god,
+    hist: ((s.teamHist || {})[s.me] || []).slice().reverse(),
+    fails: (s.mandateFails || {})[s.me] || 0,
+    sales: (me.sales || []).slice().reverse(),
+    newOwner: me.ownerSince === gm.Y || (me.ownerSince === gm.Y + 1 && ['fa', 'preseason'].includes(s.phase)),
+  };
 
   const FOCS = ['Balanced', 'Shooting', 'Finishing', 'Playmaking', 'Defense', 'Rebounding', 'Athleticism', 'Conditioning'];
-  const lastRep = s.reports[0], lastBy = {}; (lastRep ? lastRep.rows : []).forEach(r => lastBy[r.id] = r);
+  const lastRep = s.reports[0],
+    lastBy = {};
+  (lastRep ? lastRep.rows : []).forEach(r => (lastBy[r.id] = r));
   // Assistant coaches: hand a player (or everyone) over and they set his focus and assignment.
-  const setCoach = (ids: number[], on: boolean) => gm.setState(st => { const auto = { ...(st.coachAuto || {}) }; ids.forEach(id => { if (on) auto[id] = true; else delete auto[id]; });
-    const moves = on ? applyCoachPlans(gm, st, { coachAuto: auto }, st.rosters[st.me]) : []; let log = st.log; moves.forEach(m => { log = gm.logEntry({ ...st, log }, m); });
-    return { coachAuto: auto, log }; });
+  const setCoach = (ids: number[], on: boolean) =>
+    gm.setState(st => {
+      const auto = { ...(st.coachAuto || {}) };
+      ids.forEach(id => {
+        if (on) auto[id] = true;
+        else delete auto[id];
+      });
+      const moves = on ? applyCoachPlans(gm, st, { coachAuto: auto }, st.rosters[st.me]) : [];
+      let log = st.log;
+      moves.forEach(m => {
+        log = gm.logEntry({ ...st, log }, m);
+      });
+      return { coachAuto: auto, log };
+    });
   const coachAll = mine.length > 0 && mine.every(id => isCoached(s, id));
-  const devRows = mine.map(id => { const p = P[id], el = p.dev || (p.age <= 25 && p.ovr < 58), auto = isCoached(s, id), cf: any = auto ? coachFocus(p) : null, ca: any = auto ? coachAssign(gm, mine, p) : null; return { ...pBase(id), auto, coachFocus: cf?.focus, coachWhy: cf ? cf.why + ' ' + (el ? ca.why : '') : '', coachOn: () => setCoach([id], true), coachOff: () => setCoach([id], false), focus: auto ? cf.focus : s.train[id] || 'Balanced', focusOpts: FOCS.map(x => ({ v: x, label: x })), setFocus: e => { const v = e.target.value; gm.setState(st => ({ train: { ...st.train, [id]: v } })); }, asg: p.dev ? 'CCP' : 'Main roster', asgBtn: p.dev ? 'Recall' : 'Send down', canDev: el, noDev: !el, toggleDev: () => { p.dev = !p.dev; gm.setState(st => ({ log: gm.logEntry(st, (p.dev ? 'Assigned ' : 'Recalled ') + p.name + (p.dev ? ' to the CCP' : ' from the CCP')) })); }, last: lastBy[id] ? lastBy[id].d : '—', lastColor: lastBy[id] ? (lastBy[id].up ? 'var(--gm-good)' : 'var(--gm-bad)') : 'var(--color-neutral-600)' }; });
-  const coachV = { all: coachAll, any: mine.some(id => isCoached(s, id)), allOn: () => setCoach(mine, true), allOff: () => setCoach(mine, false) };
-  const reportsV = s.reports.map(r => ({ label: r.label, rows: r.rows.map(x => ({ ...x, color: x.up ? 'var(--gm-good)' : 'var(--gm-bad)', open: open(x.id) })) }));
+  const devRows = mine.map(id => {
+    const p = P[id],
+      el = p.dev || (p.age <= 25 && p.ovr < 58),
+      auto = isCoached(s, id),
+      cf: any = auto ? coachFocus(p) : null,
+      ca: any = auto ? coachAssign(gm, mine, p) : null;
+    return {
+      ...pBase(id),
+      auto,
+      coachFocus: cf?.focus,
+      coachWhy: cf ? cf.why + ' ' + (el ? ca.why : '') : '',
+      coachOn: () => setCoach([id], true),
+      coachOff: () => setCoach([id], false),
+      focus: auto ? cf.focus : s.train[id] || 'Balanced',
+      focusOpts: FOCS.map(x => ({ v: x, label: x })),
+      setFocus: e => {
+        const v = e.target.value;
+        gm.setState(st => ({ train: { ...st.train, [id]: v } }));
+      },
+      asg: p.dev ? 'CCP' : 'Main roster',
+      asgBtn: p.dev ? 'Recall' : 'Send down',
+      canDev: el,
+      noDev: !el,
+      toggleDev: () => {
+        p.dev = !p.dev;
+        gm.setState(st => ({
+          log: gm.logEntry(st, (p.dev ? 'Assigned ' : 'Recalled ') + p.name + (p.dev ? ' to the CCP' : ' from the CCP')),
+        }));
+      },
+      last: lastBy[id] ? lastBy[id].d : '—',
+      lastColor: lastBy[id] ? (lastBy[id].up ? 'var(--gm-good)' : 'var(--gm-bad)') : 'var(--color-neutral-600)',
+    };
+  });
+  const coachV = {
+    all: coachAll,
+    any: mine.some(id => isCoached(s, id)),
+    allOn: () => setCoach(mine, true),
+    allOff: () => setCoach(mine, false),
+  };
+  const reportsV = s.reports.map(r => ({
+    label: r.label,
+    rows: r.rows.map(x => ({ ...x, color: x.up ? 'var(--gm-good)' : 'var(--gm-bad)', open: open(x.id) })),
+  }));
   const REG = regions();
   if (status === 'pro' || status === 'abroad') {
-    const fac = gm.regFactor(pp, s), yo = Math.max(0, (pp.cls || gm.Y) - gm.Y), iF = intelF(s, pp.id), margin = s.god ? 0 : Math.round((yo * 5 + 3) * scoutF * fac / iF * (s.easy?.scouting ? 0.35 : 1));
-    const LBR = { hgt: 'size', stre: 'strength', spd: 'speed', acc: 'first step', lay: 'touch around the rim', box: 'boxing out', jmp: 'leaping', endu: 'motor', ins: 'post game', dnk: 'finishing', ft: 'free throws', fg: 'mid-range', tp: 'three-point shooting', oiq: 'feel for the game', diq: 'defensive instincts', drb: 'handle', pss: 'passing', reb: 'rebounding' };
+    const fac = gm.regFactor(pp, s),
+      yo = Math.max(0, (pp.cls || gm.Y) - gm.Y),
+      iF = intelF(s, pp.id),
+      margin = s.god ? 0 : Math.round((((yo * 5 + 3) * scoutF * fac) / iF) * (s.easy?.scouting ? 0.35 : 1));
+    const LBR = {
+      hgt: 'size',
+      stre: 'strength',
+      spd: 'speed',
+      acc: 'first step',
+      lay: 'touch around the rim',
+      box: 'boxing out',
+      jmp: 'leaping',
+      endu: 'motor',
+      ins: 'post game',
+      dnk: 'finishing',
+      ft: 'free throws',
+      fg: 'mid-range',
+      tp: 'three-point shooting',
+      oiq: 'feel for the game',
+      diq: 'defensive instincts',
+      drb: 'handle',
+      pss: 'passing',
+      reb: 'rebounding',
+    };
     const relK = Object.keys(pp.r).sort((x, y) => pp.r[y] - pp.r[x]);
-    let comp: any = null, best = 1e9; Object.keys(s.rosters).forEach(t => s.rosters[t].forEach(id => { const q = P[id]; let dd = 0; Object.keys(q.r).forEach(k => dd += Math.pow((q.r[k] - q.ovr) - (pp.r[k] - pp.ovr), 2)); if (dd < best) { best = dd; comp = q; } }));
+    let comp: any = null,
+      best = 1e9;
+    Object.keys(s.rosters).forEach(t =>
+      s.rosters[t].forEach(id => {
+        const q = P[id];
+        let dd = 0;
+        Object.keys(q.r).forEach(k => (dd += Math.pow(q.r[k] - q.ovr - (pp.r[k] - pp.ovr), 2)));
+        if (dd < best) {
+          best = dd;
+          comp = q;
+        }
+      }),
+    );
     const sc = s.scouts.filter(x => x.assign === gm.regionKey((pp.from && pp.from.country) || pp.raised));
-    const canPromise = status === 'pro' && pp.cls === gm.Y && ['regular', 'playin', 'playoffs', 'lottery', 'draft'].includes(s.phase) && !!myNext && !taken.has(pp.id) && Object.keys(s.promises).length < 2 && !s.promises[pp.id];
+    const canPromise =
+      status === 'pro' &&
+      pp.cls === gm.Y &&
+      ['regular', 'playin', 'playoffs', 'lottery', 'draft'].includes(s.phase) &&
+      !!myNext &&
+      !taken.has(pp.id) &&
+      Object.keys(s.promises).length < 2 &&
+      !s.promises[pp.id];
     pl.isPro = true;
-    pl.sr = { margin, scout: sc.length ? 'Scouted by ' + sc.map(x => x.name).join(', ') : 'No scout assigned to ' + REG[gm.regionKey((pp.from && pp.from.country) || pp.raised)].name, str: LBR[relK[0]] + ', ' + LBR[relK[1]], weak: LBR[relK[relK.length - 1]] + ', ' + LBR[relK[relK.length - 2]],
-      summary: pp.pos + ' who projects as a ' + (gm.rolesOf(pp, pp.pot + Math.round(pp.nz[1] * margin * 1.6)).slice(0, 2).join(' and ').toLowerCase() || 'developmental rotation player') + '. Our read on his ceiling is potential around ' + (pp.pot + Math.round(pp.nz[1] * margin * 1.6)) + ', give or take ' + margin + '.',
-      comp: comp ? comp.name : '—', openComp: comp ? open(comp.id) : () => {}, intang: fac <= .6 ? ([pp.pers.alpha && 'wants to lead', pp.pers.pro && 'consummate professional', pp.pers.volatile && 'volatile', pp.pers.clutch && 'clutch', pp.pers.prone && 'injury history'].filter(Boolean).join(', ') || 'even-keeled') + '; motivated by ' + pp.pers.mot.toLowerCase() : 'Unknown until a specialist scouts his region',
-      intel: ((s.intel || {})[pp.id] || 0).toFixed(1), focused: (s.scoutFocus || []).includes(pp.id), toggleFocus: () => gm.setState(st => { const f0 = st.scoutFocus || []; return { scoutFocus: f0.includes(pp.id) ? f0.filter(x => x !== pp.id) : [...f0, pp.id].slice(-5) }; }),
-      canPromise, promised: !!s.promises[pp.id], pickN: s.promises[pp.id] ? s.promises[pp.id].n : myNext ? myNext.n : '',
-      promise: () => gm.setState(st => ({ promises: { ...st.promises, [pp.id]: { n: myNext.n, str: 40 + (fac < .6 ? 25 : 10) + (pp.pers.mot === 'Loyalty' ? 15 : 0) + Math.random() * 15 } }, log: gm.logEntry(st, 'Promised ' + pp.name + ' the No. ' + myNext.n + ' pick') })),
-      unpromise: () => gm.setState(st => { const pr = { ...st.promises }; delete pr[pp.id]; return { promises: pr, agentRep: gm.cl(st.agentRep - 5, 0, 100), log: gm.logEntry(st, 'Withdrew the draft promise to ' + pp.name) }; }) };
-  } else { pl.isPro = false; pl.sr = {}; }
+    pl.sr = {
+      margin,
+      scout: sc.length
+        ? 'Scouted by ' + sc.map(x => x.name).join(', ')
+        : 'No scout assigned to ' + REG[gm.regionKey((pp.from && pp.from.country) || pp.raised)].name,
+      str: LBR[relK[0]] + ', ' + LBR[relK[1]],
+      weak: LBR[relK[relK.length - 1]] + ', ' + LBR[relK[relK.length - 2]],
+      summary:
+        pp.pos +
+        ' who projects as a ' +
+        (gm
+          .rolesOf(pp, pp.pot + Math.round(pp.nz[1] * margin * 1.6))
+          .slice(0, 2)
+          .join(' and ')
+          .toLowerCase() || 'developmental rotation player') +
+        '. Our read on his ceiling is potential around ' +
+        (pp.pot + Math.round(pp.nz[1] * margin * 1.6)) +
+        ', give or take ' +
+        margin +
+        '.',
+      comp: comp ? comp.name : '—',
+      openComp: comp ? open(comp.id) : () => {},
+      intang:
+        fac <= 0.6
+          ? ([
+              pp.pers.alpha && 'wants to lead',
+              pp.pers.pro && 'consummate professional',
+              pp.pers.volatile && 'volatile',
+              pp.pers.clutch && 'clutch',
+              pp.pers.prone && 'injury history',
+            ]
+              .filter(Boolean)
+              .join(', ') || 'even-keeled') +
+            '; motivated by ' +
+            pp.pers.mot.toLowerCase()
+          : 'Unknown until a specialist scouts his region',
+      intel: ((s.intel || {})[pp.id] || 0).toFixed(1),
+      focused: (s.scoutFocus || []).includes(pp.id),
+      toggleFocus: () =>
+        gm.setState(st => {
+          const f0 = st.scoutFocus || [];
+          return { scoutFocus: f0.includes(pp.id) ? f0.filter(x => x !== pp.id) : [...f0, pp.id].slice(-5) };
+        }),
+      canPromise,
+      promised: !!s.promises[pp.id],
+      pickN: s.promises[pp.id] ? s.promises[pp.id].n : myNext ? myNext.n : '',
+      promise: () =>
+        gm.setState(st => ({
+          promises: {
+            ...st.promises,
+            [pp.id]: { n: myNext.n, str: 40 + (fac < 0.6 ? 25 : 10) + (pp.pers.mot === 'Loyalty' ? 15 : 0) + Math.random() * 15 },
+          },
+          log: gm.logEntry(st, 'Promised ' + pp.name + ' the No. ' + myNext.n + ' pick'),
+        })),
+      unpromise: () =>
+        gm.setState(st => {
+          const pr = { ...st.promises };
+          delete pr[pp.id];
+          return {
+            promises: pr,
+            agentRep: gm.cl(st.agentRep - 5, 0, 100),
+            log: gm.logEntry(st, 'Withdrew the draft promise to ' + pp.name),
+          };
+        }),
+    };
+  } else {
+    pl.isPro = false;
+    pl.sr = {};
+  }
   const allPros = [gm.Y, gm.Y + 1, gm.Y + 2].flatMap(y => d.cls[y] || []);
-  const scoutRegions = (Object.entries(REG) as [string, any][]).map(([k, r]) => { const sc = s.scouts.filter(x => x.assign === k); return { name: r.name, tier: 'Tier ' + r.tier, arche: r.arche, n: allPros.filter(id => gm.regionKey((P[id].from && P[id].from.country) || P[id].raised) === k).length, who: sc.map(x => x.name).join(', ') || 'Unscouted', margin: '±' + Math.round(3 * scoutF * gm.regFactorK(k, s)) + ' now · ±' + Math.round(13 * scoutF * gm.regFactorK(k, s)) + ' in 2 yrs', color: sc.length ? 'var(--color-text)' : 'var(--gm-bad)' }; });
+  const scoutRegions = (Object.entries(REG) as [string, any][]).map(([k, r]) => {
+    const sc = s.scouts.filter(x => x.assign === k);
+    return {
+      name: r.name,
+      tier: 'Tier ' + r.tier,
+      arche: r.arche,
+      n: allPros.filter(id => gm.regionKey((P[id].from && P[id].from.country) || P[id].raised) === k).length,
+      who: sc.map(x => x.name).join(', ') || 'Unscouted',
+      margin: '±' + Math.round(3 * scoutF * gm.regFactorK(k, s)) + ' now · ±' + Math.round(13 * scoutF * gm.regFactorK(k, s)) + ' in 2 yrs',
+      color: sc.length ? 'var(--color-text)' : 'var(--gm-bad)',
+    };
+  });
   // A scout's brief: what he looks for on his own. Changing it sends him out right away.
-  const setBrief = (i: number, patch: any) => gm.setState(st => { const scouts = st.scouts.map((y, j) => (j === i ? { ...y, brief: { ...DEFAULT_BRIEF, ...(y.brief || {}), ...patch } } : y)), st2 = { ...st, scouts }; return { scouts, ...runBriefs(gm, st2, st2) }; });
-  const scoutsV = s.scouts.map((x, i) => ({ name: x.name, spec: REG[x.spec].name, skill: '★'.repeat(x.skill) + '☆'.repeat(5 - x.skill), assign: x.assign, opts: [{ v: '', label: 'No region: personal scouting only' }, ...Object.keys(REG).map(k => ({ v: k, label: REG[k].name }))], set: e => { const v = e.target.value; gm.setState(st => ({ scouts: st.scouts.map((y, j) => j === i ? { ...y, assign: v } : y) })); }, match: !x.assign ? 'No region coverage' : x.assign === x.spec ? 'Specialty match' : 'Outside specialty: wider margins',
-    brief: { ...DEFAULT_BRIEF, ...(x.brief || {}) }, setBrief: (k: string, v: any) => setBrief(i, { [k]: v }),
-    following: Object.entries(s.scoutAssign || {}).filter(([, n]) => n === x.name).map(([k]) => { const id = +k, p = P[id], bp = (s.briefPicks || {})[id]; return p ? { id, name: p.name, pos: p.pos, age: p.age, where: tidOf[id] >= 0 ? T[tidOf[id]].abbr : p.retired ? 'Retired' : p.cls && p.cls >= gm.Y ? 'Class of ' + p.cls : (s.overseas || []).includes(id) ? 'Overseas' : 'FA', why: bp ? bp.why : 'Assigned by you', auto: !!bp, open: open(id) } : null; }).filter(Boolean) }));
-  const promisesV = (Object.entries(s.promises) as [string, any][]).map(([id, pr]) => ({ name: P[id].name, n: '#' + pr.n, open: open(+id) }));
-  const repV = { v: s.agentRep, label: s.agentRep >= 65 ? 'Trusted by agents' : s.agentRep >= 40 ? 'Neutral' : 'Agents are wary', w: s.agentRep + '%' };
-  const ovRows = (s.overseas || []).map(id => { const p = P[id], a = p.abroad || {}; return { ...pBase(id), club: a.club, lg: a.lg, clubC: C[a.country] ? C[a.country].n : '', line: a.pts + ' pts · ' + a.reb + ' reb · ' + a.ast + ' ast', proj: Math.max(25, p.ovr - 3) + '–' + (p.ovr + 3), clause: a.clause, fee: money(a.fee), capHit: a.fee > .85 ? money(a.fee - .85) + ' counts against the cap' : 'No cap hit', ask: money(gm.askFor(p, s)), ...(() => { const ms = signingMethods(gm, s, s.me, p), ok = ms.filter(m => m.ok); return { how: a.clause === 'Buyout' && !s.god ? 'Buyout first' : s.god ? 'God Mode' : ok.length ? ok[0].label : (ms[0]?.why || 'Can\u2019t fit'), cant: !s.god && (a.clause === 'Buyout' || !ok.length) }; })(), sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }), drafted: p.dr ? 'Drafted ' + p.draft : 'Undrafted ' + p.draft }; }).sort((x, y) => y.ovr - x.ovr);
+  const setBrief = (i: number, patch: any) =>
+    gm.setState(st => {
+      const scouts = st.scouts.map((y, j) => (j === i ? { ...y, brief: { ...DEFAULT_BRIEF, ...(y.brief || {}), ...patch } } : y)),
+        st2 = { ...st, scouts };
+      return { scouts, ...runBriefs(gm, st2, st2) };
+    });
+  const scoutsV = s.scouts.map((x, i) => ({
+    name: x.name,
+    spec: REG[x.spec].name,
+    skill: '★'.repeat(x.skill) + '☆'.repeat(5 - x.skill),
+    assign: x.assign,
+    opts: [{ v: '', label: 'No region: personal scouting only' }, ...Object.keys(REG).map(k => ({ v: k, label: REG[k].name }))],
+    set: e => {
+      const v = e.target.value;
+      gm.setState(st => ({ scouts: st.scouts.map((y, j) => (j === i ? { ...y, assign: v } : y)) }));
+    },
+    match: !x.assign ? 'No region coverage' : x.assign === x.spec ? 'Specialty match' : 'Outside specialty: wider margins',
+    brief: { ...DEFAULT_BRIEF, ...(x.brief || {}) },
+    setBrief: (k: string, v: any) => setBrief(i, { [k]: v }),
+    following: Object.entries(s.scoutAssign || {})
+      .filter(([, n]) => n === x.name)
+      .map(([k]) => {
+        const id = +k,
+          p = P[id],
+          bp = (s.briefPicks || {})[id];
+        return p
+          ? {
+              id,
+              name: p.name,
+              pos: p.pos,
+              age: p.age,
+              where:
+                tidOf[id] >= 0
+                  ? T[tidOf[id]].abbr
+                  : p.retired
+                    ? 'Retired'
+                    : p.cls && p.cls >= gm.Y
+                      ? 'Class of ' + p.cls
+                      : (s.overseas || []).includes(id)
+                        ? 'Overseas'
+                        : 'FA',
+              why: bp ? bp.why : 'Assigned by you',
+              auto: !!bp,
+              open: open(id),
+            }
+          : null;
+      })
+      .filter(Boolean),
+  }));
+  const promisesV = (Object.entries(s.promises) as [string, any][]).map(([id, pr]) => ({
+    name: P[id].name,
+    n: '#' + pr.n,
+    open: open(+id),
+  }));
+  const repV = {
+    v: s.agentRep,
+    label: s.agentRep >= 65 ? 'Trusted by agents' : s.agentRep >= 40 ? 'Neutral' : 'Agents are wary',
+    w: s.agentRep + '%',
+  };
+  const ovRows = (s.overseas || [])
+    .map(id => {
+      const p = P[id],
+        a = p.abroad || {};
+      return {
+        ...pBase(id),
+        club: a.club,
+        lg: a.lg,
+        clubC: C[a.country] ? C[a.country].n : '',
+        line: a.pts + ' pts · ' + a.reb + ' reb · ' + a.ast + ' ast',
+        proj: Math.max(25, p.ovr - 3) + '–' + (p.ovr + 3),
+        clause: a.clause,
+        fee: money(a.fee),
+        capHit: a.fee > 0.85 ? money(a.fee - 0.85) + ' counts against the cap' : 'No cap hit',
+        ask: money(gm.askFor(p, s)),
+        ...(() => {
+          const ms = signingMethods(gm, s, s.me, p),
+            ok = ms.filter(m => m.ok);
+          return {
+            how:
+              a.clause === 'Buyout' && !s.god
+                ? 'Buyout first'
+                : s.god
+                  ? 'God Mode'
+                  : ok.length
+                    ? ok[0].label
+                    : ms[0]?.why || 'Can\u2019t fit',
+            cant: !s.god && (a.clause === 'Buyout' || !ok.length),
+          };
+        })(),
+        sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }),
+        drafted: p.dr ? 'Drafted ' + p.draft : 'Undrafted ' + p.draft,
+      };
+    })
+    .sort((x, y) => y.ovr - x.ovr);
   const TAC: any[] = TACTIC_GROUPS.map(g => [g.k, g.label, g.opts.map(o => o.v), g.desc]);
   // Target minutes per player: his own setting, else the default for his slot among healthy players.
-  const plan = gm.minutesPlan(s, s.me), rotOf = id => Math.round(P[id].rot ?? plan[id] ?? 0);
-  const tacV = { groups: TAC.map(([k, label, opts, desc]) => ({ label, desc, opts: opts.map(o => ({ label: o, onClick: () => gm.setState(st => ({ tactics: { ...st.tactics, [k]: o } })), color: s.tactics[k] === o ? 'var(--color-accent-700)' : 'var(--color-text)', ring: s.tactics[k] === o ? 'inset 0 0 0 1px var(--color-accent)' : 'none' })) })), fit: (() => { const f = gm.tacFit(mine, s.tactics); return (f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1) + ' roster fit: how well these settings suit your players'; })(),
-    total: Math.round(mine.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0)), rot: mine.map((id, i) => ({ name: P[id].name, pos: P[id].pos, tag: P[id].inj ? 'Injured' : P[id].dev ? 'CCP' : i < 5 ? 'Starter' : '', v: rotOf(id), val: rotOf(id) + ' min' + (P[id].gp ? ' · plays ' + Math.round(P[id].min) : ''), dis: !!(P[id].inj || P[id].dev), set: e => { P[id].rot = +e.target.value; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); } })) };
+  const plan = gm.minutesPlan(s, s.me),
+    rotOf = id => Math.round(P[id].rot ?? plan[id] ?? 0);
+  const tacV = {
+    groups: TAC.map(([k, label, opts, desc]) => ({
+      label,
+      desc,
+      opts: opts.map(o => ({
+        label: o,
+        onClick: () => gm.setState(st => ({ tactics: { ...st.tactics, [k]: o } })),
+        color: s.tactics[k] === o ? 'var(--color-accent-700)' : 'var(--color-text)',
+        ring: s.tactics[k] === o ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+      })),
+    })),
+    fit: (() => {
+      const f = gm.tacFit(mine, s.tactics);
+      return (f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1) + ' roster fit: how well these settings suit your players';
+    })(),
+    total: Math.round(mine.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0)),
+    rot: mine.map((id, i) => ({
+      name: P[id].name,
+      pos: P[id].pos,
+      tag: P[id].inj ? 'Injured' : P[id].dev ? 'CCP' : i < 5 ? 'Starter' : '',
+      v: rotOf(id),
+      val: rotOf(id) + ' min' + (P[id].gp ? ' · plays ' + Math.round(P[id].min) : ''),
+      dis: !!(P[id].inj || P[id].dev),
+      set: e => {
+        P[id].rot = +e.target.value;
+        gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+      },
+    })),
+  };
   const natTot = (Object.values(s.natW) as any[]).reduce((a, x) => a + (+x || 0), 0);
-  const natRows = Object.keys(C).filter(c => s.natW[c] !== undefined).sort((x, y) => (s.natW[y] || 0) - (s.natW[x] || 0)).map(c => ({ flag: gm.flag(c), name: C[c].n, w: s.natW[c], share: ((s.natW[c] || 0) / natTot * 100).toFixed(1) + '%', set: e => { const v = Math.max(0, +e.target.value || 0); gm.setState(st => ({ natW: { ...st.natW, [c]: v } })); }, open: openC(c) }));
+  const natRows = Object.keys(C)
+    .filter(c => s.natW[c] !== undefined)
+    .sort((x, y) => (s.natW[y] || 0) - (s.natW[x] || 0))
+    .map(c => ({
+      flag: gm.flag(c),
+      name: C[c].n,
+      w: s.natW[c],
+      share: (((s.natW[c] || 0) / natTot) * 100).toFixed(1) + '%',
+      set: e => {
+        const v = Math.max(0, +e.target.value || 0);
+        gm.setState(st => ({ natW: { ...st.natW, [c]: v } }));
+      },
+      open: openC(c),
+    }));
   const capEasySet = { on: !!s.capEasy, toggle: () => gm.setState(st => ({ capEasy: !st.capEasy })) };
   const salesSet = { v: s.teamSales ?? 'real', set: (v: string) => gm.setState({ teamSales: v }) };
   // God Mode: how many drafts ahead picks can be traded (tradeLogic.ts; default 4).
   const rosterLimSet = { max: seasonMax(s), min: rosterMin(s), set: (max: number, min: number) => gm.setRosterLimits(max, min) };
-  const pickYearsSet = { v: pickHorizon(s), set: (n: number) => gm.setState(st => { const st2 = { ...st, pickYears: n }; return { pickYears: n, assets: gm.ensureAssets(st2) }; }) };
+  const pickYearsSet = {
+    v: pickHorizon(s),
+    set: (n: number) =>
+      gm.setState(st => {
+        const st2 = { ...st, pickYears: n };
+        return { pickYears: n, assets: gm.ensureAssets(st2) };
+      }),
+  };
   // Trade offers AI teams brought you (Trade → Offers to you).
   // openId: straight to one offer (the notice's View Trade Offer button), on the Trade screen.
-  const inList = st => (st.inOffers || []).map(o => ({ id: o.id, tid: o.a, mine: o.bP, theirs: o.aP, kMine: o.bK, kTheirs: o.aK, value: 0, note: o.why }));
-  const inOffersV = { count: (s.inOffers || []).length, open: () => gm.setState(st => ({ offers: { kind: 'incoming', what: '', list: inList(st), i: 0 } })),
+  const inList = st =>
+    (st.inOffers || []).map(o => ({ id: o.id, tid: o.a, mine: o.bP, theirs: o.aP, kMine: o.bK, kTheirs: o.aK, value: 0, note: o.why }));
+  const inOffersV = {
+    count: (s.inOffers || []).length,
+    open: () => gm.setState(st => ({ offers: { kind: 'incoming', what: '', list: inList(st), i: 0 } })),
     has: (id: string) => (s.inOffers || []).some(o => o.id === id),
-    openId: (id: string) => gm.setState(st => { const list = inList(st), i = list.findIndex(o => o.id === id); return i < 0 ? null : { notices: [], teamModal: null, modal: false, screen: 'trade', offers: { kind: 'incoming', what: '', list, i }, ofAdvice: false }; }) };
-  const firing = { on: s.ownerFiring !== false && !s.god, label: s.god ? 'God Mode is on: you can’t be fired' : s.ownerFiring === false ? 'Off: owners review you but can’t fire you' : 'On: owners fire you if their written conditions are broken', btn: s.ownerFiring === false ? 'Turn on' : 'Turn off', toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })) };
-  const god = { on: !!s.god, label: s.god ? 'On' : 'Off', btn: s.god ? 'Turn off' : 'Turn on', toggle: () => gm.setState(st => ({ god: !st.god, ...(st.god && (st.screen === 'cards' || st.screen === 'draftClasses') ? { screen: 'dash' } : {}) })) };
-  const gp = gm.gamesPlayed(s), PH = [['regular', 'Regular season'], ['playin', 'Play-in'], ['playoffs', 'Playoffs'], ['lottery', 'Lottery'], ['draft', 'Draft'], ['prefa', 'Pre-Free Agency'], ['fa', 'Free agency'], ['preseason', 'Preseason']];
+    openId: (id: string) =>
+      gm.setState(st => {
+        const list = inList(st),
+          i = list.findIndex(o => o.id === id);
+        return i < 0
+          ? null
+          : {
+              notices: [],
+              teamModal: null,
+              modal: false,
+              screen: 'trade',
+              offers: { kind: 'incoming', what: '', list, i },
+              ofAdvice: false,
+            };
+      }),
+  };
+  const firing = {
+    on: s.ownerFiring !== false && !s.god,
+    label: s.god
+      ? 'God Mode is on: you can’t be fired'
+      : s.ownerFiring === false
+        ? 'Off: owners review you but can’t fire you'
+        : 'On: owners fire you if their written conditions are broken',
+    btn: s.ownerFiring === false ? 'Turn on' : 'Turn off',
+    toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })),
+  };
+  const god = {
+    on: !!s.god,
+    label: s.god ? 'On' : 'Off',
+    btn: s.god ? 'Turn off' : 'Turn on',
+    toggle: () =>
+      gm.setState(st => ({
+        god: !st.god,
+        ...(st.god && (st.screen === 'cards' || st.screen === 'draftClasses') ? { screen: 'dash' } : {}),
+      })),
+  };
+  const gp = gm.gamesPlayed(s),
+    PH = [
+      ['regular', 'Regular season'],
+      ['playin', 'Play-in'],
+      ['playoffs', 'Playoffs'],
+      ['lottery', 'Lottery'],
+      ['draft', 'Draft'],
+      ['prefa', 'Pre-Free Agency'],
+      ['fa', 'Free agency'],
+      ['preseason', 'Preseason'],
+    ];
   const phK = s.phase === 'draft' && s.preFA ? 'prefa' : s.phase;
   const act = (label, go, primary?) => ({ label, go, cls: primary ? 'btn-primary' : 'btn-secondary' });
   const draftDone = s.pi >= s.picks.length;
   const away = (k: string) => s.screen !== k || !!s.modal || s.teamModal != null || !!s.boxId; // not looking at that screen (another page, a profile or a box score is up)
-  const watch = post ? [act('Watch your game', () => { if (gm.canPlay()) gm.setState({ screen: 'game', q: '' }); })] : [];
-  const ph = { season: gm.seasonLbl() + ' season', steps: PH.map(([k, label]) => ({ label, color: k === phK ? 'var(--color-accent-700)' : 'var(--color-neutral-600)', fw: k === phK ? 600 : 400 })), note: '', actions: [] as any[] };
-  if (s.phase === 'regular') { if (gp < 82) { ph.note = 'Game ' + gp + ' of 82'; const d0 = gm.dateOf(s.day), until = new Date(d0.getFullYear(), d0.getMonth() + 1, d0.getDate()); let toMonth = 1; while (s.day + toMonth < gm.db.days.length && gm.dateOf(s.day + toMonth) < until) toMonth++; /* a real month from today (Oct 21 → Nov 21), not just to the end of this month */
-      ph.actions = [act('Sim to next game', () => gm.sim(toNext)), act('Play a week', () => gm.sim(toWeek)), act('Play a month', () => gm.sim(toMonth)), ...(s.day < gm.ruleSlot(DAY.TRADE_DEADLINE) ? [act('Sim to trade deadline (' + gm.fmtS(gm.ruleSlot(DAY.TRADE_DEADLINE)) + ')', () => gm.sim(gm.ruleSlot(DAY.TRADE_DEADLINE) - s.day))] : []), act('Sim to end of regular season', () => gm.sim(gm.db.days.length))]; } else { ph.note = 'Regular season complete · awards are in'; ph.actions = [act('Start the play-in', () => { gm.startPlayin(); go('playin')(); }, true)]; } }
-  else if (s.phase === 'playin') { const left = gm.playinPending(s.playin).length; ph.note = left ? 'Play-in · ' + left + ' game' + (left === 1 ? '' : 's') + ' next' : 'Play-in complete · seeds 7 and 8 are set'; ph.actions = left ? [...watch, act('Sim play-in games', () => gm.simPlayin(), true)] : [act('Start the playoffs', () => { gm.startPlayoffs(); go('playoffs')(); }, true)]; }
-  else if (s.phase === 'playoffs') { if (s.po.champ == null) { ph.note = 'Best-of-7 series · East and West, then the Finals'; ph.actions = [...watch, act('Sim a game', () => gm.simPo('game')), act('Sim round', () => gm.simPo('round')), act('Sim entire playoffs', () => gm.simPo('all'), true)]; } else { ph.note = T[s.po.champ].region + ' ' + T[s.po.champ].name + ' are champions'; { const unread = s.letterUnread === gm.Y; ph.actions = [...(unread ? [{ ...act('Next: Owner letter', () => gm.setState({ letterOpen: gm.Y, letterUnread: null }), true), lead: true }] : []), act('End the season · owner review', () => seasonReview(gm), !unread)]; } } }
-  else if (s.phase === 'lottery') { ph.note = '3-2-1 lottery: 16 teams, all 16 picks drawn'; ph.actions = [act('Run the lottery', () => { gm.runLottery(); go('lottery')(); }, true)]; }
-  else if (s.phase === 'draft') { ph.note = draftDone ? 'Draft complete' : 'Pick ' + (s.pi + 1) + ' of ' + s.picks.length; { const c = s.picks[s.pi], mineNow = c && mine2(gm.owner2027(c.orig, s.assets, c.rd)); if (!draftDone && mineNow) ph.note = 'You are on the clock' + (gm.owner2027(c.orig, s.assets, c.rd) !== s.me ? ' as ' + T[gm.owner2027(c.orig, s.assets, c.rd)].abbr : '') + ': pick from the board'; ph.actions = draftDone ? (!s.preFA ? [act('Start Pre-Free Agency', () => { gm.startPreFA(); go('prefa')(); }, true)] : s.gmOffer?.kind === 'expiring' && !s.unemployed && !s.god ? [act('Answer the owner’s contract offer', go('career'), true), { ...act('Open free agency', () => gm.startFA()), dis: true }] : (() => { const left = s.easy?.cap ? 0 : s.managed.reduce((n, t) => n + preFAPending(gm, s, t), 0); ph.note = 'Pre-Free Agency · ' + (left ? left + ' decision' + (left === 1 ? '' : 's') + ' left before free agency opens June 30' : 'all decisions made'); return [...(away('prefa') ? [{ ...act('Go to Pre-Free Agency', go('prefa'), !!left), lead: true }] : []), { ...act('Open free agency', () => { gm.startFA(); if (gm.state.phase === 'fa') go('fa')(); }, !left), dis: left > 0 }]; })()) : mineNow ? [...(away('draft') ? [{ ...act('Go to the board', go('draft')), lead: true }] : []), act('Auto-pick for me', () => gm.aiDraft(false))] : [...(away('draft') ? [{ ...act('Go to draft', go('draft')), lead: true }] : []), act('Sim one pick', () => gm.aiDraft(true, 1)), act('Sim to my pick', () => gm.aiDraft(true), true), act('Auto-draft the rest', () => gm.aiDraft(false))]; } }
-  else if (s.phase === 'fa') { const os = (s.offerSheets || []).length + (s.agentCalls || []).length, ac = (s.agentCalls || []).length, fd = gm.faDayOf(s), end = fd >= Game.FA_END, dd = gm.faDate(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    ph.note = ac ? 'An agent is waiting on your answer (Mailbox)' : os ? os + ' offer sheet' + (os === 1 ? '' : 's') + ' to answer in your Mailbox' : 'Free agency day ' + fd + ' · ' + dd + ' · ' + s.fa.length + ' unsigned';
-    ph.actions = end ? [...(os - ac ? [act('Answer offer sheets', go('mail'), true)] : []), ...(ac ? [act('Answer your agent call' + (ac > 1 ? 's' : ''), go('mail'), true)] : []), { ...act('Open training camp', () => { gm.startPreseason(); if (gm.state.phase === 'preseason') go('roster')(); }, !os), dis: os > 0 }]
-      : [...(away('fa') ? [{ ...act('Go to free agency', go('fa')), lead: true }] : []), { ...act('Next day', () => { go('fa')(); gm.advanceFA(1); }), dis: os > 0 }, { ...act('Next week', () => { go('fa')(); gm.advanceFA(7); }), dis: os > 0 }, ...(fd < 6 ? [{ ...act('To July 6 (deals official)', () => { go('fa')(); gm.advanceFA(6 - fd); }), dis: os > 0 }] : []), ...(os ? [act('Answer offer sheets', go('mail'), true)] : []), { ...act('Sim to training camp (Sep 30)', () => { gm.startPreseason(); if (gm.state.phase === 'preseason') go('roster')(); }, !os), dis: os > 0 }]; }
-  else if (s.phase === 'preseason') { const overT = s.managed.filter(t => stdIds(gm, s.rosters[t]).length > seasonMax(s) || twoWayIds(gm, s.rosters[t]).length > TWO_WAY_MAX), underT = s.managed.filter(t => stdIds(gm, s.rosters[t]).length < rosterMin(s)); ph.note = underT.length && !overT.length ? 'Under ' + rosterMin(s) + ' players (' + underT.map(t => T[t].abbr + ' ' + stdIds(gm, s.rosters[t]).length).join(', ') + '): opening night fills the roster with minimum deals, or sign your own' : overT.length ? 'Cut to ' + seasonMax(s) + ' standard contracts and ' + TWO_WAY_MAX + ' two-ways before opening night (' + overT.map(t => T[t].abbr + ' ' + stdIds(gm, s.rosters[t]).length + '+' + twoWayIds(gm, s.rosters[t]).length).join(', ') + '): waive, or convert Exhibit 10s to two-ways on the Cap sheet' : 'Players have developed; ratings updated'; ph.actions = [{ ...act('Start the regular season', () => gm.startSeason(), true), dis: overT.length > 0 && !s.easy?.cap }]; }
+  const watch = post
+    ? [
+        act('Watch your game', () => {
+          if (gm.canPlay()) gm.setState({ screen: 'game', q: '' });
+        }),
+      ]
+    : [];
+  const ph = {
+    season: gm.seasonLbl() + ' season',
+    steps: PH.map(([k, label]) => ({
+      label,
+      color: k === phK ? 'var(--color-accent-700)' : 'var(--color-neutral-600)',
+      fw: k === phK ? 600 : 400,
+    })),
+    note: '',
+    actions: [] as any[],
+  };
+  if (s.phase === 'regular') {
+    if (gp < 82) {
+      ph.note = 'Game ' + gp + ' of 82';
+      const d0 = gm.dateOf(s.day),
+        until = new Date(d0.getFullYear(), d0.getMonth() + 1, d0.getDate());
+      let toMonth = 1;
+      while (s.day + toMonth < gm.db.days.length && gm.dateOf(s.day + toMonth) < until)
+        toMonth++; /* a real month from today (Oct 21 → Nov 21), not just to the end of this month */
+      ph.actions = [
+        act('Sim to next game', () => gm.sim(toNext)),
+        act('Play a week', () => gm.sim(toWeek)),
+        act('Play a month', () => gm.sim(toMonth)),
+        ...(s.day < gm.ruleSlot(DAY.TRADE_DEADLINE)
+          ? [
+              act('Sim to trade deadline (' + gm.fmtS(gm.ruleSlot(DAY.TRADE_DEADLINE)) + ')', () =>
+                gm.sim(gm.ruleSlot(DAY.TRADE_DEADLINE) - s.day),
+              ),
+            ]
+          : []),
+        act('Sim to end of regular season', () => gm.sim(gm.db.days.length)),
+      ];
+    } else {
+      ph.note = 'Regular season complete · awards are in';
+      ph.actions = [
+        act(
+          'Start the play-in',
+          () => {
+            gm.startPlayin();
+            go('playin')();
+          },
+          true,
+        ),
+      ];
+    }
+  } else if (s.phase === 'playin') {
+    const left = gm.playinPending(s.playin).length;
+    ph.note = left ? 'Play-in · ' + left + ' game' + (left === 1 ? '' : 's') + ' next' : 'Play-in complete · seeds 7 and 8 are set';
+    ph.actions = left
+      ? [...watch, act('Sim play-in games', () => gm.simPlayin(), true)]
+      : [
+          act(
+            'Start the playoffs',
+            () => {
+              gm.startPlayoffs();
+              go('playoffs')();
+            },
+            true,
+          ),
+        ];
+  } else if (s.phase === 'playoffs') {
+    if (s.po.champ == null) {
+      ph.note = 'Best-of-7 series · East and West, then the Finals';
+      ph.actions = [
+        ...watch,
+        act('Sim a game', () => gm.simPo('game')),
+        act('Sim round', () => gm.simPo('round')),
+        act('Sim entire playoffs', () => gm.simPo('all'), true),
+      ];
+    } else {
+      ph.note = T[s.po.champ].region + ' ' + T[s.po.champ].name + ' are champions';
+      {
+        const unread = s.letterUnread === gm.Y;
+        ph.actions = [
+          ...(unread
+            ? [{ ...act('Next: Owner letter', () => gm.setState({ letterOpen: gm.Y, letterUnread: null }), true), lead: true }]
+            : []),
+          act('End the season · owner review', () => seasonReview(gm), !unread),
+        ];
+      }
+    }
+  } else if (s.phase === 'lottery') {
+    ph.note = '3-2-1 lottery: 16 teams, all 16 picks drawn';
+    ph.actions = [
+      act(
+        'Run the lottery',
+        () => {
+          gm.runLottery();
+          go('lottery')();
+        },
+        true,
+      ),
+    ];
+  } else if (s.phase === 'draft') {
+    ph.note = draftDone ? 'Draft complete' : 'Pick ' + (s.pi + 1) + ' of ' + s.picks.length;
+    {
+      const c = s.picks[s.pi],
+        mineNow = c && mine2(gm.owner2027(c.orig, s.assets, c.rd));
+      if (!draftDone && mineNow)
+        ph.note =
+          'You are on the clock' +
+          (gm.owner2027(c.orig, s.assets, c.rd) !== s.me ? ' as ' + T[gm.owner2027(c.orig, s.assets, c.rd)].abbr : '') +
+          ': pick from the board';
+      ph.actions = draftDone
+        ? !s.preFA
+          ? [
+              act(
+                'Start Pre-Free Agency',
+                () => {
+                  gm.startPreFA();
+                  go('prefa')();
+                },
+                true,
+              ),
+            ]
+          : s.gmOffer?.kind === 'expiring' && !s.unemployed && !s.god
+            ? [act('Answer the owner’s contract offer', go('career'), true), { ...act('Open free agency', () => gm.startFA()), dis: true }]
+            : (() => {
+                const left = s.easy?.cap ? 0 : s.managed.reduce((n, t) => n + preFAPending(gm, s, t), 0);
+                ph.note =
+                  'Pre-Free Agency · ' +
+                  (left ? left + ' decision' + (left === 1 ? '' : 's') + ' left before free agency opens June 30' : 'all decisions made');
+                return [
+                  ...(away('prefa') ? [{ ...act('Go to Pre-Free Agency', go('prefa'), !!left), lead: true }] : []),
+                  {
+                    ...act(
+                      'Open free agency',
+                      () => {
+                        gm.startFA();
+                        if (gm.state.phase === 'fa') go('fa')();
+                      },
+                      !left,
+                    ),
+                    dis: left > 0,
+                  },
+                ];
+              })()
+        : mineNow
+          ? [
+              ...(away('draft') ? [{ ...act('Go to the board', go('draft')), lead: true }] : []),
+              act('Auto-pick for me', () => gm.aiDraft(false)),
+            ]
+          : [
+              ...(away('draft') ? [{ ...act('Go to draft', go('draft')), lead: true }] : []),
+              act('Sim one pick', () => gm.aiDraft(true, 1)),
+              act('Sim to my pick', () => gm.aiDraft(true), true),
+              act('Auto-draft the rest', () => gm.aiDraft(false)),
+            ];
+    }
+  } else if (s.phase === 'fa') {
+    const os = (s.offerSheets || []).length + (s.agentCalls || []).length,
+      ac = (s.agentCalls || []).length,
+      fd = gm.faDayOf(s),
+      end = fd >= Game.FA_END,
+      dd = gm.faDate(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    ph.note = ac
+      ? 'An agent is waiting on your answer (Mailbox)'
+      : os
+        ? os + ' offer sheet' + (os === 1 ? '' : 's') + ' to answer in your Mailbox'
+        : 'Free agency day ' + fd + ' · ' + dd + ' · ' + s.fa.length + ' unsigned';
+    ph.actions = end
+      ? [
+          ...(os - ac ? [act('Answer offer sheets', go('mail'), true)] : []),
+          ...(ac ? [act('Answer your agent call' + (ac > 1 ? 's' : ''), go('mail'), true)] : []),
+          {
+            ...act(
+              'Open training camp',
+              () => {
+                gm.startPreseason();
+                if (gm.state.phase === 'preseason') go('roster')();
+              },
+              !os,
+            ),
+            dis: os > 0,
+          },
+        ]
+      : [
+          ...(away('fa') ? [{ ...act('Go to free agency', go('fa')), lead: true }] : []),
+          {
+            ...act('Next day', () => {
+              go('fa')();
+              gm.advanceFA(1);
+            }),
+            dis: os > 0,
+          },
+          {
+            ...act('Next week', () => {
+              go('fa')();
+              gm.advanceFA(7);
+            }),
+            dis: os > 0,
+          },
+          ...(fd < 6
+            ? [
+                {
+                  ...act('To July 6 (deals official)', () => {
+                    go('fa')();
+                    gm.advanceFA(6 - fd);
+                  }),
+                  dis: os > 0,
+                },
+              ]
+            : []),
+          ...(os ? [act('Answer offer sheets', go('mail'), true)] : []),
+          {
+            ...act(
+              'Sim to training camp (Sep 30)',
+              () => {
+                gm.startPreseason();
+                if (gm.state.phase === 'preseason') go('roster')();
+              },
+              !os,
+            ),
+            dis: os > 0,
+          },
+        ];
+  } else if (s.phase === 'preseason') {
+    const overT = s.managed.filter(t => stdIds(gm, s.rosters[t]).length > seasonMax(s) || twoWayIds(gm, s.rosters[t]).length > TWO_WAY_MAX),
+      underT = s.managed.filter(t => stdIds(gm, s.rosters[t]).length < rosterMin(s));
+    ph.note =
+      underT.length && !overT.length
+        ? 'Under ' +
+          rosterMin(s) +
+          ' players (' +
+          underT.map(t => T[t].abbr + ' ' + stdIds(gm, s.rosters[t]).length).join(', ') +
+          '): opening night fills the roster with minimum deals, or sign your own'
+        : overT.length
+          ? 'Cut to ' +
+            seasonMax(s) +
+            ' standard contracts and ' +
+            TWO_WAY_MAX +
+            ' two-ways before opening night (' +
+            overT.map(t => T[t].abbr + ' ' + stdIds(gm, s.rosters[t]).length + '+' + twoWayIds(gm, s.rosters[t]).length).join(', ') +
+            '): waive, or convert Exhibit 10s to two-ways on the Cap sheet'
+          : 'Players have developed; ratings updated';
+    ph.actions = [{ ...act('Start the regular season', () => gm.startSeason(), true), dis: overT.length > 0 && !s.easy?.cap }];
+  }
   // The owner's offseason payroll order, until it's met.
-  { const c = gm.clubOf(s, s.me), m = (c?.inbox || []).find((x: any) => x.kind === 'mandate' && !x.resolved && x.deadline === 'opening'); if (m && ['fa', 'preseason'].includes(s.phase)) { const over = payroll - m.target; if (over > 0.05) ph.note += ' · ' + me.owner + ' wants payroll under ' + money(m.target) + ' by opening night (' + money(over) + ' over) or he orders a fire sale'; } }
-  if (s.gmOffer && !s.unemployed && ['lottery', 'draft'].includes(s.phase)) ph.note += ' · ' + T[s.gmOffer.tid].owner + ' has offered you a contract (Career)';
-  if (s.unemployed) { ph.note = 'You’re out of a job. Accept an offer on the Career screen to continue.'; ph.actions = [act('Go to Career', go('career'), true)]; }
+  {
+    const c = gm.clubOf(s, s.me),
+      m = (c?.inbox || []).find((x: any) => x.kind === 'mandate' && !x.resolved && x.deadline === 'opening');
+    if (m && ['fa', 'preseason'].includes(s.phase)) {
+      const over = payroll - m.target;
+      if (over > 0.05)
+        ph.note +=
+          ' · ' +
+          me.owner +
+          ' wants payroll under ' +
+          money(m.target) +
+          ' by opening night (' +
+          money(over) +
+          ' over) or he orders a fire sale';
+    }
+  }
+  if (s.gmOffer && !s.unemployed && ['lottery', 'draft'].includes(s.phase))
+    ph.note += ' · ' + T[s.gmOffer.tid].owner + ' has offered you a contract (Career)';
+  if (s.unemployed) {
+    ph.note = 'You’re out of a job. Accept an offer on the Career screen to continue.';
+    ph.actions = [act('Go to Career', go('career'), true)];
+  }
   // Unread mail holds the game (Game.mailWaiting): the only way on is through the Mailbox.
-  { const held = gm.mailWaiting(s); if (held && !s.simming && !s.unemployed) { const atMail = !away('mail');
-      ph.note = (s.letterUnread && held === 1 ? 'Your owner’s letter is waiting' : held + ' new in your Mailbox') + ': read your mail before the game moves on';
-      ph.actions = [atMail && s.letterUnread ? { ...act('Read the owner’s letter', () => gm.setState(st => ({ letterOpen: st.letterUnread, letterUnread: null })), true), lead: true } : { ...act('Open your Mailbox (' + held + ' new)', go('mail'), true), lead: true }]; } }
+  {
+    const held = gm.mailWaiting(s);
+    if (held && !s.simming && !s.unemployed) {
+      const atMail = !away('mail');
+      ph.note =
+        (s.letterUnread && held === 1 ? 'Your owner’s letter is waiting' : held + ' new in your Mailbox') +
+        ': read your mail before the game moves on';
+      ph.actions = [
+        atMail && s.letterUnread
+          ? {
+              ...act('Read the owner’s letter', () => gm.setState(st => ({ letterOpen: st.letterUnread, letterUnread: null })), true),
+              lead: true,
+            }
+          : { ...act('Open your Mailbox (' + held + ' new)', go('mail'), true), lead: true },
+      ];
+    }
+  }
   if (s.simming) ph.note = 'Simulating… ' + s.simming.left + ' day' + (s.simming.left === 1 ? '' : 's') + ' to go';
   // Spectator Mode: every step is the AI's; you choose how far to go (a day, a month, the champion,
   // the next opening night, several seasons). Stop any time.
-  const spec: any = { on: spect, actions: [], running: !!s.simming, label: s.simming?.label || gm.specLabel || 'Simulating', stop: () => gm.stopSim(), pick: () => gm.setState({ specPick: true }) };
+  const spec: any = {
+    on: spect,
+    actions: [],
+    running: !!s.simming,
+    label: s.simming?.label || gm.specLabel || 'Simulating',
+    stop: () => gm.stopSim(),
+    pick: () => gm.setState({ specPick: true }),
+  };
   if (spect) {
     const run = (label: string, goal: any, primary?: boolean) => ({ ...act(label, () => gm.spectate(goal), primary), dis: !!s.simming });
-    const crownedNow = s.phase === 'playoffs' && s.po?.champ != null, inSeason = s.phase === 'regular' || s.phase === 'playin' || (s.phase === 'playoffs' && !crownedNow);
+    const crownedNow = s.phase === 'playoffs' && s.po?.champ != null,
+      inSeason = s.phase === 'regular' || s.phase === 'playin' || (s.phase === 'playoffs' && !crownedNow);
     const seasons = [2, 3, 5, 10].map(n => run('Sim ' + n + ' seasons', { seasons: n }));
-    if (s.phase === 'regular' && gp < 82) { const d0 = gm.dateOf(s.day), until = new Date(d0.getFullYear(), d0.getMonth() + 1, d0.getDate()); let toMonth = 1; while (s.day + toMonth < gm.db.days.length && gm.dateOf(s.day + toMonth) < until) toMonth++;
-      spec.actions = [run('Sim a day', { days: 1 }), run('Sim a week', { days: toWeek }), run('Sim a month', { days: toMonth }), ...(s.day < gm.ruleSlot(DAY.TRADE_DEADLINE) ? [run('To the trade deadline (' + gm.fmtS(gm.ruleSlot(DAY.TRADE_DEADLINE)) + ')', { days: gm.ruleSlot(DAY.TRADE_DEADLINE) - s.day })] : []), run('To the end of the regular season', { regEnd: true }), run('To the champion (end of the season)', { seasons: 1 }), ...seasons];
-      ph.note = 'Spectator Mode · game ' + gp + ' of 82'; }
-    else if (inSeason) { spec.actions = [run(s.phase === 'regular' ? 'Start the play-in' : s.phase === 'playin' ? 'Sim the play-in' : 'Sim a playoff round', { steps: 1 }), run('To the champion (end of the season)', { seasons: 1 }), ...seasons];
-      ph.note = 'Spectator Mode · ' + (s.phase === 'regular' ? 'regular season complete: the play-in is next' : s.phase === 'playin' ? 'play-in' : 'playoffs'); }
-    else { const draftDone2 = s.phase === 'draft' && s.pi >= (s.picks || []).length;
-      spec.actions = [run({ playoffs: 'End the season (owner reviews, retirements)', lottery: 'Run the draft lottery', draft: draftDone2 ? (s.preFA ? 'Open free agency' : 'Start Pre-Free Agency') : 'Sim the draft', fa: 'Sim two weeks of free agency', preseason: 'Opening night' }[s.phase] || 'Next step', { steps: 1 }),
-        ...(['playoffs', 'lottery'].includes(s.phase) || (s.phase === 'draft' && !draftDone2) ? [run('Through the draft', { draft: true })] : []), run('To opening night (through the offseason)', { opening: true }), run('Sim the next season (to the champion)', { seasons: 1 }), ...seasons];
-      ph.note = 'Spectator Mode · ' + (crownedNow ? T[s.po.champ].region + ' ' + T[s.po.champ].name + ' are champions' : s.phase === 'lottery' ? 'the draft lottery is next' : s.phase === 'draft' ? (draftDone2 ? 'draft complete' : 'draft: pick ' + (s.pi + 1) + ' of ' + s.picks.length) : s.phase === 'fa' ? 'free agency day ' + gm.faDayOf(s) + ' · ' + s.fa.length + ' unsigned' : 'training camp: opening night is next'); }
-    ph.actions = spec.actions; if (s.simming) ph.note = (s.simming.label || gm.specLabel || 'Simulating') + '… ' + gm.seasonLbl() + ', ' + (s.phase === 'regular' ? 'game ' + gp + ' of 82' : s.phase === 'fa' ? 'free agency' : s.phase);
+    if (s.phase === 'regular' && gp < 82) {
+      const d0 = gm.dateOf(s.day),
+        until = new Date(d0.getFullYear(), d0.getMonth() + 1, d0.getDate());
+      let toMonth = 1;
+      while (s.day + toMonth < gm.db.days.length && gm.dateOf(s.day + toMonth) < until) toMonth++;
+      spec.actions = [
+        run('Sim a day', { days: 1 }),
+        run('Sim a week', { days: toWeek }),
+        run('Sim a month', { days: toMonth }),
+        ...(s.day < gm.ruleSlot(DAY.TRADE_DEADLINE)
+          ? [
+              run('To the trade deadline (' + gm.fmtS(gm.ruleSlot(DAY.TRADE_DEADLINE)) + ')', {
+                days: gm.ruleSlot(DAY.TRADE_DEADLINE) - s.day,
+              }),
+            ]
+          : []),
+        run('To the end of the regular season', { regEnd: true }),
+        run('To the champion (end of the season)', { seasons: 1 }),
+        ...seasons,
+      ];
+      ph.note = 'Spectator Mode · game ' + gp + ' of 82';
+    } else if (inSeason) {
+      spec.actions = [
+        run(s.phase === 'regular' ? 'Start the play-in' : s.phase === 'playin' ? 'Sim the play-in' : 'Sim a playoff round', { steps: 1 }),
+        run('To the champion (end of the season)', { seasons: 1 }),
+        ...seasons,
+      ];
+      ph.note =
+        'Spectator Mode · ' +
+        (s.phase === 'regular' ? 'regular season complete: the play-in is next' : s.phase === 'playin' ? 'play-in' : 'playoffs');
+    } else {
+      const draftDone2 = s.phase === 'draft' && s.pi >= (s.picks || []).length;
+      spec.actions = [
+        run(
+          {
+            playoffs: 'End the season (owner reviews, retirements)',
+            lottery: 'Run the draft lottery',
+            draft: draftDone2 ? (s.preFA ? 'Open free agency' : 'Start Pre-Free Agency') : 'Sim the draft',
+            fa: 'Sim two weeks of free agency',
+            preseason: 'Opening night',
+          }[s.phase] || 'Next step',
+          { steps: 1 },
+        ),
+        ...(['playoffs', 'lottery'].includes(s.phase) || (s.phase === 'draft' && !draftDone2)
+          ? [run('Through the draft', { draft: true })]
+          : []),
+        run('To opening night (through the offseason)', { opening: true }),
+        run('Sim the next season (to the champion)', { seasons: 1 }),
+        ...seasons,
+      ];
+      ph.note =
+        'Spectator Mode · ' +
+        (crownedNow
+          ? T[s.po.champ].region + ' ' + T[s.po.champ].name + ' are champions'
+          : s.phase === 'lottery'
+            ? 'the draft lottery is next'
+            : s.phase === 'draft'
+              ? draftDone2
+                ? 'draft complete'
+                : 'draft: pick ' + (s.pi + 1) + ' of ' + s.picks.length
+              : s.phase === 'fa'
+                ? 'free agency day ' + gm.faDayOf(s) + ' · ' + s.fa.length + ' unsigned'
+                : 'training camp: opening night is next');
+    }
+    ph.actions = spec.actions;
+    if (s.simming)
+      ph.note =
+        (s.simming.label || gm.specLabel || 'Simulating') +
+        '… ' +
+        gm.seasonLbl() +
+        ', ' +
+        (s.phase === 'regular' ? 'game ' + gp + ' of 82' : s.phase === 'fa' ? 'free agency' : s.phase);
   }
   // Over the roster limit in season (God Mode can sign past it): no games until you cut.
-  { const over = ['regular', 'playin', 'playoffs'].includes(s.phase) ? gm.rosterOver(s) : []; if (over.length && !s.simming) { ph.note = 'Over the roster limit (' + over.map(x => T[x.tid].abbr + ' ' + x.std + '/' + rosterMax(s) + (x.tw > TWO_WAY_MAX ? ', ' + x.tw + '/' + TWO_WAY_MAX + ' two-way' : '')).join(' · ') + '): waive or trade players before the next game'; ph.actions = ph.actions.map(a => ({ ...a, dis: true })); } }
+  {
+    const over = ['regular', 'playin', 'playoffs'].includes(s.phase) ? gm.rosterOver(s) : [];
+    if (over.length && !s.simming) {
+      ph.note =
+        'Over the roster limit (' +
+        over
+          .map(
+            x =>
+              T[x.tid].abbr + ' ' + x.std + '/' + rosterMax(s) + (x.tw > TWO_WAY_MAX ? ', ' + x.tw + '/' + TWO_WAY_MAX + ' two-way' : ''),
+          )
+          .join(' · ') +
+        '): waive or trade players before the next game';
+      ph.actions = ph.actions.map(a => ({ ...a, dis: true }));
+    }
+  }
   ph.actions = s.simming ? [{ label: '■ Stop', go: () => gm.stopSim(), cls: 'btn-secondary' }] : ph.actions;
   if (s.simming && !spect) ph.note = s.simming.label ? s.simming.label + '…' : ph.note;
-  { const prim = ph.actions.find(a => a.cls === 'btn-primary' && !a.dis), NEXT = { regular: 'playin', playin: 'playoffs', playoffs: s.po && s.po.champ != null ? 'lottery' : null, lottery: 'draft', draft: 'prefa', prefa: 'fa', fa: 'preseason', preseason: 'regular' }[phK], VIEW = { regular: 'dash', playin: 'playoffs', playoffs: 'playoffs', lottery: 'playoffs', draft: 'draft', fa: 'fa', preseason: 'dash' };
+  {
+    const prim = ph.actions.find(a => a.cls === 'btn-primary' && !a.dis),
+      NEXT = {
+        regular: 'playin',
+        playin: 'playoffs',
+        playoffs: s.po && s.po.champ != null ? 'lottery' : null,
+        lottery: 'draft',
+        draft: 'prefa',
+        prefa: 'fa',
+        fa: 'preseason',
+        preseason: 'regular',
+      }[phK],
+      VIEW = {
+        regular: 'dash',
+        playin: 'playoffs',
+        playoffs: 'playoffs',
+        lottery: 'playoffs',
+        draft: 'draft',
+        fa: 'fa',
+        preseason: 'dash',
+      };
     if (s.phase === 'regular' && gp < 82 && !spect) ph.note += ' · the play-in unlocks after game 82';
-    const SHOW = { regular: 'standings', playin: 'playin', playoffs: 'playoffs', lottery: 'lottery', draft: 'draft', prefa: 'prefa', fa: 'fa', preseason: 'roster' }, done0 = PH.findIndex(([k]) => k === phK);
-    ph.steps = PH.map(([k, label], i) => { const cur = k === phK, nx = k === NEXT && !!prim; return { label, go: go(SHOW[k]), title: (cur ? 'Current phase. ' : nx ? 'Next: ' + prim.label + '. ' : '') + ({ playin: i > done0 ? 'See the play-in if the season ended today' : 'See the play-in', playoffs: i > done0 ? 'See the bracket if the season ended today' : 'See the playoffs', lottery: i > done0 ? 'See every team’s lottery odds if the season ended today' : 'See the lottery', draft: 'See the draft order and board', prefa: 'Options, expiring contracts and re-signings before free agency', fa: 'See the free agents', preseason: 'See your roster', regular: 'See the standings' }[k] || ''), cursor: 'pointer', border: nx ? '1px solid var(--team-line, var(--color-accent))' : '1px solid transparent', color: cur ? 'var(--color-accent-700)' : nx ? 'var(--color-text)' : 'var(--color-neutral-600)', fw: cur || nx ? 600 : 400 }; }); }
+    const SHOW = {
+        regular: 'standings',
+        playin: 'playin',
+        playoffs: 'playoffs',
+        lottery: 'lottery',
+        draft: 'draft',
+        prefa: 'prefa',
+        fa: 'fa',
+        preseason: 'roster',
+      },
+      done0 = PH.findIndex(([k]) => k === phK);
+    ph.steps = PH.map(([k, label], i) => {
+      const cur = k === phK,
+        nx = k === NEXT && !!prim;
+      return {
+        label,
+        go: go(SHOW[k]),
+        title:
+          (cur ? 'Current phase. ' : nx ? 'Next: ' + prim.label + '. ' : '') +
+          ({
+            playin: i > done0 ? 'See the play-in if the season ended today' : 'See the play-in',
+            playoffs: i > done0 ? 'See the bracket if the season ended today' : 'See the playoffs',
+            lottery: i > done0 ? 'See every team’s lottery odds if the season ended today' : 'See the lottery',
+            draft: 'See the draft order and board',
+            prefa: 'Options, expiring contracts and re-signings before free agency',
+            fa: 'See the free agents',
+            preseason: 'See your roster',
+            regular: 'See the standings',
+          }[k] || ''),
+        cursor: 'pointer',
+        border: nx ? '1px solid var(--team-line, var(--color-accent))' : '1px solid transparent',
+        color: cur ? 'var(--color-accent-700)' : nx ? 'var(--color-text)' : 'var(--color-neutral-600)',
+        fw: cur || nx ? 600 : 400,
+      };
+    });
+  }
   const RNM = ['First round', 'Conference semifinals', 'Conference finals', 'Finals'];
-  const serRow = x => { const done = x.wa === 4 || x.wb === 4, aw = x.wa === 4, bw = x.wb === 4; return { la: logo(x.a, 16), lb: logo(x.b, 16), conf: x.conf, na: '(' + x.sa + ') ' + T[x.a].region + ' ' + T[x.a].name, nb: '(' + x.sb + ') ' + T[x.b].region + ' ' + T[x.b].name, wa: x.wa, wb: x.wb, fa: aw ? 600 : 400, fb: bw ? 600 : 400, ca: mine2(x.a) ? 'var(--color-accent-700)' : done && !aw ? 'var(--color-neutral-600)' : 'var(--color-text)', cb: mine2(x.b) ? 'var(--color-accent-700)' : done && !bw ? 'var(--color-neutral-600)' : 'var(--color-text)', oa: openTeam(x.a), ob: openTeam(x.b) }; };
+  const serRow = x => {
+    const done = x.wa === 4 || x.wb === 4,
+      aw = x.wa === 4,
+      bw = x.wb === 4;
+    return {
+      la: logo(x.a, 16),
+      lb: logo(x.b, 16),
+      conf: x.conf,
+      na: '(' + x.sa + ') ' + T[x.a].region + ' ' + T[x.a].name,
+      nb: '(' + x.sb + ') ' + T[x.b].region + ' ' + T[x.b].name,
+      wa: x.wa,
+      wb: x.wb,
+      fa: aw ? 600 : 400,
+      fb: bw ? 600 : 400,
+      ca: mine2(x.a) ? 'var(--color-accent-700)' : done && !aw ? 'var(--color-neutral-600)' : 'var(--color-text)',
+      cb: mine2(x.b) ? 'var(--color-accent-700)' : done && !bw ? 'var(--color-neutral-600)' : 'var(--color-text)',
+      oa: openTeam(x.a),
+      ob: openTeam(x.b),
+    };
+  };
   let poRounds;
   if (s.po) poRounds = s.po.rounds.map((r, i) => ({ name: RNM[i], series: r.map(serRow) }));
-  else { const ser: any[] = []; ['West', 'East'].forEach(c => { const sd = gm.seeds(s, c); [[0, 7], [3, 4], [2, 5], [1, 6]].forEach(([i, j]) => ser.push({ a: sd[i], sa: i + 1, b: sd[j], sb: j + 1, wa: 0, wb: 0, conf: c })); }); poRounds = [{ name: 'First round, if the season ended today', series: ser.map(x => { const r = serRow(x); if (x.sb >= 7) r.nb = '(' + x.sb + ') Play-in winner'; r.wa = ''; r.wb = ''; return r; }) }]; }
-  const pov = { rounds: poRounds, hasChamp: !!(s.po && s.po.champ != null), champName: s.po && s.po.champ != null ? T[s.po.champ].region + ' ' + T[s.po.champ].name : '', champSub: s.po && s.po.champ != null ? 'Beat the ' + T[s.po.runner].region + ' ' + T[s.po.runner].name + ' in the Finals' : '', seasonLbl: gm.seasonLbl(),
-    note: s.phase === 'regular' ? 'Seeds 1–6 qualify directly; seeds 7–10 play in for the last two spots.' : '', playin: s.playinRes, hasPlayin: s.playinRes.length > 0,
-    history: s.history.map(x => ({ season: x.season, champ: T[x.champ].region + ' ' + T[x.champ].name, runner: T[x.runner].abbr, rec: x.rec, fin: x.fin })), hasHistory: s.history.length > 0,
-    lotto: (s.lotto || []).map(x => ({ logo: logo(x.t, 16), n: x.n, name: T[x.t].region + ' ' + T[x.t].name, move: x.from > x.n ? '▲ from ' + x.from : x.from < x.n ? '▼ from ' + x.from : '—', color: mine2(x.t) ? 'var(--color-accent-700)' : 'var(--color-text)', open: openTeam(x.t) })), hasLotto: !!s.lotto };
-  const LAYOUTS = [['A', 'Almanac', 'Grouped sidebar with the play controls always within reach.'], ['B', 'Broadsheet', 'Newspaper masthead, one row of tabs, full-width tables.'], ['C', 'Desk', 'Icon rail, jump-to-player search, and a side panel with the next game, books and transactions.']];
-  const layout = { desc: LAYOUTS.find(x => x[0] === variant)![2], segs: LAYOUTS.map(([k, label]) => ({ label, onClick: () => gm.setState({ variant: k }), color: variant === k ? 'var(--color-accent-700)' : 'var(--color-text)', ring: variant === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none' })) };
-  const save = { id: extra.saveId, name: extra.saveName, status: extra.saveStatus, onExport: extra.onExport, onExit: extra.onExit, onSwitch: extra.onSwitch };
-  const settings = { expLabel: (s.expansion ? 'On: ' + ((s.expTeams || []).length >= 2 ? (s.expTeams || []).length : 2) + ' teams join at the next preseason' : 'Off') + ' · ' + T.length + ' teams now', expBtn: s.expansion ? 'Turn off' : 'Turn on', expDis: false, toggleExp: () => gm.setState(st => ({ expansion: !st.expansion })) };
-  const hasProg = s.phase === 'preseason' && !!s.prog, progRows = (s.prog || []).map(x => ({ name: P[x.id].name, from: x.from, to: x.to, d: (x.to - x.from > 0 ? '+' : '') + (x.to - x.from), color: x.to > x.from ? 'var(--gm-good)' : x.to < x.from ? 'var(--gm-bad)' : 'var(--color-text)', open: open(x.id) }));
-  const titles = { mail: 'Mailbox', prefa: 'Pre-Free Agency', daily: 'Daily schedule', cards: 'Player cards', changelog: 'What\'s new', preds: 'Predictions', playin: 'Play-in tournament', lottery: 'Draft lottery', stats: 'Stats', leaders: 'League leaders', capsheet: 'Cap sheet', contracts: 'Contracts', history: 'Team history', ccp: 'Continental Championship Pathway', caps: 'Salary cap outlook', lgfin: 'League finances', hof: 'Hall of Fame', editor: 'Team & league editor', league: 'League stats', career: 'Career & job market', press: 'Press room', awards: 'Awards', teams: 'My teams', tactics: 'Tactics & rotation', scouting: 'Global scouting', overseas: 'Overseas market', dev: 'Player development', owner: 'Ownership', playoffs: 'Playoffs', settings: 'Settings', game: 'Live game', schedule: 'Team schedule', tx: 'League transactions', short: 'Shortlist', dash: 'Dashboard', standings: 'Standings', roster: 'Roster', depth: 'Roster construction', player: 'Player', fin: 'Finances', trade: 'Trade', fa: 'Free agency', draft: 'Draft' };
-  const metas = { prefa: s.phase === 'draft' && s.preFA ? 'Decide before free agency opens on June 30' : 'Your coming summer: options, expiring contracts and extensions', draftClasses: 'God Mode · draft classes for every league in this browser: load one into a class that hasn’t been drafted', cards: 'God Mode · ' + cardLib().length + ' card' + (cardLib().length === 1 ? '' : 's') + ' in your library (shared by all your leagues)', changelog: 'Every change to the game, newest first', preds: 'What the media expected: standings, awards and the top 100', playin: s.playin ? gm.seasonLbl() + ' play-in · seeds 7–10 in each conference' : 'If the season ended today · ' + gp + ' of 82 games played', lottery: s.lotto ? 'The ' + gm.Y + ' lottery has been drawn' : '3-2-1 lottery · ' + (s.playin?.East?.[0]?.done ? 'the field is set' : 'if the season ended today'), stats: 'Players, teams, league and history', leaders: 'The top 10 in every stat', capsheet: 'Contracts, exceptions and the CBA', contracts: 'Upcoming free agents, options, Bird rights and extensions', history: 'Records, titles, retired numbers and every player since ' + ((d.firstSeason || 2027) - 1) + '–' + String(d.firstSeason || 2027).slice(2), ccp: 'The CCP: clubs, players, standings and call-ups', caps: 'Real history since 1984-85 and the projected cap every season to 2525-26', hof: (s.hof || []).length + ' inducted', lgfin: 'Revenue, profit, payroll and budgets for all ' + T.length + ' teams', editor: 'God Mode', league: 'Anchored to the 2026 league averages', career: 'Reputation ' + reputation(s) + ' · ' + ((s.career?.seasons || []).length) + ' seasons', press: 'Owners and GMs around the league, on the record', awards: 'Voted at the end of the regular season', teams: s.managed.length + ' franchise' + (s.managed.length === 1 ? '' : 's') + ' under your control', tactics: 'You are GM and head coach', scouting: s.scouts.length + ' scouts · agent reputation ' + s.agentRep, overseas: (s.overseas || []).length + ' players abroad', dev: 'Growth is calculated monthly', owner: me.owner + ' · ' + me.arch, playoffs: gm.seasonLbl() + ' postseason · 15 teams per conference', settings: '', game: next.oppName, schedule: (me.w + me.l) + ' played · ' + (82 - me.w - me.l) + ' remaining', tx: 'This season · all ' + T.length + ' teams · earlier seasons are on each player’s Transactions tab', short: s.lists.reduce((a, l) => a + l.ids.length, 0) + ' players tracked', dash: '', standings: (me.w + me.l) + ' of 82 games played', roster: 'Team rating ' + trOf(s.me) + ' (' + ord(trRank(s.me)) + ') · ' + mine.length + ' players · payroll ' + money(payroll), depth: 'From your current rotation', player: '', fin: (() => { const fm = T[finT].mkt, fr = 1 + T.filter(t => t.mkt > fm).length; return (finT !== s.me ? T[finT].region + ' ' + T[finT].name + ' · ' : '') + 'Market size: ' + (fm >= 1.15 ? 'large' : fm >= .95 ? 'mid-large' : fm >= .85 ? 'mid' : 'small') + ' (' + ord(fr) + ' of ' + T.length + ') · cap ' + money(gm.CAP); })(), trade: 'Payroll ' + money(payroll), fa: s.fa.length + ' available · ' + (() => { const lim = rosterMax(s), open = Math.max(0, lim - stdIds(gm, mine).length); return open + ' of ' + lim + ' roster spot' + (open === 1 ? '' : 's') + ' open' + (lim > 15 ? ' (15 by opening night)' : '') + ' · ' + twoWayIds(gm, mine).length + ' of 3 two-way'; })(), draft: isCur ? 'Big board · ' + clsIds.length + ' prospects left' : 'Class of ' + s.dClass + ' · ' + clsIds.length + ' tracked' };
+  else {
+    const ser: any[] = [];
+    ['West', 'East'].forEach(c => {
+      const sd = gm.seeds(s, c);
+      [
+        [0, 7],
+        [3, 4],
+        [2, 5],
+        [1, 6],
+      ].forEach(([i, j]) => ser.push({ a: sd[i], sa: i + 1, b: sd[j], sb: j + 1, wa: 0, wb: 0, conf: c }));
+    });
+    poRounds = [
+      {
+        name: 'First round, if the season ended today',
+        series: ser.map(x => {
+          const r = serRow(x);
+          if (x.sb >= 7) r.nb = '(' + x.sb + ') Play-in winner';
+          r.wa = '';
+          r.wb = '';
+          return r;
+        }),
+      },
+    ];
+  }
+  const pov = {
+    rounds: poRounds,
+    hasChamp: !!(s.po && s.po.champ != null),
+    champName: s.po && s.po.champ != null ? T[s.po.champ].region + ' ' + T[s.po.champ].name : '',
+    champSub: s.po && s.po.champ != null ? 'Beat the ' + T[s.po.runner].region + ' ' + T[s.po.runner].name + ' in the Finals' : '',
+    seasonLbl: gm.seasonLbl(),
+    note: s.phase === 'regular' ? 'Seeds 1–6 qualify directly; seeds 7–10 play in for the last two spots.' : '',
+    playin: s.playinRes,
+    hasPlayin: s.playinRes.length > 0,
+    history: s.history.map(x => ({
+      season: x.season,
+      champ: T[x.champ].region + ' ' + T[x.champ].name,
+      runner: T[x.runner].abbr,
+      rec: x.rec,
+      fin: x.fin,
+    })),
+    hasHistory: s.history.length > 0,
+    lotto: (s.lotto || []).map(x => ({
+      logo: logo(x.t, 16),
+      n: x.n,
+      name: T[x.t].region + ' ' + T[x.t].name,
+      move: x.from > x.n ? '▲ from ' + x.from : x.from < x.n ? '▼ from ' + x.from : '—',
+      color: mine2(x.t) ? 'var(--color-accent-700)' : 'var(--color-text)',
+      open: openTeam(x.t),
+    })),
+    hasLotto: !!s.lotto,
+  };
+  const LAYOUTS = [
+    ['A', 'Almanac', 'Grouped sidebar with the play controls always within reach.'],
+    ['B', 'Broadsheet', 'Newspaper masthead, one row of tabs, full-width tables.'],
+    ['C', 'Desk', 'Icon rail, jump-to-player search, and a side panel with the next game, books and transactions.'],
+  ];
+  const layout = {
+    desc: LAYOUTS.find(x => x[0] === variant)![2],
+    segs: LAYOUTS.map(([k, label]) => ({
+      label,
+      onClick: () => gm.setState({ variant: k }),
+      color: variant === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+      ring: variant === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+    })),
+  };
+  const save = {
+    id: extra.saveId,
+    name: extra.saveName,
+    status: extra.saveStatus,
+    onExport: extra.onExport,
+    onExit: extra.onExit,
+    onSwitch: extra.onSwitch,
+  };
+  const settings = {
+    expLabel:
+      (s.expansion
+        ? 'On: ' + ((s.expTeams || []).length >= 2 ? (s.expTeams || []).length : 2) + ' teams join at the next preseason'
+        : 'Off') +
+      ' · ' +
+      T.length +
+      ' teams now',
+    expBtn: s.expansion ? 'Turn off' : 'Turn on',
+    expDis: false,
+    toggleExp: () => gm.setState(st => ({ expansion: !st.expansion })),
+  };
+  const hasProg = s.phase === 'preseason' && !!s.prog,
+    progRows = (s.prog || []).map(x => ({
+      name: P[x.id].name,
+      from: x.from,
+      to: x.to,
+      d: (x.to - x.from > 0 ? '+' : '') + (x.to - x.from),
+      color: x.to > x.from ? 'var(--gm-good)' : x.to < x.from ? 'var(--gm-bad)' : 'var(--color-text)',
+      open: open(x.id),
+    }));
+  const titles = {
+    mail: 'Mailbox',
+    prefa: 'Pre-Free Agency',
+    daily: 'Daily schedule',
+    cards: 'Player cards',
+    changelog: "What's new",
+    preds: 'Predictions',
+    playin: 'Play-in tournament',
+    lottery: 'Draft lottery',
+    stats: 'Stats',
+    leaders: 'League leaders',
+    capsheet: 'Cap sheet',
+    contracts: 'Contracts',
+    history: 'Team history',
+    ccp: 'Continental Championship Pathway',
+    caps: 'Salary cap outlook',
+    lgfin: 'League finances',
+    hof: 'Hall of Fame',
+    editor: 'Team & league editor',
+    league: 'League stats',
+    career: 'Career & job market',
+    press: 'Press room',
+    awards: 'Awards',
+    teams: 'My teams',
+    tactics: 'Tactics & rotation',
+    scouting: 'Global scouting',
+    overseas: 'Overseas market',
+    dev: 'Player development',
+    owner: 'Ownership',
+    playoffs: 'Playoffs',
+    settings: 'Settings',
+    game: 'Live game',
+    schedule: 'Team schedule',
+    tx: 'League transactions',
+    short: 'Shortlist',
+    dash: 'Dashboard',
+    standings: 'Standings',
+    roster: 'Roster',
+    depth: 'Roster construction',
+    player: 'Player',
+    fin: 'Finances',
+    trade: 'Trade',
+    fa: 'Free agency',
+    draft: 'Draft',
+  };
+  const metas = {
+    prefa:
+      s.phase === 'draft' && s.preFA
+        ? 'Decide before free agency opens on June 30'
+        : 'Your coming summer: options, expiring contracts and extensions',
+    draftClasses: 'God Mode · draft classes for every league in this browser: load one into a class that hasn’t been drafted',
+    cards:
+      'God Mode · ' + cardLib().length + ' card' + (cardLib().length === 1 ? '' : 's') + ' in your library (shared by all your leagues)',
+    changelog: 'Every change to the game, newest first',
+    preds: 'What the media expected: standings, awards and the top 100',
+    playin: s.playin
+      ? gm.seasonLbl() + ' play-in · seeds 7–10 in each conference'
+      : 'If the season ended today · ' + gp + ' of 82 games played',
+    lottery: s.lotto
+      ? 'The ' + gm.Y + ' lottery has been drawn'
+      : '3-2-1 lottery · ' + (s.playin?.East?.[0]?.done ? 'the field is set' : 'if the season ended today'),
+    stats: 'Players, teams, league and history',
+    leaders: 'The top 10 in every stat',
+    capsheet: 'Contracts, exceptions and the CBA',
+    contracts: 'Upcoming free agents, options, Bird rights and extensions',
+    history:
+      'Records, titles, retired numbers and every player since ' +
+      ((d.firstSeason || 2027) - 1) +
+      '–' +
+      String(d.firstSeason || 2027).slice(2),
+    ccp: 'The CCP: clubs, players, standings and call-ups',
+    caps: 'Real history since 1984-85 and the projected cap every season to 2525-26',
+    hof: (s.hof || []).length + ' inducted',
+    lgfin: 'Revenue, profit, payroll and budgets for all ' + T.length + ' teams',
+    editor: 'God Mode',
+    league: 'Anchored to the 2026 league averages',
+    career: 'Reputation ' + reputation(s) + ' · ' + (s.career?.seasons || []).length + ' seasons',
+    press: 'Owners and GMs around the league, on the record',
+    awards: 'Voted at the end of the regular season',
+    teams: s.managed.length + ' franchise' + (s.managed.length === 1 ? '' : 's') + ' under your control',
+    tactics: 'You are GM and head coach',
+    scouting: s.scouts.length + ' scouts · agent reputation ' + s.agentRep,
+    overseas: (s.overseas || []).length + ' players abroad',
+    dev: 'Growth is calculated monthly',
+    owner: me.owner + ' · ' + me.arch,
+    playoffs: gm.seasonLbl() + ' postseason · 15 teams per conference',
+    settings: '',
+    game: next.oppName,
+    schedule: me.w + me.l + ' played · ' + (82 - me.w - me.l) + ' remaining',
+    tx: 'This season · all ' + T.length + ' teams · earlier seasons are on each player’s Transactions tab',
+    short: s.lists.reduce((a, l) => a + l.ids.length, 0) + ' players tracked',
+    dash: '',
+    standings: me.w + me.l + ' of 82 games played',
+    roster: 'Team rating ' + trOf(s.me) + ' (' + ord(trRank(s.me)) + ') · ' + mine.length + ' players · payroll ' + money(payroll),
+    depth: 'From your current rotation',
+    player: '',
+    fin: (() => {
+      const fm = T[finT].mkt,
+        fr = 1 + T.filter(t => t.mkt > fm).length;
+      return (
+        (finT !== s.me ? T[finT].region + ' ' + T[finT].name + ' · ' : '') +
+        'Market size: ' +
+        (fm >= 1.15 ? 'large' : fm >= 0.95 ? 'mid-large' : fm >= 0.85 ? 'mid' : 'small') +
+        ' (' +
+        ord(fr) +
+        ' of ' +
+        T.length +
+        ') · cap ' +
+        money(gm.CAP)
+      );
+    })(),
+    trade: 'Payroll ' + money(payroll),
+    fa:
+      s.fa.length +
+      ' available · ' +
+      (() => {
+        const lim = rosterMax(s),
+          open = Math.max(0, lim - stdIds(gm, mine).length);
+        return (
+          open +
+          ' of ' +
+          lim +
+          ' roster spot' +
+          (open === 1 ? '' : 's') +
+          ' open' +
+          (lim > 15 ? ' (15 by opening night)' : '') +
+          ' · ' +
+          twoWayIds(gm, mine).length +
+          ' of 3 two-way'
+        );
+      })(),
+    draft: isCur ? 'Big board · ' + clsIds.length + ' prospects left' : 'Class of ' + s.dClass + ' · ' + clsIds.length + ' tracked',
+  };
   const page = { kicker: variant === 'B' ? myName : dateLong, title: titles[s.screen], meta: metas[s.screen] };
 
   const qq = s.q.trim().toLowerCase();
-  const fold = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), fq = fold(qq);
-  const matches = searchAll({ q: s.q, P, C, T, tidOf, nav, Y: gm.Y, flag: c => gm.flag(c), open, openTeam, openList: l => () => gm.setState({ listModal: l, q: '' }), teamLogo: tid => logo(tid, 16) });
+  const fold = (x: string) =>
+      x
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase(),
+    fq = fold(qq);
+  const matches = searchAll({
+    q: s.q,
+    P,
+    C,
+    T,
+    tidOf,
+    nav,
+    Y: gm.Y,
+    flag: c => gm.flag(c),
+    open,
+    openTeam,
+    openList: l => () => gm.setState({ listModal: l, q: '' }),
+    teamLogo: tid => logo(tid, 16),
+  });
 
-  const dg = s.dialog, dp = dg && P[dg.pid];
-  const dlg = !dg ? {} : dg.type === 'deletePlayer' ? { title: 'Delete ' + (dp?.name || 'this player') + '?', body: 'God Mode: he’s removed from the league for good: from his team or free agency, his draft class, trade offers, watch lists, scouting and his family. Box scores, drafts and awards he already won keep his name, but his profile and stats go. This can’t be undone.', cta: 'Delete player', confirm: () => { if (dp) deletePlayer(gm, dp.id); gm.setState({ dialog: null }); } }
-    : dg.type !== 'abroad' ? {} : { title: 'Release ' + dp.name + ' to play overseas?', body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).', cta: 'Release overseas', confirm: () => gm.confirmDialog() };
+  const dg = s.dialog,
+    dp = dg && P[dg.pid];
+  const dlg = !dg
+    ? {}
+    : dg.type === 'deletePlayer'
+      ? {
+          title: 'Delete ' + (dp?.name || 'this player') + '?',
+          body: 'God Mode: he’s removed from the league for good: from his team or free agency, his draft class, trade offers, watch lists, scouting and his family. Box scores, drafts and awards he already won keep his name, but his profile and stats go. This can’t be undone.',
+          cta: 'Delete player',
+          confirm: () => {
+            if (dp) deletePlayer(gm, dp.id);
+            gm.setState({ dialog: null });
+          },
+        }
+      : dg.type !== 'abroad'
+        ? {}
+        : {
+            title: 'Release ' + dp.name + ' to play overseas?',
+            body: 'He joins a club abroad, where heavy minutes can rebuild his game. He stays on the overseas market and can be signed back later. His contract comes off your books (no dead money: the club takes it over).',
+            cta: 'Release overseas',
+            confirm: () => gm.confirmDialog(),
+          };
 
   return {
-    ctx: { gm, s, T, logo, open: id => open(id)(null), openTeam: tid => openTeam(tid)(null), openTeamPage: tid => openTeamPage(tid)(null), isMine: mine2, isMe: (tid: number) => !spect && tid === s.me, meColor: me.colors?.[0] || '#D8A1C4', money, ord, tone, potOf: (p: any) => potOf(p, p.id) }, // potOf: the potential to show (God Mode: true; yours: your staff's read; others: your scouts'), the same everywhere. isMe/meColor: the team you're running now, highlighted in its primary color
-    switcher: { show: s.managed.length > 1, value: s.me, opts: s.managed.map(t => ({ v: t, label: T[t].region + ' ' + T[t].name })), set: e => gm.switchTeam(+e.target.value) },
-    myName: spect ? 'Spectator Mode' : myName, myRegion: spect ? 'Spectator Mode' : me.region, myAbbr: spect ? 'Watch' : me.abbr, myLogo: spect ? null : logo(s.me, 44), myLogoLg: spect ? null : logo(s.me, 56), myLogoSm: spect ? null : logo(s.me, 34), theirLogo: logo(s.tTid, 28), myLogoTr: spect ? null : logo(s.me, 28), spec,
-    phaseLabel: gm.seasonLbl() + ' ' + { regular: 'regular season', playoffs: 'playoffs', lottery: 'draft lottery', draft: s.preFA ? 'pre-free agency' : 'draft', fa: 'free agency', preseason: 'preseason' }[s.phase], layout, save, gmName: spect ? '' : s.gm?.name || '', navCollapsed: !!s.navCollapsed, toggleNav: () => gm.setState(st => ({ navCollapsed: !st.navCollapsed })), isA: variant === 'A', isB: variant === 'B', isC: variant === 'C', nav: navOrd, navGroups, navEdit, is, page, dateLong,
-    recordLine: spect ? 'The AI runs all ' + T.length + ' teams' : me.w + '–' + me.l + ' · ' + ord(seed) + ' in the ' + me.conf, recordShort: me.w + '–' + me.l, seedLine: ord(seed) + ' in the ' + me.conf + ' · ' + strk(me),
-    play1: () => { if (gm.mailWaiting()) { go('mail')(); return; } if (spect) { gm.spectate(s.phase === 'regular' && gp < 82 ? { days: 1 } : { steps: 1 }); return; } if (!canWatch) return; if (s.phase === 'playoffs') gm.simPo('game'); else if (s.phase === 'playin') gm.simPlayin(); else gm.sim(toNext); },
-    play1Label: spect ? (s.phase === 'regular' && gp < 82 ? 'Sim a day' : 'Next step') : 'Play next game', play7Label: spect ? (s.phase === 'regular' && gp < 82 ? 'Sim a week' : ['regular', 'playin', 'playoffs'].includes(s.phase) && s.po?.champ == null ? 'To the champion' : 'To opening night') : 'Play one week', /* plays it in the background: you stay on your screen (Watch your game is in the sim menu) */ watch1: async () => {
-      if (gm.mailWaiting()) { go('mail')(); return; }
+    ctx: {
+      gm,
+      s,
+      T,
+      logo,
+      open: id => open(id)(null),
+      openTeam: tid => openTeam(tid)(null),
+      openTeamPage: tid => openTeamPage(tid)(null),
+      isMine: mine2,
+      isMe: (tid: number) => !spect && tid === s.me,
+      meColor: me.colors?.[0] || '#D8A1C4',
+      money,
+      ord,
+      tone,
+      potOf: (p: any) => potOf(p, p.id),
+    }, // potOf: the potential to show (God Mode: true; yours: your staff's read; others: your scouts'), the same everywhere. isMe/meColor: the team you're running now, highlighted in its primary color
+    switcher: {
+      show: s.managed.length > 1,
+      value: s.me,
+      opts: s.managed.map(t => ({ v: t, label: T[t].region + ' ' + T[t].name })),
+      set: e => gm.switchTeam(+e.target.value),
+    },
+    myName: spect ? 'Spectator Mode' : myName,
+    myRegion: spect ? 'Spectator Mode' : me.region,
+    myAbbr: spect ? 'Watch' : me.abbr,
+    myLogo: spect ? null : logo(s.me, 44),
+    myLogoLg: spect ? null : logo(s.me, 56),
+    myLogoSm: spect ? null : logo(s.me, 34),
+    theirLogo: logo(s.tTid, 28),
+    myLogoTr: spect ? null : logo(s.me, 28),
+    spec,
+    phaseLabel:
+      gm.seasonLbl() +
+      ' ' +
+      {
+        regular: 'regular season',
+        playoffs: 'playoffs',
+        lottery: 'draft lottery',
+        draft: s.preFA ? 'pre-free agency' : 'draft',
+        fa: 'free agency',
+        preseason: 'preseason',
+      }[s.phase],
+    layout,
+    save,
+    gmName: spect ? '' : s.gm?.name || '',
+    navCollapsed: !!s.navCollapsed,
+    toggleNav: () => gm.setState(st => ({ navCollapsed: !st.navCollapsed })),
+    isA: variant === 'A',
+    isB: variant === 'B',
+    isC: variant === 'C',
+    nav: navOrd,
+    navGroups,
+    navEdit,
+    is,
+    page,
+    dateLong,
+    recordLine: spect ? 'The AI runs all ' + T.length + ' teams' : me.w + '–' + me.l + ' · ' + ord(seed) + ' in the ' + me.conf,
+    recordShort: me.w + '–' + me.l,
+    seedLine: ord(seed) + ' in the ' + me.conf + ' · ' + strk(me),
+    play1: () => {
+      if (gm.mailWaiting()) {
+        go('mail')();
+        return;
+      }
+      if (spect) {
+        gm.spectate(s.phase === 'regular' && gp < 82 ? { days: 1 } : { steps: 1 });
+        return;
+      }
+      if (!canWatch) return;
+      if (s.phase === 'playoffs') gm.simPo('game');
+      else if (s.phase === 'playin') gm.simPlayin();
+      else gm.sim(toNext);
+    },
+    play1Label: spect ? (s.phase === 'regular' && gp < 82 ? 'Sim a day' : 'Next step') : 'Play next game',
+    play7Label: spect
+      ? s.phase === 'regular' && gp < 82
+        ? 'Sim a week'
+        : ['regular', 'playin', 'playoffs'].includes(s.phase) && s.po?.champ == null
+          ? 'To the champion'
+          : 'To opening night'
+      : 'Play one week',
+    /* plays it in the background: you stay on your screen (Watch your game is in the sim menu) */ watch1: async () => {
+      if (gm.mailWaiting()) {
+        go('mail')();
+        return;
+      }
       if (!canWatch || !gm.canPlay()) return;
       if (s.phase === 'regular' && toNext > 1) await gm.sim(toNext - 1);
-      if (gm.mailWaiting()) { go('mail')(); return; }
+      if (gm.mailWaiting()) {
+        go('mail')();
+        return;
+      }
       if (s.phase !== 'regular' || gm.userGame(gm.state.day, gm.state.me)) gm.setState({ screen: 'game', q: '' });
-    }, quick1: () => { if (gm.mailWaiting()) go('mail')(); else if (s.phase === 'playin') gm.simPlayin(); else if (s.phase === 'playoffs') gm.simPo('game'); else gm.sim(1); }, play7: () => { if (gm.mailWaiting()) { go('mail')(); return; } if (!spect) { gm.sim(7); return; } gm.spectate(s.phase === 'regular' && gp < 82 ? { days: toWeek } : ['regular', 'playin', 'playoffs'].includes(s.phase) && s.po?.champ == null ? { seasons: 1 } : { opening: true }); }, live, schedRows, txRows, txSegs, txYearOpts, txYi, setTxYear, shortlists, noLists: s.lists.length === 0, newList: s.newList, noNewList: !s.newList.trim(),
-    onNewList: e => gm.setState({ newList: e.target.value }), addList: () => gm.setState(st => st.newList.trim() ? { lists: [...st.lists, { id: 'l' + Date.now(), name: st.newList.trim(), ids: [] }], newList: '' } : null), goShort: go('short'), goRoster: go('roster'), goStandings: go('standings'),
-    next, results, leaders, lineup, confMini, dashStats, confName: me.conf + 'ern Conference',
-    rosterCols, rosterRows, lineupHint, dragEnd: () => gm.setState({ dragId: null, overId: null }),
-    autoLineup: () => gm.setState(st => ({ rosters: { ...st.rosters, [st.me]: st.rosters[st.me].slice().sort((x, y) => P[y].ovr - P[x].ovr) }, sort: { ...st.sort, roster: ['rk', 1] } })),
-    comp, depth, roles, pl, showJson: s.showJson, toggleJson: () => gm.setState(st => ({ showJson: !st.showJson })), downloadFaces: () => gm.downloadFaces(),
-    standGroups, standSegs, standConf: conf,
-    tMine: mine.map(tRow('tMine')), tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')), tMinePicks: [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))], tTheirPicks: [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))], protOpts: PROT_OPTIONS, tr, teamOptions, tTid: s.tTid,
-    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }), propose: () => gm.propose(), forceAccept: () => gm.propose(true), shopOffers: offerAsk('shop'), askOffers: offerAsk('ask'), canShop: s.tMine.length + s.tkMine.length > 0, canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid), offersV, balance: () => gm.balance(), clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
-    faCols, faRows, faNote, dr, dClasses, draftCols, draftRows, pastDrafts: [...new Set(Object.keys(d.pickUsed || {}).map(k => +k.split('-')[0]))].filter(y => y < gm.Y).sort((a, b) => b - a), simToMine: () => gm.aiDraft(true), simOne: () => gm.aiDraft(true, 1), simAll: () => gm.aiDraft(false),
-    askScouts: () => gm.setState(st => ({ adv: { ...st.adv, scouts: true } })), askAgm: () => gm.setState(st => ({ adv: { ...st.adv, agm: true } })),
-    fin, q: s.q, onSearch: e => gm.setState({ q: e.target.value }), matches, hasMatches: matches.length > 0, searchIcon: icon('search'),
-    books: [{ k: 'Payroll', v: money(payroll) }, { k: capRoom >= 0 ? 'Cap space' : 'Over the cap', v: money(Math.abs(capRoom)) }, { k: 'Room under tax', v: money(gm.TAX - payroll) }, { k: 'Mid-level', v: (() => { const e = exceptionsOf(gm, s, s.me); return e.used.includes('ntmle') || e.used.includes('tpmle') ? 'Used' : e.used.includes('cap') ? 'Room exc. ' + money(e.room) : money(e.ntmle); })() }, { k: 'Next pick', v: myNext ? '#' + myNext.n : '—' }],
-    log: s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P }) })), noLog: s.log.length === 0,
-    pickYearsSet, rosterLimSet, inOffersV, lm, hasList: !!s.listModal, closeList: () => gm.setState({ listModal: null }), scoutRegions, scoutsV, promisesV, noPromises: promisesV.length === 0, repV, ovRows, tacV, natRows, resetNat: () => gm.setState({ natW: natDefault() }), devRows, coachV, reportsV, noReports: s.reports.length === 0, own, god, firing, salesSet, capEasySet, isGod: !!s.god, ph, pov, settings, hasProg, progRows, hasTeamModal: !!tmT, tm, closeTeam: goBack, viewTradeTeam: openTeam(s.tTid), themeLabel: dark ? 'Light mode' : 'Dark mode', toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }), rootRef, hasModal: !!s.modal, closeModal: goBack, goBack, ptabs, ext, goTab: (k: string) => gm.setState(st => ((st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) })), hasDialog: !!dg, dlg, closeDialog: () => gm.setState({ dialog: null }), stop: e => e.stopPropagation()
+    },
+    quick1: () => {
+      if (gm.mailWaiting()) go('mail')();
+      else if (s.phase === 'playin') gm.simPlayin();
+      else if (s.phase === 'playoffs') gm.simPo('game');
+      else gm.sim(1);
+    },
+    play7: () => {
+      if (gm.mailWaiting()) {
+        go('mail')();
+        return;
+      }
+      if (!spect) {
+        gm.sim(7);
+        return;
+      }
+      gm.spectate(
+        s.phase === 'regular' && gp < 82
+          ? { days: toWeek }
+          : ['regular', 'playin', 'playoffs'].includes(s.phase) && s.po?.champ == null
+            ? { seasons: 1 }
+            : { opening: true },
+      );
+    },
+    live,
+    schedRows,
+    txRows,
+    txSegs,
+    txYearOpts,
+    txYi,
+    setTxYear,
+    shortlists,
+    noLists: s.lists.length === 0,
+    newList: s.newList,
+    noNewList: !s.newList.trim(),
+    onNewList: e => gm.setState({ newList: e.target.value }),
+    addList: () =>
+      gm.setState(st =>
+        st.newList.trim() ? { lists: [...st.lists, { id: 'l' + Date.now(), name: st.newList.trim(), ids: [] }], newList: '' } : null,
+      ),
+    goShort: go('short'),
+    goRoster: go('roster'),
+    goStandings: go('standings'),
+    next,
+    results,
+    leaders,
+    lineup,
+    confMini,
+    dashStats,
+    confName: me.conf + 'ern Conference',
+    rosterCols,
+    rosterRows,
+    lineupHint,
+    dragEnd: () => gm.setState({ dragId: null, overId: null }),
+    autoLineup: () =>
+      gm.setState(st => ({
+        rosters: { ...st.rosters, [st.me]: st.rosters[st.me].slice().sort((x, y) => P[y].ovr - P[x].ovr) },
+        sort: { ...st.sort, roster: ['rk', 1] },
+      })),
+    comp,
+    depth,
+    roles,
+    pl,
+    showJson: s.showJson,
+    toggleJson: () => gm.setState(st => ({ showJson: !st.showJson })),
+    downloadFaces: () => gm.downloadFaces(),
+    standGroups,
+    standSegs,
+    standConf: conf,
+    tMine: mine.map(tRow('tMine')),
+    tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')),
+    tMinePicks: [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))],
+    tTheirPicks: [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))],
+    protOpts: PROT_OPTIONS,
+    tr,
+    teamOptions,
+    tTid: s.tTid,
+    pickTeam: e => gm.setState({ tTid: +e.target.value, tTheirs: [], tkTheirs: [], tMsg: null }),
+    propose: () => gm.propose(),
+    forceAccept: () => gm.propose(true),
+    shopOffers: offerAsk('shop'),
+    askOffers: offerAsk('ask'),
+    canShop: s.tMine.length + s.tkMine.length > 0,
+    canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid),
+    offersV,
+    balance: () => gm.balance(),
+    clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
+    faCols,
+    faRows,
+    faNote,
+    dr,
+    dClasses,
+    draftCols,
+    draftRows,
+    pastDrafts: [...new Set(Object.keys(d.pickUsed || {}).map(k => +k.split('-')[0]))].filter(y => y < gm.Y).sort((a, b) => b - a),
+    simToMine: () => gm.aiDraft(true),
+    simOne: () => gm.aiDraft(true, 1),
+    simAll: () => gm.aiDraft(false),
+    askScouts: () => gm.setState(st => ({ adv: { ...st.adv, scouts: true } })),
+    askAgm: () => gm.setState(st => ({ adv: { ...st.adv, agm: true } })),
+    fin,
+    q: s.q,
+    onSearch: e => gm.setState({ q: e.target.value }),
+    matches,
+    hasMatches: matches.length > 0,
+    searchIcon: icon('search'),
+    books: [
+      { k: 'Payroll', v: money(payroll) },
+      { k: capRoom >= 0 ? 'Cap space' : 'Over the cap', v: money(Math.abs(capRoom)) },
+      { k: 'Room under tax', v: money(gm.TAX - payroll) },
+      {
+        k: 'Mid-level',
+        v: (() => {
+          const e = exceptionsOf(gm, s, s.me);
+          return e.used.includes('ntmle') || e.used.includes('tpmle')
+            ? 'Used'
+            : e.used.includes('cap')
+              ? 'Room exc. ' + money(e.room)
+              : money(e.ntmle);
+        })(),
+      },
+      { k: 'Next pick', v: myNext ? '#' + myNext.n : '—' },
+    ],
+    log: s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P }) })),
+    noLog: s.log.length === 0,
+    pickYearsSet,
+    rosterLimSet,
+    inOffersV,
+    lm,
+    hasList: !!s.listModal,
+    closeList: () => gm.setState({ listModal: null }),
+    scoutRegions,
+    scoutsV,
+    promisesV,
+    noPromises: promisesV.length === 0,
+    repV,
+    ovRows,
+    tacV,
+    natRows,
+    resetNat: () => gm.setState({ natW: natDefault() }),
+    devRows,
+    coachV,
+    reportsV,
+    noReports: s.reports.length === 0,
+    own,
+    god,
+    firing,
+    salesSet,
+    capEasySet,
+    isGod: !!s.god,
+    ph,
+    pov,
+    settings,
+    hasProg,
+    progRows,
+    hasTeamModal: !!tmT,
+    tm,
+    closeTeam: goBack,
+    viewTradeTeam: openTeam(s.tTid),
+    themeLabel: dark ? 'Light mode' : 'Dark mode',
+    toggleTheme: () => gm.setState({ theme: dark ? 'light' : 'dark' }),
+    rootRef,
+    hasModal: !!s.modal,
+    closeModal: goBack,
+    goBack,
+    ptabs,
+    ext,
+    goTab: (k: string) =>
+      gm.setState(st =>
+        (st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) },
+      ),
+    hasDialog: !!dg,
+    dlg,
+    closeDialog: () => gm.setState({ dialog: null }),
+    stop: e => e.stopPropagation(),
   };
 }

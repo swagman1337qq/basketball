@@ -11,72 +11,197 @@ export function OverseasScreen({ vm }: { vm: VM }) {
   const { gm, s, open, money } = vm.ctx;
   const P = gm.db.P;
   const [neg, setNeg] = useState<{ pid: number; offer: number; msg?: string } | null>(null);
-  const srt = useSort<any>((vm.ovRows || []) as any[], { name: r => byLast(P[r.id] || r), club: r => r.club, age: r => r.age, pos: r => r.pos, trans: r => translation(gm, s, P[r.id]).pts, rating: r => { const t = translation(gm, s, P[r.id]); return (t.lo + t.hi) / 2; }, fee: r => P[r.id]?.abroad?.fee ?? 0, ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0 });
+  const srt = useSort<any>((vm.ovRows || []) as any[], {
+    name: r => byLast(P[r.id] || r),
+    club: r => r.club,
+    age: r => r.age,
+    pos: r => r.pos,
+    trans: r => translation(gm, s, P[r.id]).pts,
+    rating: r => {
+      const t = translation(gm, s, P[r.id]);
+      return (t.lo + t.hi) / 2;
+    },
+    fee: r => P[r.id]?.abroad?.fee ?? 0,
+    ask: r => parseFloat(String(r.ask).replace(/[^0-9.]/g, '')) || 0,
+  });
   const rows = srt.rows;
-  const sc = useScoutSelect(vm, rows.map((r: any) => r.id));
+  const sc = useScoutSelect(
+    vm,
+    rows.map((r: any) => r.id),
+  );
   const pg = usePaged(rows, 'players', 25);
   return (
     <>
       <p style={{ margin: '0 0 6px', ...muted }}>
-        Only players who were drafted, or declared and went undrafted, appear here; prospects who never declared go through the draft. Heavy minutes abroad grow a player’s hidden confidence and skills.
+        Only players who were drafted, or declared and went undrafted, appear here; prospects who never declared go through the draft. Heavy
+        minutes abroad grow a player’s hidden confidence and skills.
       </p>
       <p style={{ margin: '0 0 14px', ...muted, fontSize: '12px' }}>
-        Returning players go through a league adjustment period of about 15 games (shorter for confident players), cut faster by 24+ minute nights and a Coaching budget of $25M or more. Up to {money(BUYOUT_EXEMPT)} of a buyout is exempt; the rest counts against your cap.
+        Returning players go through a league adjustment period of about 15 games (shorter for confident players), cut faster by 24+ minute
+        nights and a Coaching budget of $25M or more. Up to {money(BUYOUT_EXEMPT)} of a buyout is exempt; the rest counts against your cap.
       </p>
-      {sc.bar()}{sc.Menu()}
+      {sc.bar()}
+      {sc.Menu()}
       <table className="table" style={{ fontSize: '13px' }}>
         <thead>
-          <tr>{sc.head()}{srt.head('name', 'Player')}{srt.head('club', 'Club · league strength')}<th style={th()}>Abroad this season</th>{srt.head('trans', 'Projected NBA translation')}{srt.head('rating', 'Rating', 'right')}{srt.head('fee', 'Contract')}{srt.head('ask', 'Asking', 'right')}<th style={th()}></th></tr>
+          <tr>
+            {sc.head()}
+            {srt.head('name', 'Player')}
+            {srt.head('club', 'Club · league strength')}
+            <th style={th()}>Abroad this season</th>
+            {srt.head('trans', 'Projected NBA translation')}
+            {srt.head('rating', 'Rating', 'right')}
+            {srt.head('fee', 'Contract')}
+            {srt.head('ask', 'Asking', 'right')}
+            <th style={th()}></th>
+          </tr>
         </thead>
         <tbody>
-          {pg.rows.map(r => { const p = P[r.id], a = p.abroad, tr = translation(gm, s, p), buy = a.clause === 'Buyout', walked = a.walked === gm.Y; return (
-            <tr key={r.id} {...sc.row(r.id)} style={{ userSelect: "none", background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined }}>
-              {sc.cell(r.id)}
-              <td style={td()}>
-                <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                  <img src={r.flag} alt="" style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-                  <Link pid={r.id} onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>{r.name}</Link>{sc.tag(r.id)}
-                  <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{r.pos} · {r.age} · {r.drafted}</span>
-                </span>
-                {p.overseasArc?.from && <div style={{ fontSize: '11px', color: 'var(--gm-good)' }}>Redemption arc: left {p.overseasArc.from} in {p.overseasArc.left} at {p.overseasArc.ovr}</div>}
-              </td>
-              <td style={td()}>{r.club} <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>{r.lg} · {r.clubC} · ×{leagueStr(a.lg).toFixed(2)}</div></td>
-              <td style={td('left', { fontSize: '12px' })}>{r.line}</td>
-              <td style={td('left', { fontSize: '12px' })}>{tr.pts} pts · {tr.reb} reb · {tr.ast} ast<div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>in ~20 minutes</div></td>
-              <td style={td('right', { fontWeight: 600 })}>{tr.lo}–{tr.hi}<div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-neutral-600)' }}>±{tr.margin}</div></td>
-              <td style={td('left', { fontSize: '12px' })}>{a.clause}: {money(a.fee)}<div style={{ color: 'var(--color-neutral-600)' }}>{a.fee > BUYOUT_EXEMPT ? money(a.fee - BUYOUT_EXEMPT) + ' counts against the cap' : 'No cap hit'}</div></td>
-              <td style={td('right')}>{r.ask}</td>
-              <td style={td('right')}>
-                {buy ? (
-                  <button className="btn btn-secondary" disabled={walked} onClick={() => setNeg({ pid: r.id, offer: +(a.fee * 0.7).toFixed(2) })} style={{ fontSize: '12px', padding: '3px 10px', whiteSpace: 'nowrap' }}>{walked ? 'Talks ended' : 'Negotiate buyout'}</button>
-                ) : (
-                  <button className="btn btn-primary" onClick={r.sign} disabled={r.cant} style={{ fontSize: '12px', padding: '3px 12px' }}>Sign</button>
-                )}
-              </td>
-            </tr>
-          ); })}
+          {pg.rows.map(r => {
+            const p = P[r.id],
+              a = p.abroad,
+              tr = translation(gm, s, p),
+              buy = a.clause === 'Buyout',
+              walked = a.walked === gm.Y;
+            return (
+              <tr
+                key={r.id}
+                {...sc.row(r.id)}
+                style={{
+                  userSelect: 'none',
+                  background: sc.isSel(r.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined,
+                }}
+              >
+                {sc.cell(r.id)}
+                <td style={td()}>
+                  <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                    <img
+                      src={r.flag}
+                      alt=""
+                      style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
+                    />
+                    <Link pid={r.id} onClick={() => open(r.id)} style={{ color: 'var(--color-accent-700)' }}>
+                      {r.name}
+                    </Link>
+                    {sc.tag(r.id)}
+                    <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>
+                      {r.pos} · {r.age} · {r.drafted}
+                    </span>
+                  </span>
+                  {p.overseasArc?.from && (
+                    <div style={{ fontSize: '11px', color: 'var(--gm-good)' }}>
+                      Redemption arc: left {p.overseasArc.from} in {p.overseasArc.left} at {p.overseasArc.ovr}
+                    </div>
+                  )}
+                </td>
+                <td style={td()}>
+                  {r.club}{' '}
+                  <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>
+                    {r.lg} · {r.clubC} · ×{leagueStr(a.lg).toFixed(2)}
+                  </div>
+                </td>
+                <td style={td('left', { fontSize: '12px' })}>{r.line}</td>
+                <td style={td('left', { fontSize: '12px' })}>
+                  {tr.pts} pts · {tr.reb} reb · {tr.ast} ast
+                  <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>in ~20 minutes</div>
+                </td>
+                <td style={td('right', { fontWeight: 600 })}>
+                  {tr.lo}–{tr.hi}
+                  <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-neutral-600)' }}>±{tr.margin}</div>
+                </td>
+                <td style={td('left', { fontSize: '12px' })}>
+                  {a.clause}: {money(a.fee)}
+                  <div style={{ color: 'var(--color-neutral-600)' }}>
+                    {a.fee > BUYOUT_EXEMPT ? money(a.fee - BUYOUT_EXEMPT) + ' counts against the cap' : 'No cap hit'}
+                  </div>
+                </td>
+                <td style={td('right')}>{r.ask}</td>
+                <td style={td('right')}>
+                  {buy ? (
+                    <button
+                      className="btn btn-secondary"
+                      disabled={walked}
+                      onClick={() => setNeg({ pid: r.id, offer: +(a.fee * 0.7).toFixed(2) })}
+                      style={{ fontSize: '12px', padding: '3px 10px', whiteSpace: 'nowrap' }}
+                    >
+                      {walked ? 'Talks ended' : 'Negotiate buyout'}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={r.sign}
+                      disabled={r.cant}
+                      style={{ fontSize: '12px', padding: '3px 12px' }}
+                    >
+                      Sign
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
-          {pg.pager}
-      {neg && (() => { const p = P[neg.pid], a = p.abroad; if (!a) return null; return (
-        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 45%, transparent)', zIndex: 20 }} onClick={() => setNeg(null)}>
-          <div className="dialog" onClick={e => e.stopPropagation()}>
-            <div className="dialog-title">Buyout talks with {a.club}</div>
-            <div className="dialog-body">
-              {p.name}’s contract has a buyout. The club is asking {money(a.fee)}. Make an offer; you can sweeten it with a second-round pick. Three rejected offers and they walk away for the season.
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0 6px' }}>
-                <span style={muted}>Your offer</span><NumInput value={neg.offer} min={0.05} max={Math.max(0.2, a.fee)} step={0.05} width={90} onValue={v => setNeg({ ...neg, offer: v, msg: undefined })} suffix={'$M (asking ' + money(a.fee) + ')'} />
+      {pg.pager}
+      {neg &&
+        (() => {
+          const p = P[neg.pid],
+            a = p.abroad;
+          if (!a) return null;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'grid',
+                placeItems: 'center',
+                background: 'color-mix(in srgb, var(--color-neutral-900) 45%, transparent)',
+                zIndex: 20,
+              }}
+              onClick={() => setNeg(null)}
+            >
+              <div className="dialog" onClick={e => e.stopPropagation()}>
+                <div className="dialog-title">Buyout talks with {a.club}</div>
+                <div className="dialog-body">
+                  {p.name}’s contract has a buyout. The club is asking {money(a.fee)}. Make an offer; you can sweeten it with a second-round
+                  pick. Three rejected offers and they walk away for the season.
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '12px 0 6px' }}>
+                    <span style={muted}>Your offer</span>
+                    <NumInput
+                      value={neg.offer}
+                      min={0.05}
+                      max={Math.max(0.2, a.fee)}
+                      step={0.05}
+                      width={90}
+                      onValue={v => setNeg({ ...neg, offer: v, msg: undefined })}
+                      suffix={'$M (asking ' + money(a.fee) + ')'}
+                    />
+                  </div>
+                  <div style={{ fontSize: '12px', ...muted, marginTop: '6px' }}>
+                    Cap hit from this buyout: {neg.offer > BUYOUT_EXEMPT ? money(neg.offer - BUYOUT_EXEMPT) : 'none'}
+                  </div>
+                  {neg.msg && <div style={{ marginTop: '8px', fontWeight: 600 }}>{neg.msg}</div>}
+                </div>
+                <div className="dialog-actions">
+                  <button className="btn btn-secondary" onClick={() => setNeg(null)}>
+                    Close
+                  </button>
+                  {a.clause === 'Buyout' && a.walked !== gm.Y && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        const r = negotiateBuyout(gm, neg.pid, neg.offer, false);
+                        setNeg({ ...neg, msg: r?.msg });
+                      }}
+                    >
+                      Make offer
+                    </button>
+                  )}
+                </div>
               </div>
-              <div style={{ fontSize: '12px', ...muted, marginTop: '6px' }}>Cap hit from this buyout: {neg.offer > BUYOUT_EXEMPT ? money(neg.offer - BUYOUT_EXEMPT) : 'none'}</div>
-              {neg.msg && <div style={{ marginTop: '8px', fontWeight: 600 }}>{neg.msg}</div>}
             </div>
-            <div className="dialog-actions">
-              <button className="btn btn-secondary" onClick={() => setNeg(null)}>Close</button>
-              {a.clause === 'Buyout' && a.walked !== gm.Y && <button className="btn btn-primary" onClick={() => { const r = negotiateBuyout(gm, neg.pid, neg.offer, false); setNeg({ ...neg, msg: r?.msg }); }}>Make offer</button>}
-            </div>
-          </div>
-        </div>
-      ); })()}
+          );
+        })()}
     </>
   );
 }

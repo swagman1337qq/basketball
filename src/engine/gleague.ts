@@ -11,39 +11,110 @@ import { refreshPot } from './potential';
 import type { Game } from './Game';
 
 const AFFIL: Record<string, string> = {
-  RIC: 'James River Bateaux', NY: 'Hudson Valley Knights', PHI: 'Delaware Valley Minutemen', CHI: 'Lakefront Blizzard', LA: 'Long Beach Breakers', HOU: 'Bayou City Boosters',
-  BAL: 'Chesapeake Watermen', HFD: 'Connecticut Ironsides', BKN: 'Coney Island Barkers', NWK: 'Jersey Shore Tides', PRV: 'Pawtucket Mill Cats', CLE: 'Lake Erie Riffs', DET: 'Motor City Spark Plugs', CBS: 'Scioto Valley Scouts',
-  PIT: 'Allegheny Miners', BHM: 'Bessemer Marvels', CIN: 'Queen City Paddlers', CHA: 'Piedmont Pit Crew', ATL: 'Peachtree Embers', TPA: 'Ybor City Rollers', RAL: 'Triangle Techs', NSH: 'Music Row Pickers', SEA: 'Puget Sound Ferries',
-  POR: 'Willamette Loggers', MIN: 'Iron Range Miners', VAN: 'Fraser Valley Salmon', SLC: 'Wasatch Powder', DAL: 'Trinity River Roughnecks', DEN: 'Front Range Prospectors', SD: 'La Jolla Swells', OAK: 'East Bay Timber', LV: 'Henderson Dealers', SAC: 'Sierra Gold Panners',
-  SJ: 'Santa Clara Coders', AUS: 'Hill Country Hounds', SA: 'Rio Grande Riders', PHX: 'Sonoran Scorpions', INL: 'Norton Sound Navigators', WAZ: 'Badlands Riders', KC: 'Missouri River Smokers', STL: 'Gateway Ferrymen', HNL: 'Oahu Outriggers', ABQ: 'Sandia Sidewinders',
+  RIC: 'James River Bateaux',
+  NY: 'Hudson Valley Knights',
+  PHI: 'Delaware Valley Minutemen',
+  CHI: 'Lakefront Blizzard',
+  LA: 'Long Beach Breakers',
+  HOU: 'Bayou City Boosters',
+  BAL: 'Chesapeake Watermen',
+  HFD: 'Connecticut Ironsides',
+  BKN: 'Coney Island Barkers',
+  NWK: 'Jersey Shore Tides',
+  PRV: 'Pawtucket Mill Cats',
+  CLE: 'Lake Erie Riffs',
+  DET: 'Motor City Spark Plugs',
+  CBS: 'Scioto Valley Scouts',
+  PIT: 'Allegheny Miners',
+  BHM: 'Bessemer Marvels',
+  CIN: 'Queen City Paddlers',
+  CHA: 'Piedmont Pit Crew',
+  ATL: 'Peachtree Embers',
+  TPA: 'Ybor City Rollers',
+  RAL: 'Triangle Techs',
+  NSH: 'Music Row Pickers',
+  SEA: 'Puget Sound Ferries',
+  POR: 'Willamette Loggers',
+  MIN: 'Iron Range Miners',
+  VAN: 'Fraser Valley Salmon',
+  SLC: 'Wasatch Powder',
+  DAL: 'Trinity River Roughnecks',
+  DEN: 'Front Range Prospectors',
+  SD: 'La Jolla Swells',
+  OAK: 'East Bay Timber',
+  LV: 'Henderson Dealers',
+  SAC: 'Sierra Gold Panners',
+  SJ: 'Santa Clara Coders',
+  AUS: 'Hill Country Hounds',
+  SA: 'Rio Grande Riders',
+  PHX: 'Sonoran Scorpions',
+  INL: 'Norton Sound Navigators',
+  WAZ: 'Badlands Riders',
+  KC: 'Missouri River Smokers',
+  STL: 'Gateway Ferrymen',
+  HNL: 'Oahu Outriggers',
+  ABQ: 'Sandia Sidewinders',
 };
 export const glSalary = (g: Game) => +(0.0405 * (g.CAP / 154.647)).toFixed(3); // $40,500 in 2025-26, growing with the cap
-export const GL_ROSTER = 12, AFFIL_MAX = 5;
-export function affiliateOf(s: any, tid: number) { const c = (s.ccp?.teams || []).find((x: any) => (tid === -1 ? x.aff == null : x.aff === tid)); if (c) return c.city + ' ' + c.name; const t = s.teams[tid]; return t ? AFFIL[t.abbr] || t.region + ' Select' : 'the CCP'; }
+export const GL_ROSTER = 12,
+  AFFIL_MAX = 5;
+export function affiliateOf(s: any, tid: number) {
+  const c = (s.ccp?.teams || []).find((x: any) => (tid === -1 ? x.aff == null : x.aff === tid));
+  if (c) return c.city + ' ' + c.name;
+  const t = s.teams[tid];
+  return t ? AFFIL[t.abbr] || t.region + ' Select' : 'the CCP';
+}
 
 // A season line in the G League, from his rating (a lower level: stars put up big numbers).
 function line(p: any, gp: number) {
-  const r = (x: number) => +x.toFixed(1), o = p.ovr, grp = p.grp;
-  return { gp, pts: r(Math.max(3, 8 + (o - 42) * 0.85 + (p.r.tp - 50) * 0.04)), reb: r(Math.max(1.5, (grp === 'B' ? 6 : grp === 'W' ? 4.2 : 3) + (p.r.reb - 50) * 0.08)), ast: r(Math.max(0.5, (grp === 'G' ? 4 : grp === 'W' ? 2.2 : 1.4) + (p.r.pss - 50) * 0.07)) };
+  const r = (x: number) => +x.toFixed(1),
+    o = p.ovr,
+    grp = p.grp;
+  return {
+    gp,
+    pts: r(Math.max(3, 8 + (o - 42) * 0.85 + (p.r.tp - 50) * 0.04)),
+    reb: r(Math.max(1.5, (grp === 'B' ? 6 : grp === 'W' ? 4.2 : 3) + (p.r.reb - 50) * 0.08)),
+    ast: r(Math.max(0.5, (grp === 'G' ? 4 : grp === 'W' ? 2.2 : 1.4) + (p.r.pss - 50) * 0.07)),
+  };
 }
 
 // Put unsigned free agents on G League rosters (opening night, and when a club waives a camp
 // invitee). Veterans who expect NBA money wait at home; everyone else goes where they have
 // rights, or to a team with a roster spot.
 export function placeInGLeague(g: Game, s: any, fa: number[], rnd: () => number = Math.random) {
-  const P = g.db.P, T = s.teams, count: Record<number, number> = {}, aff: Record<number, number> = {};
-  fa.forEach(id => { const x = P[id]?.gl; if (x && x.tid != null) { count[x.tid] = (count[x.tid] || 0) + 1; if (x.kind === 'affiliate') aff[x.tid] = (aff[x.tid] || 0) + 1; } });
+  const P = g.db.P,
+    T = s.teams,
+    count: Record<number, number> = {},
+    aff: Record<number, number> = {};
+  fa.forEach(id => {
+    const x = P[id]?.gl;
+    if (x && x.tid != null) {
+      count[x.tid] = (count[x.tid] || 0) + 1;
+      if (x.kind === 'affiliate') aff[x.tid] = (aff[x.tid] || 0) + 1;
+    }
+  });
   const room = (t: number) => (count[t] || 0) < GL_ROSTER;
   fa.forEach(id => {
-    const p = P[id]; if (!p || p.retired || p.rfa || p.gl?.tid != null) return;
+    const p = P[id];
+    if (!p || p.retired || p.rfa || p.gl?.tid != null) return;
     if (p.age >= 32 && p.ovr >= 50) return; // established vets hold out for an NBA deal
     if (p.ovr >= 57 && p.age >= 26) return;
     if (rnd() > (p.age <= 25 ? 0.85 : 0.6)) return;
-    let tid: number | null = null, kind = 'standard';
+    let tid: number | null = null,
+      kind = 'standard';
     const w = p.waived?.tid ?? p.lastTid;
-    if (w != null && T[w] && room(w) && (aff[w] || 0) < AFFIL_MAX && p.age <= 28) { tid = w; kind = 'affiliate'; aff[w] = (aff[w] || 0) + 1; }
-    else if (p.gl?.last != null && (T[p.gl.last] || p.gl.last === -1) && room(p.gl.last)) { tid = p.gl.last; kind = 'returning'; }
-    else { const opts = [...T.map((t: any) => t.tid), -1].filter(room); if (!opts.length) return; tid = opts[Math.floor(rnd() * opts.length)]; } // -1: the independent club
+    if (w != null && T[w] && room(w) && (aff[w] || 0) < AFFIL_MAX && p.age <= 28) {
+      tid = w;
+      kind = 'affiliate';
+      aff[w] = (aff[w] || 0) + 1;
+    } else if (p.gl?.last != null && (T[p.gl.last] || p.gl.last === -1) && room(p.gl.last)) {
+      tid = p.gl.last;
+      kind = 'returning';
+    } else {
+      const opts = [...T.map((t: any) => t.tid), -1].filter(room);
+      if (!opts.length) return;
+      tid = opts[Math.floor(rnd() * opts.length)];
+    } // -1: the independent club
     count[tid!] = (count[tid!] || 0) + 1;
     p.gl = { tid, kind, since: g.Y, ...line(p, 0), e10: p.ctype === 'ex10' || p.wasEx10 ? true : undefined };
     p.ask = Math.min(p.ask || 99, g.fair(p.ovr));
@@ -53,18 +124,27 @@ export function placeInGLeague(g: Game, s: any, fa: number[], rnd: () => number 
 // Monthly: stat lines update, young players develop with the minutes.
 export function gLeagueTick(g: Game, fa: number[], gamesSoFar: number) {
   const P = g.db.P;
-  fa.forEach(id => { const p = P[id]; if (!p?.gl || p.gl.tid == null) return;
+  fa.forEach(id => {
+    const p = P[id];
+    if (!p?.gl || p.gl.tid == null) return;
     g.devIdle(g.state, p); // CCP reps: his plan at his pace (Game.devIdle), no shortcut to his ceiling
-    if (!p.ccpS) Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6))); }); // CCP games replace the estimate once he plays
+    if (!p.ccpS) Object.assign(p.gl, line(p, Math.round(gamesSoFar * 0.6)));
+  }); // CCP games replace the estimate once he plays
 }
 
 // Called up (signed by an NBA team): the G League stint ends.
 export function callUpNote(g: Game, s: any, p: any, tid: number) {
   if (!p.gl || p.gl.tid == null) return '';
-  const from = affiliateOf(s, p.gl.tid), own = p.gl.tid === tid;
+  const from = affiliateOf(s, p.gl.tid),
+    own = p.gl.tid === tid;
   const t = ' (called up from the ' + from + (own ? ', his own affiliate' : '') + ')';
   p.glHist = [...(p.glHist || []), { season: g.Y, team: from, pts: p.gl.pts, reb: p.gl.reb, ast: p.gl.ast }];
   p.gl = { last: p.gl.tid }; // returning rights if he comes back
   return t;
 }
-export function glLabel(s: any, p: any) { if (!p.gl || p.gl.tid == null) return ''; return affiliateOf(s, p.gl.tid) + (p.gl.kind === 'affiliate' ? ' (affiliate player)' : p.gl.kind === 'returning' ? ' (returning rights)' : ''); }
+export function glLabel(s: any, p: any) {
+  if (!p.gl || p.gl.tid == null) return '';
+  return (
+    affiliateOf(s, p.gl.tid) + (p.gl.kind === 'affiliate' ? ' (affiliate player)' : p.gl.kind === 'returning' ? ' (returning rights)' : '')
+  );
+}

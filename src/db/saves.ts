@@ -43,9 +43,32 @@ export async function deleteSave(id: string) {
 }
 
 export function summarize(data: SaveData) {
-  const s = data.state, me = s.teams[s.me ?? 0] || s.teams[0];
-  const PH = { regular: 'Regular season', playin: 'Play-in', playoffs: 'Playoffs', lottery: 'Lottery', draft: 'Draft', fa: 'Free agency', preseason: 'Preseason' };
-  return me.region + ' ' + me.name + ' · ' + (s.season - 1) + '–' + String(s.season).slice(2) + ' · ' + me.w + '–' + me.l + ' · ' + (PH[s.phase] || s.phase);
+  const s = data.state,
+    me = s.teams[s.me ?? 0] || s.teams[0];
+  const PH = {
+    regular: 'Regular season',
+    playin: 'Play-in',
+    playoffs: 'Playoffs',
+    lottery: 'Lottery',
+    draft: 'Draft',
+    fa: 'Free agency',
+    preseason: 'Preseason',
+  };
+  return (
+    me.region +
+    ' ' +
+    me.name +
+    ' · ' +
+    (s.season - 1) +
+    '–' +
+    String(s.season).slice(2) +
+    ' · ' +
+    me.w +
+    '–' +
+    me.l +
+    ' · ' +
+    (PH[s.phase] || s.phase)
+  );
 }
 
 const FILE_KIND = 'front-office-save';
@@ -55,7 +78,12 @@ export function exportSave(row: SaveRow) {
   const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = row.name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() + '.json';
+  a.download =
+    row.name
+      .replace(/[^\w\- ]+/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .toLowerCase() + '.json';
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -64,7 +92,14 @@ export async function importSave(file: File): Promise<SaveRow> {
   const json = JSON.parse(await file.text());
   if (json?.kind !== FILE_KIND || !json.data?.db || !json.data?.state) throw new Error('That file is not a Basketball Manager save.');
   const now = Date.now();
-  const row: SaveRow = { id: newSaveId(), name: json.name || 'Imported league', createdAt: json.createdAt || now, updatedAt: now, summary: summarize(json.data), data: json.data };
+  const row: SaveRow = {
+    id: newSaveId(),
+    name: json.name || 'Imported league',
+    createdAt: json.createdAt || now,
+    updatedAt: now,
+    summary: summarize(json.data),
+    data: json.data,
+  };
   await putSave(row);
   return row;
 }

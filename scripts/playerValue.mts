@@ -13,7 +13,8 @@ const game = newLeague(4837);
 const oldSave = structuredClone(game.toSave());
 oldSave.db.iqV = 7;
 const [id, cardId] = oldSave.state.rosters[0];
-const player = oldSave.db.P[id], cardPlayer = oldSave.db.P[cardId];
+const player = oldSave.db.P[id],
+  cardPlayer = oldSave.db.P[cardId];
 for (const p of [player, cardPlayer]) {
   p.posLock = true;
   p.ovr = Math.round(ovrExactV7(p));
@@ -39,7 +40,8 @@ for (const key of ['r', 'ovr', 'ox', 'tpot', 'dv0', 'stats', 'amt', 'exp']) {
   assert.deepEqual(reloaded.db.P[id][key], updated[key]);
 }
 
-const ready = { ovr: 60, ox: 0.25 }, project = { ovr: 44 };
+const ready = { ovr: 60, ox: 0.25 },
+  project = { ovr: 44 };
 assert.ok(draftValue(ready, 66, 'contend') > draftValue(project, 74, 'contend'));
 assert.ok(draftValue(ready, 66, 'rebuild') < draftValue(project, 74, 'rebuild'));
 assert.equal(rotationValue({ ...ready, gp: 19, per: 38 }), 60.25);

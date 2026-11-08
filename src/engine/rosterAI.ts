@@ -23,11 +23,11 @@ export function rotationValue(p: any): number {
   const games = p.gp || 0;
   const expectedPER = 15 + (level - 50) * 0.75;
   const form = games >= 20 && Number.isFinite(p.per) ? cl((p.per - expectedPER) / 8, -1, 1) : 0;
-  return level + 2 * form * games / (games + 30);
+  return level + (2 * form * games) / (games + 30);
 }
 
 export function draftValue(p: any, potential: number, timeline: string = 'middle'): number {
-  const readiness = timeline === 'contend' ? 0.40 : timeline === 'rebuild' ? 0.22 : 0.30;
+  const readiness = timeline === 'contend' ? 0.4 : timeline === 'rebuild' ? 0.22 : 0.3;
   return readiness * decisionOverall(p) + (1 - readiness) * potential;
 }
 
@@ -35,30 +35,42 @@ const MIN_GRP: Record<string, number> = { G: 4, W: 4, B: 3 }; // a roster needs 
 
 // A team's timeline: an AI team's strategy, or for a team you run, where it stands in the league.
 export function timelineOf(g: Game, s: any, tid: number): 'contend' | 'middle' | 'rebuild' {
-  const st = (g.strategies(s.teams, s) as any)[tid]; if (st) return st;
-  const sc = (t: any) => g.pct(t) * 0.65 + ((t.str ?? 45) - 45) / 12 * 0.35, rank = s.teams.slice().sort((a: any, b: any) => sc(b) - sc(a)).findIndex((t: any) => t.tid === tid);
+  const st = (g.strategies(s.teams, s) as any)[tid];
+  if (st) return st;
+  const sc = (t: any) => g.pct(t) * 0.65 + (((t.str ?? 45) - 45) / 12) * 0.35,
+    rank = s.teams
+      .slice()
+      .sort((a: any, b: any) => sc(b) - sc(a))
+      .findIndex((t: any) => t.tid === tid);
   return rank < 9 ? 'contend' : rank >= s.teams.length - 10 ? 'rebuild' : 'middle';
 }
 // The team's draft investment in him: by where he was picked, fading over his rookie deal (half as
 // much for a team that traded for him).
 export function draftInvestment(g: Game, p: any, tid: number) {
   if (!p?.dr || p.draft == null) return 0;
-  const n = (p.dr.rd - 1) * 30 + p.dr.pick, yrs = g.Y - p.draft;
+  const n = (p.dr.rd - 1) * 30 + p.dr.pick,
+    yrs = g.Y - p.draft;
   const base = n <= 3 ? 26 : n <= 5 ? 18 : n <= 10 ? 12 : n <= 14 ? 8 : n <= 20 ? 5 : n <= 30 ? 3 : 1;
   const fade = yrs <= 1 ? 1 : yrs === 2 ? 0.75 : yrs === 3 ? 0.45 : yrs === 4 ? 0.2 : 0;
   return base * fade * (p.draftTid === tid ? 1 : 0.5);
 }
 // His worth to team tid, out of the players `ids` (the roster he'd be cut from).
 export function rosterValue(g: Game, s: any, tid: number, p: any, ids: number[], tl = timelineOf(g, s, tid)) {
-  const P = g.db.P, Y = g.Y, age = p.age;
-  const wNow = tl === 'contend' ? 1.15 : tl === 'rebuild' ? 0.8 : 1, wFut = tl === 'contend' ? 0.5 : tl === 'rebuild' ? 1.3 : 0.9;
-  const pot = g.potRead(p, tid, s), youth = age <= 21 ? 0.75 : age <= 23 ? 0.6 : age <= 25 ? 0.35 : age <= 27 ? 0.12 : 0;
+  const P = g.db.P,
+    Y = g.Y,
+    age = p.age;
+  const wNow = tl === 'contend' ? 1.15 : tl === 'rebuild' ? 0.8 : 1,
+    wFut = tl === 'contend' ? 0.5 : tl === 'rebuild' ? 1.3 : 0.9;
+  const pot = g.potRead(p, tid, s),
+    youth = age <= 21 ? 0.75 : age <= 23 ? 0.6 : age <= 25 ? 0.35 : age <= 27 ? 0.12 : 0;
   const level = decisionOverall(p);
   let v = level * wNow + Math.max(0, pot - level) * youth * wFut;
   // Which way he's heading: this year's change, for players still growing.
-  const ref = p.rh?.[Y]?.o?.ovrI ?? p.rh?.[Y - 1]?.o?.ovrI; if (ref != null && age <= 26) v += cl(p.ovr - ref, -4, 6) * 0.5;
+  const ref = p.rh?.[Y]?.o?.ovrI ?? p.rh?.[Y - 1]?.o?.ovrI;
+  if (ref != null && age <= 26) v += cl(p.ovr - ref, -4, 6) * 0.5;
   // Age against the timeline.
-  if (age >= 33) v -= (age - 32) * 1.5 * (tl === 'rebuild' ? 1.5 : 1); else if (tl === 'rebuild' && age >= 29) v -= (age - 28) * 0.8;
+  if (age >= 33) v -= (age - 32) * 1.5 * (tl === 'rebuild' ? 1.5 : 1);
+  else if (tl === 'rebuild' && age >= 29) v -= (age - 28) * 0.8;
   if (age >= 29) v += (typicalLoss(g, age) - agingLoss(g, p)) * 0.6; // how he'll age against a typical player his age (agingOutlook.ts)
   // His contract: guaranteed money is paid anyway; camp deals are cheap to cut.
   const guar = Object.values(remainingGuaranteed(g, s, p)).reduce((a: number, x: any) => a + x, 0);
@@ -66,18 +78,33 @@ export function rosterValue(g: Game, s: any, tid: number, p: any, ids: number[],
   // The team's draft investment.
   v += draftInvestment(g, p, tid);
   // His role and the roster around him.
-  const others = ids.filter(id => id !== p.id && P[id]), rank = others.filter(id => decisionOverall(P[id]) > level).length; // players better than him
-  if (rank < 8) v += 3; else if (rank < 10) v += 1.5; // a rotation player
-  const sameGrp = others.filter(id => P[id].grp === p.grp).length; if (sameGrp < (MIN_GRP[p.grp] ?? 3)) v += 6; // the last of his position group
-  const mine = g.rolesOf(p), theirs = new Set(others.filter(id => others.filter(x => P[x].ovr > P[id].ovr).length < 10).flatMap(id => g.rolesOf(P[id])));
+  const others = ids.filter(id => id !== p.id && P[id]),
+    rank = others.filter(id => decisionOverall(P[id]) > level).length; // players better than him
+  if (rank < 8) v += 3;
+  else if (rank < 10) v += 1.5; // a rotation player
+  const sameGrp = others.filter(id => P[id].grp === p.grp).length;
+  if (sameGrp < (MIN_GRP[p.grp] ?? 3)) v += 6; // the last of his position group
+  const mine = g.rolesOf(p),
+    theirs = new Set(others.filter(id => others.filter(x => P[x].ovr > P[id].ovr).length < 10).flatMap(id => g.rolesOf(P[id])));
   v += Math.min(4, mine.filter(r => !theirs.has(r)).length * 2); // a skill the rotation doesn't have
   return v;
 }
 // Who goes: the standard-contract player with the least worth to the team (two-ways aside).
 export function pickCut(g: Game, s: any, tid: number, ids: number[]) {
-  const P = g.db.P, std = stdIds(g, ids), tl = timelineOf(g, s, tid);
-  let best: any = null, low = Infinity;
-  std.forEach(id => { const p = P[id]; if (!p) return; const v = rosterValue(g, s, tid, p, std, tl); if (v < low) { low = v; best = p; } });
+  const P = g.db.P,
+    std = stdIds(g, ids),
+    tl = timelineOf(g, s, tid);
+  let best: any = null,
+    low = Infinity;
+  std.forEach(id => {
+    const p = P[id];
+    if (!p) return;
+    const v = rosterValue(g, s, tid, p, std, tl);
+    if (v < low) {
+      low = v;
+      best = p;
+    }
+  });
   return best ? { p: best, v: low } : null;
 }
 // A team option: worth keeping if he's worth the salary, counting what a young player is becoming (the
@@ -89,6 +116,8 @@ export function exerciseOption(g: Game, s: any, tid: number, p: any, sal: number
 }
 // The extra minutes a team gives a young high pick to develop (its rotation order), by its timeline.
 export function devMinutes(g: Game, s: any, tid: number, p: any) {
-  const inv = draftInvestment(g, p, tid); if (!inv || p.age > 24) return 0;
-  const tl = timelineOf(g, s, tid); return inv * (tl === 'rebuild' ? 0.2 : tl === 'middle' ? 0.12 : 0.05);
+  const inv = draftInvestment(g, p, tid);
+  if (!inv || p.age > 24) return 0;
+  const tl = timelineOf(g, s, tid);
+  return inv * (tl === 'rebuild' ? 0.2 : tl === 'middle' ? 0.12 : 0.05);
 }

@@ -4,54 +4,77 @@ import { useSort } from '../sortable';
 
 export function TransactionsScreen({ vm }: { vm: VM }) {
   const rows0 = (vm.txRows || []).map((r: any, i: number) => ({ ...r, _i: i }));
-  const srt = useSort<any>(rows0, { date: r => -r._i, type: r => r.type, teams: r => (r.teamLinks || []).map((k: any) => k.abbr).join(' '), text: r => r.text });
+  const srt = useSort<any>(rows0, {
+    date: r => -r._i,
+    type: r => r.type,
+    teams: r => (r.teamLinks || []).map((k: any) => k.abbr).join(' '),
+    text: r => r.text,
+  });
   const pg = usePaged(srt.rows, 'transactions', 40, srt.sortKey);
   return (
     <>
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "14px" }}>
-        <div style={{ display: "inline-flex", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+        <div
+          style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}
+        >
           {(vm.txSegs || []).map((sg: any, i: number) => (
-            <button key={i} onClick={sg.onClick} style={{ all: "unset", cursor: "pointer", padding: "6px 14px", fontSize: "13px", color: sg.color, boxShadow: sg.ring }}>
+            <button
+              key={i}
+              onClick={sg.onClick}
+              style={{ all: 'unset', cursor: 'pointer', padding: '6px 14px', fontSize: '13px', color: sg.color, boxShadow: sg.ring }}
+            >
               {sg.label}
             </button>
           ))}
         </div>
-        {(vm.txYearOpts || []).length > 1 && <select className="input" aria-label="League year" value={vm.txYi} onChange={e => vm.setTxYear(+e.target.value)} style={{ width: "auto", fontSize: "13px" }}>{vm.txYearOpts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}</select>}
+        {(vm.txYearOpts || []).length > 1 && (
+          <select
+            className="input"
+            aria-label="League year"
+            value={vm.txYi}
+            onChange={e => vm.setTxYear(+e.target.value)}
+            style={{ width: 'auto', fontSize: '13px' }}
+          >
+            {vm.txYearOpts.map((o: any) => (
+              <option key={o.v} value={o.v}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
-      <table className="table" style={{ fontSize: "13px" }}>
+      <table className="table" style={{ fontSize: '13px' }}>
         <thead>
           <tr>
-            {srt.head('date', 'Date')}{srt.head('type', 'Type')}{srt.head('teams', 'Teams')}{srt.head('text', 'Move')}
+            {srt.head('date', 'Date')}
+            {srt.head('type', 'Type')}
+            {srt.head('teams', 'Teams')}
+            {srt.head('text', 'Move')}
           </tr>
         </thead>
         <tbody>
           {pg.rows.map((r: any, i: number) => (
             <tr key={i} style={{ background: r.bg }}>
-              <td style={{ padding: "5px 8px", color: "var(--color-neutral-700)", whiteSpace: "nowrap" }}>
-                {r.date}
-              </td>
-              <td style={{ padding: "5px 8px" }}>
-                {r.type}
-              </td>
-              <td style={{ padding: "5px 8px", whiteSpace: "nowrap" }}>
-                <span style={{ display: "inline-flex", gap: "6px" }}>
+              <td style={{ padding: '5px 8px', color: 'var(--color-neutral-700)', whiteSpace: 'nowrap' }}>{r.date}</td>
+              <td style={{ padding: '5px 8px' }}>{r.type}</td>
+              <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'inline-flex', gap: '6px' }}>
                   {(r.teamLinks || []).map((k: any, i: number) => (
-                    <button key={i} className="hv4" onClick={k.open} style={{ all: "unset", cursor: "pointer" }}>
+                    <button key={i} className="hv4" onClick={k.open} style={{ all: 'unset', cursor: 'pointer' }}>
                       {k.abbr}
                     </button>
                   ))}
                 </span>
               </td>
-              <td style={{ padding: "5px 8px" }}>
-                {r.text}
-              </td>
+              <td style={{ padding: '5px 8px' }}>{r.text}</td>
             </tr>
           ))}
         </tbody>
       </table>
-          {pg.pager}
-      <p style={{ margin: "10px 0 0", color: "var(--color-neutral-700)", fontSize: "12px" }}>
-        Your moves are shaded. Click a column to sort (Date: newest or oldest first). Other teams sign, trade and waive players as days pass. Earlier league years (each starts when free agency opens) are in the picker.
+      {pg.pager}
+      <p style={{ margin: '10px 0 0', color: 'var(--color-neutral-700)', fontSize: '12px' }}>
+        Your moves are shaded. Click a column to sort (Date: newest or oldest first). Other teams sign, trade and waive players as days
+        pass. Earlier league years (each starts when free agency opens) are in the picker.
       </p>
     </>
   );

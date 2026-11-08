@@ -16,14 +16,57 @@ const PRL: Record<string, number> = { PG: 11.0, SG: 10.5, G: 10.75, GF: 10.5, SF
 // pace for aPER; PER = aPER × 15 / the league's minute-weighted aPER.
 export function hollingerU(t: StatLine, lg: StatLine, T: StatLine | null): number {
   if (!t.min) return 0;
-  const lgFG = Math.max(1, lg.fgm), lgFT = Math.max(1, lg.ftm), lgPF = Math.max(1, lg.pf || lg.gp * 19.5), lgTRB = Math.max(1, lg.orb + lg.drb);
-  const factor = 2 / 3 - (0.5 * (lg.ast / lgFG)) / (2 * (lgFG / lgFT)), VOP = lg.pts / Math.max(1, lg.fga - lg.orb + lg.tov + 0.44 * lg.fta), DRBp = (lgTRB - lg.orb) / lgTRB;
+  const lgFG = Math.max(1, lg.fgm),
+    lgFT = Math.max(1, lg.ftm),
+    lgPF = Math.max(1, lg.pf || lg.gp * 19.5),
+    lgTRB = Math.max(1, lg.orb + lg.drb);
+  const factor = 2 / 3 - (0.5 * (lg.ast / lgFG)) / (2 * (lgFG / lgFT)),
+    VOP = lg.pts / Math.max(1, lg.fga - lg.orb + lg.tov + 0.44 * lg.fta),
+    DRBp = (lgTRB - lg.orb) / lgTRB;
   const tA = T && T.fgm ? T.ast / T.fgm : lg.ast / lgFG;
-  return (1 / t.min) * ((t.tpm || 0) + (2 / 3) * (t.ast || 0) + (2 - factor * tA) * (t.fgm || 0) + (t.ftm || 0) * 0.5 * (1 + (1 - tA) + (2 / 3) * tA) - VOP * (t.tov || 0) - VOP * DRBp * ((t.fga || 0) - (t.fgm || 0))
-    - VOP * 0.44 * (0.44 + 0.56 * DRBp) * ((t.fta || 0) - (t.ftm || 0)) + VOP * (1 - DRBp) * (t.drb || 0) + VOP * DRBp * (t.orb || 0) + VOP * (t.stl || 0) + VOP * DRBp * (t.blk || 0)
-    - (t.pf || 0) * (lg.ftm / lgPF - 0.44 * (lg.fta / lgPF) * VOP));
+  return (
+    (1 / t.min) *
+    ((t.tpm || 0) +
+      (2 / 3) * (t.ast || 0) +
+      (2 - factor * tA) * (t.fgm || 0) +
+      (t.ftm || 0) * 0.5 * (1 + (1 - tA) + (2 / 3) * tA) -
+      VOP * (t.tov || 0) -
+      VOP * DRBp * ((t.fga || 0) - (t.fgm || 0)) -
+      VOP * 0.44 * (0.44 + 0.56 * DRBp) * ((t.fta || 0) - (t.ftm || 0)) +
+      VOP * (1 - DRBp) * (t.drb || 0) +
+      VOP * DRBp * (t.orb || 0) +
+      VOP * (t.stl || 0) +
+      VOP * DRBp * (t.blk || 0) -
+      (t.pf || 0) * (lg.ftm / lgPF - 0.44 * (lg.fta / lgPF) * VOP))
+  );
 }
-export const PER_TEAM_FIELDS = ['gp', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'oPts', 'oFgm', 'oFga', 'oTpm', 'oTpa', 'oFtm', 'oFta', 'oOrb', 'oDrb', 'oTov'];
+export const PER_TEAM_FIELDS = [
+  'gp',
+  'pts',
+  'fgm',
+  'fga',
+  'tpm',
+  'tpa',
+  'ftm',
+  'fta',
+  'orb',
+  'drb',
+  'ast',
+  'stl',
+  'blk',
+  'tov',
+  'pf',
+  'oPts',
+  'oFgm',
+  'oFga',
+  'oTpm',
+  'oTpa',
+  'oFtm',
+  'oFta',
+  'oOrb',
+  'oDrb',
+  'oTov',
+];
 const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 
 // The impact metrics' constants fitted to this engine (2026-11-01, scripts/fitImpact.mts, docs/ADVANCED_ESTIMATES.md):
@@ -32,22 +75,58 @@ const GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: '
 //   points (luck removed), with its own weights by position group (its role adjustment);
 // - decay: DARKO's, per stat: how much of the past each game keeps (d), how much a summer keeps (m), and the
 //   prior (a bench player's rate) worth K possessions, chosen by how well they predict the next 20 games.
-export type ImpactFit = { usePrior?: boolean; epm: { o: number[]; d: number[] }; lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> }; decay: Record<string, { d: number; m: number; K: number; prior: number }> };
+export type ImpactFit = {
+  usePrior?: boolean;
+  epm: { o: number[]; d: number[] };
+  lebron: { o: number[]; d: number[]; grp?: Record<string, { o: number[]; d: number[] }> };
+  decay: Record<string, { d: number; m: number; K: number; prior: number }>;
+};
 // Fitted 2026-11-01 on the engine with one-on-one defense (3 leagues × 4 seasons, scripts/fitImpact.mts). usePrior false:
 // EPM and LEBRON keep BPM as their prior (it predicted next season as well or better); DARKO is game by game.
-export const IMPACT_FIT: ImpactFit | null = {usePrior: false, epm: {o: [0.2027, 0.3389, -0.339, -0.1479, 0.0201, 0.1775, -0.6523, 0.0585, -0.029, -0.0378, 0.0664, -0.1075], d: [-0.8132, 0.0044, -0.0163, 0.018, -0.0087, 0.0308, -0.2073, 0.0148, 0.0409, 0.453, 0.7095, -0.1155]}, decay: {pts: {d: 0.99, m: 0.3, K: 100, prior: 0.19961}, xP: {d: 0.985, m: 0.2, K: 60, prior: 0.19968}, fga: {d: 0.99, m: 0.2, K: 60, prior: 0.1629}, fta: {d: 0.993, m: 0.5, K: 300, prior: 0.03742}, tpm: {d: 0.99, m: 0.5, K: 30, prior: 0.02003}, ast: {d: 0.985, m: 0.3, K: 30, prior: 0.03583}, tov: {d: 0.99, m: 0.5, K: 300, prior: 0.0264}, orb: {d: 0.993, m: 0.5, K: 60, prior: 0.02175}, drb: {d: 0.998, m: 0.3, K: 100, prior: 0.05655}, stl: {d: 0.996, m: 0.7, K: 300, prior: 0.01277}, blk: {d: 0.993, m: 0.5, K: 100, prior: 0.00694}, pf: {d: 0.998, m: 0.5, K: 300, prior: 0.03961}}, lebron: {o: [0.4815, 0.3629, -0.3569, -0.1889, 0.0272, 0.1543, -0.6212, 0.1487, -0.0878, -0.015, 0.0315, -0.1467], d: [-0.7623, 0.0285, -0.0295, -0.0251, 0.0015, 0.0282, -0.2088, 0.0866, -0.0077, 0.4537, 0.692, -0.1239]}};
+export const IMPACT_FIT: ImpactFit | null = {
+  usePrior: false,
+  epm: {
+    o: [0.2027, 0.3389, -0.339, -0.1479, 0.0201, 0.1775, -0.6523, 0.0585, -0.029, -0.0378, 0.0664, -0.1075],
+    d: [-0.8132, 0.0044, -0.0163, 0.018, -0.0087, 0.0308, -0.2073, 0.0148, 0.0409, 0.453, 0.7095, -0.1155],
+  },
+  decay: {
+    pts: { d: 0.99, m: 0.3, K: 100, prior: 0.19961 },
+    xP: { d: 0.985, m: 0.2, K: 60, prior: 0.19968 },
+    fga: { d: 0.99, m: 0.2, K: 60, prior: 0.1629 },
+    fta: { d: 0.993, m: 0.5, K: 300, prior: 0.03742 },
+    tpm: { d: 0.99, m: 0.5, K: 30, prior: 0.02003 },
+    ast: { d: 0.985, m: 0.3, K: 30, prior: 0.03583 },
+    tov: { d: 0.99, m: 0.5, K: 300, prior: 0.0264 },
+    orb: { d: 0.993, m: 0.5, K: 60, prior: 0.02175 },
+    drb: { d: 0.998, m: 0.3, K: 100, prior: 0.05655 },
+    stl: { d: 0.996, m: 0.7, K: 300, prior: 0.01277 },
+    blk: { d: 0.993, m: 0.5, K: 100, prior: 0.00694 },
+    pf: { d: 0.998, m: 0.5, K: 300, prior: 0.03961 },
+  },
+  lebron: {
+    o: [0.4815, 0.3629, -0.3569, -0.1889, 0.0272, 0.1543, -0.6212, 0.1487, -0.0878, -0.015, 0.0315, -0.1467],
+    d: [-0.7623, 0.0285, -0.0295, -0.0251, 0.0015, 0.0282, -0.2088, 0.0866, -0.0077, 0.4537, 0.692, -0.1239],
+  },
+};
 let FIT: ImpactFit | null = IMPACT_FIT;
 // The tests switch between the fitted method (undefined: the built-in fit), a fit of their own, or null (the method
 // before 2026-11-01: BPM as the prior, DARKO by season).
-export function setImpactFit(f?: ImpactFit | null) { FIT = f === undefined ? IMPACT_FIT : f; }
-export function clearAdvancedCache(g: Game) { PAST.delete(g.db); }
+export function setImpactFit(f?: ImpactFit | null) {
+  FIT = f === undefined ? IMPACT_FIT : f;
+}
+export function clearAdvancedCache(g: Game) {
+  PAST.delete(g.db);
+}
 export const SPM_F = ['pts', 'fga', 'fta', 'tpm', 'ast', 'tov', 'orb', 'drb', 'stl', 'blk', 'pf'] as const;
 const DEF_F = new Set(['drb', 'stl', 'blk', 'pf']);
 const spm = (c: number[], x: number[]) => c[0] + x.reduce((s, v, i) => s + c[i + 1] * v, 0);
 // His features per 100 possessions on the floor: offense on offensive trips, defense on defensive (his possessions
 // on the floor where they weren't tracked). `xP`: expected instead of actual points (LEBRON).
-const spmFeats = (t: StatLine, poss: number, xP?: number) => { const o = t.onPO > 0 ? t.onPO : poss, d = t.onPD > 0 ? t.onPD : poss;
-  return SPM_F.map(k => (100 * (k === 'pts' && xP != null ? xP : t[k] || 0)) / Math.max(1, DEF_F.has(k) ? d : o)); };
+const spmFeats = (t: StatLine, poss: number, xP?: number) => {
+  const o = t.onPO > 0 ? t.onPO : poss,
+    d = t.onPD > 0 ? t.onPD : poss;
+  return SPM_F.map(k => (100 * (k === 'pts' && xP != null ? xP : t[k] || 0)) / Math.max(1, DEF_F.has(k) ? d : o));
+};
 
 // DARKO, game by game (2026-11-01): after every regular-season game his decayed totals (p.dk: per stat, the sum of
 // what he did and of the possessions it came on, each game keeping d of the past, each summer m) give his current
@@ -57,83 +136,247 @@ const DK = ['pts', 'xP', 'fga', 'fta', 'tpm', 'ast', 'tov', 'orb', 'drb', 'stl',
 const DK_DEF = (k: string) => DEF_F.has(k);
 const r2 = (v: number) => Math.round(v * 100) / 100;
 export function darkoUpdate(g: Game, p: any, b: any, Y: number) {
-  const F = FIT?.decay; if (!F || !(b.onPO > 0) || !(b.onPD > 0)) return;
+  const F = FIT?.decay;
+  if (!F || !(b.onPO > 0) || !(b.onPD > 0)) return;
   let dk = p.dk;
   if (!dk || !Array.isArray(dk.n)) dk = p.dk = darkoBoot(g, p, Y, F);
-  if (dk.y !== Y) { const yrs = Math.max(1, Y - dk.y); DK.forEach((k, i) => { const m = F[k].m ** yrs; dk.n[i] *= m; dk.w[i] *= m; }); const m = F.pts.m ** yrs; dk.a[0] *= m; dk.a[1] *= m; dk.y = Y; }
+  if (dk.y !== Y) {
+    const yrs = Math.max(1, Y - dk.y);
+    DK.forEach((k, i) => {
+      const m = F[k].m ** yrs;
+      dk.n[i] *= m;
+      dk.w[i] *= m;
+    });
+    const m = F.pts.m ** yrs;
+    dk.a[0] *= m;
+    dk.a[1] *= m;
+    dk.y = Y;
+  }
   const age = p.age ?? 27;
-  DK.forEach((k, i) => { const d = F[k].d, poss = DK_DEF(k) ? b.onPD : b.onPO, v = k === 'xP' ? (b.xP > 0 ? b.xP : b.pts) : b[k] || 0; dk.n[i] = r2(dk.n[i] * d + v); dk.w[i] = r2(dk.w[i] * d + poss); });
-  dk.a[0] = r2(dk.a[0] * F.pts.d + age * b.onPO); dk.a[1] = r2(dk.a[1] * F.pts.d + b.onPO);
-  const rate = (k: string) => { const i = DK.indexOf(k), f = F[k]; return (100 * (dk.n[i] + f.K * f.prior)) / (dk.w[i] + f.K); };
-  const x = SPM_F.map(k => rate(k)), o = spm(FIT!.epm.o, x), d = spm(FIT!.epm.d, x), gap = dk.a[1] > 0 ? age - dk.a[0] / dk.a[1] : 0;
+  DK.forEach((k, i) => {
+    const d = F[k].d,
+      poss = DK_DEF(k) ? b.onPD : b.onPO,
+      v = k === 'xP' ? (b.xP > 0 ? b.xP : b.pts) : b[k] || 0;
+    dk.n[i] = r2(dk.n[i] * d + v);
+    dk.w[i] = r2(dk.w[i] * d + poss);
+  });
+  dk.a[0] = r2(dk.a[0] * F.pts.d + age * b.onPO);
+  dk.a[1] = r2(dk.a[1] * F.pts.d + b.onPO);
+  const rate = (k: string) => {
+    const i = DK.indexOf(k),
+      f = F[k];
+    return (100 * (dk.n[i] + f.K * f.prior)) / (dk.w[i] + f.K);
+  };
+  const x = SPM_F.map(k => rate(k)),
+    o = spm(FIT!.epm.o, x),
+    d = spm(FIT!.epm.d, x),
+    gap = dk.a[1] > 0 ? age - dk.a[0] / dk.a[1] : 0;
   (p.dkS ||= {})[Y] = [r2(o), r2(d), r2(gap)];
 }
 // A player's first tracked game: start from his last season and this season so far, as the decay would have left them.
 function darkoBoot(g: Game, p: any, Y: number, F: ImpactFit['decay']) {
   const dk = { y: Y, n: DK.map(() => 0), w: DK.map(() => 0), a: [0, 0] };
-  ([[Y - 1, true], [Y, false]] as [number, boolean][]).forEach(([y, past]) => { const t: any = g.seasonTotals(p, y); if (!t || !t.gp) return;
-    const possO = t.onPO > 0 ? t.onPO : t.min * 2.08, possD = t.onPD > 0 ? t.onPD : t.min * 2.08, age = (p.age ?? 27) - (past ? 1 : 0);
-    DK.forEach((k, i) => { const f = F[k], keep = ((1 - f.d ** t.gp) / (1 - f.d || 1e-9)) / t.gp * (past ? f.m : 1), v = k === 'xP' ? (t.xP > 0 ? t.xP : t.pts) : t[k] || 0;
-      dk.n[i] += r2(v * keep); dk.w[i] += r2((DK_DEF(k) ? possD : possO) * keep); });
-    const keep = ((1 - F.pts.d ** t.gp) / (1 - F.pts.d || 1e-9)) / t.gp * (past ? F.pts.m : 1); dk.a[0] += age * possO * keep; dk.a[1] += possO * keep; });
+  (
+    [
+      [Y - 1, true],
+      [Y, false],
+    ] as [number, boolean][]
+  ).forEach(([y, past]) => {
+    const t: any = g.seasonTotals(p, y);
+    if (!t || !t.gp) return;
+    const possO = t.onPO > 0 ? t.onPO : t.min * 2.08,
+      possD = t.onPD > 0 ? t.onPD : t.min * 2.08,
+      age = (p.age ?? 27) - (past ? 1 : 0);
+    DK.forEach((k, i) => {
+      const f = F[k],
+        keep = ((1 - f.d ** t.gp) / (1 - f.d || 1e-9) / t.gp) * (past ? f.m : 1),
+        v = k === 'xP' ? (t.xP > 0 ? t.xP : t.pts) : t[k] || 0;
+      dk.n[i] += r2(v * keep);
+      dk.w[i] += r2((DK_DEF(k) ? possD : possO) * keep);
+    });
+    const keep = ((1 - F.pts.d ** t.gp) / (1 - F.pts.d || 1e-9) / t.gp) * (past ? F.pts.m : 1);
+    dk.a[0] += age * possO * keep;
+    dk.a[1] += possO * keep;
+  });
   return dk;
 }
-const TEAM_FIELDS = ['gp', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'oPts', 'oFgm', 'oFga', 'oTpm', 'oTpa', 'oFtm', 'oFta', 'oOrb', 'oDrb', 'oTov'];
+const TEAM_FIELDS = [
+  'gp',
+  'pts',
+  'fgm',
+  'fga',
+  'tpm',
+  'tpa',
+  'ftm',
+  'fta',
+  'orb',
+  'drb',
+  'ast',
+  'stl',
+  'blk',
+  'tov',
+  'pf',
+  'oPts',
+  'oFgm',
+  'oFga',
+  'oTpm',
+  'oTpa',
+  'oFtm',
+  'oFta',
+  'oOrb',
+  'oDrb',
+  'oTov',
+];
 
 // A league-average team season (used when a past season's team totals weren't kept).
 function avgTeam(gp = 82): StatLine {
-  const fga = 89.1, tpa = BASE.tpa, fta = 23.5, fgm = fga * BASE.fg, tpm = tpa * BASE.tp, ftm = fta * BASE.ft;
-  const t: StatLine = { gp, pts: BASE.pts, fgm, fga, tpm, tpa, ftm, fta, orb: BASE.orb, drb: BASE.drb, ast: BASE.ast, stl: BASE.stl, blk: BASE.blk, tov: BASE.tov, pf: 19.5 };
-  Object.keys(t).forEach(k => { if (k !== 'gp') t[k] *= gp; });
+  const fga = 89.1,
+    tpa = BASE.tpa,
+    fta = 23.5,
+    fgm = fga * BASE.fg,
+    tpm = tpa * BASE.tp,
+    ftm = fta * BASE.ft;
+  const t: StatLine = {
+    gp,
+    pts: BASE.pts,
+    fgm,
+    fga,
+    tpm,
+    tpa,
+    ftm,
+    fta,
+    orb: BASE.orb,
+    drb: BASE.drb,
+    ast: BASE.ast,
+    stl: BASE.stl,
+    blk: BASE.blk,
+    tov: BASE.tov,
+    pf: 19.5,
+  };
+  Object.keys(t).forEach(k => {
+    if (k !== 'gp') t[k] *= gp;
+  });
   ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (t['o' + k[0].toUpperCase() + k.slice(1)] = t[k]));
   return t;
 }
 
-export interface SeasonAdvanced { byPid: Record<number, StatLine>; teams: Record<number, StatLine> }
+export interface SeasonAdvanced {
+  byPid: Record<number, StatLine>;
+  teams: Record<number, StatLine>;
+}
 
 // po: playoff advanced stats. Team playoff totals aren't kept, so each team's context is its regular
 // season scaled to the playoff games it played (its rates hold; its volume matches the playoffs).
 export function seasonAdvanced(g: Game, s: any, season: number, po = false): SeasonAdvanced {
-  const P = g.db.P, cur = season === g.Y;
+  const P = g.db.P,
+    cur = season === g.Y;
   const tsrc: Record<number, StatLine> = cur ? s.tstats || {} : (s.tstatsHist || {})[season] || {};
   const teams: Record<number, StatLine> = {};
-  s.teams.forEach(t => { const x = tsrc[t.tid]; teams[t.tid] = x && x.gp ? { ...x } : avgTeam(); });
+  s.teams.forEach(t => {
+    const x = tsrc[t.tid];
+    teams[t.tid] = x && x.gp ? { ...x } : avgTeam();
+  });
   if (po) {
     const poGp: Record<number, number> = {};
-    g.playersIn(season).forEach(p => (p.stats || []).forEach((r: any) => { if (r.season === season && r.po) poGp[r.tid] = Math.max(poGp[r.tid] || 0, r.gp); }));
-    Object.keys(teams).forEach(k => { const t = teams[+k], n = poGp[+k] || 0, f = t.gp ? n / t.gp : 0; Object.keys(t).forEach(f2 => { if (f2 !== 'gp') t[f2] *= f; }); t.gp = n; if (!n) Object.assign(t, avgTeam(1)); });
+    g.playersIn(season).forEach(p =>
+      (p.stats || []).forEach((r: any) => {
+        if (r.season === season && r.po) poGp[r.tid] = Math.max(poGp[r.tid] || 0, r.gp);
+      }),
+    );
+    Object.keys(teams).forEach(k => {
+      const t = teams[+k],
+        n = poGp[+k] || 0,
+        f = t.gp ? n / t.gp : 0;
+      Object.keys(t).forEach(f2 => {
+        if (f2 !== 'gp') t[f2] *= f;
+      });
+      t.gp = n;
+      if (!n) Object.assign(t, avgTeam(1));
+    });
   }
   // Team records for win%.
-  const recOf = (tid: number) => { if (cur) { const t = s.teams[tid]; return t.w + t.l ? t.w / (t.w + t.l) : 0.5; } const h = ((s.teamHist || {})[tid] || []).find(x => x.season === season); return h ? h.w / Math.max(1, h.w + h.l) : 0.5; };
+  const recOf = (tid: number) => {
+    if (cur) {
+      const t = s.teams[tid];
+      return t.w + t.l ? t.w / (t.w + t.l) : 0.5;
+    }
+    const h = ((s.teamHist || {})[tid] || []).find(x => x.season === season);
+    return h ? h.w / Math.max(1, h.w + h.l) : 0.5;
+  };
 
   // Player season totals (regular season), attributed to the team he played most minutes for.
   const rows: { p: any; t: StatLine; tid: number }[] = [];
   g.playersIn(season).forEach(p => {
-    const rs = (p.stats || []).filter(r => r.season === season && !!r.po === po); if (!rs.length) return;
-    const t: StatLine = {}; rs.forEach(r => Object.keys(r).forEach(k => { if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k]; }));
+    const rs = (p.stats || []).filter(r => r.season === season && !!r.po === po);
+    if (!rs.length) return;
+    const t: StatLine = {};
+    rs.forEach(r =>
+      Object.keys(r).forEach(k => {
+        if (typeof r[k] === 'number' && k !== 'season' && k !== 'tid') t[k] = (t[k] || 0) + r[k];
+      }),
+    );
     if (!t.gp || !t.min) return;
     const tid = rs.slice().sort((a, b) => b.min - a.min)[0].tid;
     rows.push({ p, t, tid });
   });
-  const wins = cur ? s.teams.reduce((a, t) => a + t.w, 0) : s.teams.reduce((a, t) => a + (((s.teamHist || {})[t.tid] || []).find(h => h.season === season)?.w ?? 41), 0);
-  return computeAdvanced(g, season, teams, rows, recOf, s.teams.map((t: any) => t.tid), wins, po);
+  const wins = cur
+    ? s.teams.reduce((a, t) => a + t.w, 0)
+    : s.teams.reduce((a, t) => a + (((s.teamHist || {})[t.tid] || []).find(h => h.season === season)?.w ?? 41), 0);
+  return computeAdvanced(
+    g,
+    season,
+    teams,
+    rows,
+    recOf,
+    s.teams.map((t: any) => t.tid),
+    wins,
+    po,
+  );
 }
 
 export type Row = { p: any; t: StatLine; tid: number };
-export function computeAdvanced(g: Game, season: number, teams: Record<number, StatLine>, rows: Row[], recOf: (tid: number) => number, tids: number[], wins: number, po = true): SeasonAdvanced {
+export function computeAdvanced(
+  g: Game,
+  season: number,
+  teams: Record<number, StatLine>,
+  rows: Row[],
+  recOf: (tid: number) => number,
+  tids: number[],
+  wins: number,
+  po = true,
+): SeasonAdvanced {
   // League context.
-  const lg: StatLine = {}; Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
+  const lg: StatLine = {};
+  Object.values(teams).forEach(t => TEAM_FIELDS.forEach(k => (lg[k] = (lg[k] || 0) + (t[k] || 0))));
   const possT = (t: StatLine) => g.possOf(t);
-  const lgPoss = possT(lg), lgPPP = lg.pts / lgPoss, lgPPG = lg.pts / lg.gp, lgPace = lgPoss / lg.gp, lgORtg = 100 * lgPPP;
-  Object.values(teams).forEach(t => { t.poss = possT(t); t.min = t.gp * 240; t.ortg = (100 * t.pts) / t.poss; t.drtg = (100 * t.oPts) / t.poss; t.pace = t.poss / t.gp; t.orbPct = t.orb / Math.max(1, t.orb + t.oDrb); });
+  const lgPoss = possT(lg),
+    lgPPP = lg.pts / lgPoss,
+    lgPPG = lg.pts / lg.gp,
+    lgPace = lgPoss / lg.gp,
+    lgORtg = 100 * lgPPP;
+  Object.values(teams).forEach(t => {
+    t.poss = possT(t);
+    t.min = t.gp * 240;
+    t.ortg = (100 * t.pts) / t.poss;
+    t.drtg = (100 * t.oPts) / t.poss;
+    t.pace = t.poss / t.gp;
+    t.orbPct = t.orb / Math.max(1, t.orb + t.oDrb);
+  });
 
-
-  const out: Record<number, StatLine> = {}, lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36;
+  const out: Record<number, StatLine> = {},
+    lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36;
   // Each team's on-floor totals (tracked seasons): the sums of its players' / 5, for on/off with him off the floor.
-  rows.forEach(({ t, tid }) => { const T = teams[tid]; if (!T || !(t.onPO > 0)) return; ['onPO', 'onPD', 'onF', 'onA', 'xF', 'xA'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0) / 5)); });
+  rows.forEach(({ t, tid }) => {
+    const T = teams[tid];
+    if (!T || !(t.onPO > 0)) return;
+    ['onPO', 'onPD', 'onF', 'onA', 'xF', 'xA'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0) / 5));
+  });
   // Pass 1: rate stats, points produced and raw box scores.
   rows.forEach(({ p, t, tid }) => {
-    const T = teams[tid] || avgTeam(), m5 = T.min / 5, share = t.min / m5, possOn = T.poss * share;
+    const T = teams[tid] || avgTeam(),
+      m5 = T.min / 5,
+      share = t.min / m5,
+      possOn = T.poss * share;
     const x: StatLine = {};
     const per100 = (v: number) => (possOn ? (v * 100) / possOn : 0);
     x.tsp = t.fga + t.fta ? (100 * t.pts) / (2 * (t.fga + 0.44 * t.fta)) : 0;
@@ -158,85 +401,207 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
     // Box plus-minus, raw (per 100 possessions on the floor).
     x._obpm = 0.8 * per100(0.86 * t.pts - 0.56 * t.fga - 0.246 * t.fta + 0.389 * t.tpm + 0.807 * t.ast - 0.964 * t.tov + 0.397 * t.orb);
     x._dbpm = per100(0.25 * t.drb + 1.6 * t.stl + 1.2 * t.blk - 0.3 * t.pf);
-    x._share = share; x._possOn = possOn;
-    if (FIT) { const lgF = FIT.lebron.grp?.[GROUP[p.pos] || 'W'] || FIT.lebron, fx = spmFeats(t, possOn), fl = spmFeats(t, possOn, t.xP > 0 ? t.xP : t.pts - 3 * ((t.tpm || 0) - (t.tpa || 0) * (t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3)));
-      x._sO = spm(FIT.epm.o, fx); x._sD = spm(FIT.epm.d, fx); x._lO = spm(lgF.o, fl); x._lD = spm(lgF.d, fl); }
+    x._share = share;
+    x._possOn = possOn;
+    if (FIT) {
+      const lgF = FIT.lebron.grp?.[GROUP[p.pos] || 'W'] || FIT.lebron,
+        fx = spmFeats(t, possOn),
+        fl = spmFeats(
+          t,
+          possOn,
+          t.xP > 0 ? t.xP : t.pts - 3 * ((t.tpm || 0) - (t.tpa || 0) * (t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3)),
+        );
+      x._sO = spm(FIT.epm.o, fx);
+      x._sD = spm(FIT.epm.d, fx);
+      x._lO = spm(lgF.o, fl);
+      x._lD = spm(lgF.d, fl);
+    }
     out[p.id] = x;
   });
   // Hollinger's PER (hollingerU, aPER scaled so the league's minute-weighted average is 15): the PER column and EWA.
   {
-    let a = 0, w = 0;
-    rows.forEach(({ p, t, tid }) => { const T = teams[tid] || avgTeam(), ap = (lgPace / Math.max(1, T.pace || lgPace)) * hollingerU(t, lg, T); out[p.id]._aper = ap; a += ap * t.min; w += t.min; });
-    const lgA = w && a > 0 ? a / w : 0; rows.forEach(({ p }) => { const x = out[p.id]; x._perH = lgA ? (x._aper * 15) / lgA : 0; });
+    let a = 0,
+      w = 0;
+    rows.forEach(({ p, t, tid }) => {
+      const T = teams[tid] || avgTeam(),
+        ap = (lgPace / Math.max(1, T.pace || lgPace)) * hollingerU(t, lg, T);
+      out[p.id]._aper = ap;
+      a += ap * t.min;
+      w += t.min;
+    });
+    const lgA = w && a > 0 ? a / w : 0;
+    rows.forEach(({ p }) => {
+      const x = out[p.id];
+      x._perH = lgA ? (x._aper * 15) / lgA : 0;
+    });
   }
   // League min-weighted means to centre the raw numbers.
-  const wmean = (k: string) => { let a = 0, w = 0; rows.forEach(({ p, t }) => { a += out[p.id][k] * t.min; w += t.min; }); return w ? a / w : 0; };
+  const wmean = (k: string) => {
+    let a = 0,
+      w = 0;
+    rows.forEach(({ p, t }) => {
+      a += out[p.id][k] * t.min;
+      w += t.min;
+    });
+    return w ? a / w : 0;
+  };
   const ortgRaw = (x: StatLine) => (x._totPoss ? (100 * x._pprod) / x._totPoss : lgORtg);
-  let a0 = 0, w0 = 0; rows.forEach(({ p }) => { const x = out[p.id]; a0 += x._pprod; w0 += x._totPoss; });
+  let a0 = 0,
+    w0 = 0;
+  rows.forEach(({ p }) => {
+    const x = out[p.id];
+    a0 += x._pprod;
+    w0 += x._totPoss;
+  });
   const k = w0 ? lgPPP / (a0 / w0) : 1; // points produced sum to league scoring
   const stopMean = wmean('_stops');
-  const boxO = wmean('_obpm'), boxD = wmean('_dbpm'); // raw box per 100, league means (to centre past seasons for DARKO)
+  const boxO = wmean('_obpm'),
+    boxD = wmean('_dbpm'); // raw box per 100, league means (to centre past seasons for DARKO)
   const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
   // Team BPM adjustments so each team's minute-weighted BPM matches its ratings.
   const adj: Record<number, { o: number; d: number }> = {};
-  tids.forEach(tm0 => { const tm = { tid: tm0 }, T = teams[tm.tid]; let o = 0, d = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tm.tid) return; o += out[p.id]._obpm * t.min; d += out[p.id]._dbpm * t.min; w += t.min; });
-    adj[tm.tid] = { o: (T.ortg - lgORtg) / 5 - (w ? o / w : 0), d: (lgORtg - T.drtg) / 5 - (w ? d / w : 0) }; });
+  tids.forEach(tm0 => {
+    const tm = { tid: tm0 },
+      T = teams[tm.tid];
+    let o = 0,
+      d = 0,
+      w = 0;
+    rows.forEach(({ p, t, tid }) => {
+      if (tid !== tm.tid) return;
+      o += out[p.id]._obpm * t.min;
+      d += out[p.id]._dbpm * t.min;
+      w += t.min;
+    });
+    adj[tm.tid] = { o: (T.ortg - lgORtg) / 5 - (w ? o / w : 0), d: (lgORtg - T.drtg) / 5 - (w ? d / w : 0) };
+  });
   // The same team adjustment for the fitted priors (used where there's no lineup regression, and by DARKO).
   const adjS: Record<number, { o: number; d: number; lo: number; ld: number }> = {};
-  if (FIT) tids.forEach(tid0 => { const T = teams[tid0]; let o = 0, d = 0, lo = 0, ld = 0, w = 0; rows.forEach(({ p, t, tid }) => { if (tid !== tid0) return; const x = out[p.id]; o += x._sO * t.min; d += x._sD * t.min; lo += x._lO * t.min; ld += x._lD * t.min; w += t.min; });
-    const to = (T.ortg - lgORtg) / 5, td = (lgORtg - T.drtg) / 5; adjS[tid0] = { o: to - (w ? o / w : 0), d: td - (w ? d / w : 0), lo: to - (w ? lo / w : 0), ld: td - (w ? ld / w : 0) }; });
+  if (FIT)
+    tids.forEach(tid0 => {
+      const T = teams[tid0];
+      let o = 0,
+        d = 0,
+        lo = 0,
+        ld = 0,
+        w = 0;
+      rows.forEach(({ p, t, tid }) => {
+        if (tid !== tid0) return;
+        const x = out[p.id];
+        o += x._sO * t.min;
+        d += x._sD * t.min;
+        lo += x._lO * t.min;
+        ld += x._lD * t.min;
+        w += t.min;
+      });
+      const to = (T.ortg - lgORtg) / 5,
+        td = (lgORtg - T.drtg) / 5;
+      adjS[tid0] = { o: to - (w ? o / w : 0), d: td - (w ? d / w : 0), lo: to - (w ? lo / w : 0), ld: td - (w ? ld / w : 0) };
+    });
 
   rows.forEach(({ p, t, tid }) => {
-    const x = out[p.id], T = teams[tid] || avgTeam(), gp = t.gp, mppw = 0.32 * lgPPG * (T.pace / lgPace);
+    const x = out[p.id],
+      T = teams[tid] || avgTeam(),
+      gp = t.gp,
+      mppw = 0.32 * lgPPG * (T.pace / lgPace);
     x.ortg = Math.max(40, Math.min(180, ortgRaw(x) * k));
     x.drtg = Math.max(85, Math.min(140, T.drtg - 0.5 * (x._stops - stopMean)));
     const margOff = x._pprod * k - 0.92 * lgPPP * x._totPoss;
     x.ows = margOff / mppw;
     x.dws = ((t.min / T.min) * T.poss * (1.08 * lgPPP - x.drtg / 100)) / mppw;
-    x.ws = x.ows + x.dws; x.ws48 = (x.ws * 48) / t.min;
-    x.obpm = x._obpm + (adj[tid]?.o ?? 0); x.dbpm = x._dbpm + (adj[tid]?.d ?? 0);
+    x.ws = x.ows + x.dws;
+    x.ws48 = (x.ws * 48) / t.min;
+    x.obpm = x._obpm + (adj[tid]?.o ?? 0);
+    x.dbpm = x._dbpm + (adj[tid]?.d ?? 0);
     // Shrink small-sample BPM toward replacement level (-2).
-    const rel = Math.min(1, t.min / 500); x.obpm = x.obpm * rel + -1.5 * (1 - rel); x.dbpm = x.dbpm * rel + -0.5 * (1 - rel);
+    const rel = Math.min(1, t.min / 500);
+    x.obpm = x.obpm * rel + -1.5 * (1 - rel);
+    x.dbpm = x.dbpm * rel + -0.5 * (1 - rel);
     x.bpm = x.obpm + x.dbpm;
     x.vorp = (x.bpm + 2) * x._share * (T.gp / 82);
     x.per = x._perH; // Hollinger's PER in this season's context (Game.perOf gives the same outside the advanced tables)
-    x.ewa = ((x._perH - (PRL[p.pos] ?? 10.8)) * t.min / 67) / 30; // Hollinger: value added = minutes × (PER − his position's replacement PER) / 67; wins = that / 30
-    const teamDiff = T.pts - T.oPts, possOff = Math.max(1, T.poss - x._possOn);
-    x.pm = t.pm || 0; x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
+    x.ewa = ((x._perH - (PRL[p.pos] ?? 10.8)) * t.min) / 67 / 30; // Hollinger: value added = minutes × (PER − his position's replacement PER) / 67; wins = that / 30
+    const teamDiff = T.pts - T.oPts,
+      possOff = Math.max(1, T.poss - x._possOn);
+    x.pm = t.pm || 0;
+    x.pm100 = x._possOn ? (100 * x.pm) / x._possOn : 0;
     x.onOff100 = x.pm100 - (100 * (teamDiff - x.pm)) / possOff;
     // EPM, LEBRON and DARKO (2026-10-17 rework, docs/ADVANCED_ESTIMATES.md). Kept here: the unshrunk, team-adjusted
     // box score (obpmU/dbpmU), his possessions on the floor, and the box-score luck LEBRON removes. The metrics are
     // finished after this loop: RAPM per team where lineup data exists (current tracked seasons), else on/off.
-    x.obpmU = x._obpm + (adj[tid]?.o ?? 0); x.dbpmU = x._dbpm + (adj[tid]?.d ?? 0);
-    if (FIT) { const A = adjS[tid] || { o: 0, d: 0, lo: 0, ld: 0 }, sh = (v: number, to: number) => v * rel + to * (1 - rel);
-      x.sO = sh(x._sO, -1.5); x.sD = sh(x._sD, -0.5); x.lO = sh(x._lO, -1.5); x.lD = sh(x._lD, -0.5); // the priors: his own box score, as fitted
-      x.sOA = sh(x._sO + A.o, -1.5); x.sDA = sh(x._sD + A.d, -0.5); x.lOA = sh(x._lO + A.lo, -1.5); x.lDA = sh(x._lD + A.ld, -0.5); x.dkAO = A.o; x.dkAD = A.d; } // team-adjusted
-    x.possO = t.onPO > 0 ? t.onPO : x._possOn; x.possD = t.onPD > 0 ? t.onPD : x._possOn;
+    x.obpmU = x._obpm + (adj[tid]?.o ?? 0);
+    x.dbpmU = x._dbpm + (adj[tid]?.d ?? 0);
+    if (FIT) {
+      const A = adjS[tid] || { o: 0, d: 0, lo: 0, ld: 0 },
+        sh = (v: number, to: number) => v * rel + to * (1 - rel);
+      x.sO = sh(x._sO, -1.5);
+      x.sD = sh(x._sD, -0.5);
+      x.lO = sh(x._lO, -1.5);
+      x.lD = sh(x._lD, -0.5); // the priors: his own box score, as fitted
+      x.sOA = sh(x._sO + A.o, -1.5);
+      x.sDA = sh(x._sD + A.d, -0.5);
+      x.lOA = sh(x._lO + A.lo, -1.5);
+      x.lDA = sh(x._lD + A.ld, -0.5);
+      x.dkAO = A.o;
+      x.dkAD = A.d;
+    } // team-adjusted
+    x.possO = t.onPO > 0 ? t.onPO : x._possOn;
+    x.possD = t.onPD > 0 ? t.onPD : x._possOn;
     // His own shooting luck on offense: actual minus expected points on his shots (tracked seasons), else his
     // threes regressed toward the league's (750 attempts), turned into box-score points.
-    const lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36, exp3 = t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3;
-    x.luckBox = t.xP > 0 ? (0.8 * 0.86 * 100 * (t.pts - t.xP)) / Math.max(1, x.possO) : (2.375 * 100 * (t.tpm - t.tpa * exp3)) / Math.max(1, x.possO);
+    const lg3 = lg.tpa ? lg.tpm / lg.tpa : 0.36,
+      exp3 = t.tpa ? (t.tpm + 750 * lg3) / (t.tpa + 750) : lg3;
+    x.luckBox =
+      t.xP > 0 ? (0.8 * 0.86 * 100 * (t.pts - t.xP)) / Math.max(1, x.possO) : (2.375 * 100 * (t.tpm - t.tpa * exp3)) / Math.max(1, x.possO);
     // On/off per 100, offense and defense apart where tracked (points for and against while on and off), with
     // expected points for the luck-adjusted version; older seasons split the plus-minus on/off evenly.
     if (t.onPO > 0 && t.onPD > 0 && T.onPO > 0) {
-      const offO = Math.max(1, T.onPO - t.onPO), offD = Math.max(1, T.onPD - t.onPD);
-      x.ooff = (100 * t.onF) / t.onPO - (100 * (T.onF - t.onF)) / offO; x.doff = (100 * (T.onA - t.onA)) / offD - (100 * t.onA) / t.onPD;
-      x.ooffX = (100 * t.xF) / t.onPO - (100 * (T.xF - t.xF)) / offO; x.doffX = (100 * (T.xA - t.xA)) / offD - (100 * t.xA) / t.onPD;
-      x.nOff = 1 / (1 / t.onPO + 1 / offO); x.nDef = 1 / (1 / t.onPD + 1 / offD);
-    } else { x.ooff = x.doff = x.ooffX = x.doffX = x.onOff100 * 0.5; const offP = Math.max(1, T.poss - x._possOn); x.nOff = x.nDef = x._possOn > 0 ? 1 / (1 / x._possOn + 1 / offP) : 0; }
+      const offO = Math.max(1, T.onPO - t.onPO),
+        offD = Math.max(1, T.onPD - t.onPD);
+      x.ooff = (100 * t.onF) / t.onPO - (100 * (T.onF - t.onF)) / offO;
+      x.doff = (100 * (T.onA - t.onA)) / offD - (100 * t.onA) / t.onPD;
+      x.ooffX = (100 * t.xF) / t.onPO - (100 * (T.xF - t.xF)) / offO;
+      x.doffX = (100 * (T.xA - t.xA)) / offD - (100 * t.xA) / t.onPD;
+      x.nOff = 1 / (1 / t.onPO + 1 / offO);
+      x.nDef = 1 / (1 / t.onPD + 1 / offD);
+    } else {
+      x.ooff = x.doff = x.ooffX = x.doffX = x.onOff100 * 0.5;
+      const offP = Math.max(1, T.poss - x._possOn);
+      x.nOff = x.nDef = x._possOn > 0 ? 1 / (1 / x._possOn + 1 / offP) : 0;
+    }
     // Per-game and totals the formulas use.
-    x.gp = gp; x.gs = t.gs || 0; x.min = t.min / gp; x.minTot = t.min;
-    ['pts', 'ast', 'stl', 'blk', 'tov', 'pf', 'orb', 'drb', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta'].forEach(f => (x[f] = (t[f] || 0) / gp));
+    x.gp = gp;
+    x.gs = t.gs || 0;
+    x.min = t.min / gp;
+    x.minTot = t.min;
+    ['pts', 'ast', 'stl', 'blk', 'tov', 'pf', 'orb', 'drb', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta'].forEach(
+      f => (x[f] = (t[f] || 0) / gp),
+    );
     x.trb = (t.orb + t.drb) / gp;
-    x.fgp = t.fga ? (100 * t.fgm) / t.fga : 0; x.tpp = t.tpa ? (100 * t.tpm) / t.tpa : 0; x.ftp = t.fta ? (100 * t.ftm) / t.fta : 0;
-    x.winp = recOf(tid); x.won = 0; x.tid = tid; x.age = p.age;
+    x.fgp = t.fga ? (100 * t.fgm) / t.fga : 0;
+    x.tpp = t.tpa ? (100 * t.tpm) / t.tpa : 0;
+    x.ftp = t.fta ? (100 * t.ftm) / t.fta : 0;
+    x.winp = recOf(tid);
+    x.won = 0;
+    x.tid = tid;
+    x.age = p.age;
     x.seasonFraction = Math.min(1, (T.gp || 82) / 82);
-    Object.keys(x).forEach(f => { if (f.startsWith('_')) delete x[f]; });
+    Object.keys(x).forEach(f => {
+      if (f.startsWith('_')) delete x[f];
+    });
   });
   finishImpact(g, season, rows, out, teams, lg, po);
   // Win shares sum to the league's wins (as on Basketball-Reference).
   const wsSum = rows.reduce((a, { p }) => a + out[p.id].ws, 0);
-  if (wsSum > 0 && wins > 0) { const f = wins / wsSum; rows.forEach(({ p, t }) => { const x = out[p.id]; x.ows *= f; x.dws *= f; x.ws = x.ows + x.dws; x.ws48 = (x.ws * 48) / t.min; }); }
+  if (wsSum > 0 && wins > 0) {
+    const f = wins / wsSum;
+    rows.forEach(({ p, t }) => {
+      const x = out[p.id];
+      x.ows *= f;
+      x.dws *= f;
+      x.ws = x.ows + x.dws;
+      x.ws48 = (x.ws * 48) / t.min;
+    });
+  }
   // Team win shares, for "share of the team's WS".
   const teamWs: Record<number, number> = {};
   rows.forEach(({ p, tid }) => (teamWs[tid] = (teamWs[tid] || 0) + out[p.id].ws));
@@ -248,13 +613,36 @@ export function computeAdvanced(g: Game, season: number, teams: Record<number, S
 // sum of their players; opponents are taken as a league-average team (CCP box scores keep no
 // opponent totals), and records as .500 for win shares.
 export function ccpAdvanced(g: Game, s: any, season: number, po = false): SeasonAdvanced {
-  const P = g.db.P, key = season + (po ? 'p' : ''), ab: Record<string, number> = {}, rows: Row[] = [];
-  (Object.values(P) as any[]).forEach(p => { const t = p.ccpS?.[key]; if (!t || !t.gp || !t.min) return; if (ab[t.team] == null) ab[t.team] = Object.keys(ab).length; rows.push({ p, t: { ...t }, tid: ab[t.team] }); });
+  const P = g.db.P,
+    key = season + (po ? 'p' : ''),
+    ab: Record<string, number> = {},
+    rows: Row[] = [];
+  (Object.values(P) as any[]).forEach(p => {
+    const t = p.ccpS?.[key];
+    if (!t || !t.gp || !t.min) return;
+    if (ab[t.team] == null) ab[t.team] = Object.keys(ab).length;
+    rows.push({ p, t: { ...t }, tid: ab[t.team] });
+  });
   const teams: Record<number, StatLine> = {};
-  rows.forEach(({ t, tid }) => { const T = (teams[tid] = teams[tid] || { gp: 0 }); ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'].forEach(k => (T[k] = (T[k] || 0) + (t[k] || 0))); T.gp = Math.max(T.gp, t.gp); });
-  const tids = Object.keys(teams).map(Number), n = tids.length || 1, avgPg: StatLine = {};
-  ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (avgPg[k] = tids.reduce((a, id) => a + teams[id][k] / Math.max(1, teams[id].gp), 0) / n));
-  tids.forEach(id => { const T = teams[id]; ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(k => (T['o' + k[0].toUpperCase() + k.slice(1)] = avgPg[k] * T.gp)); });
+  rows.forEach(({ t, tid }) => {
+    const T = (teams[tid] = teams[tid] || { gp: 0 });
+    ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf'].forEach(
+      k => (T[k] = (T[k] || 0) + (t[k] || 0)),
+    );
+    T.gp = Math.max(T.gp, t.gp);
+  });
+  const tids = Object.keys(teams).map(Number),
+    n = tids.length || 1,
+    avgPg: StatLine = {};
+  ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(
+    k => (avgPg[k] = tids.reduce((a, id) => a + teams[id][k] / Math.max(1, teams[id].gp), 0) / n),
+  );
+  tids.forEach(id => {
+    const T = teams[id];
+    ['pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'tov'].forEach(
+      k => (T['o' + k[0].toUpperCase() + k.slice(1)] = avgPg[k] * T.gp),
+    );
+  });
   const wins = tids.reduce((a, id) => a + teams[id].gp / 2, 0);
   return computeAdvanced(g, season, teams, rows, () => 0.5, tids, wins, true);
 }
@@ -265,19 +653,51 @@ export function ccpAdvanced(g: Game, s: any, season: number, po = false): Season
 // tq: how good his team was (amateurStats.ts situation), about one standard deviation: box plus-minus gives
 // players on better teams more credit, as the real one's team adjustment does.
 export function amateurAdvanced(g: Game, list: { p: any; t: StatLine; tq?: number }[]): Record<number, StatLine> {
-  const teams: Record<number, StatLine> = {}, rows: Row[] = list.map((x, i) => { teams[i] = avgTeam(x.t.gp || 30); return { p: x.p, t: { ...x.t }, tid: i, tq: x.tq || 0 }; });
+  const teams: Record<number, StatLine> = {},
+    rows: Row[] = list.map((x, i) => {
+      teams[i] = avgTeam(x.t.gp || 30);
+      return { p: x.p, t: { ...x.t }, tid: i, tq: x.tq || 0 };
+    });
   if (!rows.length) return {};
   const { byPid } = computeAdvanced(g, 1, teams, rows, () => 0.5, [], 0, true);
-  let w = 0, mo = 0, md = 0; rows.forEach(({ p, t }) => { const x = byPid[p.id]; mo += x.obpm * t.min; md += x.dbpm * t.min; w += t.min; });
-  mo = w ? mo / w : 0; md = w ? md / w : 0;
-  rows.forEach(({ p, t, tq }: any) => { const x = byPid[p.id]; x.obpm -= mo - 1.2 * tq; x.dbpm -= md - 0.8 * tq; x.bpm = x.obpm + x.dbpm; x.ws40 = (x.ws48 * 40) / 48; void t; ['vorp', 'pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]); }); // no lineups or standings for amateurs
+  let w = 0,
+    mo = 0,
+    md = 0;
+  rows.forEach(({ p, t }) => {
+    const x = byPid[p.id];
+    mo += x.obpm * t.min;
+    md += x.dbpm * t.min;
+    w += t.min;
+  });
+  mo = w ? mo / w : 0;
+  md = w ? md / w : 0;
+  rows.forEach(({ p, t, tq }: any) => {
+    const x = byPid[p.id];
+    x.obpm -= mo - 1.2 * tq;
+    x.dbpm -= md - 0.8 * tq;
+    x.bpm = x.obpm + x.dbpm;
+    x.ws40 = (x.ws48 * 40) / 48;
+    void t;
+    ['vorp', 'pm', 'pm100', 'onOff100', 'winp', 'won', 'teamWs'].forEach(f => delete x[f]);
+  }); // no lineups or standings for amateurs
   return byPid;
 }
 
 // Playoff series stats (Finals / conference finals) for series-MVP formulas.
 export function seriesLine(t: any): StatLine {
   const gp = t.gp || 1;
-  const gmsc = t.pts + 0.4 * t.fgm - 0.7 * t.fga - 0.4 * (t.fta - t.ftm) + 0.7 * t.orb + 0.3 * t.drb + t.stl + 0.7 * t.ast + 0.7 * t.blk - 0.4 * t.pf - t.tov;
+  const gmsc =
+    t.pts +
+    0.4 * t.fgm -
+    0.7 * t.fga -
+    0.4 * (t.fta - t.ftm) +
+    0.7 * t.orb +
+    0.3 * t.drb +
+    t.stl +
+    0.7 * t.ast +
+    0.7 * t.blk -
+    0.4 * t.pf -
+    t.tov;
   const x: StatLine = { gp: t.gp || 0, min: (t.min || 0) / gp, gmsc: gmsc / gp, pm: (t.pm || 0) / gp };
   ['pts', 'ast', 'stl', 'blk', 'tov', 'pf', 'orb', 'drb', 'fgm', 'fga'].forEach(f => (x[f] = (t[f] || 0) / gp));
   x.trb = ((t.orb || 0) + (t.drb || 0)) / gp;
@@ -293,17 +713,34 @@ export function seriesLine(t: any): StatLine {
 const PAST = new WeakMap<object, { y: number; m: Map<number, SeasonAdvanced> }>();
 function pastSeason(g: Game, y: number): SeasonAdvanced | null {
   if (y >= g.Y || y < (g.db.firstSeason ?? 2027) - 1) return null;
-  let c = PAST.get(g.db); if (!c) PAST.set(g.db, (c = { y: g.Y, m: new Map() }));
-  if (c.y !== g.Y) { for (const k of c.m.keys()) if (k < g.Y - 6) c.m.delete(k); c.y = g.Y; }
+  let c = PAST.get(g.db);
+  if (!c) PAST.set(g.db, (c = { y: g.Y, m: new Map() }));
+  if (c.y !== g.Y) {
+    for (const k of c.m.keys()) if (k < g.Y - 6) c.m.delete(k);
+    c.y = g.Y;
+  }
   const m = c.m;
-  if (!m.has(y)) { m.set(y, { byPid: {}, teams: {} }); m.set(y, seasonAdvanced(g, g.state, y)); }
+  if (!m.has(y)) {
+    m.set(y, { byPid: {}, teams: {} });
+    m.set(y, seasonAdvanced(g, g.state, y));
+  }
   return m.get(y)!;
 }
 // Solve a small dense system (Gaussian elimination with partial pivoting).
 function solve(A: number[][], b: number[]): number[] {
-  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
-  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
-    const d = M[c][c] || 1e-9; for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / d; if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const n = b.length,
+    M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    const d = M[c][c] || 1e-9;
+    for (let r = 0; r < n; r++)
+      if (r !== c) {
+        const f = M[r][c] / d;
+        if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+      }
+  }
   return M.map((r, i) => r[n] / (r[i] || 1e-9));
 }
 // Ridge RAPM per team from the season's lineup stints (Game.addStints): (X'X + λI)β = X'y + λ·prior, points per
@@ -312,24 +749,57 @@ function solve(A: number[][], b: number[]): number[] {
 // shot's and free throw's luck removed, both teams). Teammates are adjusted for; opponents count as average.
 export const RAPM = { lambda: 10000 }; // ridge strength, in possessions of the box-score prior (picked by the prediction test, docs/ADVANCED_ESTIMATES.md)
 function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number; dL?: number } | null) {
-  let sp = 0, sx = 0, sn = 0; Object.values(R).forEach((T: any) => { for (const k in T.O.yp) { const n = T.O.xx[k + ',' + k] || 0; sp += T.O.yp[k]; sx += T.O.yx[k]; sn += n; } });
+  let sp = 0,
+    sx = 0,
+    sn = 0;
+  Object.values(R).forEach((T: any) => {
+    for (const k in T.O.yp) {
+      const n = T.O.xx[k + ',' + k] || 0;
+      sp += T.O.yp[k];
+      sx += T.O.yx[k];
+      sn += n;
+    }
+  });
   if (sn < 5000) return null;
-  const lgP = sp / sn, lgX = sx / sn, acc: Record<number, { w: number; o: number; d: number; oX: number; dX: number }> = {};
+  const lgP = sp / sn,
+    lgX = sx / sn,
+    acc: Record<number, { w: number; o: number; d: number; oX: number; dX: number }> = {};
   const block = (M: any, def: boolean) => {
-    const ids = Object.keys(M.yp).map(Number), m = ids.length; if (!m) return null;
-    const A = ids.map(a => ids.map(b => M.xx[Math.min(a, b) + ',' + Math.max(a, b)] || 0)), pr = ids.map(id => prior(id));
-    const L = RAPM.lambda, Ar = A.map((r, i) => r.map((v, j) => v + (i === j ? L : 0)));
-    const pO = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.o) / 100 : def ? 0.005 : -0.015), pX = (i: number) => (pr[i] ? (def ? -(pr[i]!.dL ?? pr[i]!.d) : pr[i]!.oL) / 100 : def ? 0.005 : -0.015);
-    const bP = ids.map((id, i) => M.yp[id] - lgP * A[i][i] + L * pO(i)), bX = ids.map((id, i) => M.yx[id] - lgX * A[i][i] + L * pX(i));
+    const ids = Object.keys(M.yp).map(Number),
+      m = ids.length;
+    if (!m) return null;
+    const A = ids.map(a => ids.map(b => M.xx[Math.min(a, b) + ',' + Math.max(a, b)] || 0)),
+      pr = ids.map(id => prior(id));
+    const L = RAPM.lambda,
+      Ar = A.map((r, i) => r.map((v, j) => v + (i === j ? L : 0)));
+    const pO = (i: number) => (pr[i] ? (def ? -pr[i]!.d : pr[i]!.o) / 100 : def ? 0.005 : -0.015),
+      pX = (i: number) => (pr[i] ? (def ? -(pr[i]!.dL ?? pr[i]!.d) : pr[i]!.oL) / 100 : def ? 0.005 : -0.015);
+    const bP = ids.map((id, i) => M.yp[id] - lgP * A[i][i] + L * pO(i)),
+      bX = ids.map((id, i) => M.yx[id] - lgX * A[i][i] + L * pX(i));
     return { ids, n: ids.map((_, i) => A[i][i]), P: solve(Ar, bP), X: solve(Ar, bX) };
   };
   Object.values(R).forEach((T: any) => {
-    const O = block(T.O, false), D = block(T.D, true);
-    O?.ids.forEach((id, i) => { const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 }); a.o += O.P[i] * 100 * O.n[i]; a.oX += O.X[i] * 100 * O.n[i]; a.w += O.n[i]; });
-    D?.ids.forEach((id, i) => { const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 }); a.d += -D.P[i] * 100 * D.n[i]; a.dX += -D.X[i] * 100 * D.n[i]; (a as any).wd = ((a as any).wd || 0) + D.n[i]; });
+    const O = block(T.O, false),
+      D = block(T.D, true);
+    O?.ids.forEach((id, i) => {
+      const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 });
+      a.o += O.P[i] * 100 * O.n[i];
+      a.oX += O.X[i] * 100 * O.n[i];
+      a.w += O.n[i];
+    });
+    D?.ids.forEach((id, i) => {
+      const a = (acc[id] ||= { w: 0, o: 0, d: 0, oX: 0, dX: 0 });
+      a.d += -D.P[i] * 100 * D.n[i];
+      a.dX += -D.X[i] * 100 * D.n[i];
+      (a as any).wd = ((a as any).wd || 0) + D.n[i];
+    });
   });
   const out: Record<number, { o: number; d: number; oX: number; dX: number }> = {};
-  for (const id in acc) { const a: any = acc[id]; if (!a.w || !a.wd) continue; out[+id] = { o: a.o / a.w, oX: a.oX / a.w, d: a.d / a.wd, dX: a.dX / a.wd }; }
+  for (const id in acc) {
+    const a: any = acc[id];
+    if (!a.w || !a.wd) continue;
+    out[+id] = { o: a.o / a.w, oX: a.oX / a.w, d: a.d / a.wd, dX: a.dX / a.wd };
+  }
   return out;
 }
 // The expected yearly change in BPM at each age, fitted from this league's own players (1,000+ possessions in two
@@ -337,49 +807,167 @@ function rapm(R: any, prior: (pid: number) => { o: number; d: number; oL: number
 function agingCurve(g: Game, season: number): (age: number) => number {
   const def = (a: number) => Math.max(-1.5, Math.min(1.5, -0.17 * (a - 26.5)));
   const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
-  const pairs: [number, number][] = [], top = Math.min(season, g.Y - 1);
-  for (let y = top; y > top - 4; y--) { const A = pastSeason(g, y - 1), B = pastSeason(g, y); if (!A || !B) continue;
-    for (const id in B.byPid) { const b = B.byPid[id], a = A.byPid[id]; if (!a || !(a.possO >= 1000) || !(b.possO >= 1000)) continue; const p = g.db.P[+id]; if (!p) continue;
-      pairs.push([gAge(p, y - 1) - 27, b.obpmU + b.dbpmU - a.obpmU - a.dbpmU]); } }
+  const pairs: [number, number][] = [],
+    top = Math.min(season, g.Y - 1);
+  for (let y = top; y > top - 4; y--) {
+    const A = pastSeason(g, y - 1),
+      B = pastSeason(g, y);
+    if (!A || !B) continue;
+    for (const id in B.byPid) {
+      const b = B.byPid[id],
+        a = A.byPid[id];
+      if (!a || !(a.possO >= 1000) || !(b.possO >= 1000)) continue;
+      const p = g.db.P[+id];
+      if (!p) continue;
+      pairs.push([gAge(p, y - 1) - 27, b.obpmU + b.dbpmU - a.obpmU - a.dbpmU]);
+    }
+  }
   if (pairs.length < 40) return def;
-  const n = pairs.length, mx = pairs.reduce((s, [x]) => s + x, 0) / n, my = pairs.reduce((s, [, y]) => s + y, 0) / n;
-  const sxx = pairs.reduce((s, [x]) => s + (x - mx) ** 2, 0), sxy = pairs.reduce((s, [x, y]) => s + (x - mx) * (y - my), 0), b = sxx ? sxy / sxx : 0, a = my - b * mx;
+  const n = pairs.length,
+    mx = pairs.reduce((s, [x]) => s + x, 0) / n,
+    my = pairs.reduce((s, [, y]) => s + y, 0) / n;
+  const sxx = pairs.reduce((s, [x]) => s + (x - mx) ** 2, 0),
+    sxy = pairs.reduce((s, [x, y]) => s + (x - mx) * (y - my), 0),
+    b = sxx ? sxy / sxx : 0,
+    a = my - b * mx;
   return (age: number) => Math.max(-2, Math.min(2, a + b * (age - 27)));
 }
 export const IMPACT_SD = 2.7; // each metric's spread among the season's regulars, refit every season (2026-10-17)
-function finishImpact(g: Game, season: number, rows: Row[], out: Record<number, StatLine>, teams: Record<number, StatLine>, lg: StatLine, po: boolean) {
+function finishImpact(
+  g: Game,
+  season: number,
+  rows: Row[],
+  out: Record<number, StatLine>,
+  teams: Record<number, StatLine>,
+  lg: StatLine,
+  po: boolean,
+) {
   const gAge = (p: any, y: number) => (typeof (g as any).ageIn === 'function' ? (g as any).ageIn(p, y) : p.age);
   // EPM and LEBRON: RAPM where the season's lineups were tracked (regular season), else the box score blended
   // with on/off; the on/off weight counts how few possessions he had OFF the floor too (n = 1/(1/on + 1/off)).
   const R = !po ? (g.db.rapm || {})[season] : null;
-  const RP = R ? rapm(R, id => { const x = out[id]; return !x ? null : FIT?.usePrior ? { o: x.sO, d: x.sD, oL: x.lO, dL: x.lD } : { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) }; }) : null;
-  rows.forEach(({ p }) => { const x = out[p.id], r = RP?.[p.id];
-    if (r) { x.oepm = r.o; x.depm = r.d; x.olebron = r.oX; x.dlebron = r.dX; return; }
-    const wO = x.nOff / (x.nOff + 6000), wD = x.nDef / (x.nDef + 6000), lO = x.nOff / (x.nOff + 5000), lD = x.nDef / (x.nDef + 5000);
-    const FP = !!FIT?.usePrior, bO = FP ? x.sOA : x.obpm, bD = FP ? x.sDA : x.dbpm, bLO = FP ? x.lOA : x.obpm - x.luckBox, bLD = FP ? x.lDA : x.dbpm;
-    x.oepm = bO * (1 - wO) + x.ooff * wO; x.depm = bD * (1 - wD) + x.doff * wD;
-    x.olebron = bLO * (1 - lO) + x.ooffX * lO; x.dlebron = bLD * (1 - lD) + x.doffX * lD; });
+  const RP = R
+    ? rapm(R, id => {
+        const x = out[id];
+        return !x
+          ? null
+          : FIT?.usePrior
+            ? { o: x.sO, d: x.sD, oL: x.lO, dL: x.lD }
+            : { o: x.obpm, d: x.dbpm, oL: x.obpm - x.luckBox * Math.min(1, (x.minTot ?? 0) / 500) };
+      })
+    : null;
+  rows.forEach(({ p }) => {
+    const x = out[p.id],
+      r = RP?.[p.id];
+    if (r) {
+      x.oepm = r.o;
+      x.depm = r.d;
+      x.olebron = r.oX;
+      x.dlebron = r.dX;
+      return;
+    }
+    const wO = x.nOff / (x.nOff + 6000),
+      wD = x.nDef / (x.nDef + 6000),
+      lO = x.nOff / (x.nOff + 5000),
+      lD = x.nDef / (x.nDef + 5000);
+    const FP = !!FIT?.usePrior,
+      bO = FP ? x.sOA : x.obpm,
+      bD = FP ? x.sDA : x.dbpm,
+      bLO = FP ? x.lOA : x.obpm - x.luckBox,
+      bLD = FP ? x.lDA : x.dbpm;
+    x.oepm = bO * (1 - wO) + x.ooff * wO;
+    x.depm = bD * (1 - wD) + x.doff * wD;
+    x.olebron = bLO * (1 - lO) + x.ooffX * lO;
+    x.dlebron = bLD * (1 - lD) + x.doffX * lD;
+  });
   // DARKO: his current level. This season's unshrunk box score and his last three (each in its own season's
   // pace, league means and team context), older ones weighted less (×0.55 a year), each aged forward to now
   // along the league's own aging curve, regressed toward a slightly-below-average prior worth 1,500 possessions.
   const dA = agingCurve(g, season);
-  rows.forEach(({ p }) => { const x = out[p.id], now = gAge(p, season), dk = FIT ? p.dkS?.[season] : null;
+  rows.forEach(({ p }) => {
+    const x = out[p.id],
+      now = gAge(p, season),
+      dk = FIT ? p.dkS?.[season] : null;
     // Game by game where kept (darkoUpdate): his current level plus his team's adjustment, aged from his games' average age.
-    if (dk) { const sh = dk[2] > 0 ? dk[2] * dA(now - dk[2] / 2) : 0; x.odarko = dk[0] + x.dkAO + 0.6 * sh; x.ddarko = dk[1] + x.dkAD + 0.4 * sh; return; }
-    let so = x.obpmU * x.possO, sd = x.dbpmU * x.possD, wo = x.possO, wd = x.possD;
-    for (let k = 1; k <= 3; k++) { const y = season - k, r = pastSeason(g, y)?.byPid[p.id]; if (!r || !(r.possO >= 50)) continue;
-      const d = 0.55 ** k; let sh = 0; for (let a = gAge(p, y); a < now; a++) sh += dA(a);
-      so += (r.obpmU + 0.6 * sh) * r.possO * d; sd += (r.dbpmU + 0.4 * sh) * r.possD * d; wo += r.possO * d; wd += r.possD * d; }
-    const K = 1500; x.odarko = (so + K * -0.9) / (wo + K); x.ddarko = (sd + K * -0.6) / (wd + K); });
+    if (dk) {
+      const sh = dk[2] > 0 ? dk[2] * dA(now - dk[2] / 2) : 0;
+      x.odarko = dk[0] + x.dkAO + 0.6 * sh;
+      x.ddarko = dk[1] + x.dkAD + 0.4 * sh;
+      return;
+    }
+    let so = x.obpmU * x.possO,
+      sd = x.dbpmU * x.possD,
+      wo = x.possO,
+      wd = x.possD;
+    for (let k = 1; k <= 3; k++) {
+      const y = season - k,
+        r = pastSeason(g, y)?.byPid[p.id];
+      if (!r || !(r.possO >= 50)) continue;
+      const d = 0.55 ** k;
+      let sh = 0;
+      for (let a = gAge(p, y); a < now; a++) sh += dA(a);
+      so += (r.obpmU + 0.6 * sh) * r.possO * d;
+      sd += (r.dbpmU + 0.4 * sh) * r.possD * d;
+      wo += r.possO * d;
+      wd += r.possD * d;
+    }
+    const K = 1500;
+    x.odarko = (so + K * -0.9) / (wo + K);
+    x.ddarko = (sd + K * -0.6) / (wd + K);
+  });
   // Centre each on the league (minute-weighted 0) and scale it to a spread of IMPACT_SD among the season's regulars
   // (at least a quarter of the most minutes anyone played, 100+), refit every season.
-  const maxMin = Math.max(1, ...rows.map(({ t }) => t.min)), reg = rows.filter(({ t }) => t.min >= Math.max(100, 0.25 * maxMin));
-  ([['epm', 'oepm', 'depm', 0.6], ['lebron', 'olebron', 'dlebron', 0.55], ['darko', 'odarko', 'ddarko', 0.65]] as [string, string, string, number][]).forEach(([k, ko, kd, sc0]) => {
-    let mo = 0, md = 0, w = 0; rows.forEach(({ p, t }) => { const x = out[p.id]; mo += x[ko] * t.min; md += x[kd] * t.min; w += t.min; });
-    mo = w ? mo / w : 0; md = w ? md / w : 0;
-    const v = reg.map(({ p }) => out[p.id][ko] - mo + out[p.id][kd] - md), mv = v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0, sdv = v.length ? Math.sqrt(v.reduce((a, b) => a + (b - mv) ** 2, 0) / v.length) : 0;
+  const maxMin = Math.max(1, ...rows.map(({ t }) => t.min)),
+    reg = rows.filter(({ t }) => t.min >= Math.max(100, 0.25 * maxMin));
+  (
+    [
+      ['epm', 'oepm', 'depm', 0.6],
+      ['lebron', 'olebron', 'dlebron', 0.55],
+      ['darko', 'odarko', 'ddarko', 0.65],
+    ] as [string, string, string, number][]
+  ).forEach(([k, ko, kd, sc0]) => {
+    let mo = 0,
+      md = 0,
+      w = 0;
+    rows.forEach(({ p, t }) => {
+      const x = out[p.id];
+      mo += x[ko] * t.min;
+      md += x[kd] * t.min;
+      w += t.min;
+    });
+    mo = w ? mo / w : 0;
+    md = w ? md / w : 0;
+    const v = reg.map(({ p }) => out[p.id][ko] - mo + out[p.id][kd] - md),
+      mv = v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0,
+      sdv = v.length ? Math.sqrt(v.reduce((a, b) => a + (b - mv) ** 2, 0) / v.length) : 0;
     const sc = v.length >= 30 && sdv > 0.1 ? IMPACT_SD / sdv : sc0;
-    rows.forEach(({ p }) => { const x = out[p.id]; x[ko] = (x[ko] - mo) * sc; x[kd] = (x[kd] - md) * sc; x[k] = x[ko] + x[kd]; });
+    rows.forEach(({ p }) => {
+      const x = out[p.id];
+      x[ko] = (x[ko] - mo) * sc;
+      x[kd] = (x[kd] - md) * sc;
+      x[k] = x[ko] + x[kd];
+    });
   });
-  rows.forEach(({ p }) => { const x = out[p.id]; ['ooff', 'doff', 'ooffX', 'doffX', 'nOff', 'nDef', 'luckBox', 'sO', 'sD', 'lO', 'lD', 'sOA', 'sDA', 'lOA', 'lDA', 'dkAO', 'dkAD'].forEach(f => delete x[f]); });
+  rows.forEach(({ p }) => {
+    const x = out[p.id];
+    [
+      'ooff',
+      'doff',
+      'ooffX',
+      'doffX',
+      'nOff',
+      'nDef',
+      'luckBox',
+      'sO',
+      'sD',
+      'lO',
+      'lD',
+      'sOA',
+      'sDA',
+      'lOA',
+      'lDA',
+      'dkAO',
+      'dkAD',
+    ].forEach(f => delete x[f]);
+  });
 }

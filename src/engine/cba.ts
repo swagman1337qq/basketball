@@ -6,7 +6,17 @@ import { canOfferSwap } from './pickRules';
 import type { Game } from './Game';
 
 // ── League calendar (82 game days spread from late October to mid-April) ────────────
-export const DAY = { EXT_TRADE: 40, PLAYOFF_WAIVE: 61, TRADE_DEADLINE: 50, TEN_DAY_START: 36, DPE_DEADLINE: 66, SIGNEE_TRADE: 26, INSEASON_SIGNEE_WAIT: 42, TEN_DAY_LEN: 5, TWO_WAY_GAMES: 50 };
+export const DAY = {
+  EXT_TRADE: 40,
+  PLAYOFF_WAIVE: 61,
+  TRADE_DEADLINE: 50,
+  TEN_DAY_START: 36,
+  DPE_DEADLINE: 66,
+  SIGNEE_TRADE: 26,
+  INSEASON_SIGNEE_WAIT: 42,
+  TEN_DAY_LEN: 5,
+  TWO_WAY_GAMES: 50,
+};
 
 // Roster limits: 15 standard contracts in season (21 in the offseason and training camp, six more
 // than the season limit), plus up to 3 two-way players who don't count against them or the cap.
@@ -20,20 +30,31 @@ export const campMax = (s: any) => seasonMax(s) + 6;
 export const inSeasonPhase = (s: any) => s.phase === 'regular' || s.phase === 'playin' || s.phase === 'playoffs';
 export const rosterMax = (s: any) => (inSeasonPhase(s) ? seasonMax(s) : campMax(s));
 // An authorized hardship replacement occupies an extra standard roster place until released.
-export const hardshipSlots = (g: Game, s: any, tid: number) => inSeasonPhase(s) ? (s.rosters[tid] || []).filter(id => g.db.P[id]?.ctype === 'hardship' && g.db.P[id]?.tenDay?.tid === tid).length : 0;
+export const hardshipSlots = (g: Game, s: any, tid: number) =>
+  inSeasonPhase(s) ? (s.rosters[tid] || []).filter(id => g.db.P[id]?.ctype === 'hardship' && g.db.P[id]?.tenDay?.tid === tid).length : 0;
 export const TWO_WAY_MAX = 3;
 // A point on the league calendar, for exceptions that last a year (traded player exceptions).
 export const stamp = (g: Game, s: any) => g.Y * 1000 + (s.phase === 'preseason' ? 50 : s.phase === 'regular' ? 100 + s.day : 300);
 
 // ── Numbers as a share of the cap (2025–26 figures ÷ that season's cap) ─────────────
 const PCT = {
-  NTMLE: 0.0912, TPMLE: 0.0368, ROOM: 0.0568, BAE: 0.0332, E10_BONUS: 0.0005,
-  TRADE_SMALL: 0.0551, TRADE_BIG: 0.2132, TRADE_BUF: 0.00184, TAX_STEP: 0.0368,
+  NTMLE: 0.0912,
+  TPMLE: 0.0368,
+  ROOM: 0.0568,
+  BAE: 0.0332,
+  E10_BONUS: 0.0005,
+  TRADE_SMALL: 0.0551,
+  TRADE_BIG: 0.2132,
+  TRADE_BUF: 0.00184,
+  TAX_STEP: 0.0368,
 };
 // Minimum salary by years of service (0 … 10+).
 const MIN_PCT = [0.00823, 0.01325, 0.01485, 0.01538, 0.01592, 0.01725, 0.01859, 0.01992, 0.02126, 0.02136, 0.0235];
 // Rookie scale, year 1 at 100% of scale, by pick (share of cap). Teams sign at 120%.
-const ROOKIE_PCT = [7.45, 6.66, 5.98, 5.39, 4.88, 4.43, 4.04, 3.69, 3.37, 3.21, 3.04, 2.89, 2.75, 2.61, 2.48, 2.35, 2.26, 2.16, 2.07, 1.99, 1.91, 1.83, 1.76, 1.69, 1.63, 1.58, 1.54, 1.49, 1.47, 1.45].map(x => x / 100);
+const ROOKIE_PCT = [
+  7.45, 6.66, 5.98, 5.39, 4.88, 4.43, 4.04, 3.69, 3.37, 3.21, 3.04, 2.89, 2.75, 2.61, 2.48, 2.35, 2.26, 2.16, 2.07, 1.99, 1.91, 1.83, 1.76,
+  1.69, 1.63, 1.58, 1.54, 1.49, 1.47, 1.45,
+].map(x => x / 100);
 
 // Cached per cap table (rebuilt if any of its numbers change): called thousands of times a day.
 const NUMS_CACHE = new WeakMap<object, { key: string; v: any }>();
@@ -41,19 +62,36 @@ const NUMS_CACHE = new WeakMap<object, { key: string; v: any }>();
 // for every team; the soft cap, luxury tax and repeater tax stay.
 export const capEasy = (g: Game) => !!g.state?.capEasy;
 export function nums(g: Game): ReturnType<typeof numsOf> {
-  const C = g.db.caps, easy = capEasy(g), key = C.CAP + '|' + C.TAX + '|' + C.AP1 + '|' + C.AP2 + '|' + C.MINP + '|' + easy, hit = NUMS_CACHE.get(C);
+  const C = g.db.caps,
+    easy = capEasy(g),
+    key = C.CAP + '|' + C.TAX + '|' + C.AP1 + '|' + C.AP2 + '|' + C.MINP + '|' + easy,
+    hit = NUMS_CACHE.get(C);
   if (hit && hit.key === key) return hit.v;
-  const v = numsOf(easy ? { ...C, AP1: C.AP2 } : C); NUMS_CACHE.set(C, { key, v }); return v;
+  const v = numsOf(easy ? { ...C, AP1: C.AP2 } : C);
+  NUMS_CACHE.set(C, { key, v });
+  return v;
 }
 function numsOf(C: any) {
   const CAP = C.CAP;
   return {
-    CAP, TAX: C.TAX, AP1: C.AP1, AP2: C.AP2, FLOOR: C.MINP,
-    NTMLE: +(CAP * PCT.NTMLE).toFixed(2), TPMLE: +(CAP * PCT.TPMLE).toFixed(2), ROOM: +(CAP * PCT.ROOM).toFixed(2), BAE: +(CAP * PCT.BAE).toFixed(2),
-    TRADE_SMALL: CAP * PCT.TRADE_SMALL, TRADE_BIG: CAP * PCT.TRADE_BIG, TRADE_BUF: CAP * PCT.TRADE_BUF, TAX_STEP: CAP * PCT.TAX_STEP,
-    E10_BONUS: CAP * PCT.E10_BONUS, TWO_WAY: +(CAP * MIN_PCT[0] * 0.5).toFixed(2),
+    CAP,
+    TAX: C.TAX,
+    AP1: C.AP1,
+    AP2: C.AP2,
+    FLOOR: C.MINP,
+    NTMLE: +(CAP * PCT.NTMLE).toFixed(2),
+    TPMLE: +(CAP * PCT.TPMLE).toFixed(2),
+    ROOM: +(CAP * PCT.ROOM).toFixed(2),
+    BAE: +(CAP * PCT.BAE).toFixed(2),
+    TRADE_SMALL: CAP * PCT.TRADE_SMALL,
+    TRADE_BIG: CAP * PCT.TRADE_BIG,
+    TRADE_BUF: CAP * PCT.TRADE_BUF,
+    TAX_STEP: CAP * PCT.TAX_STEP,
+    E10_BONUS: CAP * PCT.E10_BONUS,
+    TWO_WAY: +(CAP * MIN_PCT[0] * 0.5).toFixed(2),
     min: (yos: number) => +(CAP * MIN_PCT[Math.max(0, Math.min(10, yos))]).toFixed(2),
-    max: (yos: number, tier: 'rose' | 'super' | null = null) => +(CAP * (tier === 'super' ? 0.35 : tier === 'rose' ? 0.3 : yos >= 10 ? 0.35 : yos >= 7 ? 0.3 : 0.25)).toFixed(2),
+    max: (yos: number, tier: 'rose' | 'super' | null = null) =>
+      +(CAP * (tier === 'super' ? 0.35 : tier === 'rose' ? 0.3 : yos >= 10 ? 0.35 : yos >= 7 ? 0.3 : 0.25)).toFixed(2),
     rookie: (pick: number) => +(CAP * ROOKIE_PCT[Math.max(0, Math.min(29, pick - 1))] * 1.2).toFixed(2),
   };
 }
@@ -69,7 +107,8 @@ export function yosOf(g: Game, p: any) {
 // MVP in any of the last three seasons, or All-League / Defensive Player of the Year in
 // the last season or in two of the last three.
 export function honorsQualify(s: any, pid: number, Y: number) {
-  const A = s.awards || {}, seasons = [Y, Y - 1, Y - 2].map(y => A[y]).filter(Boolean);
+  const A = s.awards || {},
+    seasons = [Y, Y - 1, Y - 2].map(y => A[y]).filter(Boolean);
   const mvp = seasons.some(a => (a.list?.MVP?.[0]?.pid ?? a.mvp?.[0]?.pid) === pid);
   const hon = (a: any) => (a.allLeague || []).some(t => t.includes(pid)) || (a.list?.DPOY?.[0]?.pid ?? a.dpoy?.[0]?.pid) === pid;
   const last = A[Y] || A[Y - 1];
@@ -78,10 +117,12 @@ export function honorsQualify(s: any, pid: number, Y: number) {
 
 // Maximum first-year salary for a new contract or extension with this team.
 export function maxFor(g: Game, s: any, p: any, tid: number, kind: 'rookieExt' | 'vetExt' | 'fa' = 'fa') {
-  const N = nums(g), yos = yosOf(g, p);
+  const N = nums(g),
+    yos = yosOf(g, p);
   if (kind === 'rookieExt' && honorsQualify(s, p.id, g.Y)) return { amt: N.max(yos, 'rose'), tier: 'Rose Rule (30%)' };
   const withTeam = (p.draftTid === tid || p.rookieTid === tid) && !p.leftAsFA;
-  if (yos >= 7 && yos <= 9 && withTeam && honorsQualify(s, p.id, g.Y) && (kind === 'vetExt' || p.birdTid === tid)) return { amt: N.max(yos, 'super'), tier: 'Designated veteran "supermax" (35%)' };
+  if (yos >= 7 && yos <= 9 && withTeam && honorsQualify(s, p.id, g.Y) && (kind === 'vetExt' || p.birdTid === tid))
+    return { amt: N.max(yos, 'super'), tier: 'Designated veteran "supermax" (35%)' };
   return { amt: N.max(yos), tier: (yos >= 10 ? '35%' : yos >= 7 ? '30%' : '25%') + ' max for ' + yos + ' years of service' };
 }
 
@@ -95,13 +136,16 @@ export function birdOf(p: any, tid: number): 'full' | 'early' | 'non' | null {
 export const BIRD_LABEL = { full: 'Full Bird', early: 'Early Bird', non: 'Non-Bird' };
 
 export function avgSalary(g: Game, s: any) {
-  const P = g.db.P, all = Object.values(s.rosters).flat() as number[];
+  const P = g.db.P,
+    all = Object.values(s.rosters).flat() as number[];
   return all.reduce((a, id) => a + (P[id].amt || 0), 0) / Math.max(1, all.length);
 }
 
 // Cap hold of an unsigned free agent the team still has rights to.
 export function capHold(g: Game, s: any, p: any, avg?: number) {
-  const N = nums(g), prev = p.prevAmt || p.amt || N.min(0), lvl = birdOf(p, p.birdTid);
+  const N = nums(g),
+    prev = p.prevAmt || p.amt || N.min(0),
+    lvl = birdOf(p, p.birdTid);
   if (p.rfa) return Math.max(p.rfa.qo, p.rookieScale ? prev * 2.5 : prev * 1.2);
   const r = lvl === 'full' ? (prev >= (avg ?? avgSalary(g, s)) ? 1.9 : 1.5) : lvl === 'early' ? 1.3 : 1.2;
   return +Math.min(maxFor(g, s, p, p.birdTid).amt, Math.max(N.min(yosOf(g, p)), prev * r)).toFixed(2);
@@ -110,91 +154,301 @@ export function capHold(g: Game, s: any, p: any, avg?: number) {
 // ── Team cap state (kept for every team in s.cap[tid]) ────────────────────────────
 export function capState(s: any, tid: number) {
   const c = (s.cap || {})[tid] || {};
-  return { dead: c.dead || [], tpe: c.tpe || [], twoWay: c.twoWay || [], exc: c.exc || null, hardCap: s.capEasy ? 'AP2' : c.hardCap ?? null, baeLast: c.baeLast ?? null, renounced: c.renounced || [], frozen: !!c.frozen };
+  return {
+    dead: c.dead || [],
+    tpe: c.tpe || [],
+    twoWay: c.twoWay || [],
+    exc: c.exc || null,
+    hardCap: s.capEasy ? 'AP2' : (c.hardCap ?? null),
+    baeLast: c.baeLast ?? null,
+    renounced: c.renounced || [],
+    frozen: !!c.frozen,
+  };
 }
-export function setCap(s: any, tid: number, patch: any) { return { ...(s.cap || {}), [tid]: { ...((s.cap || {})[tid] || {}), ...patch } }; }
+export function setCap(s: any, tid: number, patch: any) {
+  return { ...(s.cap || {}), [tid]: { ...((s.cap || {})[tid] || {}), ...patch } };
+}
 
-export function deadThis(g: Game, s: any, tid: number, season = g.Y) { return capState(s, tid).dead.reduce((a, d) => a + (d.amts?.[season] || 0), 0); }
+export function deadThis(g: Game, s: any, tid: number, season = g.Y) {
+  return capState(s, tid).dead.reduce((a, d) => a + (d.amts?.[season] || 0), 0);
+}
 
 // Team salary for cap, tax and apron purposes (plus holds/incomplete-roster charges when asked).
 export function teamSalary(g: Game, s: any, tid: number, opts: { holds?: boolean } = {}) {
-  const P = g.db.P, N = nums(g), T = s.teams[tid], ids = s.rosters[tid] || [];
+  const P = g.db.P,
+    N = nums(g),
+    T = s.teams[tid],
+    ids = s.rosters[tid] || [];
   let sal = ids.reduce((a, id) => a + g.capHit(P[id]), 0) + deadThis(g, s, tid) + (T?.capAdj || 0);
-  sal += (s.offerSheets || []).filter(x => x.from === tid).reduce((a, x) => a + x.terms.amt + (x.terms.inc || []).filter(b => b.likely).reduce((n, b) => n + b.amt, 0), 0);
+  sal += (s.offerSheets || [])
+    .filter(x => x.from === tid)
+    .reduce((a, x) => a + x.terms.amt + (x.terms.inc || []).filter(b => b.likely).reduce((n, b) => n + b.amt, 0), 0);
   if (opts.holds) {
-    const cs = capState(s, tid), own = [...new Set([...(s.fa || []), ...(s.offerSheets || []).filter(x => x.to === tid).map(x => x.pid)])].filter(id => P[id].birdTid === tid && !cs.renounced.includes(id)), avg = own.length ? avgSalary(g, s) : 0, holds = own.map(id => capHold(g, s, P[id], avg));
+    const cs = capState(s, tid),
+      own = [...new Set([...(s.fa || []), ...(s.offerSheets || []).filter(x => x.to === tid).map(x => x.pid)])].filter(
+        id => P[id].birdTid === tid && !cs.renounced.includes(id),
+      ),
+      avg = own.length ? avgSalary(g, s) : 0,
+      holds = own.map(id => capHold(g, s, P[id], avg));
     sal += holds.reduce((a, b) => a + b, 0);
-    const n = ids.length + holds.length; if (n < 12) sal += (12 - n) * N.min(0); // incomplete-roster charge
+    const n = ids.length + holds.length;
+    if (n < 12) sal += (12 - n) * N.min(0); // incomplete-roster charge
   }
   return +sal.toFixed(2);
 }
-export function capRoom(g: Game, s: any, tid: number) { return +(nums(g).CAP - teamSalary(g, s, tid, { holds: s.phase === 'fa' || s.phase === 'draft' })).toFixed(2); }
+export function capRoom(g: Game, s: any, tid: number) {
+  return +(nums(g).CAP - teamSalary(g, s, tid, { holds: s.phase === 'fa' || s.phase === 'draft' })).toFixed(2);
+}
 
 // Exceptions available this season. Reset when free agency opens.
-export function freshExceptions(g: Game) { const N = nums(g); return { ntmle: N.NTMLE, tpmle: N.TPMLE, room: N.ROOM, bae: N.BAE, used: [] as string[] }; }
+export function freshExceptions(g: Game) {
+  const N = nums(g);
+  return { ntmle: N.NTMLE, tpmle: N.TPMLE, room: N.ROOM, bae: N.BAE, used: [] as string[] };
+}
 export function exceptionsOf(g: Game, s: any, tid: number) {
   const out = { ...(capState(s, tid).exc || freshExceptions(g)) };
-  (s.offerSheets || []).filter(x => x.from === tid).forEach(x => { const k = x.terms.method; if (out[k] != null) out[k] = Math.max(0, out[k] - x.terms.amt - (x.terms.inc || []).reduce((n, b) => n + b.amt, 0)); });
+  (s.offerSheets || [])
+    .filter(x => x.from === tid)
+    .forEach(x => {
+      const k = x.terms.method;
+      if (out[k] != null) out[k] = Math.max(0, out[k] - x.terms.amt - (x.terms.inc || []).reduce((n, b) => n + b.amt, 0));
+    });
   return out;
 }
 
 // ── Signing: every way a team can sign a player, with its limits ───────────────────
-export interface Method { key: string; label: string; maxFirst: number; maxYears: number; raise: number; hardCap?: 'AP1' | 'AP2'; note: string; ok: boolean; why?: string; minFirst?: number }
+export interface Method {
+  key: string;
+  label: string;
+  maxFirst: number;
+  maxYears: number;
+  raise: number;
+  hardCap?: 'AP1' | 'AP2';
+  note: string;
+  ok: boolean;
+  why?: string;
+  minFirst?: number;
+}
 
 export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
-  const N = nums(g), yos = yosOf(g, p), minS = N.min(yos), max = maxFor(g, s, p, tid).amt;
-  const sal = teamSalary(g, s, tid), room = capRoom(g, s, tid), exc = exceptionsOf(g, s, tid), cs = capState(s, tid), Y = g.Y;
-  const phase = s.phase, inSeason = phase === 'regular', pre = phase === 'preseason', off = phase === 'fa' || phase === 'draft' || pre;
-  const stdCount = stdIds(g, s.rosters[tid] || []).length, twCount = twoWayIds(g, s.rosters[tid] || []).length, lim = rosterMax(s);
+  const N = nums(g),
+    yos = yosOf(g, p),
+    minS = N.min(yos),
+    max = maxFor(g, s, p, tid).amt;
+  const sal = teamSalary(g, s, tid),
+    room = capRoom(g, s, tid),
+    exc = exceptionsOf(g, s, tid),
+    cs = capState(s, tid),
+    Y = g.Y;
+  const phase = s.phase,
+    inSeason = phase === 'regular',
+    pre = phase === 'preseason',
+    off = phase === 'fa' || phase === 'draft' || pre;
+  const stdCount = stdIds(g, s.rosters[tid] || []).length,
+    twCount = twoWayIds(g, s.rosters[tid] || []).length,
+    lim = rosterMax(s);
   const hard = cs.hardCap === 'AP1' ? N.AP1 : cs.hardCap === 'AP2' ? N.AP2 : Infinity;
   // Under a hard cap the team must still fit what it already owes (2026-11-08: a team used its mid-level, then its
   // restricted free agent took his qualifying offer at camp and minimum deals filled the roster, $21M over the apron):
   // its pending qualifying offers and minimum deals up to the roster minimum.
   const qos = (s.fa || []).map((id: number) => g.db.P[id]).filter((q: any) => q && q.id !== p.id && q.rfa?.tid === tid);
   const owed = qos.reduce((a: number, q: any) => a + q.rfa.qo, 0) + Math.max(0, rosterMin(s) - stdCount - 1 - qos.length) * N.min(0);
-  const lvl = birdOf(p, tid), prev = p.prevAmt || p.amt || minS, age = p.age;
+  const lvl = birdOf(p, tid),
+    prev = p.prevAmt || p.amt || minS,
+    age = p.age;
   const yearsCap = (n: number) => (n >= 4 && age + n - 1 > 38 ? Math.max(1, 38 - age + 1, 3) : n); // over-38 rule
   // A hard cap (the team's, or the one this method triggers) also limits the first-year salary.
   const m = (key, label, maxFirst, maxYears, raise, note, ok = true, why?, hardCap?, minFirst?): Method => {
-    const lim = Math.min(hard, hardCap === 'AP1' ? N.AP1 : hardCap === 'AP2' ? N.AP2 : Infinity), fit = key === 'twoWay' ? Infinity : lim - sal - (lim < Infinity ? owed : 0);
+    const lim = Math.min(hard, hardCap === 'AP1' ? N.AP1 : hardCap === 'AP2' ? N.AP2 : Infinity),
+      fit = key === 'twoWay' ? Infinity : lim - sal - (lim < Infinity ? owed : 0);
     const mf = +Math.min(max, maxFirst, fit).toFixed(2);
-    if (ok && fit < Math.min(maxFirst, minS) - 0.005) { ok = false; why = why || (capEasy(g) ? 'Would put you over the hard cap' : 'Would put you over the ' + (lim === N.AP1 ? '1st' : '2nd') + ' apron'); }
+    if (ok && fit < Math.min(maxFirst, minS) - 0.005) {
+      ok = false;
+      why =
+        why || (capEasy(g) ? 'Would put you over the hard cap' : 'Would put you over the ' + (lim === N.AP1 ? '1st' : '2nd') + ' apron');
+    }
     return { key, label, maxFirst: Math.max(0, mf), maxYears: yearsCap(maxYears), raise, note, ok, why, hardCap, minFirst };
   };
   const out: Method[] = [];
   if (lvl) {
     const lim = lvl === 'full' ? max : lvl === 'early' ? Math.max(prev * 1.75, avgSalary(g, s) * 1.05) : Math.max(prev * 1.2, minS * 1.2);
-    out.push(m('bird', BIRD_LABEL[lvl] + ' rights', lim, lvl === 'early' ? 4 : 5, 0.08, lvl === 'full' ? 'Exceed the cap up to his max.' : lvl === 'early' ? 'Up to 175% of his last salary or 105% of the average salary; at least 2 years.' : 'Up to 120% of his last salary.', sal + minS <= hard, sal + minS > hard ? 'Hard-capped' : undefined, undefined, lvl === 'early' ? undefined : undefined));
+    out.push(
+      m(
+        'bird',
+        BIRD_LABEL[lvl] + ' rights',
+        lim,
+        lvl === 'early' ? 4 : 5,
+        0.08,
+        lvl === 'full'
+          ? 'Exceed the cap up to his max.'
+          : lvl === 'early'
+            ? 'Up to 175% of his last salary or 105% of the average salary; at least 2 years.'
+            : 'Up to 120% of his last salary.',
+        sal + minS <= hard,
+        sal + minS > hard ? 'Hard-capped' : undefined,
+        undefined,
+        lvl === 'early' ? undefined : undefined,
+      ),
+    );
   }
-  if (room > 0) out.push(m('cap', 'Cap space', room, 4, 0.05, 'Fits under the cap (' + room.toFixed(1) + 'M of room, counting cap holds).'));
+  if (room > 0)
+    out.push(m('cap', 'Cap space', room, 4, 0.05, 'Fits under the cap (' + room.toFixed(1) + 'M of room, counting cap holds).'));
   // The room exception: for teams that used their cap room and are now below it (or at it).
-  if (exc.used.includes('cap') && !exc.used.includes('room') && sal <= N.CAP + exc.room) out.push(m('room', 'Room exception', exc.room, 2, 0.05, 'For teams that used cap space: up to ' + exc.room + 'M, 2 years.'));
+  if (exc.used.includes('cap') && !exc.used.includes('room') && sal <= N.CAP + exc.room)
+    out.push(m('room', 'Room exception', exc.room, 2, 0.05, 'For teams that used cap space: up to ' + exc.room + 'M, 2 years.'));
   if (!exc.used.includes('cap')) {
     const ntOk = exc.ntmle > 0.1 && sal + minS <= N.AP1 && hard >= N.AP1;
-    out.push(m('ntmle', 'Non-taxpayer mid-level', exc.ntmle, 4, 0.05, 'Up to ' + exc.ntmle.toFixed(2) + 'M left, 4 years; hard-caps you at the 1st apron.', ntOk, ntOk ? undefined : exc.ntmle <= 0.1 ? 'Already used' : 'Would put you over the 1st apron', 'AP1'));
+    out.push(
+      m(
+        'ntmle',
+        'Non-taxpayer mid-level',
+        exc.ntmle,
+        4,
+        0.05,
+        'Up to ' + exc.ntmle.toFixed(2) + 'M left, 4 years; hard-caps you at the 1st apron.',
+        ntOk,
+        ntOk ? undefined : exc.ntmle <= 0.1 ? 'Already used' : 'Would put you over the 1st apron',
+        'AP1',
+      ),
+    );
     const tpOk = exc.tpmle > 0.1 && sal + minS <= N.AP2 && !exc.used.includes('ntmle');
-    out.push(m('tpmle', 'Taxpayer mid-level', exc.tpmle, 2, 0.05, 'Up to ' + exc.tpmle.toFixed(2) + 'M, 2 years; hard-caps you at the 2nd apron.', tpOk, tpOk ? undefined : exc.used.includes('ntmle') ? 'You used the non-taxpayer mid-level' : 'Not available above the 2nd apron', 'AP2'));
+    out.push(
+      m(
+        'tpmle',
+        'Taxpayer mid-level',
+        exc.tpmle,
+        2,
+        0.05,
+        'Up to ' + exc.tpmle.toFixed(2) + 'M, 2 years; hard-caps you at the 2nd apron.',
+        tpOk,
+        tpOk ? undefined : exc.used.includes('ntmle') ? 'You used the non-taxpayer mid-level' : 'Not available above the 2nd apron',
+        'AP2',
+      ),
+    );
     const baeOk = exc.bae > 0.1 && cs.baeLast !== Y - 1 && sal + minS <= N.AP1;
-    out.push(m('bae', 'Bi-annual exception', exc.bae, 2, 0.05, 'Up to ' + exc.bae.toFixed(2) + 'M, 2 years; not in back-to-back seasons; hard-caps you at the 1st apron.', baeOk, baeOk ? undefined : cs.baeLast === Y - 1 ? 'Used last season' : exc.bae <= 0.1 ? 'Already used' : 'Would put you over the 1st apron', 'AP1'));
+    out.push(
+      m(
+        'bae',
+        'Bi-annual exception',
+        exc.bae,
+        2,
+        0.05,
+        'Up to ' + exc.bae.toFixed(2) + 'M, 2 years; not in back-to-back seasons; hard-caps you at the 1st apron.',
+        baeOk,
+        baeOk
+          ? undefined
+          : cs.baeLast === Y - 1
+            ? 'Used last season'
+            : exc.bae <= 0.1
+              ? 'Already used'
+              : 'Would put you over the 1st apron',
+        'AP1',
+      ),
+    );
   }
-  const dpe = (s.cap?.[tid]?.dpe);
-  if (dpe && inSeason && s.day <= g.ruleSlot(DAY.DPE_DEADLINE)) out.push(m('dpe', 'Disabled player exception', dpe.amt, 1, 0, 'Replaces ' + (g.db.P[dpe.pid]?.name || 'an injured player') + ': one season, up to ' + dpe.amt.toFixed(2) + 'M.'));
+  const dpe = s.cap?.[tid]?.dpe;
+  if (dpe && inSeason && s.day <= g.ruleSlot(DAY.DPE_DEADLINE))
+    out.push(
+      m(
+        'dpe',
+        'Disabled player exception',
+        dpe.amt,
+        1,
+        0,
+        'Replaces ' + (g.db.P[dpe.pid]?.name || 'an injured player') + ': one season, up to ' + dpe.amt.toFixed(2) + 'M.',
+      ),
+    );
   const minOk = sal + minS <= hard;
-  out.push(m('min', 'Minimum exception', minS, 2, 0.05, 'The ' + yos + '-year minimum (' + minS.toFixed(2) + 'M); over the cap is fine.' + (yos >= 2 ? ' One-year deals count as the 2-year minimum on your cap; the league pays the rest.' : ''), minOk, minOk ? undefined : 'Hard-capped', undefined, minS));
-  if (yos <= 3) out.push(m('twoWay', 'Two-way contract', N.TWO_WAY, 2, 0, 'Up to 3 per team, for players with under 4 years of service; off the ' + seasonMax(s) + '-man roster and the cap; up to 50 NBA games a season.', twCount < TWO_WAY_MAX, twCount >= TWO_WAY_MAX ? 'You already have 3 two-way players' : undefined));
-  if (pre || phase === 'fa') out.push(m('ex10', 'Exhibit 10 (training camp)', minS, 1, 0, 'One-year, non-guaranteed minimum deal for camp. Convert him to a two-way before opening night, keep him (he becomes a standard contract) or waive him for nothing; if waived and he joins your CCP team he earns a bonus of up to ' + N.E10_BONUS.toFixed(2) + 'M.', stdCount < 21, stdCount >= 21 ? 'Camp roster full (21)' : undefined));
-  if (inSeason && s.day >= g.ruleSlot(DAY.TEN_DAY_START)) { const n = (p.tenDayWith || {})[tid] || 0; out.push(m('tenDay', '10-day contract', +(minS * 10 / 174).toFixed(3), 0, 0, 'Prorated minimum for 10 days; at most two with the same team, then rest of season.', n < 2, n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined)); }
+  out.push(
+    m(
+      'min',
+      'Minimum exception',
+      minS,
+      2,
+      0.05,
+      'The ' +
+        yos +
+        '-year minimum (' +
+        minS.toFixed(2) +
+        'M); over the cap is fine.' +
+        (yos >= 2 ? ' One-year deals count as the 2-year minimum on your cap; the league pays the rest.' : ''),
+      minOk,
+      minOk ? undefined : 'Hard-capped',
+      undefined,
+      minS,
+    ),
+  );
+  if (yos <= 3)
+    out.push(
+      m(
+        'twoWay',
+        'Two-way contract',
+        N.TWO_WAY,
+        2,
+        0,
+        'Up to 3 per team, for players with under 4 years of service; off the ' +
+          seasonMax(s) +
+          '-man roster and the cap; up to 50 NBA games a season.',
+        twCount < TWO_WAY_MAX,
+        twCount >= TWO_WAY_MAX ? 'You already have 3 two-way players' : undefined,
+      ),
+    );
+  if (pre || phase === 'fa')
+    out.push(
+      m(
+        'ex10',
+        'Exhibit 10 (training camp)',
+        minS,
+        1,
+        0,
+        'One-year, non-guaranteed minimum deal for camp. Convert him to a two-way before opening night, keep him (he becomes a standard contract) or waive him for nothing; if waived and he joins your CCP team he earns a bonus of up to ' +
+          N.E10_BONUS.toFixed(2) +
+          'M.',
+        stdCount < 21,
+        stdCount >= 21 ? 'Camp roster full (21)' : undefined,
+      ),
+    );
+  if (inSeason && s.day >= g.ruleSlot(DAY.TEN_DAY_START)) {
+    const n = (p.tenDayWith || {})[tid] || 0;
+    out.push(
+      m(
+        'tenDay',
+        '10-day contract',
+        +((minS * 10) / 174).toFixed(3),
+        0,
+        0,
+        'Prorated minimum for 10 days; at most two with the same team, then rest of season.',
+        n < 2,
+        n >= 2 ? 'Two 10-days used: sign him for the rest of the season' : undefined,
+      ),
+    );
+  }
   const injured = (s.rosters[tid] || []).filter(id => g.db.P[id].inj && !g.db.P[id].inj.dtd).length;
-  if (inSeason && injured >= 4 && stdCount >= seasonMax(s) && !hardshipSlots(g, s, tid)) out.push(m('hardship', 'Hardship exception', minS, 0, 0, injured + ' players out: one player past the ' + seasonMax(s) + '-man limit, on a non-guaranteed minimum deal until the roster is healthy.'));
+  if (inSeason && injured >= 4 && stdCount >= seasonMax(s) && !hardshipSlots(g, s, tid))
+    out.push(
+      m(
+        'hardship',
+        'Hardship exception',
+        minS,
+        0,
+        0,
+        injured +
+          ' players out: one player past the ' +
+          seasonMax(s) +
+          '-man limit, on a non-guaranteed minimum deal until the roster is healthy.',
+      ),
+    );
   // Roster room.
   void off;
   return out.map(x => {
     if (p.rfa && p.rfa.tid !== tid) {
-      if (['twoWay', 'ex10', 'tenDay', 'hardship', 'dpe'].includes(x.key)) return { ...x, ok: false, why: 'A restricted free agent requires a standard offer sheet.' };
+      if (['twoWay', 'ex10', 'tenDay', 'hardship', 'dpe'].includes(x.key))
+        return { ...x, ok: false, why: 'A restricted free agent requires a standard offer sheet.' };
       x = { ...x, maxFirst: Math.min(x.maxFirst, yos <= 2 ? N.NTMLE : max), note: x.note + ' Offer sheet: the original club may match.' };
     }
     if (['twoWay', 'ex10', 'hardship'].includes(x.key)) return x;
-    if (stdCount >= lim) return { ...x, ok: false, why: 'Roster full (' + lim + (inSeasonPhase(s) ? ' in season' : ' in the offseason') + ')' };
+    if (stdCount >= lim)
+      return { ...x, ok: false, why: 'Roster full (' + lim + (inSeasonPhase(s) ? ' in season' : ' in the offseason') + ')' };
     return x;
   });
 }
@@ -208,82 +462,208 @@ export function matchLimit(g: Game, out: number, after: number) {
   return out * 1.25 + N.TRADE_BUF;
 }
 export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[], fromB: number[], picksA: string[], picksB: string[]) {
-  const P = g.db.P, N = nums(g), errs: string[] = [], notes: string[] = [];
+  const P = g.db.P,
+    N = nums(g),
+    errs: string[] = [],
+    notes: string[] = [];
   const hit = (ids: number[]) => ids.reduce((x, id) => x + tradeHit(g, P[id]), 0);
   const side = (tid: number, out: number[], inn: number[]) => {
-    const T = s.teams[tid], before = teamSalary(g, s, tid), o = hit(out), i = hit(inn), after = +(before - o + i).toFixed(2), cs = capState(s, tid);
+    const T = s.teams[tid],
+      before = teamSalary(g, s, tid),
+      o = hit(out),
+      i = hit(inn),
+      after = +(before - o + i).toFixed(2),
+      cs = capState(s, tid);
     const nm = T.abbr;
     if (after > N.CAP && i > 0) {
       const tpe = cs.tpe.filter(t => t.until > stamp(g, s) && t.amt + N.TRADE_BUF >= i && out.length === 0 && inn.length === 1)[0];
-      if (tpe && after <= N.AP1) notes.push(nm + ' absorbs ' + P[inn[0]].name + ' into its ' + tpe.amt.toFixed(2) + 'M traded player exception.');
-      else if (i > matchLimit(g, o, after) + 1e-6) errs.push(nm + ' takes back ' + i.toFixed(2) + 'M for ' + o.toFixed(2) + 'M out; over the cap it may take back at most ' + matchLimit(g, o, after).toFixed(2) + 'M' + (after > N.AP1 ? ' (100% above the 1st apron)' : '') + '.');
+      if (tpe && after <= N.AP1)
+        notes.push(nm + ' absorbs ' + P[inn[0]].name + ' into its ' + tpe.amt.toFixed(2) + 'M traded player exception.');
+      else if (i > matchLimit(g, o, after) + 1e-6)
+        errs.push(
+          nm +
+            ' takes back ' +
+            i.toFixed(2) +
+            'M for ' +
+            o.toFixed(2) +
+            'M out; over the cap it may take back at most ' +
+            matchLimit(g, o, after).toFixed(2) +
+            'M' +
+            (after > N.AP1 ? ' (100% above the 1st apron)' : '') +
+            '.',
+        );
     }
-    if (after > N.AP2 && out.length > 1 && i > 0) errs.push(nm + ' would be above the 2nd apron: it can’t aggregate salaries (' + out.length + ' players out).');
-    if (cs.hardCap === 'AP1' && after > N.AP1 && !capEasy(g)) errs.push(nm + ' is hard-capped at the 1st apron (' + N.AP1 + 'M) this season.');
-    if (cs.hardCap === 'AP2' && after > N.AP2) errs.push(nm + (capEasy(g) ? ' would be over the hard cap (' + N.AP2 + 'M).' : ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.'));
-    const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length, lim = rosterMax(s); if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
+    if (after > N.AP2 && out.length > 1 && i > 0)
+      errs.push(nm + ' would be above the 2nd apron: it can’t aggregate salaries (' + out.length + ' players out).');
+    if (cs.hardCap === 'AP1' && after > N.AP1 && !capEasy(g))
+      errs.push(nm + ' is hard-capped at the 1st apron (' + N.AP1 + 'M) this season.');
+    if (cs.hardCap === 'AP2' && after > N.AP2)
+      errs.push(
+        nm +
+          (capEasy(g) ? ' would be over the hard cap (' + N.AP2 + 'M).' : ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.'),
+      );
+    const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length,
+      lim = rosterMax(s);
+    if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
     // Newly signed players can't be traded yet.
-    out.forEach(id => { const q = P[id], sg = q.signed; if (!sg) return;
-      const wait = sg.season === g.Y && (sg.phase === 'fa' || sg.phase === 'draft' || sg.phase === 'preseason') ? (s.phase === 'regular' ? s.day < g.ruleSlot(DAY.SIGNEE_TRADE) : true) : sg.season === g.Y && sg.phase === 'regular' ? s.day < g.ruleWaitSlot(sg.day, DAY.INSEASON_SIGNEE_WAIT) : false;
-      if (wait && !s.god) errs.push(q.name + ' signed recently and can’t be traded until ' + (sg.phase === 'regular' ? g.fmtRuleWait(sg.day, DAY.INSEASON_SIGNEE_WAIT) : g.fmtS(g.ruleSlot(DAY.SIGNEE_TRADE))) + '.'); });
+    out.forEach(id => {
+      const q = P[id],
+        sg = q.signed;
+      if (!sg) return;
+      const wait =
+        sg.season === g.Y && (sg.phase === 'fa' || sg.phase === 'draft' || sg.phase === 'preseason')
+          ? s.phase === 'regular'
+            ? s.day < g.ruleSlot(DAY.SIGNEE_TRADE)
+            : true
+          : sg.season === g.Y && sg.phase === 'regular'
+            ? s.day < g.ruleWaitSlot(sg.day, DAY.INSEASON_SIGNEE_WAIT)
+            : false;
+      if (wait && !s.god)
+        errs.push(
+          q.name +
+            ' signed recently and can’t be traded until ' +
+            (sg.phase === 'regular' ? g.fmtRuleWait(sg.day, DAY.INSEASON_SIGNEE_WAIT) : g.fmtS(g.ruleSlot(DAY.SIGNEE_TRADE))) +
+            '.',
+        );
+    });
     // Extend-and-trade rule: an extension with a raise over 5% blocks trades for six months.
-    out.forEach(id => { const x = P[id].extNoTrade; if (!x || s.god) return; const inSeason = x.phase === 'regular' || x.phase === 'playin' || x.phase === 'playoffs';
-      const until = inSeason ? null : g.ruleSlot(DAY.EXT_TRADE), blocked = inSeason ? x.season === g.Y : (x.season === g.Y && (s.phase !== 'regular' || s.day < (until as number))) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'regular' && s.day < (until as number) || (x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'preseason';
-      if (blocked) errs.push(P[id].name + ' signed an extension with a raise over 5% and can’t be traded for six months' + (inSeason ? ' (not again this season).' : ' (until ' + g.fmtS(until as number) + ').')); });
-    out.forEach(id => { if (P[id].ntc && !s.god) errs.push(P[id].name + ' has a no-trade clause and won’t waive it.'); });
-    if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.TRADE_DEADLINE)) errs.push('The trade deadline (' + g.fmtS(g.ruleSlot(DAY.TRADE_DEADLINE)) + ') has passed.');
+    out.forEach(id => {
+      const x = P[id].extNoTrade;
+      if (!x || s.god) return;
+      const inSeason = x.phase === 'regular' || x.phase === 'playin' || x.phase === 'playoffs';
+      const until = inSeason ? null : g.ruleSlot(DAY.EXT_TRADE),
+        blocked = inSeason
+          ? x.season === g.Y
+          : (x.season === g.Y && (s.phase !== 'regular' || s.day < (until as number))) ||
+            ((x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'regular' && s.day < (until as number)) ||
+            ((x.phase === 'fa' || x.phase === 'draft') && x.season === g.Y - 1 && s.phase === 'preseason');
+      if (blocked)
+        errs.push(
+          P[id].name +
+            ' signed an extension with a raise over 5% and can’t be traded for six months' +
+            (inSeason ? ' (not again this season).' : ' (until ' + g.fmtS(until as number) + ').'),
+        );
+    });
+    out.forEach(id => {
+      if (P[id].ntc && !s.god) errs.push(P[id].name + ' has a no-trade clause and won’t waive it.');
+    });
+    if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.TRADE_DEADLINE))
+      errs.push('The trade deadline (' + g.fmtS(g.ruleSlot(DAY.TRADE_DEADLINE)) + ') has passed.');
     // TPE created when sending out more than taking back (over the cap, single-player out).
-    if (after > N.CAP && o > i && out.length === 1) notes.push(nm + ' creates a ' + (o - i).toFixed(2) + 'M traded player exception (one year).');
+    if (after > N.CAP && o > i && out.length === 1)
+      notes.push(nm + ' creates a ' + (o - i).toFixed(2) + 'M traded player exception (one year).');
     return { after };
   };
-  side(a, fromA, fromB); side(b, fromB, fromA);
+  side(a, fromA, fromB);
+  side(b, fromB, fromA);
   // Stepien rule: a team can't be without a first-round pick in consecutive future drafts.
-  [[a, picksA, picksB], [b, picksB, picksA]].forEach(([tid, give, receive]: any) => { const own = s.assets.filter(k => k.rd === 1 && ((k.owner === tid && !give.includes(k.id)) || receive.includes(k.id))); const yrs = [...new Set(s.assets.filter(k => k.rd === 1).map(k => k.yr))].sort() as number[];
-    for (let i = 1; i < yrs.length; i++) if (!own.some(k => k.yr === yrs[i]) && !own.some(k => k.yr === yrs[i - 1])) { errs.push(s.teams[tid].abbr + ' would have no first-round pick in both ' + yrs[i - 1] + ' and ' + yrs[i] + ' (Stepien rule).'); break; } });
+  [
+    [a, picksA, picksB],
+    [b, picksB, picksA],
+  ].forEach(([tid, give, receive]: any) => {
+    const own = s.assets.filter(k => k.rd === 1 && ((k.owner === tid && !give.includes(k.id)) || receive.includes(k.id)));
+    const yrs = [...new Set(s.assets.filter(k => k.rd === 1).map(k => k.yr))].sort() as number[];
+    for (let i = 1; i < yrs.length; i++)
+      if (!own.some(k => k.yr === yrs[i]) && !own.some(k => k.yr === yrs[i - 1])) {
+        errs.push(s.teams[tid].abbr + ' would have no first-round pick in both ' + yrs[i - 1] + ' and ' + yrs[i] + ' (Stepien rule).');
+        break;
+      }
+  });
   // 2nd apron: a team above it can't trade its first-round pick furthest in the future.
-  [[a, picksA], [b, picksB]].forEach(([tid, give]: any) => { if (teamSalary(g, s, tid) <= N.AP2) return; const far = Math.max(...s.assets.filter(k => k.rd === 1).map(k => k.yr));
-    if (give.some(id => { const k = s.assets.find(x => x.id === id); return k && k.rd === 1 && k.yr === far; })) errs.push(s.teams[tid].abbr + ' is above the 2nd apron, so its ' + far + ' first-round pick is frozen.'); });
-  for (const [tid, give] of [[a, picksA], [b, picksB]] as any) for (const id of give) {
-    if (id.startsWith('swap:')) {
-      const yr = +id.slice(5);
-      if (!canOfferSwap(s, yr, a, b) || [...picksA, ...picksB].some(x => s.assets.some(p => p.id === x && p.rd === 1 && p.yr === yr)) || (picksA.includes(id) && picksB.includes(id))) errs.push('A swap requires both original firsts, still owned and unencumbered; a pick and its swap cannot be traded together.');
-    } else {
-      const p = s.assets.find(p => p.id === id);
-      if (!p || p.owner !== tid) errs.push('You cannot trade a pick you do not own.');
-      if (p?.rd === 1 && (s.swaps || []).some(w => w.yr === p.yr && [w.from, w.to].includes(p.orig))) errs.push('This first is committed to an existing swap.');
+  [
+    [a, picksA],
+    [b, picksB],
+  ].forEach(([tid, give]: any) => {
+    if (teamSalary(g, s, tid) <= N.AP2) return;
+    const far = Math.max(...s.assets.filter(k => k.rd === 1).map(k => k.yr));
+    if (
+      give.some(id => {
+        const k = s.assets.find(x => x.id === id);
+        return k && k.rd === 1 && k.yr === far;
+      })
+    )
+      errs.push(s.teams[tid].abbr + ' is above the 2nd apron, so its ' + far + ' first-round pick is frozen.');
+  });
+  for (const [tid, give] of [
+    [a, picksA],
+    [b, picksB],
+  ] as any)
+    for (const id of give) {
+      if (id.startsWith('swap:')) {
+        const yr = +id.slice(5);
+        if (
+          !canOfferSwap(s, yr, a, b) ||
+          [...picksA, ...picksB].some(x => s.assets.some(p => p.id === x && p.rd === 1 && p.yr === yr)) ||
+          (picksA.includes(id) && picksB.includes(id))
+        )
+          errs.push('A swap requires both original firsts, still owned and unencumbered; a pick and its swap cannot be traded together.');
+      } else {
+        const p = s.assets.find(p => p.id === id);
+        if (!p || p.owner !== tid) errs.push('You cannot trade a pick you do not own.');
+        if (p?.rd === 1 && (s.swaps || []).some(w => w.yr === p.yr && [w.from, w.to].includes(p.orig)))
+          errs.push('This first is committed to an existing swap.');
+      }
     }
-  }
   return { ok: errs.length === 0, errs: [...new Set(errs)], notes };
 }
 // Salary a player counts for in a trade (trade kickers add their bonus, up to the max).
-export function tradeHit(g: Game, p: any) { const base = g.capHit(p); return p.kicker ? Math.min(base * (1 + p.kicker), base + (p.amt * p.kicker)) : base; }
+export function tradeHit(g: Game, p: any) {
+  const base = g.capHit(p);
+  return p.kicker ? Math.min(base * (1 + p.kicker), base + p.amt * p.kicker) : base;
+}
 
 // ── Luxury tax (incremental brackets; repeaters pay a point more per bracket) ────────
 export function taxBill(g: Game, payroll: number, repeater: boolean) {
   // Brackets of about $5.7M: 1.50, 1.75, 2.50, 3.25, then +0.50 each; repeaters +1.00.
-  const N = nums(g), RATES = [1.5, 1.75, 2.5, 3.25]; let over = payroll - N.TAX, bill = 0, k = 0;
-  while (over > 0) { const rate = (k < 4 ? RATES[k] : 3.25 + 0.5 * (k - 3)) + (repeater ? 1 : 0); bill += Math.min(N.TAX_STEP, over) * rate; over -= N.TAX_STEP; k++; }
+  const N = nums(g),
+    RATES = [1.5, 1.75, 2.5, 3.25];
+  let over = payroll - N.TAX,
+    bill = 0,
+    k = 0;
+  while (over > 0) {
+    const rate = (k < 4 ? RATES[k] : 3.25 + 0.5 * (k - 3)) + (repeater ? 1 : 0);
+    bill += Math.min(N.TAX_STEP, over) * rate;
+    over -= N.TAX_STEP;
+    k++;
+  }
   return +bill.toFixed(2);
 }
 
 // ── Waivers: dead money, the stretch provision, buyouts ────────────────────────────
 export function remainingGuaranteed(g: Game, s: any, p: any) {
-  const out: Record<number, number> = {}; if (['ex10', 'tenDay', 'hardship', 'twoWay'].includes(p.ctype)) return out; // non-guaranteed
+  const out: Record<number, number> = {};
+  if (['ex10', 'tenDay', 'hardship', 'twoWay'].includes(p.ctype)) return out; // non-guaranteed
   // Waived salary already paid still counts on the cap for that salary-cap year (Art. VII 4(a)(1)(i)).
-  for (let y = g.Y; y <= p.exp + (p.ext?.yrs || 0); y++) { if (p.opt?.kind === 'team' && y === p.opt.season) break; const sal = g.salAt(p, y); out[y] = +sal.toFixed(2); }
+  for (let y = g.Y; y <= p.exp + (p.ext?.yrs || 0); y++) {
+    if (p.opt?.kind === 'team' && y === p.opt.season) break;
+    const sal = g.salAt(p, y);
+    out[y] = +sal.toFixed(2);
+  }
   if (s.phase === 'fa' || s.phase === 'draft' || s.phase === 'lottery') delete out[g.Y];
   return out;
 }
 export function deadSchedule(g: Game, s: any, p: any, stretch: boolean, giveBack = 0) {
-  const rem = remainingGuaranteed(g, s, p), yrs = Object.keys(rem).map(Number).sort();
-  if (!stretch || !yrs.length) { const o: Record<number, number> = {}; yrs.forEach(y => (o[y] = +(rem[y] * (1 - giveBack)).toFixed(2))); return o; }
+  const rem = remainingGuaranteed(g, s, p),
+    yrs = Object.keys(rem).map(Number).sort();
+  if (!stretch || !yrs.length) {
+    const o: Record<number, number> = {};
+    yrs.forEach(y => (o[y] = +(rem[y] * (1 - giveBack)).toFixed(2)));
+    return o;
+  }
   // After August 31 the current year's salary stays intact; only future years stretch.
   const beforeSeptember = s.phase === 'fa' && g.faDate(s).getMonth() < 8;
   const current = beforeSeptember ? g.Y + 1 : g.Y;
-  const eligible = yrs.filter(y => beforeSeptember || y > current), o: Record<number, number> = {};
-  yrs.filter(y => !eligible.includes(y)).forEach(y => { o[y] = +(rem[y] * (1 - giveBack)).toFixed(2); });
+  const eligible = yrs.filter(y => beforeSeptember || y > current),
+    o: Record<number, number> = {};
+  yrs
+    .filter(y => !eligible.includes(y))
+    .forEach(y => {
+      o[y] = +(rem[y] * (1 - giveBack)).toFixed(2);
+    });
   if (!eligible.length) return o;
-  const first = eligible[0], n = eligible.length * 2 + 1, stretched = eligible.reduce((a, y) => a + rem[y], 0) * (1 - giveBack);
+  const first = eligible[0],
+    n = eligible.length * 2 + 1,
+    stretched = eligible.reduce((a, y) => a + rem[y], 0) * (1 - giveBack);
   for (let i = 0; i < n; i++) o[first + i] = +(stretched / n).toFixed(2);
   return o;
 }
@@ -295,16 +675,42 @@ export function rookieDeal(g: Game, pick: number, rd: number) {
   return { amt: N.min(0), years: 2, raise: 0.05, ctype: 'standard', opts: [] as number[] };
 }
 export function qoFor(g: Game, p: any) {
-  const N = nums(g), yos = yosOf(g, p);
-  if (p.rookieScale) { const pk = p.rookieScale.pick; return +(p.amt * (1.3 + (Math.min(30, pk) - 1) / 29 * 0.2)).toFixed(2); }
+  const N = nums(g),
+    yos = yosOf(g, p);
+  if (p.rookieScale) {
+    const pk = p.rookieScale.pick;
+    return +(p.amt * (1.3 + ((Math.min(30, pk) - 1) / 29) * 0.2)).toFixed(2);
+  }
   return +Math.max(p.amt * 1.25, N.min(yos) + N.CAP * 0.0013).toFixed(2);
 }
 export const qoEligible = (g: Game, p: any) => !!p.rookieScale || yosOf(g, p) <= 3;
 
 // Years with the team and Bird rights carry through trades; they reset when he signs elsewhere.
 export function describeContract(g: Game, p: any) {
-  const t = p.ctype === 'rookie' ? 'Rookie scale' : p.ctype === 'twoWay' ? 'Two-way' : p.ctype === 'ex10' ? 'Exhibit 10' : p.ctype === 'tenDay' ? '10-day' : p.ctype === 'hardship' ? 'Hardship' : p.ctype === 'max' ? 'Max' : p.ctype === 'min' ? 'Minimum' : 'Veteran';
-  return t + (p.opt ? ' · ' + (p.opt.kind === 'player' ? 'player' : 'team') + ' option ' + (p.opt.season - 1) + '–' + String(p.opt.season).slice(2) : '') + (p.kicker ? ' · ' + Math.round(p.kicker * 100) + '% trade kicker' : '') + (p.ntc ? ' · no-trade clause' : '');
+  const t =
+    p.ctype === 'rookie'
+      ? 'Rookie scale'
+      : p.ctype === 'twoWay'
+        ? 'Two-way'
+        : p.ctype === 'ex10'
+          ? 'Exhibit 10'
+          : p.ctype === 'tenDay'
+            ? '10-day'
+            : p.ctype === 'hardship'
+              ? 'Hardship'
+              : p.ctype === 'max'
+                ? 'Max'
+                : p.ctype === 'min'
+                  ? 'Minimum'
+                  : 'Veteran';
+  return (
+    t +
+    (p.opt
+      ? ' · ' + (p.opt.kind === 'player' ? 'player' : 'team') + ' option ' + (p.opt.season - 1) + '–' + String(p.opt.season).slice(2)
+      : '') +
+    (p.kicker ? ' · ' + Math.round(p.kicker * 100) + '% trade kicker' : '') +
+    (p.ntc ? ' · no-trade clause' : '')
+  );
 }
 
 // ── Extensions (NBA rules) ──────────────────────────────────────────────────────
@@ -314,25 +720,82 @@ export function describeContract(g: Game, p: any) {
 // the final season any time until June 30. Up to five seasons including the current one (six
 // for a designated-veteran supermax); rookie-scale extensions add up to five new seasons.
 export function extWindow(g: Game, s: any, p: any): { ok: boolean; kind: 'rookie' | 'vet' | null; why: string; left: number } {
-  const Y = g.Y, ph = s.phase, fa = ph === 'fa', fd = fa ? g.faDayOf(s) : 0;
+  const Y = g.Y,
+    ph = s.phase,
+    fa = ph === 'fa',
+    fd = fa ? g.faDayOf(s) : 0;
   const offWin = (fa && fd >= 6) || ph === 'preseason' || (ph === 'regular' && s.day === 0);
   const left = fa ? p.exp - Y : p.exp - Y + 1; // seasons left on the deal, counting the current one
   const july = (y: number) => 'July 6, ' + y;
-  if (p.ext) return { ok: false, kind: null, why: 'Already extended through ' + (p.exp + p.ext.yrs - 1) + '–' + String(p.exp + p.ext.yrs).slice(2) + '.', left };
-  if (['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype)) return { ok: false, kind: null, why: 'Two-way, Exhibit 10, 10-day and hardship deals can’t be extended' + (p.ctype === 'twoWay' ? ' (convert him to a standard contract first).' : '.'), left };
+  if (p.ext)
+    return {
+      ok: false,
+      kind: null,
+      why: 'Already extended through ' + (p.exp + p.ext.yrs - 1) + '–' + String(p.exp + p.ext.yrs).slice(2) + '.',
+      left,
+    };
+  if (['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype))
+    return {
+      ok: false,
+      kind: null,
+      why:
+        'Two-way, Exhibit 10, 10-day and hardship deals can’t be extended' +
+        (p.ctype === 'twoWay' ? ' (convert him to a standard contract first).' : '.'),
+      left,
+    };
   if (left < 1) return { ok: false, kind: null, why: 'His contract has run out.', left };
-  if (fa && fd < 6) return { ok: false, kind: null, why: 'Extensions can’t be signed during the July moratorium: from ' + july(Y) + '.', left };
+  if (fa && fd < 6)
+    return { ok: false, kind: null, why: 'Extensions can’t be signed during the July moratorium: from ' + july(Y) + '.', left };
   if (p.rookieScale) {
-    if (left === 1 && offWin) return { ok: true, kind: 'rookie', why: 'Rookie-scale extension window: until the day before the regular season.', left };
-    if (left === 1) return { ok: false, kind: 'rookie', why: 'His rookie-scale extension window closed on opening night. He can be a restricted free agent next summer (extend his qualifying offer).', left };
-    const y = p.exp - 1; return { ok: false, kind: 'rookie', why: 'Rookie-scale extension window: the summer before his final rookie year, ' + july(y) + ' until opening night.', left };
+    if (left === 1 && offWin)
+      return { ok: true, kind: 'rookie', why: 'Rookie-scale extension window: until the day before the regular season.', left };
+    if (left === 1)
+      return {
+        ok: false,
+        kind: 'rookie',
+        why: 'His rookie-scale extension window closed on opening night. He can be a restricted free agent next summer (extend his qualifying offer).',
+        left,
+      };
+    const y = p.exp - 1;
+    return {
+      ok: false,
+      kind: 'rookie',
+      why: 'Rookie-scale extension window: the summer before his final rookie year, ' + july(y) + ' until opening night.',
+      left,
+    };
   }
   // Two-year anniversary of the signing (three for a five-year deal).
-  const sg = p.signed, len = sg?.season != null ? p.exp - sg.season + 1 : 0, need = len >= 5 ? 3 : 2;
-  const now = (fa || ph === 'draft') ? Y + (fa ? 0 : -0.1) : Y - 1 + 0.5, at = sg?.season != null ? sg.season - 1 + (sg.phase === 'regular' ? 0.5 : 0) : -Infinity;
+  const sg = p.signed,
+    len = sg?.season != null ? p.exp - sg.season + 1 : 0,
+    need = len >= 5 ? 3 : 2;
+  const now = fa || ph === 'draft' ? Y + (fa ? 0 : -0.1) : Y - 1 + 0.5,
+    at = sg?.season != null ? sg.season - 1 + (sg.phase === 'regular' ? 0.5 : 0) : -Infinity;
   const anniv = sg?.season != null ? now - at >= need - 0.01 : (p.yrsWith || 0) >= 2;
-  if (!anniv) { const y = sg?.season != null ? Math.ceil(at + need) : Math.ceil(now) + (2 - (p.yrsWith || 0)); return { ok: false, kind: 'vet', why: 'Veteran extensions need ' + need + ' years since he signed' + (need === 3 ? ' (it’s a five-year deal)' : '') + (y >= p.exp ? ', so he can’t be extended before his deal runs out: re-sign him in free agency instead (you’ll hold his Bird rights).' : ': eligible from summer ' + y + '.'), left }; }
+  if (!anniv) {
+    const y = sg?.season != null ? Math.ceil(at + need) : Math.ceil(now) + (2 - (p.yrsWith || 0));
+    return {
+      ok: false,
+      kind: 'vet',
+      why:
+        'Veteran extensions need ' +
+        need +
+        ' years since he signed' +
+        (need === 3 ? ' (it’s a five-year deal)' : '') +
+        (y >= p.exp
+          ? ', so he can’t be extended before his deal runs out: re-sign him in free agency instead (you’ll hold his Bird rights).'
+          : ': eligible from summer ' + y + '.'),
+      left,
+    };
+  }
   if (left === 1) return { ok: true, kind: 'vet', why: 'Final season of his deal: he can extend any time until June 30.', left };
   if (offWin) return { ok: true, kind: 'vet', why: 'Off-season extension window (July 6 to the day before the regular season).', left };
-  return { ok: false, kind: 'vet', why: 'With ' + left + ' seasons left he can only extend in the off-season window (July 6 to opening night), or any time once he’s in the final year of his deal.', left };
+  return {
+    ok: false,
+    kind: 'vet',
+    why:
+      'With ' +
+      left +
+      ' seasons left he can only extend in the off-season window (July 6 to opening night), or any time once he’s in the final year of his deal.',
+    left,
+  };
 }

@@ -18,7 +18,8 @@ function boxChecks(result: any, label: string) {
     const rows = Object.values(side.box) as any[];
     assert.equal(sum(rows, 'pts'), side.pts, label + ' player/team points');
     for (const b of rows) {
-      for (const [key, value] of Object.entries(b)) if (typeof value === 'number') assert.ok(Number.isFinite(value), label + ' finite ' + key);
+      for (const [key, value] of Object.entries(b))
+        if (typeof value === 'number') assert.ok(Number.isFinite(value), label + ' finite ' + key);
       assert.equal(b.pts, 2 * (b.fgm - b.tpm) + 3 * b.tpm + b.ftm, label + ' scoring identity');
       assert.equal(b.fga, b.ra + b.ma + b.ca + b.ba, label + ' zone attempts');
       assert.equal(b.fgm, b.rm + b.mm + b.cm + b.bm, label + ' zone makes');
@@ -26,8 +27,16 @@ function boxChecks(result: any, label: string) {
       assert.equal(b.tpm, b.cm + b.bm, label + ' three makes');
       assert.ok(b.ka <= b.ma && b.km <= b.mm && b.km <= b.ka, label + ' paint is a mid-tier subset');
       for (const type of TYPES) assert.ok(b[type + 'M'] <= b[type + 'A'], label + ' ' + type + ' makes/attempts');
-      assert.equal(TYPES.reduce((s, t) => s + b[t + 'A'], 0), b.finishRaA + b.finishPaintA, label + ' technique attempts');
-      assert.equal(TYPES.reduce((s, t) => s + b[t + 'M'], 0), b.rm + b.km, label + ' technique makes');
+      assert.equal(
+        TYPES.reduce((s, t) => s + b[t + 'A'], 0),
+        b.finishRaA + b.finishPaintA,
+        label + ' technique attempts',
+      );
+      assert.equal(
+        TYPES.reduce((s, t) => s + b[t + 'M'], 0),
+        b.rm + b.km,
+        label + ' technique makes',
+      );
       assert.equal(b.finishRaA, b.ra, label + ' RA tracking');
       assert.equal(b.finishPaintA, b.ka, label + ' paint tracking');
       assert.ok(b.closeFoulA <= b.shotFoulA, label + ' close foul subset');
@@ -35,15 +44,19 @@ function boxChecks(result: any, label: string) {
   }
 }
 
-const g: any = newLeague(101), s = g.state;
-const home = g.simTeam(s, 0), away = g.simTeam(s, 1);
+const g: any = newLeague(101),
+  s = g.state;
+const home = g.simTeam(s, 0),
+  away = g.simTeam(s, 1);
 const observed: ShotEvent[] = [];
 for (let seed = 21000; seed < 21020; seed++) {
   const run = (pbp: boolean, observer?: (e: Readonly<ShotEvent>) => void) => {
     Math.random = mulberry32(seed);
     return new GameSim(structuredClone(home), structuredClone(away), { norms: g.db.norms, pbp, onShot: observer }).run();
   };
-  const events: ShotEvent[] = [], quick = run(false, e => events.push(structuredClone(e))), live = run(true);
+  const events: ShotEvent[] = [],
+    quick = run(false, e => events.push(structuredClone(e))),
+    live = run(true);
   assert.deepEqual(quick, live, 'same-seed watched and quick games must agree');
   boxChecks(quick, 'NBA seed ' + seed);
   const allRows = { ...quick.home.box, ...quick.away.box } as Record<number, any>;
@@ -62,10 +75,22 @@ for (let seed = 21000; seed < 21020; seed++) {
   }
   observed.push(...events);
 }
-assert.ok(observed.some(e => e.fouled && !e.made), 'missed-foul branch exercised');
-assert.ok(observed.some(e => e.fouled && e.made), 'and-one branch exercised');
-assert.ok(observed.some(e => e.blocked), 'blocked branch exercised');
-assert.ok(observed.some(e => e.origin === 'putback'), 'immediate putback branch exercised');
+assert.ok(
+  observed.some(e => e.fouled && !e.made),
+  'missed-foul branch exercised',
+);
+assert.ok(
+  observed.some(e => e.fouled && e.made),
+  'and-one branch exercised',
+);
+assert.ok(
+  observed.some(e => e.blocked),
+  'blocked branch exercised',
+);
+assert.ok(
+  observed.some(e => e.origin === 'putback'),
+  'immediate putback branch exercised',
+);
 const rim = observed.filter(e => e.zone === 'rim' && e.technique === 'layup' && !e.fouled);
 const averageChance = (contest: ShotEvent['contest']) => {
   const shots = rim.filter(e => e.contest === contest);
@@ -81,7 +106,8 @@ for (const e of observed) {
 }
 
 // A zero frequency remains zero in both engines, even for capable dunkers.
-const noDunkHome = structuredClone(home), noDunkAway = structuredClone(away);
+const noDunkHome = structuredClone(home),
+  noDunkAway = structuredClone(away);
 for (const team of [noDunkHome, noDunkAway]) for (const p of team.players) p.tend = { ...p.tend, dunk: 0 };
 for (let seed = 22000; seed < 22020; seed++) {
   Math.random = mulberry32(seed);
@@ -101,7 +127,9 @@ for (let seed = 23000; seed < 23020; seed++) {
 // Generated amateur histories use the same technique semantics and record zeros.
 const p = structuredClone(g.db.P[s.rosters[0][0]]);
 assert.equal(applyCard(p, PRESET_CARDS[25].card, g.db.C), '');
-p.from = { team: 'Harvard', lg: 'NCAA' }; p.ten.dunk = 0; p.tenLock = true;
+p.from = { team: 'Harvard', lg: 'NCAA' };
+p.ten.dunk = 0;
+p.tenLock = true;
 p.tenBase.ten.dunk = 0;
 const amateur = seasonLine(p, g.Y, 0);
 assert.equal(amateur.disp.dunkA, 0);
@@ -114,43 +142,92 @@ for (const line of [amateur.disp, amateur.t] as any[]) {
 }
 
 // A high college 2P% does not fabricate three independently measured abilities.
-const prospect = structuredClone(p), insideBefore = prospect.r.ins, dunkBefore = prospect.r.dnk;
-shapeFromStats(prospect, { pos: 'PG', real: [{ gp: 30, mp: 30, fg: 9, fga: 12, tp: 0.5, tpa: 1.5, ft: 8, fta: 10, ast: 4, trb: 4, blk: 0.2, stl: 1 }] } as any);
+const prospect = structuredClone(p),
+  insideBefore = prospect.r.ins,
+  dunkBefore = prospect.r.dnk;
+shapeFromStats(prospect, {
+  pos: 'PG',
+  real: [{ gp: 30, mp: 30, fg: 9, fga: 12, tp: 0.5, tpa: 1.5, ft: 8, fta: 10, ast: 4, trb: 4, blk: 0.2, stl: 1 }],
+} as any);
 assert.equal(prospect.r.ins, insideBefore);
 assert.equal(prospect.r.dnk, dunkBefore);
 assert.ok(prospect.r.lay >= p.r.lay);
 
 // Existing history has unknown technique counts; saving/reopening must not invent them.
 const savedPlayer = g.db.P[s.rosters[0][0]];
-savedPlayer.ten.dunk = 0; savedPlayer.tenLock = true;
-savedPlayer.stats = [{ season: g.Y - 1, tid: 0, gp: 1, min: 30, pts: 12, fgm: 5, fga: 10, tpm: 0, tpa: 1, ftm: 2, fta: 3, rm: 3, ra: 6, mm: 2, ma: 3, cm: 0, ca: 0, bm: 0, ba: 1 }];
-const reopened: any = Game.load(g.toSave()), restored = reopened.db.P[savedPlayer.id];
+savedPlayer.ten.dunk = 0;
+savedPlayer.tenLock = true;
+savedPlayer.stats = [
+  {
+    season: g.Y - 1,
+    tid: 0,
+    gp: 1,
+    min: 30,
+    pts: 12,
+    fgm: 5,
+    fga: 10,
+    tpm: 0,
+    tpa: 1,
+    ftm: 2,
+    fta: 3,
+    rm: 3,
+    ra: 6,
+    mm: 2,
+    ma: 3,
+    cm: 0,
+    ca: 0,
+    bm: 0,
+    ba: 1,
+  },
+];
+const reopened: any = Game.load(g.toSave()),
+  restored = reopened.db.P[savedPlayer.id];
 assert.equal(restored.ten.dunk, 0);
 assert.equal(restored.tenLock, true);
 assert.equal(restored.stats[0].dunkA, undefined);
 assert.equal(restored.stats[0].layupA, undefined);
 assert.equal(restored.stats[0].ra, 6);
 
-console.log('Finishing integration passed: 20 watched/quick pairs, 40 zero-preference NBA/CCP games, 20 ordinary CCP games, event/stat/foul identities, amateur types, weak historical evidence and old-history save round trip.');
+console.log(
+  'Finishing integration passed: 20 watched/quick pairs, 40 zero-preference NBA/CCP games, 20 ordinary CCP games, event/stat/foul identities, amateur types, weak historical evidence and old-history save round trip.',
+);
 
 // Paint-only accuracy must not recenter unrelated outside-paint jumpers.
-const nPlayers=home.players.slice(0,2).map((_,i)=>structuredClone(g.db.P[g.state.rosters[0][i]]));
-for(let i=0;i<2;i++){delete nPlayers[i].tenBase;Object.assign(nPlayers[i].ten,{ra:0,paint:i?100:0,mid:i?0:100,c3:0,atb:0});}
-const normsAt=(fg:number)=>{nPlayers[1].r.fg=fg;return computeNorms(nPlayers.map(p=>({p,min:30,tid:0,roles:[]})),2027);};
-assert.ok(Math.abs(normsAt(5).offset.mid-normsAt(95).offset.mid)<1e-10,'paint-only skill must not shift jumper execution');
-const boundary:any=new GameSim(structuredClone(home),structuredClone(away),{norms:g.db.norms});
-boundary.t=0;boundary.afterOrb=true;boundary.orbOwner=boundary.on[boundary.pos][0];boundary.fastBreak=true;boundary.step();
-assert.equal(boundary.afterOrb,false);assert.equal(boundary.orbOwner,null);assert.equal(boundary.fastBreak,false);
+const nPlayers = home.players.slice(0, 2).map((_, i) => structuredClone(g.db.P[g.state.rosters[0][i]]));
+for (let i = 0; i < 2; i++) {
+  delete nPlayers[i].tenBase;
+  Object.assign(nPlayers[i].ten, { ra: 0, paint: i ? 100 : 0, mid: i ? 0 : 100, c3: 0, atb: 0 });
+}
+const normsAt = (fg: number) => {
+  nPlayers[1].r.fg = fg;
+  return computeNorms(
+    nPlayers.map(p => ({ p, min: 30, tid: 0, roles: [] })),
+    2027,
+  );
+};
+assert.ok(Math.abs(normsAt(5).offset.mid - normsAt(95).offset.mid) < 1e-10, 'paint-only skill must not shift jumper execution');
+const boundary: any = new GameSim(structuredClone(home), structuredClone(away), { norms: g.db.norms });
+boundary.t = 0;
+boundary.afterOrb = true;
+boundary.orbOwner = boundary.on[boundary.pos][0];
+boundary.fastBreak = true;
+boundary.step();
+assert.equal(boundary.afterOrb, false);
+assert.equal(boundary.orbOwner, null);
+assert.equal(boundary.fastBreak, false);
 console.log('Paint/jumper normalization isolation and quarter-end continuation checks passed.');
 
-const aggregateSample=new GameSim(structuredClone(home),structuredClone(away),{norms:g.db.norms}).run();
-g.addBox(aggregateSample,false,undefined,undefined,g.state);
-for(const side of [aggregateSample.home,aggregateSample.away])for(const k of ['dunkA','layupA','finishRaA','finishPaintA'])assert.equal(g.state.tstats[side.tid][k],sum(Object.values(side.box) as any[],k));
+const aggregateSample = new GameSim(structuredClone(home), structuredClone(away), { norms: g.db.norms }).run();
+g.addBox(aggregateSample, false, undefined, undefined, g.state);
+for (const side of [aggregateSample.home, aggregateSample.away])
+  for (const k of ['dunkA', 'layupA', 'finishRaA', 'finishPaintA'])
+    assert.equal(g.state.tstats[side.tid][k], sum(Object.values(side.box) as any[], k));
 console.log('Team finishing aggregates reconcile with player counters.');
 
 {
   const play = (overallDelta: number) => {
-    const h = structuredClone(home), a = structuredClone(away);
+    const h = structuredClone(home),
+      a = structuredClone(away);
     h.aiKeys = [];
     a.aiKeys = [];
     for (const p of h.players) p.ovr += overallDelta;

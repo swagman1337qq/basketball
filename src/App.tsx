@@ -11,19 +11,30 @@ import { StatHover } from './ui/StatHover';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { UpdateBanner } from './ui/UpdateBanner';
 
-interface Open { id: string; name: string; createdAt: number; game: Game }
+interface Open {
+  id: string;
+  name: string;
+  createdAt: number;
+  game: Game;
+}
 
 export function App() {
   const [open, setOpen] = useState<Open | null>(null);
   const [error, setError] = useState('');
-  useEffect(() => { loadCards(); }, []); // the shared player-card library
+  useEffect(() => {
+    loadCards();
+  }, []); // the shared player-card library
 
   const onCreate = useCallback(async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' | 'spectate' = '') => {
     const game = Game.create(seed, tids, { worst: start === 'worst', hopeless: start === 'hopeless', spectate: start === 'spectate' });
     const now = Date.now();
     const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
     row.summary = summarize(row.data);
-    try { await putSave(row); } catch { setError('Could not write to browser storage; this league will not be saved.'); }
+    try {
+      await putSave(row);
+    } catch {
+      setError('Could not write to browser storage; this league will not be saved.');
+    }
     setOpen({ id: row.id, name, createdAt: now, game });
   }, []);
 
@@ -32,11 +43,24 @@ export function App() {
     if (!row) return;
     const game = Game.load(row.data);
     // A league from before cards were shared: its cards join the shared library, then leave the save.
-    if (game.state.cards) { try { await adoptLeagueCards(game.state.cards, row.name); game.setState({ cards: undefined }); } catch { /* keep them in the save */ } }
+    if (game.state.cards) {
+      try {
+        await adoptLeagueCards(game.state.cards, row.name);
+        game.setState({ cards: undefined });
+      } catch {
+        /* keep them in the save */
+      }
+    }
     setOpen({ id, name: row.name, createdAt: row.createdAt, game });
   }, []);
 
-  if (!open) return <><TitleScreen onOpen={onOpen} onCreate={onCreate} /><UpdateBanner /></>;
+  if (!open)
+    return (
+      <>
+        <TitleScreen onOpen={onOpen} onCreate={onCreate} />
+        <UpdateBanner />
+      </>
+    );
   return <GameScreen key={open.id} open={open} error={error} onExit={() => setOpen(null)} onSwitch={onOpen} />;
 }
 
@@ -51,7 +75,8 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   const save = useCallback(async () => {
     clearTimeout(timer.current);
     if (lastSaved.current === game.version) return;
-    const v = game.version, data = game.toSave();
+    const v = game.version,
+      data = game.toSave();
     try {
       await putSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: summarize(data), data });
       lastSaved.current = v;
@@ -72,10 +97,16 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
     timer.current = setTimeout(save, 700);
   }, [version, save, game]);
   useEffect(() => {
-    const flush = () => { if (document.visibilityState === 'hidden') save(); };
+    const flush = () => {
+      if (document.visibilityState === 'hidden') save();
+    };
     window.addEventListener('pagehide', save);
     document.addEventListener('visibilitychange', flush);
-    return () => { window.removeEventListener('pagehide', save); document.removeEventListener('visibilitychange', flush); save(); };
+    return () => {
+      window.removeEventListener('pagehide', save);
+      document.removeEventListener('visibilitychange', flush);
+      save();
+    };
   }, [save]);
 
   // Escape closes the topmost overlay: confirm dialog, then player, team and list modals.
@@ -96,9 +127,35 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   }, [game]);
 
   const dark = (game.state.theme ?? 'dark') === 'dark';
-  useLayoutEffect(() => { applyTheme(rootRef.current, dark, game.state.teams[game.state.me]?.colors); rememberTheme(dark ? 'dark' : 'light'); });
+  useLayoutEffect(() => {
+    applyTheme(rootRef.current, dark, game.state.teams[game.state.me]?.colors);
+    rememberTheme(dark ? 'dark' : 'light');
+  });
 
-  const exportNow = () => exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
-  const vm = buildView(game, rootRef, { saveId: open.id, saveName: open.name, saveStatus: status, onExit: async () => { await save(); onExit(); }, onSwitch: async (id: string) => { await save(); onSwitch(id); }, onExport: exportNow });
-  return <><GMView vm={vm} /><ErrorBoundary quiet resetKey={String(version)}><PlayerHover gm={game} /><StatHover /></ErrorBoundary><UpdateBanner beforeReload={save} /></>;
+  const exportNow = () =>
+    exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
+  const vm = buildView(game, rootRef, {
+    saveId: open.id,
+    saveName: open.name,
+    saveStatus: status,
+    onExit: async () => {
+      await save();
+      onExit();
+    },
+    onSwitch: async (id: string) => {
+      await save();
+      onSwitch(id);
+    },
+    onExport: exportNow,
+  });
+  return (
+    <>
+      <GMView vm={vm} />
+      <ErrorBoundary quiet resetKey={String(version)}>
+        <PlayerHover gm={game} />
+        <StatHover />
+      </ErrorBoundary>
+      <UpdateBanner beforeReload={save} />
+    </>
+  );
 }

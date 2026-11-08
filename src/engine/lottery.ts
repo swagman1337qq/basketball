@@ -15,25 +15,46 @@ import type { Game } from './Game';
 
 export type Tier = 'bottom' | 'out' | 'playin' | 'loser78';
 export const BALLS: Record<Tier, number> = { bottom: 2, out: 3, playin: 2, loser78: 1 };
-export const TIER_LABEL: Record<Tier, string> = { bottom: 'Bottom three (relegation zone)', out: 'Missed the play-in', playin: 'Play-in 9 / 10 seed', loser78: 'Lost the 7 v 8 play-in game' };
+export const TIER_LABEL: Record<Tier, string> = {
+  bottom: 'Bottom three (relegation zone)',
+  out: 'Missed the play-in',
+  playin: 'Play-in 9 / 10 seed',
+  loser78: 'Lost the 7 v 8 play-in game',
+};
 export const FLOOR = 12;
 
 export interface LotTeam {
-  tid: number | null;     // null: the 7-v-8 loser isn't known yet (see cand)
-  cand?: number[];        // the two teams who could be that loser
-  conf: string; seed: number; tier: Tier; balls: number;
-  noOne: boolean; noTop5: boolean; why: string[];
+  tid: number | null; // null: the 7-v-8 loser isn't known yet (see cand)
+  cand?: number[]; // the two teams who could be that loser
+  conf: string;
+  seed: number;
+  tier: Tier;
+  balls: number;
+  noOne: boolean;
+  noTop5: boolean;
+  why: string[];
 }
-export interface Field { teams: LotTeam[]; projected: boolean }
+export interface Field {
+  teams: LotTeam[];
+  projected: boolean;
+}
 
-const worstFirst = (g: Game, s: any) => (a: number, b: number) => g.pct(s.teams[a]) - g.pct(s.teams[b]) || s.teams[a].w - s.teams[b].w || a - b;
+const worstFirst = (g: Game, s: any) => (a: number, b: number) =>
+  g.pct(s.teams[a]) - g.pct(s.teams[b]) || s.teams[a].w - s.teams[b].w || a - b;
 
 // Which slot each team's own first-rounder landed in, by draft year.
-export function ownSlot(s: any, yr: number, tid: number): number | null { const h = s.lotHist?.[yr]; return h && h[tid] != null ? h[tid] : null; }
+export function ownSlot(s: any, yr: number, tid: number): number | null {
+  const h = s.lotHist?.[yr];
+  return h && h[tid] != null ? h[tid] : null;
+}
 
 function streaks(g: Game, s: any, tid: number) {
-  const Y = g.Y, a = ownSlot(s, Y - 1, tid), b = ownSlot(s, Y - 2, tid), why: string[] = [];
-  const noOne = a === 1, noTop5 = a != null && b != null && a <= 5 && b <= 5;
+  const Y = g.Y,
+    a = ownSlot(s, Y - 1, tid),
+    b = ownSlot(s, Y - 2, tid),
+    why: string[] = [];
+  const noOne = a === 1,
+    noTop5 = a != null && b != null && a <= 5 && b <= 5;
   if (noOne) why.push('Can’t land No. 1: their own pick was No. 1 in ' + (Y - 1));
   if (noTop5) why.push('Can’t land in the top 5: their own pick was top-5 in ' + (Y - 2) + ' and ' + (Y - 1));
   return { noOne, noTop5, why };
@@ -42,23 +63,60 @@ function streaks(g: Game, s: any, tid: number) {
 // The lottery field: from the real play-in once the 7-v-8 games are done, otherwise
 // "if the season ended today" from the current standings.
 export function lotteryField(g: Game, s: any): Field {
-  const teams: LotTeam[] = [], confs = ['West', 'East'], cmp = worstFirst(g, s);
+  const teams: LotTeam[] = [],
+    confs = ['West', 'East'],
+    cmp = worstFirst(g, s);
   const seedsOf = (c: string): number[] => (s.seeds?.[c] && s.playin ? s.seeds[c] : g.seeds(s, c));
-  let projected = false; const out: { tid: number; conf: string; seed: number }[] = [];
+  let projected = false;
+  const out: { tid: number; conf: string; seed: number }[] = [];
   confs.forEach(c => {
-    const sd = seedsOf(c), A = s.playin?.[c]?.[0];
+    const sd = seedsOf(c),
+      A = s.playin?.[c]?.[0];
     sd.slice(10).forEach((t, i) => out.push({ tid: t, conf: c, seed: 11 + i }));
-    [8, 9].forEach(i => sd[i] != null && teams.push({ tid: sd[i], conf: c, seed: i + 1, tier: 'playin', balls: BALLS.playin, noOne: false, noTop5: false, why: [] }));
+    [8, 9].forEach(
+      i =>
+        sd[i] != null &&
+        teams.push({ tid: sd[i], conf: c, seed: i + 1, tier: 'playin', balls: BALLS.playin, noOne: false, noTop5: false, why: [] }),
+    );
     if (sd[6] == null || sd[7] == null) return;
-    if (A?.done) { teams.push({ tid: A.l, conf: c, seed: A.l === A.a ? 7 : 8, tier: 'loser78', balls: BALLS.loser78, noOne: false, noTop5: false, why: [] }); }
-    else { projected = true; teams.push({ tid: null, cand: [sd[6], sd[7]], conf: c, seed: 7, tier: 'loser78', balls: BALLS.loser78, noOne: false, noTop5: false, why: [] }); }
+    if (A?.done) {
+      teams.push({
+        tid: A.l,
+        conf: c,
+        seed: A.l === A.a ? 7 : 8,
+        tier: 'loser78',
+        balls: BALLS.loser78,
+        noOne: false,
+        noTop5: false,
+        why: [],
+      });
+    } else {
+      projected = true;
+      teams.push({
+        tid: null,
+        cand: [sd[6], sd[7]],
+        conf: c,
+        seed: 7,
+        tier: 'loser78',
+        balls: BALLS.loser78,
+        noOne: false,
+        noTop5: false,
+        why: [],
+      });
+    }
   });
   if (!s.playin) projected = true;
-  out.sort((a, b) => cmp(a.tid, b.tid)).forEach((x, i) => teams.push({ ...x, tier: i < 3 ? 'bottom' : 'out', balls: i < 3 ? BALLS.bottom : BALLS.out, noOne: false, noTop5: false, why: [] }));
-  teams.forEach(x => { if (x.tid != null) Object.assign(x, streaks(g, s, x.tid)); });
+  out
+    .sort((a, b) => cmp(a.tid, b.tid))
+    .forEach((x, i) =>
+      teams.push({ ...x, tier: i < 3 ? 'bottom' : 'out', balls: i < 3 ? BALLS.bottom : BALLS.out, noOne: false, noTop5: false, why: [] }),
+    );
+  teams.forEach(x => {
+    if (x.tid != null) Object.assign(x, streaks(g, s, x.tid));
+  });
   // Display order: bottom three, then the rest of the non-play-in teams, then the play-in teams, each worst record first.
   const rank: Record<Tier, number> = { bottom: 0, out: 1, playin: 2, loser78: 3 };
-  const rec = (x: LotTeam) => x.tid != null ? x.tid : x.cand![1];
+  const rec = (x: LotTeam) => (x.tid != null ? x.tid : x.cand![1]);
   teams.sort((a, b) => rank[a.tier] - rank[b.tier] || cmp(rec(a), rec(b)));
   return { teams, projected };
 }
@@ -66,7 +124,8 @@ export function lotteryField(g: Game, s: any): Field {
 // Which field entries may be drawn for slot k (1-based), given who's still in the drum.
 function eligible(f: LotTeam[], left: number[], k: number) {
   let c = left;
-  const bot = left.filter(i => f[i].tier === 'bottom'), floor = Math.min(FLOOR, f.length);
+  const bot = left.filter(i => f[i].tier === 'bottom'),
+    floor = Math.min(FLOOR, f.length);
   if (bot.length && floor - k + 1 <= bot.length) c = bot;
   const ok = c.filter(i => !(k === 1 && f[i].noOne) && !(k <= 5 && f[i].noTop5));
   return ok.length ? ok : c;
@@ -74,12 +133,22 @@ function eligible(f: LotTeam[], left: number[], k: number) {
 
 // One drawing: field indices in pick order.
 export function drawLottery(f: LotTeam[], rnd: () => number = Math.random): number[] {
-  const left = f.map((_, i) => i), order: number[] = [];
+  const left = f.map((_, i) => i),
+    order: number[] = [];
   for (let k = 1; left.length; k++) {
-    const c = eligible(f, left, k), tot = c.reduce((a, i) => a + f[i].balls, 0);
-    let r = rnd() * tot, pick = c[c.length - 1];
-    for (const i of c) { r -= f[i].balls; if (r <= 0) { pick = i; break; } }
-    order.push(pick); left.splice(left.indexOf(pick), 1);
+    const c = eligible(f, left, k),
+      tot = c.reduce((a, i) => a + f[i].balls, 0);
+    let r = rnd() * tot,
+      pick = c[c.length - 1];
+    for (const i of c) {
+      r -= f[i].balls;
+      if (r <= 0) {
+        pick = i;
+        break;
+      }
+    }
+    order.push(pick);
+    left.splice(left.indexOf(pick), 1);
   }
   return order;
 }
@@ -89,22 +158,49 @@ export function drawLottery(f: LotTeam[], rnd: () => number = Math.random): numb
 const cache = new Map<string, number[][]>();
 export function lotteryOdds(f: LotTeam[]): number[][] {
   const key = f.map(x => x.tier + x.balls + (x.noOne ? 'a' : '') + (x.noTop5 ? 'b' : '')).join(',');
-  const hit = cache.get(key); if (hit) return hit;
-  const n = f.length, odds = f.map(() => new Array(n).fill(0));
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const n = f.length,
+    odds = f.map(() => new Array(n).fill(0));
   if (n <= 18) {
-    const P = new Float64Array(1 << n); P[0] = 1;
-    const pop = (m: number) => { let c = 0; while (m) { m &= m - 1; c++; } return c; };
+    const P = new Float64Array(1 << n);
+    P[0] = 1;
+    const pop = (m: number) => {
+      let c = 0;
+      while (m) {
+        m &= m - 1;
+        c++;
+      }
+      return c;
+    };
     for (let m = 0; m < (1 << n) - 1; m++) {
-      const p = P[m]; if (!p) continue;
-      const k = pop(m) + 1, left: number[] = []; for (let i = 0; i < n; i++) if (!(m & (1 << i))) left.push(i);
-      const c = eligible(f, left, k), tot = c.reduce((a, i) => a + f[i].balls, 0);
-      c.forEach(i => { const q = p * f[i].balls / tot; odds[i][k - 1] += q; P[m | (1 << i)] += q; });
+      const p = P[m];
+      if (!p) continue;
+      const k = pop(m) + 1,
+        left: number[] = [];
+      for (let i = 0; i < n; i++) if (!(m & (1 << i))) left.push(i);
+      const c = eligible(f, left, k),
+        tot = c.reduce((a, i) => a + f[i].balls, 0);
+      c.forEach(i => {
+        const q = (p * f[i].balls) / tot;
+        odds[i][k - 1] += q;
+        P[m | (1 << i)] += q;
+      });
     }
   } else {
-    let a = 0x9e3779b9; const rnd = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-    const N = 60000; for (let r = 0; r < N; r++) drawLottery(f, rnd).forEach((i, k) => (odds[i][k] += 1 / N));
+    let a = 0x9e3779b9;
+    const rnd = () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const N = 60000;
+    for (let r = 0; r < N; r++) drawLottery(f, rnd).forEach((i, k) => (odds[i][k] += 1 / N));
   }
-  cache.set(key, odds); if (cache.size > 50) cache.delete(cache.keys().next().value!);
+  cache.set(key, odds);
+  if (cache.size > 50) cache.delete(cache.keys().next().value!);
   return odds;
 }
 export const expectedPick = (row: number[]) => row.reduce((a, p, k) => a + p * (k + 1), 0);
@@ -112,22 +208,42 @@ export const expectedPick = (row: number[]) => row.reduce((a, p, k) => a + p * (
 // Expected first-round slot by league rank (1 = worst record), for valuing future picks.
 const rankCache = new Map<number, number[]>();
 export function expectedByRank(nTeams: number): number[] {
-  const hit = rankCache.get(nTeams); if (hit) return hit;
-  const nOut = Math.max(0, nTeams - 20), f: LotTeam[] = [];
-  const add = (tier: Tier, k: number) => { for (let i = 0; i < k; i++) f.push({ tid: f.length, conf: '', seed: 0, tier, balls: BALLS[tier], noOne: false, noTop5: false, why: [] }); };
-  add('bottom', Math.min(3, nOut)); add('out', Math.max(0, nOut - 3)); add('playin', 4); add('loser78', 2);
-  const ex = lotteryOdds(f).map(expectedPick), out = [0, ...ex];
+  const hit = rankCache.get(nTeams);
+  if (hit) return hit;
+  const nOut = Math.max(0, nTeams - 20),
+    f: LotTeam[] = [];
+  const add = (tier: Tier, k: number) => {
+    for (let i = 0; i < k; i++)
+      f.push({ tid: f.length, conf: '', seed: 0, tier, balls: BALLS[tier], noOne: false, noTop5: false, why: [] });
+  };
+  add('bottom', Math.min(3, nOut));
+  add('out', Math.max(0, nOut - 3));
+  add('playin', 4);
+  add('loser78', 2);
+  const ex = lotteryOdds(f).map(expectedPick),
+    out = [0, ...ex];
   for (let r = f.length + 1; r <= nTeams; r++) out.push(r);
-  rankCache.set(nTeams, out); return out;
+  rankCache.set(nTeams, out);
+  return out;
 }
 
 // The first round in order: the lottery (drawn, or ranked by expected pick for a projection),
 // then everyone else worst record first.
 export function firstRoundOrder(g: Game, s: any, drawn?: number[]) {
-  const f = lotteryField(g, s), cmp = worstFirst(g, s);
-  const lotIdx = drawn || f.teams.map((_, i) => i).map(i => ({ i, e: expectedPick(lotteryOdds(f.teams)[i]) })).sort((a, b) => a.e - b.e).map(x => x.i);
+  const f = lotteryField(g, s),
+    cmp = worstFirst(g, s);
+  const lotIdx =
+    drawn ||
+    f.teams
+      .map((_, i) => i)
+      .map(i => ({ i, e: expectedPick(lotteryOdds(f.teams)[i]) }))
+      .sort((a, b) => a.e - b.e)
+      .map(x => x.i);
   const lotT = lotIdx.map(i => f.teams[i].tid ?? f.teams[i].cand![1]);
-  const rest = s.teams.map((t: any) => t.tid).filter((t: number) => !lotT.includes(t)).sort(cmp);
+  const rest = s.teams
+    .map((t: any) => t.tid)
+    .filter((t: number) => !lotT.includes(t))
+    .sort(cmp);
   return { field: f, lot: lotIdx, order: [...lotT, ...rest] };
 }
 
@@ -136,21 +252,47 @@ export function firstRoundOrder(g: Game, s: any, drawn?: number[]) {
 // chance of being No. 1. Exact: the chance that the first draws took exactly the unrevealed
 // teams, starting with this one (the later draws then depend only on which teams are left).
 export function liveNo1(f: LotTeam[], order: number[], revealed: number): Map<number, number> {
-  const n = f.length, S = order.slice(0, n - revealed), out = new Map<number, number>();
-  if (revealed === 0) { const o = lotteryOdds(f); S.forEach(i => out.set(i, o[i][0])); return out; }
-  if (S.length === 1) { out.set(S[0], 1); return out; }
-  const k = S.length, pos = new Map(S.map((i, b) => [i, b])), full = (1 << k) - 1;
-  const step = (drawnF: number[], slot: number) => { const left = f.map((_, i) => i).filter(i => !drawnF.includes(i)); const c = eligible(f, left, slot); return { c, tot: c.reduce((a, i) => a + f[i].balls, 0) }; };
-  const first = step([], 1); let sum = 0;
+  const n = f.length,
+    S = order.slice(0, n - revealed),
+    out = new Map<number, number>();
+  if (revealed === 0) {
+    const o = lotteryOdds(f);
+    S.forEach(i => out.set(i, o[i][0]));
+    return out;
+  }
+  if (S.length === 1) {
+    out.set(S[0], 1);
+    return out;
+  }
+  const k = S.length,
+    pos = new Map(S.map((i, b) => [i, b])),
+    full = (1 << k) - 1;
+  const step = (drawnF: number[], slot: number) => {
+    const left = f.map((_, i) => i).filter(i => !drawnF.includes(i));
+    const c = eligible(f, left, slot);
+    return { c, tot: c.reduce((a, i) => a + f[i].balls, 0) };
+  };
+  const first = step([], 1);
+  let sum = 0;
   S.forEach(i => {
-    if (!first.c.includes(i)) { out.set(i, 0); return; }
-    const F = new Float64Array(1 << k); F[1 << pos.get(i)!] = f[i].balls / first.tot;
-    for (let m = 1; m < full; m++) {
-      const p = F[m]; if (!p) continue;
-      const drawn = S.filter((_, b) => m & (1 << b)), { c, tot } = step(drawn, drawn.length + 1);
-      c.forEach(j => { const b = pos.get(j); if (b != null && !(m & (1 << b))) F[m | (1 << b)] += p * f[j].balls / tot; });
+    if (!first.c.includes(i)) {
+      out.set(i, 0);
+      return;
     }
-    out.set(i, F[full]); sum += F[full];
+    const F = new Float64Array(1 << k);
+    F[1 << pos.get(i)!] = f[i].balls / first.tot;
+    for (let m = 1; m < full; m++) {
+      const p = F[m];
+      if (!p) continue;
+      const drawn = S.filter((_, b) => m & (1 << b)),
+        { c, tot } = step(drawn, drawn.length + 1);
+      c.forEach(j => {
+        const b = pos.get(j);
+        if (b != null && !(m & (1 << b))) F[m | (1 << b)] += (p * f[j].balls) / tot;
+      });
+    }
+    out.set(i, F[full]);
+    sum += F[full];
   });
   out.forEach((v, i) => out.set(i, sum ? v / sum : 0));
   return out;

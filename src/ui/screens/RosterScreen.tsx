@@ -22,145 +22,551 @@ import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
 import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
 
-const PTI: [number, string][] = [[0, 'Only fully healthy players'], [1, '1 day'], [2, '2 days'], [3, '3 days'], [4, '4 days'], [7, '1 week'], [14, '2 weeks'], [99, 'Any injury']];
+const PTI: [number, string][] = [
+  [0, 'Only fully healthy players'],
+  [1, '1 day'],
+  [2, '2 days'],
+  [3, '3 days'],
+  [4, '4 days'],
+  [7, '1 week'],
+  [14, '2 weeks'],
+  [99, 'Any injury'],
+];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
-const td: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' }, tdr: React.CSSProperties = { ...td, textAlign: 'right' };
+const td: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' },
+  tdr: React.CSSProperties = { ...td, textAlign: 'right' };
 
 export function RosterScreen({ vm }: { vm: VM }) {
-  const { gm, s, T, logo, open, openTeamPage, isMine } = vm.ctx, P = gm.db.P;
+  const { gm, s, T, logo, open, openTeamPage, isMine } = vm.ctx,
+    P = gm.db.P;
   // The team and season on show live in the game state (rosterView), so clicking a team anywhere opens
   // its roster here and Back from a player returns to the same team. The Roster tab starts on yours.
-  const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y }, setView = (v: { tid: number; season: number }) => gm.setState({ rosterView: v });
+  const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y },
+    setView = (v: { tid: number; season: number }) => gm.setState({ rosterView: v });
   const [advice, setAdvice] = useState<Advice | null>(null);
-  const tid = T[view.tid] ? view.tid : s.me, season = view.season, cur = season === gm.Y, mine = isMine(tid) && cur;
-  const t = T[tid], first = gm.db.firstSeason || 2027, seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);
-  const AT = alphaTeams(T), step = (d: number) => { const i = AT.findIndex(x => x.tid === tid); setView({ tid: AT[(i + d + AT.length) % AT.length].tid, season }); setAdvice(null); };
-  const club = gm.clubOf(s, tid), pti = club?.ptInj || { reg: 0, po: 4 };
+  const tid = T[view.tid] ? view.tid : s.me,
+    season = view.season,
+    cur = season === gm.Y,
+    mine = isMine(tid) && cur;
+  const t = T[tid],
+    first = gm.db.firstSeason || 2027,
+    seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);
+  const AT = alphaTeams(T),
+    step = (d: number) => {
+      const i = AT.findIndex(x => x.tid === tid);
+      setView({ tid: AT[(i + d + AT.length) % AT.length].tid, season });
+      setAdvice(null);
+    };
+  const club = gm.clubOf(s, tid),
+    pti = club?.ptInj || { reg: 0, po: 4 };
   const setClub = (f: any) => gm.setState(st => gm.clubPatch(st, tid, f));
   // Saved lineups (per team you run, in its club): the roster order and every manual minutes target.
   const lineups: { id: string; name: string; order: number[]; rot: Record<number, number>; date: string }[] = club?.lineups || [];
   const [naming, setNaming] = useState<string | null>(null);
-  const autoName = () => { let n = lineups.length + 1; while (lineups.some(l => l.name === 'Lineup ' + n)) n++; return 'Lineup ' + n; };
-  const saveLineup = (name: string) => { const order = (s.rosters[tid] || []).slice(), rot: Record<number, number> = {}; order.forEach((id: number) => { if (P[id]?.rot != null) rot[id] = P[id].rot; });
-    setClub({ lineups: [...lineups, { id: 'L' + Date.now().toString(36), name: name.trim() || autoName(), order, rot, date: gm.fmtS(s.day) }] }); setNaming(null); };
+  const autoName = () => {
+    let n = lineups.length + 1;
+    while (lineups.some(l => l.name === 'Lineup ' + n)) n++;
+    return 'Lineup ' + n;
+  };
+  const saveLineup = (name: string) => {
+    const order = (s.rosters[tid] || []).slice(),
+      rot: Record<number, number> = {};
+    order.forEach((id: number) => {
+      if (P[id]?.rot != null) rot[id] = P[id].rot;
+    });
+    setClub({
+      lineups: [...lineups, { id: 'L' + Date.now().toString(36), name: name.trim() || autoName(), order, rot, date: gm.fmtS(s.day) }],
+    });
+    setNaming(null);
+  };
   const loadLineup = (L: { order: number[]; rot: Record<number, number> }) => {
-    const now: number[] = s.rosters[tid] || [], here = new Set(now), saved = new Set(L.order);
+    const now: number[] = s.rosters[tid] || [],
+      here = new Set(now),
+      saved = new Set(L.order);
     const order = [...L.order.filter(id => here.has(id)), ...now.filter(id => !saved.has(id))]; // players gone since are skipped; new ones keep their place at the end
-    order.forEach(id => { if (!saved.has(id)) return; if (L.rot[id] != null) P[id].rot = L.rot[id]; else delete P[id].rot; delete P[id].preInj; });
-    gm.setState(st => ({ ...gm.handOrder(st, tid, order), gv: (st.gv || 0) + 1 })); };
+    order.forEach(id => {
+      if (!saved.has(id)) return;
+      if (L.rot[id] != null) P[id].rot = L.rot[id];
+      else delete P[id].rot;
+      delete P[id].preInj;
+    });
+    gm.setState(st => ({ ...gm.handOrder(st, tid, order), gv: (st.gv || 0) + 1 }));
+  };
   const delLineup = (id: string) => setClub({ lineups: lineups.filter(l => l.id !== id) });
   // Auto set lineup (engine/autoLineup.ts): best, young prospects or bench players, always a sensible five.
-  const [autoMode, setAutoMode] = useState<AutoMode>('best'), [autoMsg, setAutoMsg] = useState('');
-  const runAuto = () => { const r = autoLineup(gm, s, tid, autoMode);
-    Object.entries(r.rot).forEach(([id, v]) => { const p = P[+id]; if (!p) return; delete p.preInj; if (v == null) delete p.rot; else p.rot = v; });
+  const [autoMode, setAutoMode] = useState<AutoMode>('best'),
+    [autoMsg, setAutoMsg] = useState('');
+  const runAuto = () => {
+    const r = autoLineup(gm, s, tid, autoMode);
+    Object.entries(r.rot).forEach(([id, v]) => {
+      const p = P[+id];
+      if (!p) return;
+      delete p.preInj;
+      if (v == null) delete p.rot;
+      else p.rot = v;
+    });
     gm.setState(st => ({ ...gm.handOrder(st, tid, r.order), gv: (st.gv || 0) + 1 }));
-    setAutoMsg((AUTO_MODES.find(m => m[0] === autoMode) || [, ''])[1] + ': ' + r.starters.map((id, i) => slotName(i) + ' ' + P[id].name.split(' ').slice(-1)[0] + (P[id].pos !== slotName(i) ? ' (' + P[id].pos + ')' : '')).join(', ')); };
+    setAutoMsg(
+      (AUTO_MODES.find(m => m[0] === autoMode) || [, ''])[1] +
+        ': ' +
+        r.starters
+          .map(
+            (id, i) => slotName(i) + ' ' + P[id].name.split(' ').slice(-1)[0] + (P[id].pos !== slotName(i) ? ' (' + P[id].pos + ')' : ''),
+          )
+          .join(', '),
+    );
+  };
   // ── Header numbers ──
   const hist = (s.history || []).find((h: any) => h.year === season)?.teams?.[tid];
   const rec = cur ? t.w + '–' + t.l : hist?.rec || '—';
-  const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w), rank = conf.indexOf(t) + 1, lead = conf[0];
+  const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w),
+    rank = conf.indexOf(t) + 1,
+    lead = conf[0];
   const gb = cur && rank > 1 ? ((lead.w - t.w + t.l - lead.l) / 2).toFixed(1).replace('.0', '') + ' GB' : '';
-  const games = (s.games || []).filter((x: any) => !x.po && (x.h === tid || x.a === tid)), mov = cur && games.length ? games.reduce((a: number, x: any) => a + (x.h === tid ? x.hp - x.ap : x.ap - x.hp), 0) / games.length : null;
-  const ids: number[] = cur ? (gm.isUser(s, tid) ? s.rosters[tid] || [] : gm.aiOrder(s, tid)) : (Object.values(P) as any[]).filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po)).map(p => p.id);
+  const games = (s.games || []).filter((x: any) => !x.po && (x.h === tid || x.a === tid)),
+    mov = cur && games.length ? games.reduce((a: number, x: any) => a + (x.h === tid ? x.hp - x.ap : x.ap - x.hp), 0) / games.length : null;
+  const ids: number[] = cur
+    ? gm.isUser(s, tid)
+      ? s.rosters[tid] || []
+      : gm.aiOrder(s, tid)
+    : (Object.values(P) as any[])
+        .filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po))
+        .map(p => p.id);
   const ageOf = (p: any) => (cur ? p.age : gm.ageIn(p, season));
   const avgAge = ids.length ? ids.reduce((a, id) => a + ageOf(P[id]), 0) / ids.length : 0;
-  const tr = teamRating(P, cur ? ids : []), trRank = cur ? 1 + T.filter(x => teamRating(P, s.rosters[x.tid] || []) > tr).length : 0;
-  const N = nums(gm), std = stdIds(gm, ids), tw = twoWayIds(gm, ids), lim = rosterMax(s), fin = cur ? financesOf(gm, s, tid) : null;
+  const tr = teamRating(P, cur ? ids : []),
+    trRank = cur ? 1 + T.filter(x => teamRating(P, s.rosters[x.tid] || []) > tr).length : 0;
+  const N = nums(gm),
+    std = stdIds(gm, ids),
+    tw = twoWayIds(gm, ids),
+    lim = rosterMax(s),
+    fin = cur ? financesOf(gm, s, tid) : null;
   // ── Rows ──
-  const line = (p: any) => { if (cur) return { gp: p.gp || 0, min: p.min || 0, pts: p.pts || 0, reb: p.reb || 0, ast: p.ast || 0, per: p.per || 0 };
-    const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po), tot: any = rs.reduce((a: any, r: any) => { Object.keys(r).forEach(k => { if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k]; }); return a; }, {});
-    const g = tot.gp || 1; return { gp: tot.gp || 0, min: tot.min / g, pts: tot.pts / g, reb: ((tot.orb || 0) + (tot.drb || 0)) / g, ast: tot.ast / g, per: gm.perOf(tot, season) }; };
-  const plan = cur && gm.isUser(s, tid) ? gm.minutesPlan(s, tid) : {}, rotOf = (id: number) => Math.round(P[id].rot ?? plan[id] ?? 0); // auto: the coach's call (Game.userTargets)
-  const move = (id: number, targetId: number | null, after = false) => gm.setState(st => { delete P[id]?.preInj; /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id); let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0); if (at < 0) at = o.length; o.splice(at, 0, id); return { ...gm.handOrder(st, tid, o), dragId: null, overId: null }; });
-  const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'), ex10 = ids.filter(id => P[id].ctype === 'ex10');
+  const line = (p: any) => {
+    if (cur) return { gp: p.gp || 0, min: p.min || 0, pts: p.pts || 0, reb: p.reb || 0, ast: p.ast || 0, per: p.per || 0 };
+    const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po),
+      tot: any = rs.reduce((a: any, r: any) => {
+        Object.keys(r).forEach(k => {
+          if (typeof r[k] === 'number') a[k] = (a[k] || 0) + r[k];
+        });
+        return a;
+      }, {});
+    const g = tot.gp || 1;
+    return {
+      gp: tot.gp || 0,
+      min: tot.min / g,
+      pts: tot.pts / g,
+      reb: ((tot.orb || 0) + (tot.drb || 0)) / g,
+      ast: tot.ast / g,
+      per: gm.perOf(tot, season),
+    };
+  };
+  const plan = cur && gm.isUser(s, tid) ? gm.minutesPlan(s, tid) : {},
+    rotOf = (id: number) => Math.round(P[id].rot ?? plan[id] ?? 0); // auto: the coach's call (Game.userTargets)
+  const move = (id: number, targetId: number | null, after = false) =>
+    gm.setState(st => {
+      delete P[id]?.preInj;
+      /* you placed him: he stays there when he heals */ const o = st.rosters[tid].filter((x: number) => x !== id);
+      let at = targetId == null ? o.length : o.indexOf(targetId) + (after ? 1 : 0);
+      if (at < 0) at = o.length;
+      o.splice(at, 0, id);
+      return { ...gm.handOrder(st, tid, o), dragId: null, overId: null };
+    });
+  const mainIds = ids.filter(id => P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10'),
+    ex10 = ids.filter(id => P[id].ctype === 'ex10');
   // Drag to reorder, live: while you drag, the list re-sorts under the cursor (the players you pass slide
   // out of the way), and the order is saved when you drop. Let go outside the table to cancel.
-  const [drag, setDrag] = useState<number | null>(null), [order, setOrder] = useState<number[] | null>(null);
+  const [drag, setDrag] = useState<number | null>(null),
+    [order, setOrder] = useState<number[] | null>(null);
   // Filters: position (a group or one position), minimum overall and potential (the potential shown, God Mode's true one).
-  const [fPos, setFPos] = useState(''), [fOvr, setFOvr] = useState(0), [fPot, setFPot] = useState(0);
+  const [fPos, setFPos] = useState(''),
+    [fOvr, setFOvr] = useState(0),
+    [fPot, setFPot] = useState(0);
   const filtering = !!(fPos || fOvr || fPot);
-  const vis = (id: number) => { const p = P[id]; return (!fPos || (fPos.startsWith('grp:') ? p.grp === fPos.slice(4) : p.pos === fPos)) && p.ovr >= fOvr && vm.ctx.potOf(p) >= fPot; };
+  const vis = (id: number) => {
+    const p = P[id];
+    return (!fPos || (fPos.startsWith('grp:') ? p.grp === fPos.slice(4) : p.pos === fPos)) && p.ovr >= fOvr && vm.ctx.potOf(p) >= fPot;
+  };
   const listOf = (id: number) => (mainIds.includes(id) ? mainIds : tw.includes(id) ? tw : ex10);
   const shown = (list: number[]) => (order && drag != null && list.includes(drag) && order.length === list.length ? order : list);
-  const place = (at: number) => { if (!order || drag == null) return; const o = order.filter(x => x !== drag); o.splice(Math.max(0, Math.min(o.length, at)), 0, drag); if (o.join() !== order.join()) setOrder(o); };
-  const dragOver = (e: React.DragEvent, target: number) => { if (!mine || drag == null || !order) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (target === drag || !order.includes(target)) return;
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), o = order.filter(x => x !== drag); place(o.indexOf(target) + (e.clientY > r.top + r.height / 2 ? 1 : 0)); };
-  const endDrag = () => { setDrag(null); setOrder(null); };
-  const commit = () => { if (drag == null || !order) return endDrag(); const ord = order, d = drag;
-    gm.setState(st => { delete P[d]?.preInj; /* you placed him: he stays there when he heals */ const inList = new Set(ord); let k = 0; return gm.handOrder(st, tid, (st.rosters[tid] || []).map((x: number) => (inList.has(x) ? ord[k++] : x))); }); endDrag(); };
+  const place = (at: number) => {
+    if (!order || drag == null) return;
+    const o = order.filter(x => x !== drag);
+    o.splice(Math.max(0, Math.min(o.length, at)), 0, drag);
+    if (o.join() !== order.join()) setOrder(o);
+  };
+  const dragOver = (e: React.DragEvent, target: number) => {
+    if (!mine || drag == null || !order) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (target === drag || !order.includes(target)) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(),
+      o = order.filter(x => x !== drag);
+    place(o.indexOf(target) + (e.clientY > r.top + r.height / 2 ? 1 : 0));
+  };
+  const endDrag = () => {
+    setDrag(null);
+    setOrder(null);
+  };
+  const commit = () => {
+    if (drag == null || !order) return endDrag();
+    const ord = order,
+      d = drag;
+    gm.setState(st => {
+      delete P[d]?.preInj;
+      /* you placed him: he stays there when he heals */ const inList = new Set(ord);
+      let k = 0;
+      return gm.handOrder(
+        st,
+        tid,
+        (st.rosters[tid] || []).map((x: number) => (inList.has(x) ? ord[k++] : x)),
+      );
+    });
+    endDrag();
+  };
   const startersSet = new Set(cur ? (gm.isUser(s, tid) ? mainIds.slice(0, 5) : ids.filter(id => gm.canPlay1(s, P[id])).slice(0, 5)) : []); // an AI team: the five who start its next game
-  const tag = (p: any) => ({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' } as any)[p.ctype];
+  const tag = (p: any) => (({ tenDay: '10-day', hardship: 'Hardship', ex10: 'Exhibit 10', twoWay: 'Two-way' }) as any)[p.ctype];
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
-    const p = P[id], ln = line(p), md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null, start = startersSet.has(id);
-    const block = start ? 'var(--gm-good)' : p.ctype === 'twoWay' ? '#6b8fd6' : p.ctype === 'ex10' ? 'var(--color-accent)' : 'var(--color-neutral-400)';
+    const p = P[id],
+      ln = line(p),
+      md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null,
+      start = startersSet.has(id);
+    const block = start
+      ? 'var(--gm-good)'
+      : p.ctype === 'twoWay'
+        ? '#6b8fd6'
+        : p.ctype === 'ex10'
+          ? 'var(--color-accent)'
+          : 'var(--color-neutral-400)';
     return (
-      <tr key={id} onClick={() => open(id)} data-pid={id} draggable={mine} onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id)); setDrag(id); setOrder(listOf(id).slice()); }}
-        onDragOver={e => dragOver(e, id)} onDrop={e => { e.preventDefault(); commit(); }} onDragEnd={endDrag}
-        style={{ cursor: mine ? 'grab' : 'pointer', background: drag === id ? 'var(--color-accent-100)' : undefined, opacity: drag === id ? 0.75 : 1, outline: drag === id ? '2px dashed var(--color-accent)' : undefined, outlineOffset: -2 }}>
-        <td style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }} title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'} />
-        {mine && <td style={{ ...td, whiteSpace: 'nowrap', padding: '2px 3px' }} onClick={e => e.stopPropagation()}>
-          <span style={{ cursor: 'grab', color: 'var(--color-neutral-500)', padding: '0 3px' }}>⋮⋮</span>
-          <button className="hv5" title="Move up" onClick={() => i > 0 && move(id, list[i - 1])} style={{ all: 'unset', cursor: 'pointer', padding: '0 3px', color: 'var(--color-neutral-600)' }}>↑</button>
-          <button className="hv5" title="Move down" onClick={() => i < list.length - 1 && move(id, list[i + 1], true)} style={{ all: 'unset', cursor: 'pointer', padding: '0 3px', color: 'var(--color-neutral-600)' }}>↓</button>
-        </td>}
-        <td style={{ ...tdr, fontFamily: 'var(--font-heading)', fontSize: '15px', width: 34 }} title="Jersey number">{p.numTid === tid || cur ? p.num : ''}</td>
+      <tr
+        key={id}
+        onClick={() => open(id)}
+        data-pid={id}
+        draggable={mine}
+        onDragStart={e => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', String(id));
+          setDrag(id);
+          setOrder(listOf(id).slice());
+        }}
+        onDragOver={e => dragOver(e, id)}
+        onDrop={e => {
+          e.preventDefault();
+          commit();
+        }}
+        onDragEnd={endDrag}
+        style={{
+          cursor: mine ? 'grab' : 'pointer',
+          background: drag === id ? 'var(--color-accent-100)' : undefined,
+          opacity: drag === id ? 0.75 : 1,
+          outline: drag === id ? '2px dashed var(--color-accent)' : undefined,
+          outlineOffset: -2,
+        }}
+      >
+        <td
+          style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }}
+          title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'}
+        />
+        {mine && (
+          <td style={{ ...td, whiteSpace: 'nowrap', padding: '2px 3px' }} onClick={e => e.stopPropagation()}>
+            <span style={{ cursor: 'grab', color: 'var(--color-neutral-500)', padding: '0 3px' }}>⋮⋮</span>
+            <button
+              className="hv5"
+              title="Move up"
+              onClick={() => i > 0 && move(id, list[i - 1])}
+              style={{ all: 'unset', cursor: 'pointer', padding: '0 3px', color: 'var(--color-neutral-600)' }}
+            >
+              ↑
+            </button>
+            <button
+              className="hv5"
+              title="Move down"
+              onClick={() => i < list.length - 1 && move(id, list[i + 1], true)}
+              style={{ all: 'unset', cursor: 'pointer', padding: '0 3px', color: 'var(--color-neutral-600)' }}
+            >
+              ↓
+            </button>
+          </td>
+        )}
+        <td style={{ ...tdr, fontFamily: 'var(--font-heading)', fontSize: '15px', width: 34 }} title="Jersey number">
+          {p.numTid === tid || cur ? p.num : ''}
+        </td>
         <td style={{ ...td }}>
           <span style={{ display: 'inline-flex', gap: '7px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <img src={gm.flag(p.rep)} alt="" title={gm.db.C[p.rep]?.n} style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-            <span title={p.name + (p.native ? ' (' + p.native + ')' : '')} style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}>{p.name}</span>
-            {p.native && p.name.length + p.native.length <= 34 && <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>}
-            {p.dev && mine && <button onClick={e => { e.stopPropagation(); delete P[id].dev; gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="He's playing in the CCP (the development league), so he doesn't play for you. Click to recall him; giving him minutes recalls him too." style={{ all: 'unset', cursor: 'pointer', fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-accent)', color: 'var(--color-accent-700)' }}>In the CCP · recall</button>}
-            {tag(p) && <span style={{ fontSize: '10.5px', padding: '0 6px', borderRadius: 999, border: '1px solid var(--color-divider)', color: 'var(--color-neutral-700)' }}>{tag(p)}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}</span>}
-            {mine && tid === s.me && convOptions(p).map(o => <button key={o.to} className="btn btn-ghost" onClick={e => { e.stopPropagation(); convertContract(gm, id, o.to); }} title={o.label + ': ' + o.why} style={{ fontSize: '11px', padding: '0 6px' }}>{o.short}</button>)}
-            {mine && tid === s.me && cur && <button className="btn btn-ghost hv4" onClick={e => { e.stopPropagation(); gm.setState({ dialog: { type: 'release', pid: id } }); }} title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm" style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}>Cut</button>}
-            {cur && (() => { const h = howAcquired(gm, s, p, tid); return h ? <span title="How he joined the team (full history on his Transactions tab)" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}>{h}</span> : null; })()}
-            {cur && p.inj && <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>{p.inj.dtd ? 'Day-to-day (' + gm.injText(p, true) + ')' : 'Out ' + gm.injText(p, true)} · {p.inj.name}</span>}
+            <img
+              src={gm.flag(p.rep)}
+              alt=""
+              title={gm.db.C[p.rep]?.n}
+              style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
+            />
+            <span
+              title={p.name + (p.native ? ' (' + p.native + ')' : '')}
+              style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}
+            >
+              {p.name}
+            </span>
+            {p.native && p.name.length + p.native.length <= 34 && (
+              <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>
+            )}
+            {p.dev && mine && (
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  delete P[id].dev;
+                  gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                }}
+                title="He's playing in the CCP (the development league), so he doesn't play for you. Click to recall him; giving him minutes recalls him too."
+                style={{
+                  all: 'unset',
+                  cursor: 'pointer',
+                  fontSize: '10.5px',
+                  padding: '0 6px',
+                  borderRadius: 999,
+                  border: '1px solid var(--color-accent)',
+                  color: 'var(--color-accent-700)',
+                }}
+              >
+                In the CCP · recall
+              </button>
+            )}
+            {tag(p) && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  padding: '0 6px',
+                  borderRadius: 999,
+                  border: '1px solid var(--color-divider)',
+                  color: 'var(--color-neutral-700)',
+                }}
+              >
+                {tag(p)}
+                {p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}
+              </span>
+            )}
+            {mine &&
+              tid === s.me &&
+              convOptions(p).map(o => (
+                <button
+                  key={o.to}
+                  className="btn btn-ghost"
+                  onClick={e => {
+                    e.stopPropagation();
+                    convertContract(gm, id, o.to);
+                  }}
+                  title={o.label + ': ' + o.why}
+                  style={{ fontSize: '11px', padding: '0 6px' }}
+                >
+                  {o.short}
+                </button>
+              ))}
+            {mine && tid === s.me && cur && (
+              <button
+                className="btn btn-ghost hv4"
+                onClick={e => {
+                  e.stopPropagation();
+                  gm.setState({ dialog: { type: 'release', pid: id } });
+                }}
+                title="Cut him: waive, stretch or buy out (same as the Cap sheet), with the dead money shown before you confirm"
+                style={{ fontSize: '11px', padding: '0 6px', color: 'var(--gm-bad)' }}
+              >
+                Cut
+              </button>
+            )}
+            {cur &&
+              (() => {
+                const h = howAcquired(gm, s, p, tid);
+                return h ? (
+                  <span
+                    title="How he joined the team (full history on his Transactions tab)"
+                    style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--color-neutral-800)', whiteSpace: 'nowrap' }}
+                  >
+                    {h}
+                  </span>
+                ) : null;
+              })()}
+            {cur && p.inj && (
+              <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>
+                {p.inj.dtd ? 'Day-to-day (' + gm.injText(p, true) + ')' : 'Out ' + gm.injText(p, true)} · {p.inj.name}
+              </span>
+            )}
           </span>
         </td>
         <td style={td}>{p.pos}</td>
         <td style={tdr}>{ageOf(p)}</td>
-        {(() => { const b = cur ? baseline(gm, p) : null, d = b ? deltas(p, b.snap) : null;
-          const mark = (x: number, dec: number, what: string) => b && <div title={what + (x > 0 ? ' up ' : x < 0 ? ' down ' : ' unchanged ') + (x ? Math.abs(x).toFixed(dec) + ' ' : '') + 'since ' + b.label} style={{ fontSize: '10.5px', fontWeight: 700, lineHeight: 1, marginTop: 1, color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</div>;
-          return (<>
-            <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>{p.ovr}{d && mark(d.ovr, 1, 'Overall')}</td>
-            <td style={{ ...tdr, color: vm.ctx.tone(vm.ctx.potOf(p)) }}>{vm.ctx.potOf(p)}{d && !s.god && mark(d.pot, 0, 'Potential')}</td>
-          </>); })()}
+        {(() => {
+          const b = cur ? baseline(gm, p) : null,
+            d = b ? deltas(p, b.snap) : null;
+          const mark = (x: number, dec: number, what: string) =>
+            b && (
+              <div
+                title={
+                  what +
+                  (x > 0 ? ' up ' : x < 0 ? ' down ' : ' unchanged ') +
+                  (x ? Math.abs(x).toFixed(dec) + ' ' : '') +
+                  'since ' +
+                  b.label
+                }
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  marginTop: 1,
+                  color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)',
+                }}
+              >
+                {fmtChange(x, dec)}
+              </div>
+            );
+          return (
+            <>
+              <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>
+                {p.ovr}
+                {d && mark(d.ovr, 1, 'Overall')}
+              </td>
+              <td style={{ ...tdr, color: vm.ctx.tone(vm.ctx.potOf(p)) }}>
+                {vm.ctx.potOf(p)}
+                {d && !s.god && mark(d.pot, 0, 'Potential')}
+              </td>
+            </>
+          );
+        })()}
         {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
-        {cur && <td style={tdr}><ExpYear y={p.exp} cur={gm.Y} /></td>}
-        {mine && (() => { const man = P[id].rot != null, bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 })); return (
-          <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()} title={man ? 'Your minutes target for him: he plays these' : 'Automatic: the coach sets his minutes from his rating and how he is playing'}>
-            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
-              <NumInput stepper disabled={!man} value={rotOf(id)} min={0} max={48} step={1} width={56} onValue={v => { P[id].rot = v; if (v > 0) delete P[id].dev; bump(); }} />
-            </span>
-            <button className="btn btn-secondary" onClick={() => { if (man) delete P[id].rot; else { P[id].rot = rotOf(id); delete P[id].dev; } bump(); }}
-              title={man ? 'Go back to automatic minutes' : 'Set his minutes yourself'} style={{ fontSize: '11.5px', padding: '2px 0', width: 62, marginLeft: 6, verticalAlign: 'middle' }}>{man ? 'Auto' : 'Manual'}</button>
-          </td>); })()}
+        {cur && (
+          <td style={tdr}>
+            <ExpYear y={p.exp} cur={gm.Y} />
+          </td>
+        )}
+        {mine &&
+          (() => {
+            const man = P[id].rot != null,
+              bump = () => gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+            return (
+              <td
+                style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }}
+                onClick={e => e.stopPropagation()}
+                title={
+                  man
+                    ? 'Your minutes target for him: he plays these'
+                    : 'Automatic: the coach sets his minutes from his rating and how he is playing'
+                }
+              >
+                <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
+                  <NumInput
+                    stepper
+                    disabled={!man}
+                    value={rotOf(id)}
+                    min={0}
+                    max={48}
+                    step={1}
+                    width={56}
+                    onValue={v => {
+                      P[id].rot = v;
+                      if (v > 0) delete P[id].dev;
+                      bump();
+                    }}
+                  />
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    if (man) delete P[id].rot;
+                    else {
+                      P[id].rot = rotOf(id);
+                      delete P[id].dev;
+                    }
+                    bump();
+                  }}
+                  title={man ? 'Go back to automatic minutes' : 'Set his minutes yourself'}
+                  style={{ fontSize: '11.5px', padding: '2px 0', width: 62, marginLeft: 6, verticalAlign: 'middle' }}
+                >
+                  {man ? 'Auto' : 'Manual'}
+                </button>
+              </td>
+            );
+          })()}
         <td style={tdr}>{ln.gp}</td>
         <td style={tdr}>{ln.min.toFixed(1)}</td>
         <td style={tdr}>{ln.pts.toFixed(1)}</td>
         <td style={tdr}>{ln.reb.toFixed(1)}</td>
         <td style={tdr}>{ln.ast.toFixed(1)}</td>
         <td style={tdr}>{ln.per.toFixed(1)}</td>
-        {md && <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}><MoodChip label={md.hapLabel} color={md.hapColor} factors={md.factors} name={p.name} p={p} /></td>}
+        {md && (
+          <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+            <MoodChip label={md.hapLabel} color={md.hapColor} factors={md.factors} name={p.name} p={p} />
+          </td>
+        )}
       </tr>
     );
   };
   // The line between the starting five and the bench. Drop a player on it to make him the first man off the bench.
   const BenchBar = () => (
-    <tr aria-hidden onDragOver={e => { if (!mine || drag == null || !order || !mainIds.includes(drag)) return; e.preventDefault(); const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); place(e.clientY < r.top + r.height / 2 ? 4 : 5); }} onDrop={e => { e.preventDefault(); commit(); }}>
+    <tr
+      aria-hidden
+      onDragOver={e => {
+        if (!mine || drag == null || !order || !mainIds.includes(drag)) return;
+        e.preventDefault();
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        place(e.clientY < r.top + r.height / 2 ? 4 : 5);
+      }}
+      onDrop={e => {
+        e.preventDefault();
+        commit();
+      }}
+    >
       <td colSpan={100} style={{ padding: 0, borderBottom: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 10px', borderTop: '3px solid var(--color-accent-700)', background: 'color-mix(in srgb, var(--color-accent-700) 9%, transparent)', fontSize: '10.5px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
-          <span>▲ Starters</span><span style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-accent-700) 35%, transparent)' }} /><span>Bench ▼</span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '5px 10px',
+            borderTop: '3px solid var(--color-accent-700)',
+            background: 'color-mix(in srgb, var(--color-accent-700) 9%, transparent)',
+            fontSize: '10.5px',
+            fontWeight: 700,
+            letterSpacing: '.1em',
+            textTransform: 'uppercase',
+            color: 'var(--color-accent-700)',
+          }}
+        >
+          <span>▲ Starters</span>
+          <span style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-accent-700) 35%, transparent)' }} />
+          <span>Bench ▼</span>
         </div>
       </td>
     </tr>
   );
   const Head = () => (
-    <thead><tr>
-      <th style={{ width: 6, padding: 0 }} />{mine && <th />}<th style={{ ...tdr, fontWeight: 600 }}>#</th><th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>Player</th><th style={{ ...td, textAlign: 'left' }}>Pos</th><th style={tdr}>Age</th><th style={tdr}>Ovr</th><th style={tdr}>Pot</th>
-      {cur && <th style={tdr}>Contract</th>}{cur && <th style={tdr}>Exp</th>}{mine && <th style={{ ...tdr, textAlign: 'center' }} title="Target minutes per game: automatic by rotation slot, or Manual to set them yourself">Min target</th>}
-      <th style={tdr}>GP</th><th style={tdr}>Min</th><th style={tdr}>Pts</th><th style={tdr}>Reb</th><th style={tdr}>Ast</th><th style={tdr}>PER</th>{cur && isMine(tid) && <th style={{ ...td, textAlign: 'left' }}>Mood</th>}
-    </tr></thead>
+    <thead>
+      <tr>
+        <th style={{ width: 6, padding: 0 }} />
+        {mine && <th />}
+        <th style={{ ...tdr, fontWeight: 600 }}>#</th>
+        <th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>Player</th>
+        <th style={{ ...td, textAlign: 'left' }}>Pos</th>
+        <th style={tdr}>Age</th>
+        <th style={tdr}>Ovr</th>
+        <th style={tdr}>Pot</th>
+        {cur && <th style={tdr}>Contract</th>}
+        {cur && <th style={tdr}>Exp</th>}
+        {mine && (
+          <th
+            style={{ ...tdr, textAlign: 'center' }}
+            title="Target minutes per game: automatic by rotation slot, or Manual to set them yourself"
+          >
+            Min target
+          </th>
+        )}
+        <th style={tdr}>GP</th>
+        <th style={tdr}>Min</th>
+        <th style={tdr}>Pts</th>
+        <th style={tdr}>Reb</th>
+        <th style={tdr}>Ast</th>
+        <th style={tdr}>PER</th>
+        {cur && isMine(tid) && <th style={{ ...td, textAlign: 'left' }}>Mood</th>}
+      </tr>
+    </thead>
   );
   const note = (s.teamNotes || {})[tid] || '';
   const [noteOpen, setNoteOpen] = useState(false);
@@ -168,118 +574,558 @@ export function RosterScreen({ vm }: { vm: VM }) {
   return (
     <>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
-        {(s.pageStack || []).length > 0 && <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginRight: 6 }}>← Back</button>}
-        <button className="btn btn-secondary" onClick={() => step(-1)} style={{ padding: '3px 9px' }} aria-label="Previous team">‹</button>
-        <button className="btn btn-secondary" onClick={() => step(1)} style={{ padding: '3px 9px' }} aria-label="Next team">›</button>
-        <select className="input" value={tid} onChange={e => { setView({ tid: +e.target.value, season }); setAdvice(null); }} style={{ width: 'auto', minWidth: 220 }}>{AT.map(x => <option key={x.tid} value={x.tid}>{x.region} {x.name}{isMine(x.tid) ? ' (yours)' : ''}</option>)}</select>
-        <button className="btn btn-secondary" onClick={() => setView({ tid, season: Math.max(first, season - 1) })} style={{ padding: '3px 9px' }} aria-label="Previous season">‹</button>
-        <button className="btn btn-secondary" onClick={() => setView({ tid, season: Math.min(gm.Y, season + 1) })} style={{ padding: '3px 9px' }} aria-label="Next season">›</button>
-        <select className="input" value={season} onChange={e => setView({ tid, season: +e.target.value })} style={{ width: 'auto' }}>{seasons.map(y => <option key={y} value={y}>{y - 1}–{String(y).slice(2)}</option>)}</select>
-        {tid !== s.me && <Link onClick={() => setView({ tid: s.me, season: gm.Y })} style={{ marginLeft: 6, fontSize: '12.5px' }}>Back to my team</Link>}
+        {(s.pageStack || []).length > 0 && (
+          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginRight: 6 }}>
+            ← Back
+          </button>
+        )}
+        <button className="btn btn-secondary" onClick={() => step(-1)} style={{ padding: '3px 9px' }} aria-label="Previous team">
+          ‹
+        </button>
+        <button className="btn btn-secondary" onClick={() => step(1)} style={{ padding: '3px 9px' }} aria-label="Next team">
+          ›
+        </button>
+        <select
+          className="input"
+          value={tid}
+          onChange={e => {
+            setView({ tid: +e.target.value, season });
+            setAdvice(null);
+          }}
+          style={{ width: 'auto', minWidth: 220 }}
+        >
+          {AT.map(x => (
+            <option key={x.tid} value={x.tid}>
+              {x.region} {x.name}
+              {isMine(x.tid) ? ' (yours)' : ''}
+            </option>
+          ))}
+        </select>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setView({ tid, season: Math.max(first, season - 1) })}
+          style={{ padding: '3px 9px' }}
+          aria-label="Previous season"
+        >
+          ‹
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setView({ tid, season: Math.min(gm.Y, season + 1) })}
+          style={{ padding: '3px 9px' }}
+          aria-label="Next season"
+        >
+          ›
+        </button>
+        <select className="input" value={season} onChange={e => setView({ tid, season: +e.target.value })} style={{ width: 'auto' }}>
+          {seasons.map(y => (
+            <option key={y} value={y}>
+              {y - 1}–{String(y).slice(2)}
+            </option>
+          ))}
+        </select>
+        {tid !== s.me && (
+          <Link onClick={() => setView({ tid: s.me, season: gm.Y })} style={{ marginLeft: 6, fontSize: '12.5px' }}>
+            Back to my team
+          </Link>
+        )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) minmax(0,1fr)', gap: '22px', alignItems: 'start', marginBottom: '14px' }}>
-        <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">{logo(tid, 110)}</div>
-        <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>{t.region} {t.name} <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12.5px', marginLeft: 6 }}>Team overview</Link></div>
-          <div>Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>{hist?.fin ? ' · ' + hist.fin : ''}</div>
-          {cur && <div>{rank}{['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}{gb ? ', ' + gb : ''}</div>}
-          {cur && <div>Team rating: <b>{tr}</b>/100 <span style={muted}>({trRank}{['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})</span></div>}
-          <div>{mov != null && <>MOV: <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{mov >= 0 ? '+' : ''}{mov.toFixed(1)}</b> · </>}Average age {avgAge.toFixed(1)}</div>
-          <div>Locker room: <LockerRoomChip vm={vm} tid={tid} /></div>
-          {cur && (lim > seasonMax(s) ? (
-            // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
-            <div style={{ marginTop: 6 }}>
-              <b style={{ color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}>{std.length}/{seasonMax(s)}</b> standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
-              <div style={{ fontSize: '12px', color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}>{std.length > seasonMax(s) ? 'You’ll need to cut ' + (std.length - seasonMax(s)) + ' player' + (std.length - seasonMax(s) === 1 ? '' : 's') + ' when the regular season starts (or convert Exhibit 10s to two-way deals).' : std.length === 15 ? 'Full for opening night.' : (15 - std.length) + ' open spot' + (15 - std.length === 1 ? '' : 's') + ' for opening night; ' + (lim - std.length) + ' more you can add before then.'}</div>
-            </div>
-          ) : <div style={{ marginTop: 6 }}>{Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way {tw.length}/{TWO_WAY_MAX}{ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}</div>)}
-          {fin && <div>Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b></div>}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0,1fr) minmax(0,1fr)',
+          gap: '22px',
+          alignItems: 'start',
+          marginBottom: '14px',
+        }}
+      >
+        <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">
+          {logo(tid, 110)}
         </div>
-        {mine && <div style={{ fontSize: '13px' }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }} title="How long an injury has to be before a player sits. Players who play through an injury perform worse.">Play through injuries</div>
-          {(['reg', 'po'] as const).map(k => <div key={k} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-            <span style={muted}>{k === 'reg' ? 'Regular season' : 'Playoffs'}</span>
-            <span><select className="input" value={pti[k]} onChange={e => setClub({ ptInj: { ...pti, [k]: +e.target.value } })} style={{ fontSize: '12.5px', width: 'auto' }}>{PTI.map(([d, l]) => <option key={d} value={d}>{l}</option>)}</select><span style={{ ...muted, fontSize: '11.5px' }}>{perfOf(pti[k])}</span></span>
-          </div>)}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}>Auto sort roster</button>
-            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => { if (P[id].rot == null) P[id].rot = rotOf(id); }); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="Make every player's minutes yours to set, starting from the coach's current plan">Set all minutes</button>
-            <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={() => { ids.forEach(id => delete P[id].rot); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }} title="Give every player back to the coach">Reset playing time</button>
-            <button data-tour="advice" className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>Ask the assistant coaches</button>
+        <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>
+            {t.region} {t.name}{' '}
+            <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12.5px', marginLeft: 6 }}>
+              Team overview
+            </Link>
           </div>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}><input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto sorted (re-sorts before every game)</label>
-          {mine && <div style={{ marginTop: 10 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={() => setNaming('')} title="Save this order and everyone's minutes targets under a name, to load again later">Save lineup</button>
-              <span style={{ display: 'inline-flex', gap: 0 }}>
-                <button className="btn btn-secondary" style={{ fontSize: '12.5px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }} onClick={runAuto} title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C.">Auto set lineup</button>
-                <select className="input" value={autoMode} onChange={e => setAutoMode(e.target.value as AutoMode)} style={{ fontSize: '12.5px', width: 'auto', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginLeft: -1 }}>{AUTO_MODES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-              </span>
-              {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
+          <div>
+            Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
+            {hist?.fin ? ' · ' + hist.fin : ''}
+          </div>
+          {cur && (
+            <div>
+              {rank}
+              {['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}
+              {gb ? ', ' + gb : ''}
             </div>
-            {autoMsg && <div style={{ fontSize: '12px', marginTop: 6, color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
-            {lineups.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-              {lineups.map(L => { const five = L.order.filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10').slice(0, 5); return (
-                <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
-                  <b style={{ minWidth: 90 }}>{L.name}</b>
-                  <span style={{ ...muted, fontSize: '11.5px', flex: 1, minWidth: 160 }} title={'Saved ' + L.date + ' · ' + Object.keys(L.rot).length + ' manual minutes targets'}>{five.map(id => P[id].name.split(' ').slice(-1)[0]).join(', ')}{Object.keys(L.rot).length ? ' · ' + Object.keys(L.rot).length + ' set minutes' : ''}</span>
-                  <button className="btn btn-secondary" style={{ fontSize: '12px', padding: '2px 10px' }} onClick={() => loadLineup(L)}>Load</button>
-                  <button className="btn btn-ghost hv4" style={{ fontSize: '12px', padding: '2px 6px', color: 'var(--gm-bad)' }} title="Delete this lineup" onClick={() => delLineup(L.id)}>✕</button>
-                </div>); })}
-            </div>}
-          </div>}
-        </div>}
+          )}
+          {cur && (
+            <div>
+              Team rating: <b>{tr}</b>/100{' '}
+              <span style={muted}>
+                ({trRank}
+                {['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})
+              </span>
+            </div>
+          )}
+          <div>
+            {mov != null && (
+              <>
+                MOV:{' '}
+                <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>
+                  {mov >= 0 ? '+' : ''}
+                  {mov.toFixed(1)}
+                </b>{' '}
+                ·{' '}
+              </>
+            )}
+            Average age {avgAge.toFixed(1)}
+          </div>
+          <div>
+            Locker room: <LockerRoomChip vm={vm} tid={tid} />
+          </div>
+          {cur &&
+            (lim > seasonMax(s) ? (
+              // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
+              <div style={{ marginTop: 6 }}>
+                <b style={{ color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}>
+                  {std.length}/{seasonMax(s)}
+                </b>{' '}
+                standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}
+                {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+                <div
+                  style={{ fontSize: '12px', color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}
+                >
+                  {std.length > seasonMax(s)
+                    ? 'You’ll need to cut ' +
+                      (std.length - seasonMax(s)) +
+                      ' player' +
+                      (std.length - seasonMax(s) === 1 ? '' : 's') +
+                      ' when the regular season starts (or convert Exhibit 10s to two-way deals).'
+                    : std.length === 15
+                      ? 'Full for opening night.'
+                      : 15 -
+                        std.length +
+                        ' open spot' +
+                        (15 - std.length === 1 ? '' : 's') +
+                        ' for opening night; ' +
+                        (lim - std.length) +
+                        ' more you can add before then.'}
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 6 }}>
+                {Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way{' '}
+                {tw.length}/{TWO_WAY_MAX}
+                {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+              </div>
+            ))}
+          {fin && (
+            <div>
+              Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit{' '}
+              <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b>
+            </div>
+          )}
+        </div>
+        {mine && (
+          <div style={{ fontSize: '13px' }}>
+            <div
+              style={{ fontWeight: 600, marginBottom: 4 }}
+              title="How long an injury has to be before a player sits. Players who play through an injury perform worse."
+            >
+              Play through injuries
+            </div>
+            {(['reg', 'po'] as const).map(k => (
+              <div
+                key={k}
+                style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 4 }}
+              >
+                <span style={muted}>{k === 'reg' ? 'Regular season' : 'Playoffs'}</span>
+                <span>
+                  <select
+                    className="input"
+                    value={pti[k]}
+                    onChange={e => setClub({ ptInj: { ...pti, [k]: +e.target.value } })}
+                    style={{ fontSize: '12.5px', width: 'auto' }}
+                  >
+                    {PTI.map(([d, l]) => (
+                      <option key={d} value={d}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ ...muted, fontSize: '11.5px' }}>{perfOf(pti[k])}</span>
+                </span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}
+              >
+                Auto sort roster
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => {
+                  ids.forEach(id => {
+                    if (P[id].rot == null) P[id].rot = rotOf(id);
+                  });
+                  gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                }}
+                title="Make every player's minutes yours to set, starting from the coach's current plan"
+              >
+                Set all minutes
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => {
+                  ids.forEach(id => delete P[id].rot);
+                  gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                }}
+                title="Give every player back to the coach"
+              >
+                Reset playing time
+              </button>
+              <button
+                data-tour="advice"
+                className="btn btn-primary"
+                style={{ fontSize: '12.5px' }}
+                onClick={() => setAdvice(lineupAdvice(gm, s, tid))}
+              >
+                Ask the assistant coaches
+              </button>
+            </div>
+            <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto
+              sorted (re-sorts before every game)
+            </label>
+            {mine && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ fontSize: '12.5px' }}
+                    onClick={() => setNaming('')}
+                    title="Save this order and everyone's minutes targets under a name, to load again later"
+                  >
+                    Save lineup
+                  </button>
+                  <span style={{ display: 'inline-flex', gap: 0 }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ fontSize: '12.5px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                      onClick={runAuto}
+                      title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C."
+                    >
+                      Auto set lineup
+                    </button>
+                    <select
+                      className="input"
+                      value={autoMode}
+                      onChange={e => setAutoMode(e.target.value as AutoMode)}
+                      style={{ fontSize: '12.5px', width: 'auto', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginLeft: -1 }}
+                    >
+                      {AUTO_MODES.map(([k, l]) => (
+                        <option key={k} value={k}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                  {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
+                </div>
+                {autoMsg && <div style={{ fontSize: '12px', marginTop: 6, color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
+                {lineups.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                    {lineups.map(L => {
+                      const five = L.order
+                        .filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10')
+                        .slice(0, 5);
+                      return (
+                        <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
+                          <b style={{ minWidth: 90 }}>{L.name}</b>
+                          <span
+                            style={{ ...muted, fontSize: '11.5px', flex: 1, minWidth: 160 }}
+                            title={'Saved ' + L.date + ' · ' + Object.keys(L.rot).length + ' manual minutes targets'}
+                          >
+                            {five.map(id => P[id].name.split(' ').slice(-1)[0]).join(', ')}
+                            {Object.keys(L.rot).length ? ' · ' + Object.keys(L.rot).length + ' set minutes' : ''}
+                          </span>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ fontSize: '12px', padding: '2px 10px' }}
+                            onClick={() => loadLineup(L)}
+                          >
+                            Load
+                          </button>
+                          <button
+                            className="btn btn-ghost hv4"
+                            style={{ fontSize: '12px', padding: '2px 6px', color: 'var(--gm-bad)' }}
+                            title="Delete this lineup"
+                            onClick={() => delLineup(L.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      {s.god && cur && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
-        <button className="btn btn-secondary" style={{ fontSize: '12.5px', ...godBtn }} title="God Mode: every player on this roster at 90 happiness (Thrilled). Adjust or reset one in Edit player." onClick={() => { ids.forEach(id => (P[id].hapGod = 90)); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Make everyone happy</button>
-        {ids.some(id => P[id].hapGod != null) && <button className="btn btn-ghost" style={{ fontSize: '12.5px', ...godBtn }} onClick={() => { ids.forEach(id => delete P[id].hapGod); gm.setState(st => ({ gv: (st.gv || 0) + 1 })); }}>Happiness back to normal</button>}
-      </div>}
+      {s.god && cur && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '12.5px', ...godBtn }}
+            title="God Mode: every player on this roster at 90 happiness (Thrilled). Adjust or reset one in Edit player."
+            onClick={() => {
+              ids.forEach(id => (P[id].hapGod = 90));
+              gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+            }}
+          >
+            Make everyone happy
+          </button>
+          {ids.some(id => P[id].hapGod != null) && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: '12.5px', ...godBtn }}
+              onClick={() => {
+                ids.forEach(id => delete P[id].hapGod);
+                gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+              }}
+            >
+              Happiness back to normal
+            </button>
+          )}
+        </div>
+      )}
       {cur && <CapBar gm={gm} s={s} tid={tid} />}
       <div style={{ marginBottom: 12 }}>
-        {!noteOpen && <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} onClick={() => setNoteOpen(true)}>{note ? '✎ Team note: ' + (note.length > 80 ? note.slice(0, 80) + '…' : note) : '+ Add team note'}</button>}
-        {noteOpen && <div><textarea className="input" defaultValue={note} rows={3} style={{ width: '100%', maxWidth: 640, fontSize: '13px' }} placeholder="Notes about this team: targets, plans, who to watch…" onBlur={e => { const v = e.target.value; gm.setState(st => ({ teamNotes: { ...(st.teamNotes || {}), [tid]: v } })); setNoteOpen(false); }} autoFocus /></div>}
+        {!noteOpen && (
+          <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} onClick={() => setNoteOpen(true)}>
+            {note ? '✎ Team note: ' + (note.length > 80 ? note.slice(0, 80) + '…' : note) : '+ Add team note'}
+          </button>
+        )}
+        {noteOpen && (
+          <div>
+            <textarea
+              className="input"
+              defaultValue={note}
+              rows={3}
+              style={{ width: '100%', maxWidth: 640, fontSize: '13px' }}
+              placeholder="Notes about this team: targets, plans, who to watch…"
+              onBlur={e => {
+                const v = e.target.value;
+                gm.setState(st => ({ teamNotes: { ...(st.teamNotes || {}), [tid]: v } }));
+                setNoteOpen(false);
+              }}
+              autoFocus
+            />
+          </div>
+        )}
       </div>
-      {naming != null && <div onClick={() => setNaming(null)} style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--color-neutral-900) 50%, transparent)' }}>
-        <div className="card" onClick={e => e.stopPropagation()} style={{ width: 'min(420px, 92vw)', padding: '18px 20px', gap: 10, background: 'var(--color-surface)', boxShadow: 'var(--shadow-lg)' }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '19px' }}>Save lineup</div>
-          <div style={{ ...muted, fontSize: '12.5px' }}>Starting: {mainIds.slice(0, 5).map(id => P[id].name).join(', ')}{ids.some(id => P[id].rot != null) ? ' · ' + ids.filter(id => P[id].rot != null).length + ' players with set minutes' : ' · automatic minutes'}</div>
-          <input className="input" autoFocus value={naming} placeholder={autoName()} onChange={e => setNaming(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveLineup(naming); if (e.key === 'Escape') setNaming(null); }} />
-          <div style={{ ...muted, fontSize: '11.5px' }}>Leave it blank and it's called “{autoName()}”.</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" onClick={() => setNaming(null)}>Cancel</button>
-            <button className="btn btn-primary" onClick={() => saveLineup(naming)}>Create</button>
+      {naming != null && (
+        <div
+          onClick={() => setNaming(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 40,
+            display: 'grid',
+            placeItems: 'center',
+            background: 'color-mix(in srgb, var(--color-neutral-900) 50%, transparent)',
+          }}
+        >
+          <div
+            className="card"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(420px, 92vw)',
+              padding: '18px 20px',
+              gap: 10,
+              background: 'var(--color-surface)',
+              boxShadow: 'var(--shadow-lg)',
+            }}
+          >
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '19px' }}>Save lineup</div>
+            <div style={{ ...muted, fontSize: '12.5px' }}>
+              Starting:{' '}
+              {mainIds
+                .slice(0, 5)
+                .map(id => P[id].name)
+                .join(', ')}
+              {ids.some(id => P[id].rot != null)
+                ? ' · ' + ids.filter(id => P[id].rot != null).length + ' players with set minutes'
+                : ' · automatic minutes'}
+            </div>
+            <input
+              className="input"
+              autoFocus
+              value={naming}
+              placeholder={autoName()}
+              onChange={e => setNaming(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') saveLineup(naming);
+                if (e.key === 'Escape') setNaming(null);
+              }}
+            />
+            <div style={{ ...muted, fontSize: '11.5px' }}>Leave it blank and it's called “{autoName()}”.</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setNaming(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={() => saveLineup(naming)}>
+                Create
+              </button>
+            </div>
           </div>
         </div>
-      </div>}
-      {advice && <AdvicePanel vm={vm} advice={advice} onApply={() => { applyAdvice(gm, tid, advice); setAdvice(null); }} onClose={() => setAdvice(null)} />}
-      {(() => { const all = cur ? ids : pastIds, nShow = all.filter(vis).length, sel = { fontSize: '12.5px', padding: '3px 6px', width: 'auto', flex: '0 0 auto' };
-        return (<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: '12.5px' }}>
-          <span style={{ fontWeight: 600 }}>Filter</span>
-          <select className="input" value={fPos} onChange={e => setFPos(e.target.value)} style={sel} title="Position">
-            <option value="">All positions</option><option value="grp:G">Guards</option><option value="grp:W">Wings</option><option value="grp:B">Bigs</option>
-            {['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'].map(x => <option key={x} value={x}>{x}</option>)}
-          </select>
-          <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>Overall ≥ <NumInput value={fOvr} min={0} max={99} onValue={setFOvr} width={52} /></label>
-          <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>Potential ≥ <NumInput value={fPot} min={0} max={99} onValue={setFPot} width={52} /></label>
-          {filtering && <><span style={muted}>Showing {nShow} of {all.length}</span><button className="btn btn-ghost" style={{ fontSize: '12px', padding: '2px 8px' }} onClick={() => { setFPos(''); setFOvr(0); setFPot(0); }}>Clear</button></>}
-        </div>); })()}
+      )}
+      {advice && (
+        <AdvicePanel
+          vm={vm}
+          advice={advice}
+          onApply={() => {
+            applyAdvice(gm, tid, advice);
+            setAdvice(null);
+          }}
+          onClose={() => setAdvice(null)}
+        />
+      )}
+      {(() => {
+        const all = cur ? ids : pastIds,
+          nShow = all.filter(vis).length,
+          sel = { fontSize: '12.5px', padding: '3px 6px', width: 'auto', flex: '0 0 auto' };
+        return (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px', fontSize: '12.5px' }}>
+            <span style={{ fontWeight: 600 }}>Filter</span>
+            <select className="input" value={fPos} onChange={e => setFPos(e.target.value)} style={sel} title="Position">
+              <option value="">All positions</option>
+              <option value="grp:G">Guards</option>
+              <option value="grp:W">Wings</option>
+              <option value="grp:B">Bigs</option>
+              {['PG', 'SG', 'G', 'GF', 'SF', 'F', 'PF', 'FC', 'C'].map(x => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              Overall ≥ <NumInput value={fOvr} min={0} max={99} onValue={setFOvr} width={52} />
+            </label>
+            <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              Potential ≥ <NumInput value={fPot} min={0} max={99} onValue={setFPot} width={52} />
+            </label>
+            {filtering && (
+              <>
+                <span style={muted}>
+                  Showing {nShow} of {all.length}
+                </span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: '12px', padding: '2px 8px' }}
+                  onClick={() => {
+                    setFPos('');
+                    setFOvr(0);
+                    setFPot(0);
+                  }}
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        );
+      })()}
       {cur ? (
         <>
-          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>{mine ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is the coach’s call (greyed out): he plays the players who are playing well, whatever their place in the order. Press Manual (or Set all minutes) to set minutes yourself; he then plays your target. Auto hands it back. Targets add up to ' + Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) + ' of 240 minutes.' : 'Green marks the starting five.'}</p>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>Standard contracts · {std.length - ex10.length} of {seasonMax(s)}{s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin' ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)' : ''}</div>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>
+            {mine
+              ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is the coach’s call (greyed out): he plays the players who are playing well, whatever their place in the order. Press Manual (or Set all minutes) to set minutes yourself; he then plays your target. Auto hands it back. Targets add up to ' +
+                Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) +
+                ' of 240 minutes.'
+              : 'Green marks the starting five.'}
+          </p>
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>
+            Standard contracts · {std.length - ex10.length} of {seasonMax(s)}
+            {s.phase !== 'regular' && s.phase !== 'playoffs' && s.phase !== 'playin'
+              ? ' (' + rosterMax(s) + ' allowed in the offseason, ' + seasonMax(s) + ' by opening night)'
+              : ''}
+          </div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
-          <div data-tour="roster-table" style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(mainIds).map((id, i) => <Fragment key={id}>{vis(id) && Row({ id, i, list: mainIds })}{i === 4 && cur && !filtering && mainIds.length > 5 && BenchBar()}</Fragment>)}</tbody></table></div>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Two-way contracts · {tw.length} of {TWO_WAY_MAX} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.{mine ? ' Press Make standard to give one a standard contract.' : ''}</span></div>
-                    {tw.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(tw).map((id, i) => vis(id) && Row({ id, i, list: tw }))}</tbody></table></div> : <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>No two-way players. Sign players with under 4 years of service from Free agency.</p>}
-          {ex10.length > 0 && <>
-            <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>Exhibit 10 (training camp) · {ex10.length} <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>Press To two-way or Make standard, or waive him by opening night.</span></div>
-            <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 900 }}>{Head()}<tbody>{shown(ex10).map((id, i) => vis(id) && Row({ id, i, list: ex10 }))}</tbody></table></div>
-          </>}
+          <div data-tour="roster-table" style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+              {Head()}
+              <tbody>
+                {shown(mainIds).map((id, i) => (
+                  <Fragment key={id}>
+                    {vis(id) && Row({ id, i, list: mainIds })}
+                    {i === 4 && cur && !filtering && mainIds.length > 5 && BenchBar()}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>
+            Two-way contracts · {tw.length} of {TWO_WAY_MAX}{' '}
+            <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>
+              Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.
+              {mine ? ' Press Make standard to give one a standard contract.' : ''}
+            </span>
+          </div>
+          {tw.length ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+                {Head()}
+                <tbody>{shown(tw).map((id, i) => vis(id) && Row({ id, i, list: tw }))}</tbody>
+              </table>
+            </div>
+          ) : (
+            <p style={{ ...muted, fontSize: '12.5px', margin: 0 }}>
+              No two-way players. Sign players with under 4 years of service from Free agency.
+            </p>
+          )}
+          {ex10.length > 0 && (
+            <>
+              <div style={{ fontWeight: 600, fontSize: '13px', margin: '16px 0 4px' }}>
+                Exhibit 10 (training camp) · {ex10.length}{' '}
+                <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>
+                  Press To two-way or Make standard, or waive him by opening night.
+                </span>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+                  {Head()}
+                  <tbody>{shown(ex10).map((id, i) => vis(id) && Row({ id, i, list: ex10 }))}</tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       ) : (
         <>
-          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>{season - 1}–{String(season).slice(2)} roster: everyone who played for {t.abbr} that season</div>
-          {pastIds.length ? <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '13px', minWidth: 760 }}>{Head()}<tbody>{pastIds.map((id, i) => vis(id) && Row({ id, i, list: pastIds }))}</tbody></table></div> : <p style={muted}>No games recorded for this team that season.</p>}
+          <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>
+            {season - 1}–{String(season).slice(2)} roster: everyone who played for {t.abbr} that season
+          </div>
+          {pastIds.length ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ fontSize: '13px', minWidth: 760 }}>
+                {Head()}
+                <tbody>{pastIds.map((id, i) => vis(id) && Row({ id, i, list: pastIds }))}</tbody>
+              </table>
+            </div>
+          ) : (
+            <p style={muted}>No games recorded for this team that season.</p>
+          )}
         </>
       )}
     </>
@@ -287,25 +1133,68 @@ export function RosterScreen({ vm }: { vm: VM }) {
 }
 
 function AdvicePanel({ vm, advice, onApply, onClose }: { vm: VM; advice: Advice; onApply: () => void; onClose: () => void }) {
-  const { gm, open } = vm.ctx, P = gm.db.P;
-  const icon = { start: '▲ Start', bench: '▼ Bench', more: '+ Minutes', less: '− Minutes', rest: '◐ Rest', dev: '★ Develop', hurt: '✚ Injury' } as any;
-  const color = { start: 'var(--gm-good)', more: 'var(--gm-good)', dev: 'var(--color-accent-700)', bench: 'var(--color-accent-800)', less: 'var(--color-accent-800)', rest: 'var(--color-accent-800)', hurt: 'var(--gm-bad)' } as any;
+  const { gm, open } = vm.ctx,
+    P = gm.db.P;
+  const icon = {
+    start: '▲ Start',
+    bench: '▼ Bench',
+    more: '+ Minutes',
+    less: '− Minutes',
+    rest: '◐ Rest',
+    dev: '★ Develop',
+    hurt: '✚ Injury',
+  } as any;
+  const color = {
+    start: 'var(--gm-good)',
+    more: 'var(--gm-good)',
+    dev: 'var(--color-accent-700)',
+    bench: 'var(--color-accent-800)',
+    less: 'var(--color-accent-800)',
+    rest: 'var(--color-accent-800)',
+    hurt: 'var(--gm-bad)',
+  } as any;
   return (
     <div style={{ border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', flex: 1 }}>From the coaching staff</div>
         <span style={{ ...muted, fontSize: '12px' }}>{advice.staff.map(x => x.name + ' (' + x.role + ')').join(' · ')}</span>
       </div>
-      <p style={{ margin: '4px 0 8px', fontSize: '13px' }}>{advice.summary} Suggested starters: {advice.order.slice(0, 5).map(id => P[id].name).join(', ')}.</p>
+      <p style={{ margin: '4px 0 8px', fontSize: '13px' }}>
+        {advice.summary} Suggested starters:{' '}
+        {advice.order
+          .slice(0, 5)
+          .map(id => P[id].name)
+          .join(', ')}
+        .
+      </p>
       {advice.lines.map((l, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr)', gap: 8, padding: '3px 0', borderTop: '1px solid var(--color-divider)', fontSize: '12.5px' }}>
+        <div
+          key={i}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '92px minmax(0,1fr)',
+            gap: 8,
+            padding: '3px 0',
+            borderTop: '1px solid var(--color-divider)',
+            fontSize: '12.5px',
+          }}
+        >
           <span style={{ color: color[l.kind], fontWeight: 600 }}>{icon[l.kind]}</span>
-          <span><Link pid={l.pid} onClick={() => open(l.pid)}>{P[l.pid].name}</Link>: {l.text} <span style={muted}>— {l.by}</span></span>
+          <span>
+            <Link pid={l.pid} onClick={() => open(l.pid)}>
+              {P[l.pid].name}
+            </Link>
+            : {l.text} <span style={muted}>— {l.by}</span>
+          </span>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={onApply}>Apply their lineup and minutes</button>
-        <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={onClose}>Dismiss</button>
+        <button className="btn btn-primary" style={{ fontSize: '12.5px' }} onClick={onApply}>
+          Apply their lineup and minutes
+        </button>
+        <button className="btn btn-secondary" style={{ fontSize: '12.5px' }} onClick={onClose}>
+          Dismiss
+        </button>
       </div>
     </div>
   );

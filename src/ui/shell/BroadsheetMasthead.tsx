@@ -6,46 +6,99 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
   const dnd = useNavDnd(vm);
   return (
     <>
-      <header style={{ padding: "18px 28px 0", borderBottom: "1px solid var(--color-text)" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "28px", paddingBottom: "12px", borderBottom: "1px solid var(--color-divider)" }}>
+      <header style={{ padding: '18px 28px 0', borderBottom: '1px solid var(--color-text)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: '28px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid var(--color-divider)',
+          }}
+        >
           {vm.myLogoLg}
-          <div style={{ flex: "1", minWidth: "0", marginLeft: "-12px" }}>
-            <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+          <div style={{ flex: '1', minWidth: '0', marginLeft: '-12px' }}>
+            <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
               {vm.dateLong} · {vm.phaseLabel}
             </div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "42px", fontWeight: "400", lineHeight: "1", marginTop: "4px", letterSpacing: "-.015em" }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: '42px',
+                fontWeight: '400',
+                lineHeight: '1',
+                marginTop: '4px',
+                letterSpacing: '-.015em',
+              }}
+            >
               The {vm.myName}
             </div>
             {!!vm.switcher.show && (
-            <select className="input" aria-label="Switch team" value={vm.switcher.value} onChange={vm.switcher.set} style={{ marginTop: "6px", maxWidth: "260px", minHeight: "28px", fontSize: "12px", padding: "2px 6px" }}>
-              {vm.switcher.opts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}
-            </select>
-          )}
+              <select
+                className="input"
+                aria-label="Switch team"
+                value={vm.switcher.value}
+                onChange={vm.switcher.set}
+                style={{ marginTop: '6px', maxWidth: '260px', minHeight: '28px', fontSize: '12px', padding: '2px 6px' }}
+              >
+                {vm.switcher.opts.map((o: any) => (
+                  <option key={o.v} value={o.v}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", lineHeight: "1" }}>
-              {vm.recordShort}
-            </div>
-            <div style={{ color: "var(--color-neutral-700)", fontSize: "12px" }}>
-              {vm.seedLine}
-            </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '30px', lineHeight: '1' }}>{vm.recordShort}</div>
+            <div style={{ color: 'var(--color-neutral-700)', fontSize: '12px' }}>{vm.seedLine}</div>
           </div>
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
             <LeagueMenu vm={vm} bar />
-        <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: "nowrap", fontSize: "13px" }}>
+            <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ whiteSpace: 'nowrap', fontSize: '13px' }}>
               {vm.themeLabel}
             </button>
-            <button className="btn btn-secondary" onClick={vm.play7} disabled={vm.spec.on && vm.spec.running} style={{ whiteSpace: "nowrap" }}>
+            <button
+              className="btn btn-secondary"
+              onClick={vm.play7}
+              disabled={vm.spec.on && vm.spec.running}
+              style={{ whiteSpace: 'nowrap' }}
+            >
               {vm.spec.on ? vm.play7Label : 'Play week'}
             </button>
-            <button className="btn btn-primary" onClick={vm.play1} disabled={vm.spec.on && vm.spec.running} style={{ whiteSpace: "nowrap" }}>
+            <button
+              className="btn btn-primary"
+              onClick={vm.play1}
+              disabled={vm.spec.on && vm.spec.running}
+              style={{ whiteSpace: 'nowrap' }}
+            >
               {vm.play1Label}
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", columnGap: "20px" }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: '20px' }}>
           {(vm.nav || []).map((n: any, i: number) => (
-            <button key={n.key} {...dnd.item(n)} className="hv1" onClick={n.go} title="Drag to move this tab" style={{ all: "unset", cursor: "pointer", whiteSpace: "nowrap", padding: "10px 0 9px", fontFamily: "var(--font-heading)", fontSize: "16px", fontWeight: n.fw, color: n.color, borderBottom: `2px solid ${n.ul ?? ""}`, marginBottom: "-1px", ...dnd.mark(n), ...(dnd.mark(n).boxShadow ? { boxShadow: 'inset 2px 0 0 var(--color-accent)', paddingLeft: '6px' } : {}) }}>
+            <button
+              key={n.key}
+              {...dnd.item(n)}
+              className="hv1"
+              onClick={n.go}
+              title="Drag to move this tab"
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                padding: '10px 0 9px',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '16px',
+                fontWeight: n.fw,
+                color: n.color,
+                borderBottom: `2px solid ${n.ul ?? ''}`,
+                marginBottom: '-1px',
+                ...dnd.mark(n),
+                ...(dnd.mark(n).boxShadow ? { boxShadow: 'inset 2px 0 0 var(--color-accent)', paddingLeft: '6px' } : {}),
+              }}
+            >
               {n.label}
             </button>
           ))}

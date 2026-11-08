@@ -3,159 +3,199 @@ import type { VM } from '../vm';
 import { ExpYear, godBox, godBtn, godText } from '../kit';
 
 export function TeamModal({ vm }: { vm: VM }) {
-  useEffect(() => { document.querySelector('main')?.scrollTo(0, 0); }, [vm.ctx.s.teamModal]);
+  useEffect(() => {
+    document.querySelector('main')?.scrollTo(0, 0);
+  }, [vm.ctx.s.teamModal]);
   return (
     <>
       <div>
-        <div style={{ width: "100%", boxSizing: "border-box" }}>
-          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: "13px", marginBottom: "10px" }}>← Back</button>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "20px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "12px", marginBottom: "14px" }}>
+        <div style={{ width: '100%', boxSizing: 'border-box' }}>
+          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginBottom: '10px' }}>
+            ← Back
+          </button>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '20px',
+              borderBottom: '1px solid var(--color-divider)',
+              paddingBottom: '12px',
+              marginBottom: '14px',
+            }}
+          >
             {vm.tm.logo}
-            <div style={{ flex: "1", minWidth: "0" }}>
-              <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+            <div style={{ flex: '1', minWidth: '0' }}>
+              <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
                 {vm.tm.line}
               </div>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "34px", lineHeight: "1.05" }}>
-                {vm.tm.name}
-              </div>
-              <div style={{ color: "var(--color-neutral-700)" }}>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '34px', lineHeight: '1.05' }}>{vm.tm.name}</div>
+              <div style={{ color: 'var(--color-neutral-700)' }}>
                 {vm.tm.rec} · {vm.tm.market}
               </div>
-              <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-                {vm.tm.staff}
-              </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{vm.tm.staff}</div>
             </div>
-            <div style={{ textAlign: "center", padding: "6px 14px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", minWidth: "110px" }} title="Team rating: the whole roster's overall ratings, weighted by rotation minutes">
-              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-neutral-700)", marginBottom: "4px" }}>Team rating</div>
-              <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "40px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: vm.tm.rating >= 60 ? "var(--gm-elite)" : "var(--color-text)" }}>{vm.tm.rating}<span style={{ fontSize: "15px", fontWeight: 400, color: "var(--color-neutral-600)" }}>/100</span></div>
-              <div style={{ fontSize: "13px", marginTop: "4px", color: "var(--color-neutral-700)" }}>{vm.tm.ratingRank}</div>
-            </div>
-            <div style={{ maxWidth: "320px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: "600" }}>
-                {vm.tm.strat}
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '6px 14px',
+                border: '1px solid var(--color-divider)',
+                borderRadius: 'var(--radius-md)',
+                minWidth: '110px',
+              }}
+              title="Team rating: the whole roster's overall ratings, weighted by rotation minutes"
+            >
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  letterSpacing: '.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-neutral-700)',
+                  marginBottom: '4px',
+                }}
+              >
+                Team rating
               </div>
-              <div style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-                {vm.tm.stratDesc}
+              <div
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontWeight: 700,
+                  fontSize: '40px',
+                  lineHeight: 1.1,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: vm.tm.rating >= 60 ? 'var(--gm-elite)' : 'var(--color-text)',
+                }}
+              >
+                {vm.tm.rating}
+                <span style={{ fontSize: '15px', fontWeight: 400, color: 'var(--color-neutral-600)' }}>/100</span>
               </div>
+              <div style={{ fontSize: '13px', marginTop: '4px', color: 'var(--color-neutral-700)' }}>{vm.tm.ratingRank}</div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {!!vm.tm.isOther && (<>
-                <button className="btn btn-primary" onClick={vm.tm.trade} style={{ whiteSpace: "nowrap" }}>
-                  Propose a trade
+            <div style={{ maxWidth: '320px' }}>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: '600' }}>{vm.tm.strat}</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{vm.tm.stratDesc}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {!!vm.tm.isOther && (
+                <>
+                  <button className="btn btn-primary" onClick={vm.tm.trade} style={{ whiteSpace: 'nowrap' }}>
+                    Propose a trade
+                  </button>
+                </>
+              )}
+              {!!vm.tm.canSwitch && (
+                <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: 'nowrap' }}>
+                  Switch to this team
                 </button>
-              </>)}
-              {!!vm.tm.canSwitch && <button className="btn btn-primary" onClick={vm.tm.switchTo} style={{ whiteSpace: "nowrap" }}>Switch to this team</button>}
-              {!!vm.tm.canTake && <button className="btn btn-secondary" onClick={vm.tm.takeOver} style={{ whiteSpace: "nowrap", ...(vm.tm.spect ? {} : godBtn) }}>{vm.tm.spect ? 'Manage this team' : 'Take over'}</button>}
-              {!!vm.tm.canResign && <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: "12px", whiteSpace: "nowrap" }}>Resign · hand to AI</button>}
+              )}
+              {!!vm.tm.canTake && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={vm.tm.takeOver}
+                  style={{ whiteSpace: 'nowrap', ...(vm.tm.spect ? {} : godBtn) }}
+                >
+                  {vm.tm.spect ? 'Manage this team' : 'Take over'}
+                </button>
+              )}
+              {!!vm.tm.canResign && (
+                <button className="btn btn-ghost" onClick={vm.tm.resign} style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
+                  Resign · hand to AI
+                </button>
+              )}
             </div>
           </div>
-          <div style={{ display: "flex", gap: "24px", marginBottom: "10px" }}>
+          <div style={{ display: 'flex', gap: '24px', marginBottom: '10px' }}>
             <span>
-              Payroll{" "}
-              <span style={{ fontWeight: "600" }}>
-                {vm.tm.payroll}
-              </span>
+              Payroll <span style={{ fontWeight: '600' }}>{vm.tm.payroll}</span>
             </span>
-            <span style={{ color: "var(--color-neutral-700)" }}>
-              {vm.tm.cap}
-            </span>
+            <span style={{ color: 'var(--color-neutral-700)' }}>{vm.tm.cap}</span>
           </div>
-          {!!vm.isGod && (<>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "12px", padding: "8px 10px", ...godBox }}>
-              <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", fontWeight: 600, ...godText }}>
-                God Mode
-              </span>
-              <input className="input" value={vm.tm.region} onChange={vm.tm.setRegion} style={{ maxWidth: "170px", minHeight: "30px", fontSize: "13px" }} />
-              <input className="input" value={vm.tm.nm} onChange={vm.tm.setName} style={{ maxWidth: "170px", minHeight: "30px", fontSize: "13px" }} />
-              <input className="input" value={vm.tm.abbr} onChange={vm.tm.setAbbr} style={{ maxWidth: "70px", minHeight: "30px", fontSize: "13px" }} />
-              <span style={{ fontSize: "12px", color: "var(--color-neutral-700)" }}>
-                Team ID and past seasons stay locked.
-              </span>
-            </div>
-          </>)}
-          <table className="table" style={{ fontSize: "13px" }}>
+          {!!vm.isGod && (
+            <>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', padding: '8px 10px', ...godBox }}>
+                <span style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600, ...godText }}>
+                  God Mode
+                </span>
+                <input
+                  className="input"
+                  value={vm.tm.region}
+                  onChange={vm.tm.setRegion}
+                  style={{ maxWidth: '170px', minHeight: '30px', fontSize: '13px' }}
+                />
+                <input
+                  className="input"
+                  value={vm.tm.nm}
+                  onChange={vm.tm.setName}
+                  style={{ maxWidth: '170px', minHeight: '30px', fontSize: '13px' }}
+                />
+                <input
+                  className="input"
+                  value={vm.tm.abbr}
+                  onChange={vm.tm.setAbbr}
+                  style={{ maxWidth: '70px', minHeight: '30px', fontSize: '13px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>Team ID and past seasons stay locked.</span>
+              </div>
+            </>
+          )}
+          <table className="table" style={{ fontSize: '13px' }}>
             <thead>
               <tr>
-                <th style={{ padding: "6px 8px" }}>
-                  Player
-                </th>
-                <th style={{ padding: "6px 8px" }}>
-                  Pos
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Age
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Ovr
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Pot
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Contract
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Exp
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Pts
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Reb
-                </th>
-                <th style={{ padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  Ast
-                </th>
+                <th style={{ padding: '6px 8px' }}>Player</th>
+                <th style={{ padding: '6px 8px' }}>Pos</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Age</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Ovr</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Pot</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Contract</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Exp</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Pts</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Reb</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>Ast</th>
               </tr>
             </thead>
             <tbody>
               {(vm.tm.rows || []).map((p: any, i: number) => (
-                <tr key={i} onClick={p.open} style={{ cursor: "pointer" }}>
-                  <td style={{ padding: "4px 8px" }}>
-                    <span style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
-                      <img src={p.flag} alt="" title={p.cname} style={{ width: "16px", height: "11px", objectFit: "cover", outline: "1px solid var(--color-divider)" }} />
-                      <span style={{ color: "var(--color-accent-700)" }}>
-                        {p.name}
-                      </span>
+                <tr key={i} onClick={p.open} style={{ cursor: 'pointer' }}>
+                  <td style={{ padding: '4px 8px' }}>
+                    <span style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                      <img
+                        src={p.flag}
+                        alt=""
+                        title={p.cname}
+                        style={{ width: '16px', height: '11px', objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
+                      />
+                      <span style={{ color: 'var(--color-accent-700)' }}>{p.name}</span>
                     </span>
                   </td>
-                  <td style={{ padding: "4px 8px" }}>
-                    {p.pos}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.age}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.tone, fontWeight: "600" }}>
+                  <td style={{ padding: '4px 8px' }}>{p.pos}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.age}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.tone, fontWeight: '600' }}>
                     {p.ovr}
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap", color: p.ptone }}>
-                    {p.pot}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.contract}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.ptone }}>{p.pot}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.contract}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <ExpYear y={p.exp} cur={vm.ctx.gm.Y} />
                   </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.pts}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.reb}
-                  </td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    {p.ast}
-                  </td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.pts}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.reb}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.ast}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-700)", margin: "16px 0 4px" }}>
+          <div
+            style={{
+              fontSize: '10.5px',
+              letterSpacing: '.1em',
+              textTransform: 'uppercase',
+              color: 'var(--color-neutral-700)',
+              margin: '16px 0 4px',
+            }}
+          >
             Draft picks owned
           </div>
-          <p style={{ margin: "0" }}>
-            {vm.tm.picks}
-          </p>
+          <p style={{ margin: '0' }}>{vm.tm.picks}</p>
         </div>
       </div>
     </>

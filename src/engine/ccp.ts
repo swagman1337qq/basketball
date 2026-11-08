@@ -12,93 +12,248 @@
 // There are no owners, coaches or finances: just teams, players and games.
 import type { Game } from './Game';
 import { effTend } from './tendencies';
-import { GameSim, blankLine, BASE, BLOCK_ON_MISS, CAL, CURVE_OF, DEFAULT_NORMS, PAINT_SHARE, TIER_KEY, ZONES, blockSkill, curve, glassSkill, interiorD, perimD, rebSkill, shotProfile, stealSkill, usageRaw, zoneSkill, type Norms, type Zone } from './sim';
+import {
+  GameSim,
+  blankLine,
+  BASE,
+  BLOCK_ON_MISS,
+  CAL,
+  CURVE_OF,
+  DEFAULT_NORMS,
+  PAINT_SHARE,
+  TIER_KEY,
+  ZONES,
+  blockSkill,
+  curve,
+  glassSkill,
+  interiorD,
+  perimD,
+  rebSkill,
+  shotProfile,
+  stealSkill,
+  usageRaw,
+  zoneSkill,
+  type Norms,
+  type Zone,
+} from './sim';
 import { rimDenial, rimOpening, finishMean, finishMix, finishingPct, type FinishType } from './finishing';
 import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
 import { makeFringe } from './potential';
 
-export interface CcpTeam { id: number; key: string; aff: number | null; conf: string; region: string; city: string; where: string; name: string; abbr: string; icon: string; colors: [string, string]; note: string }
-export interface CcpGame { dn: number; st: 'tip' | 'show' | 'reg' | 'po'; h: number; a: number; hs?: number; as?: number; rd?: number; ot?: number; top?: [number, number, number, number] }
+export interface CcpTeam {
+  id: number;
+  key: string;
+  aff: number | null;
+  conf: string;
+  region: string;
+  city: string;
+  where: string;
+  name: string;
+  abbr: string;
+  icon: string;
+  colors: [string, string];
+  note: string;
+}
+export interface CcpGame {
+  dn: number;
+  st: 'tip' | 'show' | 'reg' | 'po';
+  h: number;
+  a: number;
+  hs?: number;
+  as?: number;
+  rd?: number;
+  ot?: number;
+  top?: [number, number, number, number];
+}
 export const IND = -1; // p.gl.tid of the independent club's players
-export const CCP_MIN = 10, CCP_MAX = 12; // CCP-contract players per club
+export const CCP_MIN = 10,
+  CCP_MAX = 12; // CCP-contract players per club
 const REGIONS: Record<string, [string, string]> = { East: ['Permafrost', 'Backcountry'], West: ['Frontier', 'Outpost'] };
 
 // Days since Oct 1 of the season's first year (the season is named for its second year).
-export const dnOf = (Y: number, d: Date) => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - new Date(Y - 1, 9, 1).getTime()) / 864e5);
+export const dnOf = (Y: number, d: Date) =>
+  Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - new Date(Y - 1, 9, 1).getTime()) / 864e5);
 export const dateOfDn = (Y: number, dn: number) => new Date(Y - 1, 9, 1 + dn);
 const D = (Y: number, m: number, d: number) => dnOf(Y, new Date(m >= 9 ? Y - 1 : Y, m, d)); // m: 0-based month
 export const fmtDn = (Y: number, dn: number) => dateOfDn(Y, dn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 // The clubs this season: one affiliate per NBA team (its usual club, else a spare) and the independent.
 function buildTeams(s: any): CcpTeam[] {
-  const abbrs = s.teams.map((t: any) => t.abbr), used = new Set<string>([CCP_INDEPENDENT]), spares = CCP_SPARES.filter(k => !(k === 'dio' && abbrs.includes('INL'))), out: CcpTeam[] = [];
+  const abbrs = s.teams.map((t: any) => t.abbr),
+    used = new Set<string>([CCP_INDEPENDENT]),
+    spares = CCP_SPARES.filter(k => !(k === 'dio' && abbrs.includes('INL'))),
+    out: CcpTeam[] = [];
   const mk = (key: string | null, aff: number | null, conf: string): CcpTeam => {
-    const c = key ? ccpClub(key)! : null, t = aff != null ? s.teams[aff] : null;
-    return { id: out.length, key: key || 'gen' + aff, aff, conf, region: '', city: c ? c.city : t.region + ' Hills', where: c ? c.where : '', name: c ? c.name : 'Outriders', abbr: c ? c.abbr : (t.abbr + 'X').slice(0, 4), icon: c ? c.icon : 'Mountain', colors: c ? c.colors : [t.colors?.[1] || '#333', t.colors?.[0] || '#ccc'], note: c ? c.note : 'A remote outpost.' };
+    const c = key ? ccpClub(key)! : null,
+      t = aff != null ? s.teams[aff] : null;
+    return {
+      id: out.length,
+      key: key || 'gen' + aff,
+      aff,
+      conf,
+      region: '',
+      city: c ? c.city : t.region + ' Hills',
+      where: c ? c.where : '',
+      name: c ? c.name : 'Outriders',
+      abbr: c ? c.abbr : (t.abbr + 'X').slice(0, 4),
+      icon: c ? c.icon : 'Mountain',
+      colors: c ? c.colors : [t.colors?.[1] || '#333', t.colors?.[0] || '#ccc'],
+      note: c ? c.note : 'A remote outpost.',
+    };
   };
-  s.teams.forEach((t: any) => { let k: string | null = ccpAffilOf(t.abbr, abbrs); if (!k || used.has(k)) k = spares.shift() || null; if (k) used.add(k); out.push(mk(k, t.tid, t.conf)); });
-  const east = out.filter(t => t.conf === 'East').length, west = out.length - east;
+  s.teams.forEach((t: any) => {
+    let k: string | null = ccpAffilOf(t.abbr, abbrs);
+    if (!k || used.has(k)) k = spares.shift() || null;
+    if (k) used.add(k);
+    out.push(mk(k, t.tid, t.conf));
+  });
+  const east = out.filter(t => t.conf === 'East').length,
+    west = out.length - east;
   out.push(mk(CCP_INDEPENDENT, null, east <= west ? 'East' : 'West'));
   // Four tip-off regions: each conference split in two.
-  ['East', 'West'].forEach(c => { const ts = out.filter(t => t.conf === c); ts.forEach((t, i) => (t.region = REGIONS[c][i < Math.ceil(ts.length / 2) ? 0 : 1])); });
+  ['East', 'West'].forEach(c => {
+    const ts = out.filter(t => t.conf === c);
+    ts.forEach((t, i) => (t.region = REGIONS[c][i < Math.ceil(ts.length / 2) ? 0 : 1]));
+  });
   return out;
 }
 
 // Pair teams game-day by game-day: the teams with the fewest games play first, opponents from
 // the preferred group when possible.
-function pairDays(ids: number[], quota: number, days: number[], group: (id: number) => string, sameShare: number, rnd: () => number): CcpGame[] {
-  const n: Record<number, number> = {}, games: CcpGame[] = []; ids.forEach(i => (n[i] = 0));
+function pairDays(
+  ids: number[],
+  quota: number,
+  days: number[],
+  group: (id: number) => string,
+  sameShare: number,
+  rnd: () => number,
+): CcpGame[] {
+  const n: Record<number, number> = {},
+    games: CcpGame[] = [];
+  ids.forEach(i => (n[i] = 0));
   let di = 0;
   while (ids.some(i => n[i] < quota) && di < days.length * 3) {
-    const dn = days[Math.min(di, days.length - 1)] + (di >= days.length ? di - days.length + 1 : 0); di++;
-    const pool = ids.filter(i => n[i] < quota).sort((a, b) => n[a] - n[b] || rnd() - 0.5), done = new Set<number>();
+    const dn = days[Math.min(di, days.length - 1)] + (di >= days.length ? di - days.length + 1 : 0);
+    di++;
+    const pool = ids.filter(i => n[i] < quota).sort((a, b) => n[a] - n[b] || rnd() - 0.5),
+      done = new Set<number>();
     for (const a of pool) {
       if (done.has(a)) continue;
-      const rest = pool.filter(b => b !== a && !done.has(b)), same = rest.filter(b => group(b) === group(a));
-      const b = (same.length && rnd() < sameShare ? same : rest.length ? rest : same)[0]; if (b == null) continue;
-      done.add(a); done.add(b); n[a]++; n[b]++;
+      const rest = pool.filter(b => b !== a && !done.has(b)),
+        same = rest.filter(b => group(b) === group(a));
+      const b = (same.length && rnd() < sameShare ? same : rest.length ? rest : same)[0];
+      if (b == null) continue;
+      done.add(a);
+      done.add(b);
+      n[a]++;
+      n[b]++;
       games.push(rnd() < 0.5 ? { dn, st: 'tip', h: a, a: b } : { dn, st: 'tip', h: b, a: a });
     }
   }
   return games;
 }
-const spread = (from: number, to: number, count: number) => Array.from({ length: count }, (_, i) => Math.round(from + (to - from) * i / Math.max(1, count - 1)));
+const spread = (from: number, to: number, count: number) =>
+  Array.from({ length: count }, (_, i) => Math.round(from + ((to - from) * i) / Math.max(1, count - 1)));
 
 export function ccpNewSeason(g: Game, s: any, Y = g.Y) {
-  const teams = buildTeams(s), rnd = g.rng(Y * 31 + teams.length), ids = teams.map(t => t.id);
+  const teams = buildTeams(s),
+    rnd = g.rng(Y * 31 + teams.length),
+    ids = teams.map(t => t.id);
   const tip: CcpGame[] = [];
-  ['East', 'West'].forEach(c => REGIONS[c].forEach(r => { const rid = teams.filter(t => t.region === r).map(t => t.id); tip.push(...pairDays(rid, 14, spread(D(Y, 10, 7), D(Y, 11, 16), 16), () => r, 1, rnd)); }));
-  const reg = pairDays(ids, 36, spread(D(Y, 11, 27), D(Y, 2, 28), 44), i => teams[i].conf, 0.75, rnd).map(x => ({ ...x, st: 'reg' as const }));
+  ['East', 'West'].forEach(c =>
+    REGIONS[c].forEach(r => {
+      const rid = teams.filter(t => t.region === r).map(t => t.id);
+      tip.push(...pairDays(rid, 14, spread(D(Y, 10, 7), D(Y, 11, 16), 16), () => r, 1, rnd));
+    }),
+  );
+  const reg = pairDays(ids, 36, spread(D(Y, 11, 27), D(Y, 2, 28), 44), i => teams[i].conf, 0.75, rnd).map(x => ({
+    ...x,
+    st: 'reg' as const,
+  }));
   const prev = s.ccp;
-  s.ccp = { season: Y, teams, games: [...tip, ...reg].sort((a, b) => a.dn - b.dn), showcase: null, po: null, hist: (prev?.hist || []).slice(0, 30) };
+  s.ccp = {
+    season: Y,
+    teams,
+    games: [...tip, ...reg].sort((a, b) => a.dn - b.dn),
+    showcase: null,
+    po: null,
+    hist: (prev?.hist || []).slice(0, 30),
+  };
   return s.ccp;
 }
 
 // This club's players today: its CCP-contract players, and (for an affiliate) the parent club's
 // two-way players and anyone sent down.
 export function ccpRoster(g: Game, s: any, t: CcpTeam): number[] {
-  const P = g.db.P, tid = t.aff == null ? IND : t.aff;
+  const P = g.db.P,
+    tid = t.aff == null ? IND : t.aff;
   const own = (s.fa || []).filter((id: number) => P[id]?.gl?.tid === tid);
   const nba = t.aff != null ? (s.rosters[t.aff] || []).filter((id: number) => P[id].ctype === 'twoWay' || P[id].dev) : [];
   return [...own, ...nba];
 }
-export const ccpTeamOf = (s: any, nbaTid: number) => (s.ccp?.teams || []).find((t: CcpTeam) => (nbaTid === IND ? t.aff == null : t.aff === nbaTid));
+export const ccpTeamOf = (s: any, nbaTid: number) =>
+  (s.ccp?.teams || []).find((t: CcpTeam) => (nbaTid === IND ? t.aff == null : t.aff === nbaTid));
 
 // Standings of one stage.
 export function ccpStandings(s: any, st: 'tip' | 'reg') {
-  const c = s.ccp, rec = c.teams.map((t: CcpTeam) => ({ id: t.id, w: 0, l: 0, pf: 0, pa: 0 }));
-  c.games.forEach((x: CcpGame) => { if (x.st !== st || x.hs == null) return; const h = rec[x.h], a = rec[x.a]; h.pf += x.hs; h.pa += x.as!; a.pf += x.as!; a.pa += x.hs;
-    if (x.hs > x.as!) { h.w++; a.l++; } else { a.w++; h.l++; } });
+  const c = s.ccp,
+    rec = c.teams.map((t: CcpTeam) => ({ id: t.id, w: 0, l: 0, pf: 0, pa: 0 }));
+  c.games.forEach((x: CcpGame) => {
+    if (x.st !== st || x.hs == null) return;
+    const h = rec[x.h],
+      a = rec[x.a];
+    h.pf += x.hs;
+    h.pa += x.as!;
+    a.pf += x.as!;
+    a.pa += x.hs;
+    if (x.hs > x.as!) {
+      h.w++;
+      a.l++;
+    } else {
+      a.w++;
+      h.l++;
+    }
+  });
   const pct = (r: any) => (r.w + r.l ? r.w / (r.w + r.l) : 0);
-  return rec.sort((a: any, b: any) => pct(b) - pct(a) || (b.pf - b.pa) - (a.pf - a.pa)).map((r: any) => ({ ...r, pct: pct(r) }));
+  return rec.sort((a: any, b: any) => pct(b) - pct(a) || b.pf - b.pa - (a.pf - a.pa)).map((r: any) => ({ ...r, pct: pct(r) }));
 }
 
 function simTeamOf(g: Game, s: any, t: CcpTeam) {
-  const P = g.db.P, ids = ccpRoster(g, s, t).filter(id => !P[id].inj).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 12);
+  const P = g.db.P,
+    ids = ccpRoster(g, s, t)
+      .filter(id => !P[id].inj)
+      .sort((a, b) => P[b].ovr - P[a].ovr)
+      .slice(0, 12);
   const ROT = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0];
-  return { tid: t.id, name: t.city + ' ' + t.name, abbr: t.abbr, rec: '', players: ids.map((id, i) => { const p = P[id]; return { id, name: p.name, pos: p.pos, grp: p.grp, ovr: p.ovr, r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 }, roles: g.rolesOf(p), alpha: p.pers?.alpha, touches: p.pers?.touches, tend: effTend(p), flashy: !!p.pers?.flashy, heat: !!p.pers?.heat, volatile: !!p.pers?.volatile, villain: !!p.pers?.villain, fearless: !!p.pers?.fearless, target: ROT[i] ?? 0 }; }) };
+  return {
+    tid: t.id,
+    name: t.city + ' ' + t.name,
+    abbr: t.abbr,
+    rec: '',
+    players: ids.map((id, i) => {
+      const p = P[id];
+      return {
+        id,
+        name: p.name,
+        pos: p.pos,
+        grp: p.grp,
+        ovr: p.ovr,
+        r: { ...p.r, ape: (p.wing ?? 0) ? p.wing - g.inches(p.hgt) : 4 },
+        roles: g.rolesOf(p),
+        alpha: p.pers?.alpha,
+        touches: p.pers?.touches,
+        tend: effTend(p),
+        flashy: !!p.pers?.flashy,
+        heat: !!p.pers?.heat,
+        volatile: !!p.pers?.volatile,
+        villain: !!p.pers?.villain,
+        fearless: !!p.pers?.fearless,
+        target: ROT[i] ?? 0,
+      };
+    }),
+  };
 }
 
 // Quick results (the default): a light possession-by-possession game, far cheaper than the full
@@ -111,32 +266,74 @@ function simTeamOf(g: Game, s: any, t: CcpTeam) {
 // Settings can switch CCP games to the full engine.
 const Q_FOUL: Record<Zone, number> = { rim: 0.27, mid: 0.1, c3: 0.025, atb: 0.025 };
 export function ccpQuickGame(g: Game, hT: any, aT: any) {
-  const R = Math.random, n: Norms = g.db.norms || DEFAULT_NORMS, gauss = () => (R() + R() + R() + R() - 2) * 1.7;
+  const R = Math.random,
+    n: Norms = g.db.norms || DEFAULT_NORMS,
+    gauss = () => (R() + R() + R() + R() - 2) * 1.7;
   const cl = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
-  const pick = (w: number[], tot: number) => { let x = R() * tot; for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) return i; } return w.length - 1; };
+  const pick = (w: number[], tot: number) => {
+    let x = R() * tot;
+    for (let i = 0; i < w.length; i++) {
+      x -= w[i];
+      if (x <= 0) return i;
+    }
+    return w.length - 1;
+  };
   const side = (t: any) => {
     const ps = t.players.filter((p: any) => p.target > 0);
-    const raw = ps.map((p: any) => p.target * (0.9 + R() * 0.2)), rt = raw.reduce((a: number, v: number) => a + v, 0) || 1;
+    const raw = ps.map((p: any) => p.target * (0.9 + R() * 0.2)),
+      rt = raw.reduce((a: number, v: number) => a + v, 0) || 1;
     const on = raw.map((v: number) => Math.min(1, (v / rt) * 5)); // share of the game on the floor
     const avg = (f: (p: any) => number) => ps.reduce((a: number, p: any, i: number) => a + f(p) * on[i], 0) / 5;
-    const prof = ps.map((p: any) => shotProfile(p, n)), form = ps.map(() => gauss() * 0.012); // tonight's touch
+    const prof = ps.map((p: any) => shotProfile(p, n)),
+      form = ps.map(() => gauss() * 0.012); // tonight's touch
     const pct = ps.map((p: any, i: number) => {
-      const sk = zoneSkill(p.r), paint = p.tend?.pf ?? PAINT_SHARE;
-      const jump = BASE.zone.mid.pct + CAL.mid + curve('jumper', sk.mid) + n.offset.mid - 0.01 * PAINT_SHARE / (1 - PAINT_SHARE);
-      return Object.fromEntries(ZONES.map(z => [z, z === 'rim' ? finishMean(p, 'rim', n.finish) + CAL.rim + 0.0009 * (p.r.hgt - (n.rimHgt ?? 55)) + form[i]
-        : z === 'mid' ? paint * (finishMean(p, 'paint', n.finish) + CAL.mid) + (1 - paint) * jump + form[i]
-          : BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk[z]) + n.offset[z] + form[i]])) as Record<Zone, number>;
+      const sk = zoneSkill(p.r),
+        paint = p.tend?.pf ?? PAINT_SHARE;
+      const jump = BASE.zone.mid.pct + CAL.mid + curve('jumper', sk.mid) + n.offset.mid - (0.01 * PAINT_SHARE) / (1 - PAINT_SHARE);
+      return Object.fromEntries(
+        ZONES.map(z => [
+          z,
+          z === 'rim'
+            ? finishMean(p, 'rim', n.finish) + CAL.rim + 0.0009 * (p.r.hgt - (n.rimHgt ?? 55)) + form[i]
+            : z === 'mid'
+              ? paint * (finishMean(p, 'paint', n.finish) + CAL.mid) + (1 - paint) * jump + form[i]
+              : BASE.zone[z].pct + CAL[z] + curve(CURVE_OF[z], sk[z]) + n.offset[z] + form[i],
+        ]),
+      ) as Record<Zone, number>;
     });
     // Cache technique execution, not a common rim make rate. The fast CCP path
     // samples the same type mixture and execution kernel as the full engine.
-    const finish = ps.map((p: any, i: number) => Object.fromEntries(Object.keys(finishMix(p, 'rim')).map(type => [type, finishingPct(p, type as FinishType, n.finish) + form[i]])) as Record<FinishType, number>);
+    const finish = ps.map(
+      (p: any, i: number) =>
+        Object.fromEntries(
+          Object.keys(finishMix(p, 'rim')).map(type => [type, finishingPct(p, type as FinishType, n.finish) + form[i]]),
+        ) as Record<FinishType, number>,
+    );
     const use = ps.map((p: any, i: number) => usageRaw(p) * on[i] * Math.exp(gauss() * 0.15));
     // A side full of shot-makers gets guarded tighter (the engine's lineup regression).
-    const uT = use.reduce((a: number, v: number) => a + v, 0) || 1, edge = ps.reduce((a: number, _: any, i: number) => a + use[i] * ZONES.reduce((b, z) => b + prof[i][z] * (pct[i][z] - BASE.zone[z].pct - CAL[z]), 0), 0) / uT;
+    const uT = use.reduce((a: number, v: number) => a + v, 0) || 1,
+      edge =
+        ps.reduce(
+          (a: number, _: any, i: number) =>
+            a + use[i] * ZONES.reduce((b, z) => b + prof[i][z] * (pct[i][z] - BASE.zone[z].pct - CAL[z]), 0),
+          0,
+        ) / uT;
     const sec = (r: any) => 0.5 * r.drb + 0.3 * r.pss + 0.2 * r.oiq;
-    const w = (f: (p: any) => number) => { const a = ps.map((p: any, i: number) => f(p) * on[i]); return { a, t: a.reduce((x: number, v: number) => x + v, 0) || 1 }; };
+    const w = (f: (p: any) => number) => {
+      const a = ps.map((p: any, i: number) => f(p) * on[i]);
+      return { a, t: a.reduce((x: number, v: number) => x + v, 0) || 1 };
+    };
     return {
-      ps, on, prof, pct, finish, form, use, uT, edge, box: ps.map((_: any, i: number) => ({ ...blankLine(), gs: i < 5 ? 1 : 0 })),
+      ps,
+      on,
+      prof,
+      pct,
+      finish,
+      form,
+      use,
+      uT,
+      edge,
+      box: ps.map((_: any, i: number) => ({ ...blankLine(), gs: i < 5 ? 1 : 0 })),
       ft: ps.map((p: any) => (p.r.ft >= 98.5 ? 0.98 : BASE.ft + CAL.ft + curve('ft', p.r.ft) + n.ftOffset)),
       tov: ps.map((p: any) => 0.1 * Math.exp((n.handle - sec(p.r)) / 70) * (p.tend?.tov ?? 1)),
       draw: ps.map((p: any) => p.tend?.draw ?? 1),
@@ -145,138 +342,376 @@ export function ccpQuickGame(g: Game, hT: any, aT: any) {
       stlW: w(p => Math.pow(Math.max(32, stealSkill(p.r)) - 24, 1.6)),
       blkW: w(p => Math.pow(Math.max(30, blockSkill(p.r)) - 22, 1.8)),
       pfW: w(p => 1 + (60 - p.r.diq) / 80),
-      perim: avg(p => perimD(p.r)), inner: avg(p => interiorD(p.r)), glass: avg(p => glassSkill(p.r)),
+      perim: avg(p => perimD(p.r)),
+      inner: avg(p => interiorD(p.r)),
+      glass: avg(p => glassSkill(p.r)),
     };
   };
-  const H = side(hT), A = side(aT);
-  const defAdj = (D: any, z: Zone, type: FinishType | null) => (z === 'rim' ? 0.0021 * (D.inner - n.interiorD)
-    : type === 'hook' || type === 'tip' ? 0.0015 * (D.inner - n.interiorD)
-      : type === 'floater' ? 0.0008 * (D.inner - n.interiorD) + 0.0005 * (D.perim - n.perimD)
-        : z === 'mid' ? 0.001 * (D.perim - n.perimD) : 0.0008 * (D.perim - n.perimD));
-  const finishKeys: Record<FinishType, [string, string]> = { layup: ['layupM', 'layupA'], dunk: ['dunkM', 'dunkA'], floater: ['floaterM', 'floaterA'], hook: ['hookM', 'hookA'], tip: ['tipM', 'tipA'], paintJumper: ['paintJumpM', 'paintJumpA'] };
-  const fts = (O: any, i: number, k: number) => { let m = 0; for (let j = 0; j < k; j++) if (R() < O.ft[i]) m++; O.box[i].fta += k; O.box[i].ftm += m; O.box[i].pts += m; return m; };
+  const H = side(hT),
+    A = side(aT);
+  const defAdj = (D: any, z: Zone, type: FinishType | null) =>
+    z === 'rim'
+      ? 0.0021 * (D.inner - n.interiorD)
+      : type === 'hook' || type === 'tip'
+        ? 0.0015 * (D.inner - n.interiorD)
+        : type === 'floater'
+          ? 0.0008 * (D.inner - n.interiorD) + 0.0005 * (D.perim - n.perimD)
+          : z === 'mid'
+            ? 0.001 * (D.perim - n.perimD)
+            : 0.0008 * (D.perim - n.perimD);
+  const finishKeys: Record<FinishType, [string, string]> = {
+    layup: ['layupM', 'layupA'],
+    dunk: ['dunkM', 'dunkA'],
+    floater: ['floaterM', 'floaterA'],
+    hook: ['hookM', 'hookA'],
+    tip: ['tipM', 'tipA'],
+    paintJumper: ['paintJumpM', 'paintJumpA'],
+  };
+  const fts = (O: any, i: number, k: number) => {
+    let m = 0;
+    for (let j = 0; j < k; j++) if (R() < O.ft[i]) m++;
+    O.box[i].fta += k;
+    O.box[i].ftm += m;
+    O.box[i].pts += m;
+    return m;
+  };
   // One trip down the floor; offensive rebounds keep it going. Returns the points scored. A side well
   // ahead relaxes a little and one well behind presses, as in the engine, so margins stay realistic.
   const trip = (O: any, D: any, home: boolean, lead: number) => {
     let pts = 0;
-    if (R() < 0.035) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; if (R() < 0.45) return fts(O, pick(O.use, O.uT), 2); } // a foul away from the ball (in the bonus: two shots)
+    if (R() < 0.035) {
+      D.box[pick(D.pfW.a, D.pfW.t)].pf++;
+      if (R() < 0.45) return fts(O, pick(O.use, O.uT), 2);
+    } // a foul away from the ball (in the bonus: two shots)
     let rebounder = -1;
     for (let chance = 0; chance < 5; chance++) {
-      const putback = rebounder >= 0, i = putback ? rebounder : pick(O.use, O.uT), b = O.box[i]; rebounder = -1;
-      if (R() < O.tov[i]) { b.tov++; if (R() < 0.52) D.box[pick(D.stlW.a, D.stlW.t)].stl++; return pts; }
-      const preferred = O.prof[i], shooter = O.ps[i];
+      const putback = rebounder >= 0,
+        i = putback ? rebounder : pick(O.use, O.uT),
+        b = O.box[i];
+      rebounder = -1;
+      if (R() < O.tov[i]) {
+        b.tov++;
+        if (R() < 0.52) D.box[pick(D.stlW.a, D.stlW.t)].stl++;
+        return pts;
+      }
+      const preferred = O.prof[i],
+        shooter = O.ps[i];
       const usage = O.use[i] / O.uT;
       const spacing = O.ps.reduce((sum: number, p: any, j: number) => sum + (j === i ? 0 : O.on[j] * (p.r.tp - 55)), 0) / 4;
       const creation = 0.6 * (0.45 * shooter.r.drb + 0.35 * (shooter.r.acc ?? shooter.r.spd) + 0.2 * shooter.r.oiq - D.perim);
       const opening = rimOpening(creation, D.inner - n.interiorD, spacing, usage, preferred.rim, false, putback);
       const denied = putback ? 0 : preferred.rim * rimDenial(opening, usage, preferred.rim);
       const pr = { ...preferred, rim: preferred.rim - denied, mid: preferred.mid + denied };
-      let x = R(), z: Zone = 'atb'; for (const zz of ZONES) { x -= pr[zz]; if (x <= 0) { z = zz; break; } }
+      let x = R(),
+        z: Zone = 'atb';
+      for (const zz of ZONES) {
+        x -= pr[zz];
+        if (x <= 0) {
+          z = zz;
+          break;
+        }
+      }
       if (putback) z = 'rim';
-      const paint = z === 'mid' && R() < (O.ps[i].tend?.pf ?? PAINT_SHARE), close = z === 'rim' || paint;
+      const paint = z === 'mid' && R() < (O.ps[i].tend?.pf ?? PAINT_SHARE),
+        close = z === 'rim' || paint;
       const clearGather = z === 'rim' && R() < opening;
       let type: FinishType | null = null;
-      if (close) { const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback, opening: clearGather ? 1 : 0 })).filter(([, w]) => w > 0); let draw = R(); type = choices.at(-1)![0] as FinishType; for (const [key, weight] of choices) { draw -= weight; if (draw <= 0) { type = key as FinishType; break; } } }
-      const three = z === 'c3' || z === 'atb', rawPct = type ? O.finish[i][type] + CAL[z] + (z === 'rim' ? 0.0009 * (O.ps[i].r.hgt - (n.rimHgt ?? 55)) : 0)
-        : z === 'mid' ? BASE.zone.mid.pct + CAL.mid + curve('jumper', zoneSkill(O.ps[i].r).mid) + n.offset.mid - 0.01 * PAINT_SHARE / (1 - PAINT_SHARE) + O.form[i] : O.pct[i][z];
-      const p = cl(rawPct + (z === 'rim' ? (clearGather ? 0.055 : -0.016) : 0) - 0.66 * O.edge - defAdj(D, z, type) + (home ? 0.014 : -0.014) - 0.0018 * lead, 0.05, type === 'dunk' ? 0.995 : 0.95);
+      if (close) {
+        const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback, opening: clearGather ? 1 : 0 })).filter(
+          ([, w]) => w > 0,
+        );
+        let draw = R();
+        type = choices.at(-1)![0] as FinishType;
+        for (const [key, weight] of choices) {
+          draw -= weight;
+          if (draw <= 0) {
+            type = key as FinishType;
+            break;
+          }
+        }
+      }
+      const three = z === 'c3' || z === 'atb',
+        rawPct = type
+          ? O.finish[i][type] + CAL[z] + (z === 'rim' ? 0.0009 * (O.ps[i].r.hgt - (n.rimHgt ?? 55)) : 0)
+          : z === 'mid'
+            ? BASE.zone.mid.pct +
+              CAL.mid +
+              curve('jumper', zoneSkill(O.ps[i].r).mid) +
+              n.offset.mid -
+              (0.01 * PAINT_SHARE) / (1 - PAINT_SHARE) +
+              O.form[i]
+            : O.pct[i][z];
+      const p = cl(
+        rawPct +
+          (z === 'rim' ? (clearGather ? 0.055 : -0.016) : 0) -
+          0.66 * O.edge -
+          defAdj(D, z, type) +
+          (home ? 0.014 : -0.014) -
+          0.0018 * lead,
+        0.05,
+        type === 'dunk' ? 0.995 : 0.95,
+      );
       const contact = type === 'dunk' ? 0.85 : type === 'hook' ? 1.15 : type === 'floater' ? 0.75 : type === 'paintJumper' ? 0.65 : 1;
-      const fouled = R() < Q_FOUL[z] * O.draw[i] * contact, made = R() < (fouled ? p * 0.45 : p);
-      if (fouled) { D.box[pick(D.pfW.a, D.pfW.t)].pf++; b.shotFoulA++; if (close) b.closeFoulA++; }
+      const fouled = R() < Q_FOUL[z] * O.draw[i] * contact,
+        made = R() < (fouled ? p * 0.45 : p);
+      if (fouled) {
+        D.box[pick(D.pfW.a, D.pfW.t)].pf++;
+        b.shotFoulA++;
+        if (close) b.closeFoulA++;
+      }
       if (fouled && !made) return pts + fts(O, i, three ? 3 : 2);
-      b.fga++; if (three) b.tpa++; const [zm, za] = TIER_KEY[z]; b[za]++; if (paint) b.ka++;
-      if (type) { b[finishKeys[type][1]]++; if (z === 'rim') b.finishRaA++; else b.finishPaintA++; }
+      b.fga++;
+      if (three) b.tpa++;
+      const [zm, za] = TIER_KEY[z];
+      b[za]++;
+      if (paint) b.ka++;
+      if (type) {
+        b[finishKeys[type][1]]++;
+        if (z === 'rim') b.finishRaA++;
+        else b.finishPaintA++;
+      }
       if (made) {
-        const v = three ? 3 : 2; b.fgm++; b[zm]++; if (three) b.tpm++; if (paint) b.km++; if (type) b[finishKeys[type][0]]++; b.pts += v; pts += v;
-        if (R() < BASE.zone[z].ast * 0.8) for (let k = 0; k < 4; k++) { const j = pick(O.astW.a, O.astW.t); if (j !== i) { O.box[j].ast++; break; } }
+        const v = three ? 3 : 2;
+        b.fgm++;
+        b[zm]++;
+        if (three) b.tpm++;
+        if (paint) b.km++;
+        if (type) b[finishKeys[type][0]]++;
+        b.pts += v;
+        pts += v;
+        if (R() < BASE.zone[z].ast * 0.8)
+          for (let k = 0; k < 4; k++) {
+            const j = pick(O.astW.a, O.astW.t);
+            if (j !== i) {
+              O.box[j].ast++;
+              break;
+            }
+          }
         if (fouled) pts += fts(O, i, 1);
         return pts;
       }
       if (R() < BLOCK_ON_MISS[z]) D.box[pick(D.blkW.a, D.blkW.t)].blk++;
-      if (R() < cl(BASE.orbPct + 0.004 * (O.glass - D.glass), 0.12, 0.45)) { const rb = pick(O.rebW.a, O.rebW.t); O.box[rb].orb++; if (R() < 0.6) rebounder = rb; continue; }
-      D.box[pick(D.rebW.a, D.rebW.t)].drb++; return pts;
+      if (R() < cl(BASE.orbPct + 0.004 * (O.glass - D.glass), 0.12, 0.45)) {
+        const rb = pick(O.rebW.a, O.rebW.t);
+        O.box[rb].orb++;
+        if (R() < 0.6) rebounder = rb;
+        continue;
+      }
+      D.box[pick(D.rebW.a, D.rebW.t)].drb++;
+      return pts;
     }
     return pts;
   };
-  let hs = 0, as = 0, ot = 0;
-  const period = (k: number) => { for (let j = 0; j < k; j++) { hs += trip(H, A, true, hs - as); as += trip(A, H, false, as - hs); } };
+  let hs = 0,
+    as = 0,
+    ot = 0;
+  const period = (k: number) => {
+    for (let j = 0; j < k; j++) {
+      hs += trip(H, A, true, hs - as);
+      as += trip(A, H, false, as - hs);
+    }
+  };
   period(Math.round(BASE.pace + gauss() * 2));
-  while (hs === as && ot < 6) { ot++; period(Math.round(BASE.pace * 5 / 48 + R())); }
+  while (hs === as && ot < 6) {
+    ot++;
+    period(Math.round((BASE.pace * 5) / 48 + R()));
+  }
   if (hs === as) hs++; // six overtimes and still level: settle it
   const mins = 240 + 25 * ot;
-  [[H, hs - as], [A, as - hs]].forEach(([S, m]: any) => S.box.forEach((b: any, i: number) => { b.min = +(S.on[i] * mins / 5).toFixed(1); b.pm = Math.round(m * S.on[i] + gauss()); }));
+  [
+    [H, hs - as],
+    [A, as - hs],
+  ].forEach(([S, m]: any) =>
+    S.box.forEach((b: any, i: number) => {
+      b.min = +((S.on[i] * mins) / 5).toFixed(1);
+      b.pm = Math.round(m * S.on[i] + gauss());
+    }),
+  );
   const box = (S: any) => Object.fromEntries(S.ps.map((p: any, i: number) => [p.id, S.box[i]]));
   return { home: { pts: hs, box: box(H) }, away: { pts: as, box: box(A) }, ot };
 }
 
 function play(g: Game, s: any, x: CcpGame) {
-  const c = s.ccp, P = g.db.P, H = c.teams[x.h], A = c.teams[x.a], hT = simTeamOf(g, s, H), aT = simTeamOf(g, s, A);
-  if (hT.players.length < 5 || aT.players.length < 5) { x.hs = hT.players.length >= aT.players.length ? 1 : 0; x.as = 1 - x.hs; return; } // forfeit (shouldn't happen)
+  const c = s.ccp,
+    P = g.db.P,
+    H = c.teams[x.h],
+    A = c.teams[x.a],
+    hT = simTeamOf(g, s, H),
+    aT = simTeamOf(g, s, A);
+  if (hT.players.length < 5 || aT.players.length < 5) {
+    x.hs = hT.players.length >= aT.players.length ? 1 : 0;
+    x.as = 1 - x.hs;
+    return;
+  } // forfeit (shouldn't happen)
   const r: any = s.ccpFull ? new GameSim(hT as any, aT as any, { norms: g.db.norms }).run() : ccpQuickGame(g, hT, aT);
-  x.hs = r.home.pts; x.as = r.away.pts; if (r.ot) x.ot = r.ot;
-  const topOf = (box: any) => { let best = 0, bp = -1; Object.entries(box).forEach(([id, b]: any) => { if (b.pts > bp) { bp = b.pts; best = +id; } }); return [best, bp]; };
-  const th = topOf(r.home.box), ta = topOf(r.away.box); x.top = [th[0], th[1], ta[0], ta[1]];
-  [[r.home.box, H], [r.away.box, A]].forEach(([box, t]: any) => Object.entries(box).forEach(([id, b]: any) => {
-    if (!b.min) return; const p = P[+id], S = (p.ccpS = p.ccpS || {}), k = c.season + (x.st === 'po' ? 'p' : '');
-    const line = (S[k] = S[k] || { team: t.abbr, gp: 0, ...blankLine() }); line.team = t.abbr; line.gp++;
-    Object.keys(b).forEach(f => { if (typeof b[f] === 'number' && f in line) line[f] += b[f]; });
-    if (p.gl && p.gl.tid != null && x.st !== 'po') { const g1 = line.gp; p.gl.gp = g1; p.gl.pts = +(line.pts / g1).toFixed(1); p.gl.reb = +((line.orb + line.drb) / g1).toFixed(1); p.gl.ast = +(line.ast / g1).toFixed(1); }
-  }));
+  x.hs = r.home.pts;
+  x.as = r.away.pts;
+  if (r.ot) x.ot = r.ot;
+  const topOf = (box: any) => {
+    let best = 0,
+      bp = -1;
+    Object.entries(box).forEach(([id, b]: any) => {
+      if (b.pts > bp) {
+        bp = b.pts;
+        best = +id;
+      }
+    });
+    return [best, bp];
+  };
+  const th = topOf(r.home.box),
+    ta = topOf(r.away.box);
+  x.top = [th[0], th[1], ta[0], ta[1]];
+  [
+    [r.home.box, H],
+    [r.away.box, A],
+  ].forEach(([box, t]: any) =>
+    Object.entries(box).forEach(([id, b]: any) => {
+      if (!b.min) return;
+      const p = P[+id],
+        S = (p.ccpS = p.ccpS || {}),
+        k = c.season + (x.st === 'po' ? 'p' : '');
+      const line = (S[k] = S[k] || { team: t.abbr, gp: 0, ...blankLine() });
+      line.team = t.abbr;
+      line.gp++;
+      Object.keys(b).forEach(f => {
+        if (typeof b[f] === 'number' && f in line) line[f] += b[f];
+      });
+      if (p.gl && p.gl.tid != null && x.st !== 'po') {
+        const g1 = line.gp;
+        p.gl.gp = g1;
+        p.gl.pts = +(line.pts / g1).toFixed(1);
+        p.gl.reb = +((line.orb + line.drb) / g1).toFixed(1);
+        p.gl.ast = +(line.ast / g1).toFixed(1);
+      }
+    }),
+  );
 }
 
 // After the tip-off: the Winter Showcase bracket (four region winners + four best records left).
 function seedShowcase(s: any) {
-  const c = s.ccp, st = ccpStandings(s, 'tip'), Y = c.season, byId = (id: number) => c.teams[id];
-  const winners = Object.values(REGIONS).flat().map(r => st.find((x: any) => byId(x.id).region === r)?.id).filter((x: any) => x != null);
-  const rest = st.map((x: any) => x.id).filter((id: number) => !winners.includes(id)).slice(0, 8 - winners.length);
+  const c = s.ccp,
+    st = ccpStandings(s, 'tip'),
+    Y = c.season,
+    byId = (id: number) => c.teams[id];
+  const winners = Object.values(REGIONS)
+    .flat()
+    .map(r => st.find((x: any) => byId(x.id).region === r)?.id)
+    .filter((x: any) => x != null);
+  const rest = st
+    .map((x: any) => x.id)
+    .filter((id: number) => !winners.includes(id))
+    .slice(0, 8 - winners.length);
   const seeds = [...st.map((x: any) => x.id).filter((id: number) => winners.includes(id) || rest.includes(id))];
   c.showcase = { seeds, champ: null };
-  [[0, 7], [3, 4], [1, 6], [2, 5]].forEach(([a, b]) => c.games.push({ dn: D(Y, 11, 19), st: 'show', rd: 1, h: seeds[a], a: seeds[b] }));
+  [
+    [0, 7],
+    [3, 4],
+    [1, 6],
+    [2, 5],
+  ].forEach(([a, b]) => c.games.push({ dn: D(Y, 11, 19), st: 'show', rd: 1, h: seeds[a], a: seeds[b] }));
 }
 function seedPlayoffs(s: any) {
-  const c = s.ccp, st = ccpStandings(s, 'reg'), Y = c.season, seeds: Record<string, number[]> = {};
-  ['East', 'West'].forEach(cf => { seeds[cf] = st.filter((x: any) => c.teams[x.id].conf === cf).slice(0, 8).map((x: any) => x.id); });
+  const c = s.ccp,
+    st = ccpStandings(s, 'reg'),
+    Y = c.season,
+    seeds: Record<string, number[]> = {};
+  ['East', 'West'].forEach(cf => {
+    seeds[cf] = st
+      .filter((x: any) => c.teams[x.id].conf === cf)
+      .slice(0, 8)
+      .map((x: any) => x.id);
+  });
   c.po = { seeds, champ: null, finals: null };
-  ['East', 'West'].forEach(cf => [[0, 7], [3, 4], [1, 6], [2, 5]].forEach(([a, b]) => { const h = seeds[cf][a], aw = seeds[cf][b]; if (h != null && aw != null) c.games.push({ dn: D(Y, 3, 1), st: 'po', rd: 1, h, a: aw }); }));
+  ['East', 'West'].forEach(cf =>
+    [
+      [0, 7],
+      [3, 4],
+      [1, 6],
+      [2, 5],
+    ].forEach(([a, b]) => {
+      const h = seeds[cf][a],
+        aw = seeds[cf][b];
+      if (h != null && aw != null) c.games.push({ dn: D(Y, 3, 1), st: 'po', rd: 1, h, a: aw });
+    }),
+  );
 }
 const winner = (x: CcpGame) => (x.hs! > x.as! ? x.h : x.a);
 const seedIdx = (list: number[], id: number) => list.indexOf(id);
 // Next round once a round is complete.
 function advance(s: any) {
-  const c = s.ccp, Y = c.season;
+  const c = s.ccp,
+    Y = c.season;
   const sh = c.games.filter((x: CcpGame) => x.st === 'show');
   if (c.showcase && !c.showcase.champ) {
-    const last = Math.max(...sh.map((x: CcpGame) => x.rd || 1)), cur = sh.filter((x: CcpGame) => x.rd === last);
+    const last = Math.max(...sh.map((x: CcpGame) => x.rd || 1)),
+      cur = sh.filter((x: CcpGame) => x.rd === last);
     if (cur.length && cur.every((x: CcpGame) => x.hs != null)) {
       if (cur.length === 1) c.showcase.champ = winner(cur[0]);
-      else { const w = cur.map(winner); for (let i = 0; i < w.length; i += 2) { const [a, b] = [w[i], w[i + 1]].sort((p, q) => seedIdx(c.showcase.seeds, p) - seedIdx(c.showcase.seeds, q)); c.games.push({ dn: D(Y, 11, last === 1 ? 20 : 22), st: 'show', rd: last + 1, h: a, a: b }); } }
+      else {
+        const w = cur.map(winner);
+        for (let i = 0; i < w.length; i += 2) {
+          const [a, b] = [w[i], w[i + 1]].sort((p, q) => seedIdx(c.showcase.seeds, p) - seedIdx(c.showcase.seeds, q));
+          c.games.push({ dn: D(Y, 11, last === 1 ? 20 : 22), st: 'show', rd: last + 1, h: a, a: b });
+        }
+      }
     }
   }
   if (c.po && !c.po.champ) {
-    const po = c.games.filter((x: CcpGame) => x.st === 'po'), last = Math.max(...po.map((x: CcpGame) => x.rd || 1)), cur = po.filter((x: CcpGame) => x.rd === last);
+    const po = c.games.filter((x: CcpGame) => x.st === 'po'),
+      last = Math.max(...po.map((x: CcpGame) => x.rd || 1)),
+      cur = po.filter((x: CcpGame) => x.rd === last);
     if (cur.length && cur.every((x: CcpGame) => x.hs != null)) {
-      if (last <= 2) ['East', 'West'].forEach(cf => { const w = cur.filter((x: CcpGame) => c.teams[x.h].conf === cf).map(winner); for (let i = 0; i + 1 < w.length; i += 2) { const [a, b] = [w[i], w[i + 1]].sort((p, q) => seedIdx(c.po.seeds[cf], p) - seedIdx(c.po.seeds[cf], q)); c.games.push({ dn: D(Y, 3, last === 1 ? 3 : 5), st: 'po', rd: last + 1, h: a, a: b }); } });
-      else if (last === 3) { const w = cur.map(winner); const st = ccpStandings(s, 'reg'), rk = (id: number) => st.findIndex((x: any) => x.id === id); const [a, b] = w.sort((p, q) => rk(p) - rk(q)); c.po.finals = { a, b }; c.games.push({ dn: D(Y, 3, 8), st: 'po', rd: 4, h: a, a: b }, { dn: D(Y, 3, 10), st: 'po', rd: 4, h: b, a: a }); }
-      else if (last === 4) { const f = c.po.finals, wins = (id: number) => cur.filter((x: CcpGame) => winner(x) === id).length;
+      if (last <= 2)
+        ['East', 'West'].forEach(cf => {
+          const w = cur.filter((x: CcpGame) => c.teams[x.h].conf === cf).map(winner);
+          for (let i = 0; i + 1 < w.length; i += 2) {
+            const [a, b] = [w[i], w[i + 1]].sort((p, q) => seedIdx(c.po.seeds[cf], p) - seedIdx(c.po.seeds[cf], q));
+            c.games.push({ dn: D(Y, 3, last === 1 ? 3 : 5), st: 'po', rd: last + 1, h: a, a: b });
+          }
+        });
+      else if (last === 3) {
+        const w = cur.map(winner);
+        const st = ccpStandings(s, 'reg'),
+          rk = (id: number) => st.findIndex((x: any) => x.id === id);
+        const [a, b] = w.sort((p, q) => rk(p) - rk(q));
+        c.po.finals = { a, b };
+        c.games.push({ dn: D(Y, 3, 8), st: 'po', rd: 4, h: a, a: b }, { dn: D(Y, 3, 10), st: 'po', rd: 4, h: b, a: a });
+      } else if (last === 4) {
+        const f = c.po.finals,
+          wins = (id: number) => cur.filter((x: CcpGame) => winner(x) === id).length;
         if (wins(f.a) >= 2 || wins(f.b) >= 2) c.po.champ = wins(f.a) >= 2 ? f.a : f.b;
         else if (cur.length === 2) c.games.push({ dn: D(Y, 3, 12), st: 'po', rd: 4, h: f.a, a: f.b });
-        else c.po.champ = wins(f.a) > wins(f.b) ? f.a : f.b; }
+        else c.po.champ = wins(f.a) > wins(f.b) ? f.a : f.b;
+      }
     }
   }
 }
 
 // Play every CCP game scheduled up to day `upto` (days since Oct 1), in date order.
 export function ccpPlay(g: Game, s: any, upto: number) {
-  const c = s.ccp; if (!c) return 0;
+  const c = s.ccp;
+  if (!c) return 0;
   let played = 0;
   for (let guard = 0; guard < 40; guard++) {
     const due = c.games.filter((x: CcpGame) => x.hs == null && x.dn <= upto).sort((a: CcpGame, b: CcpGame) => a.dn - b.dn);
     if (!due.length) {
-      if (!c.showcase && c.games.filter((x: CcpGame) => x.st === 'tip').every((x: CcpGame) => x.hs != null)) { seedShowcase(s); continue; }
-      if (!c.po && c.games.filter((x: CcpGame) => x.st === 'reg').every((x: CcpGame) => x.hs != null)) { seedPlayoffs(s); continue; }
-      const before = c.games.length; advance(s); if (c.games.length === before) break; continue;
+      if (!c.showcase && c.games.filter((x: CcpGame) => x.st === 'tip').every((x: CcpGame) => x.hs != null)) {
+        seedShowcase(s);
+        continue;
+      }
+      if (!c.po && c.games.filter((x: CcpGame) => x.st === 'reg').every((x: CcpGame) => x.hs != null)) {
+        seedPlayoffs(s);
+        continue;
+      }
+      const before = c.games.length;
+      advance(s);
+      if (c.games.length === before) break;
+      continue;
     }
-    due.forEach((x: CcpGame) => { play(g, s, x); played++; });
+    due.forEach((x: CcpGame) => {
+      play(g, s, x);
+      played++;
+    });
     advance(s);
   }
   if (c.po?.champ != null && !c.hist.some((h: any) => h.season === c.season)) {
@@ -289,22 +724,49 @@ export function ccpPlay(g: Game, s: any, upto: number) {
 // Keep every club at 10–12 players on CCP contracts: sign unsigned free agents first, then new
 // players from the player pool (undrafted players, local tryouts, the CCP draft).
 export function ccpTopUp(g: Game, s: any, fa: number[]) {
-  const c = s.ccp; if (!c) return;
-  const P = g.db.P, N = nums(g), Y = c.season, count: Record<number, number> = {};
-  fa.forEach(id => { const t = P[id]?.gl?.tid; if (t != null) count[t] = (count[t] || 0) + 1; });
+  const c = s.ccp;
+  if (!c) return;
+  const P = g.db.P,
+    N = nums(g),
+    Y = c.season,
+    count: Record<number, number> = {};
+  fa.forEach(id => {
+    const t = P[id]?.gl?.tid;
+    if (t != null) count[t] = (count[t] || 0) + 1;
+  });
   c.teams.forEach((t: CcpTeam) => {
     const tid = t.aff == null ? IND : t.aff;
     while ((count[tid] || 0) < CCP_MIN) {
-      const r = Math.random(), kind = r < 0.45 ? 'draft' : r < 0.7 ? 'tryout' : 'pool', age = kind === 'draft' ? 21 + Math.floor(Math.random() * 3) : 22 + Math.floor(Math.random() * 6);
+      const r = Math.random(),
+        kind = r < 0.45 ? 'draft' : r < 0.7 ? 'tryout' : 'pool',
+        age = kind === 'draft' ? 21 + Math.floor(Math.random() * 3) : 22 + Math.floor(Math.random() * 6);
       const p = g.mkPlayer(30 + Math.random() * 13, age, s.natW || natDefault(), 0); // below NBA level, mostly
-      Object.assign(p, { amt: N.min(0), ask: N.min(0), exp: Y, dr: null, draft: Y - 1, undrafted: Y - 1, yos0: 0, yrsWith: 0, rookie: false });
+      Object.assign(p, {
+        amt: N.min(0),
+        ask: N.min(0),
+        exp: Y,
+        dr: null,
+        draft: Y - 1,
+        undrafted: Y - 1,
+        yos0: 0,
+        yrsWith: 0,
+        rookie: false,
+      });
       makeFringe(p); // potential.ts: almost all stay fringe players; a rare one becomes something
       p.gl = { tid, kind, since: Y, gp: 0, pts: 0, reb: 0, ast: 0 };
-      fa.push(p.id); count[tid] = (count[tid] || 0) + 1;
+      fa.push(p.id);
+      count[tid] = (count[tid] || 0) + 1;
     }
   });
 }
-export const CCP_KIND: Record<string, string> = { standard: 'CCP contract', pool: 'CCP contract (player pool)', draft: 'CCP draft pick', tryout: 'Local tryout', affiliate: 'Affiliate player', returning: 'Returning rights' };
+export const CCP_KIND: Record<string, string> = {
+  standard: 'CCP contract',
+  pool: 'CCP contract (player pool)',
+  draft: 'CCP draft pick',
+  tryout: 'Local tryout',
+  affiliate: 'Affiliate player',
+  returning: 'Returning rights',
+};
 export const allCcpClubs = CCP_CLUBS;
 
 // Club identities follow the current club list (saves made before a change pick up the new towns;
@@ -312,5 +774,18 @@ export const allCcpClubs = CCP_CLUBS;
 export function ccpRefreshClubs(s: any) {
   if (!s.ccp) return;
   const fresh = buildTeams(s);
-  s.ccp.teams.forEach((t: CcpTeam) => { const f = fresh.find(x => x.aff === t.aff); if (f) Object.assign(t, { key: f.key, city: f.city, where: f.where, name: f.name, abbr: f.abbr, icon: f.icon, colors: f.colors, note: f.note }); });
+  s.ccp.teams.forEach((t: CcpTeam) => {
+    const f = fresh.find(x => x.aff === t.aff);
+    if (f)
+      Object.assign(t, {
+        key: f.key,
+        city: f.city,
+        where: f.where,
+        name: f.name,
+        abbr: f.abbr,
+        icon: f.icon,
+        colors: f.colors,
+        note: f.note,
+      });
+  });
 }

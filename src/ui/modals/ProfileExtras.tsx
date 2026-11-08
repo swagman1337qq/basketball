@@ -13,18 +13,67 @@ import { envOf } from '../../engine/environment';
 import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 
-const LB: Record<string, string> = { hgt: 'Height', stre: 'Strength', spd: 'Speed', acc: 'Acceleration', jmp: 'Jumping', endu: 'Endurance', ins: 'Inside', dnk: 'Dunks', lay: 'Layups', ft: 'Free throws', fg: 'Mid-range', tp: 'Three-pointers', oiq: 'Offensive IQ', diq: 'Defensive IQ', blk: 'Blocks', stl: 'Steals', drb: 'Dribbling', pss: 'Passing', reb: 'Rebounding', box: 'Boxing out' };
+const LB: Record<string, string> = {
+  hgt: 'Height',
+  stre: 'Strength',
+  spd: 'Speed',
+  acc: 'Acceleration',
+  jmp: 'Jumping',
+  endu: 'Endurance',
+  ins: 'Inside',
+  dnk: 'Dunks',
+  lay: 'Layups',
+  ft: 'Free throws',
+  fg: 'Mid-range',
+  tp: 'Three-pointers',
+  oiq: 'Offensive IQ',
+  diq: 'Defensive IQ',
+  blk: 'Blocks',
+  stl: 'Steals',
+  drb: 'Dribbling',
+  pss: 'Passing',
+  reb: 'Rebounding',
+  box: 'Boxing out',
+};
 // Attribute thresholds that unlock each on-court role (mirrors roleDefs in data/world).
 const ROLE_REQ: [string, Record<string, number>, string?][] = [
-  ['Primary creator', { drb: 62, pss: 60 }], ['Floor spacer', { tp: 60 }], ['3-and-D wing', { tp: 54, diq: 54 }, 'Guards and wings'], ['Point-of-attack defender', { diq: 58, spd: 60 }, 'Guards and wings'],
-  ['Slasher', { 'spd+jmp+dnk': 60 }], ['Rim protector', { hgt: 62, diq: 52 }, 'Bigs'], ['Stretch big', { tp: 48 }, 'Bigs'], ['Rebounder', { reb: 62 }], ['Connector', { pss: 52, oiq: 55, diq: 50 }],
+  ['Primary creator', { drb: 62, pss: 60 }],
+  ['Floor spacer', { tp: 60 }],
+  ['3-and-D wing', { tp: 54, diq: 54 }, 'Guards and wings'],
+  ['Point-of-attack defender', { diq: 58, spd: 60 }, 'Guards and wings'],
+  ['Slasher', { 'spd+jmp+dnk': 60 }],
+  ['Rim protector', { hgt: 62, diq: 52 }, 'Bigs'],
+  ['Stretch big', { tp: 48 }, 'Bigs'],
+  ['Rebounder', { reb: 62 }],
+  ['Connector', { pss: 52, oiq: 55, diq: 50 }],
 ];
 const val = (p, k) => (k.includes('+') ? k.split('+').reduce((a, x) => a + p.r[x], 0) / k.split('+').length : p.r[k]);
-const good = 'var(--gm-good)', bad = 'var(--gm-bad)', gold = 'var(--gm-elite)';
+const good = 'var(--gm-good)',
+  bad = 'var(--gm-bad)',
+  gold = 'var(--gm-elite)';
 
-function useP(vm: VM) { const { gm, s } = vm.ctx; const p = gm.db.P[s.pid]; let tid = -1; Object.keys(s.rosters).forEach(k => { if (s.rosters[k].includes(s.pid)) tid = +k; }); return { p, tid }; }
+function useP(vm: VM) {
+  const { gm, s } = vm.ctx;
+  const p = gm.db.P[s.pid];
+  let tid = -1;
+  Object.keys(s.rosters).forEach(k => {
+    if (s.rosters[k].includes(s.pid)) tid = +k;
+  });
+  return { p, tid };
+}
 const Row = ({ k, v, c }: { k: ReactNode; v: ReactNode; c?: string }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '150px minmax(0,1fr)', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--color-divider)' }}><span style={muted}>{k}</span><span style={{ color: c }}>{v}</span></div>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '150px minmax(0,1fr)',
+      gap: '8px',
+      padding: '5px 0',
+      borderBottom: '1px solid var(--color-divider)',
+    }}
+  >
+    <span style={muted}>{k}</span>
+    <span style={{ color: c }}>{v}</span>
+  </div>
 );
 
 // Five display zones from the engine's four shot tiers: the rim tier splits into the
@@ -32,204 +81,713 @@ const Row = ({ k, v, c }: { k: ReactNode; v: ReactNode; c?: string }) => (
 // The NBA's five shooting zones. Box scores from 2026-10 on keep the paint (non-RA) shots apart (ka/km,
 // inside the mid tier); older ones only had the engine's four tiers, so their split is estimated.
 export function fiveZones(t: any) {
-  if (t.ka != null) return [['Restricted area', t.rm || 0, t.ra || 0], ['In the paint (non-RA)', t.km || 0, t.ka], ['Mid-range', (t.mm || 0) - (t.km || 0), (t.ma || 0) - t.ka], ['Corner 3', t.cm || 0, t.ca || 0], ['Above the break 3', t.bm || 0, t.ba || 0]] as [string, number, number][];
-  const ra = Math.round((t.ra || 0) * 0.74), rm = Math.min(ra, Math.round((t.rm || 0) * 0.84));
-  return [['Restricted area', rm, ra], ['In the paint (non-RA)', (t.rm || 0) - rm, (t.ra || 0) - ra], ['Mid-range', t.mm || 0, t.ma || 0], ['Corner 3', t.cm || 0, t.ca || 0], ['Above the break 3', t.bm || 0, t.ba || 0]] as [string, number, number][];
+  if (t.ka != null)
+    return [
+      ['Restricted area', t.rm || 0, t.ra || 0],
+      ['In the paint (non-RA)', t.km || 0, t.ka],
+      ['Mid-range', (t.mm || 0) - (t.km || 0), (t.ma || 0) - t.ka],
+      ['Corner 3', t.cm || 0, t.ca || 0],
+      ['Above the break 3', t.bm || 0, t.ba || 0],
+    ] as [string, number, number][];
+  const ra = Math.round((t.ra || 0) * 0.74),
+    rm = Math.min(ra, Math.round((t.rm || 0) * 0.84));
+  return [
+    ['Restricted area', rm, ra],
+    ['In the paint (non-RA)', (t.rm || 0) - rm, (t.ra || 0) - ra],
+    ['Mid-range', t.mm || 0, t.ma || 0],
+    ['Corner 3', t.cm || 0, t.ca || 0],
+    ['Above the break 3', t.bm || 0, t.ba || 0],
+  ] as [string, number, number][];
 }
 export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
 
 export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
-  const { gm, s, open } = vm.ctx, { p, tid } = useP(vm);
+  const { gm, s, open } = vm.ctx,
+    { p, tid } = useP(vm);
   if (!p) return null;
-  const t = gm.seasonTotals(p, gm.Y), rows = (p.stats || []).filter(r => r.season === gm.Y && !r.po);
-  const H: any = {}, A: any = {}; rows.forEach(r => { Object.entries(r.h || {}).forEach(([k, v]) => (H[k] = (H[k] || 0) + (v as number))); Object.entries(r.a || {}).forEach(([k, v]) => (A[k] = (A[k] || 0) + (v as number))); });
+  const t = gm.seasonTotals(p, gm.Y),
+    rows = (p.stats || []).filter(r => r.season === gm.Y && !r.po);
+  const H: any = {},
+    A: any = {};
+  rows.forEach(r => {
+    Object.entries(r.h || {}).forEach(([k, v]) => (H[k] = (H[k] || 0) + (v as number)));
+    Object.entries(r.a || {}).forEach(([k, v]) => (A[k] = (A[k] || 0) + (v as number)));
+  });
   const pg = (o, k) => (o.gp ? (k === 'reb' ? (o.orb + o.drb) / o.gp : o[k] / o.gp).toFixed(1) : '—');
   const mood = tid >= 0 && gm.isUser(s, tid) ? gm.moodOf(p, s.rosters[tid].indexOf(p.id), s, tid) : null;
-  const l5 = p.last5 || [], avgG = l5.length ? l5.reduce((a, x) => a + x.gmsc, 0) / l5.length : 0, seasonG = t && t.gp ? (t.pts + 0.4 * t.fgm - 0.7 * t.fga - 0.4 * (t.fta - t.ftm) + 0.7 * t.orb + 0.3 * t.drb + t.stl + 0.7 * t.ast + 0.7 * t.blk - 0.4 * (t.pf || 0) - t.tov) / t.gp : 0;
+  const l5 = p.last5 || [],
+    avgG = l5.length ? l5.reduce((a, x) => a + x.gmsc, 0) / l5.length : 0,
+    seasonG =
+      t && t.gp
+        ? (t.pts +
+            0.4 * t.fgm -
+            0.7 * t.fga -
+            0.4 * (t.fta - t.ftm) +
+            0.7 * t.orb +
+            0.3 * t.drb +
+            t.stl +
+            0.7 * t.ast +
+            0.7 * t.blk -
+            0.4 * (t.pf || 0) -
+            t.tov) /
+          t.gp
+        : 0;
   const form = !l5.length ? 'No games yet' : avgG >= seasonG + 3 ? 'Hot' : avgG <= seasonG - 3 ? 'Cold' : 'Steady';
   const zones = t ? fiveZones(t) : [];
   const role = p.pers.crowd || (t && gm.usgOf(t) < 20) ? 'Role player: expect a road drop-off' : 'Star-level usage: venue barely matters';
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: stack ? 'minmax(0,1fr)' : 'repeat(3,minmax(0,1fr))', gap: stack ? '22px' : '28px', marginTop: stack ? 0 : '26px' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: stack ? 'minmax(0,1fr)' : 'repeat(3,minmax(0,1fr))',
+        gap: stack ? '22px' : '28px',
+        marginTop: stack ? 0 : '26px',
+      }}
+    >
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}
-        <Row k="Form (last 5)" v={form + (l5.length ? ' · Game Score ' + avgG.toFixed(1) + ' vs ' + seasonG.toFixed(1) + ' season' : '')} c={form === 'Hot' ? good : form === 'Cold' ? bad : undefined} />
+        <Row
+          k="Form (last 5)"
+          v={form + (l5.length ? ' · Game Score ' + avgG.toFixed(1) + ' vs ' + seasonG.toFixed(1) + ' season' : '')}
+          c={form === 'Hot' ? good : form === 'Cold' ? bad : undefined}
+        />
         <div style={{ display: 'flex', gap: '4px', marginTop: '6px', alignItems: 'flex-end', height: '42px' }}>
-          {l5.slice().reverse().map((g, i) => <div key={i} title={g.pts + ' pts · ' + g.reb + ' reb · ' + g.ast + ' ast · ' + g.min + ' min' + (g.home ? ' (home)' : ' (road)')} style={{ flex: 1, height: Math.max(3, Math.min(42, g.gmsc * 1.6 + 6)) + 'px', background: g.gmsc >= seasonG ? good : bad, opacity: 0.8 }} />)}
+          {l5
+            .slice()
+            .reverse()
+            .map((g, i) => (
+              <div
+                key={i}
+                title={g.pts + ' pts · ' + g.reb + ' reb · ' + g.ast + ' ast · ' + g.min + ' min' + (g.home ? ' (home)' : ' (road)')}
+                style={{
+                  flex: 1,
+                  height: Math.max(3, Math.min(42, g.gmsc * 1.6 + 6)) + 'px',
+                  background: g.gmsc >= seasonG ? good : bad,
+                  opacity: 0.8,
+                }}
+              />
+            ))}
         </div>
         {p.adjust > 0 && <Row k="League adjustment" v={Math.ceil(p.adjust) + ' games left'} c={bad} />}
       </section>
       <section>
         <h4 style={ruleH4}>Home / road</h4>
         <table className="table" style={{ fontSize: '12.5px' }}>
-          <thead><tr><th style={th()}></th><th style={th('right')}>GP</th><th style={th('right')}>PTS</th><th style={th('right')}>REB</th><th style={th('right')}>AST</th><th style={th('right')}>FG%</th><th style={th('right')}>3P%</th><th style={th('right')}>TOV</th></tr></thead>
-          <tbody>{[['Home', H], ['Road', A]].map(([n, o]: any) => <tr key={n}><td style={td()}>{n}</td><td style={td('right')}>{o.gp || 0}</td><td style={td('right')}>{pg(o, 'pts')}</td><td style={td('right')}>{pg(o, 'reb')}</td><td style={td('right')}>{pg(o, 'ast')}</td><td style={td('right')}>{pctS(o.fgm, o.fga)}</td><td style={td('right')}>{pctS(o.tpm, o.tpa)}</td><td style={td('right')}>{pg(o, 'tov')}</td></tr>)}</tbody>
+          <thead>
+            <tr>
+              <th style={th()}></th>
+              <th style={th('right')}>GP</th>
+              <th style={th('right')}>PTS</th>
+              <th style={th('right')}>REB</th>
+              <th style={th('right')}>AST</th>
+              <th style={th('right')}>FG%</th>
+              <th style={th('right')}>3P%</th>
+              <th style={th('right')}>TOV</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Home', H],
+              ['Road', A],
+            ].map(([n, o]: any) => (
+              <tr key={n}>
+                <td style={td()}>{n}</td>
+                <td style={td('right')}>{o.gp || 0}</td>
+                <td style={td('right')}>{pg(o, 'pts')}</td>
+                <td style={td('right')}>{pg(o, 'reb')}</td>
+                <td style={td('right')}>{pg(o, 'ast')}</td>
+                <td style={td('right')}>{pctS(o.fgm, o.fga)}</td>
+                <td style={td('right')}>{pctS(o.tpm, o.tpa)}</td>
+                <td style={td('right')}>{pg(o, 'tov')}</td>
+              </tr>
+            ))}
+          </tbody>
         </table>
-        <p style={{ ...muted, fontSize: '12px', margin: '6px 0 0' }}>{role}{p.pers.crowd ? ' (crowd-reliant)' : ''}.</p>
+        <p style={{ ...muted, fontSize: '12px', margin: '6px 0 0' }}>
+          {role}
+          {p.pers.crowd ? ' (crowd-reliant)' : ''}.
+        </p>
       </section>
       <section>
         <h4 style={ruleH4}>Shooting by zone</h4>
-        {!zones.length || !t.fga ? <p style={{ ...muted, fontStyle: 'italic' }}>No shots this season.</p> : zones.map(([n, m, a], i) => (
-          <div key={n} style={{ padding: '3px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}><span>{n}</span><span><b style={{ color: a >= 10 ? (m / a >= LEAGUE_ZONE[i] + 0.03 ? good : m / a <= LEAGUE_ZONE[i] - 0.05 ? bad : undefined) : undefined }}>{pctS(m, a)}</b> <span style={muted}>{m}/{a} · {Math.round((a / t.fga) * 100)}% of shots</span></span></div>
-            <Bar value={a ? (m / a) * 100 : 0} max={80} color={i >= 3 ? gold : 'var(--color-accent)'} />
-          </div>
-        ))}
-        {t && t.fga > 0 && <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>League: rim 69.6% · corner 3 38.8% · all threes 36.0%. Avg shot distance {((((t.ra || 0) * 3 + (t.ma || 0) * 15 + (t.ca || 0) * 22.5 + (t.ba || 0) * 25.5)) / t.fga).toFixed(1)} ft (league 14.5).</p>}
+        {!zones.length || !t.fga ? (
+          <p style={{ ...muted, fontStyle: 'italic' }}>No shots this season.</p>
+        ) : (
+          zones.map(([n, m, a], i) => (
+            <div key={n} style={{ padding: '3px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                <span>{n}</span>
+                <span>
+                  <b
+                    style={{
+                      color:
+                        a >= 10 ? (m / a >= LEAGUE_ZONE[i] + 0.03 ? good : m / a <= LEAGUE_ZONE[i] - 0.05 ? bad : undefined) : undefined,
+                    }}
+                  >
+                    {pctS(m, a)}
+                  </b>{' '}
+                  <span style={muted}>
+                    {m}/{a} · {Math.round((a / t.fga) * 100)}% of shots
+                  </span>
+                </span>
+              </div>
+              <Bar value={a ? (m / a) * 100 : 0} max={80} color={i >= 3 ? gold : 'var(--color-accent)'} />
+            </div>
+          ))
+        )}
+        {t && t.fga > 0 && (
+          <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>
+            League: rim 69.6% · corner 3 38.8% · all threes 36.0%. Avg shot distance{' '}
+            {(((t.ra || 0) * 3 + (t.ma || 0) * 15 + (t.ca || 0) * 22.5 + (t.ba || 0) * 25.5) / t.fga).toFixed(1)} ft (league 14.5).
+          </p>
+        )}
       </section>
     </div>
   );
 }
 
 export function ContractExtras({ vm }: { vm: VM }) {
-  const { gm, s, money } = vm.ctx, { p, tid } = useP(vm);
+  const { gm, s, money } = vm.ctx,
+    { p, tid } = useP(vm);
   if (!p || tid < 0) return null;
-  const inc = p.inc || [], hit = gm.capHit(p);
+  const inc = p.inc || [],
+    hit = gm.capHit(p);
   const tv = (st: string) => Math.round(gm.pVal(p, st));
   const idx = Math.max(0, Math.min(100, Math.round(100 * (1 - Math.exp(-Math.max(0, tv('middle')) / 45)))));
-  const conv = tid === s.me ? convOptions(p) : [], CT: Record<string, string> = { twoWay: 'Two-way contract', ex10: 'Exhibit 10 (training camp)', tenDay: '10-day contract', hardship: 'Hardship contract' };
-  return (<>
-    {conv.length > 0 && <section style={{ marginTop: '26px', padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 8 }}>
-      <h4 style={{ ...ruleH4, marginTop: 0 }}>{CT[p.ctype]}{p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + ' of 50 NBA games, not playoff-eligible' : ''}</h4>
-      {conv.map(o => <div key={o.to} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '4px 0' }}>
-        <button className="btn btn-primary" style={{ fontSize: '12.5px', whiteSpace: 'nowrap' }} onClick={() => convertContract(gm, p.id, o.to)}>{o.label}</button>
-        <span style={{ ...muted, fontSize: '12.5px' }}>{o.why}</span>
-      </div>)}
-      {s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', marginTop: 6 }}>{s.convMsg}</div>}
-    </section>}
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', marginTop: '26px' }}>
-      <section>
-        <h4 style={ruleH4}>Bonus checklist</h4>
-        <Row k="Base salary" v={money(p.amt)} />
-        <Row k="Cap hit" v={money(hit) + (hit > p.amt ? ' (incl. likely bonuses)' : '')} />
-        {inc.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>No incentives in this contract. Add them when you sign or re-sign a player.</p> : inc.map((x, i) => { const pr = incentiveProgress(gm, s, p, tid, x), done = pr.frac >= 1; return (
-          <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--color-divider)' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ color: done ? good : 'var(--color-neutral-600)' }}>{done ? '☑' : '☐'}</span>
-              <span style={{ flex: 1 }}>{x.label}</span><span>{money(x.amt)}</span>
-              <span style={{ fontSize: '11px', color: x.likely ? 'var(--color-accent-700)' : 'var(--color-neutral-600)', width: '56px', textAlign: 'right' }}>{x.likely ? 'Likely' : 'Unlikely'}</span>
+  const conv = tid === s.me ? convOptions(p) : [],
+    CT: Record<string, string> = {
+      twoWay: 'Two-way contract',
+      ex10: 'Exhibit 10 (training camp)',
+      tenDay: '10-day contract',
+      hardship: 'Hardship contract',
+    };
+  return (
+    <>
+      {conv.length > 0 && (
+        <section style={{ marginTop: '26px', padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 8 }}>
+          <h4 style={{ ...ruleH4, marginTop: 0 }}>
+            {CT[p.ctype]}
+            {p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + ' of 50 NBA games, not playoff-eligible' : ''}
+          </h4>
+          {conv.map(o => (
+            <div key={o.to} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '4px 0' }}>
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: '12.5px', whiteSpace: 'nowrap' }}
+                onClick={() => convertContract(gm, p.id, o.to)}
+              >
+                {o.label}
+              </button>
+              <span style={{ ...muted, fontSize: '12.5px' }}>{o.why}</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11.5px', ...muted }}><span style={{ width: '110px' }}>{pr.now}</span><div style={{ flex: 1 }}><Bar value={Math.min(1, pr.frac) * 100} color={done ? good : 'var(--color-accent)'} /></div></div>
+          ))}
+          {s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', marginTop: 6 }}>{s.convMsg}</div>}
+        </section>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', marginTop: '26px' }}>
+        <section>
+          <h4 style={ruleH4}>Bonus checklist</h4>
+          <Row k="Base salary" v={money(p.amt)} />
+          <Row k="Cap hit" v={money(hit) + (hit > p.amt ? ' (incl. likely bonuses)' : '')} />
+          {inc.length === 0 ? (
+            <p style={{ ...muted, fontStyle: 'italic' }}>No incentives in this contract. Add them when you sign or re-sign a player.</p>
+          ) : (
+            inc.map((x, i) => {
+              const pr = incentiveProgress(gm, s, p, tid, x),
+                done = pr.frac >= 1;
+              return (
+                <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--color-divider)' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ color: done ? good : 'var(--color-neutral-600)' }}>{done ? '☑' : '☐'}</span>
+                    <span style={{ flex: 1 }}>{x.label}</span>
+                    <span>{money(x.amt)}</span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: x.likely ? 'var(--color-accent-700)' : 'var(--color-neutral-600)',
+                        width: '56px',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {x.likely ? 'Likely' : 'Unlikely'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11.5px', ...muted }}>
+                    <span style={{ width: '110px' }}>{pr.now}</span>
+                    <div style={{ flex: 1 }}>
+                      <Bar value={Math.min(1, pr.frac) * 100} color={done ? good : 'var(--color-accent)'} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <p style={{ ...muted, fontSize: '11.5px' }}>
+            Likely incentives (met last season) count against the cap; unlikely ones are paid as a bonus if earned and then become likely.
+          </p>
+        </section>
+        <section>
+          <h4 style={ruleH4}>Trade value</h4>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', color: idx >= 70 ? gold : undefined }}>{idx}</span>
+            <span style={muted}>of 100 · league-wide index</span>
           </div>
-        ); })}
-        <p style={{ ...muted, fontSize: '11.5px' }}>Likely incentives (met last season) count against the cap; unlikely ones are paid as a bonus if earned and then become likely.</p>
-      </section>
-      <section>
-        <h4 style={ruleH4}>Trade value</h4>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}><span style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', color: idx >= 70 ? gold : undefined }}>{idx}</span><span style={muted}>of 100 · league-wide index</span></div>
-        <Bar value={idx} color={idx >= 70 ? gold : 'var(--color-accent)'} height={5} />
-        <Row k="To a contender" v={tv('contend') >= tv('rebuild') ? 'Values him more (proven production)' : 'Values him less'} />
-        <Row k="To a rebuilder" v={tv('rebuild') > tv('contend') ? 'Values him more (youth, upside)' : 'Values him less'} />
-        <Row k="Contract" v={p.amt > gm.fair(p.ovr) * 1.15 ? 'Overpaid: a negative in trades' : p.amt < gm.fair(p.ovr) * 0.8 ? 'Bargain: a plus in trades' : 'Fair value'} c={p.amt > gm.fair(p.ovr) * 1.15 ? bad : p.amt < gm.fair(p.ovr) * 0.8 ? good : undefined} />
-      </section>
-    </div>
-  </>);
+          <Bar value={idx} color={idx >= 70 ? gold : 'var(--color-accent)'} height={5} />
+          <Row k="To a contender" v={tv('contend') >= tv('rebuild') ? 'Values him more (proven production)' : 'Values him less'} />
+          <Row k="To a rebuilder" v={tv('rebuild') > tv('contend') ? 'Values him more (youth, upside)' : 'Values him less'} />
+          <Row
+            k="Contract"
+            v={
+              p.amt > gm.fair(p.ovr) * 1.15
+                ? 'Overpaid: a negative in trades'
+                : p.amt < gm.fair(p.ovr) * 0.8
+                  ? 'Bargain: a plus in trades'
+                  : 'Fair value'
+            }
+            c={p.amt > gm.fair(p.ovr) * 1.15 ? bad : p.amt < gm.fair(p.ovr) * 0.8 ? good : undefined}
+          />
+        </section>
+      </div>
+    </>
+  );
 }
 
 export function DevelopmentTab({ vm }: { vm: VM }) {
-  const { gm, s } = vm.ctx, { p, tid } = useP(vm);
+  const { gm, s } = vm.ctx,
+    { p, tid } = useP(vm);
   if (!p) return null;
   const mine = (tid >= 0 && gm.isUser(s, tid)) || !!s.god; // God Mode sees everything exactly
   const scoutF = 1 - Math.min(0.6, ((s.budget?.Scouting ?? 4) - 4) / 20);
-  const margin = mine ? 0 : Math.round(3 * gm.regFactor(p, s) * scoutF / intelF(s, p.id) + (tid < 0 && p.cls ? Math.max(0, p.cls - gm.Y) * 4 : 0));
-  const roles = gm.rolesOf(p), feed = p.feed || [];
-  const next = ROLE_REQ.filter(([n]) => !roles.includes(n)).map(([n, req, only]) => { const gaps = Object.entries(req).map(([k, v]) => [k, v - val(p, k)] as [string, number]).filter(([, g]) => g > 0); return { n, only, gaps, tot: gaps.reduce((a, [, g]) => a + g, 0) }; }).filter(x => x.tot <= 12).sort((a, b) => a.tot - b.tot).slice(0, 4);
+  const margin = mine
+    ? 0
+    : Math.round((3 * gm.regFactor(p, s) * scoutF) / intelF(s, p.id) + (tid < 0 && p.cls ? Math.max(0, p.cls - gm.Y) * 4 : 0));
+  const roles = gm.rolesOf(p),
+    feed = p.feed || [];
+  const next = ROLE_REQ.filter(([n]) => !roles.includes(n))
+    .map(([n, req, only]) => {
+      const gaps = Object.entries(req)
+        .map(([k, v]) => [k, v - val(p, k)] as [string, number])
+        .filter(([, g]) => g > 0);
+      return { n, only, gaps, tot: gaps.reduce((a, [, g]) => a + g, 0) };
+    })
+    .filter(x => x.tot <= 12)
+    .sort((a, b) => a.tot - b.tot)
+    .slice(0, 4);
   const conf = p.conf ?? 50;
-  const years = yearByYear(gm, p), sg = (x: number | null, dec = 1) => x == null ? <span style={muted}>—</span> : <b style={{ color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</b>;
-  const mv = (xs: [string, number][]) => xs.length ? xs.map(([k2, d]) => RNAME[k2] + ' ' + fmtChange(d)).join(', ') : <span style={muted}>—</span>;
-  return (<>
-    <section style={{ marginBottom: 22 }}>
-      <h4 style={ruleH4}>Year by year</h4>
-      {years.length ? (
-        <table className="table" style={{ fontSize: '13px' }}>
-          <thead><tr>{['Season', 'Overall on opening night', 'During the season', 'Over the summer', 'Year total', 'Potential', 'Biggest gains', 'Biggest drops', 'Notes'].map((h, x) => <th key={h} style={{ padding: '5px 8px', textAlign: x >= 1 && x <= 5 ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-          <tbody>{years.map(y => (
-            <tr key={y.season}>
-              <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{y.season - 1}–{String(y.season).slice(2)}{y.live ? <span style={{ ...muted, fontSize: '11px' }}> · so far</span> : ''}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.open}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.inSeason)}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.summer)}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.total)}</td>
-              <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.pot}{y.potD ? <span style={{ fontSize: '11px' }}> ({sg(y.potD, 0)})</span> : ''}</td>
-              <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-good)' }}>{mv(y.up)}</td>
-              <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-bad)' }}>{mv(y.down)}</td>
-              <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>{y.why.length ? y.why.join(' · ') : <span style={muted}>—</span>}</td>
-            </tr>))}</tbody>
-        </table>) : <p style={{ ...muted, fontStyle: 'italic' }}>No history yet: ratings are recorded on opening night and at the end of every season.</p>}
-      <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>Overall and every rating are recorded on opening night and at the end of each season, before summer development. The ▲▼ arrows (Roster, profile) show this season only: the change since the end of last season, summer development included; they start over each summer.</p>
-    </section>
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
-      <section>
-        <h4 style={ruleH4}>Ratings & scouting confidence</h4>
-        <Row k="Overall" v={mine ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)') : (p.ovr - margin) + '–' + (p.ovr + margin) + ' · ±' + margin} c={s.god && !(tid >= 0 && gm.isUser(s, tid)) ? GOD_PINK : undefined} />
-        {s.god ? <Row k="True potential" v={(p.tpot ?? p.pot) + ' · the league’s read: ' + p.pot + (tid >= 0 && gm.isUser(s, tid) ? ' · your staff’s: ' + potView(p, { own: true }) : '')} c={GOD_PINK} />
-          : <Row k="Potential" v={mine ? potView(p, { own: true }) + ' (your staff’s read)' : (() => { const v = potView(p, { tid: s.me, sd: scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting) }); return Math.max(p.ovr, v - margin * 2) + '–' + (v + margin * 2) + ' (your scouts’ read; the league’s is ' + p.pot + ')'; })()} />}
-        <Row k="Confidence" v={mine ? (conf >= 70 ? 'Brimming' : conf >= 55 ? 'Assured' : conf >= 40 ? 'Steady' : conf >= 25 ? 'Shaken' : 'Fragile') : 'Hidden'} c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined} />
-        {mine && (() => { const exp = hgtFromInches(inchesOf(p.hgt)), d = p.r.hgt - Math.round(exp); return <Row k="Size" v={p.hgt + ' · height rating ' + p.r.hgt + (Math.abs(d) <= 2 ? ' (about what his height gives)' : d > 0 ? ' (plays ' + d + ' bigger than his height)' : ' (plays ' + (-d) + ' smaller than his height)')} />; })()}
-        {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}
-        <h4 style={{ ...ruleH4, marginTop: '18px' }}>How he develops</h4>
-        {s.god && p.ceil && <><Row k="Skill ceilings" v={ceilList(p).map(([k2, v2]) => LB[k2] + ' ' + v2).join(' · ')} c={GOD_PINK} /><Row k="Full ceiling" v={Math.round(fullCeil(p)) + ' overall with every skill maxed (true potential is the part he can still reach at ' + p.age + ')'} c={GOD_PINK} /><Row k="Development pace" v={paceOf(p).toFixed(2) + ' · ' + paceLabel(paceOf(p)) + ' (hidden: how much of his plan he gets)'} c={GOD_PINK} /><Row k="Hidden gem" v={!p.gem ? 'No' : p.gem.left > 0.05 ? 'Yes, ' + (p.gem.tier === 'star' ? 'star' : p.gem.tier === 'starter' ? 'starter' : 'role player') + ' kind: ' + p.gem.left.toFixed(1) + ' of ' + p.gem.add + ' extra points of potential still to surface (until 29)' : 'Was one: his ' + p.gem.add + ' extra points of potential have surfaced'} c={GOD_PINK} /></>}
-        {mine ? devOutlook(p, !!s.god).map(([k2, v2]) => <Row key={k2} k={k2} v={v2} c={k2 === 'Hidden profile' ? GOD_PINK : undefined} />)
-          : <p style={{ ...muted, fontSize: '12px', margin: 0 }}>Only your own staff knows how a player develops: where his growth goes, his body and his work ethic.</p>}
-        {mine && <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Every player grows his own way: some pour everything into one area, some round out. His body (speed, burst, leaping, strength, stamina) follows its own schedule, so skill work doesn’t make him faster.</p>}
-        {mine && tid >= 0 && (() => { const e = envOf(gm, s, p, tid), pc = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 100)) + '%'; return (<>
-          <h4 style={{ ...ruleH4, marginTop: '18px' }}>Development environment</h4>
-          {e.parts.map(([k2, v2]) => <Row key={k2} k={k2} v={pc(v2)} c={v2 > 0.005 ? good : v2 < -0.005 ? bad : undefined} />)}
-          <Row k="Together" v={pc(e.mult - 1) + ' growth' + (e.fringe >= 1.05 ? ' (counts extra for a player with his potential)' : e.fringe <= 0.8 ? ' (counts less for a player with his potential)' : '')} c={e.mult > 1.005 ? good : e.mult < 0.995 ? bad : undefined} />
-          <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>How fast he closes in on his potential here. The factors add up with diminishing returns, capped at ±25%, and matter most for players with modest potential. They never raise his ceiling.</p>
-        </>); })()}
-        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Hidden decimals</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '2px 16px', fontSize: '12px' }}>
-          {Object.keys(p.r).map(k => { const x = (p.rx || {})[k] || 0; return <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px solid var(--color-divider)' }}><span style={muted}>{LB[k]}</span><span>{mine ? (p.r[k] + x).toFixed(2) : p.r[k]}</span></div>; })}
-        </div>
-        {!mine && <p style={{ ...muted, fontSize: '11.5px' }}>Decimal progress is only visible for players you run.</p>}
-        <h4 style={{ ...ruleH4, marginTop: '18px' }}>Traits</h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>{roles.length ? roles.map(r => <span key={r} className="badge" style={{ padding: '2px 8px', border: '1px solid ' + gold, color: gold, borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>{r}</span>) : <span style={muted}>No roles unlocked yet</span>}</div>
-        {next.length > 0 && <div style={{ marginTop: '8px', fontSize: '12px' }}>{next.map(x => <div key={x.n} style={{ padding: '2px 0' }}><b>{x.n}</b>{x.only ? <span style={muted}> ({x.only})</span> : null}: needs {x.gaps.map(([k, g]) => '+' + Math.ceil(g) + ' ' + (k.includes('+') ? 'athleticism' : LB[k].toLowerCase())).join(', ')}</div>)}</div>}
-      </section>
-      <section>
-        <h4 style={ruleH4}>Monthly growth feed</h4>
-        {feed.length === 0 ? <p style={{ ...muted, fontStyle: 'italic' }}>Growth is calculated at the start of each month in season.</p> : (
-          <table className="table" style={{ fontSize: '12px' }}>
-            <thead><tr><th style={th()}>Month</th><th style={th('right')}>Overall</th><th style={th()}>Biggest moves</th></tr></thead>
-            <tbody>{feed.map((f, i) => <tr key={i}><td style={td()}>{f.m}{f.dev ? <span style={{ color: good }}> · dev</span> : null}</td><td style={td('right', { color: f.o >= 0 ? good : bad, fontWeight: 600 })}>{f.o >= 0 ? '+' : ''}{f.o.toFixed(2)}</td><td style={td()}>{Object.entries(f.r).map(([k, v]: any) => LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2)).join(' · ')}</td></tr>)}</tbody>
+  const years = yearByYear(gm, p),
+    sg = (x: number | null, dec = 1) =>
+      x == null ? (
+        <span style={muted}>—</span>
+      ) : (
+        <b style={{ color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-600)' }}>{fmtChange(x, dec)}</b>
+      );
+  const mv = (xs: [string, number][]) =>
+    xs.length ? xs.map(([k2, d]) => RNAME[k2] + ' ' + fmtChange(d)).join(', ') : <span style={muted}>—</span>;
+  return (
+    <>
+      <section style={{ marginBottom: 22 }}>
+        <h4 style={ruleH4}>Year by year</h4>
+        {years.length ? (
+          <table className="table" style={{ fontSize: '13px' }}>
+            <thead>
+              <tr>
+                {[
+                  'Season',
+                  'Overall on opening night',
+                  'During the season',
+                  'Over the summer',
+                  'Year total',
+                  'Potential',
+                  'Biggest gains',
+                  'Biggest drops',
+                  'Notes',
+                ].map((h, x) => (
+                  <th key={h} style={{ padding: '5px 8px', textAlign: x >= 1 && x <= 5 ? 'right' : 'left', whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {years.map(y => (
+                <tr key={y.season}>
+                  <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>
+                    {y.season - 1}–{String(y.season).slice(2)}
+                    {y.live ? <span style={{ ...muted, fontSize: '11px' }}> · so far</span> : ''}
+                  </td>
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>{y.open}</td>
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.inSeason)}</td>
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.summer)}</td>
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>{sg(y.total)}</td>
+                  <td style={{ padding: '5px 8px', textAlign: 'right' }}>
+                    {y.pot}
+                    {y.potD ? <span style={{ fontSize: '11px' }}> ({sg(y.potD, 0)})</span> : ''}
+                  </td>
+                  <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-good)' }}>{mv(y.up)}</td>
+                  <td style={{ padding: '5px 8px', fontSize: '12.5px', color: 'var(--gm-bad)' }}>{mv(y.down)}</td>
+                  <td style={{ padding: '5px 8px', fontSize: '12.5px' }}>
+                    {y.why.length ? y.why.join(' · ') : <span style={muted}>—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
+        ) : (
+          <p style={{ ...muted, fontStyle: 'italic' }}>
+            No history yet: ratings are recorded on opening night and at the end of every season.
+          </p>
         )}
-        {((p.injHist || []).length > 0 || p.injSum) && <p style={{ ...muted, fontSize: '12px', marginTop: '14px' }}>Injury history: on the History tab.</p>}
-        {p.age < 24 && (p.minorCount || 0) >= 2 && <p style={{ color: bad, fontSize: '12px' }}>{p.minorCount} minor injuries this season: his growth is being stunted{p.minorCount >= 3 ? ' and his ceiling may drop' : ''}.</p>}
+        <p style={{ ...muted, fontSize: '11.5px', margin: '6px 0 0' }}>
+          Overall and every rating are recorded on opening night and at the end of each season, before summer development. The ▲▼ arrows
+          (Roster, profile) show this season only: the change since the end of last season, summer development included; they start over
+          each summer.
+        </p>
       </section>
-    </div>
-  </>);
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '36px', alignItems: 'start' }}>
+        <section>
+          <h4 style={ruleH4}>Ratings & scouting confidence</h4>
+          <Row
+            k="Overall"
+            v={
+              mine
+                ? p.ovr + (s.god && !(tid >= 0 && gm.isUser(s, tid)) ? ' (true rating: God Mode)' : ' (exact: your own player)')
+                : p.ovr - margin + '–' + (p.ovr + margin) + ' · ±' + margin
+            }
+            c={s.god && !(tid >= 0 && gm.isUser(s, tid)) ? GOD_PINK : undefined}
+          />
+          {s.god ? (
+            <Row
+              k="True potential"
+              v={
+                (p.tpot ?? p.pot) +
+                ' · the league’s read: ' +
+                p.pot +
+                (tid >= 0 && gm.isUser(s, tid) ? ' · your staff’s: ' + potView(p, { own: true }) : '')
+              }
+              c={GOD_PINK}
+            />
+          ) : (
+            <Row
+              k="Potential"
+              v={
+                mine
+                  ? potView(p, { own: true }) + ' (your staff’s read)'
+                  : (() => {
+                      const v = potView(p, { tid: s.me, sd: scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting) });
+                      return (
+                        Math.max(p.ovr, v - margin * 2) + '–' + (v + margin * 2) + ' (your scouts’ read; the league’s is ' + p.pot + ')'
+                      );
+                    })()
+              }
+            />
+          )}
+          <Row
+            k="Confidence"
+            v={
+              mine
+                ? conf >= 70
+                  ? 'Brimming'
+                  : conf >= 55
+                    ? 'Assured'
+                    : conf >= 40
+                      ? 'Steady'
+                      : conf >= 25
+                        ? 'Shaken'
+                        : 'Fragile'
+                : 'Hidden'
+            }
+            c={mine ? (conf >= 55 ? good : conf < 40 ? bad : undefined) : undefined}
+          />
+          {mine &&
+            (() => {
+              const exp = hgtFromInches(inchesOf(p.hgt)),
+                d = p.r.hgt - Math.round(exp);
+              return (
+                <Row
+                  k="Size"
+                  v={
+                    p.hgt +
+                    ' · height rating ' +
+                    p.r.hgt +
+                    (Math.abs(d) <= 2
+                      ? ' (about what his height gives)'
+                      : d > 0
+                        ? ' (plays ' + d + ' bigger than his height)'
+                        : ' (plays ' + -d + ' smaller than his height)')
+                  }
+                />
+              );
+            })()}
+          {mine && <Row k="Training focus" v={(s.train?.[p.id] || 'Balanced') + (p.dev ? ' · in the dev league' : '')} />}
+          <h4 style={{ ...ruleH4, marginTop: '18px' }}>How he develops</h4>
+          {s.god && p.ceil && (
+            <>
+              <Row
+                k="Skill ceilings"
+                v={ceilList(p)
+                  .map(([k2, v2]) => LB[k2] + ' ' + v2)
+                  .join(' · ')}
+                c={GOD_PINK}
+              />
+              <Row
+                k="Full ceiling"
+                v={
+                  Math.round(fullCeil(p)) +
+                  ' overall with every skill maxed (true potential is the part he can still reach at ' +
+                  p.age +
+                  ')'
+                }
+                c={GOD_PINK}
+              />
+              <Row
+                k="Development pace"
+                v={paceOf(p).toFixed(2) + ' · ' + paceLabel(paceOf(p)) + ' (hidden: how much of his plan he gets)'}
+                c={GOD_PINK}
+              />
+              <Row
+                k="Hidden gem"
+                v={
+                  !p.gem
+                    ? 'No'
+                    : p.gem.left > 0.05
+                      ? 'Yes, ' +
+                        (p.gem.tier === 'star' ? 'star' : p.gem.tier === 'starter' ? 'starter' : 'role player') +
+                        ' kind: ' +
+                        p.gem.left.toFixed(1) +
+                        ' of ' +
+                        p.gem.add +
+                        ' extra points of potential still to surface (until 29)'
+                      : 'Was one: his ' + p.gem.add + ' extra points of potential have surfaced'
+                }
+                c={GOD_PINK}
+              />
+            </>
+          )}
+          {mine ? (
+            devOutlook(p, !!s.god).map(([k2, v2]) => <Row key={k2} k={k2} v={v2} c={k2 === 'Hidden profile' ? GOD_PINK : undefined} />)
+          ) : (
+            <p style={{ ...muted, fontSize: '12px', margin: 0 }}>
+              Only your own staff knows how a player develops: where his growth goes, his body and his work ethic.
+            </p>
+          )}
+          {mine && (
+            <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>
+              Every player grows his own way: some pour everything into one area, some round out. His body (speed, burst, leaping, strength,
+              stamina) follows its own schedule, so skill work doesn’t make him faster.
+            </p>
+          )}
+          {mine &&
+            tid >= 0 &&
+            (() => {
+              const e = envOf(gm, s, p, tid),
+                pc = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 100)) + '%';
+              return (
+                <>
+                  <h4 style={{ ...ruleH4, marginTop: '18px' }}>Development environment</h4>
+                  {e.parts.map(([k2, v2]) => (
+                    <Row key={k2} k={k2} v={pc(v2)} c={v2 > 0.005 ? good : v2 < -0.005 ? bad : undefined} />
+                  ))}
+                  <Row
+                    k="Together"
+                    v={
+                      pc(e.mult - 1) +
+                      ' growth' +
+                      (e.fringe >= 1.05
+                        ? ' (counts extra for a player with his potential)'
+                        : e.fringe <= 0.8
+                          ? ' (counts less for a player with his potential)'
+                          : '')
+                    }
+                    c={e.mult > 1.005 ? good : e.mult < 0.995 ? bad : undefined}
+                  />
+                  <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>
+                    How fast he closes in on his potential here. The factors add up with diminishing returns, capped at ±25%, and matter
+                    most for players with modest potential. They never raise his ceiling.
+                  </p>
+                </>
+              );
+            })()}
+          <h4 style={{ ...ruleH4, marginTop: '18px' }}>Hidden decimals</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '2px 16px', fontSize: '12px' }}>
+            {Object.keys(p.r).map(k => {
+              const x = (p.rx || {})[k] || 0;
+              return (
+                <div
+                  key={k}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '2px 0',
+                    borderBottom: '1px solid var(--color-divider)',
+                  }}
+                >
+                  <span style={muted}>{LB[k]}</span>
+                  <span>{mine ? (p.r[k] + x).toFixed(2) : p.r[k]}</span>
+                </div>
+              );
+            })}
+          </div>
+          {!mine && <p style={{ ...muted, fontSize: '11.5px' }}>Decimal progress is only visible for players you run.</p>}
+          <h4 style={{ ...ruleH4, marginTop: '18px' }}>Traits</h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {roles.length ? (
+              roles.map(r => (
+                <span
+                  key={r}
+                  className="badge"
+                  style={{
+                    padding: '2px 8px',
+                    border: '1px solid ' + gold,
+                    color: gold,
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '12px',
+                  }}
+                >
+                  {r}
+                </span>
+              ))
+            ) : (
+              <span style={muted}>No roles unlocked yet</span>
+            )}
+          </div>
+          {next.length > 0 && (
+            <div style={{ marginTop: '8px', fontSize: '12px' }}>
+              {next.map(x => (
+                <div key={x.n} style={{ padding: '2px 0' }}>
+                  <b>{x.n}</b>
+                  {x.only ? <span style={muted}> ({x.only})</span> : null}: needs{' '}
+                  {x.gaps.map(([k, g]) => '+' + Math.ceil(g) + ' ' + (k.includes('+') ? 'athleticism' : LB[k].toLowerCase())).join(', ')}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+        <section>
+          <h4 style={ruleH4}>Monthly growth feed</h4>
+          {feed.length === 0 ? (
+            <p style={{ ...muted, fontStyle: 'italic' }}>Growth is calculated at the start of each month in season.</p>
+          ) : (
+            <table className="table" style={{ fontSize: '12px' }}>
+              <thead>
+                <tr>
+                  <th style={th()}>Month</th>
+                  <th style={th('right')}>Overall</th>
+                  <th style={th()}>Biggest moves</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feed.map((f, i) => (
+                  <tr key={i}>
+                    <td style={td()}>
+                      {f.m}
+                      {f.dev ? <span style={{ color: good }}> · dev</span> : null}
+                    </td>
+                    <td style={td('right', { color: f.o >= 0 ? good : bad, fontWeight: 600 })}>
+                      {f.o >= 0 ? '+' : ''}
+                      {f.o.toFixed(2)}
+                    </td>
+                    <td style={td()}>
+                      {Object.entries(f.r)
+                        .map(([k, v]: any) => LB[k] + ' ' + (v >= 0 ? '+' : '') + v.toFixed(2))
+                        .join(' · ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {((p.injHist || []).length > 0 || p.injSum) && (
+            <p style={{ ...muted, fontSize: '12px', marginTop: '14px' }}>Injury history: on the History tab.</p>
+          )}
+          {p.age < 24 && (p.minorCount || 0) >= 2 && (
+            <p style={{ color: bad, fontSize: '12px' }}>
+              {p.minorCount} minor injuries this season: his growth is being stunted{p.minorCount >= 3 ? ' and his ceiling may drop' : ''}.
+            </p>
+          )}
+        </section>
+      </div>
+    </>
+  );
 }
 
 // Every injury he's had, newest first: when, with whom, what, how long he was expected to be out, the games
 // he actually missed and the day he was back (older entries, from before dates were kept, show the season).
 function InjuryHistory({ vm, p }: { vm: VM; p: any }) {
-  const { gm } = vm.ctx, H: any[] = p.injHist || [];
+  const { gm } = vm.ctx,
+    H: any[] = p.injHist || [];
   const rows = H.map((x, i) => ({ x, i, now: p.inj?.h === i && x.back == null })).reverse();
   // A retired player keeps only his longer injuries (prune.ts); his career totals were saved first (p.injSum).
-  const S = p.injSum, longest0 = H.filter(x => !x.dtd).sort((a, b) => (b.days ?? b.games * 2.14) - (a.days ?? a.games * 2.14))[0];
-  const missed = S ? S.missed : H.reduce((a, x) => a + (x.missed ?? (x.dtd ? 0 : x.games || 0)), 0), sat = S ? S.sat : H.filter(x => !x.dtd).length, longest = longest0 || S?.long || null, nInj = S ? S.n : H.length;
-  const dur = (x: any) => (x.dtd ? 'Day-to-day' : x.games + ' game' + (x.games === 1 ? '' : 's')) + (x.days ? ' · ~' + (x.days >= 60 ? Math.round(x.days / 30.4) + ' months' : x.days >= 14 ? Math.round(x.days / 7) + ' weeks' : x.days + ' days') : '');
+  const S = p.injSum,
+    longest0 = H.filter(x => !x.dtd).sort((a, b) => (b.days ?? b.games * 2.14) - (a.days ?? a.games * 2.14))[0];
+  const missed = S ? S.missed : H.reduce((a, x) => a + (x.missed ?? (x.dtd ? 0 : x.games || 0)), 0),
+    sat = S ? S.sat : H.filter(x => !x.dtd).length,
+    longest = longest0 || S?.long || null,
+    nInj = S ? S.n : H.length;
+  const dur = (x: any) =>
+    (x.dtd ? 'Day-to-day' : x.games + ' game' + (x.games === 1 ? '' : 's')) +
+    (x.days
+      ? ' · ~' +
+        (x.days >= 60 ? Math.round(x.days / 30.4) + ' months' : x.days >= 14 ? Math.round(x.days / 7) + ' weeks' : x.days + ' days')
+      : '');
   return (
     <section style={{ marginTop: '22px' }}>
       <h4 style={ruleH4}>Injury history</h4>
-      {!nInj ? <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p> : <>
-        <p style={{ fontSize: '12.5px', margin: '0 0 8px' }}>{nInj} injur{nInj === 1 ? 'y' : 'ies'} ({sat} that kept him out) · about {missed} game{missed === 1 ? '' : 's'} missed{longest ? ' · longest: ' + longest.name.toLowerCase() + ' (' + longest.season + ')' : ''}{p.pers?.prone && gm.state.god ? ' · injury-prone' : ''}</p>
-        {S && H.length < nInj && <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>{H.length ? 'Listed: the injuries that kept him out 10 games or more.' : 'None of them kept him out 10 games or more.'} Shorter ones aren’t kept once a player retires.</p>}
-        {H.length > 0 && <div style={{ overflowX: 'auto' }}><table className="table" style={{ fontSize: '12px', minWidth: 560 }}>
-          <thead><tr><th style={th()}>Date</th><th style={th()}>Team</th><th style={th()}>Injury</th><th style={th()}>Expected out</th><th style={th('right')}>Missed</th><th style={th()}>Back</th></tr></thead>
-          <tbody>{rows.map(({ x, i, now }) => <tr key={i}>
-            <td style={td()}>{x.day != null ? gm.fmtDay(x.day) : x.season}</td>
-            <td style={td()}>{x.tm || '—'}</td>
-            <td style={td('left', { color: x.major ? bad : undefined, fontWeight: x.major ? 600 : undefined })}>{x.name}{x.lost ? <span style={{ color: bad }}>{x.lost}</span> : null}</td>
-            <td style={td()}>{dur(x)}</td>
-            <td style={td('right')}>{x.missed != null ? x.missed : now ? (p.inj.miss || 0) + '…' : x.dtd ? '0' : '—'}</td>
-            <td style={td('left', now ? { color: bad } : undefined)}>{now ? 'Out now' + (gm.injLeft(p) ? ' (' + gm.injLeft(p)!.games + ' games, ' + gm.injLeft(p)!.days + ' days left)' : '') : x.back != null ? gm.fmtDay(x.back) : '—'}</td>
-          </tr>)}</tbody>
-        </table></div>}
-      </>}
+      {!nInj ? (
+        <p style={{ ...muted, fontStyle: 'italic' }}>No injuries on record.</p>
+      ) : (
+        <>
+          <p style={{ fontSize: '12.5px', margin: '0 0 8px' }}>
+            {nInj} injur{nInj === 1 ? 'y' : 'ies'} ({sat} that kept him out) · about {missed} game{missed === 1 ? '' : 's'} missed
+            {longest ? ' · longest: ' + longest.name.toLowerCase() + ' (' + longest.season + ')' : ''}
+            {p.pers?.prone && gm.state.god ? ' · injury-prone' : ''}
+          </p>
+          {S && H.length < nInj && (
+            <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>
+              {H.length ? 'Listed: the injuries that kept him out 10 games or more.' : 'None of them kept him out 10 games or more.'}{' '}
+              Shorter ones aren’t kept once a player retires.
+            </p>
+          )}
+          {H.length > 0 && (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ fontSize: '12px', minWidth: 560 }}>
+                <thead>
+                  <tr>
+                    <th style={th()}>Date</th>
+                    <th style={th()}>Team</th>
+                    <th style={th()}>Injury</th>
+                    <th style={th()}>Expected out</th>
+                    <th style={th('right')}>Missed</th>
+                    <th style={th()}>Back</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ x, i, now }) => (
+                    <tr key={i}>
+                      <td style={td()}>{x.day != null ? gm.fmtDay(x.day) : x.season}</td>
+                      <td style={td()}>{x.tm || '—'}</td>
+                      <td style={td('left', { color: x.major ? bad : undefined, fontWeight: x.major ? 600 : undefined })}>
+                        {x.name}
+                        {x.lost ? <span style={{ color: bad }}>{x.lost}</span> : null}
+                      </td>
+                      <td style={td()}>{dur(x)}</td>
+                      <td style={td('right')}>{x.missed != null ? x.missed : now ? (p.inj.miss || 0) + '…' : x.dtd ? '0' : '—'}</td>
+                      <td style={td('left', now ? { color: bad } : undefined)}>
+                        {now
+                          ? 'Out now' +
+                            (gm.injLeft(p) ? ' (' + gm.injLeft(p)!.games + ' games, ' + gm.injLeft(p)!.days + ' days left)' : '')
+                          : x.back != null
+                            ? gm.fmtDay(x.back)
+                            : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -237,88 +795,238 @@ function InjuryHistory({ vm, p }: { vm: VM; p: any }) {
 export function HistoryExtras({ vm }: { vm: VM }) {
   const { p } = useP(vm);
   if (!p) return null;
-  return <><InjuryHistory vm={vm} p={p} /><HistoryMore vm={vm} p={p} /></>;
+  return (
+    <>
+      <InjuryHistory vm={vm} p={p} />
+      <HistoryMore vm={vm} p={p} />
+    </>
+  );
 }
 function HistoryMore({ vm, p }: { vm: VM; p: any }) {
   const { money } = vm.ctx;
-  const arc = p.overseasArc, a = p.abroad, L = p.legacy;
-  if (L) return (
-    <section style={{ marginTop: '22px' }}>
-      <h4 style={ruleH4}>Career before the league’s records</h4>
-      <Row k="Seasons" v={L.seasons + ' (retired ' + p.retired.season + ')'} />
-      <Row k="Per game" v={L.pts + ' pts · ' + L.reb + ' reb · ' + L.ast + ' ast'} />
-      {L.allStar > 0 && <Row k="All-Star" v={L.allStar + (L.allStar === 1 ? ' selection' : ' selections')} c={gold} />}
-    </section>
-  );
+  const arc = p.overseasArc,
+    a = p.abroad,
+    L = p.legacy;
+  if (L)
+    return (
+      <section style={{ marginTop: '22px' }}>
+        <h4 style={ruleH4}>Career before the league’s records</h4>
+        <Row k="Seasons" v={L.seasons + ' (retired ' + p.retired.season + ')'} />
+        <Row k="Per game" v={L.pts + ' pts · ' + L.reb + ' reb · ' + L.ast + ' ast'} />
+        {L.allStar > 0 && <Row k="All-Star" v={L.allStar + (L.allStar === 1 ? ' selection' : ' selections')} c={gold} />}
+      </section>
+    );
   if (!arc && !a && !(p.adjust > 0)) return null;
   return (
     <section style={{ marginTop: '22px' }}>
       <h4 style={ruleH4}>Overseas arc</h4>
       {arc?.from && <Row k="Left the league" v={arc.left + ' · from ' + arc.from + ' at ' + arc.ovr + ' overall'} />}
-      {a && <Row k="Now playing" v={a.club + ' (' + a.lg + ', strength ×' + leagueStr(a.lg).toFixed(2) + ') · ' + a.pts + ' pts · ' + a.reb + ' reb · ' + a.ast + ' ast'} />}
+      {a && (
+        <Row
+          k="Now playing"
+          v={
+            a.club +
+            ' (' +
+            a.lg +
+            ', strength ×' +
+            leagueStr(a.lg).toFixed(2) +
+            ') · ' +
+            a.pts +
+            ' pts · ' +
+            a.reb +
+            ' reb · ' +
+            a.ast +
+            ' ast'
+          }
+        />
+      )}
       {a && <Row k="Contract abroad" v={a.clause + ' · ' + money(a.fee)} />}
-      {arc?.back && <Row k="Returned" v={arc.back + ' from ' + arc.club + ' (' + arc.line + ')' + (arc.from ? ' · ' + (p.ovr - arc.ovr >= 0 ? '+' : '') + (p.ovr - arc.ovr) + ' overall since leaving' : '')} c={arc.from && p.ovr > arc.ovr ? good : undefined} />}
-      <Row k="Adjustment status" v={p.adjust > 0 ? Math.ceil(p.adjust) + ' games of adjustment left (efficiency and decisions are down)' : arc?.back ? 'Fully adjusted' : 'Not applicable'} c={p.adjust > 0 ? bad : good} />
+      {arc?.back && (
+        <Row
+          k="Returned"
+          v={
+            arc.back +
+            ' from ' +
+            arc.club +
+            ' (' +
+            arc.line +
+            ')' +
+            (arc.from ? ' · ' + (p.ovr - arc.ovr >= 0 ? '+' : '') + (p.ovr - arc.ovr) + ' overall since leaving' : '')
+          }
+          c={arc.from && p.ovr > arc.ovr ? good : undefined}
+        />
+      )}
+      <Row
+        k="Adjustment status"
+        v={
+          p.adjust > 0
+            ? Math.ceil(p.adjust) + ' games of adjustment left (efficiency and decisions are down)'
+            : arc?.back
+              ? 'Fully adjusted'
+              : 'Not applicable'
+        }
+        c={p.adjust > 0 ? bad : good}
+      />
     </section>
   );
 }
 
 // ── Comparison ───────────────────────────────────────────────────────────────────
-const AX: [string, string[]][] = [['Inside', ['ins', 'dnk']], ['Mid-range', ['fg']], ['Three', ['tp']], ['Playmaking', ['drb', 'pss']], ['IQ', ['oiq']], ['Defense', ['diq']], ['Rebounding', ['reb']], ['Athleticism', ['spd', 'jmp', 'stre']]];
+const AX: [string, string[]][] = [
+  ['Inside', ['ins', 'dnk']],
+  ['Mid-range', ['fg']],
+  ['Three', ['tp']],
+  ['Playmaking', ['drb', 'pss']],
+  ['IQ', ['oiq']],
+  ['Defense', ['diq']],
+  ['Rebounding', ['reb']],
+  ['Athleticism', ['spd', 'jmp', 'stre']],
+];
 function Radar({ a, b }: { a: any; b: any }) {
-  const R = 110, c = 140, n = AX.length, pt = (v, i) => { const ang = -Math.PI / 2 + (i / n) * Math.PI * 2, r = (v / 100) * R; return [c + Math.cos(ang) * r, c + Math.sin(ang) * r]; };
+  const R = 110,
+    c = 140,
+    n = AX.length,
+    pt = (v, i) => {
+      const ang = -Math.PI / 2 + (i / n) * Math.PI * 2,
+        r = (v / 100) * R;
+      return [c + Math.cos(ang) * r, c + Math.sin(ang) * r];
+    };
   const poly = p => AX.map(([, ks], i) => pt(ks.reduce((x, k) => x + p.r[k], 0) / ks.length, i).join(',')).join(' ');
   return (
     <svg viewBox="0 0 280 280" width="100%" style={{ maxWidth: 320 }} role="img" aria-label="Radar chart">
-      {[25, 50, 75, 100].map(v => <polygon key={v} points={AX.map((_, i) => pt(v, i).join(',')).join(' ')} fill="none" stroke="var(--color-divider)" />)}
-      {AX.map(([n2], i) => { const [x, y] = pt(118, i); return <text key={n2} x={x} y={y} fontSize="9.5" fill="var(--color-neutral-700)" textAnchor="middle" dominantBaseline="middle">{n2}</text>; })}
+      {[25, 50, 75, 100].map(v => (
+        <polygon key={v} points={AX.map((_, i) => pt(v, i).join(',')).join(' ')} fill="none" stroke="var(--color-divider)" />
+      ))}
+      {AX.map(([n2], i) => {
+        const [x, y] = pt(118, i);
+        return (
+          <text key={n2} x={x} y={y} fontSize="9.5" fill="var(--color-neutral-700)" textAnchor="middle" dominantBaseline="middle">
+            {n2}
+          </text>
+        );
+      })}
       <polygon points={poly(b)} fill="color-mix(in srgb, var(--gm-bad) 25%, transparent)" stroke="var(--gm-bad)" />
       <polygon points={poly(a)} fill="color-mix(in srgb, var(--color-accent) 30%, transparent)" stroke="var(--color-accent)" />
     </svg>
   );
 }
 export function CompareTab({ vm }: { vm: VM }) {
-  const { gm, s, open } = vm.ctx, { p } = useP(vm), P = gm.db.P;
+  const { gm, s, open } = vm.ctx,
+    { p } = useP(vm),
+    P = gm.db.P;
   const [q, setQ] = useState('');
   if (!p) return null;
   const pool = (Object.values(P) as any[]).filter(x => x.id !== p.id && !x.gone);
   const other = P[s.cmpId] && s.cmpId !== p.id ? P[s.cmpId] : pool.filter(x => x.grp === p.grp).sort((x, y) => y.ovr - x.ovr)[0];
   if (!other) return null;
   const hits = q.trim().length >= 2 ? pool.filter(x => x.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 6) : [];
-  const ta = gm.seasonTotals(p, gm.Y), tb = gm.seasonTotals(other, gm.Y);
+  const ta = gm.seasonTotals(p, gm.Y),
+    tb = gm.seasonTotals(other, gm.Y);
   const per = (t, k) => (t && t.gp ? (k === 'reb' ? (t.orb + t.drb) / t.gp : t[k] / t.gp) : 0);
-  const STATS: [string, (t: any) => number, number, (v: number) => string][] = [['Points', t => per(t, 'pts'), 35, v => v.toFixed(1)], ['Rebounds', t => per(t, 'reb'), 15, v => v.toFixed(1)], ['Assists', t => per(t, 'ast'), 12, v => v.toFixed(1)], ['TS%', t => (t ? gm.tsOf(t) * 100 : 0), 75, v => v.toFixed(1)], ['USG%', t => (t ? gm.usgOf(t) : 0), 40, v => v.toFixed(1)], ['PER', t => (t ? gm.perOf(t, gm.Y) : 0), 35, v => v.toFixed(1)]];
+  const STATS: [string, (t: any) => number, number, (v: number) => string][] = [
+    ['Points', t => per(t, 'pts'), 35, v => v.toFixed(1)],
+    ['Rebounds', t => per(t, 'reb'), 15, v => v.toFixed(1)],
+    ['Assists', t => per(t, 'ast'), 12, v => v.toFixed(1)],
+    ['TS%', t => (t ? gm.tsOf(t) * 100 : 0), 75, v => v.toFixed(1)],
+    ['USG%', t => (t ? gm.usgOf(t) : 0), 40, v => v.toFixed(1)],
+    ['PER', t => (t ? gm.perOf(t, gm.Y) : 0), 35, v => v.toFixed(1)],
+  ];
   return (
     <div>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '14px', position: 'relative' }}>
         <Kicker>Compare with</Kicker>
-        <Link pid={other.id} onClick={() => open(other.id)} style={{ fontWeight: 600, color: 'var(--gm-bad)' }}>{other.name}</Link>
-        <input className="input" placeholder="Search any player…" value={q} onChange={e => setQ(e.target.value)} style={{ marginLeft: 'auto', width: '220px' }} />
-        {hits.length > 0 && <div className="card" style={{ position: 'absolute', right: 0, top: '38px', zIndex: 5, padding: '4px 0', minWidth: '220px' }}>{hits.map(h => <button key={h.id} onClick={() => { gm.setState({ cmpId: h.id }); setQ(''); }} style={{ all: 'unset', cursor: 'pointer', display: 'block', padding: '4px 12px' }}>{h.name} <span style={muted}>· {h.pos} · {h.ovr}</span></button>)}</div>}
+        <Link pid={other.id} onClick={() => open(other.id)} style={{ fontWeight: 600, color: 'var(--gm-bad)' }}>
+          {other.name}
+        </Link>
+        <input
+          className="input"
+          placeholder="Search any player…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          style={{ marginLeft: 'auto', width: '220px' }}
+        />
+        {hits.length > 0 && (
+          <div className="card" style={{ position: 'absolute', right: 0, top: '38px', zIndex: 5, padding: '4px 0', minWidth: '220px' }}>
+            {hits.map(h => (
+              <button
+                key={h.id}
+                onClick={() => {
+                  gm.setState({ cmpId: h.id });
+                  setQ('');
+                }}
+                style={{ all: 'unset', cursor: 'pointer', display: 'block', padding: '4px 12px' }}
+              >
+                {h.name}{' '}
+                <span style={muted}>
+                  · {h.pos} · {h.ovr}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.1fr)', gap: '30px', alignItems: 'start' }}>
         <section style={{ display: 'grid', justifyItems: 'center' }}>
           <Radar a={p} b={other} />
-          <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}><span style={{ color: 'var(--color-accent-700)' }}>■ {p.name} ({p.ovr})</span><span style={{ color: 'var(--gm-bad)' }}>■ {other.name} ({other.ovr})</span></div>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--color-accent-700)' }}>
+              ■ {p.name} ({p.ovr})
+            </span>
+            <span style={{ color: 'var(--gm-bad)' }}>
+              ■ {other.name} ({other.ovr})
+            </span>
+          </div>
         </section>
         <section>
           <h4 style={ruleH4}>{gm.seasonLbl()} per game</h4>
-          {STATS.map(([n, f, mx, fmt]) => { const va = f(ta), vb = f(tb); return (
-            <div key={n} style={{ display: 'grid', gridTemplateColumns: '48px minmax(0,1fr) 80px minmax(0,1fr) 48px', gap: '8px', alignItems: 'center', padding: '4px 0', fontSize: '12.5px' }}>
-              <span style={{ textAlign: 'right', fontWeight: va > vb ? 700 : 400, color: va > vb ? good : undefined }}>{fmt(va)}</span>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><div style={{ height: 6, width: Math.min(100, (va / mx) * 100) + '%', background: 'var(--color-accent)' }} /></div>
-              <span style={{ textAlign: 'center', ...muted }}>{n}</span>
-              <div><div style={{ height: 6, width: Math.min(100, (vb / mx) * 100) + '%', background: 'var(--gm-bad)' }} /></div>
-              <span style={{ fontWeight: vb > va ? 700 : 400, color: vb > va ? good : undefined }}>{fmt(vb)}</span>
-            </div>
-          ); })}
+          {STATS.map(([n, f, mx, fmt]) => {
+            const va = f(ta),
+              vb = f(tb);
+            return (
+              <div
+                key={n}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '48px minmax(0,1fr) 80px minmax(0,1fr) 48px',
+                  gap: '8px',
+                  alignItems: 'center',
+                  padding: '4px 0',
+                  fontSize: '12.5px',
+                }}
+              >
+                <span style={{ textAlign: 'right', fontWeight: va > vb ? 700 : 400, color: va > vb ? good : undefined }}>{fmt(va)}</span>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ height: 6, width: Math.min(100, (va / mx) * 100) + '%', background: 'var(--color-accent)' }} />
+                </div>
+                <span style={{ textAlign: 'center', ...muted }}>{n}</span>
+                <div>
+                  <div style={{ height: 6, width: Math.min(100, (vb / mx) * 100) + '%', background: 'var(--gm-bad)' }} />
+                </div>
+                <span style={{ fontWeight: vb > va ? 700 : 400, color: vb > va ? good : undefined }}>{fmt(vb)}</span>
+              </div>
+            );
+          })}
           <h4 style={{ ...ruleH4, marginTop: '14px' }}>Attributes</h4>
           {Object.keys(p.r).map(k => (
-            <div key={k} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0,1fr) 110px minmax(0,1fr) 30px', gap: '8px', alignItems: 'center', fontSize: '12px', padding: '1px 0' }}>
+            <div
+              key={k}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '30px minmax(0,1fr) 110px minmax(0,1fr) 30px',
+                gap: '8px',
+                alignItems: 'center',
+                fontSize: '12px',
+                padding: '1px 0',
+              }}
+            >
               <span style={{ textAlign: 'right', color: p.r[k] >= 70 ? gold : undefined }}>{p.r[k]}</span>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><div style={{ height: 4, width: p.r[k] + '%', background: 'var(--color-accent)' }} /></div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ height: 4, width: p.r[k] + '%', background: 'var(--color-accent)' }} />
+              </div>
               <span style={{ textAlign: 'center', ...muted }}>{LB[k]}</span>
-              <div><div style={{ height: 4, width: other.r[k] + '%', background: 'var(--gm-bad)' }} /></div>
+              <div>
+                <div style={{ height: 4, width: other.r[k] + '%', background: 'var(--gm-bad)' }} />
+              </div>
               <span style={{ color: other.r[k] >= 70 ? gold : undefined }}>{other.r[k]}</span>
             </div>
           ))}

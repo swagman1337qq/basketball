@@ -29,17 +29,38 @@ const WHY: Record<string, [string, string]> = {
 // His priorities, most important first.
 export function priorities(p: any) {
   if (!p?.pers) return [];
-  const mot = String(p.pers.mot || 'Winning').toLowerCase(), loy = p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45), amb = p.pers.ambition ?? (p.pers.mot === 'Money' || p.pers.mot === 'Fame' ? 75 : 45);
-  const rest = [loy >= 60 && 'loyalty', amb >= 65 && 'money', p.pers.alpha && 'being the star', 'winning', 'playing time', amb >= 55 && 'fame'].filter(Boolean) as string[];
+  const mot = String(p.pers.mot || 'Winning').toLowerCase(),
+    loy = p.pers.loyalty ?? (p.pers.mot === 'Loyalty' ? 75 : 45),
+    amb = p.pers.ambition ?? (p.pers.mot === 'Money' || p.pers.mot === 'Fame' ? 75 : 45);
+  const rest = [
+    loy >= 60 && 'loyalty',
+    amb >= 65 && 'money',
+    p.pers.alpha && 'being the star',
+    'winning',
+    'playing time',
+    amb >= 55 && 'fame',
+  ].filter(Boolean) as string[];
   return [...new Set([mot, ...rest])].slice(0, 3);
 }
 // Where his motives pull against each other: short lines.
 function tensions(p: any, fs: { n: string; v: number }[]) {
   if (!p) return [];
-  const v = (n: string) => fs.find(f => f.n === n)?.v || 0, mot = p.pers?.mot;
-  const winning = v('Team success'), paid = v('Feels underpaid'), star = v('Wants to be the No. 1 option'), market = v('Market size'), bench = v('Coming off the bench') + v('Barely playing');
+  const v = (n: string) => fs.find(f => f.n === n)?.v || 0,
+    mot = p.pers?.mot;
+  const winning = v('Team success'),
+    paid = v('Feels underpaid'),
+    star = v('Wants to be the No. 1 option'),
+    market = v('Market size'),
+    bench = v('Coming off the bench') + v('Barely playing');
   const out: string[] = [];
-  if (star < 0) out.push(winning > 0 && mot === 'Winning' ? 'Wants to be the star ↔ values winning more, so he stays' : winning > 0 ? 'Wants to be the star ↔ winning keeps him patient' : 'Wants to be the star, and the losing makes it worse');
+  if (star < 0)
+    out.push(
+      winning > 0 && mot === 'Winning'
+        ? 'Wants to be the star ↔ values winning more, so he stays'
+        : winning > 0
+          ? 'Wants to be the star ↔ winning keeps him patient'
+          : 'Wants to be the star, and the losing makes it worse',
+    );
   if (mot === 'Winning' && paid < 0) out.push('Wants to win ↔ but not enough to take less money');
   if (market < 0) out.push(winning > 0 ? 'Wants a bigger market ↔ winning keeps him here' : 'Wants a bigger market');
   if (bench < 0 && winning > 0) out.push('Wants more minutes ↔ won’t rock the boat while winning');
@@ -47,17 +68,41 @@ function tensions(p: any, fs: { n: string; v: number }[]) {
 }
 
 export function MoodChip({ label, color, factors, name, p }: { label: string; color: string; factors: any[]; name?: string; p?: any }) {
-  const fs = (factors || []).map(f => (Array.isArray(f) ? { n: f[0], v: +f[1] } : { n: f.n, v: +f.v })).filter(f => f.v !== 0).sort((a, b) => a.v - b.v);
-  const neg = fs.filter(f => f.v < 0), pos = fs.filter(f => f.v > 0).reverse();
+  const fs = (factors || [])
+    .map(f => (Array.isArray(f) ? { n: f[0], v: +f[1] } : { n: f.n, v: +f.v }))
+    .filter(f => f.v !== 0)
+    .sort((a, b) => a.v - b.v);
+  const neg = fs.filter(f => f.v < 0),
+    pos = fs.filter(f => f.v > 0).reverse();
   const txt = (f: any) => (WHY[f.n] ? WHY[f.n][f.v < 0 ? 0 : 1] : '') || f.n;
   return (
-    <HoverCard width={270} anchor={<span style={{ color, cursor: 'help', borderBottom: '1px dotted currentColor', whiteSpace: 'nowrap' }}>{label}</span>}>
-      <b style={{ display: 'block', marginBottom: '3px', color }}>{name ? name + ': ' : ''}{label}</b>
+    <HoverCard
+      width={270}
+      anchor={<span style={{ color, cursor: 'help', borderBottom: '1px dotted currentColor', whiteSpace: 'nowrap' }}>{label}</span>}
+    >
+      <b style={{ display: 'block', marginBottom: '3px', color }}>
+        {name ? name + ': ' : ''}
+        {label}
+      </b>
       {priorities(p).length > 0 && <span style={{ display: 'block', marginBottom: '4px' }}>Priorities: {priorities(p).join(', ')}</span>}
-      {tensions(p, fs).map(t => <span key={t} style={{ display: 'block', color: 'var(--color-accent-800)', marginBottom: '2px' }}>{t}</span>)}
+      {tensions(p, fs).map(t => (
+        <span key={t} style={{ display: 'block', color: 'var(--color-accent-800)', marginBottom: '2px' }}>
+          {t}
+        </span>
+      ))}
       {neg.length === 0 && pos.length === 0 && <span style={{ color: 'var(--color-neutral-700)' }}>Nothing on his mind.</span>}
-      {neg.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-bad)' }}><span style={{ width: 26, textAlign: 'right', flex: 'none' }}>{f.v}</span><span>{txt(f)}</span></span>)}
-      {pos.map(f => <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-good)' }}><span style={{ width: 26, textAlign: 'right', flex: 'none' }}>+{f.v}</span><span>{txt(f)}</span></span>)}
+      {neg.map(f => (
+        <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-bad)' }}>
+          <span style={{ width: 26, textAlign: 'right', flex: 'none' }}>{f.v}</span>
+          <span>{txt(f)}</span>
+        </span>
+      ))}
+      {pos.map(f => (
+        <span key={f.n} style={{ display: 'flex', gap: '6px', color: 'var(--gm-good)' }}>
+          <span style={{ width: 26, textAlign: 'right', flex: 'none' }}>+{f.v}</span>
+          <span>{txt(f)}</span>
+        </span>
+      ))}
     </HoverCard>
   );
 }

@@ -5,7 +5,7 @@ import { Kicker, Link, linkNames, muted } from '../kit';
 
 export function InboxCard({ vm }: { vm: VM }) {
   const { gm, s, open } = vm.ctx;
-  const items = (s.inbox || []).filter(x => !x.done || x.kind === 'mandate' && !x.resolved).slice(0, 6);
+  const items = (s.inbox || []).filter(x => !x.done || (x.kind === 'mandate' && !x.resolved)).slice(0, 6);
   const recent = (s.inbox || []).filter(x => x.done && x.kind !== 'mandate').slice(0, 3);
   if (!items.length && !recent.length) return null;
   return (
@@ -13,17 +13,43 @@ export function InboxCard({ vm }: { vm: VM }) {
       <Kicker accent>Front-office inbox</Kicker>
       {items.map(x => (
         <div key={x.id} style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: '8px' }}>
-          <div style={{ fontWeight: 600 }}>{x.pid != null ? <Link pid={x.pid} onClick={() => open(x.pid)}>{x.title}</Link> : x.title}</div>
+          <div style={{ fontWeight: 600 }}>
+            {x.pid != null ? (
+              <Link pid={x.pid} onClick={() => open(x.pid)}>
+                {x.title}
+              </Link>
+            ) : (
+              x.title
+            )}
+          </div>
           <div style={{ fontSize: '12.5px', ...muted, margin: '2px 0 6px' }}>{linkNames(x.text, open, { P: gm.db.P })}</div>
           {!x.done && (
             <div style={{ display: 'flex', gap: '6px' }}>
-              {x.options.map(o => <button key={o.k} className={o.k === 'yes' || o.k === 'ok' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => resolveInbox(gm, x.id, o.k)}>{o.label}</button>)}
+              {x.options.map(o => (
+                <button
+                  key={o.k}
+                  className={o.k === 'yes' || o.k === 'ok' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{ fontSize: '12px', padding: '4px 10px' }}
+                  onClick={() => resolveInbox(gm, x.id, o.k)}
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
           )}
-          {x.kind === 'mandate' && x.done && <div style={{ fontSize: '12px', color: 'var(--color-accent-700)' }}>Deadline {x.deadline === 'opening' ? 'opening night' : gm.fmtS(x.deadline)} · payroll must be under ${x.target.toFixed(1)}M</div>}
+          {x.kind === 'mandate' && x.done && (
+            <div style={{ fontSize: '12px', color: 'var(--color-accent-700)' }}>
+              Deadline {x.deadline === 'opening' ? 'opening night' : gm.fmtS(x.deadline)} · payroll must be under ${x.target.toFixed(1)}M
+            </div>
+          )}
         </div>
       ))}
-      {recent.map(x => <div key={x.id} style={{ fontSize: '12px', ...muted }}>✓ {x.title}{x.choice ? ' — ' + (x.options.find(o => o.k === x.choice)?.label || '') : ''}</div>)}
+      {recent.map(x => (
+        <div key={x.id} style={{ fontSize: '12px', ...muted }}>
+          ✓ {x.title}
+          {x.choice ? ' — ' + (x.options.find(o => o.k === x.choice)?.label || '') : ''}
+        </div>
+      ))}
     </section>
   );
 }

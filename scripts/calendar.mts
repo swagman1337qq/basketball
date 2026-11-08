@@ -68,4 +68,6 @@ const recoverySlot = game.db.days.findIndex((_, slot) => game.calNow({ ...game.s
 assert.ok(recoverySlot > day);
 game.healCal({ ...game.state, day: recoverySlot });
 assert.equal(player.inj, undefined, 'injury clears on the return date');
-console.log('Calendar passed: 30/32 teams, 82 games each, back-to-backs, unequal rest, no three straight days, preserved deadline dates, legacy/current saves and off-day recovery.');
+console.log(
+  'Calendar passed: 30/32 teams, 82 games each, back-to-backs, unequal rest, no three straight days, preserved deadline dates, legacy/current saves and off-day recovery.',
+);

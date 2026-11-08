@@ -5,99 +5,325 @@ import { useNavDnd } from './navDnd';
 // Collapsed: a narrow rail of icons, each with its name underneath (and on hover).
 function Rail({ vm }: { vm: VM }) {
   const dnd = useNavDnd(vm);
-  const tiny = { fontSize: "9.5px", lineHeight: 1.1, textAlign: "center" as const, maxWidth: "70px" };
+  const tiny = { fontSize: '9.5px', lineHeight: 1.1, textAlign: 'center' as const, maxWidth: '70px' };
   return (
-    <aside style={{ width: "78px", flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "10px 0", background: "var(--color-surface)", borderRight: "1px solid var(--color-divider)", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}>
-      <button className="hv2" onClick={vm.toggleNav} title="Expand the menu" aria-label="Expand the menu" style={{ all: "unset", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "4px 6px", borderRadius: "var(--radius-md)", color: "var(--color-accent-700)" }}>
-        <span style={{ fontSize: "18px", lineHeight: 1 }}>»</span><span style={tiny}>Expand</span>
+    <aside
+      style={{
+        width: '78px',
+        flex: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '2px',
+        padding: '10px 0',
+        background: 'var(--color-surface)',
+        borderRight: '1px solid var(--color-divider)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    >
+      <button
+        className="hv2"
+        onClick={vm.toggleNav}
+        title="Expand the menu"
+        aria-label="Expand the menu"
+        style={{
+          all: 'unset',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '2px',
+          padding: '4px 6px',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--color-accent-700)',
+        }}
+      >
+        <span style={{ fontSize: '18px', lineHeight: 1 }}>»</span>
+        <span style={tiny}>Expand</span>
       </button>
-      <div title={vm.myName} style={{ padding: "6px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>{vm.myLogoSm}<span style={{ ...tiny, fontWeight: 600 }}>{vm.myAbbr}</span></div>
+      <div title={vm.myName} style={{ padding: '6px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+        {vm.myLogoSm}
+        <span style={{ ...tiny, fontWeight: 600 }}>{vm.myAbbr}</span>
+      </div>
       <LeagueMenu vm={vm} compact />
-      <button className="btn btn-primary" onClick={vm.play1} title={vm.play1Label} style={{ width: "66px", padding: "4px 0", fontSize: "11px" }}>{vm.spec.on ? '▶ Sim' : '▶ Game'}</button>
-      <button className="btn btn-secondary" onClick={vm.play7} title={vm.play7Label} style={{ width: "66px", padding: "4px 0", fontSize: "11px", marginBottom: "4px" }}>{vm.spec.on ? '▶▶ More' : '▶▶ Week'}</button>
+      <button
+        className="btn btn-primary"
+        onClick={vm.play1}
+        title={vm.play1Label}
+        style={{ width: '66px', padding: '4px 0', fontSize: '11px' }}
+      >
+        {vm.spec.on ? '▶ Sim' : '▶ Game'}
+      </button>
+      <button
+        className="btn btn-secondary"
+        onClick={vm.play7}
+        title={vm.play7Label}
+        style={{ width: '66px', padding: '4px 0', fontSize: '11px', marginBottom: '4px' }}
+      >
+        {vm.spec.on ? '▶▶ More' : '▶▶ Week'}
+      </button>
       {(vm.navGroups || []).map((g: any, gi: number) => (
-        <div key={gi} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", width: "100%", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "6px", marginTop: "8px" }}>
-          <span {...dnd.group(g.label)} style={{ ...dnd.gmark(g.label), ...tiny, fontSize: "9.5px", fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-accent-700)", marginBottom: "2px" }}>{g.label === "Management" ? "Manage" : g.label}</span>
+        <div
+          key={gi}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1px',
+            width: '100%',
+            borderTop: '2px solid var(--color-neutral-400)',
+            paddingTop: '6px',
+            marginTop: '8px',
+          }}
+        >
+          <span
+            {...dnd.group(g.label)}
+            style={{
+              ...dnd.gmark(g.label),
+              ...tiny,
+              fontSize: '9.5px',
+              fontWeight: 700,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              color: 'var(--color-accent-700)',
+              marginBottom: '2px',
+            }}
+          >
+            {g.label === 'Management' ? 'Manage' : g.label}
+          </span>
           {(g.items || []).map((n: any, i: number) => (
-            <button key={n.key} {...dnd.item(n)} className="hv2" onClick={n.go} title={n.label + ' (drag to move)'} aria-label={n.label} style={{ all: "unset", boxSizing: "border-box", cursor: "pointer", width: "72px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "5px 2px", borderRadius: "var(--radius-md)", color: n.color, boxShadow: n.ring, ...dnd.mark(n) }}>
-              {n.icon}<span style={{ ...tiny, fontWeight: n.fw }}>{n.label}</span>
+            <button
+              key={n.key}
+              {...dnd.item(n)}
+              className="hv2"
+              onClick={n.go}
+              title={n.label + ' (drag to move)'}
+              aria-label={n.label}
+              style={{
+                all: 'unset',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+                width: '72px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                padding: '5px 2px',
+                borderRadius: 'var(--radius-md)',
+                color: n.color,
+                boxShadow: n.ring,
+                ...dnd.mark(n),
+              }}
+            >
+              {n.icon}
+              <span style={{ ...tiny, fontWeight: n.fw }}>{n.label}</span>
             </button>
           ))}
         </div>
       ))}
-      <button className="btn btn-ghost" onClick={vm.toggleTheme} title={vm.themeLabel} style={{ fontSize: "10px", marginTop: "auto", padding: "4px" }}>{String(vm.themeLabel).replace(/ mode$/i, "")}</button>
+      <button
+        className="btn btn-ghost"
+        onClick={vm.toggleTheme}
+        title={vm.themeLabel}
+        style={{ fontSize: '10px', marginTop: 'auto', padding: '4px' }}
+      >
+        {String(vm.themeLabel).replace(/ mode$/i, '')}
+      </button>
     </aside>
   );
 }
 
 export function AlmanacSidebar({ vm }: { vm: VM }) {
-  const dnd = useNavDnd(vm), ed = vm.navEdit;
+  const dnd = useNavDnd(vm),
+    ed = vm.navEdit;
   if (vm.navCollapsed) return <Rail vm={vm} />;
   return (
     <>
-      <aside style={{ width: "224px", flex: "none", display: "flex", flexDirection: "column", gap: "14px", padding: "18px 18px", background: "var(--color-surface)", borderRight: "1px solid var(--color-divider)", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}>
+      <aside
+        style={{
+          width: '224px',
+          flex: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          padding: '18px 18px',
+          background: 'var(--color-surface)',
+          borderRight: '1px solid var(--color-divider)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        }}
+      >
         <div>
-          <div style={{ marginBottom: "10px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             {vm.myLogo}
-            <button className="btn btn-ghost" onClick={vm.toggleNav} title="Collapse the menu to icons" aria-label="Collapse the menu" style={{ fontSize: "12px", padding: "2px 8px" }}>« Collapse</button>
+            <button
+              className="btn btn-ghost"
+              onClick={vm.toggleNav}
+              title="Collapse the menu to icons"
+              aria-label="Collapse the menu"
+              style={{ fontSize: '12px', padding: '2px 8px' }}
+            >
+              « Collapse
+            </button>
           </div>
-          <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
+          <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-accent-700)' }}>
             Basketball Manager
           </div>
-          <div style={{ fontFamily: "var(--font-heading)", fontSize: "25px", fontWeight: "600", lineHeight: "1.1", marginTop: "4px" }}>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '25px', fontWeight: '600', lineHeight: '1.1', marginTop: '4px' }}>
             {vm.myName}
           </div>
-          <div style={{ color: "var(--color-neutral-700)", marginTop: "2px" }}>
-            {vm.recordLine}
-          </div>
-          {!!vm.gmName && <div style={{ color: "var(--color-neutral-700)", fontSize: "12px", marginTop: "2px" }}>GM {vm.gmName}</div>}
+          <div style={{ color: 'var(--color-neutral-700)', marginTop: '2px' }}>{vm.recordLine}</div>
+          {!!vm.gmName && <div style={{ color: 'var(--color-neutral-700)', fontSize: '12px', marginTop: '2px' }}>GM {vm.gmName}</div>}
           {!!vm.switcher.show && (
-            <select className="input" aria-label="Switch team" value={vm.switcher.value} onChange={vm.switcher.set} style={{ marginTop: "6px", minHeight: "28px", fontSize: "12px", padding: "2px 6px" }}>
-              {vm.switcher.opts.map((o: any) => <option key={o.v} value={o.v}>{o.label}</option>)}
+            <select
+              className="input"
+              aria-label="Switch team"
+              value={vm.switcher.value}
+              onChange={vm.switcher.set}
+              style={{ marginTop: '6px', minHeight: '28px', fontSize: '12px', padding: '2px 6px' }}
+            >
+              {vm.switcher.opts.map((o: any) => (
+                <option key={o.v} value={o.v}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           )}
         </div>
         <LeagueMenu vm={vm} />
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <button className="btn btn-primary" onClick={vm.play1} disabled={vm.spec.on && vm.spec.running} style={{ width: "100%" }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <button className="btn btn-primary" onClick={vm.play1} disabled={vm.spec.on && vm.spec.running} style={{ width: '100%' }}>
             {vm.play1Label}
           </button>
-          <button className="btn btn-secondary" onClick={vm.play7} disabled={vm.spec.on && vm.spec.running} style={{ width: "100%" }}>
+          <button className="btn btn-secondary" onClick={vm.play7} disabled={vm.spec.on && vm.spec.running} style={{ width: '100%' }}>
             {vm.play7Label}
           </button>
-          {vm.spec.on && (vm.spec.running ? <button className="btn btn-secondary" onClick={vm.spec.stop} style={{ width: "100%" }}>■ Stop</button> : <button className="btn btn-ghost" onClick={vm.spec.pick} style={{ width: "100%" }}>Manage a team…</button>)}
+          {vm.spec.on &&
+            (vm.spec.running ? (
+              <button className="btn btn-secondary" onClick={vm.spec.stop} style={{ width: '100%' }}>
+                ■ Stop
+              </button>
+            ) : (
+              <button className="btn btn-ghost" onClick={vm.spec.pick} style={{ width: '100%' }}>
+                Manage a team…
+              </button>
+            ))}
         </div>
         {(vm.navGroups || []).map((g: any, i: number) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", borderTop: "2px solid var(--color-neutral-400)", paddingTop: "8px" }}>
-            <div {...dnd.group(g.label)} title="Drop a tab here to move it to the end of this section" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", padding: "0 0 4px", marginBottom: "2px", ...dnd.gmark(g.label) }}>
+          <div
+            key={i}
+            style={{ display: 'flex', flexDirection: 'column', borderTop: '2px solid var(--color-neutral-400)', paddingTop: '8px' }}
+          >
+            <div
+              {...dnd.group(g.label)}
+              title="Drop a tab here to move it to the end of this section"
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '.1em',
+                textTransform: 'uppercase',
+                color: 'var(--color-accent-700)',
+                padding: '0 0 4px',
+                marginBottom: '2px',
+                ...dnd.gmark(g.label),
+              }}
+            >
               {g.label}
             </div>
             {(g.items || []).map((n: any, i: number) => (
-              <div key={n.key} {...dnd.item(n)} style={{ display: "flex", alignItems: "center", gap: "2px", ...dnd.mark(n) }}>
-                <button className="hv1" onClick={n.go} title="Drag to move this tab" style={{ all: "unset", boxSizing: "border-box", flex: 1, minWidth: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", padding: "4px 0", fontFamily: "var(--font-body)", fontSize: "14px", fontWeight: n.fw === 600 ? 600 : 500, color: n.color }}>
-                  <span style={{ width: "5px", height: "5px", transform: "rotate(45deg)", background: n.dot, flex: "none" }}></span>
+              <div key={n.key} {...dnd.item(n)} style={{ display: 'flex', alignItems: 'center', gap: '2px', ...dnd.mark(n) }}>
+                <button
+                  className="hv1"
+                  onClick={n.go}
+                  title="Drag to move this tab"
+                  style={{
+                    all: 'unset',
+                    boxSizing: 'border-box',
+                    flex: 1,
+                    minWidth: 0,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '4px 0',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '14px',
+                    fontWeight: n.fw === 600 ? 600 : 500,
+                    color: n.color,
+                  }}
+                >
+                  <span style={{ width: '5px', height: '5px', transform: 'rotate(45deg)', background: n.dot, flex: 'none' }}></span>
                   {n.label}
                 </button>
-                {ed.arrange && <>
-                  <button className="btn btn-ghost" onClick={() => ed.step(n.key, -1)} aria-label={'Move ' + n.label + ' up'} title="Move up" style={{ padding: "0 5px", fontSize: "11px", minHeight: 0 }}>▲</button>
-                  <button className="btn btn-ghost" onClick={() => ed.step(n.key, 1)} aria-label={'Move ' + n.label + ' down'} title="Move down" style={{ padding: "0 5px", fontSize: "11px", minHeight: 0 }}>▼</button>
-                </>}
+                {ed.arrange && (
+                  <>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => ed.step(n.key, -1)}
+                      aria-label={'Move ' + n.label + ' up'}
+                      title="Move up"
+                      style={{ padding: '0 5px', fontSize: '11px', minHeight: 0 }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => ed.step(n.key, 1)}
+                      aria-label={'Move ' + n.label + ' down'}
+                      title="Move down"
+                      style={{ padding: '0 5px', fontSize: '11px', minHeight: 0 }}
+                    >
+                      ▼
+                    </button>
+                  </>
+                )}
               </div>
             ))}
           </div>
         ))}
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px" }}>
-          {ed.arrange && <span style={{ color: "var(--color-neutral-700)", fontSize: "11.5px" }}>Drag any tab, or use the arrows. Drop a tab on a section title to move it to the end of that section.</span>}
-          <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            <button className="btn btn-ghost" onClick={ed.toggleArrange} title="Reorder the menu: drag tabs anywhere, or use arrows" style={{ fontSize: "12px", padding: "2px 6px" }}>{ed.arrange ? "Done arranging" : "Arrange menu"}</button>
-            {ed.custom && <button className="btn btn-ghost" onClick={ed.reset} title="Put every tab back where it started" style={{ fontSize: "12px", padding: "2px 6px" }}>Reset menu</button>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px' }}>
+          {ed.arrange && (
+            <span style={{ color: 'var(--color-neutral-700)', fontSize: '11.5px' }}>
+              Drag any tab, or use the arrows. Drop a tab on a section title to move it to the end of that section.
+            </span>
+          )}
+          <span style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-ghost"
+              onClick={ed.toggleArrange}
+              title="Reorder the menu: drag tabs anywhere, or use arrows"
+              style={{ fontSize: '12px', padding: '2px 6px' }}
+            >
+              {ed.arrange ? 'Done arranging' : 'Arrange menu'}
+            </button>
+            {ed.custom && (
+              <button
+                className="btn btn-ghost"
+                onClick={ed.reset}
+                title="Put every tab back where it started"
+                style={{ fontSize: '12px', padding: '2px 6px' }}
+              >
+                Reset menu
+              </button>
+            )}
           </span>
         </div>
-        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px", color: "var(--color-neutral-700)", fontSize: "12px" }}>
-          <span>
-            {vm.dateLong}
-          </span>
-          <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ fontSize: "12px", paddingLeft: "0" }}>
+        <div
+          style={{
+            marginTop: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '4px',
+            color: 'var(--color-neutral-700)',
+            fontSize: '12px',
+          }}
+        >
+          <span>{vm.dateLong}</span>
+          <button className="btn btn-ghost" onClick={vm.toggleTheme} style={{ fontSize: '12px', paddingLeft: '0' }}>
             {vm.themeLabel}
           </button>
         </div>

@@ -12,12 +12,30 @@ const W = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 1, 1, 1, 1];
 
 export function teamRating(P: Record<number, any>, ids: number[]) {
   const o = ids.map(id => P[id]?.ovr ?? 0).sort((a, b) => b - a);
-  let a = 0, w = 0; o.forEach((v, i) => { const k = W[i] ?? 0; a += v * k; w += k; });
+  let a = 0,
+    w = 0;
+  o.forEach((v, i) => {
+    const k = W[i] ?? 0;
+    a += v * k;
+    w += k;
+  });
   return w ? +(a / w).toFixed(1) : 0;
 }
 
-export interface Badge { key: string; name: string; desc: string; tier: number; tierName: string; color: string }
-export const TIERS: [string, string][] = [['Bronze', '#c08a55'], ['Silver', '#b9c3cf'], ['Gold', 'oklch(0.86 0.14 85)'], ['Hall of Fame', '#b99cff']];
+export interface Badge {
+  key: string;
+  name: string;
+  desc: string;
+  tier: number;
+  tierName: string;
+  color: string;
+}
+export const TIERS: [string, string][] = [
+  ['Bronze', '#c08a55'],
+  ['Silver', '#b9c3cf'],
+  ['Gold', 'oklch(0.86 0.14 85)'],
+  ['Hall of Fame', '#b99cff'],
+];
 
 type Def = [string, string, string, (p: any) => number | null, number?];
 // [key, name, what it means, value (null = not eligible), threshold]. Every badge comes from ratings (or
@@ -26,7 +44,13 @@ const DEFS: Def[] = [
   ['sniper', 'Sniper', 'Knocks down threes at a high clip', p => p.r.tp, 64],
   ['stretch', 'Stretch Big', 'A big who pulls centers out to the three-point line', p => (p.grp === 'B' ? p.r.tp + 10 : null), 64],
   ['midrange', 'Mid-Range Maestro', 'Lethal pull-ups and turnarounds from 10–20 feet', p => p.r.fg, 64],
-  ['tough', 'Tough Shot Maker', 'Contested, off-balance, off-the-glass: makes the shots nobody else can', p => (p.r.drb >= 70 ? (p.r.drb + p.r.fg + p.r.ins) / 3 + 4 : null), 64],
+  [
+    'tough',
+    'Tough Shot Maker',
+    'Contested, off-balance, off-the-glass: makes the shots nobody else can',
+    p => (p.r.drb >= 70 ? (p.r.drb + p.r.fg + p.r.ins) / 3 + 4 : null),
+    64,
+  ],
   ['handles', 'Ankle Breaker', 'Elite handle that shakes defenders loose', p => p.r.drb, 68],
   ['flyer', 'High Flyer', 'Finishes above the rim', p => (p.r.jmp + p.r.dnk) / 2, 66],
   ['fast', 'Speed Demon', 'The fastest end-to-end players in the league', p => p.r.spd, 70],
@@ -34,19 +58,47 @@ const DEFS: Def[] = [
   ['finisher', 'Crafty Finisher', 'Scoops, floaters and reverses: finishes around the rim without dunking', p => p.r.lay ?? null, 68],
   ['general', 'Floor General', 'Runs the offense and finds the open man', p => (p.r.pss + p.r.oiq) / 2, 64],
   ['lockdown', 'Perimeter Lockdown', 'Smothers ball handlers and wings', p => (p.grp !== 'B' ? p.r.diq * 0.6 + p.r.spd * 0.4 : null), 62],
-  ['rim', 'Rim Protector', 'Walls off the paint and blocks shots', p => (p.grp !== 'G' ? (p.r.blk ?? p.r.hgt) * 0.5 + p.r.diq * 0.3 + p.r.hgt * 0.2 : null), 62],
+  [
+    'rim',
+    'Rim Protector',
+    'Walls off the paint and blocks shots',
+    p => (p.grp !== 'G' ? (p.r.blk ?? p.r.hgt) * 0.5 + p.r.diq * 0.3 + p.r.hgt * 0.2 : null),
+    62,
+  ],
   ['swat', 'Shot Swatter', 'Sends shots into the stands', p => p.r.blk ?? null, 72],
   ['pickpocket', 'Pickpocket', 'Jumps passing lanes and strips ball handlers', p => p.r.stl ?? null, 68],
-  ['anchor', 'Defensive Anchor', 'Always in the right spot: rotates on time, walls off drives, never gets caught out of position', p => p.r.diq, 70],
+  [
+    'anchor',
+    'Defensive Anchor',
+    'Always in the right spot: rotates on time, walls off drives, never gets caught out of position',
+    p => p.r.diq,
+    70,
+  ],
   ['wall', 'Brick Wall', 'Bone-rattling screens and an immovable post', p => p.r.stre, 70],
   ['glass', 'Glass Cleaner', 'Owns the boards at both ends', p => p.r.reb, 66],
   ['boxout', 'Box-Out Beast', 'Seals his man every possession so teammates grab the rebound', p => p.r.box ?? null, 70],
-  ['length', 'Condor', 'Freakish wingspan: contests shots and passing lanes other players can’t reach', p => { const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/), h = m ? +m[1] * 12 + +m[2] : 0; return p.wing && h ? 58 + (p.wing - h) * 2 : null; }, 72],
+  [
+    'length',
+    'Condor',
+    'Freakish wingspan: contests shots and passing lanes other players can’t reach',
+    p => {
+      const m = String(p.hgt || '').match(/(\d+)\D+(\d+)/),
+        h = m ? +m[1] * 12 + +m[2] : 0;
+      return p.wing && h ? 58 + (p.wing - h) * 2 : null;
+    },
+    72,
+  ],
   ['post', 'Post Scorer', 'Scores with his back to the basket', p => p.r.ins, 66],
   ['ft', 'Free Throw Ace', 'Automatic at the line', p => p.r.ft, 74],
   ['iron', 'Iron Man', 'Never tires; plays heavy minutes night after night', p => p.r.endu, 72],
   ['iq', 'Basketball Genius', 'Always in the right spot on both ends', p => (p.r.oiq + p.r.diq) / 2, 66],
-  ['clutch', 'Clutch Gene', 'Wants the last shot, and has the poise and touch to make it', p => (p.pers?.clutch ? (p.intg?.poise ?? 50) * 0.45 + ((p.r.fg + p.r.ft) / 2) * 0.35 + p.r.oiq * 0.2 : null), 64],
+  [
+    'clutch',
+    'Clutch Gene',
+    'Wants the last shot, and has the poise and touch to make it',
+    p => (p.pers?.clutch ? (p.intg?.poise ?? 50) * 0.45 + ((p.r.fg + p.r.ft) / 2) * 0.35 + p.r.oiq * 0.2 : null),
+    64,
+  ],
 ];
 
 // A line of flavor for each badge: what it looks like on the floor.
@@ -83,8 +135,20 @@ export const BADGE_SHIFT = 4;
 export function badgesOf(p: any): Badge[] {
   if (!p?.r) return [];
   const out: (Badge & { m: number })[] = [];
-    DEFS.forEach(([key, name, desc, f, th0 = 72]) => { const th = th0 + BADGE_SHIFT, v = f(p); if (v == null || v < th) return; const m = v - th, tier = Math.min(3, Math.floor(m / 6)); out.push({ key, name, desc, tier, tierName: TIERS[tier][0], color: TIERS[tier][1], m }); });
-  return out.sort((a, b) => b.tier - a.tier || b.m - a.m).map(({ m, ...b }) => { void m; return b; });
+  DEFS.forEach(([key, name, desc, f, th0 = 72]) => {
+    const th = th0 + BADGE_SHIFT,
+      v = f(p);
+    if (v == null || v < th) return;
+    const m = v - th,
+      tier = Math.min(3, Math.floor(m / 6));
+    out.push({ key, name, desc, tier, tierName: TIERS[tier][0], color: TIERS[tier][1], m });
+  });
+  return out
+    .sort((a, b) => b.tier - a.tier || b.m - a.m)
+    .map(({ m, ...b }) => {
+      void m;
+      return b;
+    });
 }
 export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }));
 
@@ -110,54 +174,562 @@ export const BADGE_LIST = DEFS.map(d => ({ key: d[0], name: d[1], desc: d[2] }))
 // 1% → 6%, a wing's speed 3.5% → 9%; Feel 6 for every group. OVR_ADJ keeps each group's average overall where it was
 // (half of all overalls move under 0.7, 5% more than 1.5). OVR_W_V6 / FEEL_W_V6 / OVR_ADJ_V7 are the weights before.
 const OVR_W_V7: Record<string, Record<string, number>> = {
-  G: { hgt: 8, stre: 2, spd: 5, acc: 7, jmp: 1, endu: 6.5, ins: 1.5, dnk: 1, lay: 1.5, ft: 2, fg: 1, tp: 7.5, oiq: 9, diq: 17, blk: 1, stl: 5, drb: 5.5, pss: 8.5, reb: 7.5, box: 1 },
-  W: { hgt: 14.5, stre: 1, spd: 9, acc: 7.5, jmp: 2, endu: 6.5, ins: 5, dnk: 4, lay: 1, ft: 1, fg: 1.5, tp: 6, oiq: 7.5, diq: 13, blk: 3, stl: 1.5, drb: 3.5, pss: 2.5, reb: 3.5, box: 6 },
-  B: { hgt: 20, stre: 3, spd: 5.5, acc: 5.5, jmp: 6, endu: 8.5, ins: 1, dnk: 1, lay: 1, ft: 1, fg: 1, tp: 5.5, oiq: 3, diq: 16, blk: 6, stl: 2, drb: 5, pss: 3.5, reb: 4.5, box: 1 },
+  G: {
+    hgt: 8,
+    stre: 2,
+    spd: 5,
+    acc: 7,
+    jmp: 1,
+    endu: 6.5,
+    ins: 1.5,
+    dnk: 1,
+    lay: 1.5,
+    ft: 2,
+    fg: 1,
+    tp: 7.5,
+    oiq: 9,
+    diq: 17,
+    blk: 1,
+    stl: 5,
+    drb: 5.5,
+    pss: 8.5,
+    reb: 7.5,
+    box: 1,
+  },
+  W: {
+    hgt: 14.5,
+    stre: 1,
+    spd: 9,
+    acc: 7.5,
+    jmp: 2,
+    endu: 6.5,
+    ins: 5,
+    dnk: 4,
+    lay: 1,
+    ft: 1,
+    fg: 1.5,
+    tp: 6,
+    oiq: 7.5,
+    diq: 13,
+    blk: 3,
+    stl: 1.5,
+    drb: 3.5,
+    pss: 2.5,
+    reb: 3.5,
+    box: 6,
+  },
+  B: {
+    hgt: 20,
+    stre: 3,
+    spd: 5.5,
+    acc: 5.5,
+    jmp: 6,
+    endu: 8.5,
+    ins: 1,
+    dnk: 1,
+    lay: 1,
+    ft: 1,
+    fg: 1,
+    tp: 5.5,
+    oiq: 3,
+    diq: 16,
+    blk: 6,
+    stl: 2,
+    drb: 5,
+    pss: 3.5,
+    reb: 4.5,
+    box: 1,
+  },
 };
 // 75,000 controlled games with shot access, help defense, and type-specific finishing.
 // Blend 60% measured positional shares with 40% of the previous shares.
 export const OVR_W: Record<string, Record<string, number>> = {
-  G: { hgt: 8.1, stre: 1.5, spd: 6.5, acc: 7.7, jmp: 2.3, endu: 4.6, ins: 1.3, dnk: 1, lay: 5.1, ft: 1.5, fg: 2.7, tp: 6.9, oiq: 10.4, diq: 13.7, blk: 1.4, stl: 4.3, drb: 6.4, pss: 6, reb: 4.7, box: 3.9 },
-  W: { hgt: 16.3, stre: 1, spd: 8.4, acc: 8.1, jmp: 1.4, endu: 7.1, ins: 2.6, dnk: 2.2, lay: 1, ft: 1.4, fg: 2.8, tp: 5.6, oiq: 6.2, diq: 11.9, blk: 6, stl: 2.2, drb: 4.9, pss: 5.5, reb: 2, box: 3.4 },
-  B: { hgt: 18, stre: 2.5, spd: 3.8, acc: 6.4, jmp: 5.3, endu: 5.7, ins: 1.1, dnk: 1.1, lay: 1.1, ft: 1.1, fg: 1.7, tp: 7.1, oiq: 5.4, diq: 15.2, blk: 7.6, stl: 2.8, drb: 3.6, pss: 4.7, reb: 4.4, box: 1.4 },
+  G: {
+    hgt: 8.1,
+    stre: 1.5,
+    spd: 6.5,
+    acc: 7.7,
+    jmp: 2.3,
+    endu: 4.6,
+    ins: 1.3,
+    dnk: 1,
+    lay: 5.1,
+    ft: 1.5,
+    fg: 2.7,
+    tp: 6.9,
+    oiq: 10.4,
+    diq: 13.7,
+    blk: 1.4,
+    stl: 4.3,
+    drb: 6.4,
+    pss: 6,
+    reb: 4.7,
+    box: 3.9,
+  },
+  W: {
+    hgt: 16.3,
+    stre: 1,
+    spd: 8.4,
+    acc: 8.1,
+    jmp: 1.4,
+    endu: 7.1,
+    ins: 2.6,
+    dnk: 2.2,
+    lay: 1,
+    ft: 1.4,
+    fg: 2.8,
+    tp: 5.6,
+    oiq: 6.2,
+    diq: 11.9,
+    blk: 6,
+    stl: 2.2,
+    drb: 4.9,
+    pss: 5.5,
+    reb: 2,
+    box: 3.4,
+  },
+  B: {
+    hgt: 18,
+    stre: 2.5,
+    spd: 3.8,
+    acc: 6.4,
+    jmp: 5.3,
+    endu: 5.7,
+    ins: 1.1,
+    dnk: 1.1,
+    lay: 1.1,
+    ft: 1.1,
+    fg: 1.7,
+    tp: 7.1,
+    oiq: 5.4,
+    diq: 15.2,
+    blk: 7.6,
+    stl: 2.8,
+    drb: 3.6,
+    pss: 4.7,
+    reb: 4.4,
+    box: 1.4,
+  },
 };
 // Before the 2026-11-01 measurement (with FEEL_W_V6 and OVR_ADJ_V7), for the save migration (Game.load iqV 7):
 export const OVR_W_V6: Record<string, Record<string, number>> = {
-  G: { hgt: 9, stre: 1, spd: 4.5, acc: 7.5, jmp: 1.5, endu: 7.5, ins: 1, dnk: 1.5, lay: 1.5, ft: 3.5, fg: 2.5, tp: 8, oiq: 10, diq: 17.5, blk: 1, stl: 1, drb: 8.5, pss: 3, reb: 5.5, box: 2 },
-  W: { hgt: 10, stre: 1, spd: 3.5, acc: 6, jmp: 2, endu: 6, ins: 2, dnk: 1.5, lay: 1.5, ft: 4, fg: 3, tp: 7, oiq: 8, diq: 18, blk: 1.5, stl: 1, drb: 7.5, pss: 2, reb: 6.5, box: 3 },
-  B: { hgt: 16, stre: 1, spd: 1, acc: 4, jmp: 3.5, endu: 6.5, ins: 1.5, dnk: 1.5, lay: 2, ft: 4, fg: 1.5, tp: 5, oiq: 9, diq: 22.5, blk: 1, stl: 1, drb: 5.5, pss: 1.5, reb: 4.5, box: 3 },
+  G: {
+    hgt: 9,
+    stre: 1,
+    spd: 4.5,
+    acc: 7.5,
+    jmp: 1.5,
+    endu: 7.5,
+    ins: 1,
+    dnk: 1.5,
+    lay: 1.5,
+    ft: 3.5,
+    fg: 2.5,
+    tp: 8,
+    oiq: 10,
+    diq: 17.5,
+    blk: 1,
+    stl: 1,
+    drb: 8.5,
+    pss: 3,
+    reb: 5.5,
+    box: 2,
+  },
+  W: {
+    hgt: 10,
+    stre: 1,
+    spd: 3.5,
+    acc: 6,
+    jmp: 2,
+    endu: 6,
+    ins: 2,
+    dnk: 1.5,
+    lay: 1.5,
+    ft: 4,
+    fg: 3,
+    tp: 7,
+    oiq: 8,
+    diq: 18,
+    blk: 1.5,
+    stl: 1,
+    drb: 7.5,
+    pss: 2,
+    reb: 6.5,
+    box: 3,
+  },
+  B: {
+    hgt: 16,
+    stre: 1,
+    spd: 1,
+    acc: 4,
+    jmp: 3.5,
+    endu: 6.5,
+    ins: 1.5,
+    dnk: 1.5,
+    lay: 2,
+    ft: 4,
+    fg: 1.5,
+    tp: 5,
+    oiq: 9,
+    diq: 22.5,
+    blk: 1,
+    stl: 1,
+    drb: 5.5,
+    pss: 1.5,
+    reb: 4.5,
+    box: 3,
+  },
 };
 // Before shot creation (2026-10-23; with FEEL_W_V5 and OVR_ADJ_V6), for the save migration (Game.load iqV 6):
 export const OVR_W_V5: Record<string, Record<string, number>> = {
-  G: { hgt: 12.5, stre: 1, spd: 3, acc: 4.5, jmp: 2.5, endu: 7.5, ins: 1, dnk: 1, lay: 1, ft: 3.5, fg: 1, tp: 8, oiq: 7.5, diq: 22.5, blk: 1, stl: 1, drb: 1, pss: 3.5, reb: 10.5, box: 6.5 },
-  W: { hgt: 15, stre: 1, spd: 2, acc: 3.5, jmp: 3.5, endu: 8.5, ins: 1, dnk: 1, lay: 2, ft: 4.5, fg: 1, tp: 8, oiq: 9, diq: 21, blk: 1, stl: 1, drb: 3, pss: 1, reb: 9, box: 4 },
-  B: { hgt: 18, stre: 1, spd: 1, acc: 3, jmp: 3, endu: 6.5, ins: 2, dnk: 1, lay: 1, ft: 4.5, fg: 2, tp: 4, oiq: 8, diq: 23, blk: 1, stl: 1, drb: 3.5, pss: 2.5, reb: 9, box: 5.5 },
+  G: {
+    hgt: 12.5,
+    stre: 1,
+    spd: 3,
+    acc: 4.5,
+    jmp: 2.5,
+    endu: 7.5,
+    ins: 1,
+    dnk: 1,
+    lay: 1,
+    ft: 3.5,
+    fg: 1,
+    tp: 8,
+    oiq: 7.5,
+    diq: 22.5,
+    blk: 1,
+    stl: 1,
+    drb: 1,
+    pss: 3.5,
+    reb: 10.5,
+    box: 6.5,
+  },
+  W: {
+    hgt: 15,
+    stre: 1,
+    spd: 2,
+    acc: 3.5,
+    jmp: 3.5,
+    endu: 8.5,
+    ins: 1,
+    dnk: 1,
+    lay: 2,
+    ft: 4.5,
+    fg: 1,
+    tp: 8,
+    oiq: 9,
+    diq: 21,
+    blk: 1,
+    stl: 1,
+    drb: 3,
+    pss: 1,
+    reb: 9,
+    box: 4,
+  },
+  B: {
+    hgt: 18,
+    stre: 1,
+    spd: 1,
+    acc: 3,
+    jmp: 3,
+    endu: 6.5,
+    ins: 2,
+    dnk: 1,
+    lay: 1,
+    ft: 4.5,
+    fg: 2,
+    tp: 4,
+    oiq: 8,
+    diq: 23,
+    blk: 1,
+    stl: 1,
+    drb: 3.5,
+    pss: 2.5,
+    reb: 9,
+    box: 5.5,
+  },
 };
 // Before the 2026-10-16 engine-measured weights:
 export const OVR_W_V4: Record<string, Record<string, number>> = {
-  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .95, ins: .3, dnk: .4, lay: .95, ft: .45, fg: .95, tp: 1.3, oiq: 2.6, diq: 1.95, blk: .12, stl: .45, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .95, ins: .55, dnk: .65, lay: .78, ft: .45, fg: .95, tp: 1.2, oiq: 2.25, diq: 2.35, blk: .3, stl: .45, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .95, ins: 1.3, dnk: .88, lay: .65, ft: .4, fg: .55, tp: .45, oiq: 1.8, diq: 2.45, blk: .75, stl: .22, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: {
+    hgt: 2.6,
+    stre: 0.5,
+    spd: 1.5,
+    acc: 1.5,
+    jmp: 0.8,
+    endu: 0.95,
+    ins: 0.3,
+    dnk: 0.4,
+    lay: 0.95,
+    ft: 0.45,
+    fg: 0.95,
+    tp: 1.3,
+    oiq: 2.6,
+    diq: 1.95,
+    blk: 0.12,
+    stl: 0.45,
+    drb: 1.8,
+    pss: 1.8,
+    reb: 0.4,
+    box: 0.3,
+  },
+  W: {
+    hgt: 2.2,
+    stre: 0.8,
+    spd: 1.2,
+    acc: 1.1,
+    jmp: 1,
+    endu: 0.95,
+    ins: 0.55,
+    dnk: 0.65,
+    lay: 0.78,
+    ft: 0.45,
+    fg: 0.95,
+    tp: 1.2,
+    oiq: 2.25,
+    diq: 2.35,
+    blk: 0.3,
+    stl: 0.45,
+    drb: 1.1,
+    pss: 1,
+    reb: 0.8,
+    box: 0.6,
+  },
+  B: {
+    hgt: 2.6,
+    stre: 1.4,
+    spd: 0.6,
+    acc: 0.5,
+    jmp: 1.1,
+    endu: 0.95,
+    ins: 1.3,
+    dnk: 0.88,
+    lay: 0.65,
+    ft: 0.4,
+    fg: 0.55,
+    tp: 0.45,
+    oiq: 1.8,
+    diq: 2.45,
+    blk: 0.75,
+    stl: 0.22,
+    drb: 0.4,
+    pss: 0.7,
+    reb: 1.7,
+    box: 1.3,
+  },
 };
 // Before endurance counted for more (2026-10-15, endu .6 → .95):
 export const OVR_W_V3: Record<string, Record<string, number>> = {
-  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .3, dnk: .4, lay: .95, ft: .45, fg: .95, tp: 1.3, oiq: 2.6, diq: 1.95, blk: .12, stl: .45, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .55, dnk: .65, lay: .78, ft: .45, fg: .95, tp: 1.2, oiq: 2.25, diq: 2.35, blk: .3, stl: .45, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.3, dnk: .88, lay: .65, ft: .4, fg: .55, tp: .45, oiq: 1.8, diq: 2.45, blk: .75, stl: .22, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: {
+    hgt: 2.6,
+    stre: 0.5,
+    spd: 1.5,
+    acc: 1.5,
+    jmp: 0.8,
+    endu: 0.6,
+    ins: 0.3,
+    dnk: 0.4,
+    lay: 0.95,
+    ft: 0.45,
+    fg: 0.95,
+    tp: 1.3,
+    oiq: 2.6,
+    diq: 1.95,
+    blk: 0.12,
+    stl: 0.45,
+    drb: 1.8,
+    pss: 1.8,
+    reb: 0.4,
+    box: 0.3,
+  },
+  W: {
+    hgt: 2.2,
+    stre: 0.8,
+    spd: 1.2,
+    acc: 1.1,
+    jmp: 1,
+    endu: 0.6,
+    ins: 0.55,
+    dnk: 0.65,
+    lay: 0.78,
+    ft: 0.45,
+    fg: 0.95,
+    tp: 1.2,
+    oiq: 2.25,
+    diq: 2.35,
+    blk: 0.3,
+    stl: 0.45,
+    drb: 1.1,
+    pss: 1,
+    reb: 0.8,
+    box: 0.6,
+  },
+  B: {
+    hgt: 2.6,
+    stre: 1.4,
+    spd: 0.6,
+    acc: 0.5,
+    jmp: 1.1,
+    endu: 0.6,
+    ins: 1.3,
+    dnk: 0.88,
+    lay: 0.65,
+    ft: 0.4,
+    fg: 0.55,
+    tp: 0.45,
+    oiq: 1.8,
+    diq: 2.45,
+    blk: 0.75,
+    stl: 0.22,
+    drb: 0.4,
+    pss: 0.7,
+    reb: 1.7,
+    box: 1.3,
+  },
 };
 export const OVR_W_V2: Record<string, Record<string, number>> = {
-  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .35, dnk: .45, lay: 1.05, ft: .5, fg: 1.05, tp: 1.4, oiq: 2.2, diq: 1.6, blk: .15, stl: .5, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .6, dnk: .7, lay: .85, ft: .5, fg: 1.05, tp: 1.3, oiq: 1.9, diq: 2.0, blk: .35, stl: .5, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.4, dnk: .95, lay: .7, ft: .45, fg: .6, tp: .5, oiq: 1.5, diq: 2.1, blk: .85, stl: .25, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: {
+    hgt: 2.6,
+    stre: 0.5,
+    spd: 1.5,
+    acc: 1.5,
+    jmp: 0.8,
+    endu: 0.6,
+    ins: 0.35,
+    dnk: 0.45,
+    lay: 1.05,
+    ft: 0.5,
+    fg: 1.05,
+    tp: 1.4,
+    oiq: 2.2,
+    diq: 1.6,
+    blk: 0.15,
+    stl: 0.5,
+    drb: 1.8,
+    pss: 1.8,
+    reb: 0.4,
+    box: 0.3,
+  },
+  W: {
+    hgt: 2.2,
+    stre: 0.8,
+    spd: 1.2,
+    acc: 1.1,
+    jmp: 1,
+    endu: 0.6,
+    ins: 0.6,
+    dnk: 0.7,
+    lay: 0.85,
+    ft: 0.5,
+    fg: 1.05,
+    tp: 1.3,
+    oiq: 1.9,
+    diq: 2.0,
+    blk: 0.35,
+    stl: 0.5,
+    drb: 1.1,
+    pss: 1,
+    reb: 0.8,
+    box: 0.6,
+  },
+  B: {
+    hgt: 2.6,
+    stre: 1.4,
+    spd: 0.6,
+    acc: 0.5,
+    jmp: 1.1,
+    endu: 0.6,
+    ins: 1.4,
+    dnk: 0.95,
+    lay: 0.7,
+    ft: 0.45,
+    fg: 0.6,
+    tp: 0.5,
+    oiq: 1.5,
+    diq: 2.1,
+    blk: 0.85,
+    stl: 0.25,
+    drb: 0.4,
+    pss: 0.7,
+    reb: 1.7,
+    box: 1.3,
+  },
 };
 export const OVR_W_V1: Record<string, Record<string, number>> = {
-  G: { hgt: 2.6, stre: .5, spd: 1.5, acc: 1.5, jmp: .8, endu: .6, ins: .4, dnk: .5, lay: 1.2, ft: .6, fg: 1.2, tp: 1.6, oiq: 1.6, diq: 1.1, blk: .2, stl: .6, drb: 1.8, pss: 1.8, reb: .4, box: .3 },
-  W: { hgt: 2.2, stre: .8, spd: 1.2, acc: 1.1, jmp: 1, endu: .6, ins: .7, dnk: .8, lay: 1, ft: .6, fg: 1.2, tp: 1.5, oiq: 1.4, diq: 1.5, blk: .4, stl: .6, drb: 1.1, pss: 1, reb: .8, box: .6 },
-  B: { hgt: 2.6, stre: 1.4, spd: .6, acc: .5, jmp: 1.1, endu: .6, ins: 1.6, dnk: 1.1, lay: .8, ft: .5, fg: .7, tp: .6, oiq: 1.1, diq: 1.6, blk: 1, stl: .3, drb: .4, pss: .7, reb: 1.7, box: 1.3 },
+  G: {
+    hgt: 2.6,
+    stre: 0.5,
+    spd: 1.5,
+    acc: 1.5,
+    jmp: 0.8,
+    endu: 0.6,
+    ins: 0.4,
+    dnk: 0.5,
+    lay: 1.2,
+    ft: 0.6,
+    fg: 1.2,
+    tp: 1.6,
+    oiq: 1.6,
+    diq: 1.1,
+    blk: 0.2,
+    stl: 0.6,
+    drb: 1.8,
+    pss: 1.8,
+    reb: 0.4,
+    box: 0.3,
+  },
+  W: {
+    hgt: 2.2,
+    stre: 0.8,
+    spd: 1.2,
+    acc: 1.1,
+    jmp: 1,
+    endu: 0.6,
+    ins: 0.7,
+    dnk: 0.8,
+    lay: 1,
+    ft: 0.6,
+    fg: 1.2,
+    tp: 1.5,
+    oiq: 1.4,
+    diq: 1.5,
+    blk: 0.4,
+    stl: 0.6,
+    drb: 1.1,
+    pss: 1,
+    reb: 0.8,
+    box: 0.6,
+  },
+  B: {
+    hgt: 2.6,
+    stre: 1.4,
+    spd: 0.6,
+    acc: 0.5,
+    jmp: 1.1,
+    endu: 0.6,
+    ins: 1.6,
+    dnk: 1.1,
+    lay: 0.8,
+    ft: 0.5,
+    fg: 0.7,
+    tp: 0.6,
+    oiq: 1.1,
+    diq: 1.6,
+    blk: 1,
+    stl: 0.3,
+    drb: 0.4,
+    pss: 0.7,
+    reb: 1.7,
+    box: 1.3,
+  },
 };
 export const OVR_ADJ_V1: Record<string, number> = { G: 1.76, W: 1.74, B: 4.76 };
 export const OVR_ADJ_V2: Record<string, number> = { G: 1.65, W: 1.68, B: 4.58 };
-export const ovrShare = (grp: string, k: string) => { const W = OVR_W[grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[grp] ?? 2.5); return (W[k] ?? 0) / tot; };
+export const ovrShare = (grp: string, k: string) => {
+  const W = OVR_W[grp] || OVR_W.W,
+    tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[grp] ?? 2.5);
+  return (W[k] ?? 0) / tot;
+};
 // The overall IS the skills: a position-weighted average of every rating (a guard's handle counts
 // far more than a center's), plus his wingspan, on a scale shared by all positions. Bigs naturally
 // rate high in size skills and guards in speed and handle, so each position has a set adjustment
@@ -185,8 +757,16 @@ export function decisionOverall(p: any): number {
 }
 
 function weightedOverall(p: any, weights: typeof OVR_W, feel: typeof FEEL_W, adjustment: typeof OVR_ADJ): number {
-  const W = weights[p.grp] || weights.W, fw = feel[p.grp] ?? 2.5; let a = fw * (p.intg?.feel ?? 50), t = fw;
-  for (const k in W) { const v = p.r?.[k]; if (v == null) continue; a += W[k] * (v + ((p.rx || {})[k] || 0)); t += W[k]; }
+  const W = weights[p.grp] || weights.W,
+    fw = feel[p.grp] ?? 2.5;
+  let a = fw * (p.intg?.feel ?? 50),
+    t = fw;
+  for (const k in W) {
+    const v = p.r?.[k];
+    if (v == null) continue;
+    a += W[k] * (v + ((p.rx || {})[k] || 0));
+    t += W[k];
+  }
   return Math.max(1, Math.min(100, (t ? a / t : 50) + wngBonus(p) - (adjustment[p.grp] ?? 2.5)));
 }
 
@@ -203,20 +783,35 @@ export const overallWith = (p: any, w: OvrWeights) => weightedOverall(p, w.W, w.
 // same amount (edits); growth toward the ceiling leaves it alone.
 export function syncOvr(p: any, movePot = false) {
   if (!p?.r) return 0;
-  const e = ovrExact(p), o = Math.round(e), d = o - p.ovr;
-  p.ovr = o; p.ox = +(e - o).toFixed(3); p.ovrF = e;
+  const e = ovrExact(p),
+    o = Math.round(e),
+    d = o - p.ovr;
+  p.ovr = o;
+  p.ox = +(e - o).toFixed(3);
+  p.ovrF = e;
   if (movePot && d) p.pot = Math.min(100, p.pot + d);
   if (p.pot < p.ovr) p.pot = p.ovr;
   return d;
 }
 // Kept for older callers: the overall now follows the ratings exactly.
-export function nudgeOvr(p: any, _d: number) { syncOvr(p, true); }
-export function setRating(p: any, k: string, v: number) { p.r[k] = v; syncOvr(p, true); }
+export function nudgeOvr(p: any, _d: number) {
+  syncOvr(p, true);
+}
+export function setRating(p: any, k: string, v: number) {
+  p.r[k] = v;
+  syncOvr(p, true);
+}
 // Set the overall directly (God Mode): every skill but height moves by the same amount until the
 // overall lands there (a few passes, since ratings stop at 1 and 100).
 export function setOverall(p: any, v: number) {
   const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
-  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(RMAX, Math.round(p.r[k] + d * f))); }); }
+  for (let i = 0; i < 6; i++) {
+    const d = v - ovrExact(p);
+    if (Math.abs(d) < 0.5) break;
+    Object.keys(p.r).forEach(k => {
+      if (k !== 'hgt') p.r[k] = Math.max(1, Math.min(RMAX, Math.round(p.r[k] + d * f)));
+    });
+  }
   syncOvr(p, true);
 }
 
@@ -224,7 +819,14 @@ export function setOverall(p: any, v: number) {
 // floor kept; the ceiling isn't touched (callers set it).
 export function shiftOvr(p: any, v: number) {
   const f = 1 / Math.max(0.5, 1 - ovrShare(p.grp, 'hgt'));
-  for (let i = 0; i < 6; i++) { const d = v - ovrExact(p); if (Math.abs(d) < 0.5) break; Object.keys(p.r).forEach(k => { if (k !== 'hgt') p.r[k] = Math.max(4, Math.min(RMAX, Math.round(p.r[k] + d * f))); }); liftRebounding(p); }
+  for (let i = 0; i < 6; i++) {
+    const d = v - ovrExact(p);
+    if (Math.abs(d) < 0.5) break;
+    Object.keys(p.r).forEach(k => {
+      if (k !== 'hgt') p.r[k] = Math.max(4, Math.min(RMAX, Math.round(p.r[k] + d * f)));
+    });
+    liftRebounding(p);
+  }
   syncOvr(p);
 }
 
@@ -236,25 +838,51 @@ export function shiftOvr(p: any, v: number) {
 // The top of the skill scale (potential.ts): past 85 every point is harder to come by, leveling off below 98.
 // Every rating stops at 99, and a 99 is improbable (potential.ts breakthroughs, generational skills).
 export const RMAX = 99;
-export const SOFT_K = 85, TOP = 98;
+export const SOFT_K = 85,
+  TOP = 98;
 // The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99).
 export const skillTop = (p: any, k: string) => (p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4); // his overall is capped by his true potential (potential.ts capToT); skill ceilings only shape growth
 // The approach is slow (SOFT_SCALE): a raw 110 lands about 93, 130 about 96, and only an enormous target gets near 98.
 export const SOFT_SCALE = 16;
-export function softTop(v: number, top = TOP) { if (v <= SOFT_K) return v; const room = top - SOFT_K; return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / ((room * SOFT_SCALE) / (TOP - SOFT_K)))); }
+export function softTop(v: number, top = TOP) {
+  if (v <= SOFT_K) return v;
+  const room = top - SOFT_K;
+  return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / ((room * SOFT_SCALE) / (TOP - SOFT_K))));
+}
 export function deriveDefense(p: any, noise: (k: number) => number) {
-  const r = p.r, hIn = inchesOf(p.hgt), ape = (p.wing ?? hIn + 4) - hIn - 4, base = p.ovr ?? 50, g = p.grp;
+  const r = p.r,
+    hIn = inchesOf(p.hgt),
+    ape = (p.wing ?? hIn + 4) - hIn - 4,
+    base = p.ovr ?? 50,
+    g = p.grp;
   const c = (v: number) => Math.round(softTop(Math.max(4, Math.min(RMAX, v))));
   r.blk = c(r.jmp * 0.3 + r.hgt * 0.3 + base * 0.3 + r.diq * 0.1 + ape * 2.2 + (g === 'B' ? 4 : g === 'G' ? -9 : -2) + noise(1) * 24);
-  r.stl = c((r.acc ?? r.spd) * 0.25 + r.spd * 0.15 + base * 0.4 + r.diq * 0.1 + (r.pss ?? 50) * 0.1 + ape * 1.2 + (g === 'G' ? 4 : g === 'B' ? -6 : 1) + noise(2) * 24);
+  r.stl = c(
+    (r.acc ?? r.spd) * 0.25 +
+      r.spd * 0.15 +
+      base * 0.4 +
+      r.diq * 0.1 +
+      (r.pss ?? 50) * 0.1 +
+      ape * 1.2 +
+      (g === 'G' ? 4 : g === 'B' ? -6 : 1) +
+      noise(2) * 24,
+  );
 }
 
 // For players who existed before Blocks and Steals: shift both by the same amount so his overall
 // stays exactly where it was (the shape, a shot-blocker vs a pickpocket, is kept).
 export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
-  const before = ovrExact(p); deriveDefense(p, noise);
-  const W = OVR_W[p.grp] || OVR_W.W, tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[p.grp] ?? 2.5), k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
-  for (let i = 0; i < 4; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.05) break; p.r.blk = Math.max(4, Math.min(RMAX, Math.round(p.r.blk + d * k))); p.r.stl = Math.max(4, Math.min(RMAX, Math.round(p.r.stl + d * k))); }
+  const before = ovrExact(p);
+  deriveDefense(p, noise);
+  const W = OVR_W[p.grp] || OVR_W.W,
+    tot = Object.values(W).reduce((a, x) => a + x, 0) + (FEEL_W[p.grp] ?? 2.5),
+    k = tot / ((W.blk ?? 0) + (W.stl ?? 0) || 1);
+  for (let i = 0; i < 4; i++) {
+    const d = before - ovrExact(p);
+    if (Math.abs(d) < 0.05) break;
+    p.r.blk = Math.max(4, Math.min(RMAX, Math.round(p.r.blk + d * k)));
+    p.r.stl = Math.max(4, Math.min(RMAX, Math.round(p.r.stl + d * k)));
+  }
 }
 
 // Wingspan as a rating: arm length for his height. 50 is the league norm (+4″ longer than he is
@@ -269,38 +897,104 @@ export function deriveDefenseKeepOvr(p: any, noise: (k: number) => number) {
 // replaced the first generation the league's height ratings sank (6′6″: 46 in a new league, 39 after 27
 // seasons) with the same listed heights. `_old` is no longer used.
 export const hgtFromInches = (inches: number) => 34 + (inches - 75) * 4;
-export const hgtLean = (p: any) => ((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000 / 1000 - 0.5) * 10;
-export function blendHeight(p: any, _old?: number) { return Math.round(Math.max(4, Math.min(RMAX, hgtFromInches(inchesOf(p.hgt)) + hgtLean(p)))); }
+export const hgtLean = (p: any) => (((((p.id * 2654435761) ^ 0x4e1) >>> 0) % 1000) / 1000 - 0.5) * 10;
+export function blendHeight(p: any, _old?: number) {
+  return Math.round(Math.max(4, Math.min(RMAX, hgtFromInches(inchesOf(p.hgt)) + hgtLean(p))));
+}
 // Set the height rating and move his other ratings the other way so his overall stays put.
 export function setHgtKeepOvr(p: any, v: number) {
-  const before = ovrExact(p), W = OVR_W[p.grp] || OVR_W.W, T = Object.values(W).reduce((a, x) => a + x, 0), k = (T + (FEEL_W[p.grp] ?? 2.5)) / (T - (W.hgt ?? 0)); p.r.hgt = v;
-  for (let i = 0; i < 5; i++) { const d = before - ovrExact(p); if (Math.abs(d) < 0.08) break; p.rx = p.rx || {}; Object.keys(p.r).forEach(x => { if (x === 'hgt') return; const t = (p.rx[x] || 0) + d * k, w = Math.trunc(t); p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w)); p.rx[x] = +(t - w).toFixed(4); }); }
+  const before = ovrExact(p),
+    W = OVR_W[p.grp] || OVR_W.W,
+    T = Object.values(W).reduce((a, x) => a + x, 0),
+    k = (T + (FEEL_W[p.grp] ?? 2.5)) / (T - (W.hgt ?? 0));
+  p.r.hgt = v;
+  for (let i = 0; i < 5; i++) {
+    const d = before - ovrExact(p);
+    if (Math.abs(d) < 0.08) break;
+    p.rx = p.rx || {};
+    Object.keys(p.r).forEach(x => {
+      if (x === 'hgt') return;
+      const t = (p.rx[x] || 0) + d * k,
+        w = Math.trunc(t);
+      p.r[x] = Math.max(4, Math.min(RMAX, p.r[x] + w));
+      p.rx[x] = +(t - w).toFixed(4);
+    });
+  }
 }
 // The least a player rebounds and boxes out just by his body: size, spring and strength (a 6′5″ guard with an average
 // body about 25, a 7-footer about 40). Generation used to leave raw young players far under it (a 6′5″ guard at 5).
 export const rebFloor = (p: any) => Math.round(Math.max(4, 0.3 * p.r.hgt + 0.2 * p.r.jmp + 0.15 * p.r.stre - 6));
-export function liftRebounding(p: any) { const f = rebFloor(p); let up = false;
-  if (p.r.reb < f) { p.r.reb = f; up = true; } if ((p.r.box ?? 0) < f - 4) { p.r.box = f - 4; up = true; }
-  if (up && p.ceil) { p.ceil.reb = Math.max(p.ceil.reb ?? 0, p.r.reb + 6); p.ceil.box = Math.max(p.ceil.box ?? 0, p.r.box + 6); }
-  return up; }
-export const inchesOf = (h: any) => { const m = String(h || '').match(/(\d+)\D+(\d+)/); return m ? +m[1] * 12 + +m[2] : 78; };
-export const WNG_W: Record<string, number> = { G: .05, W: .075, B: .095 };
+export function liftRebounding(p: any) {
+  const f = rebFloor(p);
+  let up = false;
+  if (p.r.reb < f) {
+    p.r.reb = f;
+    up = true;
+  }
+  if ((p.r.box ?? 0) < f - 4) {
+    p.r.box = f - 4;
+    up = true;
+  }
+  if (up && p.ceil) {
+    p.ceil.reb = Math.max(p.ceil.reb ?? 0, p.r.reb + 6);
+    p.ceil.box = Math.max(p.ceil.box ?? 0, p.r.box + 6);
+  }
+  return up;
+}
+export const inchesOf = (h: any) => {
+  const m = String(h || '').match(/(\d+)\D+(\d+)/);
+  return m ? +m[1] * 12 + +m[2] : 78;
+};
+export const WNG_W: Record<string, number> = { G: 0.05, W: 0.075, B: 0.095 };
 export const wngOf = (wing: number, hIn: number) => Math.round(Math.max(1, Math.min(RMAX, 50 + (wing - hIn - 4) * 6)));
 export const wngRating = (p: any) => wngOf(p.wing ?? inchesOf(p.hgt) + 4, inchesOf(p.hgt));
-export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? .06);
-export function setWing(p: any, inches: number) { p.wing = inches; syncOvr(p, true); }
+export const wngBonus = (p: any) => (wngRating(p) - 50) * (WNG_W[p.grp] ?? 0.06);
+export function setWing(p: any, inches: number) {
+  p.wing = inches;
+  syncOvr(p, true);
+}
 
 // The position his body and skills point to: mostly height, nudged by wingspan (long arms play
 // bigger) and by whether his skills are a guard's (handling, passing, speed) or a big's
 // (rebounding, inside scoring, strength). A 7-footer is a center; a 6′9″ playmaker is a wing.
 export const POS_GROUP: Record<string, string> = { PG: 'G', SG: 'G', G: 'G', GF: 'W', SF: 'W', F: 'W', PF: 'B', FC: 'B', C: 'B' };
 export function recommendPos(p: any): { pos: string; why: string } {
-  const r = p.r || {}, h = inchesOf(p.hgt), ape = (p.wing ?? h + 4) - h;
-  const gs = ((r.drb ?? 50) + (r.pss ?? 50) + (r.spd ?? 50)) / 3, bs = ((r.reb ?? 50) + (r.ins ?? 50) + (r.box ?? r.reb ?? 50) + (r.stre ?? 50)) / 4;
+  const r = p.r || {},
+    h = inchesOf(p.hgt),
+    ape = (p.wing ?? h + 4) - h;
+  const gs = ((r.drb ?? 50) + (r.pss ?? 50) + (r.spd ?? 50)) / 3,
+    bs = ((r.reb ?? 50) + (r.ins ?? 50) + (r.box ?? r.reb ?? 50) + (r.stre ?? 50)) / 4;
   const eff = h + (ape - 4) * 0.25 + (bs - gs) / 10;
-  const creator = (r.pss ?? 50) * 0.6 + (r.drb ?? 50) * 0.4, shooter = ((r.tp ?? 50) + (r.fg ?? 50)) / 2;
-  const pos = eff < 75 ? (creator >= shooter + 3 ? 'PG' : creator <= shooter - 3 ? 'SG' : 'G') : eff < 77 ? (creator >= shooter + 6 ? 'G' : 'SG') : eff < 78.5 ? 'GF' : eff < 80 ? 'SF' : eff < 81 ? 'F' : eff < 82.5 ? 'PF' : eff < 83.5 ? 'FC' : 'C';
+  const creator = (r.pss ?? 50) * 0.6 + (r.drb ?? 50) * 0.4,
+    shooter = ((r.tp ?? 50) + (r.fg ?? 50)) / 2;
+  const pos =
+    eff < 75
+      ? creator >= shooter + 3
+        ? 'PG'
+        : creator <= shooter - 3
+          ? 'SG'
+          : 'G'
+      : eff < 77
+        ? creator >= shooter + 6
+          ? 'G'
+          : 'SG'
+        : eff < 78.5
+          ? 'GF'
+          : eff < 80
+            ? 'SF'
+            : eff < 81
+              ? 'F'
+              : eff < 82.5
+                ? 'PF'
+                : eff < 83.5
+                  ? 'FC'
+                  : 'C';
   const ft = (n: number) => Math.floor(n / 12) + '′' + (n % 12) + '″';
-  const lean = bs - gs >= 6 ? 'big-man skills (rebounding ' + (r.reb ?? 50) + ', inside ' + (r.ins ?? 50) + ')' : gs - bs >= 6 ? 'guard skills (handling ' + (r.drb ?? 50) + ', passing ' + (r.pss ?? 50) + ')' : 'a balanced skill set';
+  const lean =
+    bs - gs >= 6
+      ? 'big-man skills (rebounding ' + (r.reb ?? 50) + ', inside ' + (r.ins ?? 50) + ')'
+      : gs - bs >= 6
+        ? 'guard skills (handling ' + (r.drb ?? 50) + ', passing ' + (r.pss ?? 50) + ')'
+        : 'a balanced skill set';
   return { pos, why: ft(h) + ' with a ' + ft(h + ape) + ' wingspan and ' + lean + '.' };
 }

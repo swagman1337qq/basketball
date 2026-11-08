@@ -23,9 +23,17 @@ const bell = (r: () => number) => (r() + r() + r() - 1.5) * 2; // about −3…+
 // share nobody can see on film; Poise grows with experience.
 export function ensureIntg(p: any, rnd?: () => number) {
   if (p.intg) return p.intg;
-  const r = rnd || mulberry32(p.id * 7919 + 13), oiq = p.r?.oiq ?? 50, pss = p.r?.pss ?? 50;
+  const r = rnd || mulberry32(p.id * 7919 + 13),
+    oiq = p.r?.oiq ?? 50,
+    pss = p.r?.pss ?? 50;
   const feel = cl(Math.round(0.35 * oiq + 0.15 * pss + 30 + bell(r) * 11), 15, 99); // league average ≈ 50
-  const poise = cl(Math.round(52 + ((p.age ?? 24) - 24) * 1.2 + bell(r) * 11 + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 12 : 0) + (p.pers?.pro ? 4 : 0)), 10, 99);
+  const poise = cl(
+    Math.round(
+      52 + ((p.age ?? 24) - 24) * 1.2 + bell(r) * 11 + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 12 : 0) + (p.pers?.pro ? 4 : 0),
+    ),
+    10,
+    99,
+  );
   p.intg = { feel, poise };
   return p.intg;
 }
@@ -34,10 +42,15 @@ export function ensureIntg(p: any, rnd?: () => number) {
 // with Feel, Poise and work ethic. Tiers: role player (most), starter, star (rare).
 export function rollGem(p: any, rnd: () => number = Math.random, base = 0.06) {
   if (p.gem !== undefined || (p.age ?? 30) > 24) return;
-  const it = ensureIntg(p), work = p.pers?.work ?? 50;
+  const it = ensureIntg(p),
+    work = p.pers?.work ?? 50;
   const chance = base * (1 + Math.max(0, it.feel - 60) / 20 + Math.max(0, it.poise - 60) / 30 + Math.max(0, work - 60) / 40);
-  if (rnd() >= chance) { p.gem = 0; return; }
-  const t = rnd(), add = t < 0.62 ? 5 + Math.floor(rnd() * 5) : t < 0.93 ? 10 + Math.floor(rnd() * 6) : 16 + Math.floor(rnd() * 9);
+  if (rnd() >= chance) {
+    p.gem = 0;
+    return;
+  }
+  const t = rnd(),
+    add = t < 0.62 ? 5 + Math.floor(rnd() * 5) : t < 0.93 ? 10 + Math.floor(rnd() * 6) : 16 + Math.floor(rnd() * 9);
   p.gem = { add, left: add, tier: t < 0.62 ? 'role' : t < 0.93 ? 'starter' : 'star' };
   if (p.tpot != null) p.tpot = Math.min(99, p.tpot + add); // part of his true potential from the start; the scouts see it surface over the years
 }
@@ -53,4 +66,5 @@ export function gemTick(p: any): number {
   return x;
 }
 
-export const feelWord = (v: number) => (v >= 85 ? 'Elite' : v >= 72 ? 'Great' : v >= 60 ? 'Good' : v >= 45 ? 'Average' : v >= 32 ? 'Limited' : 'Poor');
+export const feelWord = (v: number) =>
+  v >= 85 ? 'Elite' : v >= 72 ? 'Great' : v >= 60 ? 'Good' : v >= 45 ? 'Average' : v >= 32 ? 'Limited' : 'Poor';

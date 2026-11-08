@@ -9,9 +9,21 @@ import { ownerReview, reputation } from './frontOffice';
 // Your résumé, in two parts: front-office experience and playing experience. Each adds to your
 // starting reputation (FRONT_OFFICE rep + PLAYING rep); front-office experience also sets your first
 // contract's length, and a star playing career adds a year. Any résumé goes with any age.
-export interface ResumeItem { k: number; label: string; desc: string; rep: number; years?: number }
+export interface ResumeItem {
+  k: number;
+  label: string;
+  desc: string;
+  rep: number;
+  years?: number;
+}
 export const FRONT_OFFICE: ResumeItem[] = [
-  { k: 0, label: 'No front-office experience', desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.', rep: 26, years: 2 },
+  {
+    k: 0,
+    label: 'No front-office experience',
+    desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.',
+    rep: 26,
+    years: 2,
+  },
   { k: 1, label: 'Scout or analyst', desc: 'You worked your way up through scouting or analytics.', rep: 34, years: 3 },
   { k: 2, label: 'Assistant GM', desc: 'You were the No. 2 in a front office: trades, the cap, the draft board.', rep: 44, years: 3 },
   { k: 3, label: 'General manager', desc: 'You’ve run a front office before, with mixed results.', rep: 56, years: 4 },
@@ -26,18 +38,53 @@ export const PLAYING: ResumeItem[] = [
 ];
 export const GM_AGE = { min: 18, max: 77, cap: 100 }; // you can start at 18 to 77; you age each season and stay 100 from then on
 // Headshot backdrops (Headshot in GMSetupModal).
-export const GM_BACKDROPS: [string, string][] = [['plain', 'Plain'], ['team', 'Team colors'], ['arena', 'Arena lights'], ['press', 'Press conference'], ['office', 'Front office'], ['court', 'Hardwood'], ['dusk', 'Skyline at dusk']];
+export const GM_BACKDROPS: [string, string][] = [
+  ['plain', 'Plain'],
+  ['team', 'Team colors'],
+  ['arena', 'Arena lights'],
+  ['press', 'Press conference'],
+  ['office', 'Front office'],
+  ['court', 'Hardwood'],
+  ['dusk', 'Skyline at dusk'],
+];
 // Older saves: one experience level (0–5).
-export interface Experience { k: number; label: string; desc: string; rep: number; years: number; age: number }
+export interface Experience {
+  k: number;
+  label: string;
+  desc: string;
+  rep: number;
+  years: number;
+  age: number;
+}
 const EXPERIENCE: Experience[] = [
-  { k: 0, label: 'No experience', desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.', rep: 30, years: 2, age: 33 },
+  {
+    k: 0,
+    label: 'No experience',
+    desc: 'Your first job in a front office. Owners take a chance on you, on a short, cheap deal.',
+    rep: 30,
+    years: 2,
+    age: 33,
+  },
   { k: 1, label: 'Some experience', desc: 'A few years as an assistant GM or head of scouting.', rep: 40, years: 3, age: 38 },
   { k: 2, label: 'Experienced', desc: 'You’ve run a front office before, with mixed results.', rep: 52, years: 3, age: 45 },
   { k: 3, label: 'Veteran', desc: 'A long career with several playoff teams. Owners trust you.', rep: 64, years: 4, age: 51 },
   { k: 4, label: 'Proven winner', desc: 'You’ve built a champion. Owners call you first.', rep: 76, years: 4, age: 56 },
-  { k: 5, label: 'Legendary executive', desc: 'A Hall of Fame résumé, the Jerry West / R.C. Buford tier. Every owner wants you, and pays like it.', rep: 88, years: 5, age: 62 },
+  {
+    k: 5,
+    label: 'Legendary executive',
+    desc: 'A Hall of Fame résumé, the Jerry West / R.C. Buford tier. Every owner wants you, and pays like it.',
+    rep: 88,
+    years: 5,
+    age: 62,
+  },
 ];
-export const RACES: [string, string][] = [['black', 'Black'], ['dark', 'Black, very dark skin (as in much of Africa)'], ['white', 'White'], ['asian', 'East Asian'], ['brown', 'Hispanic / Latino, Middle Eastern or South Asian']];
+export const RACES: [string, string][] = [
+  ['black', 'Black'],
+  ['dark', 'Black, very dark skin (as in much of Africa)'],
+  ['white', 'White'],
+  ['asian', 'East Asian'],
+  ['brown', 'Hispanic / Latino, Middle Eastern or South Asian'],
+];
 
 // How each kind of owner pays a GM.
 export const GENEROSITY: Record<string, { mult: number; cap: number | null; raise: number; yrs: number; note: string }> = {
@@ -52,14 +99,19 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
 
 // Market salary ($M a year) for a GM with this reputation, from this owner, at this happiness.
 export function gmSalary(rep: number, arch: string, happy = 60) {
-  const G = gen(arch), v = (0.8 + Math.pow(rep / 30, 2)) * G.mult * (0.85 + happy / 400);
+  const G = gen(arch),
+    v = (0.8 + Math.pow(rep / 30, 2)) * G.mult * (0.85 + happy / 400);
   return r2(G.cap != null ? Math.min(G.cap, v) : v);
 }
 // Your résumé: the two parts, the reputation and first-contract length they give, and a label.
 export function resumeOf(gm: Partial<GMProfile> | null | undefined) {
-  const old = EXPERIENCE[gm?.exp ?? 2] ?? EXPERIENCE[2], fo = gm?.fo ?? [0, 1, 3, 3, 4, 4][gm?.exp ?? 2] ?? 3, play = gm?.play ?? 0;
-  const F = FRONT_OFFICE[fo] ?? FRONT_OFFICE[2], Pl = PLAYING[play] ?? PLAYING[0];
-  const rep = gm?.fo == null ? old.rep : Math.min(90, F.rep + Pl.rep), years = gm?.fo == null ? old.years : Math.min(5, (F.years || 3) + (play >= 3 ? 1 : 0));
+  const old = EXPERIENCE[gm?.exp ?? 2] ?? EXPERIENCE[2],
+    fo = gm?.fo ?? [0, 1, 3, 3, 4, 4][gm?.exp ?? 2] ?? 3,
+    play = gm?.play ?? 0;
+  const F = FRONT_OFFICE[fo] ?? FRONT_OFFICE[2],
+    Pl = PLAYING[play] ?? PLAYING[0];
+  const rep = gm?.fo == null ? old.rep : Math.min(90, F.rep + Pl.rep),
+    years = gm?.fo == null ? old.years : Math.min(5, (F.years || 3) + (play >= 3 ? 1 : 0));
   return { fo, play, rep, years, label: F.label + (play ? ' · ' + Pl.label : '') };
 }
 // Your age in season Y: you start at your chosen age and age a year a season, to 100 at most.
@@ -70,7 +122,9 @@ export function gmAge(gm: Partial<GMProfile> | null | undefined, Y?: number) {
 
 // The contract you start a league with.
 export function startingContract(g: Game, s: any, tid: number, gm: Partial<GMProfile> | null | undefined) {
-  const R = resumeOf(gm), arch = s.teams[tid].arch, years = Math.max(2, R.years + Math.min(0, gen(arch).yrs));
+  const R = resumeOf(gm),
+    arch = s.teams[tid].arch,
+    years = Math.max(2, R.years + Math.min(0, gen(arch).yrs));
   return { tid, years, salary: gmSalary(R.rep, arch), from: g.Y, thru: g.Y + years - 1 };
 }
 export function contractOf(g: Game, s: any) {
@@ -80,14 +134,32 @@ export function contractOf(g: Game, s: any) {
   return { ...startingContract(g, s, s.me, s.gm), from: g.Y - 1, thru: g.Y + 1, assumed: true };
 }
 
-export interface GMOffer { tid: number; years: number; salary: number; kind: 'expiring' | 'early'; season: number; quote: string; base?: { years: number; salary: number }; counters?: number; final?: boolean; reply?: string }
+export interface GMOffer {
+  tid: number;
+  years: number;
+  salary: number;
+  kind: 'expiring' | 'early';
+  season: number;
+  quote: string;
+  base?: { years: number; salary: number };
+  counters?: number;
+  final?: boolean;
+  reply?: string;
+}
 
 // What the owner does about your contract at season's end (deterministic, so the letter and
 // the review agree): offer an extension, or let it run out.
 export function contractDecision(g: Game, s: any, tid: number): { offer: GMOffer | null; expiring: boolean; left: number; text: string } {
-  const c = contractOf(g, s), T = s.teams[tid], arch = T.arch, G = gen(arch), Y = g.Y;
+  const c = contractOf(g, s),
+    T = s.teams[tid],
+    arch = T.arch,
+    G = gen(arch),
+    Y = g.Y;
   if (c.tid !== tid) return { offer: null, expiring: false, left: 0, text: '' };
-  const left = c.thru - Y, sec = ownerReview(g, s, tid).sec, rep = reputation(s), safe = s.ownerFiring === false || s.god || s.easy?.fire;
+  const left = c.thru - Y,
+    sec = ownerReview(g, s, tid).sec,
+    rep = reputation(s),
+    safe = s.ownerFiring === false || s.god || s.easy?.fire;
   const make = (kind: GMOffer['kind']): GMOffer => {
     const yrs = Math.max(1, Math.min(5, (sec >= 85 ? 4 : sec >= 65 ? 3 : 2) + G.yrs));
     let sal = gmSalary(rep, arch, sec);
@@ -95,45 +167,162 @@ export function contractDecision(g: Game, s: any, tid: number): { offer: GMOffer
     if (G.cap != null) sal = Math.min(sal, G.cap);
     if (sec < 55) sal = Math.min(sal, c.salary);
     sal = Math.max(sal, r2(c.salary * (sec < 55 ? 0.9 : 1)));
-    const big = sal >= c.salary * 1.25, q = arch === 'Frugal Profit-Seeker' ? (sec >= 70 ? 'You’ve done good work, and I want you back. But I don’t pay front-office salaries like a big market does. This is my number.' : 'I’ll keep you, on terms that make sense for my books.')
-      : arch === 'Win-Now Spender' && big ? 'You win, I pay. Simple as that. Here’s a deal that says how much I want you here.'
-      : sec >= 80 ? 'I want you running this team for a long time. Let’s get it done now.' : 'I’d like you to stay. Here’s what I can offer.';
+    const big = sal >= c.salary * 1.25,
+      q =
+        arch === 'Frugal Profit-Seeker'
+          ? sec >= 70
+            ? 'You’ve done good work, and I want you back. But I don’t pay front-office salaries like a big market does. This is my number.'
+            : 'I’ll keep you, on terms that make sense for my books.'
+          : arch === 'Win-Now Spender' && big
+            ? 'You win, I pay. Simple as that. Here’s a deal that says how much I want you here.'
+            : sec >= 80
+              ? 'I want you running this team for a long time. Let’s get it done now.'
+              : 'I’d like you to stay. Here’s what I can offer.';
     return { tid, years: yrs, salary: r2(sal), kind, season: Y, quote: q };
   };
   if (left <= 0) {
-    if (sec >= 45 || safe) { const o = make('expiring'); return { offer: o, expiring: true, left, text: 'Your contract is up. I’m offering you ' + o.years + ' more year' + (o.years === 1 ? '' : 's') + ' at $' + o.salary.toFixed(2) + 'M a season. ' + o.quote }; }
+    if (sec >= 45 || safe) {
+      const o = make('expiring');
+      return {
+        offer: o,
+        expiring: true,
+        left,
+        text:
+          'Your contract is up. I’m offering you ' +
+          o.years +
+          ' more year' +
+          (o.years === 1 ? '' : 's') +
+          ' at $' +
+          o.salary.toFixed(2) +
+          'M a season. ' +
+          o.quote,
+      };
+    }
     return { offer: null, expiring: true, left, text: 'Your contract is up, and I won’t be renewing it. I’ll be looking for a new GM.' };
   }
-  if (left === 1 && sec >= 70) { const o = make('early'); return { offer: o, expiring: false, left, text: 'You have one year left, and I don’t want to let it get that close. I’m offering an extension: ' + o.years + ' more year' + (o.years === 1 ? '' : 's') + ' at $' + o.salary.toFixed(2) + 'M a season.' }; }
-  return { offer: null, expiring: false, left, text: 'Your contract runs through the ' + (c.thru - 1) + '–' + String(c.thru).slice(2) + ' season (' + left + ' more season' + (left === 1 ? '' : 's') + ').' };
+  if (left === 1 && sec >= 70) {
+    const o = make('early');
+    return {
+      offer: o,
+      expiring: false,
+      left,
+      text:
+        'You have one year left, and I don’t want to let it get that close. I’m offering an extension: ' +
+        o.years +
+        ' more year' +
+        (o.years === 1 ? '' : 's') +
+        ' at $' +
+        o.salary.toFixed(2) +
+        'M a season.',
+    };
+  }
+  return {
+    offer: null,
+    expiring: false,
+    left,
+    text:
+      'Your contract runs through the ' +
+      (c.thru - 1) +
+      '–' +
+      String(c.thru).slice(2) +
+      ' season (' +
+      left +
+      ' more season' +
+      (left === 1 ? '' : 's') +
+      ').',
+  };
 }
 
 // You ask for an extension (once a season).
 export function askExtension(g: Game) {
   g.setState(s => {
     if (s.gmAsk === g.Y || s.gmOffer) return null;
-    const c = contractOf(g, s), tid = c.tid, T = s.teams[tid], sec = ownerReview(g, s, tid).sec, left = c.thru - g.Y, arch = T.arch;
-    let reply: string, offer: GMOffer | null = null;
+    const c = contractOf(g, s),
+      tid = c.tid,
+      T = s.teams[tid],
+      sec = ownerReview(g, s, tid).sec,
+      left = c.thru - g.Y,
+      arch = T.arch;
+    let reply: string,
+      offer: GMOffer | null = null;
     if (left >= 3) reply = 'You have ' + left + ' seasons left. We’ll talk when it’s closer.';
-    else if (sec < 60) reply = arch === 'Meddling Micromanager' ? 'An extension? Win me some games first, then we’ll talk.' : 'Not now. Show me more this season and ask me again.';
-    else { const d = contractDecision(g, { ...s, career: { ...(s.career || {}), contract: { ...c, thru: g.Y } } }, tid); offer = d.offer && { ...d.offer, kind: 'early' }; reply = offer ? offer.quote : 'Not now.'; }
-    return { gmAsk: g.Y, gmOffer: offer, news: [{ day: s.day, season: g.Y, kind: 'review', tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: reply }, ...(s.news || [])], gmReply: reply };
+    else if (sec < 60)
+      reply =
+        arch === 'Meddling Micromanager'
+          ? 'An extension? Win me some games first, then we’ll talk.'
+          : 'Not now. Show me more this season and ask me again.';
+    else {
+      const d = contractDecision(g, { ...s, career: { ...(s.career || {}), contract: { ...c, thru: g.Y } } }, tid);
+      offer = d.offer && { ...d.offer, kind: 'early' };
+      reply = offer ? offer.quote : 'Not now.';
+    }
+    return {
+      gmAsk: g.Y,
+      gmOffer: offer,
+      news: [{ day: s.day, season: g.Y, kind: 'review', tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: reply }, ...(s.news || [])],
+      gmReply: reply,
+    };
   });
 }
 
 // Accept or turn down the owner's offer.
 export function answerOffer(g: Game, yes: boolean) {
   g.setState(s => {
-    const o: GMOffer = s.gmOffer; if (!o) return null;
-    const c = contractOf(g, s), T = s.teams[o.tid];
+    const o: GMOffer = s.gmOffer;
+    if (!o) return null;
+    const c = contractOf(g, s),
+      T = s.teams[o.tid];
     if (yes) {
       const start = o.kind === 'expiring' ? g.Y + 1 : c.thru + 1;
       const contract = { tid: o.tid, years: o.years, salary: o.salary, from: start, thru: start + o.years - 1, signed: g.Y };
-      return { gmOffer: null, career: { ...(s.career || {}), contract }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You signed a ' + o.years + '-year extension with the ' + T.region + ' ' + T.name + ' ($' + o.salary.toFixed(2) + 'M a season, through ' + (contract.thru - 1) + '–' + String(contract.thru).slice(2) + ')' }, ...s.lgLog] };
+      return {
+        gmOffer: null,
+        career: { ...(s.career || {}), contract },
+        lgLog: [
+          {
+            day: s.day,
+            type: 'Career',
+            teams: T.abbr,
+            text:
+              'You signed a ' +
+              o.years +
+              '-year extension with the ' +
+              T.region +
+              ' ' +
+              T.name +
+              ' ($' +
+              o.salary.toFixed(2) +
+              'M a season, through ' +
+              (contract.thru - 1) +
+              '–' +
+              String(contract.thru).slice(2) +
+              ')',
+          },
+          ...s.lgLog,
+        ],
+      };
     }
-    if (o.kind === 'early') return { gmOffer: null, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You turned down an extension from ' + T.owner }, ...s.lgLog] };
+    if (o.kind === 'early')
+      return {
+        gmOffer: null,
+        lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You turned down an extension from ' + T.owner }, ...s.lgLog],
+      };
     // Walking away from an expiring deal: you're on the market.
-    return { gmOffer: null, unemployed: s.managed.length <= 1 ? true : s.unemployed, walkedFrom: o.tid, screen: 'career', lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You turned down ' + T.owner + '’s offer and will leave the ' + T.region + ' ' + T.name }, ...s.lgLog] };
+    return {
+      gmOffer: null,
+      unemployed: s.managed.length <= 1 ? true : s.unemployed,
+      walkedFrom: o.tid,
+      screen: 'career',
+      lgLog: [
+        {
+          day: s.day,
+          type: 'Career',
+          teams: T.abbr,
+          text: 'You turned down ' + T.owner + '’s offer and will leave the ' + T.region + ' ' + T.name,
+        },
+        ...s.lgLog,
+      ],
+    };
   });
 }
 
@@ -142,12 +331,21 @@ export function answerOffer(g: Game, yes: boolean) {
 // reputation buy more; each kind of owner bends differently (a win-now spender pays, a frugal
 // one barely moves and keeps his cap, an asset hoarder likes long deals, a micromanager short ones).
 export function ownerLimits(g: Game, s: any, o: GMOffer) {
-  const T = s.teams[o.tid], arch = T.arch, G = gen(arch), sec = ownerReview(g, s, o.tid).sec, rep = reputation(s), b = o.base || { years: o.years, salary: o.salary };
+  const T = s.teams[o.tid],
+    arch = T.arch,
+    G = gen(arch),
+    sec = ownerReview(g, s, o.tid).sec,
+    rep = reputation(s),
+    b = o.base || { years: o.years, salary: o.salary };
   const lean = arch === 'Asset Hoarder' ? 1 : arch === 'Meddling Micromanager' || arch === 'Frugal Profit-Seeker' ? -1 : 0;
   const maxYears = Math.max(b.years, Math.min(5, b.years + (sec >= 80 ? 2 : sec >= 60 ? 1 : 0) + (rep >= 70 ? 1 : 0) + lean));
-  const room = sec < 50 ? 0 : Math.min(0.4, Math.max(0, (sec - 45) / 250 + (rep - 50) / 300) * (G.raise - 1) / 0.3);
+  const room = sec < 50 ? 0 : Math.min(0.4, (Math.max(0, (sec - 45) / 250 + (rep - 50) / 300) * (G.raise - 1)) / 0.3);
   // Past his opening length he wants a little off the yearly pay (not an asset hoarder, who wants the long deal).
-  const maxSal = (years: number) => { let v = b.salary * (1 + room) * (years > b.years && arch !== 'Asset Hoarder' ? 1 - 0.03 * (years - b.years) : 1); if (G.cap != null) v = Math.min(v, Math.max(G.cap, b.salary)); return r2(Math.max(v, years <= b.years ? b.salary : 0)); };
+  const maxSal = (years: number) => {
+    let v = b.salary * (1 + room) * (years > b.years && arch !== 'Asset Hoarder' ? 1 - 0.03 * (years - b.years) : 1);
+    if (G.cap != null) v = Math.min(v, Math.max(G.cap, b.salary));
+    return r2(Math.max(v, years <= b.years ? b.salary : 0));
+  };
   return { maxYears, maxSal, sec, rep, room };
 }
 export const MAX_COUNTERS = 2;
@@ -157,34 +355,136 @@ export const MAX_COUNTERS = 2;
 // final, and an early extension can be pulled off the table if you keep overreaching.
 export function counterOffer(g: Game, years: number, salary: number) {
   g.setState(s => {
-    const o: GMOffer = s.gmOffer; if (!o || o.final) return null;
-    years = Math.max(1, Math.min(5, Math.round(years))); salary = r2(Math.max(0.1, salary));
-    const T = s.teams[o.tid], arch = T.arch, L = ownerLimits(g, s, o), b = o.base || { years: o.years, salary: o.salary };
-    const deal = (y: number, sal: number) => { const c = contractOf(g, s), start = o.kind === 'expiring' ? g.Y + 1 : c.thru + 1, contract = { tid: o.tid, years: y, salary: sal, from: start, thru: start + y - 1, signed: g.Y };
-      return { gmOffer: null, gmNegot: { season: g.Y, text: T.owner + ' agreed: ' + y + ' year' + (y === 1 ? '' : 's') + ' at $' + sal.toFixed(2) + 'M a season. “Deal. Now let’s get back to work.”' }, career: { ...(s.career || {}), contract }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: 'You negotiated a ' + y + '-year ' + (o.kind === 'expiring' ? 'deal' : 'extension') + ' with the ' + T.region + ' ' + T.name + ' ($' + sal.toFixed(2) + 'M a season, through ' + (contract.thru - 1) + '–' + String(contract.thru).slice(2) + ')' }, ...s.lgLog] }; };
+    const o: GMOffer = s.gmOffer;
+    if (!o || o.final) return null;
+    years = Math.max(1, Math.min(5, Math.round(years)));
+    salary = r2(Math.max(0.1, salary));
+    const T = s.teams[o.tid],
+      arch = T.arch,
+      L = ownerLimits(g, s, o),
+      b = o.base || { years: o.years, salary: o.salary };
+    const deal = (y: number, sal: number) => {
+      const c = contractOf(g, s),
+        start = o.kind === 'expiring' ? g.Y + 1 : c.thru + 1,
+        contract = { tid: o.tid, years: y, salary: sal, from: start, thru: start + y - 1, signed: g.Y };
+      return {
+        gmOffer: null,
+        gmNegot: {
+          season: g.Y,
+          text:
+            T.owner +
+            ' agreed: ' +
+            y +
+            ' year' +
+            (y === 1 ? '' : 's') +
+            ' at $' +
+            sal.toFixed(2) +
+            'M a season. “Deal. Now let’s get back to work.”',
+        },
+        career: { ...(s.career || {}), contract },
+        lgLog: [
+          {
+            day: s.day,
+            type: 'Career',
+            teams: T.abbr,
+            text:
+              'You negotiated a ' +
+              y +
+              '-year ' +
+              (o.kind === 'expiring' ? 'deal' : 'extension') +
+              ' with the ' +
+              T.region +
+              ' ' +
+              T.name +
+              ' ($' +
+              sal.toFixed(2) +
+              'M a season, through ' +
+              (contract.thru - 1) +
+              '–' +
+              String(contract.thru).slice(2) +
+              ')',
+          },
+          ...s.lgLog,
+        ],
+      };
+    };
     if (s.god || (years <= L.maxYears && salary <= L.maxSal(years) + 0.005)) return deal(years, salary); // God Mode: your terms, signed
-    const n = (o.counters || 0) + 1, cap = L.maxSal(Math.min(years, L.maxYears)), greedy = salary > cap * 1.3 || years > L.maxYears + 2;
+    const n = (o.counters || 0) + 1,
+      cap = L.maxSal(Math.min(years, L.maxYears)),
+      greedy = salary > cap * 1.3 || years > L.maxYears + 2;
     // Overreach twice on an extension he didn't have to offer, and he walks away from the table.
-    if (greedy && n >= MAX_COUNTERS && o.kind === 'early') return { gmOffer: null, gmNegot: { season: g.Y, text: T.owner + ' pulled the offer: “Forget it. You’re under contract; we’ll revisit this another time.”' }, lgLog: [{ day: s.day, type: 'Career', teams: T.abbr, text: T.owner + ' pulled his extension offer after your counter' }, ...s.lgLog] };
-    const y2 = Math.min(years, L.maxYears), sal2 = greedy ? r2(b.salary + (L.maxSal(y2) - b.salary) / 2) : Math.min(salary, L.maxSal(y2)), final = n >= MAX_COUNTERS;
-    const why = years > L.maxYears && salary > L.maxSal(y2) ? 'That’s too long and too much.' : years > L.maxYears ? (y2 === 1 ? 'One year is as far as I go.' : y2 + ' years is as long as I’ll go.') : 'I can’t pay that.';
+    if (greedy && n >= MAX_COUNTERS && o.kind === 'early')
+      return {
+        gmOffer: null,
+        gmNegot: { season: g.Y, text: T.owner + ' pulled the offer: “Forget it. You’re under contract; we’ll revisit this another time.”' },
+        lgLog: [
+          { day: s.day, type: 'Career', teams: T.abbr, text: T.owner + ' pulled his extension offer after your counter' },
+          ...s.lgLog,
+        ],
+      };
+    const y2 = Math.min(years, L.maxYears),
+      sal2 = greedy ? r2(b.salary + (L.maxSal(y2) - b.salary) / 2) : Math.min(salary, L.maxSal(y2)),
+      final = n >= MAX_COUNTERS;
+    const why =
+      years > L.maxYears && salary > L.maxSal(y2)
+        ? 'That’s too long and too much.'
+        : years > L.maxYears
+          ? y2 === 1
+            ? 'One year is as far as I go.'
+            : y2 + ' years is as long as I’ll go.'
+          : 'I can’t pay that.';
     const tone = greedy ? (arch === 'Frugal Profit-Seeker' ? 'You know how I run this club. ' : 'Let’s be serious. ') : '';
-    const moved = sal2 < salary, reply = tone + why + ' ' + (!moved ? 'Your number works for me, over ' + y2 + ' year' + (y2 === 1 ? '' : 's') + '.' : L.room === 0 && sal2 <= b.salary ? 'The money doesn’t move until the results do.' : arch === 'Win-Now Spender' && !greedy ? 'But I pay winners, so here’s my best.' : 'Here’s where I can be.') + (final ? ' That’s my final offer.' : '');
-    return { gmOffer: { ...o, base: b, years: y2, salary: sal2, counters: n, final, reply, quote: reply }, news: [{ day: s.day, season: g.Y, kind: 'review', tid: o.tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: reply }, ...(s.news || [])] };
+    const moved = sal2 < salary,
+      reply =
+        tone +
+        why +
+        ' ' +
+        (!moved
+          ? 'Your number works for me, over ' + y2 + ' year' + (y2 === 1 ? '' : 's') + '.'
+          : L.room === 0 && sal2 <= b.salary
+            ? 'The money doesn’t move until the results do.'
+            : arch === 'Win-Now Spender' && !greedy
+              ? 'But I pay winners, so here’s my best.'
+              : 'Here’s where I can be.') +
+        (final ? ' That’s my final offer.' : '');
+    return {
+      gmOffer: { ...o, base: b, years: y2, salary: sal2, counters: n, final, reply, quote: reply },
+      news: [
+        { day: s.day, season: g.Y, kind: 'review', tid: o.tid, who: T.owner, role: 'Owner, ' + T.abbr, quote: reply },
+        ...(s.news || []),
+      ],
+    };
   });
 }
 
 // Finishing the "Create your GM" step at the start of a league.
 // fem: a woman (her face and name); age: your age when the league started (y0); fo/play: your résumé
 // (FRONT_OFFICE, PLAYING); bg: your headshot's backdrop (GM_BACKDROPS); exp: older saves' one experience level.
-export interface GMProfile { name: string; nat: string; race: string; seed: number; img?: string; familyFirst?: boolean; fem?: boolean; age?: number; y0?: number; fo?: number; play?: number; bg?: string; exp?: number }
+export interface GMProfile {
+  name: string;
+  nat: string;
+  race: string;
+  seed: number;
+  img?: string;
+  familyFirst?: boolean;
+  fem?: boolean;
+  age?: number;
+  y0?: number;
+  fo?: number;
+  play?: number;
+  bg?: string;
+  exp?: number;
+}
 // Countries whose names are written family name first (Nguyễn Văn Hùng, Wang Xiaoming, Kim Min-jun, Nagy László).
 export const FAMILY_FIRST_NATS = ['VN', 'CN', 'TW', 'HK', 'MO', 'KR', 'KP', 'KH', 'HU', 'MN'];
 export const isFamilyFirst = (gm: Partial<GMProfile> | null | undefined) => gm?.familyFirst ?? FAMILY_FIRST_NATS.includes(gm?.nat || '');
 // What people call you: the given name. Vietnamese go by the last word (Hùng), others by
 // everything after the family name.
 export function givenName(gm: Partial<GMProfile> | null | undefined) {
-  const parts = String(gm?.name || '').trim().split(/\s+/).filter(Boolean);
+  const parts = String(gm?.name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (!parts.length) return 'GM';
   if (!isFamilyFirst(gm) || parts.length === 1) return parts[0];
   return gm?.nat === 'VN' ? parts[parts.length - 1] : parts.slice(1).join(' ');
@@ -192,8 +492,17 @@ export function givenName(gm: Partial<GMProfile> | null | undefined) {
 export function finishGMSetup(g: Game, gm: GMProfile) {
   g.setState(s => {
     const me = { ...gm, y0: g.Y };
-    return { gm: me, gmSetup: false, career: { ...(s.career || { seasons: [] }), repBase: resumeOf(me).rep, contract: startingContract(g, s, s.me, me) } };
+    return {
+      gm: me,
+      gmSetup: false,
+      career: { ...(s.career || { seasons: [] }), repBase: resumeOf(me).rep, contract: startingContract(g, s, s.me, me) },
+    };
   });
 }
 // Your headshot: the same face generator as the players, at your age (not your experience).
-export const gmFaceInput = (gm: GMProfile, Y?: number) => ({ id: 900000 + (gm.seed % 90000), race: gm.race, age: gmAge(gm, Y), fem: !!gm.fem });
+export const gmFaceInput = (gm: GMProfile, Y?: number) => ({
+  id: 900000 + (gm.seed % 90000),
+  race: gm.race,
+  age: gmAge(gm, Y),
+  fem: !!gm.fem,
+});

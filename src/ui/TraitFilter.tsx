@@ -5,9 +5,18 @@ import { TRAITS, traitRead } from '../engine/traits';
 
 export function TraitFilter({ value, onChange }: { value: string; onChange: (k: string) => void }) {
   return (
-    <select className="input" value={value} onChange={e => onChange(e.target.value)} style={{ width: 'auto', minHeight: 30, fontSize: '12.5px', padding: '3px 8px' }}>
+    <select
+      className="input"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{ width: 'auto', minHeight: 30, fontSize: '12.5px', padding: '3px 8px' }}
+    >
       <option value="">Any personality</option>
-      {TRAITS.map(t => <option key={t.k} value={t.k}>{t.label}</option>)}
+      {TRAITS.map(t => (
+        <option key={t.k} value={t.k}>
+          {t.label}
+        </option>
+      ))}
     </select>
   );
 }

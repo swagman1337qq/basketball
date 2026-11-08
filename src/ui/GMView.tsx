@@ -68,102 +68,196 @@ import type { VM } from './vm';
 export function GMView({ vm }: { vm: VM }) {
   return (
     <>
-      <div ref={vm.rootRef} style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden", position: "relative", background: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: "1.45", fontVariantNumeric: "lining-nums" }}>
+      <div
+        ref={vm.rootRef}
+        style={{
+          display: 'flex',
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+          position: 'relative',
+          background: 'var(--color-bg)',
+          color: 'var(--color-text)',
+          fontFamily: 'var(--font-body)',
+          fontSize: '13px',
+          lineHeight: '1.45',
+          fontVariantNumeric: 'lining-nums',
+        }}
+      >
         {!!vm.isA && <AlmanacSidebar vm={vm} />}
         {!!vm.isC && <DeskRail vm={vm} />}
-        <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: '1', minWidth: '0', display: 'flex', flexDirection: 'column' }}>
           {!!vm.isB && <BroadsheetMasthead vm={vm} />}
           {!!vm.isC && <DeskTopbar vm={vm} />}
-          <main style={{ flex: "1", overflow: "auto", padding: "22px 28px 40px" }}>
-            <ErrorBoundary resetKey={[vm.ctx.s.screen, vm.ctx.s.modal, vm.ctx.s.pid, vm.ctx.s.boxId, vm.ctx.s.teamModal].join('|')} onHome={() => vm.ctx.gm.setState({ screen: 'dash', modal: false, teamModal: null, boxId: null })}>
-            <Suspense fallback={<p style={{ opacity: 0.6 }}>Loading…</p>}>
-            <div className="team-stripe" />
-            <div data-tour="phase" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "-6px 0 16px", padding: "7px 12px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
-              <span style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)", whiteSpace: "nowrap" }}>
-                {vm.ph.season}
-              </span>
-              {(vm.ph.steps || []).map((st: any, i: number) => (
-                <button key={i} onClick={st.go} title={st.title} style={{ all: "unset", cursor: st.cursor, fontSize: "12px", whiteSpace: "nowrap", padding: "2px 7px", borderRadius: "var(--radius-sm)", border: st.border, color: st.color, fontWeight: st.fw }}>
-                  {st.label}
-                </button>
-              ))}
-              <span style={{ flex: "1", minWidth: "120px", fontSize: "12px", color: "var(--color-neutral-700)", textAlign: "right" }}>
-                {vm.ph.note}
-              </span>
-              <SimMenu actions={vm.ph.actions || []} />
-            </div>
-            {vm.ctx.s.boxId && (vm.ctx.gm.db as any).boxes?.[vm.ctx.s.boxId] ? <BoxScoreModal vm={vm} /> : vm.hasModal ? <PlayerModal vm={vm} /> : vm.hasTeamModal ? <TeamModal vm={vm} /> : (<Fragment key={vm.ctx.s.navTick || 0}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", marginBottom: "18px", paddingBottom: "10px", borderBottom: "1px solid var(--color-divider)" }}>
-              <div style={{ flex: "1", minWidth: "0" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-accent-700)" }}>
-                  {vm.page.kicker}
-                  {!!vm.ctx.s.god && <button onClick={() => vm.ctx.gm.setState({ screen: 'settings', modal: false, teamModal: null })} title="God Mode is on (Settings to turn it off). Everything pink is a God Mode tool." style={{ all: 'unset', cursor: 'pointer', marginLeft: 10, padding: '1px 8px', borderRadius: 999, fontWeight: 700, ...godFill }}>God Mode</button>}
+          <main style={{ flex: '1', overflow: 'auto', padding: '22px 28px 40px' }}>
+            <ErrorBoundary
+              resetKey={[vm.ctx.s.screen, vm.ctx.s.modal, vm.ctx.s.pid, vm.ctx.s.boxId, vm.ctx.s.teamModal].join('|')}
+              onHome={() => vm.ctx.gm.setState({ screen: 'dash', modal: false, teamModal: null, boxId: null })}
+            >
+              <Suspense fallback={<p style={{ opacity: 0.6 }}>Loading…</p>}>
+                <div className="team-stripe" />
+                <div
+                  data-tour="phase"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    margin: '-6px 0 16px',
+                    padding: '7px 12px',
+                    border: '1px solid var(--color-divider)',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      letterSpacing: '.1em',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-accent-700)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {vm.ph.season}
+                  </span>
+                  {(vm.ph.steps || []).map((st: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={st.go}
+                      title={st.title}
+                      style={{
+                        all: 'unset',
+                        cursor: st.cursor,
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        padding: '2px 7px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: st.border,
+                        color: st.color,
+                        fontWeight: st.fw,
+                      }}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                  <span style={{ flex: '1', minWidth: '120px', fontSize: '12px', color: 'var(--color-neutral-700)', textAlign: 'right' }}>
+                    {vm.ph.note}
+                  </span>
+                  <SimMenu actions={vm.ph.actions || []} />
                 </div>
-                <h2 style={{ margin: "2px 0 0", fontSize: "32px", fontWeight: "400" }}>
-                  {vm.page.title}
-                </h2>
-              </div>
-              <div style={{ color: "var(--color-neutral-700)", textAlign: "right" }}>
-                {vm.page.meta}
-              </div>
-              {!vm.isC && <PlayerSearch vm={vm} />}
-            </div>
-            {!!vm.is.dash && !vm.spec.on && <InboxCard vm={vm} />}
-            {!!vm.is.dash && (vm.spec.on ? <SpectatorDashboard vm={vm} /> : <DashboardScreen vm={vm} />)}
-            {!!vm.is.roster && <RosterScreen vm={vm} />}
-            {!!vm.is.depth && <DepthChartScreen vm={vm} />}
-            {!!vm.is.standings && <StandingsScreen vm={vm} />}
-            {!!vm.is.trade && <TradeScreen vm={vm} />}
-            {!!vm.is.prefa && <PreFAScreen vm={vm} />}
-            {!!vm.is.fa && <FreeAgencyScreen vm={vm} />}
-            {!!vm.is.cards && <CardsScreen vm={vm} />}
-            {!!vm.is.draftClasses && <DraftClassesScreen vm={vm} />}
-            {!!vm.is.daily && <DailyScheduleScreen vm={vm} />}
-            {!!vm.is.draft && <DraftScreen vm={vm} />}
-            {!!vm.is.game && <LiveGameScreen vm={vm} />}
-            {!!vm.is.schedule && <ScheduleScreen vm={vm} />}
-            {!!vm.is.tx && <TransactionsScreen vm={vm} />}
-            {!!vm.is.mail && <MailboxScreen vm={vm} />}
-            {!!vm.is.short && <ShortlistScreen vm={vm} />}
-            {!!vm.is.playoffs && <PlayoffsScreen vm={vm} />}
-            {!!vm.is.playin && <PlayinScreen vm={vm} />}
-            {!!vm.is.lottery && <LotteryScreen vm={vm} />}
-            {!!vm.is.awards && <AwardsScreen vm={vm} />}
-            {!!vm.is.teams && <MyTeamsScreen vm={vm} />}
-            {!!vm.is.tactics && <TacticsScreen vm={vm} />}
-            {!!vm.is.scouting && <ScoutingScreen vm={vm} />}
-            {!!vm.is.overseas && <OverseasScreen vm={vm} />}
-            {!!vm.is.dev && <DevelopmentScreen vm={vm} />}
-            {!!vm.is.owner && <OwnerScreen vm={vm} />}
-            {!!vm.is.settings && <SettingsScreen vm={vm} />}
-            {!!vm.is.fin && <FinancesScreen vm={vm} />}
-            {!!vm.is.career && <CareerScreen vm={vm} />}
-            {!!vm.is.press && <PressScreen vm={vm} />}
-            {!!vm.is.league && <LeagueStatsScreen vm={vm} />}
-            {!!vm.is.editor && <LeagueEditorScreen vm={vm} />}
-            {!!vm.is.hof && <HallOfFameScreen vm={vm} />}
-            {!!vm.is.preds && <PredictionsScreen vm={vm} />}
-            {!!vm.is.changelog && <ChangelogScreen />}
-            {!!vm.is.caps && <CapOutlookScreen vm={vm} />}
-            {!!vm.is.lgfin && <LeagueFinancesScreen vm={vm} />}
-            {!!vm.is.capsheet && <CapSheetScreen vm={vm} />}
-            {!!vm.is.contracts && <ContractsScreen vm={vm} />}
-            {!!vm.is.history && <TeamHistoryScreen vm={vm} />}
-            {!!vm.is.ccp && <CcpScreen vm={vm} />}
-            {!!vm.is.stats && <StatsScreen vm={vm} />}
-            {!!vm.is.leaders && <LeagueLeadersScreen vm={vm} />}
-            </Fragment>)}
-            </Suspense>
+                {vm.ctx.s.boxId && (vm.ctx.gm.db as any).boxes?.[vm.ctx.s.boxId] ? (
+                  <BoxScoreModal vm={vm} />
+                ) : vm.hasModal ? (
+                  <PlayerModal vm={vm} />
+                ) : vm.hasTeamModal ? (
+                  <TeamModal vm={vm} />
+                ) : (
+                  <Fragment key={vm.ctx.s.navTick || 0}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        gap: '16px',
+                        marginBottom: '18px',
+                        paddingBottom: '10px',
+                        borderBottom: '1px solid var(--color-divider)',
+                      }}
+                    >
+                      <div style={{ flex: '1', minWidth: '0' }}>
+                        <div
+                          style={{
+                            fontSize: '10.5px',
+                            letterSpacing: '.1em',
+                            textTransform: 'uppercase',
+                            color: 'var(--color-accent-700)',
+                          }}
+                        >
+                          {vm.page.kicker}
+                          {!!vm.ctx.s.god && (
+                            <button
+                              onClick={() => vm.ctx.gm.setState({ screen: 'settings', modal: false, teamModal: null })}
+                              title="God Mode is on (Settings to turn it off). Everything pink is a God Mode tool."
+                              style={{
+                                all: 'unset',
+                                cursor: 'pointer',
+                                marginLeft: 10,
+                                padding: '1px 8px',
+                                borderRadius: 999,
+                                fontWeight: 700,
+                                ...godFill,
+                              }}
+                            >
+                              God Mode
+                            </button>
+                          )}
+                        </div>
+                        <h2 style={{ margin: '2px 0 0', fontSize: '32px', fontWeight: '400' }}>{vm.page.title}</h2>
+                      </div>
+                      <div style={{ color: 'var(--color-neutral-700)', textAlign: 'right' }}>{vm.page.meta}</div>
+                      {!vm.isC && <PlayerSearch vm={vm} />}
+                    </div>
+                    {!!vm.is.dash && !vm.spec.on && <InboxCard vm={vm} />}
+                    {!!vm.is.dash && (vm.spec.on ? <SpectatorDashboard vm={vm} /> : <DashboardScreen vm={vm} />)}
+                    {!!vm.is.roster && <RosterScreen vm={vm} />}
+                    {!!vm.is.depth && <DepthChartScreen vm={vm} />}
+                    {!!vm.is.standings && <StandingsScreen vm={vm} />}
+                    {!!vm.is.trade && <TradeScreen vm={vm} />}
+                    {!!vm.is.prefa && <PreFAScreen vm={vm} />}
+                    {!!vm.is.fa && <FreeAgencyScreen vm={vm} />}
+                    {!!vm.is.cards && <CardsScreen vm={vm} />}
+                    {!!vm.is.draftClasses && <DraftClassesScreen vm={vm} />}
+                    {!!vm.is.daily && <DailyScheduleScreen vm={vm} />}
+                    {!!vm.is.draft && <DraftScreen vm={vm} />}
+                    {!!vm.is.game && <LiveGameScreen vm={vm} />}
+                    {!!vm.is.schedule && <ScheduleScreen vm={vm} />}
+                    {!!vm.is.tx && <TransactionsScreen vm={vm} />}
+                    {!!vm.is.mail && <MailboxScreen vm={vm} />}
+                    {!!vm.is.short && <ShortlistScreen vm={vm} />}
+                    {!!vm.is.playoffs && <PlayoffsScreen vm={vm} />}
+                    {!!vm.is.playin && <PlayinScreen vm={vm} />}
+                    {!!vm.is.lottery && <LotteryScreen vm={vm} />}
+                    {!!vm.is.awards && <AwardsScreen vm={vm} />}
+                    {!!vm.is.teams && <MyTeamsScreen vm={vm} />}
+                    {!!vm.is.tactics && <TacticsScreen vm={vm} />}
+                    {!!vm.is.scouting && <ScoutingScreen vm={vm} />}
+                    {!!vm.is.overseas && <OverseasScreen vm={vm} />}
+                    {!!vm.is.dev && <DevelopmentScreen vm={vm} />}
+                    {!!vm.is.owner && <OwnerScreen vm={vm} />}
+                    {!!vm.is.settings && <SettingsScreen vm={vm} />}
+                    {!!vm.is.fin && <FinancesScreen vm={vm} />}
+                    {!!vm.is.career && <CareerScreen vm={vm} />}
+                    {!!vm.is.press && <PressScreen vm={vm} />}
+                    {!!vm.is.league && <LeagueStatsScreen vm={vm} />}
+                    {!!vm.is.editor && <LeagueEditorScreen vm={vm} />}
+                    {!!vm.is.hof && <HallOfFameScreen vm={vm} />}
+                    {!!vm.is.preds && <PredictionsScreen vm={vm} />}
+                    {!!vm.is.changelog && <ChangelogScreen />}
+                    {!!vm.is.caps && <CapOutlookScreen vm={vm} />}
+                    {!!vm.is.lgfin && <LeagueFinancesScreen vm={vm} />}
+                    {!!vm.is.capsheet && <CapSheetScreen vm={vm} />}
+                    {!!vm.is.contracts && <ContractsScreen vm={vm} />}
+                    {!!vm.is.history && <TeamHistoryScreen vm={vm} />}
+                    {!!vm.is.ccp && <CcpScreen vm={vm} />}
+                    {!!vm.is.stats && <StatsScreen vm={vm} />}
+                    {!!vm.is.leaders && <LeagueLeadersScreen vm={vm} />}
+                  </Fragment>
+                )}
+              </Suspense>
             </ErrorBoundary>
           </main>
         </div>
         {!!vm.isC && !vm.spec.on && <DeskPanel vm={vm} />}
         {!!vm.hasList && <ListModal vm={vm} />}
-        {!!vm.hasDialog && (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
+        {!!vm.hasDialog &&
+          (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {!!vm.ctx.s.letterOpen && !vm.spec.on && <OwnerLetterModal vm={vm} />}
         {!!vm.ctx.s.specPick && vm.spec.on && <SpectatorPicker vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}
-        {vm.ctx.s.tour != null && <Suspense fallback={null}><TourOverlay vm={vm} /></Suspense>}
+        {vm.ctx.s.tour != null && (
+          <Suspense fallback={null}>
+            <TourOverlay vm={vm} />
+          </Suspense>
+        )}
       </div>
     </>
   );
