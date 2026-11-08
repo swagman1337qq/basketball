@@ -198,6 +198,7 @@ function fitBonus(g: Game, s: any, tid: number, st: string, ids: number[]) {
 }
 
 // ── One team's judgement of a trade ────────────────────────────────────────────────────
+export const REQ_DISC = 0.8;
 let AI_M = 0.06; // the margin each side needs (smaller between two AI teams)
 const usedPick = (g: Game, s: any, a: any) =>
   a.yr === g.Y && (s.picks || []).some((x: any) => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid) && !g.draftRights(a, s);
@@ -212,7 +213,9 @@ export function teamGain(g: Game, s: any, tid: number, getP: number[], giveP: nu
     st = (g.strategies(s.teams, s) as any)[tid] || 'middle',
     T = s.teams,
     asset = (id: string) => (s.assets || []).find((a: any) => a.id === id);
-  const pv = (id: number, giving: boolean) => g.tradeP(P[id], st, tid, giving);
+  // A star who asked out (tradeRequests.ts aiStarRequests) is worth less to the team that has him: it's losing him anyway.
+  const pv = (id: number, giving: boolean) =>
+    g.tradeP(P[id], st, tid, giving) * (giving && P[id]?.aiReq?.tid === tid && P[id].aiReq.season === g.Y ? REQ_DISC : 1);
   const recv =
     getP.reduce((a, id) => a + pv(id, false), 0) +
     fitBonus(g, s, tid, st, getP) +
@@ -314,6 +317,43 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
   const pick = <X>(xs: X[]) => xs[Math.floor(rnd() * xs.length)],
     r = rnd();
   if (ai.length < 2) return null;
+  // A star who asked out (tradeRequests.ts aiStarRequests): his team takes offers from up to six teams and keeps the
+  // one worth most to it (a rebuilding seller wants young players and picks, which contenders usually have fewer of).
+  // A Winning player only hears from contenders and teams on the rise; anyone else can go anywhere. Each buyer keeps
+  // its best three and sends salary, young players and picks (buildPackage).
+  const asked = ai.flatMap(t => (s.rosters[t] || []).filter((id: number) => P[id]?.aiReq?.tid === t && P[id].aiReq.season === g.Y));
+  if (asked.length && rnd() < 0.6) {
+    const id = pick(asked),
+      p = P[id],
+      seller = p.aiReq.tid,
+      winNow = p.pers?.mot === 'Winning';
+    const buyers = ai
+      .filter(t => t !== seller && (!winNow || strat[t] === 'contend' || strat[t] === 'middle'))
+      .sort(() => rnd() - 0.5)
+      .slice(0, 6);
+    let best: TradeIdea | null = null,
+      bestG = -Infinity;
+    for (const buyer of buyers) {
+      const idea = buildPackage(
+        g,
+        s,
+        buyer,
+        seller,
+        [id],
+        [],
+        3,
+        p.name + ' asked out of ' + T[seller].abbr + ': ' + T[buyer].abbr + ' traded for him',
+        rnd,
+      );
+      if (!idea) continue;
+      const gs = teamGain(g, s, seller, idea.aP, idea.bP, idea.aK, idea.bK, AI_M);
+      if (gs > bestG) {
+        bestG = gs;
+        best = idea;
+      }
+    }
+    if (best) return best;
+  }
   if (r < 0.55) {
     // A contender (or a team on the rise) fills a hole from a seller.
     const buyer = pick(ai.filter(t => strat[t] === 'contend' || (strat[t] === 'middle' && rnd() < 0.3)));

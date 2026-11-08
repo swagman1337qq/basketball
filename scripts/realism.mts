@@ -120,7 +120,9 @@ function economy(g: any, rows: Row[], before: Map<number, number>): string[] {
     if (!['twoWay', 'tenDay', 'hardship', 'ex10'].includes(p.ctype) && !(p.amt >= 0.8 * N.min(0)))
       out.push(p.name + ' (' + abbr(t) + ') is paid ' + p.amt + 'M, below the minimum');
     if (p.amt > 1.3 * N.max(10)) out.push(p.name + ' (' + abbr(t) + ') is paid ' + p.amt + 'M, far above the max');
-    if (star(p) && p.ctype === 'min') out.push('top-30 player ' + p.name + ' (' + p.ovr + ', ' + abbr(t) + ') is on a minimum deal');
+    // A star signed for the minimum (a minimum-deal player who broke out later is fine: he signed below star level).
+    if (star(p) && p.ctype === 'min' && g.priceOvr(p.signed?.ovr ?? p.ovr) >= STAR_B)
+      out.push('top-30 player ' + p.name + ' (' + p.ovr + ', ' + abbr(t) + ') is on a minimum deal');
   });
   (s.fa || []).forEach((id: number) => {
     const p = P[id];

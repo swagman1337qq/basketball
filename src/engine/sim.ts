@@ -318,7 +318,10 @@ const ape = (r: any) => (r.ape ?? 4) - 4;
 // shot-blocking or steals run well ahead of his Defensive IQ gambles: he racks up the numbers but
 // leaves his spot, so the shots he doesn't get to are easier (the Hassan Whiteside effect).
 export const perimD = (r: any) => r.diq * 0.5 + r.spd * 0.125 + (r.acc ?? r.spd) * 0.125 + r.hgt * 0.25 + ape(r) * 0.8; // size and length contest shots on the perimeter too
-export const interiorD = (r: any) => r.hgt * 0.4 + r.diq * 0.3 + (r.blk ?? r.hgt) * 0.15 + r.jmp * 0.15 + ape(r) * 1.5;
+// Strength (2026-11-08): holding position in the post and on a drive's contact. Before this it counted for nothing in
+// games anywhere (+10 for a group's rotation: −0.06 to +0.02 net per 100).
+export const interiorD = (r: any) =>
+  r.hgt * 0.35 + r.diq * 0.3 + (r.blk ?? r.hgt) * 0.15 + r.jmp * 0.1 + (r.stre ?? 50) * 0.1 + ape(r) * 1.5;
 // Piling up blocks takes everything at once: timing and leap (Blocks), height and length, the lift
 // to get up, the lateral quickness to rotate over in time, and the positioning (Defensive IQ) to be
 // there. A weighted geometric mean, so a weakness anywhere drags it down: a long, bouncy shot-blocker
@@ -341,6 +344,11 @@ export const passQ = (p: { r: any; feel?: number }) => p.r.pss * (1 + ((p.feel ?
 // man's perimeter defense is over the lineup's (staying in front). Offenses look for the weak defender: a shooter's
 // share of the shots × exp((the lineup's perimeter defense − his man's) / HUNT_K). His man also commits more of
 // the shooting fouls on him, makes more of the blocks and gets more of the steals.
+// Usage vs efficiency (2026-11-08: USG_K 0.18 → 0.45, knee 0.24 → 0.23; Offensive IQ softens it less: was /60, 0.4–1.5): each point of a shooter's share of his lineup's
+// usage past USG_KNEE costs USG_K of a point of FG% (less for a smart player, more for an alpha). 25-point scorers shot
+// about 62.6% TS (NBA 2023–24 about 60.5%) and 18 players a season reached a PER of 25 (NBA 7–9).
+export const USG_KNEE = 0.23,
+  USG_K = 0.45;
 export const MATCH_W = 0.3,
   MATCH_RIM = 0.0006,
   HUNT_K = 200,
@@ -401,7 +409,7 @@ export const CRE_K = 0.0015;
 export const rebSkill = (r: any) => r.reb * 0.55 + r.hgt * 0.33 + r.jmp * 0.12 + ape(r) * 0.9;
 // Team rebounding also counts box-outs: a great boxer wins the glass for his team without
 // grabbing many rebounds himself.
-export const glassSkill = (r: any) => rebSkill(r) * 0.75 + (r.box ?? r.reb) * 0.25;
+export const glassSkill = (r: any) => rebSkill(r) * 0.65 + (r.box ?? r.reb) * 0.25 + (r.stre ?? 50) * 0.1; // and holding position under the glass (2026-11-08)
 // Floors for handing out assists, steals, blocks and rebounds. Anyone playing real minutes picks
 // up some of each just by being on the floor (a kick-out, a loose ball, a long rebound), so the
 // worst passers, rebounders and defenders count as these skill levels when the credit is shared
@@ -1692,7 +1700,8 @@ export class GameSim {
       // hand) chucks it over the double team anyway.
       const shShare = use(sh) / onO.reduce((a, p) => a + use(p), 0),
         oiqSh = sh.r.oiq - (n.oiq ?? 52);
-      const usgPen = shShare > 0.24 ? (shShare - 0.24) * 0.18 * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 60, 0.4, 1.5)) : 0;
+      const usgPen =
+        shShare > USG_KNEE ? (shShare - USG_KNEE) * USG_K * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 100, 0.6, 1.3)) : 0;
       const readD = oiqSh >= 0 ? 0.0003 * oiqSh : 0.0005 * oiqSh; // shot selection: knowing which shots to take
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch

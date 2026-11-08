@@ -57,6 +57,7 @@ import {
   ovrExactV7,
   ovrShare,
   ovrWeights,
+  ovrWeightsV8,
   sameOvrWeights,
   overallWith,
   POS_GROUP,
@@ -212,7 +213,7 @@ import {
 import { adjustGames, confidenceTick, leagueStr, scoutTick } from './overseas';
 import { lockerRoom, mentorTick } from './lockerRoom';
 import { addTx, dateOf as txDate, recordTrade } from './txlog';
-import { losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
+import { aiStarRequests, losingYears, requestFactors, tradeRequestTick } from './tradeRequests';
 import { BASE, blankLine, GameSim, zoneSkill, type FourFactors, type GameResult, type ShotEvent, type SimTeam } from './sim';
 import { agingEdge } from './agingOutlook';
 
@@ -1196,9 +1197,10 @@ export class Game {
       g.db.iqV = 8;
     }
     // From here on a save records the weights its overalls were computed with (db.ovrW, ratings.ts ovrWeights); a save
-    // without them is at today's weights (the steps above end there). Weights changed since: recompute (no new step needed).
-    if (!g.db.ovrW) g.db.ovrW = ovrWeights();
-    else g.migrateOverallWeights();
+    // without them was made with the 2026-11-05 weights (the steps above end there, ovrWeightsV8). Weights changed since:
+    // recompute (no new step needed).
+    if (!g.db.ovrW) g.db.ovrW = ovrWeightsV8(); // saves from before db.ovrW (2026-11-08) were made with these
+    g.migrateOverallWeights();
     // 2026-11-01 (retAgeV 1): retired players' ages used to stop when they retired; bring them to this season's age.
     // A summer retiree's stored age is already the next season's (his season is the one he finished); one who hit the
     // mandatory retirement age retired after the season turned over; the league's starting legends were made at their
@@ -1770,7 +1772,9 @@ export class Game {
         // Real superstars (75+): contenders and good teams build around one; capped-out and hopeless teams don't have one.
         if (k === 0) base += ({ contender: 9, good: 7, middling: 5, rebuild: 3, capped: 2, hopeless: 0 } as any)[kind] + rnd() * 5;
         if (k === 1 && (kind === 'contender' || kind === 'good')) base += 2 + rnd() * 3;
-        const age = ageFor(kind, k, base);
+        // 2026-11-08: a star-level starting player isn't a rookie (new leagues had 65–68-overall 21-year-olds, who scored
+        // 25–31 points in their "rookie" season; real rookies top out near 60): from a raw 66 he's at least 23, from 70, 24.
+        const age = Math.max(ageFor(kind, k, base), base >= 70 ? 24 : base >= 66 ? 23 : 0);
         if (age <= 22) base -= (23 - age) * 2.5; // still raw at 20–22
         const p = mk(base, age, W_NBA, 0, slots[k]);
         // Rebuilders' kids have real ceilings; the hopeless team's don't.
@@ -6928,6 +6932,7 @@ export class Game {
       }
     }
     // Players on your teams who've had enough ask for a trade, or for an extension at their price (tradeRequests.ts).
+    aiStarRequests(this, { ...s, teams, rosters: box.rosters }, day, lgLog); // AI teams' stars ask out too
     const rq = tradeRequestTick(this, { ...s, teams, rosters: box.rosters, games: gameLog }, day, notices);
     notices = rq.notices;
     return {

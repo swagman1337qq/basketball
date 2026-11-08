@@ -241,9 +241,13 @@ const OVR_W_V7: Record<string, Record<string, number>> = {
     box: 1,
   },
 };
-// 75,000 controlled games with shot access, help defense, and type-specific finishing.
-// Blend 60% measured positional shares with 40% of the previous shares.
-export const OVR_W: Record<string, Record<string, number>> = {
+// 2026-11-08: measured again (scripts/measureOvr.mts baseline, 160,000 games; scripts/ratingValues.json) after strength joined
+// post defense and the glass and the usage penalty grew; 60% the measured shares, 40% the previous weights (as on
+// 2026-11-05). Saves follow on load (Game.migrateOverallWeights); the weights before are in each save's db.ovrW.
+// Before that, 2026-11-05: 75,000 controlled games with shot access, help defense, and type-specific finishing,
+// blended 60% measured / 40% previous.
+// The weights from 2026-11-05 to 2026-11-08: saves made then don't record theirs (db.ovrW), so Game.load starts them here.
+export const OVR_W_V8: Record<string, Record<string, number>> = {
   G: {
     hgt: 8.1,
     stre: 1.5,
@@ -309,6 +313,76 @@ export const OVR_W: Record<string, Record<string, number>> = {
     pss: 4.7,
     reb: 4.4,
     box: 1.4,
+  },
+};
+export const OVR_ADJ_V9: Record<string, number> = { G: 1.37, W: 1.86, B: 2.25 };
+export const FEEL_W_V8: Record<string, number> = { G: 6.3, W: 5.9, B: 6.6 };
+export const OVR_W: Record<string, Record<string, number>> = {
+  G: {
+    hgt: 9.1,
+    stre: 1.8,
+    spd: 5,
+    acc: 5.9,
+    jmp: 1.9,
+    endu: 6.6,
+    ins: 1.3,
+    dnk: 1.2,
+    lay: 4.1,
+    ft: 2.5,
+    fg: 2.2,
+    tp: 8.3,
+    oiq: 10,
+    diq: 13.2,
+    blk: 1.4,
+    stl: 4.8,
+    drb: 7.8,
+    pss: 6.9,
+    reb: 3.6,
+    box: 2.4,
+  },
+  W: {
+    hgt: 13.5,
+    stre: 1.4,
+    spd: 6.5,
+    acc: 8.8,
+    jmp: 1.5,
+    endu: 7.5,
+    ins: 3.8,
+    dnk: 1.7,
+    lay: 2.9,
+    ft: 1.6,
+    fg: 2.9,
+    tp: 5.5,
+    oiq: 5.4,
+    diq: 12.7,
+    blk: 3.5,
+    stl: 4.7,
+    drb: 5.1,
+    pss: 5.2,
+    reb: 2.6,
+    box: 3.2,
+  },
+  B: {
+    hgt: 14.8,
+    stre: 1.9,
+    spd: 2.8,
+    acc: 7.9,
+    jmp: 3.8,
+    endu: 6.1,
+    ins: 1.3,
+    dnk: 1.3,
+    lay: 2,
+    ft: 1.3,
+    fg: 2.4,
+    tp: 6.7,
+    oiq: 5.4,
+    diq: 16.8,
+    blk: 6.9,
+    stl: 4.3,
+    drb: 3.3,
+    pss: 4.8,
+    reb: 4,
+    box: 2.2,
   },
 };
 // Before the 2026-11-01 measurement (with FEEL_W_V6 and OVR_ADJ_V7), for the save migration (Game.load iqV 7):
@@ -739,7 +813,7 @@ export const OVR_ADJ_V4: Record<string, number> = { G: 1.6, W: 1.64, B: 4.38 };
 export const OVR_ADJ_V5: Record<string, number> = { G: -2.2, W: 1.58, B: 3.49 }; // before Feel joined the overall (2026-10-17)
 export const OVR_ADJ_V6: Record<string, number> = { G: -1.49, W: 1.92, B: 3.5 }; // before shot creation (2026-10-23)
 const OVR_ADJ_V8: Record<string, number> = { G: 1.38, W: 1.92, B: 2.7 };
-export const OVR_ADJ: Record<string, number> = { G: 1.37, W: 1.86, B: 2.25 };
+export const OVR_ADJ: Record<string, number> = { G: 1.5, W: 1.87, B: 1.56 };
 export const OVR_ADJ_V7: Record<string, number> = { G: 1.03, W: 1.87, B: 2.18 }; // before 2026-11-01
 // Feel (intangibles: vision and anticipation) counts too (2026-10-17): it improves shots, turnovers, assists and
 // steals in games. Measured like OVR_W (the same 120,000-game regression with Feel added: +10 Feel is worth about
@@ -747,7 +821,7 @@ export const OVR_ADJ_V7: Record<string, number> = { G: 1.03, W: 1.87, B: 2.18 };
 // (each group's OVR_W adds up to 100): 7.4% of a guard's overall, 9.0% of a wing's, 7.3% of a big's. A player
 // without intangibles yet reads as 50.
 const FEEL_W_V7: Record<string, number> = { G: 6, W: 6, B: 6 };
-export const FEEL_W: Record<string, number> = { G: 6.3, W: 5.9, B: 6.6 };
+export const FEEL_W: Record<string, number> = { G: 6.7, W: 4.6, B: 6.4 };
 export const FEEL_W_V6: Record<string, number> = { G: 6.5, W: 7, B: 8 }; // before 2026-11-01
 export const FEEL_W_V5: Record<string, number> = { G: 8, W: 9.8, B: 7.8 };
 // AI uses the calibrated level between displayed whole-number ratings.
@@ -777,6 +851,7 @@ export const ovrExactV7 = (p: any) => weightedOverall(p, OVR_W_V7, FEEL_W_V7, OV
 // measurement only edits the constants above: no more hand-written iqV steps or kept _V copies.
 export type OvrWeights = { W: typeof OVR_W; F: typeof FEEL_W; A: typeof OVR_ADJ };
 export const ovrWeights = (): OvrWeights => JSON.parse(JSON.stringify({ W: OVR_W, F: FEEL_W, A: OVR_ADJ }));
+export const ovrWeightsV8 = (): OvrWeights => JSON.parse(JSON.stringify({ W: OVR_W_V8, F: FEEL_W_V8, A: OVR_ADJ_V9 }));
 export const sameOvrWeights = (a: OvrWeights, b: OvrWeights) => JSON.stringify(a) === JSON.stringify(b);
 export const overallWith = (p: any, w: OvrWeights) => weightedOverall(p, w.W, w.F, w.A);
 // Recompute the overall from the ratings (after any rating change). movePot: the ceiling moves by the

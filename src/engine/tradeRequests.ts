@@ -16,6 +16,47 @@ import { fmtMoney as money } from './capModel';
 import { addNotice } from './preFA';
 import { teamGain } from './tradeLogic';
 import { addTx } from './txlog';
+import { STAR_B } from './cbaFlow';
+
+// AI teams' stars ask out too (2026-11-08). Before this a top-30 player changed teams by trade about once in 13
+// league-seasons (NBA: a few times a year, mostly stars on losing teams). Once a season, from 20 games in until the
+// trade deadline, a star (Game.priceOvr STAR_B+, 24 or older, signed past this season, not on his rookie deal) on an AI
+// team under .450 may ask for a trade: AI_REQ × his motive (Winning most, Loyalty almost never; a Fame player in a
+// small market more), more on a team under .350, half after 7 years with the team. His team then shops him
+// (tradeLogic.ts aiTradeIdea: contenders first, his value to it cut by REQ_DISC) through the deadline and the summer
+// trade market; the request lapses when the next season starts (p.aiReq.season).
+export const AI_REQ = 0.45;
+const MOT_REQ: Record<string, number> = { Winning: 1.4, Fame: 0.8, 'Playing time': 0.6, Money: 0.6, Loyalty: 0.1 };
+export function aiStarRequests(g: Game, s: any, day: number, lgLog: any[]) {
+  if (s.phase !== 'regular' || day >= g.ruleSlot(DAY.TRADE_DEADLINE)) return;
+  const P = g.db.P,
+    Y = g.Y;
+  s.teams.forEach((T: any) => {
+    const gp = T.w + T.l;
+    if (g.isUser(s, T.tid) || gp < 20 || T.w / gp >= 0.45) return;
+    (s.rosters[T.tid] || []).forEach((id: number) => {
+      const p = P[id];
+      if (!p || p.aiReqChk === Y || g.priceOvr(p.ovr) < STAR_B || (p.age ?? 0) < 24 || p.exp <= Y || p.rookieScale) return;
+      p.aiReqChk = Y;
+      const mot = p.pers?.mot,
+        small = (T.mkt ?? 1) < 1;
+      const chance =
+        AI_REQ *
+        ((MOT_REQ[mot] ?? 0.7) + (mot === 'Fame' && small ? 0.4 : 0)) *
+        (T.w / gp < 0.35 ? 1.3 : 1) *
+        ((p.yrsWith || 0) >= 7 ? 0.5 : 1);
+      if (Math.random() >= chance) return;
+      p.aiReq = { season: Y, tid: T.tid, day };
+      lgLog.unshift({
+        day,
+        type: 'Trade',
+        teams: T.abbr,
+        pids: [id],
+        text: p.name + ' asked the ' + T.region + ' ' + T.name + ' for a trade',
+      });
+    });
+  });
+}
 
 export type ReqCause = 'win' | 'ball' | 'money' | 'market' | 'ext';
 export interface TradeRequest {

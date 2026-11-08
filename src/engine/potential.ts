@@ -196,8 +196,10 @@ export const compressT = (T: number) => (T <= 70 ? T : 70 + (T - 70) * 0.55);
 // Above TOP_KNEE every point counts TOP_SLOPE: a would-be 83 is about 71, 78 about 69, 70 about 65.6; 62 and
 // below are unchanged. Applied to a new player's expected peak (initCeil) and to the starting league's
 // levels (Game.mkPlayer); salaries are priced by rank (Game.priceOvr), so stars still get the max.
+// 2026-11-08: TOP_SLOPE 0.45 → 0.38 (a would-be 83 is about 70, 78 about 68, 70 about 65): about 20 players a league were at
+// 64+ (the MVP-season Embiid card is a 65), and 15–18 a season reached a PER of 25 (NBA 7–9). New players and new leagues.
 export const TOP_KNEE = 62,
-  TOP_SLOPE = 0.45;
+  TOP_SLOPE = 0.38;
 export const squeezeTop = (x: number) => (x <= TOP_KNEE ? x : TOP_KNEE + (x - TOP_KNEE) * TOP_SLOPE);
 export const unsqueezeTop = (x: number) => (x <= TOP_KNEE ? x : TOP_KNEE + (x - TOP_KNEE) / TOP_SLOPE);
 // `raw`: the peak is already on today's scale (older saves' one-time ceilings).
