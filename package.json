@@ -12,6 +12,8 @@
     "realism": "tsx scripts/realism.mts",
     "test:league": "tsx scripts/realism.mts --seeds 11,12 --seasons 3",
     "test:ratings": "tsx scripts/measureOvr.mts check",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts}\"",
     "test:finishing": "tsx scripts/finishingKernel.mts && tsx scripts/finishingPreferences.mts && tsx scripts/finishingIntegration.mts"
   },
   "dependencies": {
@@ -28,6 +30,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1"

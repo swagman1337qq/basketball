@@ -1,0 +1,3 @@
+# Layout-only commits that git blame should skip (GitHub reads this file; locally: git config blame.ignoreRevsFile .git-blame-ignore-revs)
+# 2026-11-08: Prettier reformat of src/ and scripts/
+b468bdb90a3715cf12f7befd2e1fd6247d4df9de

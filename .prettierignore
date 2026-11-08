@@ -1,0 +1,9 @@
+# Data tables (names, cities, countries, historical classes, card builds) stay compact: one entry per line helps nobody.
+src/data/
+# Team logo artwork (SVG drawing data).
+src/ui/teamMarks.tsx
+src/ui/expansionMarksEast.tsx
+src/ui/expansionMarksWest.tsx
+dist/
+node_modules/
+.review/
