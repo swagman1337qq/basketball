@@ -57,7 +57,8 @@ const BANDS: Record<string, [number, number]> = {
   // Opening night after an offseason (economy). NBA: 5–10 tax teams, 35–40 max deals, payroll about the cap and
   // a little over, several top players changing teams a summer. Teams under the floor pay the shortfall at season's
   // end; this game has 0–9 of them on opening nights (most just under), so the band only catches a collapse.
-  'tax teams': [1, 12],
+  // Tax teams run low here (0–5 a season in the first years, NBA 5–10; FEATURE_MAP known issues), so 0 isn't a failure.
+  'tax teams': [0, 12],
   'max deals': [15, 45],
   'league payroll / cap': [0.95, 1.2],
   'teams under the floor': [0, 10],

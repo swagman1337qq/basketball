@@ -2714,11 +2714,29 @@ export class Game {
         if (sit.length) ids = ids.filter(id => !sit.includes(id));
       }
     }
+    // Load management (2026-11-08): on the second night of a back-to-back an AI team's top three may sit (MGR_B2B, more
+    // at 30+ and on a comfortable contender; two at most), so stars play about 68 games, as in the NBA, not 73.
+    const comfy = !user && this.comfyContender(s, tid);
+    if (!user && s.phase === 'regular' && ids.length >= 10 && this.db.calendarV && this.restDays(tid, s.day) === 0) {
+      const sit = ids
+        .slice(0, 3)
+        .filter(
+          id => ((s.day * 37 + id * 13 + tid * 11) % 100) / 100 < Game.MGR_B2B + ((P[id].age ?? 0) >= 30 ? 0.15 : 0) + (comfy ? 0.1 : 0),
+        )
+        .slice(0, 2);
+      if (sit.length) ids = ids.filter(id => !sit.includes(id));
+    }
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    const ROT = this.starMinutes(
+    const ROT0 = this.starMinutes(
         this.rotationFor(s, tid),
         ids.map(id => P[id]),
       ),
+      // A comfortable contender spares its top three MGR_MIN minutes a night all season and plays its bench more, as
+      // NBA contenders do (2026-11-08: a contender's stars played the same minutes as a lottery team's).
+      ROT =
+        comfy && s.phase === 'regular' && ids.length >= 9
+          ? ROT0.map((m, i) => (i < 3 ? m - Game.MGR_MIN : i >= 5 && i <= 7 ? m + Game.MGR_MIN : m))
+          : ROT0,
       tgt = user ? this.userTargets(s, ids, ROT) : null;
     const shortRest = this.db.calendarV && s.phase === 'regular' && this.restDays(tid, s.day) === 0;
     const target = (id: number, i: number) => {
@@ -3482,6 +3500,16 @@ export class Game {
   }
   static REST_GAMES = 10;
   static REST_P = 0.4;
+  // Load management (2026-11-08): the base chance an AI star sits the second night of a back-to-back, and the minutes a
+  // comfortable contender (comfyContender) takes off each of its top three a night.
+  static MGR_B2B = 0.2;
+  static MGR_MIN = 2.5;
+  // Winning 60% of its games after 15 or more: in the playoff picture with room to spare.
+  comfyContender(s, tid) {
+    const t = s.teams[tid],
+      gp = t.w + t.l;
+    return s.phase === 'regular' && gp >= 15 && t.w / gp >= 0.6;
+  }
   // His team's playoff seed can't change any more: a top-six seed it can't climb from (the team above is out of reach) or
   // fall from (the team below can't catch it), with the games each has left.
   seedLocked(s, tid) {
