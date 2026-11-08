@@ -24,7 +24,7 @@ import { mulberry32 as seeded } from './rng';
 import { mediaPreds } from './media';
 import { RNAME, snapEnd, snapOpening } from './progress';
 import { capState, checkTrade, deadSchedule, inSeasonPhase, nums, rosterMax, rosterMin, seasonMax, setCap, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds, yosOf, DAY } from './cba';
-import { agentCallNotice, askOf, settleAbroad, acceptQualifyingOffers, aiFreeAgencyDay, clubLogs, floorSigning, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
+import { agentCallNotice, askOf, settleAbroad, acceptQualifyingOffers, aiFreeAgencyDay, lastCall, clubLogs, floorSigning, fillRoster, openFreeAgency, seasonTick, signDraftee, tradeCap, trimRoster, userRelease, userSign, aiExtensions } from './cbaFlow';
 import { hardshipSlots } from './cba';
 import { acceptance, aiTerms, applySigning, buyoutBlocked, validateSigning, waivePlayer } from './contracts';
 import { capGrowthFor, fmtMoney } from './capModel';
@@ -1830,7 +1830,7 @@ export class Game {
       // Restricted free agents nobody signed take their qualifying offers; AI clubs fill to the minimum
       // (14) with minimum deals and cut to the limit (15; guaranteed money they waive stays on their cap).
       const box = { rosters, fa, overseas: [...(s.overseas || []).filter(id => !abroadOut.includes(id)), ...abroadNew], cap: { ...(s.cap || {}) } }, byClub: Record<number, string[]> = {};
-      const lgA: any[] = [], sT = { ...s, teams }; acceptQualifyingOffers(this, sT, box, lgA, byClub);
+      const lgA: any[] = [], sT = { ...s, teams }; acceptQualifyingOffers(this, sT, box, lgA, byClub); lastCall(this, sT, box, lgA);
       Object.keys(box.rosters).forEach(k => { if (this.isUser(s, +k)) return; fillRoster(this, sT, box, +k, lgA); trimRoster(this, sT, box, +k, lgA); });
       // Free agents with no NBA future leave the league.
       // Unsigned free agents with no NBA future leave the league (or retire when they're old).
@@ -2352,7 +2352,15 @@ export class Game {
   // 2026-10-22: any owner spends to the first apron while his team contends (Game.strategies' top nine), and goes back
   // to his usual line when it stops winning.
   teamCeiling(t) { const base = this.ownerCeiling(t.arch) + (t.ceilAdj || 0) + (t.splash && this.Y <= t.splash.thru ? t.splash.amt : 0);
-    return this.state?.teams && this.strategies(this.state.teams, this.state, true)[t.tid] === 'contend' ? Math.max(base, this.db.caps.AP1) : base; }
+    const ceil = this.state?.teams && this.strategies(this.state.teams, this.state, true)[t.tid] === 'contend' && !this.taxWeary(this.state, t.tid) ? Math.max(base, this.db.caps.AP1) : base;
+    return this.taxWeary(this.state, t.tid) ? Math.min(ceil, t.arch === 'Win-Now Spender' || !this.repeater(this.state, t.tid) ? this.db.caps.AP1 : this.TAX) : ceil; }
+  // The aprons bite (2026-11-08): an AI owner whose team paid the tax in three of the last four seasons (a repeater,
+  // frontOffice.ts) or went past the 2nd apron last season stops paying for more. No contender's lift to the 1st
+  // apron, and payroll held to the tax line (a Win-Now Spender's, or after one season past the 2nd apron, to the 1st
+  // apron), so the third and fourth stars of a team that stayed together too long leave or are traded for less.
+  // Teams you run are left to you and your owner.
+  repeater(s: any, tid: number) { return ((s?.cap?.[tid]?.taxHist) || []).slice(-4).filter(Boolean).length >= 3; }
+  taxWeary(s: any, tid: number) { return !!s?.teams && !this.isUser(s, tid) && (this.repeater(s, tid) || !!((s.cap?.[tid]?.ap2Hist) || []).slice(-1)[0]); }
   ownerCeiling(arch) { const AP1 = this.db.caps.AP1; return ({ 'Win-Now Spender': this.AP2, 'Frugal Profit-Seeker': this.TAX, 'Asset Hoarder': AP1, 'Hype Focus': AP1, 'Meddling Micromanager': this.TAX } as any)[arch] ?? this.TAX; }
   payrollOf(ids) { return ids.reduce((a, id) => a + this.capHit(this.db.P[id]), 0); }
   // Cap hit: salary (or the 2-year minimum for a one-year veteran minimum deal) plus likely bonuses.

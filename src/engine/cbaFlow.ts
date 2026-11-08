@@ -5,7 +5,7 @@
 import type { Game } from './Game';
 import { exerciseOption, pickCut } from './rosterAI';
 import { addTx, recordPick } from './txlog';
-import { signingMethods, birdOf, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
+import { signingMethods, birdOf, capRoom, capState, checkTrade, DAY, freshExceptions, maxFor, nums, qoEligible, qoFor, rookieDeal, rosterMax, rosterMin, seasonMax, campMax, stamp, stdIds, teamSalary, tradeHit, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { acceptance, aiTerms, applySigning, floorOverpay1, buyoutBlocked, CAP_METHODS, prefYears, validateSigning, waivePlayer, type Terms } from './contracts';
 import { adjustGames } from './overseas';
 import { affiliateOf } from './gleague';
@@ -72,9 +72,37 @@ export function settleAbroad(g: Game, ids: number[], first: boolean) {
 export function keepStarLimit(g: Game, s: any, rosters: any, tid: number, p: any, strat: Record<number, string>) {
   const top = (rosters[tid] || []).map((x: number) => g.db.P[x]).filter(Boolean).sort((a: any, b: any) => b.ovr - a.ovr), N = nums(g);
   const inTop = (n: number) => top.slice(0, n).some((q: any) => q.id === p.id) || top.length < n || p.ovr >= top[n - 1].ovr;
-  if (strat[tid] === 'contend' && inTop(3)) return N.AP2;
+  if (strat[tid] === 'contend' && inTop(3) && !g.taxWeary(s, tid)) return N.AP2; // not for a repeat taxpayer (Game.taxWeary)
   return inTop(2) && g.priceOvr(p.ovr) >= STAR_B ? N.AP1 : 0;
 }
+
+// Stars decide whether to stay (2026-11-08). An AI team's star (priced like a top-30 player, STAR_B) used to stay whenever
+// his team wanted him (95% when his deal ran out, and extensions he never turned down), so cores that grew up together
+// never broke up: top-30 players changed teams in 0.7% of seasons (NBA: several a year), and the best roster's lead
+// grew season after season (70-win teams in a quarter of long-league seasons). Now he decides once per contract,
+// before his first extension window: stay (he extends or re-signs as before) or test free agency, if another team has
+// the room to pay him (openFreeAgency); his old team can't bid for two weeks (aiFreeAgencyDay). Restricted free agents
+// are left out (their team can match).
+export function stayChance(g: Game, s: any, tid: number, p: any): number {
+  const T = s.teams[tid], mot = p.pers?.mot, strat = g.strategies(s.teams, s, true)[tid];
+  const rank = (s.rosters[tid] || []).map((x: number) => g.db.P[x]).filter(Boolean).sort((a: any, b: any) => b.ovr - a.ovr).findIndex((q: any) => q.id === p.id);
+  let c = 0.62;
+  if (mot === 'Loyalty') c += 0.25;
+  if (mot === 'Winning') c += strat === 'contend' ? 0.15 : strat === 'rebuild' ? -0.3 : -0.1;
+  if (mot === 'Money') c -= 0.1; // he wants to see what the market pays
+  if (mot === 'Fame') c += ((T?.mkt ?? 1) - 1) * 0.6; // a big market keeps him, a small one doesn't
+  if (rank >= 2 && (mot === 'Playing time' || p.pers?.alpha || p.pers?.touches)) c -= 0.25; // a third option who wants his own team
+  if ((p.yrsWith || 0) >= 7) c += 0.1;
+  if ((p.age ?? 27) >= 32) c += 0.1;
+  if (p.rookieScale) c += 0.2; // young stars mostly sign their first big extension
+  return Math.max(0.15, Math.min(0.95, c));
+}
+// Decided once per contract (keyed on the season it ends), so the extension windows and the summer it runs out agree.
+export function starStays(g: Game, s: any, tid: number, p: any, exp: number = p.exp): boolean {
+  if (p.stay?.tid === tid && p.stay.exp === exp) return !!p.stay.v;
+  const v = Math.random() < stayChance(g, s, tid, p); p.stay = { tid, exp, v }; return v;
+}
+const isStar = (g: Game, p: any) => g.priceOvr(p.ovr) >= STAR_B;
 
 // Default terms for the signing dialog: the first method that works, his asking price (within
 // the method's limit) and the years he prefers.
@@ -329,6 +357,7 @@ export function openFreeAgency(g: Game, s: any) {
   let lgLog = s.lgLog.slice();
   Object.values(P).forEach((p: any) => (p.inc || []).forEach(x => { if (x.nextLikely != null) { x.likely = x.nextLikely; delete x.nextLikely; } x.paid = 0; }));
   const letGo: number[] = []; // your expiring players you chose not to re-sign (Pre-Free Agency): rights renounced
+  const testers: number[] = []; // AI teams' stars who'd rather test free agency (stayChance)
   const note = (tid: number, text: string) => { if (g.isUser(s, tid)) (by[tid] = by[tid] || []).push(text); };
   const lg = (tid: number, text: string, pids: number[] = []) => lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids, text });
   // Draft picks by AI teams join (or boycott, or go unsigned).
@@ -350,11 +379,13 @@ export function openFreeAgency(g: Game, s: any) {
       // Contract up. Restricted free agency for rookie-scale players and young veterans.
       const gone = user && p.noResign?.tid === t && p.noResign.season === Y; // asked for a trade and you kept him (tradeRequests.ts): he walks
       const qo = qoEligible(g, p) && !p.optDeclined && !gone ? qoFor(g, p) : 0, wantQo = qo > 0 && (user ? (dec['qo' + id] ?? g.fair(p.ovr) >= qo * 0.8) : g.fair(p.ovr) >= qo * 0.85);
-      p.prevAmt = p.amt; p.birdTid = t; p.ask = p.ask0 = askOf(g, p); p.exp = Y + prefYears(p); delete p.optDeclined; delete p.capOverride;
+      const exp0 = p.exp; p.prevAmt = p.amt; p.birdTid = t; p.ask = p.ask0 = askOf(g, p); p.exp = Y + prefYears(p); delete p.optDeclined; delete p.capOverride;
       if (['tenDay', 'hardship', 'ex10'].includes(p.ctype)) p.birdTid = null;
       if (wantQo) { p.rfa = { tid: t, qo }; note(t, 'Extended a ' + qo.toFixed(2) + 'M qualifying offer to ' + p.name + ' (restricted free agent)'); }
       // AI teams keep some of their own free agents before the market opens (Bird rights).
-      if (!user && p.birdTid === t) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
+      const leaves = !user && p.birdTid === t && !p.rfa && isStar(g, p) && !starStays(g, { ...s, rosters: box.rosters }, t, p, exp0); // a star testing free agency
+      if (leaves) { p.noResign = { tid: t, season: Y, test: true }; testers.push(id); } // only if someone can pay him (below)
+      if (!user && p.birdTid === t && !leaves) { const ids = box.rosters[t].map(x => P[x]).sort((a, b) => b.ovr - a.ovr), rank = ids.findIndex(x => x.id === id);
         const star = keepStarLimit(g, s, box.rosters, t, p, stratOf()); // a contender's top-three player: up to the second apron
         const keep = (rank < 9 || p.age <= 24 && g.potRead(p, t, s) >= 60) && Math.random() < (star ? 0.95 : p.rfa ? 0.75 : 0.5) && teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP, star);
         if (keep) { const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2), years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1)); lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]); return true; } }
@@ -373,6 +404,15 @@ export function openFreeAgency(g: Game, s: any) {
     letGo.forEach(id => { const p = P[id], tid = p.birdTid, c = box.cap[tid]; box.cap[tid] = { ...c, renounced: [...(c.renounced || []), id] }; p.birdTid = null; delete p.rfa; note(tid, p.name + '’s contract expired and you renounced his rights, as decided: he’s an unrestricted free agent and his cap hold is off your books.'); }); }
   // Nobody may start free agency with more than the camp limit (21) under contract: AI teams trim.
   s.teams.forEach(t => { if (g.isUser(s, t.tid)) return; while (stdIds(g, box.rosters[t.tid]).length > campMax(s)) { const w = pickCut(g, { ...s, rosters: box.rosters }, t.tid, box.rosters[t.tid])!.p; waivePlayer(g, s, box, t.tid, w, 'waive'); } }); // rosterAI: worth to the team, not overall alone
+  // A star who wants to test free agency only leaves when another team has the cap room to pay him (its own cap
+  // holds counted, one star per team's room, best stars first). With no market he re-signs: his team keeps first
+  // call on him in free agency. (2026-11-08: without this, stars nobody could afford sat out the summer and went for
+  // the minimum at training camp.)
+  if (testers.length) { const st = { ...s, phase: 'fa', rosters: box.rosters, cap: box.cap, fa: box.fa }, held: Record<number, number> = {};
+    testers.sort((a, b) => P[b].ovr - P[a].ovr).forEach(id => { const p = P[id], t = p.noResign.tid;
+      const to = s.teams.find(x => x.tid !== t && capRoom(g, st, x.tid) - (held[x.tid] || 0) >= 0.95 * p.ask);
+      if (!to) { delete p.noResign; return; }
+      held[to.tid] = (held[to.tid] || 0) + p.ask; lg(t, p.name + ' turned down the ' + s.teams[t].region + ' ' + s.teams[t].name + ' and will test free agency', [id]); }); }
   const nFA = box.fa.length, nR = box.fa.filter(id => P[id].rfa).length;
   lgLog = [{ day: s.day, type: 'Signing', teams: 'League', text: 'Free agency opened with ' + nFA + ' players available (' + nR + ' restricted). The ' + Y + '–' + String(Y + 1).slice(2) + ' mid-level is ' + N.NTMLE + 'M (non-taxpayer), ' + N.TPMLE + 'M (taxpayer), bi-annual ' + N.BAE + 'M, room ' + N.ROOM + 'M.' }, ...lgLog];
   const logs: any = clubLogs(g, s, by);
@@ -385,20 +425,25 @@ export function openFreeAgency(g: Game, s: any) {
 export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSheets: any[], moves = 12, decay = 0.97, calls?: any[]) {
   let strat0: Record<number, string> | null = null; const stratOf = () => (strat0 ??= g.strategies(s.teams, s, true));
   const P = g.db.P, N = nums(g), T = s.teams;
+  // A star who left his team to test free agency (openFreeAgency) and has no deal after two weeks may go back to it.
+  if (g.faDayOf(s) >= 14) box.fa.forEach(id => { const p = P[id]; if (p.noResign?.test) delete p.noResign; });
   // Unsigned players lower their asks as the market dries up.
   // Asks come down as free agency goes on, but a top-30 player's (STAR_B) stays within 5% of where he opened (p.ask0):
   // stars don't wait out the market and sign for an exception (2026-10-22: a 75 overall signed for the mid-level).
   box.fa.forEach(id => { const p = P[id], minS = N.min(yosOf(g, p)), floor = p.ask0 && g.priceOvr(p.ovr) >= STAR_B ? 0.95 * p.ask0 : 0;
     p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, floor, (p.ask || minS) * decay).toFixed(2); });
+  const tried = new Set<number>(); // stars testing free agency go first, once a day: the teams that kept room for them get first call
   for (let k = 0; k < moves; k++) {
     const pool = box.fa.filter(id => !P[id].retired).sort((a, b) => P[b].ovr - P[a].ovr).slice(0, 10); if (!pool.length) break;
-    const id = pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa, offerSheets };
+    const tst = box.fa.find(x => P[x].noResign?.test && !P[x].retired && !tried.has(x)); if (tst != null) tried.add(tst);
+    const id = tst ?? pool[Math.floor(Math.random() * Math.min(pool.length, 6))], p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa, offerSheets };
     // His own team (Bird rights) first, then the teams with the most cap room, then everyone else.
     // Each team's room, worked out once per move (nothing changes until someone signs).
     const roomOf = new Map<number, number>(T.filter(t => !g.isUser(s, t.tid)).map(t => [t.tid, N.CAP - teamSalary(g, st, t.tid, { holds: true })])), room = (t: number) => roomOf.get(t) ?? 0;
     const underOf = new Map<number, number>(T.map(t => [t.tid, teamSalary(g, st, t.tid) < N.FLOOR ? 1 : 0])), under = (t: number) => underOf.get(t) ?? 0; // teams under the salary floor bid first (after his own team)
     const teams = shuffle(T.map(t => t.tid).filter(t => !g.isUser(s, t))).sort((a, b) => (b === p.birdTid ? 1 : 0) - (a === p.birdTid ? 1 : 0) || under(b) - under(a) || Math.max(0, room(b)) - Math.max(0, room(a)));
     for (const t of teams) {
+      if (p.noResign?.tid === t && p.noResign.season === g.Y) continue; // he left this team (or asked out of it)
       const ids = box.rosters[t], std = stdIds(g, ids).length, depth = ids.map(x => P[x].ovr).sort((a, b) => b - a), spare = room(t) > p.ask;
       if (std >= seasonMax(s) || (std >= seasonMax(s) - 2 && !spare && p.ovr <= (depth[seasonMax(s) - 3] ?? 0) + 1 && p.birdTid !== t)) continue;
       const terms = aiTerms(g, st, t, p); if (!terms) continue;
@@ -443,6 +488,23 @@ export function floorSigning(g: Game, s: any, box: Box, tid: number, lgLog: any[
   const p = P[id], ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)), amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), floorOverpay1(ask), N.CAP - teamSalary(g, s, tid))).toFixed(2); // one year: up to floorOverpay1
   lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[tid].abbr, pids: [id], text: applySigning(g, s, box, tid, p, { method: 'cap', amt, years: 1 }) + ' (over market value, to reach the salary floor)' });
   return true;
+}
+
+// Training camp (2026-11-08): a good free agent still waiting for his price takes the best offer left, from cap room or
+// an exception, for one or two years, instead of sitting until a team fills its roster with him at the minimum
+// (fillRoster: a 69 overall once started a season on a minimum deal). Best players first; the AI team that can pay
+// the most gets him.
+export function lastCall(g: Game, s: any, box: Box, lgLog: any[]) {
+  const P = g.db.P, N = nums(g);
+  const left = box.fa.filter(id => { const p = P[id]; return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 55 && (p.ask || 0) > N.min(yosOf(g, p)) * 1.25; }).sort((a, b) => P[b].ovr - P[a].ovr);
+  left.forEach(id => { const p = P[id], st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa }, floor = N.min(yosOf(g, p)) * 1.25;
+    let best: { t: number; terms: Terms } | null = null;
+    s.teams.forEach((T: any) => { const t = T.tid; if (g.isUser(s, t) || stdIds(g, box.rosters[t]).length >= campMax(s)) return;
+      signingMethods(g, st, t, p).forEach((m: any) => { if (!m.ok || !['cap', 'room', 'ntmle', 'tpmle', 'bae'].includes(m.key)) return;
+        const terms: Terms = { method: m.key, amt: +Math.min(p.ask, m.maxFirst).toFixed(2), years: Math.max(1, Math.min(2, m.maxYears)) };
+        if (terms.amt <= (best?.terms.amt ?? floor) || teamSalary(g, st, t) + terms.amt > Math.max(g.teamCeiling(T), N.CAP) || !validateSigning(g, st, t, p, terms).ok) return;
+        best = { t, terms }; }); });
+    if (best) { const b: { t: number; terms: Terms } = best; lgLog.unshift({ day: s.day, type: 'Signing', teams: s.teams[b.t].abbr, pids: [id], text: applySigning(g, st, box, b.t, p, b.terms) + ' (the best offer left at training camp)' }); } });
 }
 
 // Opening-night rosters: at least the minimum (14); AI clubs fill with minimum deals and trim to the
@@ -531,6 +593,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       // Worth keeping? Young players on what they'll become, veterans on what they are.
       const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, g.potRead(p, t, s) - p.ovr) * 0.5) : p.ovr; // his team's own read of his potential
       if (proj < (rook ? 56 : 58) || p.age >= 36 || (p.age >= 33 && p.ovr - agingLoss(g, p, 2) < (rook ? 56 : 58))) return; // a veteran only if he'll still be worth it in two years (agingOutlook.ts)
+      if (isStar(g, p) && !starStays(g, s, t, p)) return; // he'll test free agency (stayChance)
       const mot = p.pers?.mot, will = (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) * ((p.mood === 'Wants out' || p.mood === 'Frustrated') ? 0.3 : 1);
       if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt, cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
