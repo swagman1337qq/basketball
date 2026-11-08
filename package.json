@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy-pages.sh",
+    "test": "tsx scripts/test.mts",
     "realism": "tsx scripts/realism.mts",
     "test:league": "tsx scripts/realism.mts --seeds 11,12 --seasons 3",
     "test:ratings": "tsx scripts/measureOvr.mts check",
