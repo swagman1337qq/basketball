@@ -393,8 +393,12 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
   }
   if (r < 0.8) {
     // Salary dump: a team over the tax pays a team with room to take a contract.
-    const dumper = pick(ai.filter(t => teamSalary(g, s, t) > (strat[t] === 'contend' && !g.taxWeary(s, t) ? N.AP2 : N.TAX)));
-    if (dumper == null) return null; // a contender pays the tax rather than dump (below the 2nd apron), unless he's a repeat taxpayer
+    // Over the tax (a contender: the 2nd apron, unless he's a repeat taxpayer) a team dumps a bad contract; 2026-11-08: so
+    // does any non-rebuilding team over the cap half the time (a rebuilder takes the money for picks, as NBA rebuilders do).
+    const taxed = ai.filter(t => teamSalary(g, s, t) > (strat[t] === 'contend' && !g.taxWeary(s, t) ? N.AP2 : N.TAX)),
+      over = ai.filter(t => strat[t] !== 'rebuild' && teamSalary(g, s, t) > N.CAP);
+    const dumper = pick(taxed.length && rnd() < 0.5 ? taxed : over);
+    if (dumper == null) return null;
     const st = strat[dumper] || 'middle',
       k = (id: number) => g.pVal(P[id], st, dumper);
     const bad = (s.rosters[dumper] || [])
@@ -402,7 +406,9 @@ function aiTradeIdea0(g: Game, s: any, rnd: () => number): TradeIdea | null {
       .filter((p: any) => badContract(g, p))
       .sort((a: any, b: any) => k(a.id) - k(b.id))[0];
     if (!bad) return null;
-    const recv = pick(ai.filter(t => t !== dumper && strat[t] !== 'contend' && teamSalary(g, s, t) + bad.amt <= N.TAX - 2));
+    const fits = (t: number) => t !== dumper && strat[t] !== 'contend' && teamSalary(g, s, t) + bad.amt <= N.TAX - 2,
+      rebuilders = ai.filter(t => fits(t) && strat[t] === 'rebuild');
+    const recv = pick(rebuilders.length && rnd() < 0.75 ? rebuilders : ai.filter(fits)); // rebuilders first
     if (recv == null) return null;
     const gd = { ...s, god: false },
       sweet = tradablePicks(g, s, dumper)

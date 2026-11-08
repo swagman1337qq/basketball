@@ -32,6 +32,7 @@ import {
 } from './cba';
 import {
   acceptance,
+  CONTEND_PREM_BIRD,
   aiTerms,
   applySigning,
   floorOverpay1,
@@ -111,14 +112,25 @@ export const MAX_SNAP = 0.9,
   STAR_B = 63;
 export const snapAt = (b?: number) => (b != null && b >= STAR_B ? STAR_SNAP : MAX_SNAP);
 export const snapMax = (amt: number, mx: number, b?: number) => (amt >= snapAt(b) * mx ? mx : amt);
+// Young players are paid for what they'll become (2026-11-08): at 25 or younger a player is priced halfway to the level
+// he's expected to reach (up to 6 points of the league's read of his potential: half the room at 22 and under, 35% at
+// 23–24, 20% at 25), as AI extensions already were. Teams pay young players to grow into their deals, as NBA teams do.
+export function pricedLevel(p: any) {
+  const age = p.age ?? 27;
+  if (age > 25) return p.ovr;
+  const k = age <= 22 ? 0.5 : age <= 24 ? 0.35 : 0.2,
+    proj = p.ovr + Math.min(6, Math.max(0, (p.pot ?? p.ovr) - p.ovr) * k);
+  return (p.ovr + proj) / 2;
+}
 export function askOf(g: Game, p: any) {
   const N = nums(g),
     yos = yosOf(g, p),
     minS = N.min(yos),
     mx = N.max(yos),
-    raw = g.fair(p.ovr),
-    age = p.age ?? 27;
-  const b = g.priceOvr(p.ovr),
+    age = p.age ?? 27,
+    lvl = pricedLevel(p),
+    raw = g.fair(lvl);
+  const b = g.priceOvr(lvl),
     af = raw >= snapAt(b) * mx && age <= 33 ? 1 : ageAskF(age, b) * (age >= 30 ? agingEdge(g, p, 0.04, 0.85, 1.15) : 1); // a veteran who'll hold up asks more (agingOutlook.ts)
   return +Math.max(minS, Math.min(mx, snapMax(raw * af * (p.mood === 'Eager' ? 0.9 : p.mood === 'Reluctant' ? 1.15 : 1), mx, b))).toFixed(
     2,
@@ -165,6 +177,10 @@ export function keepStarLimit(g: Game, s: any, rosters: any, tid: number, p: any
   return inTop(2) && g.priceOvr(p.ovr) >= STAR_B ? N.AP1 : 0;
 }
 
+// AI teams keep their own rotation (2026-11-08): a top-eight player whose deal runs out is kept KEEP_ROT of the time (was 0.5,
+// as for the end of the bench), a restricted free agent 0.8 (was 0.75), within the owner's limit. With the middle priced near
+// market (Game.MID_DISC) this is how NBA payrolls go over the cap: Bird rights on the players a team already has.
+export const KEEP_ROT = 0.75;
 // Stars decide whether to stay (2026-11-08). An AI team's star (priced like a top-30 player, STAR_B) used to stay whenever
 // his team wanted him (95% when his deal ran out, and extensions he never turned down), so cores that grew up together
 // never broke up: top-30 players changed teams in 0.7% of seasons (NBA: several a year), and the best roster's lead
@@ -1082,10 +1098,12 @@ export function openFreeAgency(g: Game, s: any) {
         const star = keepStarLimit(g, s, box.rosters, t, p, stratOf()); // a contender's top-three player: up to the second apron
         const keep =
           (rank < 9 || (p.age <= 24 && g.potRead(p, t, s) >= 60)) &&
-          Math.random() < (star ? 0.95 : p.rfa ? 0.75 : 0.5) &&
+          Math.random() < (star ? 0.95 : p.rfa ? 0.8 : rank < 8 ? KEEP_ROT : 0.5) &&
           teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP, star);
         if (keep) {
-          const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask).toFixed(2),
+          const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask * (rank < 8 && stratOf()[t] === 'contend' ? CONTEND_PREM_BIRD : 1)).toFixed(
+              2,
+            ), // a contender pays to keep its rotation (contracts.ts aiTerms)
             years = Math.max(birdOf(p, t) === 'early' ? 2 : 1, Math.min(5, prefYears(p) + 1));
           lg(t, applySigning(g, { ...s, phase: 'fa' }, box, t, p, { method: 'bird', amt, years }) + ' (re-signed)', [id]);
           return true;

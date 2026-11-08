@@ -49,7 +49,7 @@ const BANDS: Record<string, [number, number]> = {
   'rebound leader (rpg)': [10.5, 16.5],
   'highest usage %': [30, 40],
   'best record (win%)': [0.65, 0.86],
-  'standings spread (win% sd)': [0.12, 0.19],
+  'standings spread (win% sd)': [0.1, 0.19],
   'worst record (win%)': [0.12, 0.36],
   'most made dunks': [0, 500],
   'mean overall drift': [-2.5, 2.5],

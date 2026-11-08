@@ -5,7 +5,9 @@ import { compressT, squeezeTop, unsqueezeTop, TOP_KNEE } from '../src/engine/pot
 import { curve, possessionKind, interiorD, glassSkill, USG_KNEE, USG_K } from '../src/engine/sim';
 import { finishCurve, finishingPct, finishMix, FINISH_TYPES } from '../src/engine/finishing';
 import { ovrWeights, sameOvrWeights, overallWith, ovrExact, OVR_W, FEEL_W } from '../src/engine/ratings';
-import { stayChance } from '../src/engine/cbaFlow';
+import { stayChance, pricedLevel } from '../src/engine/cbaFlow';
+import { CONTEND_PREM, CONTEND_PREM_BIRD } from '../src/engine/contracts';
+import { Game } from '../src/engine/Game';
 import { taxBill, nums } from '../src/engine/cba';
 import { newLeague } from './lib/headless.mts';
 
@@ -101,6 +103,23 @@ test("a star's chance to stay is bounded and loyalty helps", () => {
   const a = stayChance(g, s, tid, base),
     b = stayChance(g, s, tid, loyal);
   assert.ok(a >= 0.15 && a <= 0.95 && b >= 0.15 && b <= 0.95 && b > a);
+});
+
+// Payroll (2026-11-08).
+test('young players are priced toward their potential, veterans on what they are', () => {
+  assert.equal(pricedLevel({ age: 28, ovr: 55, pot: 65 }), 55);
+  const a = pricedLevel({ age: 21, ovr: 50, pot: 62 }),
+    b = pricedLevel({ age: 24, ovr: 50, pot: 62 }),
+    c = pricedLevel({ age: 21, ovr: 50, pot: 50 });
+  assert.ok(a > b && b > 50 && c === 50 && a <= 50 + 3); // halfway to at most 6 points of growth
+});
+test('contenders pay a premium, more for free agents than their own', () => {
+  assert.ok(CONTEND_PREM > CONTEND_PREM_BIRD && CONTEND_PREM_BIRD > 1 && CONTEND_PREM < 1.5);
+});
+test('the middle of the market is priced at or above the curve, stars and the bench at it', () => {
+  assert.equal(Game.midTierF(45), 1);
+  assert.equal(Game.midTierF(70), 1);
+  assert.ok(Game.midTierF(57) >= 1);
 });
 
 console.log((process.exitCode ? 'FAIL' : 'PASS') + ': ' + n + ' unit tests passed');

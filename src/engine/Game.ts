@@ -5559,10 +5559,10 @@ export class Game {
   }
   // The market factor for one price: the cheaper middle (midTierF) never goes past MKT_SHIELD; the rest of the
   // market takes all of it (2026-10-22: so a rising market lifts stars and starters, not 56s and 57s).
-  static MKT_SHIELD = 1.25;
+  static MKT_SHIELD = 1.4; // 2026-11-08: was 1.25; with the middle priced closer to full (MID_DISC) the market steers all of it
   static mktFor(m: number, mt: number) {
     if (m <= Game.MKT_SHIELD) return m;
-    const depth = Math.max(0, Math.min(1, (1 - mt) / 0.22));
+    const depth = Math.max(0, Math.min(1, Math.abs(1 - mt) / Math.abs(Game.MID_DISC)));
     return Game.MKT_SHIELD + (m - Game.MKT_SHIELD) * (1 - depth);
   }
   // The market follows the money: each summer, before free agency, last opening night's league payroll ÷ cap
@@ -5580,9 +5580,14 @@ export class Game {
   // (about the 70th-best player) asked about $30M, where real players of that quality get $15–25M.
   // 2026-10-22: the band narrowed to about ranks 45–120 (full price from a first-season 61.5, about the 40th-best), so the
   // players just below the stars (ranks 25–45) are priced near their max, as in the NBA.
+  // 2026-11-08: the discount 0.22 became a premium (MID_DISC −0.15: the middle is paid 15% over the curve). Players ranked
+  // about 61–150 earned 8–9% of the cap (NBA about 12–14%) and league payroll sat at the cap (NBA about 1.15×, 5–10 tax
+  // teams). The max holds stars below their worth, so in the NBA the money goes to the middle: teams pay starters and
+  // sixth men for what they hope they become and to stay in contention (cbaFlow.ts pricedLevel, contracts.ts CONTEND_PREM).
+  static MID_DISC = -0.15;
   static midTierF(b: number) {
     const d = b < 54.5 ? (b - 51.5) / 3 : b > 59.5 ? (61.5 - b) / 2 : 1;
-    return 1 - 0.22 * Math.max(0, Math.min(1, d));
+    return 1 - Game.MID_DISC * Math.max(0, Math.min(1, d));
   }
   // The overall a salary is priced at: his place in today's league (db.priceQ, rostered players, taken each
   // summer as the league year turns) read off the league's first season (db.priceQ0). Before the first summer

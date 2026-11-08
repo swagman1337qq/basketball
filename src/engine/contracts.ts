@@ -243,6 +243,8 @@ export const floorOverpay = (ask: number) => Math.min(ask * 1.5, ask + 8);
 // On a one-year deal a team under the floor goes further, but a bench player's price stays a bench player's: twice
 // his ask, at most $12M over it (2026-10-22: it was up to the whole gap).
 export const floorOverpay1 = (ask: number) => Math.min(ask * 2, ask + 12);
+export const CONTEND_PREM = 1.25,
+  CONTEND_PREM_BIRD = 1.1;
 export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const N = nums(g),
     yos = yosOf(g, p),
@@ -252,7 +254,13 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const ms = signingMethods(g, s, tid, p).filter(m => m.ok && !['twoWay', 'ex10', 'tenDay', 'hardship', 'offer'].includes(m.key));
   const room = capRoom(g, s, tid);
   const pick = (k: string) => ms.find(m => m.key === k);
-  if (pick('bird') && ask <= pick('bird')!.maxFirst) return { method: 'bird', amt: ask, years: Math.min(yrs + 1, pick('bird')!.maxYears) };
+  // A contender pays to compete (2026-11-08): for a player who'd be in its top eight it offers CONTEND_PREM over his ask
+  // (its own free agents CONTEND_PREM_BIRD), within what the method allows, rather than lose him to a team with room.
+  const top8 = (s.rosters[tid] || []).map((id: number) => g.db.P[id]?.ovr ?? 0).sort((a: number, b: number) => b - a)[7] ?? 0,
+    contend = p.ovr >= top8 && (g.strategies(s.teams, s, true) as any)[tid] === 'contend';
+  const prem = (lim: number, f: number) => (contend ? +Math.max(ask, Math.min(lim, ask * f)).toFixed(2) : ask);
+  if (pick('bird') && ask <= pick('bird')!.maxFirst)
+    return { method: 'bird', amt: prem(pick('bird')!.maxFirst, CONTEND_PREM_BIRD), years: Math.min(yrs + 1, pick('bird')!.maxYears) };
   // A team under the salary floor pays over market value to get closer to it (shorter deals) instead of paying
   // the shortfall at season's end, within what the method allows. The rest of the gap is for trades
   // (tradeLogic.ts floorTradeIdea).
@@ -263,13 +271,13 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
       gap > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(lim, N.max(yos), gap, floorOverpay1(ask))).toFixed(2) : ask;
   const yrsFor = (amt: number, maxY: number) => Math.min(amt > floorOverpay(ask) ? 1 : amt > ask * 1.5 ? 2 : yrs, maxY);
   if (room >= ask && pick('cap')) {
-    const amt = floorPay(room);
+    const amt = Math.max(floorPay(room), prem(room, CONTEND_PREM));
     return { method: 'cap', amt, years: yrsFor(amt, 4) };
   }
   for (const k of ['ntmle', 'tpmle', 'bae', 'room']) {
     const m = pick(k);
     if (m && ask <= m.maxFirst) {
-      const amt = floorPay(m.maxFirst);
+      const amt = Math.max(floorPay(m.maxFirst), prem(m.maxFirst, CONTEND_PREM));
       return { method: k, amt, years: yrsFor(amt, m.maxYears) };
     }
   }
