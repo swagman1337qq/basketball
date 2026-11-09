@@ -813,7 +813,7 @@ export function EasyToggles({ vm, compact }: { vm: VM; compact?: boolean }) {
     e = s.easy || {};
   const set = (k: string, v: boolean) =>
     gm.setState(st => ({ easy: { ...(st.easy || {}), [k]: v }, ...(k === 'fire' ? { ownerFiring: !v } : {}) }));
-  const all = EASY.every(([k]) => e[k]);
+  const all = EASY.every(([k]) => e[k] || (k === 'fire' && s.ownerFiring === false));
   return (
     <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fill,minmax(280px,1fr))', gap: compact ? 2 : 8 }}>
       {EASY.map(([k, label, desc]) => (
@@ -830,7 +830,12 @@ export function EasyToggles({ vm, compact }: { vm: VM; compact?: boolean }) {
             borderRadius: 'var(--radius-sm)',
           }}
         >
-          <input type="checkbox" checked={!!e[k]} onChange={ev => set(k, ev.target.checked)} style={{ marginTop: 3 }} />
+          <input
+            type="checkbox"
+            checked={!!e[k] || (k === 'fire' && s.ownerFiring === false)}
+            onChange={ev => set(k, ev.target.checked)}
+            style={{ marginTop: 3 }}
+          />
           <span>
             {label}
             {!compact && <span style={{ display: 'block', fontSize: '12px', color: 'var(--color-neutral-700)' }}>{desc}</span>}

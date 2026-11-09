@@ -6032,7 +6032,7 @@ export class Game {
           (p.pers.prone ? 1.8 : 1) *
           (1 + (p.fat || 0) / 80) *
           (p.inj ? 1.5 : 1);
-        if (Math.random() >= risk) return;
+        if (s.noInj || Math.random() >= risk) return; // Settings → Injuries off (2026-11-09): nobody gets hurt
         const x = Math.random();
         let inj;
         // ~0.7% career-altering tears (about six a season league-wide), ~7% multi-week injuries,

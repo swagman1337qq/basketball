@@ -3337,15 +3337,14 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
             };
       }),
   };
-  const firing = {
-    on: s.ownerFiring !== false && !s.god,
-    label: s.god
-      ? 'God Mode is on: you can’t be fired'
-      : s.ownerFiring === false
-        ? 'Off: owners review you but can’t fire you'
-        : 'On: owners fire you if their written conditions are broken',
-    btn: s.ownerFiring === false ? 'Turn on' : 'Turn off',
-    toggle: () => gm.setState(st => ({ ownerFiring: st.ownerFiring === false })),
+  // 2026-11-09: firing has one switch, Easy mode's “Never get fired” (it was also a row of its own here).
+  const injuries = {
+    on: !s.noInj,
+    label: s.noInj
+      ? 'Off: nobody in the league gets hurt (players already hurt still heal on schedule)'
+      : 'On: players get hurt at NBA rates',
+    btn: s.noInj ? 'Turn on' : 'Turn off',
+    toggle: () => gm.setState(st => ({ noInj: !st.noInj })),
   };
   const god = {
     on: !!s.god,
@@ -4358,7 +4357,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     noReports: s.reports.length === 0,
     own,
     god,
-    firing,
+    injuries,
     salesSet,
     capEasySet,
     isGod: !!s.god,

@@ -216,29 +216,27 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             </button>
           )}
         </div>
-        {!vm.spec.on && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '180px minmax(0,1fr) auto',
-              gap: '16px',
-              alignItems: 'center',
-              padding: '12px 0',
-              borderBottom: '1px solid var(--color-divider)',
-            }}
-          >
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>Owner can fire you</div>
-            <div>
-              <div>{vm.firing.label}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>
-                Each owner’s firing conditions are listed on the Owner screen and checked when you end the season.
-              </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '180px minmax(0,1fr) auto',
+            gap: '16px',
+            alignItems: 'center',
+            padding: '12px 0',
+            borderBottom: '1px solid var(--color-divider)',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>Injuries</div>
+          <div>
+            <div>{vm.injuries.label}</div>
+            <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>
+              For the whole league, every team alike. Whether the owner can fire you is under Easy mode (Never get fired).
             </div>
-            <button className="btn btn-secondary" onClick={vm.firing.toggle} style={{ whiteSpace: 'nowrap' }}>
-              {vm.firing.btn}
-            </button>
           </div>
-        )}
+          <button className="btn btn-secondary" onClick={vm.injuries.toggle} style={{ whiteSpace: 'nowrap' }}>
+            {vm.injuries.btn}
+          </button>
+        </div>
         <div
           style={{
             display: 'grid',
