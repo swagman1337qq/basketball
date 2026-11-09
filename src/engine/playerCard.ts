@@ -1080,7 +1080,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         jmp: 86,
         endu: 72,
         ins: 46,
-        dnk: 46,
+        dnk: 76, // 2026-11-09: was 46, from before Dunks decided how often he dunks
         lay: 35,
         ft: 38,
         fg: 23,
@@ -1372,7 +1372,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         jmp: 88,
         endu: 86,
         ins: 40,
-        dnk: 44,
+        dnk: 70, // 2026-11-09: was 44, from before Dunks decided how often he dunks
         lay: 31,
         ft: 50,
         fg: 15,
@@ -1656,7 +1656,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         jmp: 84,
         endu: 70,
         ins: 44,
-        dnk: 52,
+        dnk: 88, // 2026-11-09: was 52, from before Dunks decided how often he dunks
         lay: 37,
         ft: 15,
         fg: 34,
@@ -1747,7 +1747,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         jmp: 95,
         endu: 70,
         ins: 37,
-        dnk: 43,
+        dnk: 73, // 2026-11-09: was 43, from before Dunks decided how often he dunks
         lay: 36,
         ft: 7,
         fg: 5,

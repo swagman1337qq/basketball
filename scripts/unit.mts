@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { compressT, squeezeTop, unsqueezeTop, TOP_KNEE } from '../src/engine/potential';
 import { curve, possessionKind, interiorD, glassSkill, USG_KNEE, USG_K } from '../src/engine/sim';
-import { finishCurve, finishingPct, finishMix, FINISH_TYPES } from '../src/engine/finishing';
+import { finishCurve, finishingPct, finishMix, FINISH_TYPES, dunkAble, dunkOpening, naturalDunkShare } from '../src/engine/finishing';
 import { ovrWeights, sameOvrWeights, overallWith, ovrExact, OVR_W, FEEL_W } from '../src/engine/ratings';
 import { stayChance, pricedLevel } from '../src/engine/cbaFlow';
 import { CONTEND_PREM, CONTEND_PREM_BIRD } from '../src/engine/contracts';
@@ -112,6 +112,21 @@ test('young players are priced toward their potential, veterans on what they are
     b = pricedLevel({ age: 24, ovr: 50, pot: 62 }),
     c = pricedLevel({ age: 21, ovr: 50, pot: 50 });
   assert.ok(a > b && b > 50 && c === 50 && a <= 50 + 3); // halfway to at most 6 points of growth
+});
+// Finishing (2026-11-08): the skills, not size alone, decide close shots.
+test('touch decides layups and hooks: a 40 and an 80 are far apart', () => {
+  const at = (k: string, v: number, t: any) =>
+    finishingPct({ r: { hgt: 60, jmp: 60, stre: 60, lay: 55, ins: 55, dnk: 55, fg: 55, [k]: v } }, t);
+  assert.ok(at('lay', 80, 'layup') - at('lay', 40, 'layup') > 0.13);
+  assert.ok(at('ins', 80, 'hook') - at('ins', 40, 'hook') > 0.13);
+  assert.ok(at('dnk', 80, 'dunk') - at('dnk', 40, 'dunk') > 0.08 && at('dnk', 40, 'dunk') < 0.85);
+});
+test("a tall, bouncy player who can't dunk lays it up; a real dunker dunks through contact", () => {
+  const big = { hgt: 85, jmp: 85, stre: 60 };
+  assert.ok(dunkAble({ ...big, dnk: 25 }) < 0.2 && dunkAble({ ...big, dnk: 75 }) > 0.9);
+  assert.ok(naturalDunkShare({ ...big, dnk: 25 }) < 0.2 && naturalDunkShare({ ...big, dnk: 80 }) > 0.65);
+  assert.equal(dunkOpening('open', { dnk: 20 }), 1);
+  assert.ok(dunkOpening('contested', { dnk: 40 }) < 0.05 && dunkOpening('contested', { dnk: 85 }) > 0.25);
 });
 test('contenders pay a premium, more for free agents than their own', () => {
   assert.ok(CONTEND_PREM > CONTEND_PREM_BIRD && CONTEND_PREM_BIRD > 1 && CONTEND_PREM < 1.5);

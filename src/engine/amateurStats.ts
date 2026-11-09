@@ -10,6 +10,8 @@ import { mulberry32 } from './rng';
 import { ovrExact } from './ratings';
 import { blockSkill, offAbility, PAINT_SHARE, rebSkill, stealSkill, zoneSkill } from './sim';
 import { FINISH_TYPES, finishMix, finishingPct, naturalDunkShare, type FinishType } from './finishing';
+const AM_OPEN = 0.75,
+  AM_DUNK = 0.05;
 import { SKILLS } from './development';
 import { amateurAdvanced, type StatLine } from './advanced';
 import { COLLEGES, D2, D3, IVY_LEAGUE, JUCO, LOW_MAJORS, MID_MAJORS, MORE_COLLEGES, NAIA } from '../data/world';
@@ -233,14 +235,19 @@ export function seasonLine(p: any, season: number, yearsBack: number, st?: Stint
       outsideA = midA - paintA;
     const finishCounts: Record<string, number> = Object.fromEntries(FINISH_TYPES.flatMap(type => finishKeys[type].map(key => [key, 0])));
     const finishShots = (attempts: number, zone: 'rim' | 'paint') => {
-      const mix = finishMix(finisher, zone);
+      // No gathers here: AM_OPEN stands for the share of rim looks clear or pressured enough to dunk, and AM_DUNK for
+      // the clear look's ease (sim.ts), so prospects dunk about as often and as well as before the 2026-11-08 change.
+      const mix = finishMix(finisher, zone, { opening: AM_OPEN });
       let left = attempts,
         mass = 1,
         made = 0;
       const types = FINISH_TYPES.filter(type => mix[type] > 0);
       types.forEach((type, i) => {
         const n = i === types.length - 1 ? left : binom(left, cl(mix[type] / mass, 0, 1));
-        const m = binom(n, cl(finishingPct(finisher, type) + sit.eff, 0.05, type === 'dunk' ? 0.995 : 0.95));
+        const m = binom(
+          n,
+          cl(finishingPct(finisher, type) + sit.eff + (type === 'dunk' ? AM_DUNK : 0), 0.05, type === 'dunk' ? 0.995 : 0.95),
+        );
         const [mk, at] = finishKeys[type];
         finishCounts[mk] = (finishCounts[mk] || 0) + m;
         finishCounts[at] = (finishCounts[at] || 0) + n;

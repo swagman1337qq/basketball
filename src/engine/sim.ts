@@ -20,6 +20,7 @@ import {
   finishMix,
   finishSkill,
   finishingPct,
+  dunkOpening,
   type FinishNorms,
   type FinishType,
 } from './finishing';
@@ -1628,7 +1629,12 @@ export class GameSim {
             ? 'open'
             : 'pressured';
       const mix = close
-        ? finishMix(sh, paint ? 'paint' : 'rim', { transition: fb, putback: putback && sh === rebounder, opening: clearGather ? 1 : 0 })
+        ? finishMix(sh, paint ? 'paint' : 'rim', {
+            transition: fb,
+            putback: putback && sh === rebounder,
+            opening: z === 'rim' ? dunkOpening(contest, sh.r) : 0,
+            post: action === 'post',
+          })
         : null;
       const finish: FinishType | null = mix ? wpick(Object.keys(mix) as FinishType[], type => mix[type]) : null;
       const sk = finish ? finishSkill(sh.r, finish) : cs[z],

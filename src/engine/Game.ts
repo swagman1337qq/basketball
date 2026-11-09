@@ -345,8 +345,8 @@ export class Game {
     g.db.r99V = 1;
     g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
-    g.db.finishV = 1;
-    g.db.cardV = 5; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
+    g.db.finishV = 2;
+    g.db.cardV = 6; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
     g.state = { ...g.state, assets: g.ensureAssets(g.state) }; // picks through the trading horizon (tradeLogic.ts)
     if (opts.hopeless) {
       const T = Array.isArray(tids) ? tids : [tids];
@@ -923,10 +923,10 @@ export class Game {
     (g.state.cards || []).forEach((c: any) => upgradePresetCard(c)); // ready-made cards' playing style, 2026-10-08
     // 2026-10-18: the ready-made cards were retuned for today's engine (then Luka's again, for his shot zones); players given an
     // earlier build take the new one (growth kept).
-    if ((g.db.cardV || 0) < 5) {
+    if ((g.db.cardV || 0) < 6) {
       retuneCarriers(g.db.P);
-      g.db.cardV = 5;
-    } // 5: historical styles and contact/rebounding habits
+      g.db.cardV = 6;
+    } // 5: historical styles and contact/rebounding habits; 6 (2026-11-09): four dunkers' Dunks ratings
     if (!g.db.askV) {
       (g.state.fa || []).forEach((id: number) => {
         const p = g.db.P[id];
@@ -1286,6 +1286,12 @@ export class Game {
       }
       g.db.finishV = 1;
     } // type-specific finishing; preserve skills and old statistics
+    // 2026-11-08 (finishing.ts: steeper layups, hooks and dunks, dunks that can miss): re-center each technique on the
+    // new curves once (the league's drift corrections carry over).
+    if (g.db.finishV < 2) {
+      g.refreshNorms(g.state);
+      g.db.finishV = 2;
+    }
     if ((g.db.rimV || 0) < 2) {
       const old = g.db.norms;
       g.refreshNorms(g.state);

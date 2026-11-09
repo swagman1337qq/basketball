@@ -102,7 +102,18 @@ assert.ok(observed.some(e => e.action === 'roll' && e.help === 'at-rim' && e.hel
 assert.ok(observed.some(e => e.action === 'cut' && e.help === 'stays-home'));
 for (const e of observed) {
   assert.equal(e.helperId == null, e.help === 'stays-home');
-  if (e.technique === 'dunk') assert.equal(e.contest, 'open', 'a dunk requires a clear gather');
+}
+// 2026-11-08: dunks come off clear, pressured and (for real dunkers) contested gathers (finishing.ts dunkOpening); the
+// contest makes them harder.
+{
+  const dunks = observed.filter(e => e.technique === 'dunk' && !e.fouled),
+    chance = (c: ShotEvent['contest']) => {
+      const d = dunks.filter(e => e.contest === c);
+      return d.length >= 10 ? d.reduce((a, e) => a + e.probability, 0) / d.length : null;
+    },
+    open = chance('open'),
+    contested = chance('contested');
+  if (open != null && contested != null) assert.ok(open > contested, 'contested dunks are harder than open ones');
 }
 
 // A zero frequency remains zero in both engines, even for capable dunkers.

@@ -36,7 +36,7 @@ import {
   type Norms,
   type Zone,
 } from './sim';
-import { rimDenial, rimOpening, finishMean, finishMix, finishingPct, type FinishType } from './finishing';
+import { rimDenial, rimOpening, finishMean, finishMix, finishingPct, dunkOpening, type FinishType } from './finishing';
 import { ccpAffilOf, CCP_CLUBS, CCP_INDEPENDENT, CCP_SPARES, ccpClub } from '../data/ccp';
 import { natDefault } from '../data/world';
 import { nums } from './cba';
@@ -414,12 +414,14 @@ export function ccpQuickGame(g: Game, hT: any, aT: any) {
       if (putback) z = 'rim';
       const paint = z === 'mid' && R() < (O.ps[i].tend?.pf ?? PAINT_SHARE),
         close = z === 'rim' || paint;
-      const clearGather = z === 'rim' && R() < opening;
+      const gather = z === 'rim' ? R() : 1,
+        clearGather = gather < opening,
+        contest = clearGather ? 'open' : gather < opening + 0.24 ? 'pressured' : 'contested'; // as in sim.ts
       let type: FinishType | null = null;
       if (close) {
-        const choices = Object.entries(finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback, opening: clearGather ? 1 : 0 })).filter(
-          ([, w]) => w > 0,
-        );
+        const choices = Object.entries(
+          finishMix(O.ps[i], paint ? 'paint' : 'rim', { putback, opening: z === 'rim' ? dunkOpening(contest, O.ps[i].r) : 0 }),
+        ).filter(([, w]) => w > 0);
         let draw = R();
         type = choices.at(-1)![0] as FinishType;
         for (const [key, weight] of choices) {
