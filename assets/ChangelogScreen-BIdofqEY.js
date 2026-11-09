@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DsjwKUQO.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DbKRF7s7.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-09
+
+### Added
+- **Turn injuries off.** Settings → Injuries: with it off, nobody in the league gets hurt (players already hurt still heal on schedule). Turn it back on any time.
 
 ### Changed
 - **Finishing ratings matter more.** Layups, Inside and Dunks now decide close shots much more, and height and leaping less, so a tall, athletic player without touch no longer finishes like a skilled one.
@@ -14,6 +17,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
   - Big men dunk on about a fifth of their shots at the rim (it was 15%), and the best dunkers on about a third. Each 10 points of Dunks adds about 8 points to a big man's dunk share (it was 3).
   - Four ready-made cards (Dwight Howard, Andrei Kirilenko, Jan Veselý, Bismack Biyombo) now have Dunks ratings that fit how much they really dunked. Players carrying them update when you open your save.
   - Overalls don't change. In wins, each finishing rating is still a small part of a player's value: defenses key on a lineup that makes its shots, which takes back much of what better shooting or finishing gains.
+
+### Fixed
+- **“Never get fired” was in Settings twice.** It's now only under Easy mode (Never get fired). A league that had firing turned off shows it ticked there.
 
 ## 2026-11-08
 
