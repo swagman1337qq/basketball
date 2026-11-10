@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CDN-uiKF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CdF3yfqP.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-10
+
+### Added
+- **Two new player cards:** prime Robert Sacre (his 2013–14 Lakers season: a big backup center who dunks, hooks and fouls a lot) and Matt Ryan's 2023–24 Pelicans season (a pure spot-up three-point shooter). Each was tested in games at his real minutes and comes close to his real stat line.
 
 ### Changed
 - **Five teams renamed, with new logos and colors.** Austin Hush → **Austin Vampires** (a fanged vampire, midnight purple and blood red), Dallas Axolotls → **Dallas Lariats** (a lasso around the lone star, rope gold and navy), Las Vegas Monks → **Las Vegas Neon** (a neon star sign, hot pink on night), San Diego Mittens → **San Diego Seals** (a seal balancing a basketball, slate and sea foam), Newark Monocles → **Newark Navigators** (a compass rose, sea blue and signal orange). Leagues you've already started update when you open them, past seasons included. A team you renamed yourself, or recolored, keeps your choice.
