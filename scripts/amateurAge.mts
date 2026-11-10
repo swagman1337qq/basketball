@@ -16,17 +16,20 @@ const before = structuredClone(classStats(g, g.Y, [p.id])[p.id]);
 assert.equal(before.length, 4);
 const priorPath = schoolPath(p);
 setGodPlayerAge(g, p, 28);
+// 2026-11-10: a prospect aged up gets the extra college years (up to six); the four he had keep their numbers.
 const older = classStats(g, g.Y, [p.id])[p.id]; // same gv: the age helper invalidates the memo
-assert.equal(older.length, 4);
+assert.equal(older.length, 6, 'aging a prospect up adds college seasons');
 assert.deepEqual(
-  older.map(x => x.age),
+  older.slice(-4).map(x => x.age),
   before.map(x => x.age + 6),
 );
 assert.deepEqual(
-  older.map(x => x.disp),
+  older.slice(-4).map(x => x.disp),
   before.map(x => x.disp),
 );
-assert.deepEqual(schoolPath(p), priorPath);
+assert.deepEqual(schoolPath(p).slice(-4), priorPath);
+assert.ok(schoolPath(p).filter(st => !st.kind || st.kind === 'short').length <= 4, 'past four played, the added years are redshirts');
+assert.ok(older[0].season === g.Y - 5);
 setGodPlayerAge(g, p, 19);
 const younger = classStats(g, g.Y, [p.id])[p.id];
 assert.equal(younger.length, 1);
@@ -34,11 +37,13 @@ assert.equal(younger[0].age, 19);
 assert.equal(younger[0].season, g.Y);
 assert.deepEqual(younger[0].disp, before.at(-1)!.disp);
 assert.equal(schoolPath(p).length, 1);
-setGodPlayerAge(g, p, 28);
-assert.equal(amateurSeasons(g, p).length, 1, 'aging up does not recreate removed years');
+const freshman = structuredClone(younger[0].disp);
+setGodPlayerAge(g, p, 23);
+assert.equal(amateurSeasons(g, p).length, 5, 'aging a 19-year-old prospect to 23 gives him the years in between');
+assert.deepEqual(classStats(g, g.Y, [p.id])[p.id].at(-1)!.disp, freshman, 'his last season keeps its numbers');
 const saved = Game.load(g.toSave());
-assert.equal(saved.db.P[p.id].amAgeEdit.years, 1);
-assert.equal(schoolPath(saved.db.P[p.id]).length, 1);
+assert.equal(saved.db.P[p.id].amAgeEdit.years, 5);
+assert.equal(schoolPath(saved.db.P[p.id]).length, 5);
 
 // Historical rows, including two schools in one year: keep complete seasons.
 const h: any = structuredClone(p);
@@ -87,7 +92,7 @@ setGodPlayerAge(g, plain, 28);
 assert.equal(plain.age, 28);
 assert.equal(plain.dAge, undefined);
 console.log(
-  'College age edits: older four-year history, freshman trimming, unchanged season stats, memo invalidation, transfers, source preservation, veteran tenure and save roundtrip passed.',
+  'College age edits: aging a prospect up adds seasons (kept ones unchanged), freshman trimming, memo invalidation, transfers, source preservation, veteran tenure and save roundtrip passed.',
 );
 
 const undrafted: any = structuredClone(h);

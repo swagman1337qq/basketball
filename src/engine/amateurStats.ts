@@ -416,9 +416,11 @@ export function schoolPath(p: any): Stint[] {
 // A whole class's lines with their advanced stats (memoized per class, season and edit counter).
 const MEMO = new WeakMap<object, { key: string; v: Record<number, (AmLine & { adv: StatLine })[]> }>();
 
-// God Mode changes the age of the same person, not how many extra seasons he
-// played. Keep existing rows when aging up; trim earliest college years when
-// aging down. Saved source histories stay intact; the visible window is saved.
+// God Mode changes the age of the same person. Aging down trims his earliest college years. Aging up (2026-11-10) gives a
+// prospect not yet drafted the extra college years an older draftee has (up to six, as schoolPath): earlier seasons at
+// the school a fresh path for his new age starts him at, and past four played a redshirt year; the seasons he already
+// had keep their numbers. A drafted player's college years, and a real (historical) record, stay as they were. Saved
+// source histories stay intact; the visible window is saved.
 export function setGodPlayerAge(g: Game, p: any, value: number) {
   if (!Number.isFinite(value)) return;
   const age = cl(Math.round(value), 16, 50),
@@ -433,8 +435,26 @@ export function setGodPlayerAge(g: Game, p: any, value: number) {
       const sourceYears = p.real?.length ? new Set(p.real.map((r: any) => r.season)).size : 0;
       const path = sourceYears ? undefined : schoolPath(p);
       const edit = p.amAgeEdit ?? { ratingAge: oldDraftAge, years: sourceYears || path!.length, ...(path ? { path } : {}) };
-      edit.years = Math.min(edit.years, Math.max(1, oldDraftAge + delta - 18));
-      if (edit.path) edit.path = edit.path.slice(-edit.years);
+      const want = cl(oldDraftAge + delta - 18, 1, 6);
+      if (edit.path && want > edit.path.length && cls >= g.Y) {
+        // A fresh path for his new age (as if never edited) supplies the schools before the ones he already has.
+        const keep = p.amAgeEdit,
+          dA = p.dAge;
+        delete p.amAgeEdit;
+        p.dAge = oldDraftAge + delta;
+        const fresh = schoolPath(p);
+        p.dAge = dA;
+        if (keep) p.amAgeEdit = keep;
+        const add = fresh.slice(0, want - edit.path.length).map(st => ({ ...st, kind: st.kind === 'short' ? undefined : st.kind }));
+        const playedIn = (L: Stint[]) => L.filter(st => !st.kind || st.kind === 'short').length,
+          cap = Math.max(4, playedIn(edit.path));
+        for (let i = 0; i < add.length && playedIn([...add, ...edit.path]) > cap; i++) if (!add[i].kind) add[i].kind = 'redshirt';
+        edit.path = [...add.map(st => (st.kind ? st : { team: st.team, lg: st.lg })), ...edit.path];
+        edit.years = edit.path.length;
+      } else {
+        edit.years = Math.min(edit.years, Math.max(1, oldDraftAge + delta - 18));
+        if (edit.path) edit.path = edit.path.slice(-edit.years);
+      }
       p.amAgeEdit = edit;
     }
     p.dAge = oldDraftAge + delta;

@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-10
 
 ### Added
+- **Aging up a prospect adds college seasons.** In God Mode, make a 20-year-old college prospect 23 and he gets the extra college years a 23-year-old draftee has (up to six, with a redshirt year past four played). The seasons he already had keep their numbers. A player already in the league keeps his college career as it was.
 - **Two new player cards:** prime Robert Sacre (his 2013–14 Lakers season: a big backup center who dunks, hooks and fouls a lot) and Matt Ryan's 2023–24 Pelicans season (a pure spot-up three-point shooter). Each was tested in games at his real minutes and comes close to his real stat line.
 
 ### Changed
