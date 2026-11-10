@@ -4,7 +4,7 @@
 export const LOUD_COLORS: Record<string, [string, string]> = {
   BAL: ['#c8873a', '#12808a'],  // camel tan and oasis teal
   NY: ['#2d5bd7', '#ffb703'],   // royal blue and a hermit's lantern
-  NWK: ['#c9a227', '#22223b'],  // a gold monocle and tuxedo midnight
+  NWK: ['#1b4965', '#f77f00'],  // deep-sea blue and a signal-flag orange
   PHI: ['#5f7a94', '#7ed957'],  // koala grey and eucalyptus
   CLE: ['#ef476f', '#06d6a0'],  // watermelon and mint beach parasols
   DET: ['#8b4513', '#f4c95d'],  // oxcart brown and wheat
@@ -21,15 +21,15 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   VAN: ['#4ea8de', '#f9c74f'],  // cloudless sky and sun
   STL: ['#ffa62b', '#2b2d42'],  // puffin-beak orange and black
   DEN: ['#0077b6', '#ffd166'],  // ocean blue and an anglerfish's light
-  SD: ['#c9184a', '#fff1d0'],   // cranberry knit and cream
+  SD: ['#33415c', '#80ffdb'],   // seal slate and sea foam
   OAK: ['#6a1b9a', '#ffc72c'],  // baron purple and gold
-  LV: ['#7b1e3a', '#f4a300'],   // maroon and saffron monks' robes
+  LV: ['#ff1f8f', '#120d2b'],   // neon pink on the desert night
   LA: ['#b388eb', '#ffd23f'],   // lavender sunset and sunshine
   SJ: ['#7fd1b9', '#1d1d1d'],   // vintage typewriter mint and ink
-  AUS: ['#5e548e', '#f4acb7'],  // quiet dusk violet and soft pink
+  AUS: ['#3c096c', '#e5383b'],  // midnight purple and blood red
   SA: ['#7da0fa', '#0b132b'],   // frost blue and night
   WAZ: ['#c8102e', '#ffc72c'],  // star-quilt red and gold (its own crest)
-  DAL: ['#ffa6c9', '#00798c'],  // axolotl pink and deep teal
+  DAL: ['#d9a441', '#14213d'],  // rope gold and Texas night
   HOU: ['#457b9d', '#f4a261'],  // tundra blue and caribou antler
   MIN: ['#9b2226', '#e9d8a6'],  // marauder red and bone
   BKN: ['#f7e733', '#2b2b2b'],  // squares: yellow and black (expansion)
@@ -125,4 +125,6 @@ export const LOUD_V2: Record<string, [string, string]> = {
 };
 // Defaults replaced since (2026-10): saves still wearing one get the new pair.
 export const LOUD_V4: Record<string, [string, string]> = { RIC: ['#e34234', '#1a1a1d'], WAS: ['#3a6fd8', '#f7a8c8'] }; // the Samurai's vermilion and black; the Monuments' blue and pink
-export const PALETTE_V = 6;
+// 2026-11-10: five clubs renamed (Navigators, Seals, Neon, Vampires, Lariats); saves still in their old colors repaint.
+export const LOUD_V6: Record<string, [string, string]> = { NWK: ['#c9a227', '#22223b'], SD: ['#c9184a', '#fff1d0'], LV: ['#7b1e3a', '#f4a300'], AUS: ['#5e548e', '#f4acb7'], DAL: ['#ffa6c9', '#00798c'] };
+export const PALETTE_V = 7;

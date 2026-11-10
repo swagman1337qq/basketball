@@ -6,7 +6,7 @@
 //  - Baltimore Camels: a dromedary in a teal saddle blanket crossing the dunes to an oasis.
 //  - New York Hermits: the hermit of the old tarot card, hooded, lantern raised, under a night sky.
 //  - Minneapolis Marauders: a bearded Norse raider in a spectacle helmet over crossed axes, on a round shield.
-//  - Newark Monocles: the invisible gentleman: top hat, raised brow, monocle on its chain, handlebar mustache.
+//  - Newark Navigators: a ship's compass rose, north point in sea blue, on a parchment dial (2026-11-10).
 //  - Philadelphia Koalas: a koala holding on to a eucalyptus branch.
 //  - Cleveland Parasols: a striped beach parasol, tilted into the sun.
 //  - Detroit Oxcarts: an ox in front of a cart wheel, the wheel's rim carrying the name.
@@ -21,14 +21,14 @@
 //  - Vancouver Drought: a sun in sunglasses over cracked earth (in famously rainy Vancouver).
 //  - St. Louis Puffins: an Atlantic puffin, striped beak and all.
 //  - Denver Deep: an anglerfish and its glowing lure, seen through a porthole (in the mile-high city).
-//  - San Diego Mittens: a knitted mitten with a snowflake (in sunny San Diego).
+//  - San Diego Seals: a harbor seal balancing a basketball on its nose (2026-11-10).
 //  - Oakland Barons: a baron's coronet over a golden oak.
-//  - Las Vegas Monks: a monk meditating on a lotus, a halo behind him.
+//  - Las Vegas Neon: a glowing neon star over a marquee arrow full of bulbs (2026-11-10).
 //  - Los Angeles Strollers: a vintage pram rolling past the palms at sunset.
 //  - San Jose Typewriters: a vintage typewriter with a sheet in it.
-//  - Austin Hush: a crescent moon with a finger to its lips.
+//  - Austin Vampires: a fanged vampire in a high-collared cape under a crescent moon (2026-11-10).
 //  - San Antonio Frost: a frost crystal with icicles (in hot San Antonio).
-//  - Dallas Axolotls: a smiling axolotl with its feathery gills.
+//  - Dallas Lariats: a rope lasso thrown around the lone star (2026-11-10).
 //  - Houston Caribou: a caribou with its great antlers and white mane.
 import type { ReactNode } from 'react';
 import { Arc, Arch, Diamond, Tag, Disc, dk, f2, fluff, HEAD, INK, Line2, lt, mirror, mix, Octagon, on, PAPER, Patch, Pennant, place, Ribbon, Ring, SCRIPT, Script, Seal, Shield, SKIN, sparkle, star5, STEEL, STEEL_D, STEEL_L, Sunburst, Varsity, WOOD, Wordmark, type Pal } from './markKit';
@@ -173,33 +173,31 @@ function marauders(uid: string, sm: boolean, c: Pal) {
   </>);
 }
 
-// Newark Monocles
-function monocleArt(c: Pal, sm: boolean) {
-  const gold = c[0], night = c[1], sw = sm ? 2.4 : 1.6;
+// Newark Navigators
+function compassArt(c: Pal, sm: boolean) {
+  const sea = c[0], seaL = lt(c[0], 0.35), brass = c[1], paper = '#f3e9d2', sw = sm ? 2.2 : 1.4;
+  const pt = (deg: number, R: number, w: number) => {
+    const a = ((deg - 90) * Math.PI) / 180, b = a + Math.PI / 2, tip = [50 + Math.cos(a) * R, 50 + Math.sin(a) * R];
+    const l = [50 + Math.cos(b) * w, 50 + Math.sin(b) * w], r = [50 - Math.cos(b) * w, 50 - Math.sin(b) * w];
+    return [`M50 50 L${f2(l[0])} ${f2(l[1])} L${f2(tip[0])} ${f2(tip[1])} Z`, `M50 50 L${f2(r[0])} ${f2(r[1])} L${f2(tip[0])} ${f2(tip[1])} Z`];
+  };
   return (<>
-    <path d="M33 9.6 L67 9.6 L65.2 37.4 L34.8 37.4 Z" fill={night} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M38.4 12.6 L41.4 12.6 L40.2 29.6 L37.4 29.6 Z" fill={lt(night, 0.3)} />
-    <path d="M35.1 30.2 L64.9 30.2 L64.6 36.4 L35.4 36.4 Z" fill={gold} stroke={INK} strokeWidth="1" />
-    <path d="M18.6 40.2 C23 34.4 77 34.4 81.4 40.2 C77 45.6 23 45.6 18.6 40.2 Z" fill={night} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M29 52.4 Q36 45.6 44.2 50.6" fill="none" stroke={night} strokeWidth={sm ? 3.6 : 3} strokeLinecap="round" />
-    <circle cx="37" cy="56.6" r={sm ? 3.2 : 2.7} fill={night} />
-    <path d="M51.6 46 Q60 43.4 69.8 47.2" fill="none" stroke={night} strokeWidth={sm ? 3.6 : 3} strokeLinecap="round" />
-    <path d="M61 66.8 C60.6 74.6 55 80.4 50.6 84.2" fill="none" stroke={gold} strokeWidth="1.5" strokeDasharray="1.7 1.2" />
-    <circle cx="61" cy="57.2" r="9.6" fill="#eef4f6" stroke={gold} strokeWidth={sm ? 3.8 : 3.2} />
-    <circle cx="61" cy="57.2" r="11.3" fill="none" stroke={INK} strokeWidth=".9" />
-    <circle cx="61" cy="57.6" r={sm ? 3.2 : 2.8} fill={night} />
-    <path d="M55.4 52.6 Q57.8 50.4 61 50.3" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="M50 66.2 C46 63 38 63 33 67 C29.4 69.8 25.4 70 23 67 C24 73.4 31 75.4 37 73.4 C42 71.8 46 70.2 50 70.2 C54 70.2 58 71.8 63 73.4 C69 75.4 76 73.4 77 67 C74.6 70 70.6 69.8 67 67 C62 63 54 63 50 66.2 Z" fill={night} stroke={INK} strokeWidth="1.1" strokeLinejoin="round" />
-    <path d="M50 86 L39.6 79.6 L39.6 92.4 Z M50 86 L60.4 79.6 L60.4 92.4 Z" fill={gold} stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
-    <rect x="47.4" y="83.2" width="5.2" height="5.6" rx="1.2" fill={dk(gold, 0.2)} stroke={INK} strokeWidth="1" />
+    <circle cx="50" cy="50" r="40" fill={paper} stroke={INK} strokeWidth={sw + 0.6} />
+    <circle cx="50" cy="50" r="34" fill="none" stroke={brass} strokeWidth={sm ? 3 : 2.2} />
+    {!sm && Array.from({ length: 32 }, (_, i) => { const a = (i * Math.PI) / 16, r0 = i % 4 ? 37.6 : 36.2; return <path key={i} d={`M${f2(50 + Math.cos(a) * r0)} ${f2(50 + Math.sin(a) * r0)} L${f2(50 + Math.cos(a) * 39.4)} ${f2(50 + Math.sin(a) * 39.4)}`} stroke={INK} strokeWidth=".8" />; })}
+    {[45, 135, 225, 315].map(d => pt(d, 22, 5).map((p, j) => <path key={d + '-' + j} d={p} fill={j ? brass : dk(brass, 0.25)} stroke={INK} strokeWidth="1" strokeLinejoin="round" />))}
+    {[0, 90, 180, 270].map(d => pt(d, d === 0 ? 33 : 30, 7).map((p, j) => <path key={d + '-' + j} d={p} fill={j ? seaL : sea} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />))}
+    <circle cx="50" cy="50" r={sm ? 5 : 4.2} fill={brass} stroke={INK} strokeWidth="1.2" />
+    <circle cx="50" cy="50" r="1.4" fill={INK} />
+    {!sm && <path d="M47.6 15.2 V9 L52.4 15.2 V9" fill="none" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" transform="translate(0 -1)" />}
   </>);
 }
-function monocles(uid: string, sm: boolean, c: Pal) {
+function navigators(uid: string, sm: boolean, c: Pal) {
   const cream = '#f7efdc';
-  if (sm) return Disc(cream, place(monocleArt(c, true), 50, 50, 0.9), c[1]);
-  return Ring({ uid, k: 'mn', band: c[1], inner: cream, city: 'NEWARK', nick: 'MONOCLES', text: c[0], trim: c[0] }, <>
-    <circle cx="50" cy="50" r="30.4" fill="none" stroke={c[0]} strokeWidth=".8" opacity=".6" />
-    {place(monocleArt(c, false), 50, 50.5, 0.66)}
+  if (sm) return Disc(c[0], place(compassArt(c, true), 50, 50, 0.98));
+  return Ring({ uid, k: 'nv', band: c[0], inner: cream, city: 'NEWARK', nick: 'NAVIGATORS', text: c[1], trim: c[1] }, <>
+    <path d="M14 64 C24 60 30 66 40 62 C50 58 56 66 66 62 C76 58 80 64 88 61" fill="none" stroke={lt(c[0], 0.55)} strokeWidth="1.6" strokeLinecap="round" />
+    {place(compassArt(c, false), 50, 50, 0.7)}
   </>);
 }
 
@@ -644,23 +642,26 @@ function deep(uid: string, sm: boolean, c: Pal) {
   </>);
 }
 
-// San Diego Mittens
-function mittenArt(c: Pal, sm: boolean) {
-  const knit = c[0], knitD = dk(c[0], 0.18), cream = c[1], sw = sm ? 2.6 : 1.8;
-  const flake = (x: number, y: number, r: number) => [0, 60, 120].map(a => { const t = (a * Math.PI) / 180; return `M${f2(x - Math.cos(t) * r)} ${f2(y - Math.sin(t) * r)} L${f2(x + Math.cos(t) * r)} ${f2(y + Math.sin(t) * r)}`; }).join(' ');
-  return (<g transform="rotate(-12 50 52)">
-    <path d="M35 68 L35 58 C29 58.6 23 55 20.6 49 C18.6 44 21 38.6 26 38.6 C30 38.6 32.6 42 34 46 L35 46 L35 31 C35 18 42 11.6 50.6 11.6 C59.6 11.6 66 18 66 30 L66 68 Z" fill={knit} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, k) => { const x = 38.4 + k * 5, y = 22 + r * 7.6; return y > 26 || (x > 41 && x < 61) ? <path key={r + '-' + k} d={`M${x - 1.4} ${y} L${x} ${y + 1.8} L${x + 1.4} ${y}`} fill="none" stroke={knitD} strokeWidth=".8" /> : null; }))}
-    <path d={flake(50.6, 34, 8.4)} stroke={cream} strokeWidth={sm ? 2.8 : 2.2} strokeLinecap="round" />
-    {!sm && [0, 60, 120, 180, 240, 300].map(a => { const t = (a * Math.PI) / 180, x = 50.6 + Math.cos(t) * 6, y = 34 + Math.sin(t) * 6; return <circle key={a} cx={f2(x)} cy={f2(y)} r=".9" fill={cream} />; })}
-    <path d="M36.6 59.6 L40.6 55.4 L44.6 59.6 L48.6 55.4 L52.6 59.6 L56.6 55.4 L60.6 59.6 L64.6 55.4" fill="none" stroke={cream} strokeWidth={sm ? 2.6 : 2.1} strokeLinejoin="round" strokeLinecap="round" />
-    <path d="M32 67 H69 V86 C69 89 67 91 64 91 H37 C34 91 32 89 32 86 Z" fill={cream} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && [36, 39.6, 43.2, 46.8, 50.4, 54, 57.6, 61.2, 64.8].map(x => <path key={x} d={`M${x} 69.6 V88.6`} stroke={dk(cream, 0.14)} strokeWidth="1.1" />)}
-  </g>);
+// San Diego Seals
+function sealArt(c: Pal, sm: boolean) {
+  const fur = '#7d8597', furD = '#5c6474', belly = '#b8c0cc', ball = '#f08c2e', sw = sm ? 2.6 : 1.8;
+  return (<>
+    {!sm && <ellipse cx="50" cy="91" rx="30" ry="4" fill={dk(c[1], 0.35)} opacity=".5" />}
+    <path d="M30 90 C24 90 20 86 22 82 C27 84 31 84 34 82 Z M70 90 C76 90 80 86 78 82 C73 84 69 84 66 82 Z" fill={furD} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M32 88 C28 74 32 60 40 52 C44 48 46 42 47.6 36 C49 31 53 27.6 58 27 C64 26.6 70 29 72.6 32.6 C74 34.6 72.6 36.4 70 36.6 L63.6 37 C60.6 40 60 45 61 50 C63 58 68 64 69 74 C69.6 80 68.4 85 66 88 Z" fill={fur} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M40 86 C37 76 39 64 45 56 C49 62 54 70 56 86 Z" fill={belly} opacity=".85" />
+    <path d="M44 66 C38 66 32 70 29 76 C34 78 40 76 45 72 Z" fill={furD} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <circle cx="61.6" cy="31.8" r={sm ? 2.6 : 2.2} fill={INK} />
+    {!sm && <circle cx="62.3" cy="31.1" r=".7" fill="#ffffff" />}
+    <ellipse cx="72" cy="33.4" rx="2.4" ry="1.8" fill={INK} />
+    {!sm && <path d="M68 36 L60 37.6 M68.4 37.4 L61 40.6 M70.6 37.4 L76 40.4 M71.4 36.4 L78 37.6" fill="none" stroke={INK} strokeWidth=".7" strokeLinecap="round" />}
+    <circle cx="71" cy="15.4" r={sm ? 10 : 9.4} fill={ball} stroke={INK} strokeWidth={sw} />
+    <path d={`M61.6 15.4 H80.4 M71 6 V24.8 M64.4 8.6 C68.6 12 68.6 18.8 64.4 22.2 M77.6 8.6 C73.4 12 73.4 18.8 77.6 22.2`} fill="none" stroke={INK} strokeWidth={sm ? 1.4 : 1.1} />
+  </>);
 }
-function mittens(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[1], place(mittenArt(c, true), 50, 50, 0.92), c[0]);
-  return Pennant({ uid, k: 'mi', c: [c[0], c[1]], city: 'SAN DIEGO', nick: 'MITTENS' }, mittenArt(c, false), { artS: 0.38 });
+function seals(uid: string, sm: boolean, c: Pal) {
+  if (sm) return Disc(c[1], place(sealArt(c, true), 50, 51, 0.9), c[0]);
+  return Pennant({ uid, k: 'se', c: [c[0], c[1]], city: 'SAN DIEGO', nick: 'SEALS' }, sealArt(c, false), { artS: 0.4 });
 }
 
 // Oakland Barons
@@ -711,28 +712,28 @@ function barons(uid: string, sm: boolean, c: Pal) {
   </>);
 }
 
-// Las Vegas Monks
-function monkArt(c: Pal, sm: boolean) {
-  const robe = c[1], robeD = dk(c[1], 0.24), sw = sm ? 2.6 : 1.8, petal = '#f6c1cf', petalD = '#e58fa6';
-  const PETAL = (x: number, s: number, h: number) => `M${x} 92 C${x + s * 4} 88 ${x + s * 10} 84 ${x + s * 14} ${92 - h} C${x + s * 10} ${93 - h * 0.3} ${x + s * 4} 94 ${x} 92 Z`;
+// Las Vegas Neon
+function neonArt(c: Pal, sm: boolean) {
+  const tube = c[0], core = lt(c[0], 0.75), STAR = star5(50, 34, 26, 11);
+  const line = (attrs: any) => (<>
+    <polygon {...attrs} fill="none" stroke={tube} strokeWidth={sm ? 9 : 7} opacity=".22" strokeLinejoin="round" />
+    <polygon {...attrs} fill="none" stroke={tube} strokeWidth={sm ? 5.2 : 4} opacity=".55" strokeLinejoin="round" />
+    <polygon {...attrs} fill="none" stroke={core} strokeWidth={sm ? 2.2 : 1.6} strokeLinejoin="round" />
+  </>);
+  const arrow = 'M30 62 H64 L64 56 L78 68 L64 80 L64 74 H30 Z';
   return (<>
-    <circle cx="50" cy="34" r="25" fill={lt(c[1], 0.55)} opacity=".4" />
-    <circle cx="50" cy="34" r="25" fill="none" stroke={lt(c[1], 0.4)} strokeWidth="1.4" />
-    {!sm && [[-1, 12], [1, 12], [-1, 4], [1, 4]].map(([s, h], i) => <path key={i} d={PETAL(50 + s * (h > 8 ? 14 : 4), s, h)} fill={h > 8 ? petalD : petal} stroke={INK} strokeWidth="1" strokeLinejoin="round" />)}
-    <path d="M13.6 80 C13.6 71.6 29.6 68.6 50 70 C70.4 68.6 86.4 71.6 86.4 80 C86.4 88 70.4 90.6 50 90.6 C29.6 90.6 13.6 88 13.6 80 Z" fill={robeD} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M50 35.4 C43 35.4 37 37.4 33.6 41.4 C29 46.4 27 54 25.6 61 C24.6 66 22.6 70 20.6 73.6 C30 77 40 78 50 78 C60 78 70 77 79.4 73.6 C77.4 70 75.4 66 74.4 61 C73 54 71 46.4 66.4 41.4 C63 37.4 57 35.4 50 35.4 Z" fill={robe} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M33.4 49 C34 59 38 67.6 45.6 71.4 M66.6 49 C66 59 62 67.6 54.4 71.4" fill="none" stroke={robeD} strokeWidth={sm ? 2.4 : 1.8} strokeLinecap="round" />
-    <path d="M37.4 41 C46 50 55 58 61.6 68" fill="none" stroke={robeD} strokeWidth={sm ? 2.4 : 1.8} strokeLinecap="round" />
-    <ellipse cx="50" cy="71.6" rx="7" ry="3.6" fill={robeD} stroke={INK} strokeWidth="1.1" />
-    <path d="M45 35.6 C46 38 54 38 55 35.6 L54 32 L46 32 Z" fill={robeD} />
-    <circle cx="50" cy="24.6" r="10.4" fill={robe} stroke={INK} strokeWidth={sw} />
-    {!sm && <path d="M40.6 23.4 C41 19.4 44 16 48 15.4" fill="none" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" opacity=".5" />}
+    {line({ points: STAR })}
+    {!sm && [[18, 20], [82, 22], [22, 46], [80, 46]].map(([x, y], i) => <path key={i} d={sparkle(x, y, 2.6)} fill={core} opacity=".9" />)}
+    <path d={arrow} fill="none" stroke={c[0]} strokeWidth={sm ? 8 : 6.4} opacity=".22" strokeLinejoin="round" />
+    <path d={arrow} fill={dk(c[1], 0.1)} stroke={INK} strokeWidth={sm ? 2.6 : 1.8} strokeLinejoin="round" />
+    {Array.from({ length: sm ? 4 : 7 }, (_, i) => { const n = sm ? 4 : 7, x = 34 + (i * 28) / (n - 1); return <circle key={i} cx={f2(x)} cy="68" r={sm ? 2.4 : 1.9} fill="#ffe08a" stroke={dk('#ffe08a', 0.35)} strokeWidth=".6" />; })}
+    <circle cx="70" cy="68" r={sm ? 2.4 : 1.9} fill="#ffe08a" stroke={dk('#ffe08a', 0.35)} strokeWidth=".6" />
   </>);
 }
-function monks(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[0], place(monkArt(c, true), 50, 50, 0.96));
-  return Arch({ uid, k: 'mo', c: [c[0], c[1]], city: 'LAS VEGAS', nick: 'MONKS', bg: dk(c[0], 0.2) }, monkArt(c, false), <>
-    {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={22 + i * 7} cy={16 + Math.abs(4 - i) * 3.4} r="1" fill={c[1]} opacity=".7" />)}
+function neon(uid: string, sm: boolean, c: Pal) {
+  if (sm) return Disc(c[1], place(neonArt(c, true), 50, 54, 0.92), c[0]);
+  return Arch({ uid, k: 'ne', c: [c[0], c[1]], city: 'LAS VEGAS', nick: 'NEON', bg: c[1] }, neonArt(c, false), <>
+    {Array.from({ length: 9 }, (_, i) => <circle key={i} cx={22 + i * 7} cy={16 + Math.abs(4 - i) * 3.4} r="1" fill={c[0]} opacity=".8" />)}
   </>, { artY: 48, artS: 0.6 });
 }
 
@@ -818,25 +819,34 @@ function typewriters(uid: string, sm: boolean, c: Pal) {
   </>, { artY: 38, artS: 0.58, size: 15 });
 }
 
-// Austin Hush
-function moonArt(c: Pal, sm: boolean) {
-  const moon = c[1], moonD = dk(c[1], 0.12), finger = lt(c[1], 0.35), sw = sm ? 2.6 : 1.8;
+// Austin Vampires
+function vampireArt(c: Pal, sm: boolean) {
+  const cape = c[0], lining = c[1], skin = '#e6e1ee', skinD = '#c3bbd1', hair = '#1d1226', sw = sm ? 2.6 : 1.8;
   return (<>
-    <path d="M60 13 A38 38 0 1 0 62 87 C52 86 46 80 46 76 C46 73 49.6 72.6 52.4 72 C55 71.4 56 69.6 53.6 68.8 L50.4 68.4 C53.6 67.8 55.6 65.8 53.2 64.6 C52 64 51.4 63.4 52 62.8 C57.6 62 60.4 58.6 56 55 C51.6 51.6 48 49 47 46 C46.6 43 47.6 40.6 49 39 C52 32 56 22 60 13 Z" fill={moon} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && <><circle cx="26" cy="36" r="3.4" fill={moonD} /><circle cx="22" cy="60" r="4.6" fill={moonD} /><circle cx="33" cy="76" r="2.6" fill={moonD} /></>}
-    <path d="M36.6 47.4 Q40.6 50.6 44.6 47.4" fill="none" stroke={INK} strokeWidth={sm ? 2.2 : 1.7} strokeLinecap="round" />
-    {!sm && <path d="M38 48.8 L37.2 51 M40.6 49.8 V52.2 M43.2 48.8 L44 51" stroke={INK} strokeWidth="1" strokeLinecap="round" />}
-    <ellipse cx="39.4" cy="58.4" rx="4.2" ry="2.6" fill={dk(c[1], 0.18)} opacity=".6" />
-    <path d="M48.6 78 C48.6 74 58.6 74 59.4 78 L59.8 86.4 C59.8 90.6 49 90.6 48.6 86.4 Z" fill={finger} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-    <path d="M51.2 79.4 L51.2 61.4 C51.2 58.4 56 58.4 56 61.4 L56 79.4 Z" fill={finger} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
-    {!sm && <path d="M52.2 61.8 C52.2 60.2 55 60.2 55 61.8 L55 64 L52.2 64 Z M49.6 82 H59 M49.6 85.4 H59.2" fill="none" stroke={dk(c[1], 0.25)} strokeWidth=".9" />}
+    <path d="M12 94 L20 44 L34 64 L50 58 L66 64 L80 44 L88 94 Z" fill={cape} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M22 92 L25 56 L36 68 L50 64 L64 68 L75 56 L78 92 Z" fill={lining} stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M40 66 L50 92 L60 66 C56 70 44 70 40 66 Z" fill="#f4f1f7" stroke={INK} strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M34.6 46 L26.6 38.4 L33.4 54 Z" fill={skin} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M65.4 46 L73.4 38.4 L66.6 54 Z" fill={skin} stroke={INK} strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M33 42 C33 28 40 21 50 21 C60 21 67 28 67 42 C67 56 60 66 50 66 C40 66 33 56 33 42 Z" fill={skin} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    <path d="M32.6 41 C31.6 26 39.6 18.6 50 18.6 C60.4 18.6 68.4 26 67.4 41 C64 34.6 58.6 31.4 50 38.6 C41.4 31.4 36 34.6 32.6 41 Z" fill={hair} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+    {!sm && <path d="M40 25 C44 22 50 21 54 22" fill="none" stroke="#4a3a5c" strokeWidth="1.6" strokeLinecap="round" />}
+    <path d="M37.6 43 L46 46 M62.4 43 L54 46" fill="none" stroke={INK} strokeWidth={sm ? 2.6 : 2} strokeLinecap="round" />
+    <ellipse cx="42.4" cy="49.4" rx="3.2" ry="2.2" fill={lining} stroke={INK} strokeWidth="1" />
+    <ellipse cx="57.6" cy="49.4" rx="3.2" ry="2.2" fill={lining} stroke={INK} strokeWidth="1" />
+    <circle cx="42.4" cy="49.4" r=".9" fill={INK} /><circle cx="57.6" cy="49.4" r=".9" fill={INK} />
+    {!sm && <path d="M38 55 C39 58 41 59 42.6 59.4 M62 55 C61 58 59 59 57.4 59.4" fill="none" stroke={skinD} strokeWidth="1.2" strokeLinecap="round" />}
+    <path d="M43 58.4 Q50 62.4 57 58.4" fill="none" stroke={INK} strokeWidth={sm ? 2 : 1.5} strokeLinecap="round" />
+    <path d="M45 59.4 L46.4 64.6 L48 60.4 Z M52 60.4 L53.6 64.6 L55 59.4 Z" fill="#ffffff" stroke={INK} strokeWidth=".9" strokeLinejoin="round" />
   </>);
 }
-function hush(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[0], place(moonArt(c, true), 52, 50, 0.92));
-  return Wordmark({ uid, k: 'hu', c: [c[1], c[0]], city: 'AUSTIN', nick: 'HUSH', bg: c[0] }, moonArt(c, false), <>
-    {[[72, 18, 2.6], [78, 36, 1.8], [70, 52, 2.2], [24, 22, 1.4]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.4)} fill={lt(c[1], 0.4)} />)}
-  </>, { artY: 37, artS: 0.56, size: 20 });
+function vampires(uid: string, sm: boolean, c: Pal) {
+  if (sm) return Disc(c[0], place(vampireArt(c, true), 50, 50, 0.94), c[1]);
+  return Wordmark({ uid, k: 'va', c: [c[1], c[0]], city: 'AUSTIN', nick: 'VAMPIRES', bg: dk(c[0], 0.15) }, vampireArt(c, false), <>
+    <circle cx="76" cy="22" r="9" fill="#f4f1f7" opacity=".9" />
+    <circle cx="80" cy="19" r="8" fill={dk(c[0], 0.15)} />
+    {[[22, 18, 2.2], [30, 30, 1.4], [70, 44, 1.6]].map(([x, y, r], i) => <path key={i} d={sparkle(x, y, r * 1.4)} fill={lt(c[1], 0.5)} />)}
+  </>, { artY: 37, artS: 0.56, size: 17 });
 }
 
 // San Antonio Frost
@@ -874,35 +884,27 @@ function frost(uid: string, sm: boolean, c: Pal) {
   </>);
 }
 
-// Dallas Axolotls
-function axolotlArt(c: Pal, sm: boolean) {
-  const skin = c[0], gill = mix(c[0], '#d6336c', 0.55), sw = sm ? 2.6 : 1.8;
-  const frond = (x0: number, y0: number, deg: number, len: number) => {
-    const a = (deg * Math.PI) / 180, dx = Math.cos(a), dy = Math.sin(a), px = -dy, py = dx, dots: [number, number, number][] = [];
-    for (let i = 0; i < 8; i++) { const t = i / 7, off = (i % 2 ? 1.8 : -1.8) * (1 - t * 0.3); dots.push([x0 + dx * len * t + px * off, y0 + dy * len * t + py * off, (sm ? 4.6 : 3.8) - t * 1.4]); }
-    return dots;
-  };
-  const fr = [frond(28, 40, -150, 18), frond(24.6, 47.4, 180, 18), frond(26, 55, 150, 17), frond(72, 40, -30, 18), frond(75.4, 47.4, 0, 18), frond(74, 55, 30, 17)].flat();
+// Dallas Lariats
+function lariatArt(c: Pal, sm: boolean) {
+  const rope = c[0], ropeD = dk(c[0], 0.3), star = '#ffffff', sw = sm ? 9 : 7.4, w = sm ? 5.6 : 4.6;
+  const LOOP = 'M50 76 C26 76 14 64 14 48 C14 30 30 18 50 18 C70 18 86 30 86 48 C86 64 74 76 50 76';
+  const TAIL = 'M50 76 C56 80 58 86 64 88 C70 90 76 86 80 90';
   return (<>
-    {fr.map(([x, y, r], i) => <circle key={'o' + i} cx={f2(x)} cy={f2(y)} r={f2(r + 1)} fill={INK} />)}
-    {fr.map(([x, y, r], i) => <circle key={'f' + i} cx={f2(x)} cy={f2(y)} r={f2(r)} fill={gill} />)}
-    <path d="M30 72 C26 78 26 82 30 84 M70 72 C74 78 74 82 70 84" fill="none" stroke={INK} strokeWidth={sm ? 6.6 : 5.6} strokeLinecap="round" />
-    <path d="M30 72 C26 78 26 82 30 84 M70 72 C74 78 74 82 70 84" fill="none" stroke={skin} strokeWidth={sm ? 3.8 : 3.2} strokeLinecap="round" />
-    <path d="M17.6 52 C17.6 36 32 29.6 50 29.6 C68 29.6 82.4 36 82.4 52 C82.4 66 68 74.4 50 74.4 C32 74.4 17.6 66 17.6 52 Z" fill={skin} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && <path d="M28 40 C34 34.4 42 32.6 50 32.6" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity=".55" />}
-    <circle cx="34" cy="48" r={sm ? 3.8 : 3.4} fill={INK} /><circle cx="66" cy="48" r={sm ? 3.8 : 3.4} fill={INK} />
-    <circle cx="35.1" cy="46.9" r="1.1" fill="#ffffff" /><circle cx="67.1" cy="46.9" r="1.1" fill="#ffffff" />
-    <path d="M33.6 57.6 C40 66 60 66 66.4 57.6" fill="none" stroke={INK} strokeWidth={sm ? 2.6 : 2.1} strokeLinecap="round" />
-    <ellipse cx="27.6" cy="60" rx="4.8" ry="2.8" fill={gill} opacity=".45" /><ellipse cx="72.4" cy="60" rx="4.8" ry="2.8" fill={gill} opacity=".45" />
-    {!sm && [[44, 40], [56, 40], [50, 38]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r=".9" fill={gill} opacity=".7" />)}
+    <path d={LOOP} fill="none" stroke={INK} strokeWidth={sw} strokeLinecap="round" />
+    <path d={TAIL} fill="none" stroke={INK} strokeWidth={sw} strokeLinecap="round" />
+    <path d={LOOP} fill="none" stroke={rope} strokeWidth={w} strokeLinecap="round" />
+    <path d={TAIL} fill="none" stroke={rope} strokeWidth={w} strokeLinecap="round" />
+    {!sm && <path d={LOOP} fill="none" stroke={ropeD} strokeWidth={w} strokeDasharray="1.4 2.6" strokeLinecap="butt" />}
+    {!sm && <path d={TAIL} fill="none" stroke={ropeD} strokeWidth={w} strokeDasharray="1.4 2.6" strokeLinecap="butt" />}
+    <ellipse cx="50" cy="76" rx={sm ? 5.6 : 4.6} ry={sm ? 4.4 : 3.6} fill={ropeD} stroke={INK} strokeWidth="1.3" />
+    {!sm && <path d="M80 90 L84 88 M80 90 L84 92 M80 90 L83 94" stroke={ropeD} strokeWidth="1.2" strokeLinecap="round" />}
+    <polygon points={star5(50, 48, sm ? 20 : 17, sm ? 8.4 : 7)} fill={star} stroke={INK} strokeWidth={sm ? 2.4 : 1.6} strokeLinejoin="round" />
   </>);
 }
-function axolotls(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(c[1], place(axolotlArt(c, true), 50, 50, 0.92));
-  return Ring({ uid, k: 'ax', band: c[1], inner: lt(c[1], 0.3), city: 'DALLAS', nick: 'AXOLOTLS', text: c[0], trim: c[0] }, <>
-    {[[20, 30, 2.2], [26, 22, 1.4], [80, 70, 2], [76, 78, 1.2], [84, 30, 1.6]].map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="none" stroke={lt(c[1], 0.7)} strokeWidth=".8" />)}
-    <path d="M0 84 C14 78 22 80 30 86 M100 82 C88 76 80 78 72 86" fill="none" stroke={dk(c[1], 0.2)} strokeWidth="3" strokeLinecap="round" />
-    {place(axolotlArt(c, false), 50, 50, 0.7)}
+function lariats(uid: string, sm: boolean, c: Pal) {
+  if (sm) return Disc(c[1], place(lariatArt(c, true), 50, 50, 0.92), c[0]);
+  return Ring({ uid, k: 'lr', band: c[1], inner: lt(c[1], 0.25), city: 'DALLAS', nick: 'LARIATS', text: c[0], trim: c[0] }, <>
+    {place(lariatArt(c, false), 50, 50, 0.72)}
   </>);
 }
 
@@ -934,12 +936,12 @@ function caribou(uid: string, sm: boolean, c: Pal) {
 // ── The league's logos: abbreviation → nickname (a renamed club falls back to the templates) and drawing.
 export const MARKS: Record<string, { name: string; draw: (uid: string, sm: boolean, c: Pal) => ReactNode }> = {
   BAL: { name: 'Camels', draw: camels }, NY: { name: 'Hermits', draw: hermits }, MIN: { name: 'Marauders', draw: marauders },
-  NWK: { name: 'Monocles', draw: monocles }, PHI: { name: 'Koalas', draw: koalas }, CLE: { name: 'Parasols', draw: parasols },
+  NWK: { name: 'Navigators', draw: navigators }, PHI: { name: 'Koalas', draw: koalas }, CLE: { name: 'Parasols', draw: parasols },
   DET: { name: 'Oxcarts', draw: oxcarts }, CHI: { name: 'Sloths', draw: sloths }, BHM: { name: 'Vulcans', draw: vulcans },
   CIN: { name: 'Narwhals', draw: narwhals }, CHA: { name: 'Bohemians', draw: bohemians }, ATL: { name: 'Snowplows', draw: snowplows },
   RIC: { name: 'Opossums', draw: opossums }, NSH: { name: 'Librarians', draw: librarians }, SEA: { name: 'Scorpions', draw: scorpions },
   VAN: { name: 'Drought', draw: drought }, STL: { name: 'Puffins', draw: puffins }, DEN: { name: 'Deep', draw: deep },
-  SD: { name: 'Mittens', draw: mittens }, OAK: { name: 'Barons', draw: barons }, LV: { name: 'Monks', draw: monks },
-  LA: { name: 'Strollers', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Hush', draw: hush },
-  SA: { name: 'Frost', draw: frost }, DAL: { name: 'Axolotls', draw: axolotls }, HOU: { name: 'Caribou', draw: caribou },
+  SD: { name: 'Seals', draw: seals }, OAK: { name: 'Barons', draw: barons }, LV: { name: 'Neon', draw: neon },
+  LA: { name: 'Strollers', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Vampires', draw: vampires },
+  SA: { name: 'Frost', draw: frost }, DAL: { name: 'Lariats', draw: lariats }, HOU: { name: 'Caribou', draw: caribou },
 };

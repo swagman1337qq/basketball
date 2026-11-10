@@ -7,7 +7,7 @@ import { PRESET_CARDS, retuneCarriers, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
-import { LOUD_COLORS, LOUD_V2, LOUD_V4, PALETTE_V } from '../data/palette';
+import { LOUD_COLORS, LOUD_V2, LOUD_V4, LOUD_V6, PALETTE_V } from '../data/palette';
 import { realign } from '../data/geo';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -581,6 +581,20 @@ export class Game {
       fix(c);
       return c;
     });
+    // 2026-11-10 (Navigators, Seals, Neon, Vampires, Lariats): past seasons' standings take the new name too.
+    const RENAMED_1110: Record<string, [string, string]> = {
+      NWK: ['Newark Monocles', 'Newark Navigators'],
+      SD: ['San Diego Mittens', 'San Diego Seals'],
+      LV: ['Las Vegas Monks', 'Las Vegas Neon'],
+      AUS: ['Austin Hush', 'Austin Vampires'],
+      DAL: ['Dallas Axolotls', 'Dallas Lariats'],
+    };
+    (g.state.history || []).forEach((h: any) =>
+      Object.values(h?.teams || {}).forEach((e: any) => {
+        const r = e && RENAMED_1110[e.abbr];
+        if (r && e.name === r[0] && g.state.teams.some((t: any) => t.abbr === e.abbr && t.region + ' ' + t.name === r[1])) e.name = r[1];
+      }),
+    );
     if (!g.state.managed) g.migrateV2();
     // Relatives trimmed to a name-only record before families were exempt: they take their look
     // and heritage back from a son or brother.
@@ -862,7 +876,8 @@ export class Game {
           (same(t.colors, CLASSIC_COLORS[t.abbr]) ||
             same(t.colors, TEAM_STYLE[t.abbr]?.colors) ||
             same(t.colors, LOUD_V2[t.abbr]) ||
-            same(t.colors, LOUD_V4[t.abbr]))
+            same(t.colors, LOUD_V4[t.abbr]) ||
+            same(t.colors, LOUD_V6[t.abbr]))
         )
           t.colors = nw;
       };

@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-10
+
+### Changed
+- **Five teams renamed, with new logos and colors.** Austin Hush → **Austin Vampires** (a fanged vampire, midnight purple and blood red), Dallas Axolotls → **Dallas Lariats** (a lasso around the lone star, rope gold and navy), Las Vegas Monks → **Las Vegas Neon** (a neon star sign, hot pink on night), San Diego Mittens → **San Diego Seals** (a seal balancing a basketball, slate and sea foam), Newark Monocles → **Newark Navigators** (a compass rose, sea blue and signal orange). Leagues you've already started update when you open them, past seasons included. A team you renamed yourself, or recolored, keeps your choice.
+
 ## 2026-11-09
 
 ### Added
