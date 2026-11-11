@@ -351,7 +351,7 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
               </div>
               <PositionFilter value={side.position} set={side.setPosition} rows={side.sort.rows} />
               <PlayerTable
-                rows={side.sort.rows.filter(p => side.position === 'All' || FITS[side.position].includes(p.pos) || p.mark)}
+                rows={side.sort.rows.filter(p => side.position === 'All' || FITS[side.position].includes(p.pos))}
                 sort={side.sort}
                 vm={vm}
                 tid={side.tid}

@@ -135,6 +135,13 @@
 .draft-board .draft-filters {
   margin: 6px 0 10px;
 }
+.draft-board .draft-age-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
 .draft-board .draft-extra-sort {
   display: flex;
   align-items: center;

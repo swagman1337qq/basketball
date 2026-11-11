@@ -49,7 +49,7 @@ export function parseCmp(q: string): ((v: number) => boolean) | null | 'bad' {
   return v => tests.every(f => f(v));
 }
 
-export function useSearchFilter() {
+export function useSearchFilter({ separateAge = false }: { separateAge?: boolean } = {}) {
   const [q, setQ] = useState<Q>(EMPTY);
   const name = plain(q.name.trim()),
     pos = q.pos
@@ -58,6 +58,7 @@ export function useSearchFilter() {
       .filter(Boolean);
   const cmp = { ovr: parseCmp(q.ovr), pot: parseCmp(q.pot), age: parseCmp(q.age) };
   const active = KEYS.some(k => q[k].trim());
+  const otherActive = KEYS.some(k => k !== 'age' && q[k].trim());
   const test = (r: Row) =>
     (!name || plain(r.name || '').includes(name)) &&
     (!pos.length || pos.some(x => (r.pos || '').toUpperCase().includes(x))) &&
@@ -84,13 +85,14 @@ export function useSearchFilter() {
       </label>
     );
   };
+  const age = box('age', 'Age', separateAge ? 90 : 70, 'e.g. <=19', 'Age: 19, <20, <=19, >25, 19-21');
   const bar = (
     <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 8px' }}>
       {box('name', 'Name', 150, 'e.g. John', 'Any part of his name')}
       {box('pos', 'Pos', 60, 'e.g. G', 'G finds G, PG, SG and GF; F finds the forwards; several with commas (PG, C)')}
       {box('ovr', 'Ovr', 70, 'e.g. >=50', 'Current ability: 50, >50, >=50, <45, 45-55')}
       {box('pot', 'Pot', 70, 'e.g. >=70', 'Potential: 70, >70, >=70, <60, 60-75')}
-      {box('age', 'Age', 70, 'e.g. <=19', 'Age: 19, <20, <=19, >25, 19-21')}
+      {!separateAge && age}
       {active && (
         <button className="btn btn-ghost" onClick={() => setQ(EMPTY)} style={{ fontSize: '12px' }}>
           Clear search
@@ -98,5 +100,5 @@ export function useSearchFilter() {
       )}
     </div>
   );
-  return { bar, test, active, clear: () => setQ(EMPTY) };
+  return { bar, age, test, active, otherActive, clear: () => setQ(EMPTY) };
 }

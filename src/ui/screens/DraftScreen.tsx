@@ -110,9 +110,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
   };
   const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
   const cols = (vm.draftCols || []).filter((c: any) =>
-    (stats ? ['rank', 'name', 'ovr', 'pot'] : ['rank', 'name', 'age', 'hgt', 'ovr', 'pot']).includes(c.key),
+    (stats ? ['rank', 'name', 'age', 'ovr', 'pot'] : ['rank', 'name', 'age', 'hgt', 'ovr', 'pot']).includes(c.key),
   );
-  const sf = useSearchFilter(),
+  const sf = useSearchFilter({ separateAge: true }),
     rows0 = (vm.draftRows || []).filter(byTrait(vm, tk)).filter(sf.test);
   const boardRows =
       stats && stSort
@@ -469,8 +469,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
               </button>
             </div>
           )}
+          <div className="draft-age-filter">{sf.age}</div>
           <details className="draft-filters">
-            <summary>Filters{sf.active || tk ? ' · active' : ''}</summary>
+            <summary>Other filters{sf.otherActive || tk ? ' · active' : ''}</summary>
             <div className="draft-view-controls">
               <TraitFilter value={tk} onChange={setTk} />
             </div>
@@ -486,7 +487,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   {cols.map((c: any) => (
                     <Fragment key={c.key}>
                       {boardHead(c)}
-                      {c.key === 'name' && statHeads}
+                      {c.key === 'age' && statHeads}
                     </Fragment>
                   ))}
                 </tr>
@@ -528,7 +529,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                           </button>{' '}
                           {sc.tag(p.id)}
                           <div className="draft-player-meta">
-                            {p.pos} · {p.age} · {stats && x ? teamOf(x) : p.fromT}
+                            {p.pos} · {stats && x ? teamOf(x) : p.fromT}
                             <img
                               src={p.flag}
                               alt={p.cname}
@@ -537,6 +538,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
                             />
                           </div>
                         </td>
+                        <td className="draft-number" data-label="Age">
+                          {p.age}
+                        </td>
                         {stats ? (
                           ST.map(([h, , fn, dg]) => (
                             <td key={h} className="draft-number" style={{ fontWeight: stSort?.[0] === h ? 600 : undefined }}>
@@ -544,10 +548,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                             </td>
                           ))
                         ) : (
-                          <>
-                            <td className="draft-number">{p.age}</td>
-                            <td className="draft-number">{p.hgt}</td>
-                          </>
+                          <td className="draft-number">{p.hgt}</td>
                         )}
                         <td className="draft-number" style={{ color: p.tone, fontWeight: 600 }}>
                           {p.ovrS}
