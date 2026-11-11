@@ -341,26 +341,27 @@ export function useScoutSelect(vm: VM, ids: number[]) {
     ) : null;
   // A bar above the table (for people who don't right-click). Always there, so the table doesn't jump when the first
   // row is picked mid-drag; with nothing picked it says how to pick.
-  const bar = () => (
+  const bar = (compact?: boolean) => (
     <div
       style={{
         display: 'flex',
         gap: 10,
         alignItems: 'center',
         flexWrap: 'wrap',
-        minHeight: 46,
+        minHeight: compact ? 32 : 46,
         boxSizing: 'border-box',
-        margin: '0 0 8px',
-        padding: '4px 10px',
+        margin: compact ? '0 0 6px' : '0 0 8px',
+        padding: compact ? '2px 10px' : '4px 10px',
         border: '1px solid ' + (chosen.length ? 'var(--color-accent)' : 'var(--color-divider)'),
         borderRadius: 'var(--radius-md)',
         fontSize: '13px',
       }}
     >
       {!chosen.length && !msg && (
-        <span style={{ ...muted, fontSize: '12px' }}>
-          Click a row to pick a player, drag across rows or shift-click to pick several, then right-click to scout them or put them on a
-          shortlist.
+        <span style={{ ...muted, fontSize: compact ? '11.5px' : '12px' }}>
+          {compact
+            ? 'Click or drag across rows to pick players, then right-click to scout them or shortlist them.'
+            : 'Click a row to pick a player, drag across rows or shift-click to pick several, then right-click to scout them or put them on a shortlist.'}
         </span>
       )}
       {chosen.length > 0 && (

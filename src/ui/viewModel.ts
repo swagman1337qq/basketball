@@ -3914,9 +3914,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     [
       'hadrian',
       'Hadrian’s Lover',
-      'Dense: more on one screen. The Dashboard, Roster and Mailbox show tighter tables and fewer explanations.',
+      'Dense: more on one screen. The Dashboard, Roster, Mailbox and Free agency show tighter tables and fewer explanations.',
     ],
-    ['classic', 'Classic', 'The roomier design these three screens had before.'],
+    ['classic', 'Classic', 'The roomier design these four screens had before.'],
   ];
   const designKey = s.design === 'classic' ? 'classic' : 'hadrian';
   const design = {
