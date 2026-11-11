@@ -21,6 +21,7 @@ import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants'
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
 import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
+import { knownBadges } from '../../engine/scoutReport';
 
 const PTI: [number, string][] = [
   [0, 'Only fully healthy players'],
@@ -33,12 +34,20 @@ const PTI: [number, string][] = [
   [99, 'Any injury'],
 ];
 const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min(d, 8) * 2.5) + '% performance)');
-const td: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' },
-  tdr: React.CSSProperties = { ...td, textAlign: 'right' };
+const td0: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' },
+  tdr0: React.CSSProperties = { ...td0, textAlign: 'right' },
+  // Hadrian's Lover (Settings → Screen design): tighter cells
+  tdD: React.CSSProperties = { padding: '3px 6px', borderBottom: '1px solid var(--color-divider)', whiteSpace: 'nowrap' },
+  tdrD: React.CSSProperties = { ...tdD, textAlign: 'right' };
+const chip: React.CSSProperties = { fontSize: '12px', padding: '2px 9px' };
 
 export function RosterScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeamPage, isMine } = vm.ctx,
-    P = gm.db.P;
+    P = gm.db.P,
+    dense = !!vm.dense,
+    td = dense ? tdD : td0,
+    tdr = dense ? tdrD : tdr0;
+  const [menuFor, setMenuFor] = useState<number | null>(null); // Hadrian's Lover: the player whose ⋯ menu is open
   // The team and season on show live in the game state (rosterView), so clicking a team anywhere opens
   // its roster here and Back from a player returns to the same team. The Roster tab starts on yours.
   const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y },
@@ -293,7 +302,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           {p.numTid === tid || cur ? p.num : ''}
         </td>
         <td style={{ ...td }}>
-          <span style={{ display: 'inline-flex', gap: '7px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', gap: '7px', alignItems: 'center', flexWrap: dense ? 'nowrap' : 'wrap' }}>
             <img
               src={gm.flag(p.rep)}
               alt=""
@@ -301,12 +310,28 @@ export function RosterScreen({ vm }: { vm: VM }) {
               style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
             />
             <span
-              title={p.name + (p.native ? ' (' + p.native + ')' : '')}
+              title={
+                p.name +
+                (p.native ? ' (' + p.native + ')' : '') +
+                (dense && cur ? (h => (h ? ' · ' + h : ''))(howAcquired(gm, s, p, tid)) : '')
+              }
               style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}
             >
               {p.name}
             </span>
-            {p.native && p.name.length + p.native.length <= 34 && (
+            {dense &&
+              knownBadges(gm, s, p)
+                .list.slice(0, 1)
+                .map(b => (
+                  <span
+                    key={b.key}
+                    title={b.tierName + ' ' + b.name + ': ' + b.desc}
+                    style={{ fontSize: '10.5px', color: 'var(--color-neutral-600)' }}
+                  >
+                    {b.name}
+                  </span>
+                ))}
+            {!dense && p.native && p.name.length + p.native.length <= 34 && (
               <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>
             )}
             {p.dev && mine && (
@@ -344,7 +369,8 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 {p.ctype === 'twoWay' ? ' · ' + (p.twoWay?.games || 0) + '/50 g' : ''}
               </span>
             )}
-            {mine &&
+            {!dense &&
+              mine &&
               tid === s.me &&
               convOptions(p).map(o => (
                 <button
@@ -360,7 +386,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   {o.short}
                 </button>
               ))}
-            {mine && tid === s.me && cur && (
+            {!dense && mine && tid === s.me && cur && (
               <button
                 className="btn btn-ghost hv4"
                 onClick={e => {
@@ -374,6 +400,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
               </button>
             )}
             {cur &&
+              !dense &&
               (() => {
                 const h = howAcquired(gm, s, p, tid);
                 return h ? (
@@ -385,7 +412,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   </span>
                 ) : null;
               })()}
-            {cur && p.inj && (
+            {cur && p.inj && dense && (
+              <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }} title={p.inj.name + ' · ' + gm.injText(p, true)}>
+                {p.inj.dtd ? 'Day-to-day' : 'Out ' + gm.injText(p, true)}
+              </span>
+            )}
+            {cur && p.inj && !dense && (
               <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>
                 {p.inj.dtd ? 'Day-to-day (' + gm.injText(p, true) + ')' : 'Out ' + gm.injText(p, true)} · {p.inj.name}
               </span>
@@ -398,7 +430,29 @@ export function RosterScreen({ vm }: { vm: VM }) {
           const b = cur ? baseline(gm, p) : null,
             d = b ? deltas(p, b.snap) : null;
           const mark = (x: number, dec: number, what: string) =>
-            b && (
+            b &&
+            (dense ? (
+              <span
+                title={
+                  what +
+                  (x > 0 ? ' up ' : x < 0 ? ' down ' : ' unchanged ') +
+                  (x ? Math.abs(x).toFixed(dec) + ' ' : '') +
+                  'since ' +
+                  b.label
+                }
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  marginLeft: 4,
+                  display: 'inline-block',
+                  minWidth: 22,
+                  textAlign: 'left',
+                  color: x > 0 ? 'var(--gm-good)' : x < 0 ? 'var(--gm-bad)' : 'var(--color-neutral-500)',
+                }}
+              >
+                {x ? fmtChange(x, dec) : ''}
+              </span>
+            ) : (
               <div
                 title={
                   what +
@@ -417,7 +471,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
               >
                 {fmtChange(x, dec)}
               </div>
-            );
+            ));
           return (
             <>
               <td style={{ ...tdr, color: vm.ctx.tone(p.ovr), fontWeight: 600 }}>
@@ -431,8 +485,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
             </>
           );
         })()}
-        {cur && <td style={tdr}>{fmtMoney(p.amt)}</td>}
-        {cur && (
+        {cur && dense && (
+          <td style={tdr}>
+            {fmtMoney(p.amt)} <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>·</span>{' '}
+            <ExpYear y={p.exp} cur={gm.Y} />
+          </td>
+        )}
+        {cur && !dense && <td style={tdr}>{fmtMoney(p.amt)}</td>}
+        {cur && !dense && (
           <td style={tdr}>
             <ExpYear y={p.exp} cur={gm.Y} />
           </td>
@@ -453,13 +513,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
               >
                 <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', opacity: man ? 1 : 0.45 }}>
                   <NumInput
-                    stepper
+                    stepper={!dense}
                     disabled={!man}
                     value={rotOf(id)}
                     min={0}
                     max={48}
                     step={1}
-                    width={56}
+                    width={dense ? 44 : 56}
+                    compact={dense}
                     onValue={v => {
                       P[id].rot = v;
                       if (v > 0) delete P[id].dev;
@@ -478,9 +539,15 @@ export function RosterScreen({ vm }: { vm: VM }) {
                     bump();
                   }}
                   title={man ? 'Go back to automatic minutes' : 'Set his minutes yourself'}
-                  style={{ fontSize: '11.5px', padding: '2px 0', width: 62, marginLeft: 6, verticalAlign: 'middle' }}
+                  style={{
+                    fontSize: dense ? '11px' : '11.5px',
+                    padding: dense ? '1px 0' : '2px 0',
+                    width: dense ? 40 : 62,
+                    marginLeft: dense ? 4 : 6,
+                    verticalAlign: 'middle',
+                  }}
                 >
-                  {man ? 'Auto' : 'Manual'}
+                  {man ? 'Auto' : dense ? 'Set' : 'Manual'}
                 </button>
               </td>
             );
@@ -494,6 +561,94 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {md && (
           <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
             <MoodChip label={md.hapLabel} color={md.hapColor} factors={md.factors} name={p.name} p={p} />
+          </td>
+        )}
+        {dense && cur && !vm.spec?.on && (
+          <td style={{ ...td, position: 'relative' }} onClick={e => e.stopPropagation()}>
+            {(() => {
+              const own = tid === s.me,
+                more = own && mine ? convOptions(p) : [];
+              return (
+                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ fontSize: '11.5px', padding: '1px 8px' }}
+                    title={own ? 'Build a trade that sends him away' : 'Build a trade for him'}
+                    onClick={() =>
+                      gm.setState(
+                        own
+                          ? { screen: 'trade', tMine: [id], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }
+                          : { screen: 'trade', tTid: tid, tTheirs: [id], tMine: [], tkMine: [], tkTheirs: [], tMsg: null },
+                      )
+                    }
+                  >
+                    Trade
+                  </button>
+                  {own && mine && (
+                    <button
+                      className="btn btn-ghost"
+                      aria-label={'More for ' + p.name}
+                      title="Cut him or change his contract"
+                      style={{ fontSize: '13px', padding: '0 7px', lineHeight: 1.3 }}
+                      onClick={() => setMenuFor(menuFor === id ? null : id)}
+                    >
+                      ⋯
+                    </button>
+                  )}
+                  {menuFor === id && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setMenuFor(null)} />
+                      <div
+                        className="card"
+                        style={{
+                          position: 'absolute',
+                          right: 4,
+                          top: '100%',
+                          zIndex: 31,
+                          padding: 4,
+                          gap: 0,
+                          minWidth: 190,
+                          background: 'var(--color-surface)',
+                          boxShadow: 'var(--shadow-lg)',
+                        }}
+                      >
+                        {more.map(o => (
+                          <button
+                            key={o.to}
+                            className="btn btn-ghost"
+                            title={o.why}
+                            style={{ justifyContent: 'flex-start', fontSize: '12.5px', padding: '4px 8px', width: '100%' }}
+                            onClick={() => {
+                              setMenuFor(null);
+                              convertContract(gm, id, o.to);
+                            }}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                        <button
+                          className="btn btn-ghost"
+                          title="Waive, stretch or buy out, with the dead money shown before you confirm"
+                          style={{
+                            justifyContent: 'flex-start',
+                            fontSize: '12.5px',
+                            padding: '4px 8px',
+                            width: '100%',
+                            color: 'var(--gm-bad)',
+                          }}
+                          onClick={() => {
+                            setMenuFor(null);
+                            gm.setState({ dialog: { type: 'release', pid: id } });
+                          }}
+                        >
+                          Cut him…
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </span>
+              );
+            })()}
           </td>
         )}
       </tr>
@@ -549,13 +704,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <th style={tdr}>Ovr</th>
         <th style={tdr}>Pot</th>
         {cur && <th style={tdr}>Contract</th>}
-        {cur && <th style={tdr}>Exp</th>}
+        {cur && !dense && <th style={tdr}>Exp</th>}
         {mine && (
           <th
             style={{ ...tdr, textAlign: 'center' }}
             title="Target minutes per game: automatic by rotation slot, or Manual to set them yourself"
           >
-            Min target
+            {dense ? 'Min tgt' : 'Min target'}
           </th>
         )}
         <th style={tdr}>GP</th>
@@ -565,6 +720,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <th style={tdr}>Ast</th>
         <th style={tdr}>PER</th>
         {cur && isMine(tid) && <th style={{ ...td, textAlign: 'left' }}>Mood</th>}
+        {dense && cur && !vm.spec?.on && <th style={{ ...td, textAlign: 'left' }}>Actions</th>}
       </tr>
     </thead>
   );
@@ -630,124 +786,118 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </Link>
         )}
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'auto minmax(0,1fr) minmax(0,1fr)',
-          gap: '22px',
-          alignItems: 'start',
-          marginBottom: '14px',
-        }}
-      >
-        <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">
-          {logo(tid, 110)}
-        </div>
-        <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>
-            {t.region} {t.name}{' '}
-            <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12.5px', marginLeft: 6 }}>
-              Team overview
-            </Link>
-          </div>
-          <div>
-            Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
-            {hist?.fin ? ' · ' + hist.fin : ''}
-          </div>
-          {cur && (
-            <div>
-              {rank}
-              {['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}
-              {gb ? ', ' + gb : ''}
+      {dense && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px 26px',
+            alignItems: 'flex-start',
+            padding: '10px 14px',
+            marginBottom: 12,
+            border: '1px solid var(--color-divider)',
+            borderRadius: 'var(--radius-md)',
+            background: 'color-mix(in srgb, var(--color-text) 3%, transparent)',
+            fontSize: '13px',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: '1 1 380px', minWidth: 0 }}>
+            <div style={{ cursor: 'pointer', flex: '0 0 auto' }} onClick={() => openTeamPage(tid)} title="Team overview">
+              {logo(tid, 52)}
             </div>
-          )}
-          {cur && (
-            <div>
-              Team rating: <b>{tr}</b>/100{' '}
-              <span style={muted}>
-                ({trRank}
-                {['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})
-              </span>
-            </div>
-          )}
-          <div>
-            {mov != null && (
-              <>
-                MOV:{' '}
-                <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>
-                  {mov >= 0 ? '+' : ''}
-                  {mov.toFixed(1)}
-                </b>{' '}
-                ·{' '}
-              </>
-            )}
-            Average age {avgAge.toFixed(1)}
-          </div>
-          <div>
-            Locker room: <LockerRoomChip vm={vm} tid={tid} />
-          </div>
-          {cur &&
-            (lim > seasonMax(s) ? (
-              // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
-              <div style={{ marginTop: 6 }}>
-                <b style={{ color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}>
-                  {std.length}/{seasonMax(s)}
-                </b>{' '}
-                standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}
-                {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
-                <div
-                  style={{ fontSize: '12px', color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}
-                >
-                  {std.length > seasonMax(s)
-                    ? 'You’ll need to cut ' +
-                      (std.length - seasonMax(s)) +
-                      ' player' +
-                      (std.length - seasonMax(s) === 1 ? '' : 's') +
-                      ' when the regular season starts (or convert Exhibit 10s to two-way deals).'
-                    : std.length === 15
-                      ? 'Full for opening night.'
-                      : 15 -
-                        std.length +
-                        ' open spot' +
-                        (15 - std.length === 1 ? '' : 's') +
-                        ' for opening night; ' +
-                        (lim - std.length) +
-                        ' more you can add before then.'}
-                </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', marginBottom: 3 }}>
+                {t.region} {t.name}{' '}
+                <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12px', marginLeft: 4 }}>
+                  Overview
+                </Link>
               </div>
-            ) : (
-              <div style={{ marginTop: 6 }}>
-                {Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way{' '}
-                {tw.length}/{TWO_WAY_MAX}
-                {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
-              </div>
-            ))}
-          {fin && (
-            <div>
-              Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit{' '}
-              <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b>
-            </div>
-          )}
-        </div>
-        {mine && (
-          <div style={{ fontSize: '13px' }}>
-            <div
-              style={{ fontWeight: 600, marginBottom: 4 }}
-              title="How long an injury has to be before a player sits. Players who play through an injury perform worse."
-            >
-              Play through injuries
-            </div>
-            {(['reg', 'po'] as const).map(k => (
-              <div
-                key={k}
-                style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 4 }}
-              >
-                <span style={muted}>{k === 'reg' ? 'Regular season' : 'Playoffs'}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '2px 14px', justifyContent: 'start' }}>
+                <span style={muted}>Record</span>
                 <span>
+                  <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
+                  {cur ? ' · ' + rank + (['st', 'nd', 'rd'][rank - 1] || 'th') + ' ' + t.conf + (gb ? ', ' + gb : '') : ''}
+                  {hist?.fin ? ' · ' + hist.fin : ''}
+                </span>
+                {cur && (
+                  <>
+                    <span style={muted}>Team rating</span>
+                    <span>
+                      <b>{tr}</b>{' '}
+                      <span style={muted}>
+                        ({trRank}
+                        {['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})
+                      </span>
+                    </span>
+                  </>
+                )}
+                <span style={muted}>{mov != null ? 'MOV · age' : 'Average age'}</span>
+                <span>
+                  {mov != null && (
+                    <>
+                      <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>
+                        {mov >= 0 ? '+' : ''}
+                        {mov.toFixed(1)}
+                      </b>
+                      {' · '}
+                    </>
+                  )}
+                  {avgAge.toFixed(1)}
+                </span>
+                {cur && (
+                  <>
+                    <span style={muted}>Roster</span>
+                    <span
+                      title={
+                        lim > seasonMax(s)
+                          ? 'Up to ' + lim + ' until opening night, ' + seasonMax(s) + ' after'
+                          : Math.max(0, lim - std.length) + ' open spot' + (lim - std.length === 1 ? '' : 's')
+                      }
+                      style={{ color: lim > seasonMax(s) && std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}
+                    >
+                      {std.length} of {lim > seasonMax(s) ? seasonMax(s) + ' (' + lim + ' till opening night)' : lim} · two-way {tw.length}/
+                      {TWO_WAY_MAX}
+                      {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+                    </span>
+                  </>
+                )}
+                {fin && (
+                  <>
+                    <span style={muted}>Payroll</span>
+                    <span>
+                      {fmtMoney(fin.payroll)} <span style={muted}>· cap {fmtMoney(N.CAP)} · profit</span>{' '}
+                      <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)', whiteSpace: 'nowrap' }}>{fmtMoney(fin.net)}</b>
+                    </span>
+                  </>
+                )}
+                <span style={muted}>Locker room</span>
+                <span>
+                  <LockerRoomChip vm={vm} tid={tid} />
+                </span>
+              </div>
+              {cur && lim > seasonMax(s) && std.length > seasonMax(s) && (
+                <div style={{ fontSize: '12px', color: 'var(--color-accent-700)', marginTop: 3 }}>
+                  Cut {std.length - seasonMax(s)} by opening night (or convert Exhibit 10s to two-way deals).
+                </div>
+              )}
+            </div>
+          </div>
+          {mine && (
+            <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div
+                style={{ fontWeight: 600 }}
+                title="How long an injury has to be before a player sits. Players who play through an injury perform worse."
+              >
+                Play through injuries
+              </div>
+              {(['reg', 'po'] as const).map(k => (
+                <label key={k} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ ...muted, width: 64 }}>{k === 'reg' ? 'Season' : 'Playoffs'}</span>
                   <select
                     className="input"
                     value={pti[k]}
                     onChange={e => setClub({ ptInj: { ...pti, [k]: +e.target.value } })}
-                    style={{ fontSize: '12.5px', width: 'auto' }}
+                    style={{ fontSize: '12px', width: 'auto', padding: '2px 6px' }}
                   >
                     {PTI.map(([d, l]) => (
                       <option key={d} value={d}>
@@ -756,131 +906,383 @@ export function RosterScreen({ vm }: { vm: VM }) {
                     ))}
                   </select>
                   <span style={{ ...muted, fontSize: '11.5px' }}>{perfOf(pti[k])}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {mine && (
+            <div style={{ flex: '1 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <b>Lineup</b>
+                <label style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer', fontSize: '12.5px' }}>
+                  <input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep
+                  auto-sorted
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary"
+                  style={chip}
+                  onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}
+                >
+                  Sort now
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={chip}
+                  title="Make every player's minutes yours to set, starting from the coach's current plan"
+                  onClick={() => {
+                    ids.forEach(id => {
+                      if (P[id].rot == null) P[id].rot = rotOf(id);
+                    });
+                    gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                  }}
+                >
+                  Set all minutes
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={chip}
+                  title="Give every player back to the coach"
+                  onClick={() => {
+                    ids.forEach(id => delete P[id].rot);
+                    gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                  }}
+                >
+                  Reset minutes
+                </button>
+                <button data-tour="advice" className="btn btn-primary" style={chip} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>
+                  Ask coaches
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ ...chip, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                    onClick={runAuto}
+                    title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C."
+                  >
+                    Auto set
+                  </button>
+                  <select
+                    className="input"
+                    value={autoMode}
+                    onChange={e => setAutoMode(e.target.value as AutoMode)}
+                    style={{
+                      fontSize: '12px',
+                      width: 'auto',
+                      padding: '2px 6px',
+                      borderTopLeftRadius: 0,
+                      borderBottomLeftRadius: 0,
+                      marginLeft: -1,
+                    }}
+                  >
+                    {AUTO_MODES.map(([k, l]) => (
+                      <option key={k} value={k}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  style={chip}
+                  onClick={() => setNaming('')}
+                  title="Save this order and everyone's minutes targets under a name, to load again later"
+                >
+                  Save lineup
+                </button>
+                {lineups.map(L => (
+                  <span key={L.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ ...chip, padding: '2px 6px' }}
+                      title={
+                        'Load ' +
+                        L.name +
+                        ' (saved ' +
+                        L.date +
+                        '): ' +
+                        L.order
+                          .filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10')
+                          .slice(0, 5)
+                          .map(id => P[id].name.split(' ').slice(-1)[0])
+                          .join(', ')
+                      }
+                      onClick={() => loadLineup(L)}
+                    >
+                      ↺ {L.name}
+                    </button>
+                    <button
+                      className="btn btn-ghost hv4"
+                      style={{ fontSize: '11px', padding: '0 4px', color: 'var(--gm-bad)' }}
+                      title={'Delete ' + L.name}
+                      onClick={() => delLineup(L.id)}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+              {autoMsg && <div style={{ fontSize: '12px', color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
+            </div>
+          )}
+        </div>
+      )}
+      {!dense && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto minmax(0,1fr) minmax(0,1fr)',
+            gap: '22px',
+            alignItems: 'start',
+            marginBottom: '14px',
+          }}
+        >
+          <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">
+            {logo(tid, 110)}
+          </div>
+          <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>
+              {t.region} {t.name}{' '}
+              <Link onClick={() => openTeamPage(tid)} style={{ fontFamily: 'var(--font-body)', fontSize: '12.5px', marginLeft: 6 }}>
+                Team overview
+              </Link>
+            </div>
+            <div>
+              Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
+              {hist?.fin ? ' · ' + hist.fin : ''}
+            </div>
+            {cur && (
+              <div>
+                {rank}
+                {['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}
+                {gb ? ', ' + gb : ''}
+              </div>
+            )}
+            {cur && (
+              <div>
+                Team rating: <b>{tr}</b>/100{' '}
+                <span style={muted}>
+                  ({trRank}
+                  {['st', 'nd', 'rd'][trRank - 1] || 'th'} of {T.length})
                 </span>
               </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-              <button
-                className="btn btn-secondary"
-                style={{ fontSize: '12.5px' }}
-                onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}
-              >
-                Auto sort roster
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ fontSize: '12.5px' }}
-                onClick={() => {
-                  ids.forEach(id => {
-                    if (P[id].rot == null) P[id].rot = rotOf(id);
-                  });
-                  gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
-                }}
-                title="Make every player's minutes yours to set, starting from the coach's current plan"
-              >
-                Set all minutes
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ fontSize: '12.5px' }}
-                onClick={() => {
-                  ids.forEach(id => delete P[id].rot);
-                  gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
-                }}
-                title="Give every player back to the coach"
-              >
-                Reset playing time
-              </button>
-              <button
-                data-tour="advice"
-                className="btn btn-primary"
-                style={{ fontSize: '12.5px' }}
-                onClick={() => setAdvice(lineupAdvice(gm, s, tid))}
-              >
-                Ask the assistant coaches
-              </button>
+            )}
+            <div>
+              {mov != null && (
+                <>
+                  MOV:{' '}
+                  <b style={{ color: mov >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>
+                    {mov >= 0 ? '+' : ''}
+                    {mov.toFixed(1)}
+                  </b>{' '}
+                  ·{' '}
+                </>
+              )}
+              Average age {avgAge.toFixed(1)}
             </div>
-            <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}>
-              <input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto
-              sorted (re-sorts before every game)
-            </label>
-            {mine && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    className="btn btn-primary"
-                    style={{ fontSize: '12.5px' }}
-                    onClick={() => setNaming('')}
-                    title="Save this order and everyone's minutes targets under a name, to load again later"
+            <div>
+              Locker room: <LockerRoomChip vm={vm} tid={tid} />
+            </div>
+            {cur &&
+              (lim > seasonMax(s) ? (
+                // Offseason: up to 21 now (Exhibit 10 camp deals included), but only 15 on opening night.
+                <div style={{ marginTop: 6 }}>
+                  <b style={{ color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}>
+                    {std.length}/{seasonMax(s)}
+                  </b>{' '}
+                  standard contracts · you can carry up to {lim} until opening night · two-way {tw.length}/{TWO_WAY_MAX}
+                  {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+                  <div
+                    style={{ fontSize: '12px', color: std.length > seasonMax(s) ? 'var(--color-accent-700)' : 'var(--color-neutral-700)' }}
                   >
-                    Save lineup
-                  </button>
-                  <span style={{ display: 'inline-flex', gap: 0 }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ fontSize: '12.5px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                      onClick={runAuto}
-                      title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C."
-                    >
-                      Auto set lineup
-                    </button>
+                    {std.length > seasonMax(s)
+                      ? 'You’ll need to cut ' +
+                        (std.length - seasonMax(s)) +
+                        ' player' +
+                        (std.length - seasonMax(s) === 1 ? '' : 's') +
+                        ' when the regular season starts (or convert Exhibit 10s to two-way deals).'
+                      : std.length === 15
+                        ? 'Full for opening night.'
+                        : 15 -
+                          std.length +
+                          ' open spot' +
+                          (15 - std.length === 1 ? '' : 's') +
+                          ' for opening night; ' +
+                          (lim - std.length) +
+                          ' more you can add before then.'}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: 6 }}>
+                  {Math.max(0, lim - std.length)} open roster spot{lim - std.length === 1 ? '' : 's'} ({std.length}/{lim}) · two-way{' '}
+                  {tw.length}/{TWO_WAY_MAX}
+                  {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+                </div>
+              ))}
+            {fin && (
+              <div>
+                Payroll {fmtMoney(fin.payroll)} · Salary cap {fmtMoney(N.CAP)} · Profit{' '}
+                <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)' }}>{fmtMoney(fin.net)}</b>
+              </div>
+            )}
+          </div>
+          {mine && (
+            <div style={{ fontSize: '13px' }}>
+              <div
+                style={{ fontWeight: 600, marginBottom: 4 }}
+                title="How long an injury has to be before a player sits. Players who play through an injury perform worse."
+              >
+                Play through injuries
+              </div>
+              {(['reg', 'po'] as const).map(k => (
+                <div
+                  key={k}
+                  style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 4 }}
+                >
+                  <span style={muted}>{k === 'reg' ? 'Regular season' : 'Playoffs'}</span>
+                  <span>
                     <select
                       className="input"
-                      value={autoMode}
-                      onChange={e => setAutoMode(e.target.value as AutoMode)}
-                      style={{ fontSize: '12.5px', width: 'auto', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginLeft: -1 }}
+                      value={pti[k]}
+                      onChange={e => setClub({ ptInj: { ...pti, [k]: +e.target.value } })}
+                      style={{ fontSize: '12.5px', width: 'auto' }}
                     >
-                      {AUTO_MODES.map(([k, l]) => (
-                        <option key={k} value={k}>
+                      {PTI.map(([d, l]) => (
+                        <option key={d} value={d}>
                           {l}
                         </option>
                       ))}
                     </select>
+                    <span style={{ ...muted, fontSize: '11.5px' }}>{perfOf(pti[k])}</span>
                   </span>
-                  {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
                 </div>
-                {autoMsg && <div style={{ fontSize: '12px', marginTop: 6, color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
-                {lineups.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-                    {lineups.map(L => {
-                      const five = L.order
-                        .filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10')
-                        .slice(0, 5);
-                      return (
-                        <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
-                          <b style={{ minWidth: 90 }}>{L.name}</b>
-                          <span
-                            style={{ ...muted, fontSize: '11.5px', flex: 1, minWidth: 160 }}
-                            title={'Saved ' + L.date + ' · ' + Object.keys(L.rot).length + ' manual minutes targets'}
-                          >
-                            {five.map(id => P[id].name.split(' ').slice(-1)[0]).join(', ')}
-                            {Object.keys(L.rot).length ? ' · ' + Object.keys(L.rot).length + ' set minutes' : ''}
-                          </span>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ fontSize: '12px', padding: '2px 10px' }}
-                            onClick={() => loadLineup(L)}
-                          >
-                            Load
-                          </button>
-                          <button
-                            className="btn btn-ghost hv4"
-                            style={{ fontSize: '12px', padding: '2px 6px', color: 'var(--gm-bad)' }}
-                            title="Delete this lineup"
-                            onClick={() => delLineup(L.id)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              ))}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '12.5px' }}
+                  onClick={() => gm.setState(st => ({ rosters: { ...st.rosters, [tid]: gm.autoSorted(st.rosters[tid]) } }))}
+                >
+                  Auto sort roster
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '12.5px' }}
+                  onClick={() => {
+                    ids.forEach(id => {
+                      if (P[id].rot == null) P[id].rot = rotOf(id);
+                    });
+                    gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                  }}
+                  title="Make every player's minutes yours to set, starting from the coach's current plan"
+                >
+                  Set all minutes
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '12.5px' }}
+                  onClick={() => {
+                    ids.forEach(id => delete P[id].rot);
+                    gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+                  }}
+                  title="Give every player back to the coach"
+                >
+                  Reset playing time
+                </button>
+                <button
+                  data-tour="advice"
+                  className="btn btn-primary"
+                  style={{ fontSize: '12.5px' }}
+                  onClick={() => setAdvice(lineupAdvice(gm, s, tid))}
+                >
+                  Ask the assistant coaches
+                </button>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={!!club?.keepSorted} onChange={e => setClub({ keepSorted: e.target.checked })} /> Keep auto
+                sorted (re-sorts before every game)
+              </label>
+              {mine && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ fontSize: '12.5px' }}
+                      onClick={() => setNaming('')}
+                      title="Save this order and everyone's minutes targets under a name, to load again later"
+                    >
+                      Save lineup
+                    </button>
+                    <span style={{ display: 'inline-flex', gap: 0 }}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ fontSize: '12.5px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        onClick={runAuto}
+                        title="Set the order and minutes for you. The starting five always covers PG, SG, SF, PF and C."
+                      >
+                        Auto set lineup
+                      </button>
+                      <select
+                        className="input"
+                        value={autoMode}
+                        onChange={e => setAutoMode(e.target.value as AutoMode)}
+                        style={{ fontSize: '12.5px', width: 'auto', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginLeft: -1 }}
+                      >
+                        {AUTO_MODES.map(([k, l]) => (
+                          <option key={k} value={k}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </span>
+                    {!lineups.length && <span style={{ ...muted, fontSize: '11.5px' }}>Saves the order and the minutes targets.</span>}
+                  </div>
+                  {autoMsg && <div style={{ fontSize: '12px', marginTop: 6, color: 'var(--color-accent-700)' }}>{autoMsg}</div>}
+                  {lineups.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                      {lineups.map(L => {
+                        const five = L.order
+                          .filter(id => P[id] && (s.rosters[tid] || []).includes(id) && P[id].ctype !== 'twoWay' && P[id].ctype !== 'ex10')
+                          .slice(0, 5);
+                        return (
+                          <div key={L.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '12.5px', flexWrap: 'wrap' }}>
+                            <b style={{ minWidth: 90 }}>{L.name}</b>
+                            <span
+                              style={{ ...muted, fontSize: '11.5px', flex: 1, minWidth: 160 }}
+                              title={'Saved ' + L.date + ' · ' + Object.keys(L.rot).length + ' manual minutes targets'}
+                            >
+                              {five.map(id => P[id].name.split(' ').slice(-1)[0]).join(', ')}
+                              {Object.keys(L.rot).length ? ' · ' + Object.keys(L.rot).length + ' set minutes' : ''}
+                            </span>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ fontSize: '12px', padding: '2px 10px' }}
+                              onClick={() => loadLineup(L)}
+                            >
+                              Load
+                            </button>
+                            <button
+                              className="btn btn-ghost hv4"
+                              style={{ fontSize: '12px', padding: '2px 6px', color: 'var(--gm-bad)' }}
+                              title="Delete this lineup"
+                              onClick={() => delLineup(L.id)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {s.god && cur && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 10px' }}>
           <button
@@ -1049,11 +1451,16 @@ export function RosterScreen({ vm }: { vm: VM }) {
       {cur ? (
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>
-            {mine
-              ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is the coach’s call (greyed out): he plays the players who are playing well, whatever their place in the order. Press Manual (or Set all minutes) to set minutes yourself; he then plays your target. Auto hands it back. Targets add up to ' +
+            {mine && dense
+              ? 'Drag a row to change the rotation · green: starters · Min tgt greyed: the coach’s call (Set to choose them yourself) · targets add up to ' +
                 Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) +
-                ' of 240 minutes.'
-              : 'Green marks the starting five.'}
+                ' of 240 · Ovr change since ' +
+                ((ids.length && baseline(gm, P[ids[0]])?.label) || 'the season began')
+              : mine
+                ? 'Drag rows or use the arrows to set the rotation; the green block and the Starters / Bench bar mark the starting five. Min target is the coach’s call (greyed out): he plays the players who are playing well, whatever their place in the order. Press Manual (or Set all minutes) to set minutes yourself; he then plays your target. Auto hands it back. Targets add up to ' +
+                  Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) +
+                  ' of 240 minutes.'
+                : 'Green marks the starting five.'}
           </p>
           <div style={{ fontWeight: 600, fontSize: '13px', margin: '4px 0' }}>
             Standard contracts · {std.length - ex10.length} of {seasonMax(s)}

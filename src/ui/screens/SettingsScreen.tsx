@@ -75,6 +75,45 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             borderBottom: '1px solid var(--color-divider)',
           }}
         >
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>Screen design</div>
+          <div style={{ color: 'var(--color-neutral-700)' }}>{vm.design.desc}</div>
+          <div
+            style={{
+              display: 'inline-flex',
+              border: '1px solid var(--color-divider)',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+            }}
+          >
+            {(vm.design.segs || []).map((sg: any, i: number) => (
+              <button
+                key={i}
+                onClick={sg.onClick}
+                style={{
+                  all: 'unset',
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  whiteSpace: 'nowrap',
+                  color: sg.color,
+                  boxShadow: sg.ring,
+                }}
+              >
+                {sg.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '180px minmax(0,1fr) auto',
+            gap: '16px',
+            alignItems: 'center',
+            padding: '12px 0',
+            borderBottom: '1px solid var(--color-divider)',
+          }}
+        >
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>CCP games</div>
           <div style={{ color: 'var(--color-neutral-700)' }}>
             Quick results play each development-league game in a light version of the engine (each trip, shots, fouls, rebounds and

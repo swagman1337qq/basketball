@@ -3908,6 +3908,26 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       ring: variant === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
     })),
   };
+  // Screen design (2026-11-11): "Hadrian's Lover", the dense Dashboard, Roster and Mailbox (the default), or Classic, the
+  // design before it. Saved per league like the layout.
+  const DESIGNS = [
+    [
+      'hadrian',
+      'Hadrian’s Lover',
+      'Dense: more on one screen. The Dashboard, Roster and Mailbox show tighter tables and fewer explanations.',
+    ],
+    ['classic', 'Classic', 'The roomier design these three screens had before.'],
+  ];
+  const designKey = s.design === 'classic' ? 'classic' : 'hadrian';
+  const design = {
+    desc: DESIGNS.find(x => x[0] === designKey)![2],
+    segs: DESIGNS.map(([k, label]) => ({
+      label,
+      onClick: () => gm.setState({ design: k }),
+      color: designKey === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+      ring: designKey === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+    })),
+  };
   const save = {
     id: extra.saveId,
     name: extra.saveName,
@@ -4161,6 +4181,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         preseason: 'preseason',
       }[s.phase],
     layout,
+    design,
+    dense: designKey === 'hadrian',
+    mailNew,
+    goTo: (k: string) => go(k)(),
     save,
     gmName: spect ? '' : s.gm?.name || '',
     navCollapsed: !!s.navCollapsed,

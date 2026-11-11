@@ -56,6 +56,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
     Y = gm.Y;
   const [kind, setKind] = useState<Kind | 'all'>('all');
   const [readTo] = useState<number>(() => s.mailRead || 0); // what was new when you opened the Mailbox stays marked
+  const [sel, setSel] = useState<string | null>(null); // Hadrian's Lover: the message open in the right-hand pane
   useEffect(() => {
     if ((s.mailSeq || 0) > (s.mailRead || 0)) gm.setState({ mailRead: s.mailSeq || 0 });
   }, [s.mailSeq]);
@@ -339,6 +340,179 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   const lk = (n: ReactNode) => (typeof n === 'string' ? linkNames(n, open, { P }) : n); // any player's name in the text opens his profile
   const shown = kind === 'all' ? items : items.filter(x => x.kind === kind),
     count = (k: Kind | 'all') => (k === 'all' ? items.length : items.filter(x => x.kind === k).length);
+  const profiles = (x: Item) =>
+    (x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') &&
+    (x.pids || []).some(id => P[id] && !P[id].gone) && (
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}>
+        <span style={muted}>Profile:</span>
+        {(x.pids || [])
+          .filter(id => P[id] && !P[id].gone)
+          .map(id => (
+            <Link pid={id} key={id} onClick={() => open(id)}>
+              {P[id].name}
+            </Link>
+          ))}
+      </div>
+    );
+  const actionRow = (x: Item, size = '12px') =>
+    !!x.actions?.length && (
+      <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+        {x.actions.map(a => (
+          <button
+            key={a.label}
+            className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ fontSize: size, padding: '3px 10px' }}
+            onClick={a.go}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+    );
+  if (vm.dense) {
+    // Hadrian's Lover (Settings → Screen design): one line per message on the left, the open one in full on the right.
+    const list = shown.slice(0, 300),
+      cur = list.find(x => x.key === sel) || list[0],
+      at = cur ? list.indexOf(cur) : -1,
+      fresh = items.filter(x => x.isNew).length,
+      yr = (String(gm.fmtS(s.day)).match(/\d{4}/) || [''])[0],
+      shortDate = (d: string) => d.replace(/,? (\d{4})$/, (_m, y) => (y === yr ? '' : ' ’' + y.slice(2)));
+    return (
+      <>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10, fontSize: '13px' }}>
+          <span style={muted}>
+            {fresh ? <b style={{ color: 'var(--accent-ink)' }}>{fresh} new</b> : 'Nothing new'} · {items.length} in all
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {KINDS.filter(([k]) => k === 'all' || k === kind || count(k) > 0).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => {
+                setKind(k);
+                setSel(null);
+              }}
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                padding: '3px 10px',
+                borderRadius: 999,
+                border: '1px solid ' + (kind === k ? 'var(--color-accent)' : 'var(--color-divider)'),
+                background: kind === k ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined,
+                color: kind === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+                fontWeight: kind === k ? 600 : 400,
+              }}
+            >
+              {label} <span style={{ opacity: 0.65, marginLeft: 3 }}>{count(k)}</span>
+            </button>
+          ))}
+        </div>
+        {!!s.offerMsg && <p style={{ color: 'var(--gm-bad)', margin: '0 0 10px' }}>{s.offerMsg}</p>}
+        {!shown.length ? (
+          <p style={{ ...muted, fontStyle: 'italic' }}>Nothing here yet.</p>
+        ) : (
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div
+              style={{
+                flex: '1 1 440px',
+                minWidth: 0,
+                border: '1px solid var(--color-divider)',
+                borderRadius: 'var(--radius-md)',
+                maxHeight: '72vh',
+                overflowY: 'auto',
+              }}
+            >
+              {list.map((x, i) => {
+                const on = x === cur;
+                return (
+                  <div
+                    key={x.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSel(x.key)}
+                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSel(x.key))}
+                    style={{
+                      boxSizing: 'border-box',
+                      width: '100%',
+                      cursor: 'pointer',
+                      display: 'grid',
+                      gridTemplateColumns: '8px 64px 92px minmax(0,1fr) auto',
+                      gap: 8,
+                      alignItems: 'center',
+                      padding: '6px 10px',
+                      fontSize: '13px',
+                      borderTop: i ? '1px solid var(--color-divider)' : undefined,
+                      background: on
+                        ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)'
+                        : i % 2
+                          ? 'color-mix(in srgb, var(--color-text) 3%, transparent)'
+                          : undefined,
+                      boxShadow: on ? 'inset 3px 0 0 var(--color-accent)' : undefined,
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: x.isNew ? 'var(--color-accent)' : 'transparent' }} />
+                    <span style={{ ...muted, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden' }} title={x.date}>
+                      {shortDate(x.date)}
+                    </span>
+                    <span style={{ ...muted, fontSize: '11.5px', whiteSpace: 'nowrap' }}>{TAG[x.kind]}</span>
+                    <span
+                      style={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        fontWeight: x.isNew ? 600 : 400,
+                      }}
+                    >
+                      {x.title}
+                    </span>
+                    <span style={{ fontSize: '11.5px', fontWeight: 600, color: x.status?.[1], whiteSpace: 'nowrap' }}>
+                      {x.status?.[0] || ''}
+                    </span>
+                  </div>
+                );
+              })}
+              {shown.length > 300 && (
+                <div style={{ ...muted, fontSize: '12px', padding: '6px 10px' }}>Showing the newest 300 of {shown.length}.</div>
+              )}
+            </div>
+            {cur && (
+              <div className="card" style={{ flex: '1 1 380px', minWidth: 0, padding: '14px 16px', gap: 6, position: 'sticky', top: 12 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', fontSize: '11.5px', ...muted }}>
+                  <span style={{ letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{TAG[cur.kind]}</span>
+                  <span>{cur.date}</span>
+                  {cur.isNew && <b style={{ color: 'var(--accent-ink)' }}>New</b>}
+                  {cur.status && <b style={{ marginLeft: 'auto', color: cur.status[1] }}>{cur.status[0]}</b>}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: '15px' }}>{lk(cur.title)}</div>
+                {cur.lines.length > 0 && (
+                  <div style={{ fontSize: '13px', lineHeight: 1.5 }}>
+                    {cur.lines.map((l, i) => (
+                      <div key={i}>{lk(l)}</div>
+                    ))}
+                  </div>
+                )}
+                {profiles(cur)}
+                {actionRow(cur, '12.5px')}
+                {at < list.length - 1 && (
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => setSel(list[at + 1].key)}
+                    style={{ alignSelf: 'flex-end', fontSize: '12.5px', marginTop: 6 }}
+                  >
+                    Next message →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        <p style={{ ...muted, fontSize: '12px', marginTop: 12 }}>
+          Every pop-up lands here (the last 250). Add players to a shortlist (on their profile) to follow their moves here.
+        </p>
+      </>
+    );
+  }
   return (
     <>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -376,33 +550,8 @@ export function MailboxScreen({ vm }: { vm: VM }) {
                 ))}
               </div>
             )}
-            {(x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') &&
-              (x.pids || []).some(id => P[id] && !P[id].gone) && (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '12px' }}>
-                  <span style={muted}>Profile:</span>
-                  {(x.pids || [])
-                    .filter(id => P[id] && !P[id].gone)
-                    .map(id => (
-                      <Link pid={id} key={id} onClick={() => open(id)}>
-                        {P[id].name}
-                      </Link>
-                    ))}
-                </div>
-              )}
-            {!!x.actions?.length && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                {x.actions.map(a => (
-                  <button
-                    key={a.label}
-                    className={a.primary ? 'btn btn-primary' : 'btn btn-secondary'}
-                    style={{ fontSize: '12px', padding: '3px 10px' }}
-                    onClick={a.go}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {profiles(x)}
+            {actionRow(x)}
           </div>
         ))}
       </div>

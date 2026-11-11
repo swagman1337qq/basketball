@@ -333,6 +333,7 @@ export function NumInput({
   suffix,
   title,
   stepper,
+  compact,
 }: {
   value: number;
   min?: number;
@@ -344,6 +345,7 @@ export function NumInput({
   suffix?: ReactNode;
   title?: string;
   stepper?: boolean;
+  compact?: boolean; // shorter box for dense tables (Hadrian's Lover roster)
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const dec = String(step).includes('.') ? String(step).split('.')[1].length : 0;
@@ -370,7 +372,7 @@ export function NumInput({
           disabled={disabled || value <= (min ?? -Infinity)}
           onClick={() => onValue(norm(value - step))}
           aria-label="Decrease"
-          style={stepBtn}
+          style={compact ? { ...stepBtn, minWidth: 20, minHeight: 22, padding: '0 3px', fontSize: '14px' } : stepBtn}
         >
           −
         </button>
@@ -404,10 +406,10 @@ export function NumInput({
         }}
         style={{
           width,
-          minHeight: stepper ? '32px' : '30px',
-          padding: '4px 8px',
+          minHeight: compact ? '24px' : stepper ? '32px' : '30px',
+          padding: compact ? '1px 6px' : '4px 8px',
           textAlign: stepper ? 'center' : 'right',
-          fontSize: stepper ? '15px' : undefined,
+          fontSize: compact ? '13px' : stepper ? '15px' : undefined,
           fontVariantNumeric: 'tabular-nums',
         }}
       />
@@ -418,7 +420,7 @@ export function NumInput({
           disabled={disabled || value >= (max ?? Infinity)}
           onClick={() => onValue(norm(value + step))}
           aria-label="Increase"
-          style={stepBtn}
+          style={compact ? { ...stepBtn, minWidth: 20, minHeight: 22, padding: '0 3px', fontSize: '14px' } : stepBtn}
         >
           +
         </button>
