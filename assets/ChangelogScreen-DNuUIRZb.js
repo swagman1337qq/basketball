@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DwXvj8Ok.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-KGCY_FnH.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -15,6 +15,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **A wider draft board with prospect cards.** Click a prospect's row to open his scouting report and college or club stats directly underneath it; the up-arrow closes the card, and his name opens his full profile. Traditional stats and every advanced-stat group stay, with arrows to cycle through them. Draft order folds away to give the board more room, and highlights follow your team's colors.
 - **A compact trade board.** Both rosters sit side by side, with each team's incoming players and picks above it. Player rows show contract years, current-season PER, overall and potential. Click anywhere on a player row to toggle its checkmark; click his name to open his profile. The salary-cap bar follows your selections. Team colors highlight the deal, and the trade buttons sit together below it.
 - **A denser look for the Dashboard, Roster and Mailbox ("Hadrian’s Lover").** More on one screen with fewer explanations. Dashboard: one summary strip with your next game and the play buttons, what's new in your Mailbox, your rotation with this season's numbers, recent results, team leaders and your conference. Roster: the team summary, injury rules and lineup buttons sit in one box; rows are shorter, rating changes sit next to the overall, and each row has a **Trade** button and a **⋯** menu (Cut, contract changes). Mailbox: a list of messages on the left, the one you pick in full on the right. Want the old look back? **Settings → Screen design → Classic.**
+
+### Fixed
+- **The Roster's ⋯ menu on the last row was cut off.** It now floats above the page and opens upward when there's no room below.
 
 ## 2026-11-10
 
