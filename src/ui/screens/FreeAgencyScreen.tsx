@@ -827,18 +827,6 @@ function FaDense(props: any) {
     ],
     ['Two-way', tw + ' of ' + TWO_WAY_MAX, ''],
   ];
-  // Role here: where his overall would rank among your standard contracts
-  const mine: number[] = stdIds(gm, s.rosters[s.me] || [])
-    .map((id: number) => P[id].ovr)
-    .sort((a: number, b: number) => b - a);
-  const roleOf = (p: any) => {
-    const n = mine.filter(o => o > p.ovr).length,
-      r = n < 5 ? 'Starter' : n < 9 ? 'Rotation' : 'Depth';
-    return [
-      r !== 'Starter' && p.age <= 22 && p.pot - p.ovr >= 8 ? 'Prospect' : r,
-      'He’d be your ' + vm.ctx.ord(n + 1) + ' best player by overall (' + mine.length + ' standard contracts now)',
-    ];
-  };
   const star = (id: number) =>
     gm.setState((st: any) => {
       const ls = st.lists || [];
@@ -1077,8 +1065,17 @@ function FaDense(props: any) {
       {sf.active && !more && sf.bar}
       {sc.bar(true)}
       {sc.Menu()}
-      <div data-tour="fa-table" style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', fontVariantNumeric: 'tabular-nums' }}>
+      <div
+        data-tour="fa-table"
+        style={{
+          width: 'fit-content',
+          maxWidth: '100%',
+          border: '1px solid var(--color-divider)',
+          borderRadius: 'var(--radius-md)',
+          overflowX: 'auto',
+        }}
+      >
+        <table style={{ borderCollapse: 'collapse', fontSize: '13px', fontVariantNumeric: 'tabular-nums' }}>
           <thead>
             <tr style={{ fontSize: '11.5px' }}>
               {sc.head()}
@@ -1089,10 +1086,8 @@ function FaDense(props: any) {
               {th('ovr', 'Ovr')}
               {th('pot', 'Pot')}
               {th('last', 'Last', true)}
-              {th('ask', 'Asks you')}
+              {th('ask', 'Asking for')}
               {th('mood', 'Interest', true)}
-              {th(null, 'Role here', true)}
-              {th(null, 'How you’d pay', true)}
               <th />
             </tr>
           </thead>
@@ -1101,9 +1096,7 @@ function FaDense(props: any) {
               const pp = P[p.id],
                 on = listed.has(p.id),
                 pick = advPick.get(p.id),
-                [role, roleWhy] = roleOf(p),
-                [iw, ic] = INTEREST[pp.mood] || INTEREST.Open,
-                dim = p.cant ? 'var(--color-neutral-600)' : undefined;
+                [iw, ic] = INTEREST[pp.mood] || INTEREST.Open;
               return (
                 <tr
                   key={p.id}
@@ -1191,21 +1184,27 @@ function FaDense(props: any) {
                       )}
                     </span>
                   </td>
-                  <td style={{ ...tl, color: dim }}>{p.pos}</td>
-                  <td style={{ ...td, color: dim }}>{p.age}</td>
+                  <td style={tl}>{p.pos}</td>
+                  <td style={td}>{p.age}</td>
                   <td style={{ ...td, fontWeight: 700, color: p.tone }}>{p.ovr}</td>
                   <td style={{ ...td, color: p.ptone }}>{p.pot}</td>
-                  <td title={p.lastTitle} style={{ ...tl, color: dim }}>
+                  <td title={p.lastTitle} style={tl}>
                     {p.lastAbbr ? (
-                      <button className="hv6" onClick={p.lastOpen} style={{ all: 'unset', cursor: 'pointer' }}>
+                      <button
+                        className="hv6"
+                        onClick={p.lastOpen}
+                        style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}
+                      >
+                        {p.lastLogo}
                         {p.lastAbbr}
+                        {p.lastD && <span style={{ fontSize: '10.5px' }}>(drafted)</span>}
                       </button>
                     ) : (
                       <span style={{ color: 'var(--color-neutral-600)' }}>—</span>
                     )}
                   </td>
-                  <td style={{ ...td, color: dim }} title={'Through ' + pp.exp}>
-                    {fmtM(p.ask)} <span style={{ ...muted, fontSize: '11.5px' }}>· {pp.exp}</span>
+                  <td style={td} title={'A year, through ' + pp.exp + (pp.rfa ? ' · restricted free agent' : '')}>
+                    {fmtM(p.ask)} <span style={{ fontSize: '11.5px' }}>· {pp.exp}</span>
                   </td>
                   <td style={tl} title={pp.mood + ' about your team · wants ' + String(p.mot).toLowerCase()}>
                     <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
@@ -1226,15 +1225,12 @@ function FaDense(props: any) {
                       <span style={{ fontSize: '12px', color: ic }}>{pp.mood}</span>
                     </span>
                   </td>
-                  <td style={{ ...tl, color: dim }} title={roleWhy}>
-                    {role}
-                  </td>
-                  <td style={{ ...tl, fontSize: '12px', color: dim, whiteSpace: 'normal', minWidth: 120, maxWidth: 230 }}>{p.how}</td>
-                  <td style={{ ...td, padding: '3px 7px' }}>
+                  <td style={{ ...td, padding: '3px 7px' }} title={p.how}>
                     <button
                       className="btn btn-primary"
                       onClick={p.sign}
                       disabled={p.cant}
+                      title={p.how}
                       style={{ fontSize: '12px', padding: '2px 12px' }}
                     >
                       Sign
@@ -1248,8 +1244,9 @@ function FaDense(props: any) {
       </div>
       {pg.pager}
       <p style={{ margin: '8px 0 0', ...muted, fontSize: '11.5px' }}>
-        Badges: hover the chips for names. Interest is his mood about your team (hover for what he wants). Role here: where his overall
-        would rank on your roster. ★ puts him on a shortlist. {vm.faNote}
+        Badges: hover the chips for names. Interest is his mood about your team (hover for what he wants). Asking for: the yearly salary he
+        wants from you and the year it runs through. Hover Sign to see how you'd pay him (or why you can't). ★ puts him on a shortlist.{' '}
+        {vm.faNote}
       </p>
     </>
   );
