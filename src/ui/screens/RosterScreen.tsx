@@ -65,7 +65,21 @@ export function RosterScreen({ vm }: { vm: VM }) {
     dense = !!vm.dense,
     td = dense ? tdD : td0,
     tdr = dense ? tdrD : tdr0;
-  const [menuFor, setMenuFor] = useState<number | null>(null); // Hadrian's Lover: the player whose ⋯ menu is open
+  // Hadrian's Lover: the player whose ⋯ menu is open, and where (fixed to the window, so a table's scroll box can't
+  // cut it off; it opens upward when there isn't room below). Scrolling or resizing closes it.
+  const [menu, setMenu] = useState<{ id: number; right: number; top?: number; bottom?: number } | null>(null),
+    menuFor = menu?.id ?? null,
+    setMenuFor = (v: null) => setMenu(v);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menu]);
   const subAt = Math.max(
       0,
       SUBS.findIndex(x => x[0] === s.rosterSub),
@@ -628,7 +642,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
                       aria-label={'More for ' + p.name}
                       title="Change his contract"
                       style={{ fontSize: '13px', padding: '0 7px', lineHeight: 1.3 }}
-                      onClick={() => setMenuFor(menuFor === id ? null : id)}
+                      onClick={e => {
+                        if (menuFor === id) return setMenu(null);
+                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                          right = window.innerWidth - r.right,
+                          up = window.innerHeight - r.bottom < 40 + 34 * (more.length + 1);
+                        setMenu(up ? { id, right, bottom: window.innerHeight - r.top + 4 } : { id, right, top: r.bottom + 4 });
+                      }}
                     >
                       ⋯
                     </button>
@@ -639,9 +659,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
                       <div
                         className="card"
                         style={{
-                          position: 'absolute',
-                          right: 4,
-                          top: '100%',
+                          position: 'fixed',
+                          right: menu!.right,
+                          top: menu!.top,
+                          bottom: menu!.bottom,
                           zIndex: 31,
                           padding: 4,
                           gap: 0,
