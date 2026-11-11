@@ -54,7 +54,6 @@ const shortHow = (h: string) =>
     .replace(/^Signed to a two-way in/, 'Two-way')
     .replace(/^Signed to a 10-day in/, '10-day')
     .replace(/^Expansion draft,/, 'Expansion')
-    .replace(/^On the team when the league began/, 'Original')
     .replace(/extended/, 'ext')
     .replace(/^re-signed/, 'Re-signed')
     .replace(/(\d{2})(\d{2})\b/g, (m, a, b) => (a === '20' ? '’' + b : m))
@@ -512,14 +511,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
         {cur &&
           dense &&
           (h => (
-            <td style={td} title={h}>
+            <td style={td} title={h || 'On the team when the league began'}>
               <span
                 style={{ display: 'inline-block', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom' }}
               >
                 {shortHow(h)}
               </span>
             </td>
-          ))(howAcquired(gm, s, p, tid) || 'On the team when the league began')}
+          ))(howAcquired(gm, s, p, tid))}
         {cur && !dense && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && !dense && (
           <td style={tdr}>
