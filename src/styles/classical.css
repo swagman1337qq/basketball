@@ -238,6 +238,8 @@ textarea.input { min-height: 90px; resize: vertical; }
   padding: var(--space-2);
   border-bottom: 1px solid var(--color-divider);
 }
+/* Hadrian's Lover tables (Roster): headers without the wide letter spacing, so more columns fit */
+.table.dense th { letter-spacing: 0.02em; }
 .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 
 /* — dialog — */

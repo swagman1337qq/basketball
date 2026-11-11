@@ -8,7 +8,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
-import { howAcquired } from '../../engine/txlog';
+import { howAcquired, yearsWithTeam } from '../../engine/txlog';
 import { baseline, deltas, fmtChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
@@ -21,6 +21,7 @@ import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants'
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
 import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
+import { MiniBadges } from '../BadgeChip';
 import { knownBadges } from '../../engine/scoutReport';
 
 const PTI: [number, string][] = [
@@ -37,25 +38,25 @@ const perfOf = (d: number) => (d === 0 ? '' : ' (' + Math.max(80, 100 - Math.min
 const td0: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid var(--color-divider)' },
   tdr0: React.CSSProperties = { ...td0, textAlign: 'right' },
   // Hadrian's Lover (Settings → Screen design): tighter cells
-  tdD: React.CSSProperties = { padding: '3px 6px', borderBottom: '1px solid var(--color-divider)', whiteSpace: 'nowrap' },
+  tdD: React.CSSProperties = { padding: '3px 5px', borderBottom: '1px solid var(--color-divider)', whiteSpace: 'nowrap' },
   tdrD: React.CSSProperties = { ...tdD, textAlign: 'right' };
 const chip: React.CSSProperties = { fontSize: '12px', padding: '2px 9px' };
-// Hadrian's Lover: what the small grey tag after each name shows, picked with the ‹ › arrows in the Player header
-// (s.rosterSub). Add an entry here to add a choice.
-const SUBS: [string, string][] = [
-  ['badges', 'Badges'],
-  ['how', 'How he got here'],
-];
-// howAcquired's sentence, shortened for the tag ("Traded from BOS in 2026 · extended 2027" → "Trade from BOS ’26 · ext ’27")
+// Hadrian's Lover: what the small tag after each name shows, picked with the ‹ › arrows in the Player header
+// (s.rosterSub; the arrows show once there are two or more). Add an entry here to add a choice. How he got here has
+// its own column (Acquired) since 2026-11-11.
+const SUBS: [string, string][] = [['badges', 'Badges']];
+// howAcquired's sentence, shortened for the Acquired column ("Traded from BOS in 2026 · extended 2027" → "Trade from BOS ’26 · ext ’27")
 const shortHow = (h: string) =>
   h
     .replace(/#(\d+) pick in (\d{4})/, '#$1 pick ’$2')
-    .replace(/^Traded from (\S+) in/, 'Trade from $1')
+    .replace(/^Traded from (\S+) in/, 'Trade $1')
     .replace(/^Signed as a free agent in/, 'FA')
     .replace(/^Signed to a two-way in/, 'Two-way')
     .replace(/^Signed to a 10-day in/, '10-day')
     .replace(/^Expansion draft,/, 'Expansion')
+    .replace(/^On the team when the league began/, 'Original')
     .replace(/extended/, 'ext')
+    .replace(/^re-signed/, 'Re-signed')
     .replace(/(\d{2})(\d{2})\b/g, (m, a, b) => (a === '20' ? '’' + b : m))
     .replace(/’’/g, '’');
 
@@ -301,7 +302,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           style={{ ...td, padding: 0, width: 6, background: block, opacity: p.inj && !p.inj.dtd ? 0.4 : 1 }}
           title={start ? 'Starter' : p.ctype === 'twoWay' ? 'Two-way' : 'Bench'}
         />
-        {mine && (
+        {mine && !dense && (
           <td style={{ ...td, whiteSpace: 'nowrap', padding: '2px 3px' }} onClick={e => e.stopPropagation()}>
             <span style={{ cursor: 'grab', color: 'var(--color-neutral-500)', padding: '0 3px' }}>⋮⋮</span>
             <button
@@ -334,46 +335,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
               style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
             />
             <span
-              title={
-                p.name +
-                (p.native ? ' (' + p.native + ')' : '') +
-                (dense && cur ? (h => (h ? ' · ' + h : ''))(howAcquired(gm, s, p, tid)) : '')
-              }
+              title={p.name + (p.native ? ' (' + p.native + ')' : '')}
               style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}
             >
               {p.name}
             </span>
-            {dense &&
-              sub === 'badges' &&
-              (bs =>
-                bs.length > 0 && (
-                  <span
-                    title={bs.map(b => b.tierName + ' ' + b.name + ': ' + b.desc).join('\n')}
-                    style={{ fontSize: '10.5px', color: 'var(--color-neutral-600)', whiteSpace: 'nowrap' }}
-                  >
-                    {bs[0].name}
-                    {bs.length > 1 ? ' +' + (bs.length - 1) : ''}
-                  </span>
-                ))(knownBadges(gm, s, p).list)}
-            {dense &&
-              sub === 'how' &&
-              cur &&
-              (h =>
-                h && (
-                  <span
-                    title={h}
-                    style={{
-                      fontSize: '10.5px',
-                      color: 'var(--color-neutral-600)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '20ch',
-                    }}
-                  >
-                    {shortHow(h)}
-                  </span>
-                ))(howAcquired(gm, s, p, tid) || 'Original roster')}
+            {dense && sub === 'badges' && <MiniBadges list={knownBadges(gm, s, p).list} max={2} />}
             {!dense && p.native && p.name.length + p.native.length <= 34 && (
               <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>
             )}
@@ -456,8 +423,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 ) : null;
               })()}
             {cur && p.inj && dense && (
-              <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }} title={p.inj.name + ' · ' + gm.injText(p, true)}>
-                {p.inj.dtd ? 'Day-to-day' : 'Out ' + gm.injText(p, true)}
+              <span
+                style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--gm-bad)' }}
+                title={(p.inj.dtd ? 'Day-to-day: ' : 'Out: ') + p.inj.name + ' · ' + gm.injText(p, true)}
+              >
+                {p.inj.dtd ? 'DTD' : 'Out ' + gm.injText(p, true)}
               </span>
             )}
             {cur && p.inj && !dense && (
@@ -534,6 +504,22 @@ export function RosterScreen({ vm }: { vm: VM }) {
             <ExpYear y={p.exp} cur={gm.Y} />
           </td>
         )}
+        {cur && dense && (
+          <td style={tdr} title="Years with the team, this season included">
+            {yearsWithTeam(gm, p, tid)}
+          </td>
+        )}
+        {cur &&
+          dense &&
+          (h => (
+            <td style={td} title={h}>
+              <span
+                style={{ display: 'inline-block', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom' }}
+              >
+                {shortHow(h)}
+              </span>
+            </td>
+          ))(howAcquired(gm, s, p, tid) || 'On the team when the league began')}
         {cur && !dense && <td style={tdr}>{fmtMoney(p.amt)}</td>}
         {cur && !dense && (
           <td style={tdr}>
@@ -585,7 +571,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   style={{
                     fontSize: dense ? '11px' : '11.5px',
                     padding: dense ? '1px 0' : '2px 0',
-                    width: dense ? 40 : 62,
+                    width: dense ? 34 : 62,
                     marginLeft: dense ? 4 : 6,
                     verticalAlign: 'middle',
                   }}
@@ -615,7 +601,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
                   <button
                     className="btn btn-secondary"
-                    style={{ fontSize: '11.5px', padding: '1px 8px' }}
+                    style={{ fontSize: '11.5px', padding: '1px 7px' }}
                     title={own ? 'Build a trade that sends him away' : 'Build a trade for him'}
                     onClick={() =>
                       gm.setState(
@@ -629,9 +615,19 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   </button>
                   {own && mine && (
                     <button
+                      className="btn btn-ghost hv4"
+                      title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm"
+                      style={{ fontSize: '11.5px', padding: '1px 6px', color: 'var(--gm-bad)' }}
+                      onClick={() => gm.setState({ dialog: { type: 'release', pid: id } })}
+                    >
+                      Cut
+                    </button>
+                  )}
+                  {own && mine && more.length > 0 && (
+                    <button
                       className="btn btn-ghost"
                       aria-label={'More for ' + p.name}
-                      title="Cut him or change his contract"
+                      title="Change his contract"
                       style={{ fontSize: '13px', padding: '0 7px', lineHeight: 1.3 }}
                       onClick={() => setMenuFor(menuFor === id ? null : id)}
                     >
@@ -669,23 +665,6 @@ export function RosterScreen({ vm }: { vm: VM }) {
                             {o.label}
                           </button>
                         ))}
-                        <button
-                          className="btn btn-ghost"
-                          title="Waive, stretch or buy out, with the dead money shown before you confirm"
-                          style={{
-                            justifyContent: 'flex-start',
-                            fontSize: '12.5px',
-                            padding: '4px 8px',
-                            width: '100%',
-                            color: 'var(--gm-bad)',
-                          }}
-                          onClick={() => {
-                            setMenuFor(null);
-                            gm.setState({ dialog: { type: 'release', pid: id } });
-                          }}
-                        >
-                          Cut him…
-                        </button>
                       </div>
                     </>
                   )}
@@ -739,11 +718,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
     <thead>
       <tr>
         <th style={{ width: 6, padding: 0 }} />
-        {mine && <th />}
+        {mine && !dense && <th />}
         <th style={{ ...tdr, fontWeight: 600 }}>#</th>
         <th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>
           Player
-          {dense && (
+          {dense && SUBS.length > 1 && (
             <span
               style={{
                 display: 'inline-flex',
@@ -782,6 +761,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <th style={tdr}>Pot</th>
         {cur && <th style={tdr}>Contract</th>}
         {cur && !dense && <th style={tdr}>Exp</th>}
+        {cur && dense && (
+          <th style={tdr} title="Years with the team, this season included">
+            YWT
+          </th>
+        )}
+        {cur && dense && <th style={{ ...td, textAlign: 'left' }}>Acquired</th>}
         {mine && (
           <th
             style={{ ...tdr, textAlign: 'center' }}
@@ -1529,7 +1514,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>
             {mine && dense
-              ? 'Drag a row to change the rotation · green: starters · Min tgt greyed: the coach’s call (Set to choose them yourself) · targets add up to ' +
+              ? 'Drag a row up or down to change the rotation · green: starters · Min tgt greyed: the coach’s call (Set to choose them yourself) · targets add up to ' +
                 Math.round(ids.reduce((a: number, id: number) => a + (P[id].inj && !P[id].inj.dtd ? 0 : rotOf(id)), 0)) +
                 ' of 240 · Ovr change since ' +
                 ((ids.length && baseline(gm, P[ids[0]])?.label) || 'the season began')
@@ -1547,7 +1532,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+            <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
               {Head()}
               <tbody>
                 {shown(mainIds).map((id, i) => (
@@ -1568,7 +1553,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>
           {tw.length ? (
             <div style={{ overflowX: 'auto' }}>
-              <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+              <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
                 {Head()}
                 <tbody>{shown(tw).map((id, i) => vis(id) && Row({ id, i, list: tw }))}</tbody>
               </table>
@@ -1587,7 +1572,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 </span>
               </div>
               <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ fontSize: '13px', minWidth: 900 }}>
+                <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
                   {Head()}
                   <tbody>{shown(ex10).map((id, i) => vis(id) && Row({ id, i, list: ex10 }))}</tbody>
                 </table>

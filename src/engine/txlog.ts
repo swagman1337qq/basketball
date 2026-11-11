@@ -81,13 +81,9 @@ export const pickTrades = (g: Game, assetId: string) => tradesOf(g).filter(t => 
 // "Signed as a free agent in 2027", "Traded from NSH in 2028", plus a later extension or
 // re-signing ("extended 2028"). Players already on the roster when the league began get nothing
 // (unless they've since re-signed or extended).
-export function howAcquired(g: Game, s: any, p: any, tid: number): string {
-  const tx: Tx[] = p.tx || [],
-    T = s.teams,
-    yr = (e: Tx) => {
-      const m = String(e.date || '').match(/(\d{4})$/);
-      return m ? m[1] : String(e.season);
-    };
+// The move that brought him to `tid` this time (his latest draft, trade, expansion pick or signing there), -1 if none
+// (he was on the team when the league began).
+function arrivalIdx(tx: Tx[], tid: number) {
   let arrive = -1;
   tx.forEach((e, i) => {
     if (
@@ -98,6 +94,33 @@ export function howAcquired(g: Game, s: any, p: any, tid: number): string {
     )
       arrive = i;
   });
+  return arrive;
+}
+// YWT, years with the team: seasons since he arrived, this one included (at least 1). A move from June on counts
+// toward the next season (the draft, free agency, summer trades); a team he's been on since the league began
+// counts from its first season.
+export function yearsWithTeam(g: Game, p: any, tid: number): number {
+  const tx: Tx[] = p.tx || [],
+    i = arrivalIdx(tx, tid);
+  let first = g.db.firstSeason ?? 2027;
+  if (i >= 0) {
+    const e = tx[i],
+      m = String(e.date || '').match(/^([A-Za-z]{3})\w*\.? .*?(\d{4})$/);
+    if (m) {
+      const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(m[1]);
+      first = +m[2] + (mo >= 5 ? 1 : 0);
+    } else first = (e.season ?? first) + (e.k === 'draft' ? 1 : 0);
+  }
+  return Math.max(1, g.Y - first + 1);
+}
+export function howAcquired(g: Game, s: any, p: any, tid: number): string {
+  const tx: Tx[] = p.tx || [],
+    T = s.teams,
+    yr = (e: Tx) => {
+      const m = String(e.date || '').match(/(\d{4})$/);
+      return m ? m[1] : String(e.season);
+    };
+  const arrive = arrivalIdx(tx, tid);
   let head = '';
   if (arrive >= 0) {
     const e = tx[arrive];
