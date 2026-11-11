@@ -1,11 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DFvXOui0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Dar0HhnO.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-11
 
 ### Added
-- **A denser Free agency screen (Hadrian’s Lover).** The money you can sign with (cap room, mid-level, bi-annual, Bird rights, payroll, roster spots) sits in one strip; the latest signings fit on a few lines; filters fit on one line, with the rest under **More filters**. The table shows badges as small three-letter chips in their tier color (hover for the names), how interested each player is in your team as a bar, his ask and end year together, and how you'd pay. Two new columns: **Role here** (where he'd rank on your roster: starter, rotation, depth or prospect) and a **★** that puts him on your shortlist, with a **★ Targets** filter to see only them. Settings → Screen design → Classic brings back the old screen.
+- **A denser Free agency screen (Hadrian’s Lover).** The money you can sign with (cap room, mid-level, bi-annual, Bird rights, payroll, roster spots) sits in one strip; the latest signings fit on a few lines; filters fit on one line, with the rest under **More filters**. The table shows badges as small three-letter chips in their tier color (hover for the names), his last team with its logo, what he's **asking for** (a year, and the year it runs through), and how interested he is in your team as a bar; hover **Sign** to see how you'd pay him. A **★** puts a player on your shortlist, and **★ Targets** shows only them. Settings → Screen design → Classic brings back the old screen.
 - **Choose the tag after each name on the Roster.** The ‹ › arrows next to "Player" switch the small grey tag between his best badge (hover for all of them) and how he got to the team (a draft pick, a trade, a signing, and any extension since).
 
 ### Changed
