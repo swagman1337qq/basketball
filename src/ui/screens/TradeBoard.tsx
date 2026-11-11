@@ -230,6 +230,61 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
       outgoingSalary: vm.tr.in,
     },
   ];
+  const review = (
+    <div className="trade-board-review">
+      <div className="trade-board-actions">
+        <button className="btn btn-primary" type="button" onClick={vm.propose} disabled={vm.tr.cantPropose}>
+          Propose trade
+        </button>
+        <button className="btn btn-secondary" type="button" onClick={vm.balance} disabled={vm.tr.cantBalance}>
+          What would it take?
+        </button>
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={vm.shopOffers}
+          disabled={!vm.canShop}
+          title="Shop your selected players and picks around the league"
+        >
+          Shop around league
+        </button>
+        <button className="btn btn-secondary" type="button" onClick={vm.askOffers} disabled={!vm.canAsk}>
+          Ask what they want
+        </button>
+        <button className="btn btn-ghost" type="button" onClick={vm.tr.askAdvice} disabled={vm.tr.cantBalance}>
+          {s.tAdvice ? 'Hide advice' : 'Ask for advice'}
+        </button>
+        <button className="btn btn-ghost" type="button" onClick={vm.clearTrade}>
+          Clear
+        </button>
+        {!!vm.tr.god && (
+          <button className="btn btn-secondary" type="button" onClick={vm.forceAccept} disabled={vm.tr.cantForce} style={godBtn}>
+            ⚡ Force accept
+          </button>
+        )}
+      </div>
+      <div className="trade-board-checks">
+        <span style={{ color: vm.tr.salColor }}>
+          <strong>League office</strong> · {vm.tr.sal}
+        </span>
+        <span style={{ color: vm.tr.rosColor }}>{vm.tr.ros}</span>
+      </div>
+      <div className="trade-board-direction">
+        <strong>{vm.tr.stratName}</strong>
+        <span>{vm.tr.verdict}</span>
+        <details>
+          <summary>Team priorities</summary>
+          <p>{vm.tr.stratDesc}</p>
+        </details>
+      </div>
+      {advice}
+      {vm.tr.hasMsg && (
+        <div role="status" className="trade-board-message">
+          {vm.tr.msg}
+        </div>
+      )}
+    </div>
+  );
   return (
     <section className="trade-board" aria-label="Trade builder">
       <CapBar gm={gm} s={s} tid={s.me} delta={vm.tr.delta} />
@@ -282,6 +337,13 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
                 <strong>{side.incomingSalary}</strong>
               </div>
             </section>
+          </section>
+        ))}
+      </div>
+      {review}
+      <div className="trade-board-columns trade-board-lists">
+        {sides.map(side => (
+          <section className="trade-board-column" key={side.key} aria-label={side.title + ' roster and picks'}>
             <section className="trade-board-roster">
               <div className="trade-board-section-title">
                 <strong>{side.title} roster</strong>
@@ -307,64 +369,14 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
                 Sending {side.sort.rows.filter(p => p.mark).length} {side.sort.rows.filter(p => p.mark).length === 1 ? 'player' : 'players'}{' '}
                 · {side.outgoingSalary}
               </span>
-              {side.key === 'mine' ? (
-                <button className="btn btn-secondary" type="button" onClick={vm.shopOffers} disabled={!vm.canShop}>
-                  Ask for offers
+              {side.key === 'theirs' && (
+                <button className="btn btn-ghost" type="button" onClick={vm.viewTradeTeam}>
+                  View roster
                 </button>
-              ) : (
-                <div className="trade-board-side-actions">
-                  <button className="btn btn-ghost" type="button" onClick={vm.viewTradeTeam}>
-                    View roster
-                  </button>
-                  <button className="btn btn-secondary" type="button" onClick={vm.askOffers} disabled={!vm.canAsk}>
-                    Ask what they want
-                  </button>
-                </div>
               )}
             </footer>
           </section>
         ))}
-      </div>
-      <div className="trade-board-review">
-        <div className="trade-board-checks">
-          <span style={{ color: vm.tr.salColor }}>
-            <strong>League office</strong> · {vm.tr.sal}
-          </span>
-          <span style={{ color: vm.tr.rosColor }}>{vm.tr.ros}</span>
-        </div>
-        <div className="trade-board-direction">
-          <strong>{vm.tr.stratName}</strong>
-          <span>{vm.tr.verdict}</span>
-          <details>
-            <summary>Team priorities</summary>
-            <p>{vm.tr.stratDesc}</p>
-          </details>
-        </div>
-        {advice}
-        <div className="trade-board-actions">
-          <button className="btn btn-primary" type="button" onClick={vm.propose} disabled={vm.tr.cantPropose}>
-            Propose trade
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={vm.balance} disabled={vm.tr.cantBalance}>
-            What would it take?
-          </button>
-          <button className="btn btn-ghost" type="button" onClick={vm.tr.askAdvice} disabled={vm.tr.cantBalance}>
-            {s.tAdvice ? 'Hide advice' : 'Ask for advice'}
-          </button>
-          <button className="btn btn-ghost" type="button" onClick={vm.clearTrade}>
-            Clear
-          </button>
-          {!!vm.tr.god && (
-            <button className="btn btn-secondary" type="button" onClick={vm.forceAccept} disabled={vm.tr.cantForce} style={godBtn}>
-              ⚡ Force accept
-            </button>
-          )}
-        </div>
-        {vm.tr.hasMsg && (
-          <div role="status" className="trade-board-message">
-            {vm.tr.msg}
-          </div>
-        )}
       </div>
     </section>
   );

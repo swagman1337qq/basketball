@@ -1,0 +1,368 @@
+.draft-board {
+  min-width: 0;
+}
+.draft-board .draft-toolbar,
+.draft-board .draft-view-controls,
+.draft-board .draft-clock-actions,
+.draft-board .draft-card-actions,
+.draft-board .draft-card-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.draft-board .draft-toolbar {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.draft-board .draft-toolbar h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.draft-board .draft-view-controls {
+  margin: 12px 0 10px;
+}
+.draft-board .draft-view-controls > button {
+  font-size: 12.5px;
+}
+.draft-board .draft-clock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 11px 13px;
+  margin-bottom: 10px;
+  background: var(--color-neutral-100);
+  border-left: 3px solid var(--color-text);
+}
+.draft-board .draft-clock.draft-clock-mine {
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+.draft-board .draft-clock strong {
+  display: block;
+  font-size: 18px;
+  font-family: var(--font-heading);
+}
+.draft-board .draft-muted {
+  color: var(--color-neutral-700);
+}
+.draft-board .draft-clock p {
+  margin: 3px 0 0;
+  font-size: 12px;
+}
+.draft-board .draft-sim {
+  position: relative;
+}
+.draft-board .draft-sim > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.draft-board .draft-sim > summary::-webkit-details-marker {
+  display: none;
+}
+.draft-board .draft-sim-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 3;
+  width: 195px;
+  padding: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 4px;
+}
+.draft-board .draft-order {
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.draft-board .draft-order > summary {
+  cursor: pointer;
+  padding: 5px 0;
+  color: var(--color-neutral-700);
+}
+.draft-board .draft-order-scroll {
+  max-height: 420px;
+  overflow: auto;
+  margin-top: 8px;
+}
+.draft-board .draft-order-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.draft-board .draft-order-table th,
+.draft-board .draft-order-table td {
+  border-bottom: 1px solid var(--color-divider);
+  padding: 6px 8px;
+  text-align: left;
+}
+.draft-board .draft-order-table th {
+  color: var(--color-neutral-700);
+  font-weight: 400;
+}
+.draft-board .draft-order-table [data-on-clock='true'] {
+  background: var(--color-accent-100);
+}
+.draft-board .draft-order-team {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.draft-board .draft-order .btn {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+.draft-board .draft-your-pick {
+  color: var(--color-accent-700);
+}
+.draft-board .draft-advice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.draft-board .draft-advice > div {
+  padding: 12px;
+  background: var(--color-neutral-100);
+}
+.draft-board .draft-advice p {
+  margin: 6px 0;
+}
+.draft-board .draft-filters {
+  margin: 6px 0 10px;
+}
+.draft-board .draft-extra-sort {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+}
+.draft-board .draft-extra-sort select {
+  width: auto;
+  min-width: 115px;
+  font-size: 12px;
+}
+.draft-board .draft-stat-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.draft-board .draft-stat-group > span {
+  display: grid;
+  text-align: center;
+  min-width: 165px;
+}
+.draft-board .draft-stat-group small {
+  color: var(--color-neutral-700);
+  font-size: 11px;
+}
+.draft-board .draft-stat-group > button {
+  min-width: 30px;
+  padding: 2px 8px;
+  font-size: 20px;
+}
+.draft-board .draft-table-wrap {
+  overflow-x: auto;
+}
+.draft-board .draft-table {
+  width: 100%;
+  font-size: 12.5px;
+}
+.draft-board .draft-table th,
+.draft-board .draft-table td {
+  padding: 8px 6px;
+}
+.draft-board .draft-table th {
+  white-space: nowrap;
+}
+.draft-board .draft-table th button {
+  all: unset;
+  cursor: pointer;
+}
+.draft-board .draft-table th button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.draft-board .draft-table .draft-name-cell {
+  text-align: left;
+  min-width: 165px;
+}
+.draft-board .draft-table .draft-name-cell button {
+  font-size: 13px;
+  font-weight: 600;
+}
+.draft-board .draft-table .draft-player-meta {
+  font-size: 11.5px;
+  color: var(--color-neutral-700);
+  margin-top: 3px;
+}
+.draft-board .draft-table .draft-player-row {
+  cursor: pointer;
+}
+.draft-board .draft-table .draft-player-row:nth-of-type(even) {
+  background: var(--color-neutral-100);
+}
+.draft-board .draft-table .draft-player-row.draft-previewed {
+  background: var(--color-accent-100);
+  box-shadow: inset 2px 0 var(--color-accent);
+}
+.draft-board .draft-table .draft-player-row:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
+}
+.draft-board .draft-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.draft-board .draft-table .draft-card-row > td {
+  padding: 0;
+  background: var(--color-neutral-100);
+  text-align: left;
+}
+.draft-board .draft-prospect-card {
+  position: relative;
+  padding: 18px;
+}
+.draft-board .draft-card-collapse {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 4px;
+  min-height: 28px;
+  width: 28px;
+}
+.draft-board .draft-card-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 26px;
+}
+.draft-board .draft-card-columns > div {
+  min-width: 0;
+}
+.draft-board .draft-card-player {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 10px;
+}
+.draft-board .draft-card-face {
+  width: 44px;
+  height: 56px;
+  flex: none;
+  overflow: hidden;
+}
+.draft-board .draft-card-face svg {
+  width: 100%;
+  height: 100%;
+}
+.draft-board .draft-kicker {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+.draft-board .draft-prospect-card h3 {
+  margin: 3px 0;
+  font-size: 22px;
+  font-family: var(--font-heading);
+}
+.draft-board .draft-card-ratings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  border-block: 1px solid var(--color-divider);
+  padding: 12px 0;
+  margin: 12px 0;
+}
+.draft-board .draft-card-ratings strong {
+  display: block;
+  font-size: 24px;
+}
+.draft-board .draft-card-ratings span {
+  color: var(--color-neutral-700);
+}
+.draft-board .draft-card-confidence {
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+.draft-board .draft-card-report p {
+  margin: 0 0 12px;
+}
+.draft-board .draft-card-stat-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 28px;
+  margin-bottom: 10px;
+}
+.draft-board .draft-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 12px;
+  margin-top: 14px;
+}
+.draft-board .draft-card-stats strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.draft-board .draft-card-stats span {
+  color: var(--color-neutral-700);
+  font-size: 12px;
+}
+.draft-board .draft-card-role {
+  margin-top: 16px;
+}
+.draft-board .draft-card-role p {
+  margin: 5px 0 0;
+}
+.draft-board .draft-card-actions {
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.draft-board .draft-board-note {
+  margin: 10px 0;
+  font-size: 11.5px;
+  color: var(--color-neutral-700);
+}
+.draft-board input[type='checkbox'] {
+  accent-color: var(--color-accent);
+}
+@media (max-width: 720px) {
+  .draft-board .draft-card-columns,
+  .draft-board .draft-advice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .draft-board .draft-prospect-card {
+    padding: 14px;
+  }
+  .draft-board .draft-card-player {
+    padding-right: 25px;
+  }
+  .draft-board .draft-extra-sort {
+    margin-left: 0;
+  }
+}
+@media (pointer: coarse) {
+  .draft-board .draft-card-collapse {
+    width: 44px;
+    min-height: 44px;
+  }
+  .draft-board .draft-card-stat-heading {
+    padding-right: 44px;
+  }
+  .draft-board .draft-table td {
+    padding-block: 11px;
+  }
+}

@@ -9,8 +9,11 @@
 .trade-board .trade-board-column {
   display: grid;
   grid-template-rows: subgrid;
-  grid-row: span 5;
+  grid-row: span 2;
   min-width: 0;
+}
+.trade-board .trade-board-lists .trade-board-column {
+  grid-row: span 3;
 }
 .trade-board .trade-board-team {
   display: flex;
@@ -224,9 +227,10 @@
   padding: 3px 8px;
 }
 .trade-board .trade-board-review {
-  margin-top: 14px;
-  padding-top: 11px;
+  margin: 12px 0;
+  padding: 11px 0;
   border-top: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
 }
 .trade-board .trade-board-checks,
 .trade-board .trade-board-direction {
@@ -249,7 +253,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: 10px;
+  margin: 0 0 10px;
 }
 .trade-board .trade-board-message {
   margin-top: 10px;
@@ -260,7 +264,8 @@
   .trade-board .trade-board-columns {
     grid-template-columns: minmax(0, 1fr);
   }
-  .trade-board .trade-board-column {
+  .trade-board .trade-board-column,
+  .trade-board .trade-board-lists .trade-board-column {
     display: flex;
     flex-direction: column;
     gap: 10px;

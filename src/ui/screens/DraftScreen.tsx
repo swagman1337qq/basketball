@@ -8,9 +8,11 @@ import { MockDrafts } from './MockDrafts';
 import { useScoutSelect } from '../ScoutSelect';
 import { useSearchFilter } from '../SearchFilter';
 import { LoadDraftClass } from '../LoadDraftClass';
+import { scoutReport } from '../../engine/scoutReport';
+import { DraftProspectCard } from './DraftProspectCard';
+import './DraftScreen.css';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
-const pickBtn = { fontSize: '11px', padding: '2px 8px', minHeight: 0, lineHeight: 1.5 } as const;
 
 export function DraftScreen({ vm }: { vm: VM }) {
   const [tk, setTk] = useState(''),
@@ -21,52 +23,12 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx,
     cls = s.dClass,
     clsIds: number[] = gm.db.cls?.[cls] || [];
-  const am = useMemo(() => (stats ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [stats, gm, cls, clsIds.length, s.gv, gm.Y]);
+  const [expanded, setExpanded] = useState<{ cls: number; id: number } | null>(null);
+  const needAmateur = stats || expanded?.cls === cls;
+  const am = useMemo(() => (needAmateur ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [needAmateur, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
   // Where that season was played: the college or club, or just High School.
   const teamOf = (x: any) => (x.level === 'High school' ? 'High School' : x.team);
-  const snap = (p: any) => {
-    const x = last(p.id),
-      d = x?.disp;
-    if (!x)
-      return (
-        <>
-          <b>{p.name}</b>
-          <div style={{ color: 'var(--color-neutral-600)' }}>No college or club season yet.</div>
-        </>
-      );
-    const pg = (v: number) => (v / d.gp).toFixed(1),
-      pc = (m: number, a: number) => (a ? ((100 * m) / a).toFixed(1) : '—');
-    const cells: [string, string][] = [
-      ['G', String(d.gp)],
-      ['MPG', x.mpg.toFixed(1)],
-      ['PTS', pg(d.pts)],
-      ['REB', pg(d.orb + d.drb)],
-      ['AST', pg(d.ast)],
-      ['STL', pg(d.stl)],
-      ['BLK', pg(d.blk)],
-      ['TOV', pg(d.tov)],
-      ['FG%', pc(d.fgm, d.fga)],
-      ['3P%', pc(d.tpm, d.tpa)],
-      ['FT%', pc(d.ftm, d.fta)],
-    ];
-    return (
-      <>
-        <b>{p.name}</b>
-        <div style={{ color: 'var(--color-neutral-600)', margin: '1px 0 6px' }}>
-          {x.season - 1 + '–' + String(x.season).slice(2)} · {x.team} · {x.level} · age {x.age}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, auto)', gap: '2px 10px' }}>
-          {cells.map(([k, v]) => (
-            <div key={k}>
-              <div style={{ color: 'var(--color-neutral-600)', fontSize: '10.5px' }}>{k}</div>
-              <div style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      </>
-    );
-  };
   const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)),
     pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
   // [label, tooltip, value, decimals]: a column sorts by its value (a prospect with none goes last).
@@ -147,7 +109,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
     return v == null || !isFinite(v) ? null : v;
   };
   const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
-  const cols = (vm.draftCols || []).filter((c: any) => !stats || (c.key !== 'fromT' && c.key !== 'hgt'));
+  const cols = (vm.draftCols || []).filter((c: any) =>
+    (stats ? ['rank', 'name', 'ovr', 'pot'] : ['rank', 'name', 'age', 'hgt', 'ovr', 'pot']).includes(c.key),
+  );
   const sf = useSearchFilter(),
     rows0 = (vm.draftRows || []).filter(byTrait(vm, tk)).filter(sf.test);
   const boardRows =
@@ -162,7 +126,10 @@ export function DraftScreen({ vm }: { vm: VM }) {
       vm,
       boardRows.map((p: any) => p.id),
     );
-  const pg = usePaged(boardRows, 'prospects', 30);
+  const pg = usePaged<any>(boardRows, 'prospects', 12, cls);
+  const previewId = expanded?.cls === cls ? expanded?.id : undefined;
+  const preview = previewId == null ? null : pg.rows.find((p: any) => p.id === previewId);
+  const report = useMemo(() => (preview ? scoutReport(gm, s, preview.id) : null), [gm, s, preview?.id]);
   const head = (
     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
       <div
@@ -241,507 +208,396 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <PastDraft vm={vm} />
       </>
     );
+  const currentPick = (vm.dr.order || []).find((o: any) => o.onClock);
+  const columnCount = 1 + cols.length + (stats ? ST.length : 0);
+  const boardHead = (c: any) => (
+    <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number'}>
+      <button
+        type="button"
+        title={'Sort by ' + c.label}
+        onClick={() => {
+          setStSort(null);
+          c.onClick();
+        }}
+        style={{ color: stats && stSort ? undefined : c.color }}
+      >
+        {c.label}
+        {stats && stSort ? '' : c.arrow}
+      </button>
+    </th>
+  );
+  const statHeads =
+    stats &&
+    ST.map(([h, t]) => (
+      <th className="draft-number" key={h} title={t}>
+        <button type="button" onClick={() => sortSt(h)} style={{ color: stSort?.[0] === h ? 'var(--color-accent-700)' : undefined }}>
+          {h}
+          {stSort?.[0] === h ? (stSort[1] < 0 ? ' ↓' : ' ↑') : ''}
+        </button>
+      </th>
+    ));
   return (
-    <>
+    <section className="draft-board" aria-label="Draft board">
       {head}
-      {!!vm.dr.isCurrent && (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '16px',
-              padding: '10px 14px',
-              border: vm.dr.mineClock ? '3px solid var(--gm-good)' : '1px solid var(--color-text)' /* another team on the clock: white */,
-              borderRadius: 'var(--radius-md)',
-              background: vm.dr.mineClock ? 'color-mix(in srgb, var(--gm-good) 10%, transparent)' : undefined,
-            }}
-          >
-            <div style={{ flex: '1' }}>
-              <span style={{ fontFamily: 'var(--font-heading)', fontSize: '19px', fontWeight: '600' }}>{vm.dr.status}</span>{' '}
-              <span style={{ color: 'var(--color-neutral-700)', marginLeft: '8px' }}>{vm.dr.sub}</span>
-            </div>
-            <button
-              className="btn btn-secondary"
-              onClick={vm.simOne}
-              disabled={vm.dr.noSimMine}
-              title="The team on the clock makes its pick"
-              style={{ whiteSpace: 'nowrap', flex: 'none' }}
-            >
-              Sim one pick
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={vm.simToMine}
-              disabled={vm.dr.noSimMine}
-              style={{ whiteSpace: 'nowrap', flex: 'none' }}
-            >
-              Sim to my pick
-            </button>
-            <button className="btn btn-secondary" onClick={vm.simAll} disabled={vm.dr.done} style={{ whiteSpace: 'nowrap', flex: 'none' }}>
-              Auto-draft the rest
-            </button>
+      {vm.dr.isCurrent && (
+        <div className={'draft-clock' + (vm.dr.mineClock ? ' draft-clock-mine' : '')}>
+          <div>
+            <strong>{vm.dr.done && s.phase === 'draft' ? 'Draft complete' : vm.dr.status}</strong>
+            <p className="draft-muted">{vm.dr.sub}</p>
           </div>
-        </>
-      )}
-      {!!vm.dr.hasAdvice && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '16px', marginBottom: '18px' }}>
-            {(vm.dr.advice || []).map((a: any, i: number) => (
-              <div key={i} className="card" style={{ padding: '14px 16px' }}>
-                <div className="card-kicker" style={{ color: 'var(--color-accent-700)' }}>
-                  {a.who}
-                </div>
-                <button
-                  className="hv1"
-                  onClick={a.open}
-                  style={{
-                    all: 'unset',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: '22px',
-                    fontWeight: '600',
-                    lineHeight: '1.1',
-                  }}
-                >
-                  {a.name}
+          <div className="draft-clock-actions">
+            {currentPick?.canTrade && (
+              <button type="button" className="btn btn-secondary" onClick={currentPick.tradePick}>
+                {currentPick.tradeLbl}
+              </button>
+            )}
+            <details className="draft-sim">
+              <summary className="btn btn-secondary">Simulate ▾</summary>
+              <div className="draft-sim-menu">
+                <button type="button" className="btn btn-ghost" onClick={vm.simOne} disabled={vm.dr.noSimMine}>
+                  Sim one pick
                 </button>
-                <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{a.meta}</div>
-                <p style={{ margin: '4px 0 0', textAlign: 'justify', hyphens: 'auto' }}>{a.why}</p>
-                {!!a.canDraft && (
-                  <>
-                    <div>
-                      <button className="btn btn-primary" onClick={a.draft} style={{ fontSize: '13px' }}>
-                        Draft {a.name}
-                      </button>
-                    </div>
-                  </>
-                )}
+                <button type="button" className="btn btn-ghost" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
+                  Sim to my pick
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={vm.simAll} disabled={vm.dr.done}>
+                  Auto-draft the rest
+                </button>
               </div>
-            ))}
+            </details>
           </div>
-        </>
+        </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px,320px) minmax(0,1fr)', gap: '28px', alignItems: 'start' }}>
-        <section>
-          {!!vm.dr.isCurrent && (
-            <>
-              <h4 style={{ margin: '0 0 4px', fontSize: '19px' }}>First round</h4>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  maxHeight: 'calc(100vh - 260px)',
-                  overflowY: 'auto',
-                  paddingRight: '4px',
-                }}
-              >
-                {(vm.dr.order || []).map((o: any, i: number) => (
-                  <div
-                    key={i}
+      {vm.dr.isCurrent && (
+        <details className="draft-order">
+          <summary>Draft order · {(vm.dr.order || []).length} picks</summary>
+          <div className="draft-order-scroll">
+            <table className="draft-order-table" aria-label="Draft order">
+              <thead>
+                <tr>
+                  <th>Pick</th>
+                  <th>Team</th>
+                  <th>Selection</th>
+                  <th>Trade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(vm.dr.order || []).map((o: any) => (
+                  <tr
+                    key={o.n}
+                    data-on-clock={!!o.onClock}
                     ref={
                       o.onClock
                         ? el => {
-                            const box = el?.parentElement;
+                            const box = el?.closest('.draft-order-scroll') as HTMLElement | null;
                             if (el && box && box.dataset.at !== String(o.n)) {
                               box.dataset.at = String(o.n);
-                              box.scrollTop = el.offsetTop - box.offsetTop - 90;
+                              box.scrollTop = el.offsetTop - 90;
                             }
                           }
                         : undefined
                     }
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '30px 30px minmax(0,1fr)',
-                      gap: '10px',
-                      alignItems: 'center',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      border:
-                        o.onClock && o.mine
-                          ? '3px solid var(--gm-good)'
-                          : o.onClock
-                            ? '2px solid var(--color-text)'
-                            : o.mine
-                              ? '2px solid var(--color-accent)'
-                              : '1px solid var(--color-divider)',
-                      borderLeft: o.onClock && o.mine ? '8px solid var(--gm-good)' : o.mine ? '6px solid var(--color-accent)' : undefined,
-                      background:
-                        o.onClock && o.mine
-                          ? 'color-mix(in srgb, var(--gm-good) 16%, transparent)'
-                          : o.onClock
-                            ? 'var(--color-accent-100)'
-                            : o.mine
-                              ? 'color-mix(in srgb, var(--color-accent) 18%, transparent)'
-                              : 'transparent',
-                      boxShadow: o.mine
-                        ? '0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent), 0 2px 10px color-mix(in srgb, var(--color-accent) 25%, transparent)'
-                        : undefined,
-                    }}
                   >
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: '20px',
-                        textAlign: 'right',
-                        color: o.onClock ? 'var(--color-accent-700)' : 'var(--color-neutral-600)',
-                      }}
-                    >
-                      {o.n}
-                    </span>
-                    <button onClick={o.openT} title={o.team} style={{ all: 'unset', cursor: 'pointer' }}>
-                      {o.logoLg}
-                    </button>
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '6px',
-                          alignItems: 'baseline',
-                          fontSize: '13px',
-                          color: o.mine ? 'var(--color-accent-700)' : 'var(--color-text)',
-                          fontWeight: o.mine ? 600 : 400,
-                        }}
-                      >
-                        <button
-                          className="hv4"
-                          onClick={o.openT}
-                          style={{ all: 'unset', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                    <td className={o.mine ? 'draft-your-pick' : undefined}>
+                      #{o.n}
+                      {o.n > s.teams.length ? ' · R2' : ' · R1'}
+                    </td>
+                    <td>
+                      <div className="draft-order-team">
+                        {o.logo}
+                        <button type="button" className="btn btn-ghost" onClick={o.openT}>
                           {o.team}
                         </button>
-                        {o.via && (
-                          <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', whiteSpace: 'nowrap' }}>{o.via}</span>
-                        )}
-                        {o.mine && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              letterSpacing: '.08em',
-                              padding: '1px 6px',
-                              borderRadius: 3,
-                              background: 'var(--color-accent)',
-                              color: 'var(--color-bg)',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            YOUR PICK
-                          </span>
-                        )}
+                        {o.via && <span className="draft-muted">{o.via}</span>}
+                        {o.mine && <span className="draft-your-pick">Your pick</span>}
                       </div>
+                    </td>
+                    <td>
                       {o.pid ? (
-                        <div style={{ fontSize: '12.5px', lineHeight: 1.35 }}>
-                          <button className="hv1" onClick={o.openP} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                        <>
+                          <button type="button" className="btn btn-ghost" onClick={o.openP}>
                             {o.who}
                           </button>
-                          <div
-                            style={{
-                              fontSize: '11.5px',
-                              color: 'var(--color-neutral-600)',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {o.pmeta}
-                          </div>
-                        </div>
+                          <div className="draft-muted">{o.pmeta}</div>
+                        </>
+                      ) : o.onClock ? (
+                        'On the clock'
                       ) : (
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            fontStyle: 'italic',
-                            fontWeight: o.onClock && o.mine ? 700 : undefined,
-                            color:
-                              o.onClock && o.mine ? 'var(--gm-good)' : o.onClock ? 'var(--color-accent-700)' : 'var(--color-neutral-600)',
-                          }}
-                        >
-                          {o.onClock ? (o.mine ? 'You’re on the clock' : 'On the clock') : 'Pick ' + o.n}
-                        </div>
+                        'Upcoming'
                       )}
+                    </td>
+                    <td>
                       {o.canTrade && (
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                          <button className="btn btn-secondary" onClick={o.tradePick} style={pickBtn}>
+                        <div className="draft-clock-actions">
+                          <button type="button" className="btn btn-secondary" onClick={o.tradePick}>
                             {o.tradeLbl}
                           </button>
-                          <button className="btn btn-ghost" onClick={o.proposeTrade} style={pickBtn}>
+                          <button type="button" className="btn btn-ghost" onClick={o.proposeTrade}>
                             Propose trade
                           </button>
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </>
-          )}
-          {!!vm.dr.isFuture && (
-            <>
-              <h4 style={{ margin: '0 0 4px', fontSize: '19px' }}>Your picks</h4>
-              {(vm.dr.myFuture || []).map((k: any, i: number) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '4px 2px',
-                    borderBottom: '1px solid var(--color-divider)',
-                  }}
-                >
-                  <span>{k.label}</span>
-                  <span style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-neutral-700)' }}>{k.proj}</span>
-                    {k.tradePick && (
-                      <button className="btn btn-secondary" onClick={k.tradePick} style={pickBtn}>
-                        Trade pick
-                      </button>
-                    )}
-                    {k.proposeTrade && (
-                      <button className="btn btn-ghost" onClick={k.proposeTrade} style={pickBtn}>
-                        Propose trade
-                      </button>
-                    )}
-                  </span>
-                </div>
-              ))}
-              <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--color-neutral-700)' }}>{vm.dr.scoutLine}</p>
-            </>
-          )}
-        </section>
-        <section>
-          {!!vm.dr.isCurrent && (
-            <div style={{ marginBottom: '10px' }}>
-              <Seg<'board' | 'mock'>
-                value={view}
-                options={[
-                  ['board', 'Big board'],
-                  ['mock', 'Mock drafts'],
-                ]}
-                onChange={setView}
-              />
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+      {vm.dr.isFuture && (
+        <details className="draft-order">
+          <summary>Your picks in this class</summary>
+          {(vm.dr.myFuture || []).map((k: any, i: number) => (
+            <div key={i} className="draft-clock-actions">
+              <span>{k.label}</span>
+              <span className="draft-muted">{k.proj}</span>
+              {k.tradePick && (
+                <button type="button" className="btn btn-secondary" onClick={k.tradePick}>
+                  Trade pick
+                </button>
+              )}
+              {k.proposeTrade && (
+                <button type="button" className="btn btn-ghost" onClick={k.proposeTrade}>
+                  Propose trade
+                </button>
+              )}
+            </div>
+          ))}
+          <p className="draft-muted">{vm.dr.scoutLine}</p>
+        </details>
+      )}
+      {vm.dr.hasAdvice && (
+        <div className="draft-advice">
+          {(vm.dr.advice || []).map((a: any) => (
+            <div key={a.who}>
+              <div className="draft-kicker">{a.who}</div>
+              <button type="button" className="btn btn-ghost" onClick={a.open}>
+                {a.name}
+              </button>
+              <div className="draft-muted">{a.meta}</div>
+              <p>{a.why}</p>
+              {a.canDraft && (
+                <button type="button" className="btn btn-primary" onClick={a.draft}>
+                  Draft {a.name}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="draft-toolbar">
+        {vm.dr.isCurrent ? (
+          <Seg<'board' | 'mock'>
+            value={view}
+            options={[
+              ['board', 'Big board'],
+              ['mock', 'Mock drafts'],
+            ]}
+            onChange={setView}
+          />
+        ) : (
+          <h3>Big board</h3>
+        )}
+      </div>
+      {view === 'mock' && vm.dr.isCurrent ? (
+        <MockDrafts vm={vm} />
+      ) : (
+        <>
+          <div className="draft-view-controls">
+            <button
+              type="button"
+              className={!stats ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => setStMode('')}
+              aria-pressed={!stats}
+            >
+              Overview
+            </button>
+            <button
+              type="button"
+              className={stMode === 'trad' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => pickMode('trad')}
+              aria-pressed={stMode === 'trad'}
+            >
+              Show traditional stats
+            </button>
+            <button
+              type="button"
+              className={stMode === 'adv' ? 'btn btn-primary' : 'btn btn-secondary'}
+              onClick={() => pickMode('adv')}
+              aria-pressed={stMode === 'adv'}
+            >
+              Show advanced stats
+            </button>
+            <label className="draft-extra-sort">
+              Sort
+              <select
+                className="input"
+                value=""
+                aria-label="Sort prospects"
+                onChange={e => {
+                  const c = (vm.draftCols || []).find((c: any) => c.key === e.target.value);
+                  if (c) {
+                    setStSort(null);
+                    c.onClick();
+                  }
+                }}
+              >
+                <option value="">Choose column…</option>
+                {(vm.draftCols || []).map((c: any) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                    {c.arrow}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {stMode === 'adv' && (
+            <div className="draft-stat-group" role="group" aria-label="Advanced stat group">
+              <button type="button" className="btn btn-ghost" aria-label="Previous stat group" onClick={() => turn(-1)}>
+                ‹
+              </button>
+              <span role="status" aria-live="polite">
+                {ADV_PAGES[advPg][0]}
+                <small>
+                  {advPg + 1} / {ADV_PAGES.length}
+                </small>
+              </span>
+              <button type="button" className="btn btn-ghost" aria-label="Next stat group" onClick={() => turn(1)}>
+                ›
+              </button>
             </div>
           )}
-          {view === 'mock' && vm.dr.isCurrent ? (
-            <MockDrafts vm={vm} />
-          ) : (
-            <>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', margin: '0 0 8px' }}>
-                <TraitFilter value={tk} onChange={setTk} />
-                {(
-                  [
-                    ['trad', 'Show traditional stats', 'Points, rebounds, assists, steals, blocks, shooting and PER'],
-                    [
-                      'adv',
-                      'Show advanced stats',
-                      'Every advanced stat, a set at a time (‹ › to turn): scoring, rebounding and defense, impact',
-                    ],
-                  ] as const
-                ).map(([m, label, what]) => (
-                  <button
-                    key={m}
-                    className={stMode === m ? 'btn btn-primary' : 'btn btn-secondary'}
-                    onClick={() => pickMode(m)}
-                    title={
-                      what +
-                      ": each prospect's latest season, in place of where he plays and his height" +
-                      (stMode === m ? ' (click again to hide)' : '')
-                    }
-                    style={{ fontSize: '12.5px' }}
-                  >
-                    {label}
-                  </button>
-                ))}
-                {stMode === 'adv' && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => turn(-1)}
-                      title="Previous set"
-                      style={{ padding: '2px 8px', minHeight: 0 }}
-                    >
-                      ‹
-                    </button>
-                    <span style={{ display: 'inline-grid', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                      {ADV_PAGES.map(([name], i) => (
-                        <span
-                          key={name}
-                          aria-hidden={i !== advPg}
-                          style={{ gridArea: '1 / 1', visibility: i === advPg ? 'visible' : 'hidden' }}
-                        >
-                          {name}{' '}
-                          <span style={{ color: 'var(--color-neutral-600)' }}>
-                            {i + 1}/{ADV_PAGES.length}
-                          </span>
-                        </span>
-                      ))}
-                    </span>
-                    <button className="btn btn-ghost" onClick={() => turn(1)} title="Next set" style={{ padding: '2px 8px', minHeight: 0 }}>
-                      ›
-                    </button>
-                  </span>
-                )}
-              </div>
-              {sf.bar}
-              {sc.bar()}
-              {sc.Menu()}
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ fontSize: '13px' }}>
-                  <thead>
-                    <tr>
-                      {sc.head()}
-                      {cols.map((c: any, i: number) => (
-                        <Fragment key={i}>
-                          <th
-                            onClick={() => {
-                              setStSort(null);
-                              c.onClick();
-                            }}
-                            style={{
-                              padding: '6px 8px',
-                              textAlign: c.align,
-                              cursor: 'pointer',
-                              userSelect: 'none',
-                              whiteSpace: 'nowrap',
-                              color: stats && stSort ? 'color-mix(in srgb, var(--color-text) 60%, transparent)' : c.color,
-                            }}
-                          >
-                            {c.label}
-                            {stats && stSort ? '' : c.arrow}
-                          </th>
-                          {stats && c.key === 'age' && (
-                            <th title="Where he played that season" style={{ padding: '6px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                              TEAM
-                            </th>
-                          )}
-                          {stats &&
-                            c.key === 'age' &&
-                            ST.map(([h, t]) => {
-                              const on = stSort?.[0] === h;
-                              return (
-                                <th
-                                  key={h}
-                                  title={t + ' (click to sort)'}
-                                  onClick={() => sortSt(h)}
-                                  style={{
-                                    padding: '6px 4px',
-                                    textAlign: 'right',
-                                    whiteSpace: 'nowrap',
-                                    cursor: 'pointer',
-                                    userSelect: 'none',
-                                    color: on ? 'var(--color-accent-700)' : 'color-mix(in srgb, var(--color-text) 60%, transparent)',
-                                  }}
-                                >
-                                  {h}
-                                  {on ? (stSort![1] < 0 ? ' ↓' : ' ↑') : ''}
-                                </th>
-                              );
-                            })}
-                        </Fragment>
-                      ))}
-                      <th style={{ padding: '6px 8px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pg.rows.map((p: any, i: number) => (
+          <details className="draft-filters">
+            <summary>Filters{sf.active || tk ? ' · active' : ''}</summary>
+            <div className="draft-view-controls">
+              <TraitFilter value={tk} onChange={setTk} />
+            </div>
+            {sf.bar}
+          </details>
+          {sc.bar(true)}
+          {sc.Menu()}
+          <div className="draft-table-wrap">
+            <table className="table draft-table" aria-label="Draft prospects">
+              <thead>
+                <tr>
+                  {sc.head()}
+                  {cols.map((c: any) => (
+                    <Fragment key={c.key}>
+                      {boardHead(c)}
+                      {c.key === 'name' && statHeads}
+                    </Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pg.rows.map((p: any) => {
+                  const opened = preview?.id === p.id;
+                  const x = last(p.id);
+                  return (
+                    <Fragment key={p.id}>
                       <tr
-                        key={i}
                         {...sc.row(p.id)}
-                        style={{
-                          userSelect: 'none',
-                          background: sc.isSel(p.id) ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : undefined,
+                        data-prospect-id={p.id}
+                        className={'draft-player-row' + (opened ? ' draft-previewed' : '')}
+                        style={{ background: sc.isSel(p.id) && !opened ? 'var(--color-accent-100)' : undefined }}
+                        onClick={e => {
+                          if (
+                            e.shiftKey ||
+                            e.ctrlKey ||
+                            e.metaKey ||
+                            (e.target as HTMLElement).closest('a, button, input, select, textarea, label')
+                          )
+                            return;
+                          setExpanded({ cls, id: p.id });
                         }}
                       >
                         {sc.cell(p.id)}
-                        <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: 'var(--color-neutral-700)' }}>
-                          {p.rank}
-                        </td>
-                        <td style={{ padding: '4px 8px' }}>
-                          <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                        <td className="draft-number draft-muted">{p.rank}</td>
+                        <td className="draft-name-cell">
+                          <button
+                            id={'draft-name-' + p.id}
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ ...PN, padding: 0 }}
+                            onClick={p.open}
+                            data-pid={p.id}
+                          >
+                            {p.name}
+                          </button>{' '}
+                          {sc.tag(p.id)}
+                          <div className="draft-player-meta">
+                            {p.pos} · {p.age} · {stats && x ? teamOf(x) : p.fromT}
                             <img
                               src={p.flag}
-                              alt=""
+                              alt={p.cname}
                               title={p.cname}
-                              style={{ width: '16px', height: '11px', objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
+                              style={{ width: 14, height: 10, objectFit: 'cover', marginLeft: 6 }}
                             />
-                            <button
-                              className="hv6"
-                              onClick={p.open}
-                              style={{ all: 'unset', cursor: 'pointer', color: 'var(--color-accent-700)', ...PN }}
-                            >
-                              {p.name}
-                            </button>
-                            {sc.tag(p.id)}
-                          </span>
+                          </div>
                         </td>
-                        <td style={{ padding: '4px 8px' }}>{p.pos}</td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.age}</td>
                         {stats ? (
-                          <>
-                            {(() => {
-                              const x = last(p.id);
-                              return <td style={{ padding: '4px 8px', whiteSpace: 'nowrap' }}>{x ? teamOf(x) : '—'}</td>;
-                            })()}
-                            {ST.map(([h, , fn, dg]) => {
-                              const x = last(p.id);
-                              return (
-                                <td
-                                  key={h}
-                                  style={{
-                                    padding: '4px 4px',
-                                    textAlign: 'right',
-                                    whiteSpace: 'nowrap',
-                                    fontWeight: stSort?.[0] === h ? 600 : undefined,
-                                  }}
-                                >
-                                  {x ? f1(fn(x), dg ?? 1) : '—'}
-                                </td>
-                              );
-                            })}
-                          </>
+                          ST.map(([h, , fn, dg]) => (
+                            <td key={h} className="draft-number" style={{ fontWeight: stSort?.[0] === h ? 600 : undefined }}>
+                              {x ? f1(fn(x), dg ?? 1) : '—'}
+                            </td>
+                          ))
                         ) : (
                           <>
-                            <td style={{ padding: '4px 8px' }}>
-                              {p.fromT} <span style={{ color: 'var(--color-neutral-600)', fontSize: '11px' }}>{p.fromL}</span>
-                            </td>
-                            <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.hgt}</td>
+                            <td className="draft-number">{p.age}</td>
+                            <td className="draft-number">{p.hgt}</td>
                           </>
                         )}
-                        <td style={{ padding: '4px 8px', textAlign: 'right', color: p.tone, fontWeight: '600', whiteSpace: 'nowrap' }}>
+                        <td className="draft-number" style={{ color: p.tone, fontWeight: 600 }}>
                           {p.ovrS}
                         </td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', color: p.ptone, fontWeight: '600', whiteSpace: 'nowrap' }}>
+                        <td className="draft-number" style={{ color: p.ptone, fontWeight: 600 }}>
                           {p.potS}
                         </td>
-                        <td style={{ padding: '3px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          {!!p.showDraft && (
-                            <>
-                              <button
-                                className="btn btn-primary"
-                                onClick={p.draft}
-                                disabled={p.cant}
-                                style={{ fontSize: '12px', padding: '3px 12px' }}
-                              >
-                                Draft
-                              </button>
-                            </>
-                          )}
-                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {pg.pager}
-            </>
+                      {opened && report && (
+                        <tr className="draft-card-row">
+                          <td colSpan={columnCount}>
+                            <div id={'draft-card-' + cls + '-' + p.id} role="region" aria-label={p.name + ' prospect card'}>
+                              <DraftProspectCard
+                                vm={vm}
+                                player={p}
+                                report={report}
+                                season={x}
+                                advanced={stMode === 'adv'}
+                                values={(stats ? ST : [MPG, ...TRAD]).map(([label, description, fn, dg]) => ({
+                                  label,
+                                  description,
+                                  value: x ? f1(fn(x), dg ?? 1) : '—',
+                                }))}
+                                onShortlist={sc.onContext(p.id)}
+                                onCollapse={() => {
+                                  setExpanded(null);
+                                  document.getElementById('draft-name-' + p.id)?.focus({ preventScroll: true });
+                                }}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {stMode === 'adv' && advPg === 2 && (
+            <p className="draft-board-note">EPM, LEBRON and DARKO are box-score estimates for amateur seasons.</p>
           )}
-        </section>
-      </div>
-    </>
+          <p className="draft-board-note">
+            Click a player’s row to open his prospect card. Names open full profiles. Use checkboxes or drag/shift-click to scout or
+            shortlist several players.
+          </p>
+          {pg.pager}
+        </>
+      )}
+    </section>
   );
 }
 
