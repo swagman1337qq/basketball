@@ -40,6 +40,24 @@ const td0: React.CSSProperties = { padding: '4px 7px', borderBottom: '1px solid 
   tdD: React.CSSProperties = { padding: '3px 6px', borderBottom: '1px solid var(--color-divider)', whiteSpace: 'nowrap' },
   tdrD: React.CSSProperties = { ...tdD, textAlign: 'right' };
 const chip: React.CSSProperties = { fontSize: '12px', padding: '2px 9px' };
+// Hadrian's Lover: what the small grey tag after each name shows, picked with the ‹ › arrows in the Player header
+// (s.rosterSub). Add an entry here to add a choice.
+const SUBS: [string, string][] = [
+  ['badges', 'Badges'],
+  ['how', 'How he got here'],
+];
+// howAcquired's sentence, shortened for the tag ("Traded from BOS in 2026 · extended 2027" → "Trade from BOS ’26 · ext ’27")
+const shortHow = (h: string) =>
+  h
+    .replace(/#(\d+) pick in (\d{4})/, '#$1 pick ’$2')
+    .replace(/^Traded from (\S+) in/, 'Trade from $1')
+    .replace(/^Signed as a free agent in/, 'FA')
+    .replace(/^Signed to a two-way in/, 'Two-way')
+    .replace(/^Signed to a 10-day in/, '10-day')
+    .replace(/^Expansion draft,/, 'Expansion')
+    .replace(/extended/, 'ext')
+    .replace(/(\d{2})(\d{2})\b/g, (m, a, b) => (a === '20' ? '’' + b : m))
+    .replace(/’’/g, '’');
 
 export function RosterScreen({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeamPage, isMine } = vm.ctx,
@@ -48,6 +66,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
     td = dense ? tdD : td0,
     tdr = dense ? tdrD : tdr0;
   const [menuFor, setMenuFor] = useState<number | null>(null); // Hadrian's Lover: the player whose ⋯ menu is open
+  const subAt = Math.max(
+      0,
+      SUBS.findIndex(x => x[0] === s.rosterSub),
+    ),
+    sub = SUBS[subAt][0],
+    cycleSub = (d: number) => gm.setState({ rosterSub: SUBS[(subAt + d + SUBS.length) % SUBS.length][0] });
   // The team and season on show live in the game state (rosterView), so clicking a team anywhere opens
   // its roster here and Back from a player returns to the same team. The Roster tab starts on yours.
   const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y },
@@ -320,17 +344,36 @@ export function RosterScreen({ vm }: { vm: VM }) {
               {p.name}
             </span>
             {dense &&
-              knownBadges(gm, s, p)
-                .list.slice(0, 1)
-                .map(b => (
+              sub === 'badges' &&
+              (bs =>
+                bs.length > 0 && (
                   <span
-                    key={b.key}
-                    title={b.tierName + ' ' + b.name + ': ' + b.desc}
-                    style={{ fontSize: '10.5px', color: 'var(--color-neutral-600)' }}
+                    title={bs.map(b => b.tierName + ' ' + b.name + ': ' + b.desc).join('\n')}
+                    style={{ fontSize: '10.5px', color: 'var(--color-neutral-600)', whiteSpace: 'nowrap' }}
                   >
-                    {b.name}
+                    {bs[0].name}
+                    {bs.length > 1 ? ' +' + (bs.length - 1) : ''}
                   </span>
-                ))}
+                ))(knownBadges(gm, s, p).list)}
+            {dense &&
+              sub === 'how' &&
+              cur &&
+              (h =>
+                h && (
+                  <span
+                    title={h}
+                    style={{
+                      fontSize: '10.5px',
+                      color: 'var(--color-neutral-600)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '20ch',
+                    }}
+                  >
+                    {shortHow(h)}
+                  </span>
+                ))(howAcquired(gm, s, p, tid) || 'Original roster')}
             {!dense && p.native && p.name.length + p.native.length <= 34 && (
               <span style={{ fontSize: '11px', color: 'var(--color-neutral-600)', ...PN, maxWidth: '18ch' }}>({p.native})</span>
             )}
@@ -698,7 +741,41 @@ export function RosterScreen({ vm }: { vm: VM }) {
         <th style={{ width: 6, padding: 0 }} />
         {mine && <th />}
         <th style={{ ...tdr, fontWeight: 600 }}>#</th>
-        <th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>Player</th>
+        <th style={{ ...td, fontWeight: 600, textAlign: 'left' }}>
+          Player
+          {dense && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                marginLeft: 10,
+                textTransform: 'none',
+                letterSpacing: 0,
+                fontWeight: 400,
+                color: 'var(--color-neutral-700)',
+              }}
+              title={'Tag after each name: ' + SUBS[subAt][1] + '. Arrows switch it.'}
+            >
+              <button
+                className="hv5"
+                aria-label="Previous tag"
+                onClick={() => cycleSub(-1)}
+                style={{ all: 'unset', cursor: 'pointer', padding: '0 4px' }}
+              >
+                ‹
+              </button>
+              <button
+                className="hv5"
+                aria-label="Next tag"
+                onClick={() => cycleSub(1)}
+                style={{ all: 'unset', cursor: 'pointer', padding: '0 4px' }}
+              >
+                ›
+              </button>
+            </span>
+          )}
+        </th>
         <th style={{ ...td, textAlign: 'left' }}>Pos</th>
         <th style={tdr}>Age</th>
         <th style={tdr}>Ovr</th>

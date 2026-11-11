@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-11
 
+### Added
+- **Choose the tag after each name on the Roster.** The ‹ › arrows next to "Player" switch the small grey tag between his best badge (hover for all of them) and how he got to the team (a draft pick, a trade, a signing, and any extension since).
+
 ### Changed
 - **A denser look for the Dashboard, Roster and Mailbox ("Hadrian’s Lover").** More on one screen with fewer explanations. Dashboard: one summary strip with your next game and the play buttons, what's new in your Mailbox, your rotation with this season's numbers, recent results, team leaders and your conference. Roster: the team summary, injury rules and lineup buttons sit in one box; rows are shorter, rating changes sit next to the overall, and each row has a **Trade** button and a **⋯** menu (Cut, contract changes). Mailbox: a list of messages on the left, the one you pick in full on the right. Want the old look back? **Settings → Screen design → Classic.**
 
