@@ -3141,10 +3141,10 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // 3.4 reb, 2.6 ast, 0.7 stl, 0.3 blk, 2.0 tov, 1.5 fouls, .426 FG on 14.2 shots, .343 on 6.8 threes, .797 FT on 3.5.
       // An explosive, volume-scoring shooting guard: lots of threes and pull-ups, 69 dunks, but a poor finisher in traffic
       // and a weak defender as a rookie. NBA.com shot areas: 33% restricted area (.621; 83 dunk attempts, 69 made), 9% paint
-      // outside it (.195), 11% mid-range (.385), 7.6% corner threes (.361), 40% above-the-break threes (.341). Jump shots
-      // 59% assisted (catch-and-shoot share set from that), 10 fadeaways in 596 jumpers.
-      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.6 pts, 3.3 reb, 2.7 ast,
-      // 0.7 stl, 0.3 blk, 1.9 tov, .434 FG on 13.9 shots, .347 on 7.2 threes, 3.5 FTA, .632 in the restricted area, 1.2 dunk
+      // outside it (.195), 11% mid-range (.385), 7.6% corner threes (.361), 40% above-the-break threes (.341). Catch-and-shoot:
+      // 253 of 596 jumpers (42%, all threes, .352); 10 fadeaways; the rest pull-ups and stepbacks (stepback share estimated).
+      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.5 pts, 3.3 reb, 2.7 ast,
+      // 0.8 stl, 0.3 blk, 1.9 tov, .431 FG on 13.9 shots, .342 on 7.2 threes, 3.5 FTA, .630 in the restricted area, 1.2 dunk
       // attempts. (Zones are set slightly toward the rim from his real shares: the engine turns them into a few more threes.)
       // 51 overall; potential 64 (about the 20-point starter he became in 2023–25, with a little room above).
       r: {
@@ -3204,8 +3204,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         mid: 12,
         c3: 7,
         atb: 37.5,
-        cns: 55,
-        pullup: 37,
+        cns: 44,
+        pullup: 48,
         step: 6,
         fade: 2,
         turnovers: 35,
@@ -3213,7 +3213,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         crash: 24,
       },
       notes:
-        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Shot areas, dunks and fadeaways from NBA.com; the catch-and-shoot / pull-up split is estimated from how many of his jumpers were assisted. Wingspan 6′7½″.',
+        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Shot areas, dunks, catch-and-shoot and fadeaways from NBA.com; only the stepback share is an estimate. Wingspan 6′7½″.',
       sources: [
         'https://www.basketball-reference.com/players/g/greenja05.html',
         'https://www.basketball-reference.com/players/g/greenja05/shooting/2022',
