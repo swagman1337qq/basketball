@@ -183,7 +183,7 @@ export function TitleScreen({
     <div ref={rootRef} className="title-screen" data-theme={dark ? 'dark' : 'light'}>
       <div className="title-page" data-view={showNew ? 'new' : 'library'}>
         <header className="title-masthead">
-          <span className="title-wordmark">FRONT OFFICE</span>
+          <span className="title-wordmark">Basketball GM</span>
           <span className="title-kicker">Basketball Manager</span>
         </header>
         <header className="title-heading">

@@ -885,6 +885,7 @@ function FaDense(props: any) {
   return (
     <>
       <FATracker vm={vm} />
+      <CapBar gm={gm} s={s} tid={s.me} />
       <section
         aria-label="Your money"
         style={{
