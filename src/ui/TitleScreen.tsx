@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight, ChevronRight, Download, Eye, Moon, Play, Plus, S
 import { deleteSave, exportSave, importSave, listSaves, type SaveRow } from '../db/saves';
 import { TeamLogo } from './TeamLogo';
 import { applyTheme, lastTheme, rememberTheme } from './theme';
-import { inkOn } from './kit';
 import { TitleNewLeague, type LeagueStart } from './TitleNewLeague';
 import './TitleScreen.css';
 
@@ -80,7 +79,6 @@ export function TitleScreen({
     if (!el) return;
     if (!activeTeam?.colors) Object.entries(PLAIN).forEach(([key, value]) => el.style.setProperty(key, value));
     el.style.setProperty('--title-primary', activeTeam?.colors?.[0] || 'var(--color-text)');
-    el.style.setProperty('--title-primary-ink', activeTeam?.colors?.[0] ? inkOn(activeTeam.colors[0]) : 'var(--color-bg)');
   }, [dark, activeTeam?.colors?.[0], activeTeam?.colors?.[1]]);
 
   const refresh = useCallback(async (preferredId?: string) => {
@@ -182,7 +180,7 @@ export function TitleScreen({
   };
 
   return (
-    <div ref={rootRef} className="title-screen">
+    <div ref={rootRef} className="title-screen" data-theme={dark ? 'dark' : 'light'}>
       <div className="title-page" data-view={showNew ? 'new' : 'library'}>
         <header className="title-masthead">
           <span className="title-wordmark">FRONT OFFICE</span>
@@ -282,18 +280,6 @@ export function TitleScreen({
                   <h2>{info.teamName}</h2>
                 </div>
                 <p className="title-muted title-league-name">{selected.name}</p>
-                {info.team && (
-                  <dl className="title-record">
-                    <div>
-                      <dt>Wins</dt>
-                      <dd>{info.team.w ?? 0}</dd>
-                    </div>
-                    <div>
-                      <dt>Losses</dt>
-                      <dd>{info.team.l ?? 0}</dd>
-                    </div>
-                  </dl>
-                )}
                 {info.spectator && <p className="title-spectator-note">Spectator Mode · the AI runs every team.</p>}
                 <div className="title-resume-meta">
                   <span>{info.season}</span>

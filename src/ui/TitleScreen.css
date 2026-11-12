@@ -1,10 +1,16 @@
 .title-screen {
+  --title-button-bg: #000;
+  --title-button-ink: #fff;
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
+}
+.title-screen[data-theme='light'] {
+  --title-button-bg: #fff;
+  --title-button-ink: #000;
 }
 .title-screen [hidden] {
   display: none !important;
@@ -63,16 +69,15 @@
 .title-screen .btn {
   min-height: 40px;
   gap: 8px;
+  background: var(--title-button-bg);
+  color: var(--title-button-ink);
+  border-color: color-mix(in srgb, var(--title-button-ink) 22%, transparent);
 }
-.title-screen .title-primary {
-  color: var(--title-primary-ink);
-  background: var(--title-primary);
-  border-color: var(--title-primary);
-}
-.title-screen .title-primary:hover {
-  color: var(--title-primary-ink);
-  background: var(--title-primary);
-  filter: brightness(1.08);
+.title-screen .btn:hover,
+.title-screen .btn:active {
+  background: var(--title-button-bg);
+  color: var(--title-button-ink);
+  border-color: color-mix(in srgb, var(--title-button-ink) 50%, transparent);
 }
 .title-screen button:focus-visible {
   outline: 2px solid var(--color-accent) !important;
@@ -183,26 +188,6 @@
   font-size: 13px;
   margin: 0;
   overflow-wrap: anywhere;
-}
-.title-screen .title-record {
-  display: flex;
-  gap: 30px;
-  margin: 23px 0;
-}
-.title-screen .title-record > div {
-  display: flex;
-  flex-direction: column-reverse;
-}
-.title-screen .title-record dt {
-  font-size: 12px;
-  color: var(--color-neutral-700);
-}
-.title-screen .title-record dd {
-  font-size: 34px;
-  line-height: 1.2;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  margin: 0 0 4px;
 }
 .title-screen .title-resume-meta {
   display: flex;
