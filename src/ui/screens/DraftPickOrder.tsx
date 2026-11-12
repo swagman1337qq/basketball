@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useRef } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronsLeft } from 'lucide-react';
 import type { VM } from '../vm';
 import { inkOn } from '../kit';
 
 /** Completed, current and upcoming selections share one continuous pick order. */
-export function DraftPickOrder({ vm }: { vm: VM }) {
+export function DraftPickOrder({ vm, onCollapse }: { vm: VM; onCollapse?: () => void }) {
   const { s } = vm.ctx;
   const orderList = useRef<HTMLOListElement>(null);
   const order = vm.dr.order || [];
@@ -91,6 +91,18 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
     <aside className="draft-pick-sidebar" aria-label="Drafted players and pick order">
       <div className="draft-sidebar-heading">
         <h2>{vm.dr.isFuture ? 'Your picks' : 'Pick order'}</h2>
+        {onCollapse && (
+          <button
+            type="button"
+            className="btn btn-ghost draft-order-collapse"
+            onClick={onCollapse}
+            aria-label="Collapse pick order"
+            aria-expanded={true}
+            aria-controls="draft-pick-panel"
+          >
+            <ChevronsLeft size={18} aria-hidden="true" />
+          </button>
+        )}
       </div>
       {vm.dr.isCurrent && (
         <>

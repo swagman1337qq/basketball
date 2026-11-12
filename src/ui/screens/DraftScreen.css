@@ -11,21 +11,81 @@
 .draft-board .draft-room-layout {
   position: relative;
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-columns: var(--draft-pick-width, 400px) 14px minmax(0, 1fr);
   align-items: start;
-  gap: 22px;
+  gap: 0;
 }
-.draft-board .draft-pick-sidebar {
+.draft-board .draft-order-pane,
+.draft-board .draft-order-rail {
   position: absolute;
   grid-area: 1 / 1 / 2 / 2;
   inset: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.draft-board .draft-order-pane[hidden] {
+  display: none;
+}
+.draft-board .draft-pick-sidebar {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid var(--color-divider);
-  padding-right: 18px;
+  padding-right: 10px;
+}
+.draft-board .draft-panel-resizer {
+  grid-area: 1 / 2 / 2 / 3;
+  align-self: stretch;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-600);
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+.draft-board .draft-panel-resizer::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  width: 1px;
+  background: var(--color-divider);
+}
+.draft-board .draft-panel-resizer > svg {
+  position: relative;
+  background: var(--color-bg);
+}
+.draft-board .draft-panel-resizer:hover,
+.draft-board .draft-panel-resizer:focus-visible,
+.draft-board .draft-room-layout[data-resizing='true'] .draft-panel-resizer {
+  color: var(--color-accent-700);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+.draft-board .draft-room-layout[data-resizing='true'] {
+  user-select: none;
+  cursor: col-resize;
+}
+.draft-board .draft-order-collapse {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 4px;
+}
+.draft-board .draft-order-expand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 4px;
+  color: var(--color-text);
+}
+.draft-board .draft-order-expand > span {
+  writing-mode: vertical-rl;
 }
 .draft-board .draft-sidebar-heading,
 .draft-board .draft-prospect-heading {
@@ -54,7 +114,8 @@
   font-size: 12px;
 }
 .draft-board .draft-prospects {
-  grid-area: 1 / 2 / 2 / 3;
+  grid-area: 1 / 3 / 2 / 4;
+  padding-left: 8px;
   min-width: 0;
   min-height: 640px;
   container-type: inline-size;
@@ -382,6 +443,26 @@
   font-size: 13px;
   font-weight: 600;
 }
+.draft-board .draft-prospect-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.draft-board .draft-prospect-face {
+  display: block;
+  width: 36px;
+  height: 44px;
+  flex: 0 0 36px;
+  overflow: hidden;
+}
+.draft-board .draft-prospect-face > :is(svg, img, .gm-face) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.draft-board .draft-prospect-name {
+  min-width: 0;
+}
 .draft-board .draft-table .draft-player-meta {
   font-size: 11.5px;
   color: var(--color-neutral-700);
@@ -547,40 +628,42 @@
   }
 }
 @media (max-width: 1050px) {
-  .draft-board .draft-room-layout {
-    grid-template-columns: 300px minmax(0, 1fr);
-    gap: 17px;
-  }
-  .draft-board .draft-pick-sidebar {
-    padding-right: 14px;
-  }
   .draft-board .draft-extra-sort {
     margin-left: 0;
   }
 }
-@media (max-width: 780px) {
-  .draft-board .draft-room-layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-  }
-  .draft-board .draft-pick-sidebar {
-    position: static;
-    grid-area: auto;
-    display: flex;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-divider);
-    padding: 0 0 14px;
-    overflow: visible;
-  }
-  .draft-board .draft-prospects {
-    grid-area: auto;
-    min-height: 0;
-  }
-  .draft-board .draft-pick-list,
-  .draft-board .draft-future-pick-list {
-    flex: none;
-    max-height: 420px;
-  }
+.draft-board .draft-room-layout[data-stacked='true'] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.draft-board .draft-room-layout[data-stacked='true'] > :is(.draft-order-pane, .draft-order-rail) {
+  position: static;
+  grid-area: auto;
+}
+.draft-board .draft-room-layout[data-stacked='true'] .draft-pick-sidebar {
+  display: flex;
+  height: auto;
+  border-bottom: 1px solid var(--color-divider);
+  padding: 0 0 14px;
+  overflow: visible;
+}
+.draft-board .draft-room-layout[data-stacked='true'] .draft-prospects {
+  grid-area: auto;
+  min-height: 0;
+  padding-left: 0;
+}
+.draft-board .draft-room-layout[data-stacked='true'] :is(.draft-pick-list, .draft-future-pick-list) {
+  flex: none;
+  max-height: 420px;
+}
+.draft-board .draft-room-layout[data-stacked='true'] .draft-panel-resizer {
+  display: none;
+}
+.draft-board .draft-room-layout[data-stacked='true'] .draft-order-expand {
+  flex-direction: row;
+}
+.draft-board .draft-room-layout[data-stacked='true'] .draft-order-expand > span {
+  writing-mode: horizontal-tb;
 }
 @media (max-width: 720px) {
   .draft-board .draft-card-columns,

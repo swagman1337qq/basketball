@@ -11,7 +11,7 @@ import { useSearchFilter } from '../SearchFilter';
 import { LoadDraftClass } from '../LoadDraftClass';
 import { scoutReport } from '../../engine/scoutReport';
 import { DraftProspectCard } from './DraftProspectCard';
-import { DraftPickOrder } from './DraftPickOrder';
+import { DraftRoomLayout } from './DraftRoomLayout';
 import './DraftScreen.css';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
@@ -228,8 +228,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
   return (
     <section className="draft-board" aria-label="Draft board">
       {head}
-      <div className="draft-room-layout">
-        <DraftPickOrder key={cls} vm={vm} />
+      <DraftRoomLayout vm={vm}>
         <section className="draft-prospects" aria-label="Prospect workspace">
           {vm.dr.hasAdvice && (
             <div className="draft-advice">
@@ -409,25 +408,32 @@ export function DraftScreen({ vm }: { vm: VM }) {
                             {sc.cell(p.id)}
                             <td className="draft-number draft-muted">{p.rank}</td>
                             <td className="draft-name-cell">
-                              <button
-                                id={'draft-name-' + p.id}
-                                type="button"
-                                className="btn btn-ghost"
-                                style={{ ...PN, padding: 0 }}
-                                onClick={p.open}
-                                data-pid={p.id}
-                              >
-                                {p.name}
-                              </button>{' '}
-                              {sc.tag(p.id)}
-                              <div className="draft-player-meta">
-                                {p.pos} · {stats && x ? teamOf(x) : p.fromT}
-                                <img
-                                  src={p.flag}
-                                  alt={p.cname}
-                                  title={p.cname}
-                                  style={{ width: 14, height: 10, objectFit: 'cover', marginLeft: 6 }}
-                                />
+                              <div className="draft-prospect-identity">
+                                <span className="draft-prospect-face" aria-hidden="true">
+                                  {gm.faceEl(p.id, -1)}
+                                </span>
+                                <div className="draft-prospect-name">
+                                  <button
+                                    id={'draft-name-' + p.id}
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    style={{ ...PN, padding: 0 }}
+                                    onClick={p.open}
+                                    data-pid={p.id}
+                                  >
+                                    {p.name}
+                                  </button>{' '}
+                                  {sc.tag(p.id)}
+                                  <div className="draft-player-meta">
+                                    {p.pos} · {stats && x ? teamOf(x) : p.fromT}
+                                    <img
+                                      src={p.flag}
+                                      alt={p.cname}
+                                      title={p.cname}
+                                      style={{ width: 14, height: 10, objectFit: 'cover', marginLeft: 6 }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="draft-number" data-label="Age">
@@ -502,7 +508,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
             </>
           )}
         </section>
-      </div>
+      </DraftRoomLayout>
     </section>
   );
 }
