@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-xsCk3_7B.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CVRbRrbe.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -8,6 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New player card: Jalen Green's 2021–22 rookie season** with the Rockets: an explosive, high-volume shooting guard who takes lots of threes and dunks a lot but struggles to finish in traffic. Tested in games at his real minutes, it comes close to his real line (17.3 points, .426 shooting, .343 from three). 51 overall, 64 potential; 6′7½″ wingspan; a likable professional off the court with middling work habits.
 
 ### Changed
+- **One continuous draft pick order.** Drafted players, the current pick and upcoming picks share one list. Your current pick uses the picking team's primary color, with readable text and trade actions on that row. Round dividers and all picks stay visible in the list; it scrolls to the current selection.
 - **The starting-screen header is simpler.** The right-hand Basketball Manager label is removed.
 - **Starting-screen buttons blend into the theme.** Transparent backgrounds replace the solid black/white fills, with theme-colored text, subtle borders and hover highlights. The starting screen now says **Basketball GM**.
 - **The free-agency cap-space bar is restored** in the denser layout, with salary, cap holds, tax and apron markers. Existing cap bars remain in place.
