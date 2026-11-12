@@ -3140,10 +3140,12 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // Real (No. 2 pick in 2021 out of the G League Ignite; All-Rookie First Team): 67 games (67 starts), 31.9 min, 17.3 pts,
       // 3.4 reb, 2.6 ast, 0.7 stl, 0.3 blk, 2.0 tov, 1.5 fouls, .426 FG on 14.2 shots, .343 on 6.8 threes, .797 FT on 3.5.
       // An explosive, volume-scoring shooting guard: lots of threes and pull-ups, 69 dunks, but a poor finisher in traffic
-      // (.252 from 3–10 ft) and a weak defender as a rookie. Shots: 27% from 0–3 ft (.680; 83 dunk attempts, 69 made),
-      // 13% from 3–10 ft (.252), 12% from 10 ft to the line (.369), 48% threes (.343).
-      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.5 pts, 3.3 reb, 2.6 ast,
-      // 0.7 stl, 0.3 blk, 1.9 tov, .433 FG on 13.9 shots, .344 on 7.2 threes, 3.4 FTA, .672 at the rim, 1.2 dunk attempts.
+      // and a weak defender as a rookie. NBA.com shot areas: 33% restricted area (.621; 83 dunk attempts, 69 made), 9% paint
+      // outside it (.195), 11% mid-range (.385), 7.6% corner threes (.361), 40% above-the-break threes (.341). Jump shots
+      // 59% assisted (catch-and-shoot share set from that), 10 fadeaways in 596 jumpers.
+      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.6 pts, 3.3 reb, 2.7 ast,
+      // 0.7 stl, 0.3 blk, 1.9 tov, .434 FG on 13.9 shots, .347 on 7.2 threes, 3.5 FTA, .632 in the restricted area, 1.2 dunk
+      // attempts. (Zones are set slightly toward the rim from his real shares: the engine turns them into a few more threes.)
       // 51 overall; potential 64 (about the 20-point starter he became in 2023–25, with a little room above).
       r: {
         hgt: 40,
@@ -3152,12 +3154,12 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         acc: 88,
         jmp: 90,
         endu: 72,
-        ins: 22,
+        ins: 16,
         dnk: 80,
-        lay: 48,
+        lay: 40,
         ft: 72,
         fg: 29,
-        tp: 62,
+        tp: 61,
         oiq: 52,
         diq: 30,
         blk: 30,
@@ -3194,27 +3196,28 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       },
       // Playing style from his 2021–22 shot chart (zones and jumper creation add up to 100%; usage and free throws as scores).
       ten: {
-        usage: 66,
-        dunk: 42,
+        usage: 67,
+        dunk: 36,
         ftr: 44,
-        ra: 27,
-        paint: 15,
-        mid: 14,
-        c3: 5,
-        atb: 39,
-        cns: 50,
-        pullup: 38,
-        step: 9,
-        fade: 3,
+        ra: 34,
+        paint: 9.5,
+        mid: 12,
+        c3: 7,
+        atb: 37.5,
+        cns: 55,
+        pullup: 37,
+        step: 6,
+        fade: 2,
         turnovers: 35,
         fouls: 30,
         crash: 24,
       },
       notes:
-        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Shot zones from his real rookie shot chart; the corner share of his threes and the catch-and-shoot / pull-up split are estimates (NBA tracking data was not reachable). Wingspan 6′7½″.',
+        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Shot areas, dunks and fadeaways from NBA.com; the catch-and-shoot / pull-up split is estimated from how many of his jumpers were assisted. Wingspan 6′7½″.',
       sources: [
         'https://www.basketball-reference.com/players/g/greenja05.html',
         'https://www.basketball-reference.com/players/g/greenja05/shooting/2022',
+        'https://www.nba.com/stats/player/1630224/shooting?Season=2021-22',
       ],
     },
   },
