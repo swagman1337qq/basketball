@@ -308,21 +308,6 @@
 .draft-board .draft-pick-actions {
   margin-top: 7px;
 }
-.draft-board .draft-pick-actions > summary {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--color-neutral-700);
-  cursor: pointer;
-  list-style: none;
-}
-.draft-board .draft-pick-actions > summary::-webkit-details-marker {
-  display: none;
-}
-.draft-board .draft-pick-actions .draft-clock-actions {
-  margin-top: 7px;
-}
 .draft-board .draft-remaining-picks {
   margin-top: auto;
   border-top: 1px solid var(--color-divider);
@@ -688,7 +673,7 @@
     width: 44px;
     min-height: 44px;
   }
-  .draft-board .draft-pick-actions > summary,
+  .draft-board .draft-pick-actions .btn,
   .draft-board .draft-picked-player,
   .draft-board .draft-pick-team .btn {
     min-height: 44px;

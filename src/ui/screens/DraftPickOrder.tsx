@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronsLeft } from 'lucide-react';
+import { ChevronsLeft } from 'lucide-react';
 import type { VM } from '../vm';
 import { inkOn } from '../kit';
 
@@ -21,7 +21,7 @@ export function DraftPickOrder({ vm, onCollapse }: { vm: VM; onCollapse?: () => 
   }, [current?.n, lastSelection, s.dClass]);
 
   const tradeButtons = (pick: any) => (
-    <div className="draft-clock-actions">
+    <div className="draft-pick-actions draft-clock-actions">
       <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
         {pick.tradeLbl}
       </button>
@@ -38,15 +38,8 @@ export function DraftPickOrder({ vm, onCollapse }: { vm: VM; onCollapse?: () => 
           Trade pick
         </button>
       </div>
-    ) : pick.onClock ? (
-      tradeButtons(pick)
     ) : (
-      <details className="draft-pick-actions">
-        <summary aria-label={'Trade options for pick ' + pick.n}>
-          Trade options <ChevronDown size={12} aria-hidden="true" />
-        </summary>
-        {tradeButtons(pick)}
-      </details>
+      tradeButtons(pick)
     ));
 
   const pickRow = (pick: any) => {
