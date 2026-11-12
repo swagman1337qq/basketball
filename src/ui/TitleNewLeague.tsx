@@ -72,10 +72,6 @@ export function TitleNewLeague({
                 2027
               </button>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)', marginTop: '4px' }}>
-              Each new league starts in a fresh random world: new players, rosters, owners and draft classes. Type a seed to replay a world
-              exactly (the same seed always builds the same league; 2027 is the reference world).
-            </div>
           </div>
           <div
             style={{
@@ -116,17 +112,6 @@ export function TitleNewLeague({
             />
             <span>
               <b>Give me the worst roster</b>
-              <span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>
-                {start === 'worst'
-                  ? 'You start with the league\u2019s weakest roster, the ' +
-                    teams.slice().sort((a, b) => a.top8 - b.top8)[0].region +
-                    ' roster (team rating ' +
-                    teams.slice().sort((a, b) => a.top8 - b.top8)[0].top8 +
-                    '), without its blue-chip prospects: they go to other teams for veterans about as good today, so one modest prospect at most is left' +
-                    (sel.length > 1 ? '; your other teams take the next-worst rosters, the same way' : '') +
-                    '. Your club keeps its name, market and owner.'
-                  : 'The weakest roster on the floor today.'}
-              </span>
             </span>
           </label>
           <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px' }}>
@@ -138,15 +123,6 @@ export function TitleNewLeague({
             />
             <span>
               <b>Give me the most hopeless roster</b>
-              <span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>
-                {start === 'hopeless'
-                  ? 'Not just bad: stuck. You start from the ' +
-                    (teams.find((t: any) => t.hopeless) || teams[0]).region +
-                    ' roster, the worst overall situation among the ten weakest, and it gets worse: no real prospects, an old rotation, three or four mediocre veterans on big contracts with years left (over the luxury tax, no cap room), role players starting at guard, and this season\u2019s first-round pick plus another first already traded away. Bottom five in team rating' +
-                    (sel.length > 1 ? '; your other teams get the next most hopeless situations' : '') +
-                    '. Your club keeps its name, market and owner.'
-                  : 'A bad team with bad contracts, an old roster, no young talent and no picks: hard to fix.'}
-              </span>
             </span>
           </label>
           <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer', fontSize: '13px' }}>
@@ -158,20 +134,8 @@ export function TitleNewLeague({
             />
             <span>
               <b>Spectator Mode</b>
-              <span style={{ display: 'block', fontSize: '11.5px', color: 'var(--color-neutral-600)' }}>
-                {start === 'spectate'
-                  ? 'You don\u2019t run a team: the AI makes every decision for all ' +
-                    teams.length +
-                    ' teams (rosters, trades, free agency, the draft, lineups) and nothing stops to ask you. Sim a day, a week, a season or several, and look at the standings, stats, awards, transactions and playoffs as you go. Stop any time and pick a team to manage.'
-                  : 'Watch the league run itself, season after season, without running a team.'}
-              </span>
             </span>
           </label>
-          {!start && (
-            <div style={{ fontSize: '11.5px', color: 'var(--color-neutral-600)', marginTop: '-6px' }}>
-              None: you run the team you pick, and rosters are dealt at random, as listed below.
-            </div>
-          )}
           <button className="btn btn-primary" onClick={create} style={{ width: '100%' }}>
             {start === 'spectate'
               ? 'Start spectating'
@@ -179,9 +143,6 @@ export function TitleNewLeague({
                 ? 'Start running ' + sel.length + ' franchises'
                 : 'Start as GM of the ' + picked.region + ' ' + picked.name}
           </button>
-          <div style={{ fontSize: '11px', color: 'var(--color-neutral-600)' }}>
-            Check one or more clubs below. The first one you pick is on screen first; switch any time.
-          </div>
         </section>
         <section className="title-team-picker">
           <div
