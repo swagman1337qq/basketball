@@ -3129,7 +3129,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       dob: '2002-02-09',
       hgt: '6′4″',
       wt: 186,
-      wing: 80,
+      wing: 79.5, // 6′7½″
       rep: 'US',
       born: 'US',
       raised: 'US',
@@ -3142,9 +3142,9 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // An explosive, volume-scoring shooting guard: lots of threes and pull-ups, 69 dunks, but a poor finisher in traffic
       // (.252 from 3–10 ft) and a weak defender as a rookie. Shots: 27% from 0–3 ft (.680; 83 dunk attempts, 69 made),
       // 13% from 3–10 ft (.252), 12% from 10 ft to the line (.369), 48% threes (.343).
-      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.5 pts, 3.4 reb, 2.7 ast,
-      // 0.7 stl, 0.3 blk, 2.0 tov, .437 FG on 13.8 shots, .344 on 7.1 threes, 3.4 FTA, .685 at the rim, 1.2 dunk attempts.
-      // 52 overall; potential 64 (about the 20-point starter he became in 2023–25, with a little room above).
+      // Tested over 1,200 games at his real 31.9 minutes on a mid-table team, his own style locked: 17.5 pts, 3.3 reb, 2.6 ast,
+      // 0.7 stl, 0.3 blk, 1.9 tov, .433 FG on 13.9 shots, .344 on 7.2 threes, 3.4 FTA, .672 at the rim, 1.2 dunk attempts.
+      // 51 overall; potential 64 (about the 20-point starter he became in 2023–25, with a little room above).
       r: {
         hgt: 40,
         stre: 34,
@@ -3154,7 +3154,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         endu: 72,
         ins: 22,
         dnk: 80,
-        lay: 51,
+        lay: 48,
         ft: 72,
         fg: 29,
         tp: 62,
@@ -3170,14 +3170,16 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       pot: 64,
       intg: { feel: 48, poise: 60 },
       pers: {
+        // Good-natured and likable off the court, praised for his character and athletic drive; criticized for plateaus
+        // in his engagement on defense and offense (work ethic middling, not low).
         mot: 'Fame',
-        alpha: true,
-        touches: true,
-        pro: false,
+        alpha: false,
+        touches: false,
+        pro: true,
         volatile: false,
         flashy: true,
         heat: false,
-        crowd: true,
+        crowd: false,
         villain: false,
         fearless: true,
         clutch: false,
@@ -3186,13 +3188,13 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         team: false,
         legacy: false,
         streaky: true,
-        work: 70,
+        work: 58,
         loyalty: 60,
-        ambition: 80,
+        ambition: 70,
       },
       // Playing style from his 2021–22 shot chart (zones and jumper creation add up to 100%; usage and free throws as scores).
       ten: {
-        usage: 62,
+        usage: 66,
         dunk: 42,
         ftr: 44,
         ra: 27,
@@ -3209,7 +3211,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         crash: 24,
       },
       notes:
-        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Corner share of his threes and how he created his jumpers are estimates (not recorded on the source).',
+        'His 2021–22 Rockets rookie season: 67 games, 31.9 minutes. Shot zones from his real rookie shot chart; the corner share of his threes and the catch-and-shoot / pull-up split are estimates (NBA tracking data was not reachable). Wingspan 6′7½″.',
       sources: [
         'https://www.basketball-reference.com/players/g/greenja05.html',
         'https://www.basketball-reference.com/players/g/greenja05/shooting/2022',
