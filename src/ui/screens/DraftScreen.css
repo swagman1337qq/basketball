@@ -451,6 +451,23 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.draft-board .draft-table .draft-potential-cell {
+  position: relative;
+  padding-right: 42px;
+}
+.draft-board .draft-row-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  padding: 4px;
+  color: var(--color-accent-700);
+}
 .draft-board .draft-table .draft-card-row > td {
   padding: 0;
   background: var(--color-neutral-100);
@@ -641,6 +658,13 @@
   }
 }
 @media (pointer: coarse) {
+  .draft-board .draft-table .draft-potential-cell {
+    padding-right: 54px;
+  }
+  .draft-board .draft-row-toggle {
+    width: 44px;
+    min-height: 44px;
+  }
   .draft-board .draft-pick-section > summary,
   .draft-board .draft-pick-actions > summary,
   .draft-board .draft-picked-player,

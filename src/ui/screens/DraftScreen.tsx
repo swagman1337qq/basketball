@@ -1,6 +1,7 @@
 import type { VM } from '../vm';
 import { GOD_PINK, PN } from '../kit';
 import { Fragment, useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { classStats } from '../../engine/amateurStats';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
@@ -199,7 +200,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
     );
   const columnCount = 1 + cols.length + (stats ? ST.length : 0);
   const boardHead = (c: any) => (
-    <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number'}>
+    <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number' + (c.key === 'pot' ? ' draft-potential-cell' : '')}>
       <button
         type="button"
         title={'Sort by ' + c.label}
@@ -444,8 +445,19 @@ export function DraftScreen({ vm }: { vm: VM }) {
                             <td className="draft-number" style={{ color: p.tone, fontWeight: 600 }}>
                               {p.ovrS}
                             </td>
-                            <td className="draft-number" style={{ color: p.ptone, fontWeight: 600 }}>
+                            <td className="draft-number draft-potential-cell" style={{ color: p.ptone, fontWeight: 600 }}>
                               {p.potS}
+                              <button
+                                type="button"
+                                className="btn btn-ghost draft-row-toggle"
+                                aria-expanded={opened}
+                                aria-controls={'draft-card-' + cls + '-' + p.id}
+                                aria-label={(opened ? 'Collapse' : 'Expand') + ' scouting card for ' + p.name}
+                                title={(opened ? 'Collapse' : 'Expand') + ' scouting card'}
+                                onClick={() => setExpanded(opened ? null : { cls, id: p.id })}
+                              >
+                                {opened ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+                              </button>
                             </td>
                           </tr>
                           {opened && report && (
@@ -483,8 +495,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
                 <p className="draft-board-note">EPM, LEBRON and DARKO are box-score estimates for amateur seasons.</p>
               )}
               <p className="draft-board-note">
-                Click a player’s row to open his prospect card. Names open full profiles. Use checkboxes or drag/shift-click to scout or
-                shortlist several players.
+                Click a player’s row or its corner arrow to open his prospect card. Names open full profiles. Use checkboxes or
+                drag/shift-click to scout or shortlist several players.
               </p>
               {pg.pager}
             </>
