@@ -44,10 +44,6 @@
 .draft-board .draft-sidebar-heading h2 {
   font-size: 22px;
 }
-.draft-board .draft-sidebar-heading > button {
-  font-size: 13px;
-  padding: 4px 6px;
-}
 .draft-board .draft-prospect-heading {
   margin: 16px 0 4px;
 }
@@ -194,8 +190,7 @@
 .draft-board .draft-pick-section > summary,
 .draft-board .draft-remaining-picks,
 .draft-board .draft-pick-sidebar > .draft-kicker,
-.draft-board .draft-pick-sidebar > .draft-board-note,
-.draft-board .draft-order-more {
+.draft-board .draft-pick-sidebar > .draft-board-note {
   flex-shrink: 0;
 }
 .draft-board .draft-pick-section > summary {
@@ -236,6 +231,17 @@
   gap: 10px;
   padding: 14px 0;
   border-bottom: 1px solid var(--color-divider);
+}
+.draft-board .draft-round-divider {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
 }
 .draft-board .draft-pick-number {
   color: var(--color-neutral-700);
@@ -305,13 +311,6 @@
 }
 .draft-board .draft-pick-actions .draft-clock-actions {
   margin-top: 7px;
-}
-.draft-board .draft-order-more {
-  margin-top: 8px;
-  padding: 4px 0;
-  font-size: 13px;
-  white-space: normal;
-  text-align: left;
 }
 .draft-board .draft-remaining-picks {
   margin-top: auto;
@@ -642,12 +641,10 @@
   }
 }
 @media (pointer: coarse) {
-  .draft-board .draft-sidebar-heading > button,
   .draft-board .draft-pick-section > summary,
   .draft-board .draft-pick-actions > summary,
   .draft-board .draft-picked-player,
-  .draft-board .draft-pick-team .btn,
-  .draft-board .draft-order-more {
+  .draft-board .draft-pick-team .btn {
     min-height: 44px;
   }
   .draft-board .draft-card-collapse {

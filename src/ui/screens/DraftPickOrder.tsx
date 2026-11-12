@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { VM } from '../vm';
 
 /** The live draft stays beside the board, using the same pick owners and actions as trades. */
 export function DraftPickOrder({ vm }: { vm: VM }) {
   const { s } = vm.ctx;
-  const [fullOrder, setFullOrder] = useState(false);
   const completedList = useRef<HTMLOListElement>(null);
-  const upcomingSection = useRef<HTMLDetailsElement>(null);
   const order = vm.dr.order || [];
   const completed = order.filter((pick: any) => pick.pid);
   const current = order.find((pick: any) => pick.onClock);
@@ -18,10 +16,6 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
     const list = completedList.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [lastSelection, s.dClass]);
-  const toggleFullOrder = () => {
-    setFullOrder(value => !value);
-    if (upcomingSection.current) upcomingSection.current.open = true;
-  };
 
   const tradeActions = (pick: any) =>
     pick.canTrade && (
@@ -73,21 +67,26 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
     </li>
   );
 
+  const pickRows = (picks: any[]) =>
+    picks.flatMap((pick, index) => {
+      const round = pick.n > s.teams.length ? 2 : 1;
+      const previousRound = index > 0 ? (picks[index - 1].n > s.teams.length ? 2 : 1) : null;
+      return [
+        ...(round !== previousRound
+          ? [
+              <li key={'round-' + round} className="draft-round-divider">
+                {round === 1 ? '1st round' : '2nd round'}
+              </li>,
+            ]
+          : []),
+        pickRow(pick),
+      ];
+    });
+
   return (
     <aside className="draft-pick-sidebar" aria-label="Drafted players and pick order">
       <div className="draft-sidebar-heading">
         <h2>{vm.dr.isFuture ? 'Your picks' : 'Pick order'}</h2>
-        {vm.dr.isCurrent && upcoming.length > 6 && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            aria-pressed={fullOrder}
-            aria-controls="draft-upcoming-picks"
-            onClick={toggleFullOrder}
-          >
-            {fullOrder ? 'Compact order' : 'Full order'}
-          </button>
-        )}
       </div>
       {vm.dr.isCurrent && (
         <>
@@ -139,13 +138,13 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
             </summary>
             {completed.length ? (
               <ol className="draft-pick-list draft-completed-list" aria-label="Completed selections" ref={completedList}>
-                {completed.map(pickRow)}
+                {pickRows(completed)}
               </ol>
             ) : (
               <p className="draft-pick-empty draft-muted">No selections yet.</p>
             )}
           </details>
-          <details className="draft-pick-section" open ref={upcomingSection}>
+          <details className="draft-pick-section" open>
             <summary>
               <span>
                 Up next <span className="draft-muted">{upcoming.length}</span>
@@ -153,14 +152,9 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
               <ChevronDown size={14} aria-hidden="true" />
             </summary>
             <ol id="draft-upcoming-picks" className="draft-pick-list" aria-label="Upcoming selections">
-              {(fullOrder ? upcoming : upcoming.slice(0, 6)).map(pickRow)}
+              {pickRows(upcoming)}
             </ol>
             {!upcoming.length && <p className="draft-pick-empty draft-muted">All selections are in.</p>}
-            {upcoming.length > 6 && (
-              <button type="button" className="btn btn-ghost draft-order-more" onClick={toggleFullOrder}>
-                {fullOrder ? 'Show fewer picks' : 'Show all ' + upcoming.length + ' upcoming picks'}
-              </button>
-            )}
           </details>
           <div className="draft-remaining-picks">
             <span className="draft-muted">Your remaining picks</span>
