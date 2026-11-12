@@ -4,6 +4,7 @@ import { byLast, useSort } from '../sortable';
 import { godBtn, PN } from '../kit';
 import { CapBar } from '../CapBar';
 import { describeContract } from '../../engine/cba';
+import type { TradeText } from './TradeNameLinks';
 import './TradeBoard.css';
 
 const POS_ORDER = ['PG', 'G', 'SG', 'GF', 'SF', 'F', 'PF', 'FC', 'C'];
@@ -144,7 +145,7 @@ function PlayerTable({
   );
 }
 
-function PickTable({ rows, vm, incoming = false }: { rows: any[]; vm: VM; incoming?: boolean }) {
+function PickTable({ rows, vm, text, incoming = false }: { rows: any[]; vm: VM; text: TradeText; incoming?: boolean }) {
   return (
     <div className="trade-board-picks">
       {rows.map(k => (
@@ -161,8 +162,8 @@ function PickTable({ rows, vm, incoming = false }: { rows: any[]; vm: VM; incomi
             onChange={k.toggle}
           />
           <div className="trade-board-pick-text">
-            <span style={{ fontStyle: k.swap ? 'italic' : undefined }}>{k.label}</span>
-            <span className="trade-board-sub">{k.proj}</span>
+            <span style={{ fontStyle: k.swap ? 'italic' : undefined }}>{text(k.label)}</span>
+            <span className="trade-board-sub">{text(k.proj)}</span>
           </div>
           {k.prot && !incoming && (
             <select
@@ -186,7 +187,7 @@ function PickTable({ rows, vm, incoming = false }: { rows: any[]; vm: VM; incomi
   );
 }
 
-export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
+export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; text: TradeText }) {
   const mine = useSort<any>(vm.tMine || [], sortKeys);
   const theirs = useSort<any>(vm.tTheirs || [], sortKeys);
   const [posMine, setPosMine] = useState('All');
@@ -232,55 +233,74 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
   ];
   const review = (
     <div className="trade-board-review">
-      <div className="trade-board-actions">
-        <button className="btn btn-primary" type="button" onClick={vm.propose} disabled={vm.tr.cantPropose}>
-          Propose trade
-        </button>
-        <button className="btn btn-secondary" type="button" onClick={vm.balance} disabled={vm.tr.cantBalance}>
-          What would it take?
-        </button>
-        <button
-          className="btn btn-secondary"
-          type="button"
-          onClick={vm.shopOffers}
-          disabled={!vm.canShop}
-          title="Shop your selected players and picks around the league"
-        >
-          Shop around league
-        </button>
-        <button className="btn btn-secondary" type="button" onClick={vm.askOffers} disabled={!vm.canAsk}>
-          Ask what they want
-        </button>
-        <button className="btn btn-ghost" type="button" onClick={vm.tr.askAdvice} disabled={vm.tr.cantBalance}>
-          {s.tAdvice ? 'Hide advice' : 'Ask for advice'}
-        </button>
-        <button className="btn btn-ghost" type="button" onClick={vm.clearTrade}>
-          Clear
-        </button>
-        {!!vm.tr.god && (
-          <button className="btn btn-secondary" type="button" onClick={vm.forceAccept} disabled={vm.tr.cantForce} style={godBtn}>
-            ⚡ Force accept
+      <div className="trade-board-review-grid">
+        <div className="trade-board-actions">
+          <button className="btn btn-primary" type="button" onClick={vm.propose} disabled={vm.tr.cantPropose}>
+            Propose trade
           </button>
-        )}
-      </div>
-      <div className="trade-board-checks">
-        <span style={{ color: vm.tr.salColor }}>
-          <strong>League office</strong> · {vm.tr.sal}
-        </span>
-        <span style={{ color: vm.tr.rosColor }}>{vm.tr.ros}</span>
-      </div>
-      <div className="trade-board-direction">
-        <strong>{vm.tr.stratName}</strong>
-        <span>{vm.tr.verdict}</span>
-        <details>
-          <summary>Team priorities</summary>
-          <p>{vm.tr.stratDesc}</p>
-        </details>
+          <button className="btn btn-secondary" type="button" onClick={vm.balance} disabled={vm.tr.cantBalance}>
+            What would it take?
+          </button>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={vm.shopOffers}
+            disabled={!vm.canShop}
+            title="Shop your selected players and picks around the league"
+          >
+            Shop around league
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={vm.askOffers} disabled={!vm.canAsk}>
+            Ask what they want
+          </button>
+          <button className="btn btn-ghost" type="button" onClick={vm.tr.askAdvice} disabled={vm.tr.cantBalance}>
+            {s.tAdvice ? 'Hide advice' : 'Ask for advice'}
+          </button>
+          <button className="btn btn-ghost" type="button" onClick={vm.clearTrade}>
+            Clear
+          </button>
+          {!!vm.tr.god && (
+            <button
+              className="btn btn-secondary trade-board-force"
+              type="button"
+              onClick={vm.forceAccept}
+              disabled={vm.tr.cantForce}
+              style={godBtn}
+            >
+              ⚡ Force accept
+            </button>
+          )}
+        </div>
+        <div className="trade-board-checks">
+          <div className="trade-board-review-label">League office</div>
+          <div>
+            <span>Salary rule</span>
+            <strong style={{ color: vm.tr.salColor }}>{text(vm.tr.sal)}</strong>
+          </div>
+          <div>
+            <span>Roster limits</span>
+            <strong style={{ color: vm.tr.rosColor }}>{text(vm.tr.ros)}</strong>
+          </div>
+        </div>
+        <div className="trade-board-direction">
+          <div className="trade-board-review-label">Their direction</div>
+          <strong>{text(vm.tr.stratName)}</strong>
+          <p>{text(vm.tr.stratDesc)}</p>
+          <div className="trade-board-review-label">Their appetite</div>
+          <div className="trade-board-appetite" aria-hidden="true">
+            <span style={{ left: vm.tr.meter }} />
+          </div>
+          <div className="trade-board-appetite-labels">
+            <span>Decline</span>
+            <span>Accept</span>
+          </div>
+          <p className="trade-board-verdict">{text(vm.tr.verdict)}</p>
+        </div>
       </div>
       {advice}
       {vm.tr.hasMsg && (
         <div role="status" className="trade-board-message">
-          {vm.tr.msg}
+          {text(vm.tr.msg)}
         </div>
       )}
     </div>
@@ -294,22 +314,25 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
             <header className="trade-board-team">
               {side.logo}
               {side.key === 'mine' ? (
-                <h3>{side.title}</h3>
+                <h3>{text(side.title)}</h3>
               ) : (
-                <div className="trade-board-partner">
-                  <button className="btn btn-ghost" type="button" aria-label="Previous team" onClick={() => cycle(-1)}>
-                    ‹
-                  </button>
-                  <select className="input" aria-label="Trade partner" value={vm.tTid} onChange={vm.pickTeam}>
-                    {teamOptions.map((t: any) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="btn btn-ghost" type="button" aria-label="Next team" onClick={() => cycle(1)}>
-                    ›
-                  </button>
+                <div className="trade-board-partner-group">
+                  <h3>{text(side.title)}</h3>
+                  <div className="trade-board-partner">
+                    <button className="btn btn-ghost" type="button" aria-label="Previous team" onClick={() => cycle(-1)}>
+                      ‹
+                    </button>
+                    <select className="input" aria-label="Trade partner" value={vm.tTid} onChange={vm.pickTeam}>
+                      {teamOptions.map((t: any) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="btn btn-ghost" type="button" aria-label="Next team" onClick={() => cycle(1)}>
+                      ›
+                    </button>
+                  </div>
                 </div>
               )}
             </header>
@@ -322,7 +345,7 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
                 {side.incoming.length > 0 && (
                   <PlayerTable rows={side.incoming} vm={vm} tid={side.sourceTid} label={side.title + ' incoming players'} />
                 )}
-                <PickTable rows={side.incomingPicks} vm={vm} incoming />
+                <PickTable rows={side.incomingPicks} vm={vm} text={text} incoming />
                 {!side.incoming.length && !side.incomingPicks.length && (
                   <p className="trade-board-empty">Select players or picks from the other roster.</p>
                 )}
@@ -346,7 +369,7 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
           <section className="trade-board-column" key={side.key} aria-label={side.title + ' roster and picks'}>
             <section className="trade-board-roster">
               <div className="trade-board-section-title">
-                <strong>{side.title} roster</strong>
+                <strong>{text(side.title)} roster</strong>
                 <span>{side.sort.rows.length} players</span>
               </div>
               <PositionFilter value={side.position} set={side.setPosition} rows={side.sort.rows} />
@@ -362,7 +385,7 @@ export function TradeBoard({ vm, advice }: { vm: VM; advice: ReactNode }) {
               <div className="trade-board-section-title">
                 <strong>Draft picks & swaps</strong>
               </div>
-              <PickTable rows={side.picks} vm={vm} />
+              <PickTable rows={side.picks} vm={vm} text={text} />
             </section>
             <footer className="trade-board-side-footer">
               <span>

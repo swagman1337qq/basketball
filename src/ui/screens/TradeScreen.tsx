@@ -1,11 +1,13 @@
 import type { VM } from '../vm';
 import { TradeBoard } from './TradeBoard';
+import { useTradeNameLinks, type TradeText } from './TradeNameLinks';
 
 const TONE: Record<string, string> = { good: 'var(--gm-good)', ok: 'var(--color-accent-700)', bad: 'var(--gm-bad)' };
-function AdviceBox({ a }: { a: any }) {
+function AdviceBox({ a, text }: { a: any; text: TradeText }) {
   if (!a) return null;
   return (
     <div
+      className="trade-advice"
       style={{
         marginTop: 8,
         padding: '8px 10px',
@@ -17,10 +19,10 @@ function AdviceBox({ a }: { a: any }) {
       <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' }}>
         Assistant GM
       </div>
-      <div style={{ fontWeight: 600, color: TONE[a.tone], margin: '2px 0 4px' }}>“{a.head}”</div>
+      <div style={{ fontWeight: 600, color: TONE[a.tone], margin: '2px 0 4px' }}>“{text(a.head)}”</div>
       {a.lines.map((l: string, i: number) => (
         <div key={i} style={{ fontSize: '12px', color: 'var(--color-neutral-800)' }}>
-          · {l}
+          · {text(l)}
         </div>
       ))}
     </div>
@@ -28,6 +30,7 @@ function AdviceBox({ a }: { a: any }) {
 }
 
 export function TradeScreen({ vm }: { vm: VM }) {
+  const text = useTradeNameLinks(vm);
   const arrowBtn = { minWidth: 30, padding: '2px 8px', fontSize: '20px', lineHeight: 1 } as const;
   const O = vm.offersV;
   const side = (label: string, rows: any[]) => (
@@ -48,22 +51,23 @@ export function TradeScreen({ vm }: { vm: VM }) {
           {r.open ? (
             <button
               className="hv6"
+              data-pid={r.open.__pid}
               onClick={r.open}
               style={{ all: 'unset', cursor: 'pointer', color: 'var(--color-accent-700)', fontWeight: 600 }}
             >
               {r.name}
             </button>
           ) : (
-            <b>{r.name}</b>
+            <b>{text(r.name)}</b>
           )}
-          <span style={{ color: 'var(--color-neutral-700)', fontSize: '12px', marginLeft: 8 }}>{r.sub}</span>
+          <span style={{ color: 'var(--color-neutral-700)', fontSize: '12px', marginLeft: 8 }}>{text(r.sub)}</span>
         </div>
       ))}
       {!rows.length && <div style={{ color: 'var(--color-neutral-700)', fontSize: '12.5px' }}>Nothing</div>}
     </div>
   );
   return (
-    <>
+    <div className="trade-screen">
       {vm.inOffersV.count > 0 && !O && (
         <div
           style={{
@@ -84,6 +88,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
       )}
       {!!O && (
         <section
+          className="trade-offers"
           style={{
             marginBottom: 18,
             padding: '12px 14px',
@@ -93,7 +98,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-            <b style={{ fontFamily: 'var(--font-heading)', fontSize: '18px' }}>{O.title}</b>
+            <b style={{ fontFamily: 'var(--font-heading)', fontSize: '18px' }}>{text(O.title)}</b>
             <span style={{ color: 'var(--color-neutral-700)', fontSize: '12.5px' }}>
               {O.loading ? '' : O.empty ? '0 offers' : O.count + (O.count === 1 ? ' offer' : ' offers')}
             </span>
@@ -104,7 +109,7 @@ export function TradeScreen({ vm }: { vm: VM }) {
           {O.loading ? (
             <p style={{ margin: 0, color: 'var(--color-neutral-700)' }}>📞 Calling around the league…</p>
           ) : O.empty ? (
-            <p style={{ margin: 0, color: 'var(--color-neutral-700)' }}>{O.emptyMsg}</p>
+            <p style={{ margin: 0, color: 'var(--color-neutral-700)' }}>{text(O.emptyMsg)}</p>
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -113,11 +118,11 @@ export function TradeScreen({ vm }: { vm: VM }) {
                 </button>
                 {O.logo}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>{O.team}</div>
+                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>{text(O.team)}</div>
                   <div style={{ color: 'var(--color-neutral-700)', fontSize: '12px' }}>
-                    {O.strat}
+                    {text(O.strat)}
                     {O.strat ? ' · ' : ''}GM {O.gm}
-                    {O.note && !/^Option/.test(O.note) ? ' · ' + O.note : ''}
+                    {O.note && !/^Option/.test(O.note) ? <> · {text(O.note)}</> : ''}
                   </div>
                 </div>
                 <span style={{ marginLeft: 'auto', color: 'var(--color-neutral-700)', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
@@ -150,12 +155,12 @@ export function TradeScreen({ vm }: { vm: VM }) {
                   🧠 {O.adviceOn ? 'Hide advice' : 'Ask for advice'}
                 </button>
               </div>
-              <AdviceBox a={O.advice} />
+              <AdviceBox a={O.advice} text={text} />
             </>
           )}
         </section>
       )}
-      <TradeBoard vm={vm} advice={<AdviceBox a={vm.tr.advice} />} />
-    </>
+      <TradeBoard vm={vm} text={text} advice={<AdviceBox a={vm.tr.advice} text={text} />} />
+    </div>
   );
 }
