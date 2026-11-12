@@ -48,7 +48,7 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
       </span>
       <div className="draft-pick-body">
         <div className="draft-pick-team">
-          {pick.logo}
+          {pick.logoLg || pick.logo}
           <button type="button" className="btn btn-ghost" onClick={pick.openT} title={pick.team}>
             {pick.team}
           </button>
@@ -108,7 +108,7 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
             </strong>
             {current && (
               <div className="draft-pick-team draft-current-team">
-                {current.logo}
+                {current.logoLg || current.logo}
                 <button type="button" className="btn btn-ghost" onClick={current.openT}>
                   {current.team}
                 </button>
