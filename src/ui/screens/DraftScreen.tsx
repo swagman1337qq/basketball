@@ -1,6 +1,6 @@
 import type { VM } from '../vm';
 import { GOD_PINK, PN } from '../kit';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { classStats } from '../../engine/amateurStats';
 import { TraitFilter, byTrait } from '../TraitFilter';
@@ -17,6 +17,11 @@ import './DraftScreen.css';
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
 
 export function DraftScreen({ vm }: { vm: VM }) {
+  const [confirmAutoDraft, setConfirmAutoDraft] = useState(false);
+  const autoDraftDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (confirmAutoDraft && autoDraftDialog.current && !autoDraftDialog.current.open) autoDraftDialog.current.showModal();
+  }, [confirmAutoDraft]);
   const [tk, setTk] = useState(''),
     [view, setView] = useState<'board' | 'mock'>('board'),
     [stMode, setStMode] = useState<'' | 'trad' | 'adv'>(''),
@@ -198,7 +203,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
         <PastDraft vm={vm} />
       </section>
     );
-  const columnCount = 1 + cols.length + (stats ? ST.length : 0);
+  const showDraftAction = vm.dr.isCurrent;
+  const columnCount = 1 + cols.length + (stats ? ST.length : 0) + (showDraftAction ? 1 : 0);
   const boardHead = (c: any) => (
     <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number' + (c.key === 'pot' ? ' draft-potential-cell' : '')}>
       <button
@@ -264,20 +270,27 @@ export function DraftScreen({ vm }: { vm: VM }) {
             )}
             {vm.dr.isCurrent && (
               <div className="draft-clock-actions">
-                <details className="draft-sim">
-                  <summary className="btn btn-secondary">Simulate ▾</summary>
-                  <div className="draft-sim-menu">
-                    <button type="button" className="btn btn-ghost" onClick={vm.simOne} disabled={vm.dr.noSimMine}>
-                      Sim one pick
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
-                      Sim to my pick
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={vm.simAll} disabled={vm.dr.done}>
-                      Auto-draft the rest
-                    </button>
-                  </div>
-                </details>
+                <div className="draft-sim-actions" role="group" aria-label="Draft simulation">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={vm.simOne}
+                    disabled={s.phase !== 'draft' || vm.dr.done || vm.dr.mineClock}
+                  >
+                    Sim one pick
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
+                    Sim to your pick
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setConfirmAutoDraft(true)}
+                    disabled={s.phase !== 'draft' || vm.dr.done}
+                  >
+                    Sim to end of draft
+                  </button>
+                </div>
                 <button type="button" className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice}>
                   Ask scouts
                 </button>
@@ -381,6 +394,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                           {c.key === 'age' && statHeads}
                         </Fragment>
                       ))}
+                      {showDraftAction && <th className="draft-action-cell">Draft</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -465,6 +479,23 @@ export function DraftScreen({ vm }: { vm: VM }) {
                                 {opened ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
                               </button>
                             </td>
+                            {showDraftAction && (
+                              <td className="draft-action-cell">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary draft-row-draft"
+                                  disabled={p.cant}
+                                  aria-label={'Draft ' + p.name}
+                                  title={p.cant ? 'Available when it is your turn to pick' : 'Draft ' + p.name}
+                                  onClick={event => {
+                                    event.stopPropagation();
+                                    p.draft();
+                                  }}
+                                >
+                                  Draft player
+                                </button>
+                              </td>
+                            )}
                           </tr>
                           {opened && report && (
                             <tr className="draft-card-row">
@@ -509,6 +540,36 @@ export function DraftScreen({ vm }: { vm: VM }) {
           )}
         </section>
       </DraftRoomLayout>
+      {confirmAutoDraft && (
+        <dialog
+          ref={autoDraftDialog}
+          className="dialog draft-auto-confirm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="draft-auto-confirm-question"
+          onCancel={() => setConfirmAutoDraft(false)}
+        >
+          <h2 className="dialog-title" id="draft-auto-confirm-question">
+            Are you sure you want to let the AI draft for you?
+          </h2>
+          <div className="dialog-actions">
+            <button type="button" className="btn btn-secondary" autoFocus onClick={() => setConfirmAutoDraft(false)}>
+              No
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={s.phase !== 'draft' || !vm.dr.isCurrent || vm.dr.done}
+              onClick={() => {
+                setConfirmAutoDraft(false);
+                vm.simAll();
+              }}
+            >
+              Yes
+            </button>
+          </div>
+        </dialog>
+      )}
     </section>
   );
 }

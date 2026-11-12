@@ -171,28 +171,25 @@
 .draft-board .draft-muted {
   color: var(--color-neutral-700);
 }
-.draft-board .draft-sim {
-  position: relative;
+.draft-board .draft-sim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
-.draft-board .draft-sim > summary {
-  cursor: pointer;
-  list-style: none;
-}
-.draft-board .draft-sim > summary::-webkit-details-marker {
-  display: none;
-}
-.draft-board .draft-sim-menu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: 3;
-  width: 195px;
-  padding: 6px;
+.draft-board .draft-auto-confirm {
+  width: min(440px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 22px;
   background: var(--color-bg);
+  color: var(--color-text);
   border: 1px solid var(--color-divider);
   box-shadow: var(--shadow-md);
-  display: grid;
-  gap: 4px;
+}
+.draft-board .draft-auto-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+.draft-board .draft-auto-confirm:not([open]) {
+  display: none;
 }
 .draft-board .draft-sidebar-heading,
 .draft-board .draft-pick-columns,
@@ -407,7 +404,7 @@
 }
 .draft-board .draft-table th,
 .draft-board .draft-table td {
-  padding: 8px 6px;
+  padding: 8px 5px;
 }
 .draft-board .draft-table th {
   white-space: nowrap;
@@ -431,7 +428,7 @@
 .draft-board .draft-prospect-identity {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .draft-board .draft-prospect-face {
   display: block;
@@ -473,7 +470,18 @@
 }
 .draft-board .draft-table .draft-potential-cell {
   position: relative;
-  padding-right: 42px;
+  padding-right: 38px;
+}
+.draft-board .draft-table .draft-action-cell {
+  width: 1%;
+  padding-left: 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+.draft-board .draft-row-draft {
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 .draft-board .draft-row-toggle {
   position: absolute;
