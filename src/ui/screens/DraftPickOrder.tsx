@@ -32,7 +32,13 @@ export function DraftPickOrder({ vm, onCollapse }: { vm: VM; onCollapse?: () => 
   );
   const tradeActions = (pick: any) =>
     pick.canTrade &&
-    (pick.onClock ? (
+    (!pick.mine && !pick.pid ? (
+      <div className="draft-pick-actions draft-clock-actions">
+        <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
+          Trade pick
+        </button>
+      </div>
+    ) : pick.onClock ? (
       tradeButtons(pick)
     ) : (
       <details className="draft-pick-actions">
