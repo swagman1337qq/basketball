@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-12
+
+### Added
+- **New player card: Jalen Green's 2021–22 rookie season** with the Rockets: an explosive, high-volume shooting guard who takes lots of threes and dunks a lot but struggles to finish in traffic. Tested in games at his real minutes, it comes close to his real line (17.3 points, .426 shooting, .343 from three). 52 overall, 64 potential.
+
 ## 2026-11-11
 
 ### Added
