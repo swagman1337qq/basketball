@@ -184,7 +184,6 @@ export function TitleScreen({
       <div className="title-page" data-view={showNew ? 'new' : 'library'}>
         <header className="title-masthead">
           <span className="title-wordmark">Basketball GM</span>
-          <span className="title-kicker">Basketball Manager</span>
         </header>
         <header className="title-heading">
           <div>
