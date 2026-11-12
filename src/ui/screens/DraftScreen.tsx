@@ -10,6 +10,7 @@ import { useSearchFilter } from '../SearchFilter';
 import { LoadDraftClass } from '../LoadDraftClass';
 import { scoutReport } from '../../engine/scoutReport';
 import { DraftProspectCard } from './DraftProspectCard';
+import { DraftPickOrder } from './DraftPickOrder';
 import './DraftScreen.css';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
@@ -131,7 +132,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const preview = previewId == null ? null : pg.rows.find((p: any) => p.id === previewId);
   const report = useMemo(() => (preview ? scoutReport(gm, s, preview.id) : null), [gm, s, preview?.id]);
   const head = (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
+    <div className="draft-heading">
       <div
         style={{
           display: 'inline-flex',
@@ -176,7 +177,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
         </select>
       )}
       <div style={{ flex: '1', color: vm.ctx.s.god ? GOD_PINK : 'var(--color-neutral-700)', fontSize: '12px' }}>{vm.dr.classNote}</div>
-      {vm.ctx.s.god && view === 'board' && (
+      {vm.ctx.s.god && (
         <LoadDraftClass
           gm={vm.ctx.gm}
           year={vm.ctx.s.dClass}
@@ -187,28 +188,15 @@ export function DraftScreen({ vm }: { vm: VM }) {
           }
         />
       )}
-      {!!vm.dr.isCurrent && (
-        <>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice} style={{ whiteSpace: 'nowrap' }}>
-              Ask scouts
-            </button>
-            <button className="btn btn-secondary" onClick={vm.askAgm} disabled={vm.dr.noAdvice} style={{ whiteSpace: 'nowrap' }}>
-              Ask assistant GM
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
   if (vm.dr.past)
     return (
-      <>
+      <section className="draft-board">
         {head}
         <PastDraft vm={vm} />
-      </>
+      </section>
     );
-  const currentPick = (vm.dr.order || []).find((o: any) => o.onClock);
   const columnCount = 1 + cols.length + (stats ? ST.length : 0);
   const boardHead = (c: any) => (
     <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number'}>
@@ -239,365 +227,256 @@ export function DraftScreen({ vm }: { vm: VM }) {
   return (
     <section className="draft-board" aria-label="Draft board">
       {head}
-      {vm.dr.isCurrent && (
-        <div className={'draft-clock' + (vm.dr.mineClock ? ' draft-clock-mine' : '')}>
-          <div>
-            <strong>{vm.dr.done && s.phase === 'draft' ? 'Draft complete' : vm.dr.status}</strong>
-            <p className="draft-muted">{vm.dr.sub}</p>
-          </div>
-          <div className="draft-clock-actions">
-            {currentPick?.canTrade && (
-              <button type="button" className="btn btn-secondary" onClick={currentPick.tradePick}>
-                {currentPick.tradeLbl}
-              </button>
+      <div className="draft-room-layout">
+        <DraftPickOrder key={cls} vm={vm} />
+        <section className="draft-prospects" aria-label="Prospect workspace">
+          {vm.dr.hasAdvice && (
+            <div className="draft-advice">
+              {(vm.dr.advice || []).map((a: any) => (
+                <div key={a.who}>
+                  <div className="draft-kicker">{a.who}</div>
+                  <button type="button" className="btn btn-ghost" onClick={a.open}>
+                    {a.name}
+                  </button>
+                  <div className="draft-muted">{a.meta}</div>
+                  <p>{a.why}</p>
+                  {a.canDraft && (
+                    <button type="button" className="btn btn-primary" onClick={a.draft}>
+                      Draft {a.name}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="draft-toolbar">
+            {vm.dr.isCurrent ? (
+              <Seg<'board' | 'mock'>
+                value={view}
+                options={[
+                  ['board', 'Big board'],
+                  ['mock', 'Mock drafts'],
+                ]}
+                onChange={setView}
+              />
+            ) : (
+              <h3>Big board</h3>
             )}
-            <details className="draft-sim">
-              <summary className="btn btn-secondary">Simulate ▾</summary>
-              <div className="draft-sim-menu">
-                <button type="button" className="btn btn-ghost" onClick={vm.simOne} disabled={vm.dr.noSimMine}>
-                  Sim one pick
+            {vm.dr.isCurrent && (
+              <div className="draft-clock-actions">
+                <button type="button" className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice}>
+                  Ask scouts
                 </button>
-                <button type="button" className="btn btn-ghost" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
-                  Sim to my pick
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={vm.simAll} disabled={vm.dr.done}>
-                  Auto-draft the rest
+                <button type="button" className="btn btn-secondary" onClick={vm.askAgm} disabled={vm.dr.noAdvice}>
+                  Ask assistant GM
                 </button>
               </div>
-            </details>
+            )}
           </div>
-        </div>
-      )}
-      {vm.dr.isCurrent && (
-        <details className="draft-order">
-          <summary>Draft order · {(vm.dr.order || []).length} picks</summary>
-          <div className="draft-order-scroll">
-            <table className="draft-order-table" aria-label="Draft order">
-              <thead>
-                <tr>
-                  <th>Pick</th>
-                  <th>Team</th>
-                  <th>Selection</th>
-                  <th>Trade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(vm.dr.order || []).map((o: any) => (
-                  <tr
-                    key={o.n}
-                    data-on-clock={!!o.onClock}
-                    ref={
-                      o.onClock
-                        ? el => {
-                            const box = el?.closest('.draft-order-scroll') as HTMLElement | null;
-                            if (el && box && box.dataset.at !== String(o.n)) {
-                              box.dataset.at = String(o.n);
-                              box.scrollTop = el.offsetTop - 90;
-                            }
-                          }
-                        : undefined
-                    }
+          {view === 'mock' && vm.dr.isCurrent ? (
+            <MockDrafts vm={vm} />
+          ) : (
+            <>
+              <div className="draft-prospect-heading">
+                <h2>Available prospects</h2>
+                <span className="draft-muted">{boardRows.length} prospects</span>
+              </div>
+              <div className="draft-view-controls draft-stat-tabs">
+                <button
+                  type="button"
+                  className={!stats ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => setStMode('')}
+                  aria-pressed={!stats}
+                >
+                  Overview
+                </button>
+                <button
+                  type="button"
+                  className={stMode === 'trad' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => pickMode('trad')}
+                  aria-pressed={stMode === 'trad'}
+                >
+                  Show traditional stats
+                </button>
+                <button
+                  type="button"
+                  className={stMode === 'adv' ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => pickMode('adv')}
+                  aria-pressed={stMode === 'adv'}
+                >
+                  Show advanced stats
+                </button>
+                <label className="draft-extra-sort">
+                  Sort
+                  <select
+                    className="input"
+                    value=""
+                    aria-label="Sort prospects"
+                    onChange={e => {
+                      const c = (vm.draftCols || []).find((c: any) => c.key === e.target.value);
+                      if (c) {
+                        setStSort(null);
+                        c.onClick();
+                      }
+                    }}
                   >
-                    <td className={o.mine ? 'draft-your-pick' : undefined}>
-                      #{o.n}
-                      {o.n > s.teams.length ? ' · R2' : ' · R1'}
-                    </td>
-                    <td>
-                      <div className="draft-order-team">
-                        {o.logo}
-                        <button type="button" className="btn btn-ghost" onClick={o.openT}>
-                          {o.team}
-                        </button>
-                        {o.via && <span className="draft-muted">{o.via}</span>}
-                        {o.mine && <span className="draft-your-pick">Your pick</span>}
-                      </div>
-                    </td>
-                    <td>
-                      {o.pid ? (
-                        <>
-                          <button type="button" className="btn btn-ghost" onClick={o.openP}>
-                            {o.who}
-                          </button>
-                          <div className="draft-muted">{o.pmeta}</div>
-                        </>
-                      ) : o.onClock ? (
-                        'On the clock'
-                      ) : (
-                        'Upcoming'
-                      )}
-                    </td>
-                    <td>
-                      {o.canTrade && (
-                        <div className="draft-clock-actions">
-                          <button type="button" className="btn btn-secondary" onClick={o.tradePick}>
-                            {o.tradeLbl}
-                          </button>
-                          <button type="button" className="btn btn-ghost" onClick={o.proposeTrade}>
-                            Propose trade
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )}
-      {vm.dr.isFuture && (
-        <details className="draft-order">
-          <summary>Your picks in this class</summary>
-          {(vm.dr.myFuture || []).map((k: any, i: number) => (
-            <div key={i} className="draft-clock-actions">
-              <span>{k.label}</span>
-              <span className="draft-muted">{k.proj}</span>
-              {k.tradePick && (
-                <button type="button" className="btn btn-secondary" onClick={k.tradePick}>
-                  Trade pick
-                </button>
+                    <option value="">Choose column…</option>
+                    {(vm.draftCols || []).map((c: any) => (
+                      <option key={c.key} value={c.key}>
+                        {c.label}
+                        {c.arrow}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {stMode === 'adv' && (
+                <div className="draft-stat-group" role="group" aria-label="Advanced stat group">
+                  <button type="button" className="btn btn-ghost" aria-label="Previous stat group" onClick={() => turn(-1)}>
+                    ‹
+                  </button>
+                  <span role="status" aria-live="polite">
+                    {ADV_PAGES[advPg][0]}
+                    <small>
+                      {advPg + 1} / {ADV_PAGES.length}
+                    </small>
+                  </span>
+                  <button type="button" className="btn btn-ghost" aria-label="Next stat group" onClick={() => turn(1)}>
+                    ›
+                  </button>
+                </div>
               )}
-              {k.proposeTrade && (
-                <button type="button" className="btn btn-ghost" onClick={k.proposeTrade}>
-                  Propose trade
-                </button>
-              )}
-            </div>
-          ))}
-          <p className="draft-muted">{vm.dr.scoutLine}</p>
-        </details>
-      )}
-      {vm.dr.hasAdvice && (
-        <div className="draft-advice">
-          {(vm.dr.advice || []).map((a: any) => (
-            <div key={a.who}>
-              <div className="draft-kicker">{a.who}</div>
-              <button type="button" className="btn btn-ghost" onClick={a.open}>
-                {a.name}
-              </button>
-              <div className="draft-muted">{a.meta}</div>
-              <p>{a.why}</p>
-              {a.canDraft && (
-                <button type="button" className="btn btn-primary" onClick={a.draft}>
-                  Draft {a.name}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="draft-toolbar">
-        {vm.dr.isCurrent ? (
-          <Seg<'board' | 'mock'>
-            value={view}
-            options={[
-              ['board', 'Big board'],
-              ['mock', 'Mock drafts'],
-            ]}
-            onChange={setView}
-          />
-        ) : (
-          <h3>Big board</h3>
-        )}
-      </div>
-      {view === 'mock' && vm.dr.isCurrent ? (
-        <MockDrafts vm={vm} />
-      ) : (
-        <>
-          <div className="draft-view-controls">
-            <button
-              type="button"
-              className={!stats ? 'btn btn-primary' : 'btn btn-secondary'}
-              onClick={() => setStMode('')}
-              aria-pressed={!stats}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              className={stMode === 'trad' ? 'btn btn-primary' : 'btn btn-secondary'}
-              onClick={() => pickMode('trad')}
-              aria-pressed={stMode === 'trad'}
-            >
-              Show traditional stats
-            </button>
-            <button
-              type="button"
-              className={stMode === 'adv' ? 'btn btn-primary' : 'btn btn-secondary'}
-              onClick={() => pickMode('adv')}
-              aria-pressed={stMode === 'adv'}
-            >
-              Show advanced stats
-            </button>
-            <label className="draft-extra-sort">
-              Sort
-              <select
-                className="input"
-                value=""
-                aria-label="Sort prospects"
-                onChange={e => {
-                  const c = (vm.draftCols || []).find((c: any) => c.key === e.target.value);
-                  if (c) {
-                    setStSort(null);
-                    c.onClick();
-                  }
-                }}
-              >
-                <option value="">Choose column…</option>
-                {(vm.draftCols || []).map((c: any) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
-                    {c.arrow}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {stMode === 'adv' && (
-            <div className="draft-stat-group" role="group" aria-label="Advanced stat group">
-              <button type="button" className="btn btn-ghost" aria-label="Previous stat group" onClick={() => turn(-1)}>
-                ‹
-              </button>
-              <span role="status" aria-live="polite">
-                {ADV_PAGES[advPg][0]}
-                <small>
-                  {advPg + 1} / {ADV_PAGES.length}
-                </small>
-              </span>
-              <button type="button" className="btn btn-ghost" aria-label="Next stat group" onClick={() => turn(1)}>
-                ›
-              </button>
-            </div>
-          )}
-          <div className="draft-age-filter">{sf.age}</div>
-          <details className="draft-filters">
-            <summary>Other filters{sf.otherActive || tk ? ' · active' : ''}</summary>
-            <div className="draft-view-controls">
-              <TraitFilter value={tk} onChange={setTk} />
-            </div>
-            {sf.bar}
-          </details>
-          {sc.bar(true)}
-          {sc.Menu()}
-          <div className="draft-table-wrap">
-            <table className="table draft-table" aria-label="Draft prospects">
-              <thead>
-                <tr>
-                  {sc.head()}
-                  {cols.map((c: any) => (
-                    <Fragment key={c.key}>
-                      {boardHead(c)}
-                      {c.key === 'age' && statHeads}
-                    </Fragment>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pg.rows.map((p: any) => {
-                  const opened = preview?.id === p.id;
-                  const x = last(p.id);
-                  return (
-                    <Fragment key={p.id}>
-                      <tr
-                        {...sc.row(p.id)}
-                        data-prospect-id={p.id}
-                        className={'draft-player-row' + (opened ? ' draft-previewed' : '')}
-                        style={{ background: sc.isSel(p.id) && !opened ? 'var(--color-accent-100)' : undefined }}
-                        onClick={e => {
-                          if (
-                            e.shiftKey ||
-                            e.ctrlKey ||
-                            e.metaKey ||
-                            (e.target as HTMLElement).closest('a, button, input, select, textarea, label')
-                          )
-                            return;
-                          setExpanded({ cls, id: p.id });
-                        }}
-                      >
-                        {sc.cell(p.id)}
-                        <td className="draft-number draft-muted">{p.rank}</td>
-                        <td className="draft-name-cell">
-                          <button
-                            id={'draft-name-' + p.id}
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ ...PN, padding: 0 }}
-                            onClick={p.open}
-                            data-pid={p.id}
+              <div className="draft-age-filter">{sf.age}</div>
+              <details className="draft-filters">
+                <summary>Other filters{sf.otherActive || tk ? ' · active' : ''}</summary>
+                <div className="draft-view-controls">
+                  <TraitFilter value={tk} onChange={setTk} />
+                </div>
+                {sf.bar}
+              </details>
+              {sc.bar(true)}
+              {sc.Menu()}
+              <div className="draft-table-wrap">
+                <table className="table draft-table" aria-label="Draft prospects">
+                  <thead>
+                    <tr>
+                      {sc.head()}
+                      {cols.map((c: any) => (
+                        <Fragment key={c.key}>
+                          {boardHead(c)}
+                          {c.key === 'age' && statHeads}
+                        </Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pg.rows.map((p: any) => {
+                      const opened = preview?.id === p.id;
+                      const x = last(p.id);
+                      return (
+                        <Fragment key={p.id}>
+                          <tr
+                            {...sc.row(p.id)}
+                            data-prospect-id={p.id}
+                            className={'draft-player-row' + (opened ? ' draft-previewed' : '')}
+                            style={{ background: sc.isSel(p.id) && !opened ? 'var(--color-accent-100)' : undefined }}
+                            onClick={e => {
+                              if (
+                                e.shiftKey ||
+                                e.ctrlKey ||
+                                e.metaKey ||
+                                (e.target as HTMLElement).closest('a, button, input, select, textarea, label')
+                              )
+                                return;
+                              setExpanded({ cls, id: p.id });
+                            }}
                           >
-                            {p.name}
-                          </button>{' '}
-                          {sc.tag(p.id)}
-                          <div className="draft-player-meta">
-                            {p.pos} · {stats && x ? teamOf(x) : p.fromT}
-                            <img
-                              src={p.flag}
-                              alt={p.cname}
-                              title={p.cname}
-                              style={{ width: 14, height: 10, objectFit: 'cover', marginLeft: 6 }}
-                            />
-                          </div>
-                        </td>
-                        <td className="draft-number" data-label="Age">
-                          {p.age}
-                        </td>
-                        {stats ? (
-                          ST.map(([h, , fn, dg]) => (
-                            <td key={h} className="draft-number" style={{ fontWeight: stSort?.[0] === h ? 600 : undefined }}>
-                              {x ? f1(fn(x), dg ?? 1) : '—'}
+                            {sc.cell(p.id)}
+                            <td className="draft-number draft-muted">{p.rank}</td>
+                            <td className="draft-name-cell">
+                              <button
+                                id={'draft-name-' + p.id}
+                                type="button"
+                                className="btn btn-ghost"
+                                style={{ ...PN, padding: 0 }}
+                                onClick={p.open}
+                                data-pid={p.id}
+                              >
+                                {p.name}
+                              </button>{' '}
+                              {sc.tag(p.id)}
+                              <div className="draft-player-meta">
+                                {p.pos} · {stats && x ? teamOf(x) : p.fromT}
+                                <img
+                                  src={p.flag}
+                                  alt={p.cname}
+                                  title={p.cname}
+                                  style={{ width: 14, height: 10, objectFit: 'cover', marginLeft: 6 }}
+                                />
+                              </div>
                             </td>
-                          ))
-                        ) : (
-                          <td className="draft-number">{p.hgt}</td>
-                        )}
-                        <td className="draft-number" style={{ color: p.tone, fontWeight: 600 }}>
-                          {p.ovrS}
-                        </td>
-                        <td className="draft-number" style={{ color: p.ptone, fontWeight: 600 }}>
-                          {p.potS}
-                        </td>
-                      </tr>
-                      {opened && report && (
-                        <tr className="draft-card-row">
-                          <td colSpan={columnCount}>
-                            <div id={'draft-card-' + cls + '-' + p.id} role="region" aria-label={p.name + ' prospect card'}>
-                              <DraftProspectCard
-                                vm={vm}
-                                player={p}
-                                report={report}
-                                season={x}
-                                advanced={stMode === 'adv'}
-                                values={(stats ? ST : [MPG, ...TRAD]).map(([label, description, fn, dg]) => ({
-                                  label,
-                                  description,
-                                  value: x ? f1(fn(x), dg ?? 1) : '—',
-                                }))}
-                                onShortlist={sc.onContext(p.id)}
-                                onCollapse={() => {
-                                  setExpanded(null);
-                                  document.getElementById('draft-name-' + p.id)?.focus({ preventScroll: true });
-                                }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {stMode === 'adv' && advPg === 2 && (
-            <p className="draft-board-note">EPM, LEBRON and DARKO are box-score estimates for amateur seasons.</p>
+                            <td className="draft-number" data-label="Age">
+                              {p.age}
+                            </td>
+                            {stats ? (
+                              ST.map(([h, , fn, dg]) => (
+                                <td key={h} className="draft-number" style={{ fontWeight: stSort?.[0] === h ? 600 : undefined }}>
+                                  {x ? f1(fn(x), dg ?? 1) : '—'}
+                                </td>
+                              ))
+                            ) : (
+                              <td className="draft-number">{p.hgt}</td>
+                            )}
+                            <td className="draft-number" style={{ color: p.tone, fontWeight: 600 }}>
+                              {p.ovrS}
+                            </td>
+                            <td className="draft-number" style={{ color: p.ptone, fontWeight: 600 }}>
+                              {p.potS}
+                            </td>
+                          </tr>
+                          {opened && report && (
+                            <tr className="draft-card-row">
+                              <td colSpan={columnCount}>
+                                <div id={'draft-card-' + cls + '-' + p.id} role="region" aria-label={p.name + ' prospect card'}>
+                                  <DraftProspectCard
+                                    vm={vm}
+                                    player={p}
+                                    report={report}
+                                    season={x}
+                                    advanced={stMode === 'adv'}
+                                    values={(stats ? ST : [MPG, ...TRAD]).map(([label, description, fn, dg]) => ({
+                                      label,
+                                      description,
+                                      value: x ? f1(fn(x), dg ?? 1) : '—',
+                                    }))}
+                                    onShortlist={sc.onContext(p.id)}
+                                    onCollapse={() => {
+                                      setExpanded(null);
+                                      document.getElementById('draft-name-' + p.id)?.focus({ preventScroll: true });
+                                    }}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {stMode === 'adv' && advPg === 2 && (
+                <p className="draft-board-note">EPM, LEBRON and DARKO are box-score estimates for amateur seasons.</p>
+              )}
+              <p className="draft-board-note">
+                Click a player’s row to open his prospect card. Names open full profiles. Use checkboxes or drag/shift-click to scout or
+                shortlist several players.
+              </p>
+              {pg.pager}
+            </>
           )}
-          <p className="draft-board-note">
-            Click a player’s row to open his prospect card. Names open full profiles. Use checkboxes or drag/shift-click to scout or
-            shortlist several players.
-          </p>
-          {pg.pager}
-        </>
-      )}
+        </section>
+      </div>
     </section>
   );
 }
