@@ -1,0 +1,394 @@
+.title-screen {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.title-screen [hidden] {
+  display: none !important;
+}
+.title-screen .title-page {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 36px 28px 30px;
+}
+.title-screen .title-page[data-view='new'] {
+  max-width: 1320px;
+}
+.title-screen .title-masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 19px;
+  margin-bottom: 38px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.title-screen .title-wordmark {
+  font-family: 'Oswald', var(--font-heading);
+  font-size: 23px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.title-screen .title-kicker {
+  color: var(--color-neutral-700);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.title-screen .title-muted {
+  color: var(--color-neutral-700);
+}
+.title-screen .title-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.title-screen .title-heading h1 {
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin: 5px 0 12px;
+}
+.title-screen .title-heading p {
+  margin: 0;
+}
+.title-screen .btn {
+  min-height: 40px;
+  gap: 8px;
+}
+.title-screen .title-primary {
+  color: var(--title-primary-ink);
+  background: var(--title-primary);
+  border-color: var(--title-primary);
+}
+.title-screen .title-primary:hover {
+  color: var(--title-primary-ink);
+  background: var(--title-primary);
+  filter: brightness(1.08);
+}
+.title-screen button:focus-visible {
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 3px;
+}
+.title-screen .title-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 32px;
+}
+.title-screen .title-save-list {
+  min-width: 0;
+}
+.title-screen .title-save-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 12px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.title-screen .title-save-row[data-selected='true'] {
+  background: var(--color-accent-100);
+  box-shadow: inset 3px 0 var(--title-primary);
+}
+.title-screen .title-select-save {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.title-screen .title-select-save:disabled {
+  cursor: not-allowed;
+}
+.title-screen .title-save-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  min-width: 0;
+}
+.title-screen .title-save-logo > svg {
+  flex: none;
+}
+.title-screen .title-save-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.title-screen .title-save-copy strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.title-screen .title-save-copy > span {
+  display: block;
+  color: var(--color-neutral-700);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.title-screen .title-save-chevron {
+  color: var(--color-neutral-700);
+}
+.title-screen .title-row-continue {
+  white-space: nowrap;
+  font-size: 13px;
+  padding: 10px 13px;
+}
+.title-screen .title-resume {
+  min-width: 0;
+  padding: 26px 24px;
+  background: var(--color-neutral-100);
+  border-top: 3px solid var(--title-primary);
+}
+.title-screen .title-resume-team {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 8px;
+}
+.title-screen .title-resume-team > svg {
+  flex: none;
+}
+.title-screen .title-resume h2 {
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  margin: 15px 0 10px;
+  overflow-wrap: anywhere;
+}
+.title-screen .title-resume-team h2 {
+  flex: 1;
+  min-width: 150px;
+  margin: 0;
+}
+.title-screen .title-league-name {
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.title-screen .title-record {
+  display: flex;
+  gap: 30px;
+  margin: 23px 0;
+}
+.title-screen .title-record > div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.title-screen .title-record dt {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+.title-screen .title-record dd {
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 4px;
+}
+.title-screen .title-resume-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 15px;
+  margin-top: 18px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 13px;
+}
+.title-screen .title-panel-continue {
+  width: 100%;
+  margin: 20px 0 10px;
+}
+.title-screen .title-last-played {
+  font-size: 11px;
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+.title-screen .title-managed-note,
+.title-screen .title-spectator-note {
+  margin: 13px 0 0;
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+.title-screen .title-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 17px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-divider);
+}
+.title-screen .title-save-actions .btn {
+  font-size: 12px;
+}
+.title-screen .title-empty {
+  padding: 25px 10px;
+  color: var(--color-neutral-700);
+}
+.title-screen .title-empty h2 {
+  color: var(--color-text);
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+.title-screen .title-empty p {
+  margin-bottom: 18px;
+}
+.title-screen .title-message {
+  padding: 11px 13px;
+  border: 1px solid var(--color-divider);
+  background: var(--color-neutral-100);
+  margin-bottom: 18px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.title-screen .title-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding-top: 19px;
+  margin-top: 44px;
+  border-top: 1px solid var(--color-divider);
+}
+.title-screen .title-footer > p {
+  color: var(--color-neutral-700);
+  font-size: 12px;
+  max-width: 520px;
+  margin: 0;
+}
+.title-screen .title-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.title-screen .title-footer-actions .btn {
+  font-size: 13px;
+}
+.title-screen .title-import-input {
+  display: none;
+}
+.title-screen .title-new-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.title-screen .title-new-layout {
+  display: grid;
+  grid-template-columns: 350px minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+}
+.title-screen .title-new-options,
+.title-screen .title-team-picker {
+  min-width: 0;
+}
+.title-screen .title-new-options #league-seed {
+  min-width: 0;
+  flex: 1;
+  width: 0;
+}
+.title-screen .title-team-picker > div:first-child {
+  flex-wrap: wrap;
+}
+.title-screen .title-delete-dialog {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  max-width: min(480px, calc(100% - 28px));
+}
+.title-screen .title-delete-dialog:not([open]) {
+  display: none;
+}
+.title-screen .title-delete-dialog::backdrop {
+  background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+@media (max-width: 1050px) {
+  .title-screen .title-new-layout {
+    grid-template-columns: 315px minmax(0, 1fr);
+    gap: 24px;
+  }
+  .title-screen .title-team-picker > div:last-child {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+@media (max-width: 860px) {
+  .title-screen .title-library,
+  .title-screen .title-new-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+  .title-screen .title-resume {
+    padding: 24px;
+  }
+  .title-screen .title-team-picker > div:last-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 620px) {
+  .title-screen .title-page {
+    padding: 24px 16px 28px;
+  }
+  .title-screen .title-masthead {
+    margin-bottom: 27px;
+  }
+  .title-screen .title-masthead > .title-kicker {
+    font-size: 10px;
+  }
+  .title-screen .title-heading h1 {
+    font-size: 33px;
+  }
+  .title-screen .title-team-picker > div:last-child {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .title-screen .title-save-row {
+    padding: 16px 10px;
+  }
+  .title-screen .title-select-save {
+    gap: 10px;
+  }
+}
+@media (max-width: 540px) {
+  .title-screen .title-save-row[data-selected='true'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .title-screen .title-row-continue {
+    justify-self: end;
+  }
+  .title-screen .title-heading {
+    align-items: flex-start;
+  }
+  .title-screen .title-resume {
+    padding: 23px 18px;
+  }
+}
+@media (pointer: coarse) {
+  .title-screen .btn,
+  .title-screen .title-select-save {
+    min-height: 44px;
+  }
+  .title-screen .input {
+    font-size: 16px;
+  }
+}

@@ -8,6 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New player card: Jalen Green's 2021–22 rookie season** with the Rockets: an explosive, high-volume shooting guard who takes lots of threes and dunks a lot but struggles to finish in traffic. Tested in games at his real minutes, it comes close to his real line (17.3 points, .426 shooting, .343 from three). 52 overall, 64 potential.
 
 ### Changed
+- **A new League library starting screen.** Select a save to see its team, record, season and current phase. Continue league is available both at the end of the selected save row and in the side panel; accents follow that team's colors. New league opens the existing setup, including seeds, multi-team control, challenge starts and Spectator Mode. Import, export and confirmed deletion remain available.
 - **Prospect rows have a corner arrow for their scouting cards.** The arrow at the right edge opens the card underneath the player and changes to an up-arrow to close it. Clicking a player's name still opens his full profile.
 
 ## 2026-11-11
