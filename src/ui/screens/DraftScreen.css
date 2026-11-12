@@ -9,13 +9,21 @@
   margin-bottom: 20px;
 }
 .draft-board .draft-room-layout {
+  position: relative;
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   align-items: start;
   gap: 22px;
 }
 .draft-board .draft-pick-sidebar {
+  position: absolute;
+  grid-area: 1 / 1 / 2 / 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--color-divider);
   padding-right: 18px;
 }
@@ -50,7 +58,9 @@
   font-size: 12px;
 }
 .draft-board .draft-prospects {
+  grid-area: 1 / 2 / 2 / 3;
   min-width: 0;
+  min-height: 640px;
   container-type: inline-size;
 }
 .draft-board .draft-toolbar,
@@ -159,8 +169,34 @@
   gap: 4px;
 }
 .draft-board .draft-pick-section {
+  flex: none;
   margin-bottom: 20px;
   min-width: 0;
+}
+.draft-board .draft-pick-section[open] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.draft-board .draft-pick-section[open]::details-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.draft-board .draft-pick-section[data-has-picks='false'] {
+  flex: none;
+}
+.draft-board .draft-sidebar-heading,
+.draft-board .draft-pick-sidebar > .draft-clock,
+.draft-board .draft-pick-section > summary,
+.draft-board .draft-remaining-picks,
+.draft-board .draft-pick-sidebar > .draft-kicker,
+.draft-board .draft-pick-sidebar > .draft-board-note,
+.draft-board .draft-order-more {
+  flex-shrink: 0;
 }
 .draft-board .draft-pick-section > summary {
   display: flex;
@@ -185,16 +221,14 @@
   font-weight: 400;
 }
 .draft-board .draft-pick-list {
+  flex: 1;
+  min-height: 0;
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 500px;
   overflow-y: auto;
   scrollbar-width: thin;
   overscroll-behavior-y: contain;
-}
-.draft-board .draft-completed-list {
-  max-height: 440px;
 }
 .draft-board .draft-pick-item {
   display: grid;
@@ -280,6 +314,7 @@
   text-align: left;
 }
 .draft-board .draft-remaining-picks {
+  margin-top: auto;
   border-top: 1px solid var(--color-divider);
   padding-top: 11px;
   font-size: 14px;
@@ -294,6 +329,12 @@
   padding: 13px 0;
   border-bottom: 1px solid var(--color-divider);
   font-size: 14px;
+}
+.draft-board .draft-future-pick-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .draft-board .draft-future-pick p {
   margin: 5px 0 8px;
@@ -553,22 +594,36 @@
     gap: 20px;
   }
   .draft-board .draft-pick-sidebar {
+    position: static;
+    grid-area: auto;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 16px;
     border-right: 0;
     border-bottom: 1px solid var(--color-divider);
     padding: 0 0 14px;
+    overflow: visible;
+  }
+  .draft-board .draft-prospects {
+    grid-area: auto;
+    min-height: 0;
   }
   .draft-board .draft-sidebar-heading,
   .draft-board .draft-pick-sidebar > .draft-clock,
   .draft-board .draft-remaining-picks,
   .draft-board .draft-pick-sidebar > .draft-kicker,
+  .draft-board .draft-future-pick-list,
   .draft-board .draft-pick-sidebar > .draft-board-note {
     grid-column: 1 / -1;
   }
-  .draft-board .draft-pick-list {
+  .draft-board .draft-pick-list,
+  .draft-board .draft-future-pick-list {
+    flex: none;
     max-height: 250px;
+  }
+  .draft-board .draft-pick-section[open] {
+    display: block;
+    overflow: visible;
   }
 }
 @media (max-width: 720px) {

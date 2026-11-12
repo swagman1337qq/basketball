@@ -264,6 +264,20 @@ export function DraftScreen({ vm }: { vm: VM }) {
             )}
             {vm.dr.isCurrent && (
               <div className="draft-clock-actions">
+                <details className="draft-sim">
+                  <summary className="btn btn-secondary">Simulate ▾</summary>
+                  <div className="draft-sim-menu">
+                    <button type="button" className="btn btn-ghost" onClick={vm.simOne} disabled={vm.dr.noSimMine}>
+                      Sim one pick
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
+                      Sim to my pick
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={vm.simAll} disabled={vm.dr.done}>
+                      Auto-draft the rest
+                    </button>
+                  </div>
+                </details>
                 <button type="button" className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice}>
                   Ask scouts
                 </button>

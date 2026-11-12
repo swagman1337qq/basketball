@@ -91,58 +91,46 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
       </div>
       {vm.dr.isCurrent && (
         <>
-          <section className={'draft-clock' + (vm.dr.mineClock ? ' draft-clock-mine' : '')} aria-label="Draft status">
-            {current && (
-              <div className="draft-kicker">
-                Round {current.n > s.teams.length ? 2 : 1} · Pick {current.n}
-              </div>
-            )}
-            <strong>
-              {current
-                ? vm.dr.mineClock
-                  ? 'You’re on the clock'
-                  : 'On the clock'
-                : vm.dr.done && s.phase === 'draft'
-                  ? 'Draft complete'
-                  : vm.dr.status}
-            </strong>
-            {current && (
-              <div className="draft-pick-team draft-current-team">
-                {current.logoLg || current.logo}
-                <button type="button" className="btn btn-ghost" onClick={current.openT}>
-                  {current.team}
-                </button>
-              </div>
-            )}
-            <p className="draft-muted">{vm.dr.sub}</p>
-            <div className="draft-clock-actions">
-              {current?.canTrade && (
-                <>
-                  <button type="button" className="btn btn-secondary" onClick={current.tradePick}>
-                    {current.tradeLbl}
-                  </button>
-                  <button type="button" className="btn btn-ghost" onClick={current.proposeTrade}>
-                    Propose trade
-                  </button>
-                </>
+          {(current || completed.length > 0) && (
+            <section className={'draft-clock' + (vm.dr.mineClock ? ' draft-clock-mine' : '')} aria-label="Draft status">
+              {current && (
+                <div className="draft-kicker">
+                  Round {current.n > s.teams.length ? 2 : 1} · Pick {current.n}
+                </div>
               )}
-              <details className="draft-sim">
-                <summary className="btn btn-secondary">Simulate ▾</summary>
-                <div className="draft-sim-menu">
-                  <button type="button" className="btn btn-ghost" onClick={vm.simOne} disabled={vm.dr.noSimMine}>
-                    Sim one pick
-                  </button>
-                  <button type="button" className="btn btn-ghost" onClick={vm.simToMine} disabled={vm.dr.noSimMine}>
-                    Sim to my pick
-                  </button>
-                  <button type="button" className="btn btn-ghost" onClick={vm.simAll} disabled={vm.dr.done}>
-                    Auto-draft the rest
+              <strong>
+                {current
+                  ? vm.dr.mineClock
+                    ? 'You’re on the clock'
+                    : 'On the clock'
+                  : vm.dr.done && s.phase === 'draft'
+                    ? 'Draft complete'
+                    : vm.dr.status}
+              </strong>
+              {current && (
+                <div className="draft-pick-team draft-current-team">
+                  {current.logoLg || current.logo}
+                  <button type="button" className="btn btn-ghost" onClick={current.openT}>
+                    {current.team}
                   </button>
                 </div>
-              </details>
-            </div>
-          </section>
-          <details className="draft-pick-section" open>
+              )}
+              <p className="draft-muted">{vm.dr.sub}</p>
+              <div className="draft-clock-actions">
+                {current?.canTrade && (
+                  <>
+                    <button type="button" className="btn btn-secondary" onClick={current.tradePick}>
+                      {current.tradeLbl}
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={current.proposeTrade}>
+                      Propose trade
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
+          <details className="draft-pick-section" open data-has-picks={completed.length > 0}>
             <summary>
               <span>
                 Already drafted <span className="draft-muted">{completed.length}</span>
@@ -183,24 +171,26 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
       {vm.dr.isFuture && (
         <>
           <div className="draft-kicker">{s.dClass} class · Early look</div>
-          {(vm.dr.myFuture || []).map((pick: any, index: number) => (
-            <div key={index} className="draft-future-pick">
-              <strong>{pick.label}</strong>
-              <p className="draft-muted">{pick.proj}</p>
-              <div className="draft-clock-actions">
-                {pick.tradePick && (
-                  <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
-                    Trade pick
-                  </button>
-                )}
-                {pick.proposeTrade && (
-                  <button type="button" className="btn btn-ghost" onClick={pick.proposeTrade}>
-                    Propose trade
-                  </button>
-                )}
+          <div className="draft-future-pick-list">
+            {(vm.dr.myFuture || []).map((pick: any, index: number) => (
+              <div key={index} className="draft-future-pick">
+                <strong>{pick.label}</strong>
+                <p className="draft-muted">{pick.proj}</p>
+                <div className="draft-clock-actions">
+                  {pick.tradePick && (
+                    <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
+                      Trade pick
+                    </button>
+                  )}
+                  {pick.proposeTrade && (
+                    <button type="button" className="btn btn-ghost" onClick={pick.proposeTrade}>
+                      Propose trade
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
           <p className="draft-board-note">{vm.dr.scoutLine}</p>
         </>
       )}
