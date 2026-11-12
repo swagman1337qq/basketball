@@ -4,6 +4,7 @@ import { byLast, useSort } from '../sortable';
 import { godBtn, PN } from '../kit';
 import { CapBar } from '../CapBar';
 import { describeContract } from '../../engine/cba';
+import { parseCmp } from '../SearchFilter';
 import type { TradeText } from './TradeNameLinks';
 import './TradeBoard.css';
 
@@ -18,7 +19,10 @@ const FITS: Record<string, string[]> = {
 const perOf = (p: any): number | null => (p.gp > 0 && Number.isFinite(p.per) ? p.per : null);
 const sortKeys = {
   name: (p: any) => byLast(p),
-  pos: (p: any) => POS_ORDER.indexOf(p.pos),
+  pos: (p: any) => {
+    const index = POS_ORDER.indexOf(p.pos);
+    return index < 0 ? null : POS_ORDER.length - index;
+  },
   age: (p: any) => p.age,
   ovr: (p: any) => p.ovr,
   pot: (p: any) => p.pot,
@@ -51,12 +55,14 @@ function PlayerTable({
   tid,
   label,
   sort,
+  emptyMessage = 'No players selected.',
 }: {
   rows: any[];
   vm: VM;
   tid: number;
   label: string;
   sort?: ReturnType<typeof useSort<any>>;
+  emptyMessage?: string;
 }) {
   const { gm, s } = vm.ctx;
   const firstSeason = gm.Y + (s.phase === 'fa' ? 1 : 0);
@@ -67,6 +73,8 @@ function PlayerTable({
           <tr>
             <th aria-label="Selected" />
             {sort ? sort.head('name', 'Player') : <th>Player</th>}
+            {sort ? sort.head('pos', 'Pos') : <th>Pos</th>}
+            {sort ? sort.head('age', 'Age', 'right') : <th className="trade-board-number">Age</th>}
             {sort ? sort.head('salary', 'Salary', 'right') : <th className="trade-board-number">Salary</th>}
             {sort ? sort.head('per', 'PER', 'right') : <th className="trade-board-number">PER</th>}
             {sort ? sort.head('ovr', 'Ovr', 'right') : <th className="trade-board-number">Ovr</th>}
@@ -106,11 +114,13 @@ function PlayerTable({
                       >
                         {p.name}
                       </button>
-                      <span className="trade-board-sub">
-                        {p.pos} · {p.age} years old{p.injTag ? ' · ' + p.injTag : ''}
-                      </span>
+                      {p.injTag && <span className="trade-board-sub">{p.injTag}</span>}
                     </div>
                   </div>
+                </td>
+                <td data-label="Pos">{p.pos}</td>
+                <td className="trade-board-number" data-label="Age">
+                  {p.age}
                 </td>
                 <td className="trade-board-number" title={describeContract(gm, p)}>
                   <span>{p.contract}</span>
@@ -140,7 +150,7 @@ function PlayerTable({
           })}
         </tbody>
       </table>
-      {!rows.length && <p className="trade-board-empty">No players selected.</p>}
+      {!rows.length && <p className="trade-board-empty">{emptyMessage}</p>}
     </div>
   );
 }
@@ -192,6 +202,8 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
   const theirs = useSort<any>(vm.tTheirs || [], sortKeys);
   const [posMine, setPosMine] = useState('All');
   const [posTheirs, setPosTheirs] = useState('All');
+  const [ageMine, setAgeMine] = useState('');
+  const [ageTheirs, setAgeTheirs] = useState('');
   const { gm, s } = vm.ctx;
   const teamOptions = vm.teamOptions || [];
   const cycle = (direction: number) => {
@@ -209,6 +221,8 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
       sort: mine,
       position: posMine,
       setPosition: setPosMine,
+      age: ageMine,
+      setAge: setAgeMine,
       picks: vm.tMinePicks || [],
       incoming: theirs.rows.filter(p => p.mark),
       incomingPicks: (vm.tTheirPicks || []).filter((k: any) => k.mark),
@@ -224,13 +238,25 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
       sort: theirs,
       position: posTheirs,
       setPosition: setPosTheirs,
+      age: ageTheirs,
+      setAge: setAgeTheirs,
       picks: vm.tTheirPicks || [],
       incoming: mine.rows.filter(p => p.mark),
       incomingPicks: (vm.tMinePicks || []).filter((k: any) => k.mark),
       incomingSalary: vm.tr.out,
       outgoingSalary: vm.tr.in,
     },
-  ];
+  ].map(side => {
+    const ageTest = parseCmp(side.age.replace(/[–—]/g, '-'));
+    const ageRows = side.sort.rows.filter(p => typeof ageTest !== 'function' || ageTest(p.age));
+    return {
+      ...side,
+      ageInvalid: ageTest === 'bad',
+      ageRows,
+      visibleRows: ageRows.filter(p => side.position === 'All' || FITS[side.position].includes(p.pos)),
+      filtered: side.position !== 'All' || !!side.age.trim(),
+    };
+  });
   const review = (
     <div className="trade-board-review">
       <div className="trade-board-review-grid">
@@ -370,15 +396,48 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
             <section className="trade-board-roster">
               <div className="trade-board-section-title">
                 <strong>{text(side.title)} roster</strong>
-                <span>{side.sort.rows.length} players</span>
+                <span>
+                  {side.filtered ? side.visibleRows.length + ' of ' : ''}
+                  {side.sort.rows.length} players
+                </span>
               </div>
-              <PositionFilter value={side.position} set={side.setPosition} rows={side.sort.rows} />
+              <div className="trade-board-roster-filters">
+                <div className="trade-board-position-filter">
+                  <span>Position</span>
+                  <PositionFilter value={side.position} set={side.setPosition} rows={side.ageRows} />
+                </div>
+                <label className="trade-board-age-filter">
+                  <span>Age</span>
+                  <input
+                    className="input"
+                    aria-label={side.title + ' age filter'}
+                    value={side.age}
+                    placeholder="e.g. <=25"
+                    aria-invalid={side.ageInvalid || undefined}
+                    title={side.ageInvalid ? 'Try an age, comparison or range: 25, <=25, >=30 or 20-28.' : 'Age: 25, <=25, >=30 or 20-28'}
+                    onChange={event => side.setAge(event.target.value)}
+                  />
+                </label>
+                {side.filtered && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost trade-board-clear-filters"
+                    onClick={() => {
+                      side.setPosition('All');
+                      side.setAge('');
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
               <PlayerTable
-                rows={side.sort.rows.filter(p => side.position === 'All' || FITS[side.position].includes(p.pos))}
+                rows={side.visibleRows}
                 sort={side.sort}
                 vm={vm}
                 tid={side.tid}
                 label={side.title + ' roster'}
+                emptyMessage="No players match these filters."
               />
             </section>
             <section className="trade-board-pick-section">

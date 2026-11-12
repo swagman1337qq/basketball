@@ -105,11 +105,42 @@
   min-width: 0;
   align-self: start;
 }
+.trade-board .trade-board-roster-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 2px 0 9px;
+}
+.trade-board .trade-board-position-filter,
+.trade-board .trade-board-age-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.trade-board :is(.trade-board-position-filter, .trade-board-age-filter) > span {
+  color: var(--color-neutral-700);
+}
+.trade-board .trade-board-age-filter input {
+  width: 100px;
+  min-height: 30px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.trade-board .trade-board-age-filter input[aria-invalid='true'] {
+  border-color: var(--gm-bad);
+}
+.trade-board .trade-board-clear-filters {
+  padding: 3px 6px;
+  font-size: 12px;
+}
 .trade-board .trade-board-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  margin-bottom: 5px;
+  margin-bottom: 0;
 }
 .trade-board .trade-board-filters button {
   padding: 2px 6px;
