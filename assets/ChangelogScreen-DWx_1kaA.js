@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-B304RIMX.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-Bd_qh5XQ.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -8,6 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **New player card: Jalen Green's 2021–22 rookie season** with the Rockets: an explosive, high-volume shooting guard who takes lots of threes and dunks a lot but struggles to finish in traffic. Tested in games at his real minutes, it comes close to his real line (17.3 points, .426 shooting, .343 from three). 51 overall, 64 potential; 6′7½″ wingspan; a likable professional off the court with middling work habits.
 
 ### Changed
+- **Age and position have their own trade-roster columns.** Click either header to sort each roster. Each side has its own age comparison/range filter and position buttons, with Clear filters and a matching-player count. Hidden selections stay in the incoming-player panels and remain part of the trade.
 - **Trade names open their team or player pages.** Team headings, roster headings, pick labels, draft-rights names, offer summaries, advice and trade messages have profile links, without toggling trade selections. The controls return to a roomier panel with labeled league checks, visible team direction and the acceptance meter, in the same position between incoming assets and rosters.
 - **Draft directly from a prospect's row.** A Draft player button sits at the end of each current-class row, enabled on your turn, with tighter column spacing. Simulation now has separate Sim one pick, Sim to your pick and Sim to end of draft buttons. Finishing the draft asks **Are you sure you want to let the AI draft for you?** with Yes and No choices.
 - **All draft trade buttons are shown directly**, including your own picks and completed selections. No pick row uses a Trade options dropdown.
