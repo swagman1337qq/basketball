@@ -103,43 +103,12 @@
   color: var(--color-accent-700);
   background: var(--color-accent-100);
 }
-.draft-board .draft-clock {
-  display: block;
-  padding: 11px 13px;
-  margin-bottom: 18px;
-  background: var(--color-neutral-100);
-  border-left: 3px solid var(--color-text);
-}
-.draft-board .draft-clock.draft-clock-mine {
-  border-left-color: var(--color-accent);
-  background: var(--color-accent-100);
-}
-.draft-board .draft-clock strong {
-  display: block;
-  font-size: 23px;
-  font-family: var(--font-heading);
-}
-.draft-board .draft-clock > .draft-kicker {
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-.draft-board .draft-current-team {
-  margin: 8px 0 6px;
-}
-.draft-board .draft-clock > .draft-clock-actions {
-  margin-top: 12px;
-  gap: 6px;
-}
 .draft-board .draft-pick-sidebar .draft-clock-actions .btn {
-  font-size: 13px;
-  padding: 7px 9px;
+  font-size: 12px;
+  padding: 5px 7px;
 }
 .draft-board .draft-muted {
   color: var(--color-neutral-700);
-}
-.draft-board .draft-clock p {
-  margin: 3px 0 0;
-  font-size: 14px;
 }
 .draft-board .draft-sim {
   position: relative;
@@ -164,56 +133,21 @@
   display: grid;
   gap: 4px;
 }
-.draft-board .draft-pick-section {
-  flex: none;
-  margin-bottom: 20px;
-  min-width: 0;
-}
-.draft-board .draft-pick-section[open] {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  overflow: hidden;
-}
-.draft-board .draft-pick-section[open]::details-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-.draft-board .draft-pick-section[data-has-picks='false'] {
-  flex: none;
-}
 .draft-board .draft-sidebar-heading,
-.draft-board .draft-pick-sidebar > .draft-clock,
-.draft-board .draft-pick-section > summary,
+.draft-board .draft-pick-columns,
 .draft-board .draft-remaining-picks,
 .draft-board .draft-pick-sidebar > .draft-kicker,
 .draft-board .draft-pick-sidebar > .draft-board-note {
   flex-shrink: 0;
 }
-.draft-board .draft-pick-section > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.draft-board .draft-pick-columns {
+  display: grid;
+  grid-template-columns: 38px 70px minmax(0, 1fr);
   gap: 8px;
-  padding: 0 0 9px;
+  padding: 8px;
   border-bottom: 1px solid var(--color-divider);
-  list-style: none;
-  cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-}
-.draft-board .draft-pick-section > summary::-webkit-details-marker {
-  display: none;
-}
-.draft-board .draft-pick-section[open] > summary > svg {
-  transform: rotate(180deg);
-}
-.draft-board .draft-pick-section > summary > span > span {
-  margin-left: 6px;
-  font-weight: 400;
 }
 .draft-board .draft-pick-list {
   flex: 1;
@@ -227,16 +161,40 @@
 }
 .draft-board .draft-pick-item {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 10px;
-  padding: 14px 0;
+  grid-template-columns: 38px 70px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--color-divider);
+}
+.draft-board .draft-pick-item:nth-child(even) {
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+}
+.draft-board .draft-pick-item[data-on-clock='true'] {
+  background: var(--color-neutral-100);
+  box-shadow: inset 3px 0 var(--color-accent);
+}
+.draft-board .draft-pick-item[data-on-clock='true'][data-user-pick='true'] {
+  box-shadow: none;
+}
+.draft-board
+  .draft-pick-item[data-on-clock='true'][data-user-pick='true']
+  :is(.draft-pick-number, .draft-pick-meta, .draft-your-pick, .btn) {
+  color: inherit;
+}
+.draft-board .draft-pick-item[data-on-clock='true'][data-user-pick='true'] .btn {
+  background: transparent;
+  border-color: currentColor;
+}
+.draft-board .draft-pick-clock-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 14px;
 }
 .draft-board .draft-round-divider {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 10px 0;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--color-divider);
   background: var(--color-bg);
   color: var(--color-text);
@@ -245,22 +203,18 @@
 }
 .draft-board .draft-pick-number {
   color: var(--color-neutral-700);
-  font-size: 18px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   padding-top: 2px;
 }
-.draft-board .draft-pick-number small {
-  display: block;
-  font-size: 11px;
-  margin-top: 3px;
-}
+.draft-board .draft-pick-owner,
 .draft-board .draft-pick-body {
   min-width: 0;
 }
 .draft-board .draft-pick-team {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
 }
 .draft-board .draft-pick-team > svg,
@@ -278,21 +232,17 @@
 }
 .draft-board .draft-picked-player {
   display: block;
-  padding: 6px 0 0;
+  padding: 0;
   color: var(--color-text);
-  font-size: 16px;
+  font-size: 14px;
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 .draft-board .draft-pick-meta {
   color: var(--color-neutral-700);
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 4px;
-}
-.draft-board .draft-pick-empty {
-  font-size: 14px;
-  margin: 12px 0;
 }
 .draft-board .draft-pick-actions {
   margin-top: 7px;
@@ -323,6 +273,10 @@
   margin-top: 6px;
   color: var(--color-accent-700);
   font-size: 18px;
+}
+.draft-board .draft-remaining-picks .draft-complete-status {
+  color: var(--color-text);
+  margin: 0 0 10px;
 }
 .draft-board .draft-future-pick {
   padding: 13px 0;
@@ -612,9 +566,7 @@
   .draft-board .draft-pick-sidebar {
     position: static;
     grid-area: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 16px;
+    display: flex;
     border-right: 0;
     border-bottom: 1px solid var(--color-divider);
     padding: 0 0 14px;
@@ -624,22 +576,10 @@
     grid-area: auto;
     min-height: 0;
   }
-  .draft-board .draft-sidebar-heading,
-  .draft-board .draft-pick-sidebar > .draft-clock,
-  .draft-board .draft-remaining-picks,
-  .draft-board .draft-pick-sidebar > .draft-kicker,
-  .draft-board .draft-future-pick-list,
-  .draft-board .draft-pick-sidebar > .draft-board-note {
-    grid-column: 1 / -1;
-  }
   .draft-board .draft-pick-list,
   .draft-board .draft-future-pick-list {
     flex: none;
-    max-height: 250px;
-  }
-  .draft-board .draft-pick-section[open] {
-    display: block;
-    overflow: visible;
+    max-height: 420px;
   }
 }
 @media (max-width: 720px) {
@@ -665,7 +605,6 @@
     width: 44px;
     min-height: 44px;
   }
-  .draft-board .draft-pick-section > summary,
   .draft-board .draft-pick-actions > summary,
   .draft-board .draft-picked-player,
   .draft-board .draft-pick-team .btn {

@@ -1603,6 +1603,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         logo: logo(ow, 16),
         openT: openTeam(ow),
         abbr: T[ow].abbr,
+        primaryColor: T[ow].colors[0],
         who: x.pid ? P[x.pid].name : s.phase === 'draft' && i === s.pi ? 'On the clock' : ow !== x.orig ? 'via ' + T[x.orig].abbr : '',
         fs: x.pid ? 'normal' : 'italic',
         bg: s.phase === 'draft' && i === s.pi ? 'var(--color-accent-100)' : 'transparent',

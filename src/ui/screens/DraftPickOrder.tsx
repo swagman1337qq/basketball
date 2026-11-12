@@ -1,87 +1,91 @@
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { VM } from '../vm';
+import { inkOn } from '../kit';
 
-/** The live draft stays beside the board, using the same pick owners and actions as trades. */
+/** Completed, current and upcoming selections share one continuous pick order. */
 export function DraftPickOrder({ vm }: { vm: VM }) {
   const { s } = vm.ctx;
-  const completedList = useRef<HTMLOListElement>(null);
+  const orderList = useRef<HTMLOListElement>(null);
   const order = vm.dr.order || [];
-  const completed = order.filter((pick: any) => pick.pid);
   const current = order.find((pick: any) => pick.onClock);
-  const upcoming = order.filter((pick: any) => !pick.pid && !pick.onClock);
   const remaining = order.filter((pick: any) => pick.mine && !pick.pid);
-  const lastSelection = completed.at(-1)?.pid;
+  const lastSelection = order.filter((pick: any) => pick.pid).at(-1)?.n;
   useEffect(() => {
-    const list = completedList.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, [lastSelection, s.dClass]);
+    const list = orderList.current;
+    if (!list) return;
+    const target = list.querySelector<HTMLElement>('[data-pick-number="' + (current?.n ?? lastSelection) + '"]');
+    list.scrollTop = target
+      ? Math.max(0, list.scrollTop + target.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientHeight / 3)
+      : 0;
+  }, [current?.n, lastSelection, s.dClass]);
 
+  const tradeButtons = (pick: any) => (
+    <div className="draft-clock-actions">
+      <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
+        {pick.tradeLbl}
+      </button>
+      <button type="button" className="btn btn-ghost" onClick={pick.proposeTrade}>
+        Propose trade
+      </button>
+    </div>
+  );
   const tradeActions = (pick: any) =>
-    pick.canTrade && (
+    pick.canTrade &&
+    (pick.onClock ? (
+      tradeButtons(pick)
+    ) : (
       <details className="draft-pick-actions">
         <summary aria-label={'Trade options for pick ' + pick.n}>
           Trade options <ChevronDown size={12} aria-hidden="true" />
         </summary>
-        <div className="draft-clock-actions">
-          <button type="button" className="btn btn-secondary" onClick={pick.tradePick}>
-            {pick.tradeLbl}
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={pick.proposeTrade}>
-            Propose trade
-          </button>
-        </div>
+        {tradeButtons(pick)}
       </details>
-    );
+    ));
 
-  const pickRow = (pick: any) => (
-    <li key={pick.n} className="draft-pick-item" data-pick-number={pick.n}>
-      <span className={'draft-pick-number' + (pick.mine ? ' draft-your-pick' : '')}>
-        {pick.n}
-        <small>R{pick.n > s.teams.length ? 2 : 1}</small>
-      </span>
-      <div className="draft-pick-body">
-        <div className="draft-pick-team">
-          {pick.logoLg || pick.logo}
-          <button type="button" className="btn btn-ghost" onClick={pick.openT} title={pick.team}>
-            {pick.team}
-          </button>
-        </div>
-        {(pick.via || pick.mine) && (
-          <div className="draft-pick-meta">
-            {pick.via}
-            {pick.via && pick.mine ? ' · ' : ''}
-            {pick.mine && <span className="draft-your-pick">Your pick</span>}
-          </div>
-        )}
-        {pick.pid && (
-          <>
-            <button type="button" className="btn btn-ghost draft-picked-player" data-pid={pick.pid} onClick={pick.openP}>
-              {pick.who}
+  const pickRow = (pick: any) => {
+    const round = pick.n > s.teams.length ? 2 : 1;
+    const userClock = pick.onClock && pick.mine;
+    return (
+      <li
+        className="draft-pick-item"
+        data-pick-number={pick.n}
+        data-on-clock={!!pick.onClock}
+        data-user-pick={!!pick.mine}
+        aria-current={pick.onClock ? 'step' : undefined}
+        style={userClock ? { background: pick.primaryColor, color: inkOn(pick.primaryColor) } : undefined}
+      >
+        <span className={'draft-pick-number' + (pick.mine ? ' draft-your-pick' : '')}>
+          {round}-{pick.n - (round - 1) * s.teams.length}
+        </span>
+        <div className="draft-pick-owner">
+          <div className="draft-pick-team">
+            {pick.logo}
+            <button type="button" className="btn btn-ghost" onClick={pick.openT} title={pick.team} aria-label={pick.team}>
+              {pick.abbr}
             </button>
-            <div className="draft-pick-meta">{pick.pmeta}</div>
-          </>
-        )}
-        {tradeActions(pick)}
-      </div>
-    </li>
-  );
-
-  const pickRows = (picks: any[]) =>
-    picks.flatMap((pick, index) => {
-      const round = pick.n > s.teams.length ? 2 : 1;
-      const previousRound = index > 0 ? (picks[index - 1].n > s.teams.length ? 2 : 1) : null;
-      return [
-        ...(round !== previousRound
-          ? [
-              <li key={'round-' + round} className="draft-round-divider">
-                {round === 1 ? '1st round' : '2nd round'}
-              </li>,
-            ]
-          : []),
-        pickRow(pick),
-      ];
-    });
+          </div>
+          {pick.via && <div className="draft-pick-meta">{pick.via}</div>}
+          {pick.mine && <div className="draft-pick-meta draft-your-pick">Your pick</div>}
+        </div>
+        <div className="draft-pick-body">
+          {pick.pid ? (
+            <>
+              <button type="button" className="btn btn-ghost draft-picked-player" data-pid={pick.pid} onClick={pick.openP}>
+                {pick.who}
+              </button>
+              <div className="draft-pick-meta">{pick.pmeta}</div>
+            </>
+          ) : pick.onClock ? (
+            <strong className="draft-pick-clock-label">{pick.mine ? 'You’re on the clock' : 'On the clock'}</strong>
+          ) : (
+            <span className="draft-muted">—</span>
+          )}
+          {tradeActions(pick)}
+        </div>
+      </li>
+    );
+  };
 
   return (
     <aside className="draft-pick-sidebar" aria-label="Drafted players and pick order">
@@ -90,73 +94,29 @@ export function DraftPickOrder({ vm }: { vm: VM }) {
       </div>
       {vm.dr.isCurrent && (
         <>
-          {(current || completed.length > 0) && (
-            <section className={'draft-clock' + (vm.dr.mineClock ? ' draft-clock-mine' : '')} aria-label="Draft status">
-              {current && (
-                <div className="draft-kicker">
-                  Round {current.n > s.teams.length ? 2 : 1} · Pick {current.n}
-                </div>
-              )}
-              <strong>
-                {current
-                  ? vm.dr.mineClock
-                    ? 'You’re on the clock'
-                    : 'On the clock'
-                  : vm.dr.done && s.phase === 'draft'
-                    ? 'Draft complete'
-                    : vm.dr.status}
-              </strong>
-              {current && (
-                <div className="draft-pick-team draft-current-team">
-                  {current.logoLg || current.logo}
-                  <button type="button" className="btn btn-ghost" onClick={current.openT}>
-                    {current.team}
-                  </button>
-                </div>
-              )}
-              <p className="draft-muted">{vm.dr.sub}</p>
-              <div className="draft-clock-actions">
-                {current?.canTrade && (
-                  <>
-                    <button type="button" className="btn btn-secondary" onClick={current.tradePick}>
-                      {current.tradeLbl}
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={current.proposeTrade}>
-                      Propose trade
-                    </button>
-                  </>
-                )}
-              </div>
-            </section>
-          )}
-          <details className="draft-pick-section" open data-has-picks={completed.length > 0}>
-            <summary>
-              <span>
-                Already drafted <span className="draft-muted">{completed.length}</span>
-              </span>
-              <ChevronDown size={14} aria-hidden="true" />
-            </summary>
-            {completed.length ? (
-              <ol className="draft-pick-list draft-completed-list" aria-label="Completed selections" ref={completedList}>
-                {pickRows(completed)}
-              </ol>
-            ) : (
-              <p className="draft-pick-empty draft-muted">No selections yet.</p>
-            )}
-          </details>
-          <details className="draft-pick-section" open>
-            <summary>
-              <span>
-                Up next <span className="draft-muted">{upcoming.length}</span>
-              </span>
-              <ChevronDown size={14} aria-hidden="true" />
-            </summary>
-            <ol id="draft-upcoming-picks" className="draft-pick-list" aria-label="Upcoming selections">
-              {pickRows(upcoming)}
-            </ol>
-            {!upcoming.length && <p className="draft-pick-empty draft-muted">All selections are in.</p>}
-          </details>
+          <div className="draft-pick-columns" aria-hidden="true">
+            <span>Pick</span>
+            <span>Team</span>
+            <span>Selection</span>
+          </div>
+          <ol className="draft-pick-list" aria-label="Draft pick order" ref={orderList}>
+            {order.map((pick: any, index: number) => {
+              const round = pick.n > s.teams.length ? 2 : 1;
+              const previousRound = index > 0 ? (order[index - 1].n > s.teams.length ? 2 : 1) : null;
+              return (
+                <Fragment key={pick.n}>
+                  {round !== previousRound && <li className="draft-round-divider">{round === 1 ? '1st round' : '2nd round'}</li>}
+                  {pickRow(pick)}
+                </Fragment>
+              );
+            })}
+          </ol>
           <div className="draft-remaining-picks">
+            {vm.dr.done && s.phase === 'draft' && (
+              <strong className="draft-complete-status" role="status">
+                Draft complete
+              </strong>
+            )}
             <span className="draft-muted">Your remaining picks</span>
             <strong>{remaining.length ? remaining.map((pick: any) => '#' + pick.n).join(' · ') : 'None'}</strong>
           </div>
