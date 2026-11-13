@@ -594,6 +594,8 @@ export class Game {
       DET: ['Detroit Oxcarts', 'Detroit Groove'],
       NSH: ['Nashville Librarians', 'Nashville Owls'],
       OAK: ['Oakland Barons', 'Oakland Panthers'],
+      CHA: ['Charlotte Bohemians', 'Charlotte Racers'],
+      SJ: ['San Jose Typewriters', 'San Jose Electric'],
     };
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {

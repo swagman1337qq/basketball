@@ -1,25 +1,48 @@
-# Team identity selections — November 13, 2026
+# Team identities — November 13, 2026
 
-The user selected 17 existing vintage concepts for implementation. `src/ui/ApprovedTeamLogos.tsx` records the exact variant and asset for each. The central TeamLogo renderer applies these before saved image/style overrides, including legacy save previews. Original full-size source PNGs and prompt provenance are archived under `.review/vintage-logos`.
+The shared TeamLogo renderer now uses 24 selected vintage illustrations, plus the separately approved Los Angeles Stars artwork. Selected images take precedence over saved logo-image/style overrides at every shared logo placement, including old save previews. Full-size source artwork and prompts are archived under `.review/vintage-logos`, `.review/vintage-round-two` and `.review/vintage-round-three`. Production WebP copies preserve the chosen composition and fit without cropping.
 
-- Atlanta Snowplows: concept 2.
-- Austin Vampires: concept 2.
-- Baltimore Camels: concept 3.
-- Chicago Sloths: concept 3.
-- Cincinnati Narwhals: concept 2.
-- Dallas Lariats: concept 3.
-- Denver Deep: concept 2.
-- Houston Caribou: concept 2.
-- Iŋaliq Ivories: concept 1.
-- Las Vegas Neon: concept 3.
-- Minneapolis Marauders: concept 3.
-- New York Hermits: concept 3.
-- Newark Navigators: concept 2.
-- Portland Pines: concept 3.
-- Richmond Opossums: concept 2.
-- Seattle Scorpions: concept 1.
-- St. Louis Puffins: concept 2.
+## Selected concepts
 
-Confirmed renames: Philadelphia Liberty, Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers. Existing saves using old defaults and corresponding historical standings follow the new names. User-created custom names are preserved.
+| Team | Selected concept |
+| --- | --- |
+| Atlanta Snowplows | 2 |
+| Austin Vampires | 2 |
+| Baltimore Camels | 3 |
+| Chicago Sloths | 3 |
+| Cincinnati Narwhals | 2 |
+| Dallas Lariats | 3 |
+| Denver Deep | 2 |
+| Houston Caribou | 2 |
+| Iŋaliq Ivories | 1 |
+| Las Vegas Neon | 3 |
+| Minneapolis Marauders | 3 |
+| New York Hermits | 3 |
+| Newark Navigators | 2 |
+| Portland Pines | 3 |
+| Richmond Opossums | 2 |
+| Seattle Scorpions | 1 |
+| St. Louis Puffins | 2 |
+| Charlotte Racers | 3 |
+| Cleveland Cyclones | 1 |
+| Nashville Owls | 1 |
+| Oakland Panthers | 1 |
+| Philadelphia Liberty | 1 |
+| Birmingham Vulcans | 2 |
+| Wazíbló Dragoons | 1 |
 
-Charlotte Racers/Racecars, San Antonio Bastions/Citadels/Valor, San Jose Surge/Electric and Vancouver Snowcaps/Whitecaps remain name alternatives for review. Birmingham and Wazíbló need revised artwork; San Diego has three additional concepts. Those new illustrations are mockups until selected.
+Birmingham uses the selected Roman-god #2 composition with one hammer raised in his anatomical right hand and his left hand gripping the anvil. Wazíbló uses the Oglala Lakota rider with both hands on the reins and no basketball.
+
+## Confirmed names
+
+Philadelphia Liberty, Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers, Charlotte Racers and San Jose Electric. New leagues use these names. Existing saves using prior defaults update the live team and matching historical standings; custom names remain unchanged.
+
+## Mockups awaiting selection
+
+- Detroit Groove: mirrored disco balls and colorful lights, three designs.
+- San Antonio: Alamo-façade interpretations of Bastions, Citadels and Valor, three each.
+- San Jose Electric: small lightning-bolt accents, three designs; no coil E.
+- Vancouver: Ravens, Cascades and Rainmakers, three each.
+- San Diego Seals: the additional designs from the earlier review remain available.
+
+Names with multiple alternatives are not committed until selected.

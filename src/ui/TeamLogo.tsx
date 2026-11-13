@@ -31,6 +31,7 @@ import {
 import {
   Tent,
   Cat,
+  Zap,
   Armchair,
   Beer,
   Bell,
@@ -105,6 +106,7 @@ import {
 const GLYPHS: Record<string, LucideIcon> = {
   Tent,
   Cat,
+  Zap,
   Armchair,
   Beer,
   Bell,

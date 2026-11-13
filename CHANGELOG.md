@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-13
 
 ### Changed
+- **The next vintage identity selections are applied:** Charlotte Racers (#3), Cleveland Cyclones (#1), Nashville Owls (#1), Oakland Panthers (#1), Philadelphia Liberty (#1), Vulcan with a right-hand hammer and left-hand anvil grip, and the Oglala Lakota rider without a basketball. Charlotte and San Jose now use the confirmed Racers and Electric names, including old-save default names and history.
 - **17 selected vintage team logos are live throughout the game.** Saved logo images and styles cannot hide the selected artwork; Los Angeles keeps its separately approved Stars illustration.
 - **Five franchises have new names:** Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers and Philadelphia Liberty. New leagues and old saves using the prior default names update, including historical standings.
 

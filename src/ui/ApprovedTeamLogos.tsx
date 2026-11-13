@@ -1,3 +1,10 @@
+import waz from '../assets/team-logos/waz-vintage.webp';
+import bhm from '../assets/team-logos/bhm-vintage.webp';
+import phi from '../assets/team-logos/phi-vintage.webp';
+import oak from '../assets/team-logos/oak-vintage.webp';
+import nsh from '../assets/team-logos/nsh-vintage.webp';
+import cle from '../assets/team-logos/cle-vintage.webp';
+import cha from '../assets/team-logos/cha-vintage.webp';
 import atl from '../assets/team-logos/atl-vintage.webp';
 import aus from '../assets/team-logos/aus-vintage.webp';
 import bal from '../assets/team-logos/bal-vintage.webp';
@@ -16,7 +23,7 @@ import ric from '../assets/team-logos/ric-vintage.webp';
 import sea from '../assets/team-logos/sea-vintage.webp';
 import stl from '../assets/team-logos/stl-vintage.webp';
 
-/** The 17 logo concepts selected by the user on November 13, 2026. */
+/** Vintage logo concepts selected by the user on November 13, 2026. */
 export const APPROVED_TEAM_LOGOS: Record<string, { src: string; label: string; choice: number }> = {
   ATL: { src: atl, label: 'Atlanta Snowplows', choice: 2 },
   AUS: { src: aus, label: 'Austin Vampires', choice: 2 },
@@ -35,4 +42,11 @@ export const APPROVED_TEAM_LOGOS: Record<string, { src: string; label: string; c
   RIC: { src: ric, label: 'Richmond Opossums', choice: 2 },
   SEA: { src: sea, label: 'Seattle Scorpions', choice: 1 },
   STL: { src: stl, label: 'St. Louis Puffins', choice: 2 },
+  CHA: { src: cha, label: 'Charlotte Racers', choice: 3 },
+  CLE: { src: cle, label: 'Cleveland Cyclones', choice: 1 },
+  NSH: { src: nsh, label: 'Nashville Owls', choice: 1 },
+  OAK: { src: oak, label: 'Oakland Panthers', choice: 1 },
+  PHI: { src: phi, label: 'Philadelphia Liberty', choice: 1 },
+  BHM: { src: bhm, label: 'Birmingham Vulcans', choice: 2 },
+  WAZ: { src: waz, label: 'Wazíbló Dragoons', choice: 1 },
 };
