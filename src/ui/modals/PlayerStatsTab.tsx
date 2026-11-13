@@ -376,6 +376,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     ['stl', 'STL'],
     ['blk', 'BLK'],
     ['tov', 'TOV'],
+    ['atr', 'AST/TO', 'Assists per turnover'],
     ['pf', 'PF'],
     ['pts', 'PTS'],
   ];
@@ -386,9 +387,11 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
         ? ''
         : PCTK.has(k)
           ? v.toFixed(3).replace(/^0/, '')
-          : k === 'gp' || k === 'gs' || mode === 'tot'
-            ? String(Math.round(v))
-            : v.toFixed(1);
+          : k === 'atr'
+            ? v.toFixed(2)
+            : k === 'gp' || k === 'gs' || mode === 'tot'
+              ? String(Math.round(v))
+              : v.toFixed(1);
     const b = !!L && L[k] != null && isFinite(v) && roundStat(k, v, mode === 'tot' ? 'tot' : 'pg') === L[k];
     return (
       <td

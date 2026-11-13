@@ -36,13 +36,21 @@ export function statVal(t: any, k: string, mode: LeadMode | 'p36'): number {
       return n(twoA);
     case 'trb':
       return n((t.orb || 0) + (t.drb || 0));
+    case 'atr': // assists per turnover (2026-11-13), the same per game or in totals
+      return t.tov ? (t.ast || 0) / t.tov : NaN;
     default:
       return n(t[k] || 0);
   }
 }
 const PCT = new Set(['fgp', 'tpp', 'ftp', 'twp', 'efg']);
 export const roundStat = (k: string, v: number, mode: LeadMode | 'p36') =>
-  PCT.has(k) ? Math.round(v * 1000) : mode === 'tot' || k === 'gp' || k === 'gs' ? Math.round(v) : Math.round(v * 10);
+  PCT.has(k)
+    ? Math.round(v * 1000)
+    : k === 'atr'
+      ? Math.round(v * 100)
+      : mode === 'tot' || k === 'gp' || k === 'gs'
+        ? Math.round(v)
+        : Math.round(v * 10);
 export const LEAD_KEYS = [
   'gp',
   'gs',
@@ -67,6 +75,7 @@ export const LEAD_KEYS = [
   'stl',
   'blk',
   'tov',
+  'atr',
   'pf',
   'pts',
 ];
@@ -78,6 +87,7 @@ const NEED: Record<string, [string, number]> = {
   twp: ['fgm', 300],
   tpp: ['tpm', 82],
   ftp: ['ftm', 125],
+  atr: ['ast', 200], // AST/TO: 200 assists over a full season (about 2.5 a game), so a backup with 6 assists and 1 turnover doesn't lead
 };
 const seasonGames = (g: Game, s: any, y: number) => (y === g.Y ? Math.max(1, ...s.teams.map((t: any) => t.w + t.l)) : 82);
 
@@ -96,7 +106,7 @@ export function seasonLeaders(g: Game, s: any, y: number, mode: LeadMode): Recor
     if (!t || !t.gp) return;
     const qual = mode === 'tot' || t.gp >= 0.7 * maxGp;
     LEAD_KEYS.forEach(k => {
-      if (PCT.has(k)) {
+      if (need[k]) {
         const [m, n] = need[k];
         if ((t[m] || 0) < n * f) return;
       } else if (!qual && k !== 'gp' && k !== 'gs') return;

@@ -293,6 +293,7 @@ function PlayerStats({ vm }: { vm: VM }) {
             ['STL%', '', (r: any) => r.a?.stlp],
             ['BLK%', '', (r: any) => r.a?.blkp],
             ['TOV%', '', (r: any) => r.a?.tovp],
+            ['AST/TO', 'Assists per turnover', (r: any) => (r.t.tov ? r.t.ast / r.t.tov : null), 2, 'atr'],
             ['ORtg', 'Offensive rating', (r: any) => r.a?.ortg, 0],
             ['DRtg', 'Defensive rating', (r: any) => r.a?.drtg, 0],
             ['OWS', '', (r: any) => r.a?.ows],
@@ -315,9 +316,9 @@ function PlayerStats({ vm }: { vm: VM }) {
               tip || '',
               (r: any) => {
                 const v = statVal(r.t, k, mode as any);
-                return PCTK.has(k) ? (isFinite(v) ? v : null) : v;
+                return PCTK.has(k) || k === 'atr' ? (isFinite(v) ? v : null) : v;
               },
-              PCTK.has(k) ? 3 : k === 'gp' || k === 'gs' || mode === 'tot' ? 0 : 1,
+              PCTK.has(k) ? 3 : k === 'atr' ? 2 : k === 'gp' || k === 'gs' || mode === 'tot' ? 0 : 1,
               k,
             ]),
             ...(season !== 'career'

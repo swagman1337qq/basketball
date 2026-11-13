@@ -22,6 +22,8 @@ const BOX: Def[] = [
   ['drb', 'Defensive rebounds'],
   ['tov', 'Turnovers'],
 ];
+// Ratios: the same per game or in totals
+const RATIO: Def[] = [['atr', 'Assist-to-turnover ratio']];
 const SHOOT: Def[] = [
   ['fgp', 'Field goal %'],
   ['tpp', '3-point %'],
@@ -46,7 +48,7 @@ const ADV: Def[] = [
   ['vorp', 'Value over replacement', { sum: true }],
   ['ewa', 'Estimated wins added', { sum: true }],
 ];
-const BOARDS: Board[] = [...BOX, ...SHOOT]
+const BOARDS: Board[] = [...BOX, ...RATIO, ...SHOOT]
   .map(([k]) => ({ id: k, k }))
   .concat(ADV.map(([k, , o]) => ({ id: 'a' + k, k, adv: true, ...o })));
 const THREE = new Set(['fgp', 'tpp', 'ftp', 'efg', 'twp', 'aws48']);
@@ -69,16 +71,18 @@ export function LeagueLeadersScreen({ vm }: { vm: VM }) {
   const fmt = (b: Board, v: number) =>
     THREE.has(b.id)
       ? v.toFixed(3).replace(/^(-?)0\./, '$1.')
-      : !b.adv && mode === 'tot'
-        ? Math.round(v).toLocaleString()
-        : b.k === 'bpm'
-          ? (v > 0 ? '+' : '') + v.toFixed(1)
-          : v.toFixed(1);
+      : b.id === 'atr'
+        ? v.toFixed(2)
+        : !b.adv && mode === 'tot'
+          ? Math.round(v).toLocaleString()
+          : b.k === 'bpm'
+            ? (v > 0 ? '+' : '') + v.toFixed(1)
+            : v.toFixed(1);
   const card = ([, title]: Def, b: Board) => (
     <section key={b.id} className="card" style={{ padding: '10px 12px', gap: 4 }}>
       <Kicker accent>
         {title}
-        {!b.adv && !THREE.has(b.id) && mode !== 'tot' ? ' per game' : ''}
+        {!b.adv && !THREE.has(b.id) && b.id !== 'atr' && mode !== 'tot' ? ' per game' : ''}
       </Kicker>
       {(boards[b.id] || []).length === 0 ? (
         <p style={{ ...muted, fontSize: '12px', fontStyle: 'italic', margin: 0 }}>No one qualifies yet.</p>
@@ -163,13 +167,14 @@ export function LeagueLeadersScreen({ vm }: { vm: VM }) {
         </span>
       </div>
       <p style={{ ...muted, fontSize: '12px', margin: '0 0 14px' }}>
-        Regular season. Per game and rate stats need 70% of the team’s games; percentages need 300 field goals, 82 threes or 125 free throws
-        over a full season (scaled to the games so far); totals, win shares, VORP and EWA need nothing.
+        Regular season. Per game and rate stats need 70% of the team’s games; percentages need 300 field goals, 82 threes or 125 free
+        throws, and assist-to-turnover 200 assists, over a full season (scaled to the games so far); totals, win shares, VORP and EWA need
+        nothing.
       </p>
       <h4 style={{ margin: '0 0 8px', fontSize: '18px' }}>{mode === 'tot' ? 'Totals' : 'Per game'}</h4>
       {grid(BOX)}
-      <h4 style={{ margin: '0 0 8px', fontSize: '18px' }}>Shooting</h4>
-      {grid(SHOOT)}
+      <h4 style={{ margin: '0 0 8px', fontSize: '18px' }}>Shooting and ball security</h4>
+      {grid([...SHOOT, ...RATIO])}
       <h4 style={{ margin: '0 0 8px', fontSize: '18px' }}>Advanced</h4>
       {grid(ADV, true)}
     </>
