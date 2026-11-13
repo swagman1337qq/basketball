@@ -1,6 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-CE7Sh5hk.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-RZtOJl6f.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-13
+
+### Changed
+- **17 selected vintage team logos are live throughout the game.** Saved logo images and styles cannot hide the selected artwork; Los Angeles keeps its separately approved Stars illustration.
+- **Five franchises have new names:** Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers and Philadelphia Liberty. New leagues and old saves using the prior default names update, including historical standings.
 
 ## 2026-11-12
 
