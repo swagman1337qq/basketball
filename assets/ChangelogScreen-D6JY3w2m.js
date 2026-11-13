@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-DOEdtui7.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BAzwPElT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-13
 
 ### Changed
+- **San Diego Hawks completes the selected vintage logo rollout.** The approved #3 red-tailed hawk illustration appears at every shared logo placement, bringing all 30 league teams to their selected artwork. New leagues use Hawks; existing default Seals and Mittens names migrate, including historical standings. Custom team names and the existing team colors are preserved.
 - **Four more selected vintage logos:** Detroit Groove (#1), San Antonio Valor (#2), San Jose Electric (#1, small lightning bolts) and Vancouver Cascades (#1). San Antonio and Vancouver use their confirmed names in new leagues and migrate prior default names in existing saves and historical standings. San Diego remains unchanged while its new name/logo options are reviewed.
 - **The next vintage identity selections are applied:** Charlotte Racers (#3), Cleveland Cyclones (#1), Nashville Owls (#1), Oakland Panthers (#1), Philadelphia Liberty (#1), Vulcan with a right-hand hammer and left-hand anvil grip, and the Oglala Lakota rider without a basketball. Charlotte and San Jose now use the confirmed Racers and Electric names, including old-save default names and history.
 - **17 selected vintage team logos are live throughout the game.** Saved logo images and styles cannot hide the selected artwork; Los Angeles keeps its separately approved Stars illustration.
