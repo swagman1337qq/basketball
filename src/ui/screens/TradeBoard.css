@@ -284,6 +284,7 @@
 }
 .trade-board .trade-board-sidebar {
   min-width: 0;
+  box-shadow: none;
   position: sticky;
   top: 12px;
 }
