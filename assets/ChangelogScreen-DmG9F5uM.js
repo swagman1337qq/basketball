@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-qsLTSI81.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-feDvsCOh.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -14,6 +14,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **The next vintage identity selections are applied:** Charlotte Racers (#3), Cleveland Cyclones (#1), Nashville Owls (#1), Oakland Panthers (#1), Philadelphia Liberty (#1), Vulcan with a right-hand hammer and left-hand anvil grip, and the Oglala Lakota rider without a basketball. Charlotte and San Jose now use the confirmed Racers and Electric names, including old-save default names and history.
 - **17 selected vintage team logos are live throughout the game.** Saved logo images and styles cannot hide the selected artwork; Los Angeles keeps its separately approved Stars illustration.
 - **Five franchises have new names:** Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers and Philadelphia Liberty. New leagues and old saves using the prior default names update, including historical standings.
+
+### Fixed
+- **Your roster order no longer costs your best player minutes.** On automatic minutes, a top player listed anywhere in the starting five (not just first) gets his full star minutes; before, moving him from the top spot to 5th took about 3 minutes a game away. The order inside the starting five and inside the bench doesn't change anyone's minutes.
 
 ## 2026-11-12
 
