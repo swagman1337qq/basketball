@@ -1,8 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{E as t,f as n}from"./index-BAzwPElT.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-qsLTSI81.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-13
+
+### Added
+- **Choose your league's teams when you start.** On the New league screen, **Edit teams** lets you remove any of the 30 clubs and add new ones from the franchise list (London, Paris, Toronto, Mexico City and more, each with its own logo and colors) or design your own. Any even number from 20 to 40 teams works; conferences follow geography, and each needs at least 10 teams for the play-in. **Back to the default 30** undoes it.
+- **God Mode: relocate or replace a team.** In the League editor, **Relocate or replace…** turns a club into another franchise (pick one from the list) or moves and rebrands it (keep the nickname and change the city, or start from scratch). The club keeps its players, contracts, draft picks, owner and records; past seasons keep the old name, the arena and ticket prices follow the new city, and a move across the country changes conference at the next season.
 
 ### Changed
 - **San Diego Hawks completes the selected vintage logo rollout.** The approved #3 red-tailed hawk illustration appears at every shared logo placement, bringing all 30 league teams to their selected artwork. New leagues use Hawks; existing default Seals and Mittens names migrate, including historical standings. Custom team names and the existing team colors are preserved.
