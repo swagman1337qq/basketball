@@ -60,7 +60,8 @@ export function MentoringSection({ vm, tid }: { vm: VM; tid: number }) {
         Pair a young player (25 or under) with a veteran leader (29+, a Professional or Team player). Personalities rarely change: over time
         he may shed a bad habit or pick up the veteran’s good ones, if he’s open to it. Pairings work far better than informal leadership,
         and a better locker room helps. The room itself rubs off too: a bad one breeds egos, a great one team players. Each veteran can
-        mentor {MENTOR_MAX} players. Locker room: <LockerRoomChip vm={vm} tid={tid} />
+        mentor {MENTOR_MAX} players. Who leads the room and whom the young players follow: the Hierarchy tab. Locker room:{' '}
+        <LockerRoomChip vm={vm} tid={tid} />
       </p>
       {!vets.length && (
         <p style={{ fontSize: '13px', fontStyle: 'italic' }}>

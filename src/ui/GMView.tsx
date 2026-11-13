@@ -29,6 +29,7 @@ import { TacticsScreen } from './screens/TacticsScreen';
 import { ScoutingScreen } from './screens/ScoutingScreen';
 import { OverseasScreen } from './screens/OverseasScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
+import { HierarchyScreen } from './screens/HierarchyScreen';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { DailyScheduleScreen } from './screens/DailyScheduleScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -222,6 +223,7 @@ export function GMView({ vm }: { vm: VM }) {
                     {!!vm.is.scouting && <ScoutingScreen vm={vm} />}
                     {!!vm.is.overseas && <OverseasScreen vm={vm} />}
                     {!!vm.is.dev && <DevelopmentScreen vm={vm} />}
+                    {!!vm.is.hier && <HierarchyScreen vm={vm} />}
                     {!!vm.is.owner && <OwnerScreen vm={vm} />}
                     {!!vm.is.settings && <SettingsScreen vm={vm} />}
                     {!!vm.is.fin && <FinancesScreen vm={vm} />}
