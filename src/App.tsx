@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { getSave, newSaveId, putSave, summarize, exportSave, type SaveRow } from './db/saves';
 import { adoptLeagueCards, loadCards } from './db/cards';
+import type { TeamSpec } from './data/world';
 import { Game } from './engine/Game';
 import { GMView } from './ui/GMView';
 import { TitleScreen } from './ui/TitleScreen';
@@ -25,18 +26,26 @@ export function App() {
     loadCards();
   }, []); // the shared player-card library
 
-  const onCreate = useCallback(async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' | 'spectate' = '') => {
-    const game = Game.create(seed, tids, { worst: start === 'worst', hopeless: start === 'hopeless', spectate: start === 'spectate' });
-    const now = Date.now();
-    const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
-    row.summary = summarize(row.data);
-    try {
-      await putSave(row);
-    } catch {
-      setError('Could not write to browser storage; this league will not be saved.');
-    }
-    setOpen({ id: row.id, name, createdAt: now, game });
-  }, []);
+  const onCreate = useCallback(
+    async (name: string, seed: number, tids: number[], start: '' | 'worst' | 'hopeless' | 'spectate' = '', teams?: TeamSpec[]) => {
+      const game = Game.create(seed, tids, {
+        worst: start === 'worst',
+        hopeless: start === 'hopeless',
+        spectate: start === 'spectate',
+        teams,
+      });
+      const now = Date.now();
+      const row: SaveRow = { id: newSaveId(), name, createdAt: now, updatedAt: now, summary: '', data: game.toSave() };
+      row.summary = summarize(row.data);
+      try {
+        await putSave(row);
+      } catch {
+        setError('Could not write to browser storage; this league will not be saved.');
+      }
+      setOpen({ id: row.id, name, createdAt: now, game });
+    },
+    [],
+  );
 
   const onOpen = useCallback(async (id: string) => {
     const row = await getSave(id);

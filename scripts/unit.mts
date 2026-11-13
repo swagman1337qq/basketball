@@ -10,6 +10,8 @@ import { CONTEND_PREM, CONTEND_PREM_BIRD } from '../src/engine/contracts';
 import { Game } from '../src/engine/Game';
 import { taxBill, nums } from '../src/engine/cba';
 import { newLeague } from './lib/headless.mts';
+import { defaultTeamSpecs, teamListError } from '../src/data/world';
+import { relocateTeam } from '../src/engine/relocate';
 
 let n = 0;
 const test = (name: string, fn: () => void) => {
@@ -135,6 +137,38 @@ test('the middle of the market is priced at or above the curve, stars and the be
   assert.equal(Game.midTierF(45), 1);
   assert.equal(Game.midTierF(70), 1);
   assert.ok(Game.midTierF(57) >= 1);
+});
+
+// League size (2026-11-13): the start screen's Teams editor builds any even league from 20 to 40 teams.
+test('a 20-team league builds with valid conferences, picks and schedule', () => {
+  const specs = defaultTeamSpecs().slice(0, 20);
+  assert.equal(teamListError(specs), '');
+  assert.ok(teamListError(specs.slice(0, 19)) !== '' && teamListError(defaultTeamSpecs().slice(0, 18)) !== '');
+  const g: any = Game.create(31, [0], { teams: specs }),
+    T = g.state.teams;
+  assert.equal(T.length, 20);
+  assert.ok(T.filter((t: any) => t.conf === 'East').length >= 10 && T.filter((t: any) => t.conf === 'West').length >= 10);
+  assert.ok(g.state.assets.every((a: any) => T[a.owner] && T[a.orig]));
+  assert.ok(g.db.days.flat().every((gm: any) => gm.every((t: number) => t < 20)));
+});
+test('the default league is built exactly as before', () => {
+  const a: any = Game.create(31, [0]),
+    b: any = Game.create(31, [0], { teams: defaultTeamSpecs() });
+  assert.equal(a.state.teams.length, 30);
+  assert.deepEqual(
+    a.state.teams.map((t: any) => t.abbr + t.str),
+    b.state.teams.map((t: any) => t.abbr + t.str),
+  );
+});
+test('relocating a club keeps its roster and picks and takes the new identity', () => {
+  const g: any = Game.create(31, [0]),
+    ids = g.state.rosters[5].slice(),
+    picks = g.state.assets.filter((x: any) => x.owner === 5).length;
+  assert.equal(relocateTeam(g, 5, { region: 'Louisville', name: 'Thoroughbreds', abbr: 'LOU' }), '');
+  assert.equal(g.state.teams[5].abbr, 'LOU');
+  assert.deepEqual(g.state.rosters[5], ids);
+  assert.equal(g.state.assets.filter((x: any) => x.owner === 5).length, picks);
+  assert.ok(relocateTeam(g, 6, { region: 'X', name: 'Y', abbr: 'LOU' }) !== ''); // the abbreviation is taken
 });
 
 console.log((process.exitCode ? 'FAIL' : 'PASS') + ': ' + n + ' unit tests passed');

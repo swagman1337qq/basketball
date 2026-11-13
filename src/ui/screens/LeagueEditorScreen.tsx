@@ -13,7 +13,9 @@ import { CITY_ECON, cityArena } from '../../data/arenas';
 import { cityRev } from '../../data/cityRevenue';
 import { processImage } from '../upload';
 import { alphaTeams, Link, muted, NumInput, ruleH4, GOD_PINK } from '../kit';
-import { LOGO_STYLES, LOGO_STYLE_LABELS } from '../TeamLogo';
+import { LOGO_STYLES, LOGO_STYLE_LABELS, TeamLogo } from '../TeamLogo';
+import { FranchiseChooser } from '../FranchiseChooser';
+import { relocateTeam } from '../../engine/relocate';
 
 const GLYPHS = [
   'Drama',
@@ -71,6 +73,10 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
     [buyArch, setBuyArch] = useState(''),
     [buyBg, setBuyBg] = useState(''),
     [saleMsg, setSaleMsg] = useState('');
+  // Relocate or replace: the panel, the franchise picked (waiting for Confirm) and the result
+  const [moveOpen, setMoveOpen] = useState(false),
+    [moveTo, setMoveTo] = useState<any>(null),
+    [moveMsg, setMoveMsg] = useState('');
   useEffect(() => {
     if (s.editorTid != null) gm.setState({ editorTid: null });
   }, []); // opened from the Owner screen on a given team
@@ -170,7 +176,75 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
           ))}
         </select>
         <span style={{ ...muted, fontSize: '12px' }}>Team ID #{tid} is permanent. Past seasons’ standings and stats are read-only.</span>
+        <button
+          className={moveOpen ? 'btn btn-primary' : 'btn btn-secondary'}
+          style={{ fontSize: '12.5px', marginLeft: 'auto' }}
+          onClick={() => {
+            setMoveOpen(!moveOpen);
+            setMoveTo(null);
+            setMoveMsg('');
+          }}
+        >
+          Relocate or replace…
+        </button>
       </div>
+      {moveMsg && <div style={{ fontSize: '12.5px', margin: '-8px 0 12px', color: 'var(--gm-good)' }}>{moveMsg}</div>}
+      {moveOpen && (
+        <section
+          key={'mv' + tid}
+          style={{ border: '1px solid ' + GOD_PINK, borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: 18 }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 2 }}>
+            Relocate or replace the {t.region} {t.name}
+          </div>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>
+            Pick a franchise to replace them, or Create your own to move them (keep the nickname and change the city) or rebrand them. The
+            club keeps its players, contracts, draft picks, owner and records; past seasons keep the old name. A move to the other side of
+            the country changes conference at the next season.
+          </p>
+          {moveTo ? (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '8px 0' }}>
+              {logo(tid, 40)}
+              <span style={{ fontSize: '18px' }}>→</span>
+              <TeamLogo team={moveTo} size={40} />
+              <span style={{ fontSize: '13px' }}>
+                The {t.region} {t.name} become the{' '}
+                <b>
+                  {moveTo.region} {moveTo.name}
+                </b>{' '}
+                ({moveTo.abbr}).
+              </span>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const e = relocateTeam(gm, tid, moveTo);
+                  if (e) return (setMoveMsg(''), setErr(e));
+                  setErr('');
+                  setMoveMsg('Done: the ' + moveTo.region + ' ' + moveTo.name + ' (' + moveTo.abbr + ').');
+                  setMoveTo(null);
+                  setMoveOpen(false);
+                }}
+              >
+                Confirm
+              </button>
+              <button className="btn btn-ghost" onClick={() => setMoveTo(null)}>
+                Back
+              </button>
+            </div>
+          ) : (
+            <FranchiseChooser
+              taken={new Set<string>(T.filter(x => x.tid !== tid).map(x => x.abbr))}
+              inLeague={new Set<string>(T.filter(x => x.tid !== tid).map(x => x.region + '|' + x.name))}
+              onPick={x => setMoveTo(x)}
+              pickLabel="Replace with this"
+              customLabel="Use this"
+              clearAfter={false}
+              customInit={{ name: t.name, abbr: '', colors: t.colors, icon: t.icon, conf: t.conf, div: t.div, mkt: t.mkt }}
+            />
+          )}
+          {err && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px' }}>{err}</div>}
+        </section>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '30px', alignItems: 'start' }}>
         <section>
           <h4 style={ruleH4}>Identity</h4>
@@ -180,7 +254,7 @@ export function LeagueEditorScreen({ vm }: { vm: VM }) {
             <span style={muted}>Nickname</span>
             <input className="input" value={t.name} onChange={e => setT({ name: e.target.value })} />
             <span style={muted}>Abbreviation</span>
-            <input className="input" defaultValue={t.abbr} key={'ab' + tid} onBlur={e => setAbbr(e.target.value)} />
+            <input className="input" defaultValue={t.abbr} key={'ab' + tid + t.abbr} onBlur={e => setAbbr(e.target.value)} />
             <span style={muted}>Colors</span>
             <span style={{ display: 'flex', gap: '8px' }}>
               {[0, 1].map(i => (

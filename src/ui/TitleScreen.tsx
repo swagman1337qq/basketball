@@ -1,3 +1,4 @@
+import type { TeamSpec } from '../data/world';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ChevronRight, Download, Eye, Moon, Play, Plus, Sun, Trash2, Upload } from 'lucide-react';
 import { deleteSave, exportSave, importSave, listSaves, type SaveRow } from '../db/saves';
@@ -53,7 +54,7 @@ export function TitleScreen({
   onCreate,
 }: {
   onOpen: (id: string) => void | Promise<void>;
-  onCreate: (name: string, seed: number, tids: number[], start?: LeagueStart) => void | Promise<void>;
+  onCreate: (name: string, seed: number, tids: number[], start?: LeagueStart, teams?: TeamSpec[]) => void | Promise<void>;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,10 +128,10 @@ export function TitleScreen({
       finish();
     }
   };
-  const createLeague = async (name: string, seed: number, tids: number[], start: LeagueStart) => {
+  const createLeague = async (name: string, seed: number, tids: number[], start: LeagueStart, teams?: TeamSpec[]) => {
     if (!begin('create')) return;
     try {
-      await onCreate(name, seed, tids, start);
+      await onCreate(name, seed, tids, start, teams);
     } catch (error) {
       reportError(error);
     } finally {

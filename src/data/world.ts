@@ -265,6 +265,21 @@ export const TEAMS: [string, string, string, string, string][] = [['Baltimore', 
 // default follow the renames.
 export const OLD_NICKNAMES: Record<string, string[]> = {"WAS": ["Monuments"], "BAL": ["Tides", "Crabs", "Cacti"], "NY": ["Empires", "Nappers", "Yaks"], "BKN": ["Ironworks", "Trolleys", "Ranchers", "Armadillos"], "NWK": ["Comets", "Bricks", "Tourists", "Toucans", "Monocles"], "PHI": ["Bells", "Gentlemen", "Koalas"], "CLE": ["Forge", "Amps", "Tropics", "Iguanas", "Parasols"], "DET": ["Motors", "Pedal Pushers", "Oxcarts"], "CHI": ["Gales", "Doldrums"], "PIT": ["Rivermen", "Inclines", "Flatlanders", "Lemurs"], "CIN": ["Barons", "Riverboats", "Surfers"], "CHA": ["Monarchs", "Speed Bumps", "Tortoises", "Bohemians"], "ATL": ["Firebirds", "Open Roads", "Walruses"], "TPA": ["Herons", "Corsairs", "Mountaineers"], "RIC": ["Liberty", "Monarchists", "Samurai"], "NSH": ["Sound", "Mimes", "Librarians"], "SEA": ["Squall", "Roasters", "Sunburn"], "POR": ["Lumberjacks", "Normies", "Sultans"], "VAN": ["Orcas", "Bargains", "Hyenas", "Drought"], "STL": ["Arches", "Igloos"], "DEN": ["Altitude", "Submarines", "Stingrays"], "SD": ["Surf", "Monsoons", "Moose", "Mittens", "Seals"], "OAK": ["Redwoods", "Lifers", "Barons"], "LV": ["Jacks", "High Rollers", "Early Birds", "Monks"], "LA": ["Marquees", "Unknowns", "Beavers", "Strollers"], "SJ": ["Circuits", "Luddites", "Typewriters"], "AUS": ["Outlaws", "Bats", "Vegetarians", "Hush"], "SA": ["Vaqueros", "Amnesiacs", "Frost"], "PHX": ["Scorch", "Saguaros", "Icebergs"], "DAL": ["Wildcatters", "Minimalists", "Axolotls"], "HOU": ["Orbit", "Dry Heat"], "HFD": ["Kestrels", "Underwriters", "Risk Takers", "Anteaters"], "PRV": ["Anchors", "Jewelers", "Skyscrapers"], "CBS": ["Owls", "Explorers", "Homebodies"], "KC": ["Scouts", "Pitmasters", "Tofu", "Manatees"], "SAC": ["Gold", "Prospectors", "Paupers"], "RAL": ["Oaks", "Clear-Cutters"]};
 export const MARKETS = [1.0, 1.55, 1.0, 1.2, 1.2, .85, 1.05, 1.35, .75, .85, .95, 1.15, .75, .8, .9, 1.15, .9, 1.05, .9, 1.05, 1.1, 1.25, .95, 1.5, 1.1, 1.0, .95, .75, 1.25, 1.25]; // Iŋaliq and Wazíbló: the league's smallest markets
+// A league's starting teams (the start screen's Teams editor can change the list): the default 30 or any even number
+// from TEAM_COUNT.min to TEAM_COUNT.max, each with a city, nickname, abbreviation, conference (realigned by geography
+// for cities the game knows), division and market; colors, crest and logo style when not one of the default clubs.
+export interface TeamSpec { region: string; name: string; abbr: string; conf: string; div: string; mkt: number; colors?: [string, string]; icon?: string; logoStyle?: string }
+export const TEAM_COUNT = { min: 20, max: 40 };
+export const defaultTeamSpecs = (): TeamSpec[] => TEAMS.map((t, i) => ({ region: t[0], name: t[1], abbr: t[2], conf: t[3], div: t[4], mkt: MARKETS[i] }));
+export function teamListError(list: { region: string; name: string; abbr: string }[]): string {
+  if (list.length < TEAM_COUNT.min) return 'A league needs at least ' + TEAM_COUNT.min + ' teams (10 per conference for the play-in).';
+  if (list.length > TEAM_COUNT.max) return 'A league can have at most ' + TEAM_COUNT.max + ' teams.';
+  if (list.length % 2) return 'Pick an even number of teams: the schedule pairs every team every game day.';
+  const ab = list.map(t => t.abbr), nm = list.map(t => (t.region + ' ' + t.name).toLowerCase());
+  if (new Set(ab).size !== ab.length) return 'Two teams share an abbreviation.';
+  if (new Set(nm).size !== nm.length) return 'Two teams share a name.';
+  return '';
+}
 export const OWNER_ARCHETYPES = ['Win-Now Spender', 'Frugal Profit-Seeker', 'Asset Hoarder', 'Hype Focus', 'Meddling Micromanager'];
 export const OWNER_SURNAMES = ['Kessler', 'Whitmore', 'Draycott', 'Pemberton', 'Castellano', 'Hargrove', 'Lindgren', 'Okoro', 'Vasquez', 'Ashworth', 'Brandt', 'Galloway', 'Thornbury', 'Delacroix', 'Mancuso', 'Radcliffe', 'Oyelaran', 'Sterling', 'Halvorsen', 'Fairbanks', 'Montague', 'Kowalczyk', 'Abernathy', 'Villanueva', 'Carrington', 'Nakashima', 'Blackwood', 'Esposito', 'Harrowgate', 'Lindqvist', 'Mbeki', 'Rosenthal', 'Pritchard', 'Castellanos', 'Wexford', 'Adebayo', 'Kingsley', 'Duquesne', 'Hollister', 'Szabo'];
 // lay (layups), acc (acceleration / first step) and box (boxing out) were added in 2026; older saves get them derived on load.

@@ -176,7 +176,6 @@ import {
   pickSmallCollege,
   cyr,
   EXPANSION,
-  MARKETS,
   namePools,
   natDefault,
   nativeMaps,
@@ -188,6 +187,8 @@ import {
   roleDefs,
   TEAM_STYLE,
   TEAMS,
+  defaultTeamSpecs,
+  type TeamSpec,
   teamStyle,
 } from '../data/world';
 import { faceSvg, makeFace } from './faces';
@@ -313,9 +314,13 @@ export class Game {
 
   // A new league. `tids` are the franchises the user will run (1 to all of them);
   // the first is the one on screen.
-  static create(seed = 2027, tids: number | number[] = 0, opts: { worst?: boolean; hopeless?: boolean; spectate?: boolean } = {}) {
+  static create(
+    seed = 2027,
+    tids: number | number[] = 0,
+    opts: { worst?: boolean; hopeless?: boolean; spectate?: boolean; teams?: TeamSpec[] } = {},
+  ) {
     const g = new Game();
-    g.makeDB(seed);
+    g.makeDB(seed, opts.teams);
     if (opts.worst) g.swapToWorst(Array.isArray(tids) ? tids : [tids]);
     else if (opts.hopeless) makeHopeless(g, Array.isArray(tids) ? tids : [tids]); // startRoster.ts
     g.state = g.initState(Array.isArray(tids) ? tids : [tids]);
@@ -509,9 +514,9 @@ export class Game {
     }
   }
   // Team cards for the start screen, from the same seeded world create() would build.
-  static preview(seed = 2027) {
+  static preview(seed = 2027, teams?: TeamSpec[]) {
     const g = new Game();
-    const d = g.makeDB(seed),
+    const d = g.makeDB(seed, teams),
       P = d.P;
     const top8 = t => teamRating(P, d.rosters[t.tid]);
     const out = d.teams.map(t => {
@@ -1684,7 +1689,7 @@ export class Game {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  makeDB(seed: number) {
+  makeDB(seed: number, specs?: TeamSpec[]) {
     const db: any = (this.db = {
       v: 2,
       ovrV: 1,
@@ -1716,16 +1721,18 @@ export class Game {
       CLUBS = clubs(),
       W_NBA = natDefault();
     const mk = (base, age, Wt, cls, forceGrp?) => this.mkPlayer(base, age, Wt, cls, forceGrp);
-    const teams: any[] = TEAMS.map((t, i) => ({
+    // The default 30 clubs, or the list from the start screen's Teams editor (TeamSpec, data/world.ts)
+    const teams: any[] = (specs && specs.length ? specs : defaultTeamSpecs()).map((t, i) => ({
       tid: i,
-      region: t[0],
-      name: t[1],
-      abbr: t[2],
-      conf: t[3],
-      div: t[4],
+      region: t.region,
+      name: t.name,
+      abbr: t.abbr,
+      conf: t.conf,
+      div: t.div,
       str: 45 + rnd() * 12,
-      mkt: MARKETS[i],
-      ...teamStyle(t[2]),
+      mkt: t.mkt ?? 1,
+      ...(t.colors ? { colors: t.colors, icon: t.icon || 'Circle' } : teamStyle(t.abbr)),
+      ...(t.logoStyle ? { logoStyle: t.logoStyle } : {}),
       seq: [],
       w: 0,
       l: 0,
@@ -1959,7 +1966,7 @@ export class Game {
     );
     for (let k = 0; k < 10; k++) {
       const a = pick(assets.filter(x => x.owner === x.orig && x.orig !== 0));
-      a.owner = 1 + Math.floor(rnd() * 29);
+      a.owner = 1 + Math.floor(rnd() * (teams.length - 1)); // any other club (29 in the default league: unchanged)
     }
     assets.find(a => a.yr === 2028 && a.rd === 2 && a.orig === 1).owner = 0;
     db.calendarV = 1;
