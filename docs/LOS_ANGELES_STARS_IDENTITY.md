@@ -1,8 +1,8 @@
 # Los Angeles Stars identity — 2026-11-12
 
-The Stars use a new original 1990s-style basketball identity: a golden star mascot in a lavender jersey, a basketball, high-top shoes, heavy ink outlines and slanted Stars lettering. Team colors still come from the franchise palette. Under 40 pixels, the logo becomes a star-and-basketball emblem.
+The Stars use the exact vintage illustration approved by the user: a full-body golden star dribbling in a lavender uniform and high-top shoes, with cream Los Angeles and Stars lettering. The original transparent PNG is preserved at `src/assets/los-angeles-stars-vintage.png`; every size displays this artwork without cropping or replacing it with the earlier geometric concept. Its colors stay as approved.
 
-`src/ui/StarsLogo.tsx` draws the artwork. `teamMarks.tsx` registers it as the LA default, and `teamCrests.tsx` exposes it through the normal crest registry. The previous pram artwork is removed.
+`src/ui/StarsLogo.tsx` displays the approved artwork inside the shared SVG surface. `teamMarks.tsx` registers it as the LA default, and `teamCrests.tsx` exposes it through the normal crest registry. Vite publishes the image with a content-based asset URL. The previous pram artwork is removed.
 
 ## All logo placements
 
@@ -19,7 +19,7 @@ The placement audit found these paths:
 - History: team history, Hall of Fame, career history and championship banners (`ChampBanner.tsx` directly uses `TeamLogo`).
 - League editing and expansion: previews also use `TeamLogo`, so saved custom-image/style settings do not revive the previous LA mark.
 
-The override is based on the LA franchise abbreviation, so history and old previews do not depend on having today's nickname in their snapshot. Logo colors continue to follow the team's saved palette.
+The override is based on the LA franchise abbreviation, so history and old previews do not depend on having today's nickname in their snapshot. The selected illustration retains its approved colors.
 
 ## Verification
 
