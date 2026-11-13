@@ -311,8 +311,10 @@ function StarShape({ x, y, r, fill }: { x: number; y: number; r: number; fill: s
 export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; size?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   if (!team) return null;
-  const label = (team.region ? team.region + ' ' + team.name : team.abbr) + ' logo';
-  if (team.logoImg)
+  // The Stars rebrand overrides saved images/styles and old snapshot names wherever this franchise appears.
+  const stars = team.abbr === 'LA';
+  const label = (stars ? 'Los Angeles Stars' : team.region ? team.region + ' ' + team.name : team.abbr) + ' logo';
+  if (team.logoImg && !stars)
     return (
       <img
         src={team.logoImg}
@@ -336,7 +338,7 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   const key = team.abbr || team.name || 'X',
     h = hash(key);
   const style = (team.logoStyle as any) || BY_TEAM[key] || LOGO_STYLES[h % LOGO_STYLES.length];
-  const sm = size < 30,
+  const sm = size < (stars ? 40 : 30),
     city = (team.region || '').toUpperCase(),
     nick = team.name || '',
     est = 1946 + (h % 58); // under 30px (list icons) lettering can't be read: the emblem alone
@@ -347,6 +349,7 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
       viewBox="0 0 100 100"
       role="img"
       aria-label={label}
+      data-team-mark={stars ? 'la-stars-retro' : undefined}
       style={{ display: 'block', flex: 'none', overflow: 'visible' }}
     >
       {children}
@@ -354,7 +357,7 @@ export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; siz
   );
   // Clubs with their own hand-drawn crest (teamCrests.tsx), unless a style was picked in the League editor.
   const crest =
-    !team.logoStyle && team.abbr && (!team.name || !CREST_NAMES[team.abbr] || team.name === CREST_NAMES[team.abbr])
+    team.abbr && (stars || (!team.logoStyle && (!team.name || !CREST_NAMES[team.abbr] || team.name === CREST_NAMES[team.abbr])))
       ? CRESTS[team.abbr]
       : undefined;
   if (crest) return svg(crest(uid, sm, team.colors));

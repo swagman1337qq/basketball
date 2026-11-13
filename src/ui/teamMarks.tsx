@@ -24,13 +24,14 @@
 //  - San Diego Seals: a harbor seal balancing a basketball on its nose (2026-11-10).
 //  - Oakland Barons: a baron's coronet over a golden oak.
 //  - Las Vegas Neon: a glowing neon star over a marquee arrow full of bulbs (2026-11-10).
-//  - Los Angeles Stars: the former Strollers' pram rolling past the palms at sunset.
+//  - Los Angeles Stars: a 1990s star mascot in a basketball jersey, with a bold outlined wordmark.
 //  - San Jose Typewriters: a vintage typewriter with a sheet in it.
 //  - Austin Vampires: a fanged vampire in a high-collared cape under a crescent moon (2026-11-10).
 //  - San Antonio Frost: a frost crystal with icicles (in hot San Antonio).
 //  - Dallas Lariats: a rope lasso thrown around the lone star (2026-11-10).
 //  - Houston Caribou: a caribou with its great antlers and white mane.
 import type { ReactNode } from 'react';
+import { starsLogo } from './StarsLogo';
 import { Arc, Arch, Diamond, Tag, Disc, dk, f2, fluff, HEAD, INK, Line2, lt, mirror, mix, Octagon, on, PAPER, Patch, Pennant, place, Ribbon, Ring, SCRIPT, Script, Seal, Shield, SKIN, sparkle, star5, STEEL, STEEL_D, STEEL_L, Sunburst, Varsity, WOOD, Wordmark, type Pal } from './markKit';
 
 // ═════════════════════════════════════════════ Mascots ═════════════════════════════════════════════
@@ -737,61 +738,6 @@ function neon(uid: string, sm: boolean, c: Pal) {
   </>, { artY: 48, artS: 0.6 });
 }
 
-// Los Angeles Stars (legacy Strollers artwork)
-function pramArt(c: Pal, sm: boolean) {
-  const body = c[0], hood = dk(c[0], 0.22), trim = c[1], sw = sm ? 2.6 : 1.8;
-  const wheel = (x: number) => (<g>
-    <circle cx={x} cy="80" r="11" fill={INK} />
-    <circle cx={x} cy="80" r="8.6" fill={sm ? dk(c[0], 0.5) : lt(trim, 0.6)} stroke={trim} strokeWidth="2.4" />
-    {[0, 30, 60, 90, 120, 150].map(a => { const t = (a * Math.PI) / 180; return <path key={a} d={`M${f2(x - Math.cos(t) * 7.4)} ${f2(80 - Math.sin(t) * 7.4)} L${f2(x + Math.cos(t) * 7.4)} ${f2(80 + Math.sin(t) * 7.4)}`} stroke={trim} strokeWidth="1.1" />; })}
-    <circle cx={x} cy="80" r="2.4" fill={trim} stroke={INK} strokeWidth="1" />
-  </g>);
-  return (<>
-    <path d="M32 68 C32 74 36 74 34 80 M68 68 C68 74 64 74 66 80" fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />
-    <Line2 d="M80 50 L91 27" c={STEEL} w={2.4} o={1.8} />
-    <Line2 d="M86 25 L96 29.6" c={dk(WOOD, 0.1)} w={3.2} o={1.8} />
-    <path d="M14 46 L84 46 C84 62 73 70 57 70 L41 70 C25 70 14 61 14 46 Z" fill={body} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    <path d="M14.6 46 H83.4 V50.4 H15.4 Z" fill={trim} stroke={INK} strokeWidth="1.1" />
-    {!sm && <path d="M22 58 C30 64 48 66 66 63" fill="none" stroke={lt(body, 0.35)} strokeWidth="1.6" strokeLinecap="round" />}
-    <path d="M14 46 C14 26 28 13 48 12 L50 46 Z" fill={hood} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-    {!sm && [[18, 30], [25, 20], [35, 14.4]].map(([x, y], i) => <path key={i} d={`M50 46 L${x} ${y}`} stroke={dk(hood, 0.25)} strokeWidth="1.2" />)}
-    <path d="M47 12.4 C50 9 54 9.6 55 12.6" fill="none" stroke={INK} strokeWidth="1.4" />
-    <circle cx="55.6" cy="12.6" r="2.6" fill={trim} stroke={INK} strokeWidth="1" />
-    {wheel(30)}{wheel(70)}
-  </>);
-}
-function strollers(uid: string, sm: boolean, c: Pal) {
-  if (sm) return Disc(dk(c[0], 0.45), place(pramArt(c, true), 50, 48, 0.86));
-  const cid = 'stc' + uid, sun1 = '#ffd166', sun2 = '#f28482', palm = dk(c[0], 0.55);
-  const tree = (x: number, s: number) => (<g>
-    <path d={`M${x} 98 C${x + s * 2} 82 ${x + s * 3} 66 ${x + s * 1} 50`} fill="none" stroke={palm} strokeWidth="2.6" strokeLinecap="round" />
-    {[-150, -115, -80, -45, -10].map(a => { const r = (a * Math.PI) / 180, X = x + s * 1; return <path key={a} d={`M${X} 50 Q${f2(X + Math.cos(r) * 8)} ${f2(50 + Math.sin(r) * 8 - 3)} ${f2(X + Math.cos(r) * 14)} ${f2(50 + Math.sin(r) * 14 + 3)}`} fill="none" stroke={palm} strokeWidth="2.4" strokeLinecap="round" />; })}
-  </g>);
-  return (<>
-    <defs>
-      <clipPath id={cid}><circle cx="50" cy="50" r="45" /></clipPath>
-      <linearGradient id={'sts' + uid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={c[0]} /><stop offset="1" stopColor={lt(c[0], 0.55)} /></linearGradient>
-      <linearGradient id={'stu' + uid} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={sun1} /><stop offset="1" stopColor={sun2} /></linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="49.3" fill={INK} />
-    <circle cx="50" cy="50" r="47.3" fill={c[1]} />
-    <g clipPath={`url(#${cid})`}>
-      <rect x="0" y="0" width="100" height="100" fill={`url(#sts${uid})`} />
-      <circle cx="50" cy="52" r="26" fill={`url(#stu${uid})`} />
-      {[56, 62, 67, 71].map((y, i) => <rect key={y} x="18" y={y} width="64" height={1.4 + i * 0.5} fill={lt(c[0], 0.55)} />)}
-      {tree(18, -1)}{tree(82, 1)}
-      <path d="M0 64 H100 V100 H0 Z" fill={dk(c[0], 0.25)} />
-      <polygon points={star5(83, 31, 4.6, 1.9)} fill={c[1]} stroke={INK} strokeWidth=".8" />
-      {place(pramArt(c, false), 50, 41, 0.5)}
-    </g>
-    <text x="50" y="13.4" textAnchor="middle" fontFamily={HEAD} fontWeight="700" fontSize="6.4" fill={INK} letterSpacing="1.6" opacity=".85">LOS ANGELES</text>
-    <g transform="rotate(-7 50 76)">
-      <text x="51.6" y="82" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={INK} textLength="76" lengthAdjust="spacingAndGlyphs">Stars</text>
-      <text x="50" y="80" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={c[1]} stroke={INK} strokeWidth="2.6" paintOrder="stroke" textLength="76" lengthAdjust="spacingAndGlyphs">Stars</text>
-    </g>
-  </>);
-}
-
 // San Jose Typewriters
 function typewriterArt(c: Pal, sm: boolean) {
   const body = c[0], bodyD = dk(c[0], 0.2), ink = c[1], sw = sm ? 2.6 : 1.8;
@@ -942,6 +888,6 @@ export const MARKS: Record<string, { name: string; draw: (uid: string, sm: boole
   RIC: { name: 'Opossums', draw: opossums }, NSH: { name: 'Librarians', draw: librarians }, SEA: { name: 'Scorpions', draw: scorpions },
   VAN: { name: 'Drought', draw: drought }, STL: { name: 'Puffins', draw: puffins }, DEN: { name: 'Deep', draw: deep },
   SD: { name: 'Seals', draw: seals }, OAK: { name: 'Barons', draw: barons }, LV: { name: 'Neon', draw: neon },
-  LA: { name: 'Stars', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Vampires', draw: vampires },
+  LA: { name: 'Stars', draw: starsLogo }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Vampires', draw: vampires },
   SA: { name: 'Frost', draw: frost }, DAL: { name: 'Lariats', draw: lariats }, HOU: { name: 'Caribou', draw: caribou },
 };
