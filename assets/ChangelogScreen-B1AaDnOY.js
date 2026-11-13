@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-14kEe2mB.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-noKRAxam.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-13
 
 ### Added
+- **A Hierarchy tab (under Team).** Every player's standing in the locker room, from how good he is, his place among his teammates, his years in the league and his age: the team leader, the voices in the room, veterans, young players, each one's personality and whether he's a good or bad influence (and on whom). Standing now matters: young players (25 and under) follow the players above them, so a star veteran's example carries further than a bench veteran's, a 26–28-year-old star with good habits counts as a good example, and a star who is Egotistic, Selfish or Ball-dominant can now pass that on to impressionable young teammates (a mentor you pair holds it back). Good and bad influence roughly balance across a league, about 9 personality changes a season.
 - **Assist-to-turnover ratio (AST/TO).** On every player's Stats tab (each season and career), in Stats → Advanced, and as a League leaders board (it needs 200 assists over a full season, scaled to the games played, so a backup with 6 assists and 1 turnover can't top it).
 - **Choose your league's teams when you start.** On the New league screen, **Edit teams** lets you remove any of the 30 clubs and add new ones from the franchise list (London, Paris, Toronto, Mexico City and more, each with its own logo and colors) or design your own. Any even number from 20 to 40 teams works; conferences follow geography, and each needs at least 10 teams for the play-in. **Back to the default 30** undoes it.
 - **God Mode: relocate or replace a team.** In the League editor, **Relocate or replace…** turns a club into another franchise (pick one from the list) or moves and rebrands it (keep the nickname and change the city, or start from scratch). The club keeps its players, contracts, draft picks, owner and records; past seasons keep the old name, the arena and ticket prices follow the new city, and a move across the country changes conference at the next season.
