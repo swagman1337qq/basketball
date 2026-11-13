@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-noKRAxam.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-A5jq8bvu.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -11,6 +11,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **God Mode: relocate or replace a team.** In the League editor, **Relocate or replace…** turns a club into another franchise (pick one from the list) or moves and rebrands it (keep the nickname and change the city, or start from scratch). The club keeps its players, contracts, draft picks, owner and records; past seasons keep the old name, the arena and ticket prices follow the new city, and a move across the country changes conference at the next season.
 
 ### Changed
+- **Trade exclusions use individual X checkboxes only.** Removed the bulk-exclude menus from both rosters and pick lists; AI package searches still honor each excluded player or pick.
 - **A cleaner trade builder with hard exclusions.** Stacked team rosters have picks alongside them and a deal summary on the right. Use the X checkboxes or Bulk exclude to keep players and picks out of AI packages. What would it take, Ask what they want and Shop around league respect those exclusions; if no allowed deal works, the AI says No deal. Suggested packages also pass the existing league-office rules. The cap bar, contract years, PER, player/team links and sortable age/position filters remain.
 - **San Diego Hawks completes the selected vintage logo rollout.** The approved #3 red-tailed hawk illustration appears at every shared logo placement, bringing all 30 league teams to their selected artwork. New leagues use Hawks; existing default Seals and Mittens names migrate, including historical standings. Custom team names and the existing team colors are preserved.
 - **Four more selected vintage logos:** Detroit Groove (#1), San Antonio Valor (#2), San Jose Electric (#1, small lightning bolts) and Vancouver Cascades (#1). San Antonio and Vancouver use their confirmed names in new leagues and migrate prior default names in existing saves and historical standings. San Diego remains unchanged while its new name/logo options are reviewed.
