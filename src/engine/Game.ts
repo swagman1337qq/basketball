@@ -582,9 +582,9 @@ export class Game {
       return c;
     });
     // Default renames, including the November 13 identity changes: past standings take the new name too.
-    const RENAMED_1110: Record<string, [string, string]> = {
+    const RENAMED_1110: Record<string, [string | string[], string]> = {
       NWK: ['Newark Monocles', 'Newark Navigators'],
-      SD: ['San Diego Mittens', 'San Diego Seals'],
+      SD: [['San Diego Mittens', 'San Diego Seals'], 'San Diego Hawks'],
       LV: ['Las Vegas Monks', 'Las Vegas Neon'],
       AUS: ['Austin Hush', 'Austin Vampires'],
       DAL: ['Dallas Axolotls', 'Dallas Lariats'],
@@ -602,7 +602,7 @@ export class Game {
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {
         const r = e && RENAMED_1110[e.abbr];
-        if (r && e.name === r[0] && g.state.teams.some((t: any) => t.abbr === e.abbr && t.region + ' ' + t.name === r[1])) e.name = r[1];
+        if (r && (Array.isArray(r[0]) ? r[0].includes(e.name) : e.name === r[0]) && g.state.teams.some((t: any) => t.abbr === e.abbr && t.region + ' ' + t.name === r[1])) e.name = r[1];
       }),
     );
     if (!g.state.managed) g.migrateV2();

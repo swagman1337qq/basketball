@@ -21,7 +21,7 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   VAN: ['#4ea8de', '#f9c74f'],  // cloudless sky and sun
   STL: ['#ffa62b', '#2b2d42'],  // puffin-beak orange and black
   DEN: ['#0077b6', '#ffd166'],  // ocean blue and an anglerfish's light
-  SD: ['#33415c', '#80ffdb'],   // seal slate and sea foam
+  SD: ['#33415c', '#80ffdb'],   // hawk slate and sea foam
   OAK: ['#6a1b9a', '#ffc72c'],  // baron purple and gold
   LV: ['#ff1f8f', '#120d2b'],   // neon pink on the desert night
   LA: ['#b388eb', '#ffd23f'],   // lavender sunset and sunshine

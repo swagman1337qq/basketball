@@ -1,3 +1,4 @@
+import sd from '../assets/team-logos/sd-vintage.webp';
 import van from '../assets/team-logos/van-vintage.webp';
 import sj from '../assets/team-logos/sj-vintage.webp';
 import sa from '../assets/team-logos/sa-vintage.webp';
@@ -57,4 +58,5 @@ export const APPROVED_TEAM_LOGOS: Record<string, { src: string; label: string; c
   SA: { src: sa, label: 'San Antonio Valor', choice: 2 },
   SJ: { src: sj, label: 'San Jose Electric', choice: 1 },
   VAN: { src: van, label: 'Vancouver Cascades', choice: 1 },
+  SD: { src: sd, label: 'San Diego Hawks', choice: 3 },
 };
