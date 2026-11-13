@@ -581,13 +581,14 @@ export class Game {
       fix(c);
       return c;
     });
-    // 2026-11-10 (Navigators, Seals, Neon, Vampires, Lariats): past seasons' standings take the new name too.
+    // Default renames (2026-11-10, plus Los Angeles on 2026-11-12): past standings take the new name too.
     const RENAMED_1110: Record<string, [string, string]> = {
       NWK: ['Newark Monocles', 'Newark Navigators'],
       SD: ['San Diego Mittens', 'San Diego Seals'],
       LV: ['Las Vegas Monks', 'Las Vegas Neon'],
       AUS: ['Austin Hush', 'Austin Vampires'],
       DAL: ['Dallas Axolotls', 'Dallas Lariats'],
+      LA: ['Los Angeles Strollers', 'Los Angeles Stars'],
     };
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {

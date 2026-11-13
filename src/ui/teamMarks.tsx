@@ -24,7 +24,7 @@
 //  - San Diego Seals: a harbor seal balancing a basketball on its nose (2026-11-10).
 //  - Oakland Barons: a baron's coronet over a golden oak.
 //  - Las Vegas Neon: a glowing neon star over a marquee arrow full of bulbs (2026-11-10).
-//  - Los Angeles Strollers: a vintage pram rolling past the palms at sunset.
+//  - Los Angeles Stars: the former Strollers' pram rolling past the palms at sunset.
 //  - San Jose Typewriters: a vintage typewriter with a sheet in it.
 //  - Austin Vampires: a fanged vampire in a high-collared cape under a crescent moon (2026-11-10).
 //  - San Antonio Frost: a frost crystal with icicles (in hot San Antonio).
@@ -737,7 +737,7 @@ function neon(uid: string, sm: boolean, c: Pal) {
   </>, { artY: 48, artS: 0.6 });
 }
 
-// Los Angeles Strollers
+// Los Angeles Stars (legacy Strollers artwork)
 function pramArt(c: Pal, sm: boolean) {
   const body = c[0], hood = dk(c[0], 0.22), trim = c[1], sw = sm ? 2.6 : 1.8;
   const wheel = (x: number) => (<g>
@@ -786,8 +786,8 @@ function strollers(uid: string, sm: boolean, c: Pal) {
     </g>
     <text x="50" y="13.4" textAnchor="middle" fontFamily={HEAD} fontWeight="700" fontSize="6.4" fill={INK} letterSpacing="1.6" opacity=".85">LOS ANGELES</text>
     <g transform="rotate(-7 50 76)">
-      <text x="51.6" y="82" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={INK} textLength="76" lengthAdjust="spacingAndGlyphs">Strollers</text>
-      <text x="50" y="80" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={c[1]} stroke={INK} strokeWidth="2.6" paintOrder="stroke" textLength="76" lengthAdjust="spacingAndGlyphs">Strollers</text>
+      <text x="51.6" y="82" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={INK} textLength="76" lengthAdjust="spacingAndGlyphs">Stars</text>
+      <text x="50" y="80" textAnchor="middle" fontFamily={SCRIPT} fontSize="24" fill={c[1]} stroke={INK} strokeWidth="2.6" paintOrder="stroke" textLength="76" lengthAdjust="spacingAndGlyphs">Stars</text>
     </g>
   </>);
 }
@@ -942,6 +942,6 @@ export const MARKS: Record<string, { name: string; draw: (uid: string, sm: boole
   RIC: { name: 'Opossums', draw: opossums }, NSH: { name: 'Librarians', draw: librarians }, SEA: { name: 'Scorpions', draw: scorpions },
   VAN: { name: 'Drought', draw: drought }, STL: { name: 'Puffins', draw: puffins }, DEN: { name: 'Deep', draw: deep },
   SD: { name: 'Seals', draw: seals }, OAK: { name: 'Barons', draw: barons }, LV: { name: 'Neon', draw: neon },
-  LA: { name: 'Strollers', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Vampires', draw: vampires },
+  LA: { name: 'Stars', draw: strollers }, SJ: { name: 'Typewriters', draw: typewriters }, AUS: { name: 'Vampires', draw: vampires },
   SA: { name: 'Frost', draw: frost }, DAL: { name: 'Lariats', draw: lariats }, HOU: { name: 'Caribou', draw: caribou },
 };

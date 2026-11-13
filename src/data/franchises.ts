@@ -46,7 +46,7 @@ export const FRANCHISES: Franchise[] = [
   // Original teams, now expansion franchises (Los Angeles and Houston took their places).
   { region: 'Sacramento', name: 'Wombats', abbr: 'SAC', conf: 'West', div: 'Pacific', colors: ['#3a2f5b', '#d9a93a'], icon: 'Coffee', pop: 2.4, known: 'The 1849 Gold Rush', mkt: 0.85 },
   { region: 'Kansas City', name: 'Sailors', abbr: 'KC', conf: 'West', div: 'Northwest', colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat', pop: 2.25, known: 'Kansas City barbecue', mkt: 0.85 },
-  { region: 'Los Angeles', name: 'Strollers', abbr: 'LA', conf: 'West', div: 'Pacific', colors: ['#2b1a4f', '#f4c542'], icon: 'Footprints', pop: 12.8, known: 'Hollywood premieres', mkt: 1.5 },
+  { region: 'Los Angeles', name: 'Stars', abbr: 'LA', conf: 'West', div: 'Pacific', colors: ['#2b1a4f', '#f4c542'], icon: 'Footprints', pop: 12.8, known: 'Hollywood premieres', mkt: 1.5 },
   { region: 'Inland Empire', name: 'Groves', abbr: 'IE', conf: 'West', div: 'Pacific', colors: ['#2e6b30', '#f39a1e'], icon: 'Citrus', pop: 4.7, known: 'The citrus groves of Riverside' },
   { region: 'San Francisco', name: 'Fog', abbr: 'SF', conf: 'West', div: 'Pacific', colors: ['#8b2a1f', '#cfd8dc'], icon: 'CloudFog', pop: 4.6, known: 'Karl the Fog and the Golden Gate' },
   { region: 'Salt Lake', name: 'Gulls', abbr: 'SLC', conf: 'West', div: 'Northwest', colors: ['#1f3b63', '#eef2f5'], icon: 'Bird', pop: 1.3, known: 'The California gulls of the Great Salt Lake', mkt: .8 },
