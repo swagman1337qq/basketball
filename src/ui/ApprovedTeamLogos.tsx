@@ -1,3 +1,7 @@
+import van from '../assets/team-logos/van-vintage.webp';
+import sj from '../assets/team-logos/sj-vintage.webp';
+import sa from '../assets/team-logos/sa-vintage.webp';
+import det from '../assets/team-logos/det-vintage.webp';
 import waz from '../assets/team-logos/waz-vintage.webp';
 import bhm from '../assets/team-logos/bhm-vintage.webp';
 import phi from '../assets/team-logos/phi-vintage.webp';
@@ -49,4 +53,8 @@ export const APPROVED_TEAM_LOGOS: Record<string, { src: string; label: string; c
   PHI: { src: phi, label: 'Philadelphia Liberty', choice: 1 },
   BHM: { src: bhm, label: 'Birmingham Vulcans', choice: 2 },
   WAZ: { src: waz, label: 'Wazíbló Dragoons', choice: 1 },
+  DET: { src: det, label: 'Detroit Groove', choice: 1 },
+  SA: { src: sa, label: 'San Antonio Valor', choice: 2 },
+  SJ: { src: sj, label: 'San Jose Electric', choice: 1 },
+  VAN: { src: van, label: 'Vancouver Cascades', choice: 1 },
 };

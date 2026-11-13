@@ -596,6 +596,8 @@ export class Game {
       OAK: ['Oakland Barons', 'Oakland Panthers'],
       CHA: ['Charlotte Bohemians', 'Charlotte Racers'],
       SJ: ['San Jose Typewriters', 'San Jose Electric'],
+      SA: ['San Antonio Frost', 'San Antonio Valor'],
+      VAN: ['Vancouver Drought', 'Vancouver Cascades'],
     };
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {
