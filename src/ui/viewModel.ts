@@ -1,4 +1,5 @@
 import { canOfferSwap, toggleTradePick } from '../engine/pickRules';
+import { excludePicks, excludePlayers, pickExcluded, playerExcluded } from '../engine/tradeExclusions';
 // View model: turns the league state into the flat values the screens render.
 // Ported from the prototype's renderVals(); every handler calls back into Game.
 import { tradeAdvice } from '../engine/tradeAdvice';
@@ -1110,12 +1111,18 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     bg: on ? 'var(--color-accent-100)' : 'transparent',
   });
   const tog = (key, id) => () =>
-    gm.setState(st =>
-      key === 'tkMine' || key === 'tkTheirs'
+    gm.setState(st => {
+      const pick = key === 'tkMine' || key === 'tkTheirs';
+      if (pick ? pickExcluded(st, key === 'tkMine' ? st.me : st.tTid, id) : playerExcluded(st, id)) return null;
+      return pick
         ? toggleTradePick(st, key, id)
-        : { [key]: st[key].includes(id) ? st[key].filter(x => x !== id) : [...st[key], id], tMsg: null },
-    );
-  const tRow = key => id => ({ ...pBase(id), contract: money(P[id].amt), ...box(s[key].includes(id)), toggle: tog(key, id) });
+        : { [key]: st[key].includes(id) ? st[key].filter(x => x !== id) : [...st[key], id], tMsg: null };
+    });
+  const tRow = key => id => ({
+    ...pBase(id), contract: money(P[id].amt), ...box(s[key].includes(id)), toggle: tog(key, id),
+    excluded: playerExcluded(s, id),
+    exclude: () => gm.setState(st => excludePlayers(st, [id], !playerExcluded(st, id))),
+  });
   const usedPick = a => a.yr === gm.Y && s.picks.some(x => x.orig === a.orig && (x.rd || 1) === a.rd && x.pid);
   const projTxt = a => {
     if (a.rd === 2) return 'Second round';
@@ -1142,7 +1149,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   );
   const sRow = (key, mineSide) => yr => {
     const id = 'swap:' + yr;
+    const tid = mineSide ? s.me : s.tTid;
     return {
+      id,
+      excluded: pickExcluded(s, tid, id),
+      exclude: () => gm.setState(st => excludePicks(st, tid, [id], !pickExcluded(st, tid, id))),
       label: yr + ' first-round swap',
       proj: mineSide ? 'They may swap their 1st for yours' : 'You may swap your 1st for theirs',
       swap: true,
@@ -1151,6 +1162,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     };
   };
   const kRow = key => a => ({
+    id: a.id,
+    excluded: pickExcluded(s, a.owner, a.id),
+    exclude: () => gm.setState(st => excludePicks(st, a.owner, [a.id], !pickExcluded(st, a.owner, a.id))),
     prot: protSel(key, a),
     label: gm.pickLabel(a, T),
     proj: gm.draftRights(a, s)
@@ -4322,6 +4336,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid),
     offersV,
     balance: () => gm.balance(),
+    excludeTradePlayers: (ids: number[], excluded: boolean) => gm.setState(st => excludePlayers(st, ids, excluded)),
+    excludeTradePicks: (tid: number, ids: string[], excluded: boolean) => gm.setState(st => excludePicks(st, tid, ids, excluded)),
     clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
     faCols,
     faRows,

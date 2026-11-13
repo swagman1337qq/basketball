@@ -1,4 +1,6 @@
 import { naturalDunkShare } from './finishing';
+import { askOffers } from './tradeOffers';
+import { excludesTrade } from './tradeExclusions';
 // The league: world generation, the season engine, and a tiny observable store.
 // Rules follow HANDOFF.md and the Claude Design prototype; the UI reads a view
 // model built from this state (see ui/viewModel.ts).
@@ -7558,6 +7560,7 @@ export class Game {
   // league office checks it; it leaves your offers once the trade goes through.
   propose(force = false, honorId: string | null = null) {
     this.setState(s => {
+      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs)) return {tMsg: 'No deal: an excluded player or pick is selected. Include that asset before proposing it.'};
       force = force && !!s.god;
       const honor = !!honorId && (s.inOffers || []).some((o: any) => o.id === honorId);
       const P = this.db.P,
@@ -7741,40 +7744,18 @@ export class Game {
   }
   balance() {
     this.setState(s => {
-      const P = this.db.P;
-      const cands = [
-        ...s.rosters[s.me].filter(id => !s.tMine.includes(id)).map(id => ({ p: id })),
-        ...s.assets
-          .filter(
-            a =>
-              a.owner === s.me &&
-              !s.tkMine.includes(a.id) &&
-              !(a.yr === this.Y && a.rd === 1 && s.picks.find(x => x.orig === a.orig && x.pid)),
-          )
-          .map(a => ({ k: a.id })),
-      ];
-      let best: any = null;
-      cands.forEach(c => {
-        const ev = this.evalTrade(
-          s,
-          c.p ? [...s.tMine, c.p] : s.tMine,
-          s.tTheirs,
-          c.k ? [...s.tkMine, c.k] : s.tkMine,
-          s.tTheirs.length ? s.tkTheirs : s.tkTheirs,
-        );
-        if (ev.ok && (!best || ev.diff < best.diff)) best = { ...c, diff: ev.diff };
-      });
-      if (!best) return { tMsg: 'No single addition gets this done. Try asking for less.' };
-      const what = best.p
-        ? P[best.p].name
-        : this.pickLabel(
-            s.assets.find(a => a.id === best.k),
-            s.teams,
-          );
+      if (!s.tMine.length && !s.tTheirs.length && !s.tkMine.length && !s.tkTheirs.length) return {tMsg: 'Select a player or pick to build a trade.'};
+      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs)) return {tMsg: 'No deal: remove the excluded assets from the selected package first.'};
+      if (this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok && checkTrade(this, {...s, god: false}, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok)
+        return {tMsg: 'They would accept the current offer. It passes the league office.'};
+      const best = askOffers(this, s, s.tTid, s.tTheirs, s.tkTheirs, s.tMine, s.tkMine)[0];
+      if (!best) return {tMsg: 'No deal found using the allowed players and picks. Try asking for less or changing your exclusions.'};
       return {
-        tMine: best.p ? [...s.tMine, best.p] : s.tMine,
-        tkMine: best.k ? [...s.tkMine, best.k] : s.tkMine,
-        tMsg: 'They would do it if you add ' + what + '.',
+        tMine: best.mine,
+        tTheirs: best.theirs,
+        tkMine: best.kMine,
+        tkTheirs: best.kTheirs,
+        tMsg: 'They would accept this package. It passes the league office and keeps all excluded assets out.',
       };
     });
   }

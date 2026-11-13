@@ -5,6 +5,7 @@ import type { Game } from './Game';
 import { checkTrade } from './cba';
 import { mulberry32 } from './rng';
 import { pickHorizon } from './tradeLogic';
+import { excludesTrade, pickExcluded, playerExcluded } from './tradeExclusions';
 
 export interface Offer {
   tid: number;
@@ -67,12 +68,7 @@ function evaluator(g: Game, s: any, tid: number) {
     const key = id + (giving ? '+' : '-');
     let v = vk.get(key);
     if (v == null) {
-      v = g.kVal(
-        s.assets.find((a: any) => a.id === id),
-        st,
-        giving,
-        s.teams,
-      );
+      v = g.tradeItemVal(s, id, st, giving, giving ? s.me : tid, giving ? tid : s.me);
       vk.set(key, v);
     }
     return v;
@@ -98,16 +94,7 @@ function myValuer(g: Game, s: any) {
   return (ids: number[], kids: string[], giving: boolean) =>
     ids.reduce((a, id) => a + one('p' + id, () => g.pVal(P[id], st, s.me)), 0) +
     kids.reduce(
-      (a, id) =>
-        a +
-        one('k' + id + giving, () =>
-          g.kVal(
-            s.assets.find((x: any) => x.id === id),
-            st,
-            giving,
-            s.teams,
-          ),
-        ),
+      (a, id) => a + one('k' + id + giving, () => g.tradeItemVal(s, id, st, giving, giving ? s.tTid : s.me, giving ? s.me : s.tTid)),
       0,
     );
 }
@@ -115,6 +102,7 @@ function myValuer(g: Game, s: any) {
 // Offers for your players/picks from every AI team that can make one it would accept (0 to 29),
 // best for you first.
 export function shopOffers(g: Game, s: any, mine: number[], kMine: string[]): Offer[] {
+  if (mine.some(id => playerExcluded(s, id)) || kMine.some(id => pickExcluded(s, s.me, id))) return [];
   const mvF = myValuer(g, s),
     out: Offer[] = [],
     giveV = mvF(mine, kMine, true),
@@ -122,15 +110,17 @@ export function shopOffers(g: Game, s: any, mine: number[], kMine: string[]): Of
   const myStrat = g.strategies(s.teams)[s.me] || 'middle';
   // Your least valuable players, for when the rules need you to add one (full roster, salary matching).
   const throwIns = (s.rosters[s.me] || [])
-    .filter((id: number) => !mine.includes(id))
+    .filter((id: number) => !mine.includes(id) && !playerExcluded(s, id))
     .sort((a: number, b: number) => g.pVal(g.db.P[a], myStrat) - g.pVal(g.db.P[b], myStrat))
     .slice(0, 4);
   s.teams.forEach((t: any) => {
     const tid = t.tid;
     if (tid === s.me || g.isUser(s, tid)) return;
     const ev = evaluator(g, s, tid),
-      roster: number[] = s.rosters[tid] || [],
-      picks = assetsOf(g, s, tid).map((a: any) => a.id);
+      roster: number[] = (s.rosters[tid] || []).filter((id: number) => !playerExcluded(s, id)),
+      picks = assetsOf(g, s, tid)
+        .filter((a: any) => !pickExcluded(s, tid, a.id))
+        .map((a: any) => a.id);
     const combos = combosOf(roster, picks, tid * 7919 + s.day * 31 + mine.length);
     const tryWith = (send: number[]) => {
       const extra = mvF(
@@ -142,7 +132,9 @@ export function shopOffers(g: Game, s: any, mine: number[], kMine: string[]): Of
         .filter(c => ev(send, c.p, kMine, c.k))
         .map(c => ({ ...c, mv: mvF(c.p, c.k, false) - extra }))
         .sort((a, b) => b.mv - a.mv);
-      const best = cands.find(c => checkTrade(g, gd, s.me, tid, send, c.p, kMine, c.k).ok);
+      const best = cands.find(
+        c => g.evalTrade({ ...s, tTid: tid }, send, c.p, kMine, c.k).ok && checkTrade(g, gd, s.me, tid, send, c.p, kMine, c.k).ok,
+      );
       return best ? { ...best, send } : null;
     };
     let best: any = tryWith(mine);
@@ -165,17 +157,30 @@ export function shopOffers(g: Game, s: any, mine: number[], kMine: string[]): Of
 
 // What a team wants from your roster for its players/picks: every package it would take (each
 // built around a different player of yours), cheapest for you first.
-export function askOffers(g: Game, s: any, tid: number, theirs: number[], kTheirs: string[]): Offer[] {
+export function askOffers(
+  g: Game,
+  s: any,
+  tid: number,
+  theirs: number[],
+  kTheirs: string[],
+  requiredMine: number[] = [],
+  requiredPicks: string[] = [],
+): Offer[] {
+  if (excludesTrade(s, tid, requiredMine, theirs, requiredPicks, kTheirs)) return [];
   const ev = evaluator(g, s, tid),
     mvF = myValuer(g, s),
     gd = { ...s, god: false },
-    roster: number[] = s.rosters[s.me] || [],
-    picks = assetsOf(g, s, s.me).map((a: any) => a.id);
-  const combos = combosOf(roster, picks, tid * 104729 + s.day * 17 + theirs.length);
+    roster: number[] = (s.rosters[s.me] || []).filter((id: number) => !requiredMine.includes(id) && !playerExcluded(s, id)),
+    picks = assetsOf(g, s, s.me)
+      .filter((a: any) => !requiredPicks.includes(a.id) && !pickExcluded(s, s.me, a.id))
+      .map((a: any) => a.id);
+  const combos = [{ p: [] as number[], k: [] as string[] }, ...combosOf(roster, picks, tid * 104729 + s.day * 17 + theirs.length)].map(
+    c => ({ p: [...requiredMine, ...c.p], k: [...requiredPicks, ...c.k] }),
+  );
   // Over the apron they can't take back more salary than they send, so they may add a small
   // contract of their own to make the money work (their least valuable players).
   const fill = (s.rosters[tid] || [])
-    .filter((id: number) => !theirs.includes(id))
+    .filter((id: number) => !theirs.includes(id) && !playerExcluded(s, id))
     .sort((a: number, b: number) => g.pVal(g.db.P[a], g.strategies(s.teams)[tid]) - g.pVal(g.db.P[b], g.strategies(s.teams)[tid]))
     .slice(0, 5);
   const cands: any[] = [];
@@ -191,7 +196,8 @@ export function askOffers(g: Game, s: any, tid: number, theirs: number[], kTheir
   for (const c of cands) {
     const lead = c.p.length ? 'p' + c.p.slice().sort((a: number, b: number) => g.db.P[b].ovr - g.db.P[a].ovr)[0] : 'k' + c.k[0];
     if (used.has(lead)) continue; // a different centerpiece for each option
-    if (!checkTrade(g, gd, s.me, tid, c.p, c.th, c.k, kTheirs).ok) continue;
+    if (!g.evalTrade({ ...s, tTid: tid }, c.p, c.th, c.k, kTheirs).ok || !checkTrade(g, gd, s.me, tid, c.p, c.th, c.k, kTheirs).ok)
+      continue;
     used.add(lead);
     out.push({ tid, mine: c.p, theirs: c.th, kMine: c.k, kTheirs, value: -c.mv, note: 'Option ' + (out.length + 1) });
   }
