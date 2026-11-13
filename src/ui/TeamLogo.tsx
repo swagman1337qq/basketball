@@ -6,6 +6,7 @@
 // drop the lettering so the mark stays legible.
 import { useId } from 'react';
 import { CRESTS, CREST_NAMES } from './teamCrests';
+import { APPROVED_TEAM_LOGOS } from './ApprovedTeamLogos';
 import {
   Arch,
   Diamond,
@@ -29,6 +30,7 @@ import {
 } from './markKit';
 import {
   Tent,
+  Cat,
   Armchair,
   Beer,
   Bell,
@@ -102,6 +104,7 @@ import {
 
 const GLYPHS: Record<string, LucideIcon> = {
   Tent,
+  Cat,
   Armchair,
   Beer,
   Bell,
@@ -311,6 +314,21 @@ function StarShape({ x, y, r, fill }: { x: number; y: number; r: number; fill: s
 export function TeamLogo({ team, size = 20 }: { team: CrestTeam | undefined; size?: number }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   if (!team) return null;
+  const approved = team.abbr ? APPROVED_TEAM_LOGOS[team.abbr] : undefined;
+  if (approved)
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 100 100"
+        role="img"
+        aria-label={approved.label + ' logo'}
+        data-team-mark={team.abbr!.toLowerCase() + '-approved-vintage'}
+        style={{ display: 'block', flex: 'none' }}
+      >
+        <image href={approved.src} width="100" height="100" preserveAspectRatio="xMidYMid meet" />
+      </svg>
+    );
   // The Stars rebrand overrides saved images/styles and old snapshot names wherever this franchise appears.
   const stars = team.abbr === 'LA';
   const label = (stars ? 'Los Angeles Stars' : team.region ? team.region + ' ' + team.name : team.abbr) + ' logo';

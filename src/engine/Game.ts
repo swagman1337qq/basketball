@@ -581,7 +581,7 @@ export class Game {
       fix(c);
       return c;
     });
-    // Default renames (2026-11-10, plus Los Angeles on 2026-11-12): past standings take the new name too.
+    // Default renames, including the November 13 identity changes: past standings take the new name too.
     const RENAMED_1110: Record<string, [string, string]> = {
       NWK: ['Newark Monocles', 'Newark Navigators'],
       SD: ['San Diego Mittens', 'San Diego Seals'],
@@ -589,6 +589,11 @@ export class Game {
       AUS: ['Austin Hush', 'Austin Vampires'],
       DAL: ['Dallas Axolotls', 'Dallas Lariats'],
       LA: ['Los Angeles Strollers', 'Los Angeles Stars'],
+      PHI: ['Philadelphia Koalas', 'Philadelphia Liberty'],
+      CLE: ['Cleveland Parasols', 'Cleveland Cyclones'],
+      DET: ['Detroit Oxcarts', 'Detroit Groove'],
+      NSH: ['Nashville Librarians', 'Nashville Owls'],
+      OAK: ['Oakland Barons', 'Oakland Panthers'],
     };
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {
