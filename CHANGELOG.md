@@ -15,6 +15,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **17 selected vintage team logos are live throughout the game.** Saved logo images and styles cannot hide the selected artwork; Los Angeles keeps its separately approved Stars illustration.
 - **Five franchises have new names:** Cleveland Cyclones, Detroit Groove, Nashville Owls, Oakland Panthers and Philadelphia Liberty. New leagues and old saves using the prior default names update, including historical standings.
 
+### Fixed
+- **Your roster order no longer costs your best player minutes.** On automatic minutes, a top player listed anywhere in the starting five (not just first) gets his full star minutes; before, moving him from the top spot to 5th took about 3 minutes a game away. The order inside the starting five and inside the bench doesn't change anyone's minutes.
+
 ## 2026-11-12
 
 ### Added

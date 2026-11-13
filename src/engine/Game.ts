@@ -607,7 +607,12 @@ export class Game {
     (g.state.history || []).forEach((h: any) =>
       Object.values(h?.teams || {}).forEach((e: any) => {
         const r = e && RENAMED_1110[e.abbr];
-        if (r && (Array.isArray(r[0]) ? r[0].includes(e.name) : e.name === r[0]) && g.state.teams.some((t: any) => t.abbr === e.abbr && t.region + ' ' + t.name === r[1])) e.name = r[1];
+        if (
+          r &&
+          (Array.isArray(r[0]) ? r[0].includes(e.name) : e.name === r[0]) &&
+          g.state.teams.some((t: any) => t.abbr === e.abbr && t.region + ' ' + t.name === r[1])
+        )
+          e.name = r[1];
       }),
     );
     if (!g.state.managed) g.migrateV2();
@@ -2771,7 +2776,7 @@ export class Game {
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
     const ROT0 = this.starMinutes(
         this.rotationFor(s, tid),
-        ids.map(id => P[id]),
+        (user ? this.userRank(ids) : ids).map(id => P[id]), // the star: yours as the coach ranks them, wherever he's listed
       ),
       // A comfortable contender spares its top three MGR_MIN minutes a night all season and plays its bench more, as
       // NBA contenders do (2026-11-08: a contender's stars played the same minutes as a lottery team's).
@@ -2850,12 +2855,19 @@ export class Game {
   coachValue(p) {
     return rotationValue(p);
   }
+  // Your players as the coach ranks them for minutes: overall and form, starters given the benefit of the doubt. The
+  // order inside the starting five and inside the bench doesn't matter (2026-11-13: the star's extra minutes,
+  // starMinutes, came from whoever was listed first, so moving your best player to the 5th starter spot cost him 3).
+  userRank(ids: number[]) {
+    const P = this.db.P,
+      v = (id: number) => this.coachValue(P[id]) + (ids.indexOf(id) < 5 ? 6 : 0);
+    return ids.slice().sort((a, b) => v(b) - v(a));
+  }
   userTargets(s, ids: number[], ROT: number[]) {
     const P = this.db.P,
       man = ids.filter(id => P[id].rot != null),
       auto = ids.filter(id => P[id].rot == null);
-    const v = (id: number) => this.coachValue(P[id]) + (ids.indexOf(id) < 5 ? 6 : 0); // your starters get the benefit of the doubt
-    const byVal = ids.slice().sort((a, b) => v(b) - v(a)),
+    const byVal = this.userRank(ids),
       want = new Map<number, number>();
     auto.forEach(id => want.set(id, ROT[byVal.indexOf(id)] ?? 0));
     const left = Math.max(0, 240 - man.reduce((a, id) => a + P[id].rot, 0)),
@@ -2875,7 +2887,7 @@ export class Game {
       ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id], post)),
       ROT = this.starMinutes(
         this.rotationFor(s, tid),
-        ids.map(id => P[id]),
+        this.userRank(ids).map(id => P[id]),
       ),
       t = this.userTargets(s, ids, ROT),
       m: Record<number, number> = {};
