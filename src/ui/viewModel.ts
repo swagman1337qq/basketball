@@ -4344,8 +4344,6 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     canAsk: s.tTheirs.length + s.tkTheirs.length > 0 && !mine2(s.tTid),
     offersV,
     balance: () => gm.balance(),
-    excludeTradePlayers: (ids: number[], excluded: boolean) => gm.setState(st => excludePlayers(st, ids, excluded)),
-    excludeTradePicks: (tid: number, ids: string[], excluded: boolean) => gm.setState(st => excludePicks(st, tid, ids, excluded)),
     clearTrade: () => gm.setState({ tMine: [], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }),
     faCols,
     faRows,

@@ -243,29 +243,6 @@ function PickTable({ rows, vm, text, incoming = false }: { rows: any[]; vm: VM; 
   );
 }
 
-function BulkExclude({ rows, label, set }: { rows: any[]; label: string; set: (ids: any[], excluded: boolean) => void }) {
-  return (
-    <select
-      className="input trade-board-bulk"
-      aria-label={label}
-      value=""
-      onChange={e => {
-        const action = e.target.value;
-        if (action)
-          set(
-            rows.filter(p => action !== 'unselected' || !p.mark).map(p => p.id),
-            action !== 'include',
-          );
-      }}
-    >
-      <option value="">Bulk exclude</option>
-      <option value="all">Exclude all</option>
-      <option value="unselected">Exclude unselected</option>
-      <option value="include">Include all</option>
-    </select>
-  );
-}
-
 export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; text: TradeText }) {
   const mine = useSort<any>(vm.tMine || [], sortKeys),
     theirs = useSort<any>(vm.tTheirs || [], sortKeys);
@@ -366,7 +343,6 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
               <div className="trade-board-asset-columns">
                 <section className="trade-board-roster" aria-label={side.title + ' players'}>
                   <div className="trade-board-roster-toolbar">
-                    <BulkExclude rows={side.sort.rows} label={side.title + ' bulk exclude players'} set={vm.excludeTradePlayers} />
                     <input
                       className="input trade-board-search"
                       aria-label={side.title + ' search players'}
@@ -423,13 +399,6 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
                   />
                 </section>
                 <section className="trade-board-pick-section">
-                  <div className="trade-board-roster-toolbar">
-                    <BulkExclude
-                      rows={side.picks}
-                      label={side.title + ' bulk exclude picks'}
-                      set={(ids, exclude) => vm.excludeTradePicks(side.tid, ids, exclude)}
-                    />
-                  </div>
                   <div className="trade-board-section-title">
                     <strong>Draft picks & swaps</strong>
                     <span title="The second checkbox excludes the asset from AI trade searches">X = exclude</span>
