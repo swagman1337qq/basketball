@@ -1,4 +1,5 @@
 import { canOfferSwap, toggleTradePick } from '../engine/pickRules';
+import { tradePickLabel } from './tradePickLabel';
 import { excludePicks, excludePlayers, pickExcluded, playerExcluded } from '../engine/tradeExclusions';
 // View model: turns the league state into the flat values the screens render.
 // Ported from the prototype's renderVals(); every handler calls back into Game.
@@ -1175,7 +1176,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     excluded: pickExcluded(s, a.owner, a.id),
     exclude: () => gm.setState(st => excludePicks(st, a.owner, [a.id], !pickExcluded(st, a.owner, a.id))),
     prot: protSel(key, a),
-    label: gm.pickLabel(a, T),
+    label: tradePickLabel(gm, a),
     proj: gm.draftRights(a, s)
       ? (() => {
           const q = P[gm.draftRights(a, s).pid];
@@ -1232,7 +1233,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   };
   // Offers on request: shop your selected players/picks around the league, or ask the other team
   // what it wants for its selected players/picks. Step through them, then accept, decline or negotiate.
-  const assetName = id => gm.tradeItemLabel(s, id, T);
+  const assetName = id => {
+    const asset = gm.tradeAsset(s, id);
+    return asset ? tradePickLabel(gm, asset) : gm.tradeItemLabel(s, id, T);
+  };
   const pLine = id => {
     const q = P[id];
     return {

@@ -379,6 +379,14 @@
   color: var(--color-neutral-700);
   margin: 8px 0;
 }
+.trade-board .trade-board-direction h4 {
+  margin: 0;
+  font-size: inherit;
+}
+.trade-board .trade-board-direction .trade-board-verdict {
+  color: var(--color-text);
+  font-weight: 600;
+}
 .trade-board .trade-board-appetite {
   position: relative;
   height: 14px;

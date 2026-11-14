@@ -535,8 +535,8 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
                 </button>
               )}
             </div>
-            <details className="trade-board-direction">
-              <summary>Team priorities · {text(vm.tr.stratName)}</summary>
+            <section className="trade-board-direction" aria-label="Team priorities">
+              <h4>Team priorities · {text(vm.tr.stratName)}</h4>
               <p>{text(vm.tr.stratDesc)}</p>
               <div className="trade-board-appetite" aria-hidden="true">
                 <span style={{ left: vm.tr.meter }} />
@@ -545,8 +545,10 @@ export function TradeBoard({ vm, advice, text }: { vm: VM; advice: ReactNode; te
                 <span>Decline</span>
                 <span>Accept</span>
               </div>
-              <p>{text(vm.tr.verdict)}</p>
-            </details>
+              <p className="trade-board-verdict" role="status">
+                {text(vm.tr.verdict)}
+              </p>
+            </section>
             {advice}
           </div>
         </aside>

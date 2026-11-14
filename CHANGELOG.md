@@ -4,6 +4,12 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-14
 
+### Changed
+- **Trade team priorities stay visible.** The team's direction, acceptance bar and response are always expanded; responses such as "They would likely accept" use normal text color instead of gray.
+
+### Fixed
+- **Current-draft trade picks show their exact number.** On draft night, both teams' pick lists, the deal summary and offer previews show labels such as **2035 2nd (36th)**, including traded picks. Future picks keep their projections and drafted players keep their draft-rights labels.
+
 ### Added
 - **AST/TO moved to the Advanced tables.** On a player's Stats tab, assists per turnover now sits right after TOV% in the Advanced table (and in his college Advanced table), no longer in the per-game table.
 - **Henry Ellenson player card (his worst season, the 2016–17 rookie year).** The No. 18 pick out of Marquette: a slow stretch big who rebounded and wanted the ball but couldn't make shots or defend. In games he plays like his real Detroit rookie year (about 3 points on .36 shooting and 2 rebounds in 8 minutes). 41 overall, potential 45.
