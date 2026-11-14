@@ -5,7 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-14
 
 ### Added
-- **AST/TO in the Advanced tables.** A player's Advanced table (Stats tab) and his college Advanced table now show assists per turnover right after TOV%.
+- **AST/TO moved to the Advanced tables.** On a player's Stats tab, assists per turnover now sits right after TOV% in the Advanced table (and in his college Advanced table), no longer in the per-game table.
 - **Henry Ellenson player card (his worst season, the 2016–17 rookie year).** The No. 18 pick out of Marquette: a slow stretch big who rebounded and wanted the ball but couldn't make shots or defend. In games he plays like his real Detroit rookie year (about 3 points on .36 shooting and 2 rebounds in 8 minutes). 41 overall, potential 45.
 - **KJ Simpson draft-night player card (2024, Colorado).** The No. 42 pick after a first-team All-Pac-12 junior year. A small scoring guard: 6′0″ barefoot, a thin frame, poor finishing and defense. His college stats match his real junior year almost exactly (19.7 points, .475 shooting, .434 from three), and in NBA games he plays like his real Hornets rookie year (about 8 points on .34 shooting and .26 from three, 3 assists in 23 minutes). 42 overall, potential 45.
 - **Player cards can carry a separate college game.** For a player whose college numbers were far better (or worse) than his NBA play, a card can now hold his college ratings apart from his NBA ratings: his college stats come from one, his games from the other, and his first training camp brings no extra surprise.
