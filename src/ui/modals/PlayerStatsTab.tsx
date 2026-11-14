@@ -635,6 +635,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
                 <TH t="Usage: share of team plays he ends while on the floor">USG%</TH>
                 <TH>AST%</TH>
                 <TH>TOV%</TH>
+                <TH t="Assists per turnover">AST/TO</TH>
                 <TH>ORB%</TH>
                 <TH>DRB%</TH>
                 <TH>TRB%</TH>
@@ -659,8 +660,9 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
               </tr>
             </thead>
             <tbody>
-              {lines.map(({ y }) => {
-                const x = adv[y];
+              {lines.map(({ y, t }) => {
+                const x = adv[y],
+                  atr = t ? statVal(t, 'atr', mode) : NaN;
                 return (
                   <tr key={y}>
                     <TD l>{lbl(y)}</TD>
@@ -668,6 +670,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
                     <TD>{A(x, 'usgp')}</TD>
                     <TD>{A(x, 'astp')}</TD>
                     <TD>{A(x, 'tovp')}</TD>
+                    <TD>{isFinite(atr) ? atr.toFixed(2) : ''}</TD>
                     <TD>{A(x, 'orbp')}</TD>
                     <TD>{A(x, 'drbp')}</TD>
                     <TD>{A(x, 'trbp')}</TD>

@@ -68,6 +68,7 @@ const ADV: Col[] = [
   ['usgp', 'USG%', 'Usage: share of his team’s plays he finishes while on the floor', x => x.adv.usgp, 1],
   ['astp', 'AST%', 'Share of teammates’ baskets he assisted while on the floor', x => x.adv.astp, 1],
   ['tovp', 'TOV%', 'Turnovers per 100 plays', x => x.adv.tovp, 1],
+  ['atr', 'AST/TO', 'Assists per turnover', x => (x.disp.tov ? x.disp.ast / x.disp.tov : NaN), 2],
   ['orbp', 'ORB%', 'Offensive rebound %', x => x.adv.orbp, 1],
   ['drbp', 'DRB%', 'Defensive rebound %', x => x.adv.drbp, 1],
   ['trbp', 'TRB%', 'Total rebound %', x => x.adv.trbp, 1],
