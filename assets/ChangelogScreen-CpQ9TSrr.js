@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-DMmbccjf.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-X-cmu-6C.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-14
+
+### Added
+- **Emmanuel Mudiay (2021–22) player card.** His level in his last NBA season with Sacramento: a strong-bodied backup point guard who drives and pulls up from mid-range, a below-average shooter. He played only 2 games that year, so the card is built from his Knicks and Jazz seasons around it. In about 15 minutes a game he scores around 6 points on .41 shooting with 2 assists. 48 overall.
 
 ## 2026-11-13
 
