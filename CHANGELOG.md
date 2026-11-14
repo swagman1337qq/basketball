@@ -17,6 +17,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Player cards can carry a separate college game.** For a player whose college numbers were far better (or worse) than his NBA play, a card can now hold his college ratings apart from his NBA ratings: his college stats come from one, his games from the other, and his first training camp brings no extra surprise.
 - **Emmanuel Mudiay (2021–22) player card.** His level in his last NBA season with Sacramento: a strong-bodied backup point guard who drives and pulls up from mid-range, a below-average shooter. He played only 2 games that year, so the card is built from his Knicks and Jazz seasons around it. In about 15 minutes a game he scores around 6 points on .41 shooting with 2 assists. 48 overall.
 
+### Fixed
+- **Far fewer undrafted stars in a new league.** When a league is made, today's players get their draft history by how good they are: about a quarter of fringe players went undrafted, but very few starters and almost no stars (it was 1 in 12 of every level, so each new league had 4 to 6 undrafted players rated 60 or better; now 0 or 1). Undrafted rookies in your league were already rare to become good and are unchanged. Existing leagues keep their history.
+
+
 ## 2026-11-13
 
 ### Added

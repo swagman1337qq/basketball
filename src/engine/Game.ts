@@ -2189,8 +2189,12 @@ export class Game {
       cls,
       dr: (() => {
         if (cls) return null;
-        const x = rnd();
-        return x < 0.7 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : x < 0.92 ? { rd: 2, pick: 1 + Math.floor(rnd() * 30) } : null;
+        // Undrafted by level (2026-11-14; was a flat 8%, which made 1 in 12 of today's starters and stars undrafted):
+        // about a quarter of the fringe, 8% of bench players, under 2% of starters and stars (the VanVleet, Reaves rarity).
+        const x = rnd(),
+          pu = 0.012 + 0.26 / (1 + Math.exp((raw - 47) / 2.5));
+        if (x < pu) return null;
+        return (x - pu) / (1 - pu) < 0.76 ? { rd: 1, pick: 1 + Math.floor(rnd() * 30) } : { rd: 2, pick: 1 + Math.floor(rnd() * 30) };
       })(),
       nz: [rnd() - 0.5, rnd() - 0.5],
       gp: 0,
