@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-14
 
 ### Added
+- **KJ Simpson draft-night player card (2024, Colorado).** The No. 42 pick after a first-team All-Pac-12 junior year (19.7 points, .434 from three). A small scoring guard who runs the offense, with the weaknesses that sank him: 6′0″ barefoot, a thin frame, poor finishing and defense, and a jumper that was hot for only one college year. Built to match both his Colorado season and his Hornets rookie year (about 8 points on .34 shooting in 23 minutes). 40 overall, potential 45.
 - **Emmanuel Mudiay (2021–22) player card.** His level in his last NBA season with Sacramento: a strong-bodied backup point guard who drives and pulls up from mid-range, a below-average shooter. He played only 2 games that year, so the card is built from his Knicks and Jazz seasons around it. In about 15 minutes a game he scores around 6 points on .41 shooting with 2 assists. 48 overall.
 
 ## 2026-11-13

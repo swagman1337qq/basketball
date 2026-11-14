@@ -3316,4 +3316,113 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       sources: ['https://www.basketball-reference.com/players/m/mudiaem01.html'],
     },
   },
+  {
+    label: 'KJ Simpson – Draft night (2024, Colorado)',
+    card: {
+      card: 1,
+      name: 'KJ Simpson',
+      first: 'KJ',
+      last: 'Simpson',
+      pos: 'PG',
+      age: 21,
+      dob: '2002-08-08',
+      hgt: '6′2″',
+      wt: 187,
+      wing: 76.5, // 6′4½″ at the 2024 combine (6′0¼″ barefoot)
+      rep: 'US',
+      born: 'US',
+      raised: 'US',
+      city: 'Los Angeles',
+      state: 'CA',
+      her: 'US',
+      race: 'black',
+      // Real (No. 42 pick in 2024 by Charlotte after three seasons at Colorado, then in the Pac-12):
+      // junior year 37 games, 35.1 min, 19.7 pts, 5.8 reb, 4.9 ast, 1.6 stl, 2.2 tov, .475 FG, .434 on 4.9 threes, .876 FT on
+      // 5.0 (first-team All-Pac-12, BPM +10.1, TS .606; the game-winner against Florida in the NCAA tournament). That shooting
+      // was a one-year spike: .396 and .276 from three as a sophomore, .429 and .347 over his career. 6′0¼″ barefoot with a
+      // 6′4½″ wingspan and a thin frame: too small to finish inside or guard NBA players, the reason he went in the second round.
+      // His rookie year (2024–25, Charlotte): 36 games (15 starts), 23.4 min, 7.8 pts, 3.0 reb, 3.1 ast, 0.9 stl, 1.6 tov,
+      // .346 FG on 8.4 shots, .254 on 3.6 threes, .820 FT on 1.4 (BPM −5.4). Waived in February 2026, then by Denver.
+      // Built for both: his junior year with the game's college-stats model at Colorado (a power conference), per 40 over
+      // 300 players: 24.3 pts, 7.4 reb, 6.1 ast, 2.3 stl, 2.5 tov, .439 FG on 19.2 shots, .382 on 7.3 threes, .866 FT (the game's
+      // usual college-to-NBA drop is smaller than his was, so the college line runs a little high and the shooting a little
+      // low). Tested over 1,200 NBA games at 23.6 minutes on a mid-table team, his own style locked: 7.7 pts, 2.2 reb, 2.3 ast,
+      // 0.5 stl, 1.5 tov, .342 FG on 7.7 shots, .301 on 2.9 threes, 1.8 FTA.
+      // 40 overall on draft night (a No. 42 pick); potential 45, an end-of-bench guard.
+      r: {
+        hgt: 28,
+        stre: 34,
+        spd: 66,
+        acc: 66,
+        jmp: 54,
+        endu: 48,
+        ins: 20,
+        dnk: 36,
+        lay: 30,
+        ft: 78,
+        fg: 42,
+        tp: 46,
+        oiq: 24,
+        diq: 28,
+        blk: 10,
+        stl: 42,
+        drb: 40,
+        pss: 60,
+        reb: 46,
+        box: 32,
+      },
+      pot: 45,
+      intg: { feel: 50, poise: 70 },
+      pers: {
+        // Confident shot-maker who wanted the ball late (the Florida game-winner); a hard worker who kept improving in college.
+        mot: 'Winning',
+        alpha: false,
+        touches: true,
+        pro: true,
+        volatile: false,
+        flashy: false,
+        heat: false,
+        crowd: false,
+        villain: false,
+        fearless: true,
+        clutch: true,
+        prone: false,
+        padder: false,
+        team: false,
+        legacy: false,
+        streaky: true,
+        work: 70,
+        loyalty: 60,
+        ambition: 70,
+      },
+      // Playing style: a scoring guard who shoots off the dribble and runs the offense (high ball dominance); threes about
+      // 38% of his shots (35% in college, 43% as a rookie).
+      ten: {
+        usage: 66,
+        dom: 90,
+        dunk: 4,
+        ftr: 48,
+        ra: 25,
+        paint: 15,
+        mid: 22,
+        c3: 8,
+        atb: 30,
+        cns: 40,
+        pullup: 50,
+        step: 6,
+        fade: 4,
+        turnovers: 40,
+        fouls: 45,
+        crash: 40,
+      },
+      notes:
+        'Draft night 2024 after his junior year at Colorado (Pac-12): 19.7 pts, 4.9 ast, .475 FG, .434 3P, .876 FT. A small scoring guard; size, finishing and defense were the worries. Tested against his junior year and his 2024–25 Hornets rookie year (7.8 pts, .346 FG).',
+      sources: [
+        'https://www.sports-reference.com/cbb/players/kj-simpson-1.html',
+        'https://www.nbadraft.net/players/kj-simpson/',
+        'https://en.wikipedia.org/wiki/KJ_Simpson',
+        'https://www.basketball-reference.com/players/s/simpskj01.html',
+      ],
+    },
+  },
 ];
