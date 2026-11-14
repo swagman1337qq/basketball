@@ -87,6 +87,8 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
     return 'That isn’t a player card (it needs at least his ratings, "r").';
   for (const [k, v] of Object.entries(card.r))
     if (typeof v !== 'number' || !isFinite(v as number)) return 'Rating "' + k + '" isn’t a number.';
+  for (const [k, v] of Object.entries(card.am?.r || {}))
+    if (typeof v !== 'number' || !isFinite(v as number)) return 'College rating "' + k + '" isn’t a number.';
   if (card.pos && !GRP[card.pos]) return 'Unknown position "' + card.pos + '".';
   const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, Math.round(v)));
   // A card is a build, not a person: his ratings, playing style, body (height, weight, wingspan), position,
@@ -153,6 +155,32 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   if (ct && !num(ct.dom)) p.ten.dom = cardDom(p.ten.dom, p.ten.usage); // a card from before ball dominance keeps the shot volume it was tuned for
   if (ct || card.tend) anchorCardStyle(p, p.ten, card.age ?? p.age, p.r, num(ct?.dunk));
   delete p.tenLock;
+  // His college game (2026-11-14), optional: for a player whose college numbers and NBA play were far apart (more
+  // than the game's usual drop), the card can carry the college game separately. His college stats come from it
+  // (amateurStats.ts reads p.am, like any drafted player's); his NBA play from the ratings above. "am": { r (only
+  // the ratings that differ), habits (usage, ftr, turnovers, fouls, crash, dunk) and zones (ra, paint, mid, c3,
+  // atb), each optional }. The card already says how he translated, so his first camp brings no surprise.
+  const am = card.am && typeof card.am === 'object' ? card.am : null;
+  if (am) {
+    const pick = (o: any, keys: readonly string[], base: any) =>
+      Object.fromEntries(keys.map(k => [k, num(o?.[k]) ? o[k] : base?.[k]]).filter(([, v]) => num(v)));
+    p.am = {
+      r: {
+        ...p.r,
+        ...Object.fromEntries(
+          Object.entries(am.r || {})
+            .filter(([, v]) => num(v))
+            .map(([k, v]) => [k, cl(v as number, 1, 99)]),
+        ),
+      },
+      rx: null,
+      grp: p.grp,
+      feel: num(am.feel) ? cl(am.feel, 1, 99) : p.intg?.feel,
+      habits: pick(am.habits, ['usage', 'ftr', 'turnovers', 'fouls', 'crash', 'dunk'], p.ten),
+      zones: pick(am.zones, ['ra', 'paint', 'mid', 'c3', 'atb'], p.ten),
+    };
+    if (p.dx) p.dx = { o: 0, c: 0, sh: {}, tier: 'same' };
+  }
   const preset = PRESET_CARDS.findIndex(x => x.card.name === card.name && JSON.stringify(x.card.r) === JSON.stringify(card.r));
   if (preset >= 0) p.cardPreset = preset;
   else delete p.cardPreset;
@@ -3343,12 +3371,13 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // 6′4½″ wingspan and a thin frame: too small to finish inside or guard NBA players, the reason he went in the second round.
       // His rookie year (2024–25, Charlotte): 36 games (15 starts), 23.4 min, 7.8 pts, 3.0 reb, 3.1 ast, 0.9 stl, 1.6 tov,
       // .346 FG on 8.4 shots, .254 on 3.6 threes, .820 FT on 1.4 (BPM −5.4). Waived in February 2026, then by Denver.
-      // Built for both: his junior year with the game's college-stats model at Colorado (a power conference), per 40 over
-      // 300 players: 24.3 pts, 7.4 reb, 6.1 ast, 2.3 stl, 2.5 tov, .439 FG on 19.2 shots, .382 on 7.3 threes, .866 FT (the game's
-      // usual college-to-NBA drop is smaller than his was, so the college line runs a little high and the shooting a little
-      // low). Tested over 1,200 NBA games at 23.6 minutes on a mid-table team, his own style locked: 7.7 pts, 2.2 reb, 2.3 ast,
-      // 0.5 stl, 1.5 tov, .342 FG on 7.7 shots, .301 on 2.9 threes, 1.8 FTA.
-      // 40 overall on draft night (a No. 42 pick); potential 45, an end-of-bench guard.
+      // Built for both, his college game kept apart in "am" (the game's usual college-to-NBA drop is far smaller than his):
+      // his junior year with the game's college-stats model at Colorado (a power conference), per 40 over 300 players:
+      // 22.3 pts, 6.7 reb, 5.5 ast, 1.8 stl, 2.4 tov, .476 FG on 15.8 shots, .433 on 5.5 threes, .876 FT on 5.6 (real per 40:
+      // 22.4, 6.6, 5.6, 1.8, 2.5, .475 on 15.8, .434 on 5.6, .876 on 5.7). His NBA ratings tested over 1,200 games at 23
+      // minutes on a mid-table team, his own style locked: 7.9 pts, 3.0 reb, 3.2 ast, 0.9 stl, 0.2 blk, 1.6 tov, .339 FG on 8.5
+      // shots, .262 on 3.7 threes, 1.4 FTA.
+      // 42 overall on draft night (a No. 42 pick, his NBA game); potential 45, an end-of-bench guard.
       r: {
         hgt: 28,
         stre: 34,
@@ -3358,17 +3387,17 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         endu: 48,
         ins: 20,
         dnk: 36,
-        lay: 30,
+        lay: 36,
         ft: 78,
-        fg: 42,
-        tp: 46,
+        fg: 48,
+        tp: 30,
         oiq: 24,
         diq: 28,
-        blk: 10,
-        stl: 42,
+        blk: 42,
+        stl: 76,
         drb: 40,
-        pss: 60,
-        reb: 46,
+        pss: 76,
+        reb: 54,
         box: 32,
       },
       pot: 45,
@@ -3395,25 +3424,49 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         loyalty: 60,
         ambition: 70,
       },
-      // Playing style: a scoring guard who shoots off the dribble and runs the offense (high ball dominance); threes about
-      // 38% of his shots (35% in college, 43% as a rookie).
+      // Playing style as a rookie: off the dribble, running the offense (high ball dominance), 43% of his shots threes.
       ten: {
-        usage: 66,
+        usage: 76,
         dom: 90,
         dunk: 4,
-        ftr: 48,
+        ftr: 37,
         ra: 25,
         paint: 15,
-        mid: 22,
-        c3: 8,
-        atb: 30,
+        mid: 19,
+        c3: 9,
+        atb: 35,
         cns: 40,
         pullup: 50,
         step: 6,
         fade: 4,
-        turnovers: 40,
+        turnovers: 36,
         fouls: 45,
-        crash: 40,
+        crash: 50,
+      },
+      // His college game (Colorado, junior year), what his college stats come from: a better shooter and scorer than he was
+      // in the NBA, a less willing passer, 35% of his shots threes.
+      am: {
+        r: {
+          hgt: 28,
+          stre: 34,
+          spd: 66,
+          acc: 66,
+          jmp: 48,
+          endu: 48,
+          lay: 36,
+          ft: 80,
+          fg: 53,
+          tp: 63,
+          oiq: 28,
+          diq: 28,
+          stl: 34,
+          drb: 50,
+          pss: 50,
+          reb: 47,
+          blk: 1,
+        },
+        habits: { usage: 19, ftr: 62, turnovers: 47, fouls: 50, crash: 22 },
+        zones: { ra: 25, paint: 15, mid: 25, c3: 7, atb: 28 },
       },
       notes:
         'Draft night 2024 after his junior year at Colorado (Pac-12): 19.7 pts, 4.9 ast, .475 FG, .434 3P, .876 FT. A small scoring guard; size, finishing and defense were the worries. Tested against his junior year and his 2024–25 Hornets rookie year (7.8 pts, .346 FG).',

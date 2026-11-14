@@ -12,6 +12,8 @@ import { taxBill, nums } from '../src/engine/cba';
 import { newLeague } from './lib/headless.mts';
 import { defaultTeamSpecs, teamListError } from '../src/data/world';
 import { relocateTeam } from '../src/engine/relocate';
+import { applyCard, PRESET_CARDS } from '../src/engine/playerCard';
+import { seasonLine } from '../src/engine/amateurStats';
 
 let n = 0;
 const test = (name: string, fn: () => void) => {
@@ -169,6 +171,32 @@ test('relocating a club keeps its roster and picks and takes the new identity', 
   assert.deepEqual(g.state.rosters[5], ids);
   assert.equal(g.state.assets.filter((x: any) => x.owner === 5).length, picks);
   assert.ok(relocateTeam(g, 6, { region: 'X', name: 'Y', abbr: 'LOU' }) !== ''); // the abbreviation is taken
+});
+
+test("a card's college game drives his college stats, its ratings his NBA game (2026-11-14)", () => {
+  const c: any = PRESET_CARDS.find((x: any) => x.card.am)!.card,
+    mk = (card: any) => {
+      const p: any = {
+        id: 4242,
+        age: card.age,
+        r: {},
+        intg: { feel: 50, poise: 50 },
+        pers: {},
+        pot: card.pot,
+        from: { lg: 'NCAA', team: 'Colorado' },
+        dx: { o: 5, c: 3, sh: {}, tier: 'better' },
+      };
+      assert.equal(applyCard(p, card, {}), '');
+      return p;
+    },
+    a = mk(c),
+    b = mk({ ...c, am: undefined });
+  assert.equal(a.r.tp, c.r.tp); // NBA ratings as written
+  assert.equal(a.am.r.tp, c.am.r.tp); // college game kept apart
+  assert.equal(a.dx.o, 0); // no camp surprise on top of the card's own translation
+  assert.ok(
+    seasonLine(a, 2024, 0).disp.tpm / seasonLine(a, 2024, 0).disp.tpa > seasonLine(b, 2024, 0).disp.tpm / seasonLine(b, 2024, 0).disp.tpa,
+  );
 });
 
 console.log((process.exitCode ? 'FAIL' : 'PASS') + ': ' + n + ' unit tests passed');

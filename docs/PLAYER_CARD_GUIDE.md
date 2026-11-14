@@ -74,6 +74,7 @@ A card can still carry the real player's name and bio. The card library shows th
 | `intg.feel`, `intg.poise` | 1–99 | Intangibles (section 8). |
 | `pers` | see section 8 | Any trait you leave out keeps the player's current value. |
 | `ten` | see section 6 | Leave it out and his style comes from his ratings. |
+| `am` | optional: `r`, `habits`, `zones` | His **college game**, kept apart from his NBA game (2026-11-14). For a player whose college numbers were far from his NBA play (more than the game's usual drop), his college stats come from `am.r` (only the ratings that differ; the rest are `r`), `am.habits` (`usage`, `ftr`, `turnovers`, `fouls`, `crash`, `dunk`) and `am.zones` (`ra`, `paint`, `mid`, `c3`, `atb`); his games from `r` and `ten`. A pending first-camp surprise is cancelled, since the card already says how he translated. Leave it out and his college stats come from his ratings, as before. Example: the KJ Simpson card. |
 
 `ovr` is never read from a card. The overall is always computed from the ratings.
 
