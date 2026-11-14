@@ -1125,7 +1125,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         : { [key]: st[key].includes(id) ? st[key].filter(x => x !== id) : [...st[key], id], tMsg: null };
     });
   const tRow = key => id => ({
-    ...pBase(id), contract: money(P[id].amt), ...box(s[key].includes(id)), toggle: tog(key, id),
+    ...pBase(id),
+    contract: money(P[id].amt),
+    ...box(s[key].includes(id)),
+    toggle: tog(key, id),
     excluded: playerExcluded(s, id),
     exclude: () => gm.setState(st => excludePlayers(st, [id], !playerExcluded(st, id))),
   });

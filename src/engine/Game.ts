@@ -7560,7 +7560,8 @@ export class Game {
   // league office checks it; it leaves your offers once the trade goes through.
   propose(force = false, honorId: string | null = null) {
     this.setState(s => {
-      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs)) return {tMsg: 'No deal: an excluded player or pick is selected. Include that asset before proposing it.'};
+      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs))
+        return { tMsg: 'No deal: an excluded player or pick is selected. Include that asset before proposing it.' };
       force = force && !!s.god;
       const honor = !!honorId && (s.inOffers || []).some((o: any) => o.id === honorId);
       const P = this.db.P,
@@ -7744,12 +7745,17 @@ export class Game {
   }
   balance() {
     this.setState(s => {
-      if (!s.tMine.length && !s.tTheirs.length && !s.tkMine.length && !s.tkTheirs.length) return {tMsg: 'Select a player or pick to build a trade.'};
-      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs)) return {tMsg: 'No deal: remove the excluded assets from the selected package first.'};
-      if (this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok && checkTrade(this, {...s, god: false}, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok)
-        return {tMsg: 'They would accept the current offer. It passes the league office.'};
+      if (!s.tMine.length && !s.tTheirs.length && !s.tkMine.length && !s.tkTheirs.length)
+        return { tMsg: 'Select a player or pick to build a trade.' };
+      if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs))
+        return { tMsg: 'No deal: remove the excluded assets from the selected package first.' };
+      if (
+        this.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok &&
+        checkTrade(this, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs).ok
+      )
+        return { tMsg: 'They would accept the current offer. It passes the league office.' };
       const best = askOffers(this, s, s.tTid, s.tTheirs, s.tkTheirs, s.tMine, s.tkMine)[0];
-      if (!best) return {tMsg: 'No deal found using the allowed players and picks. Try asking for less or changing your exclusions.'};
+      if (!best) return { tMsg: 'No deal found using the allowed players and picks. Try asking for less or changing your exclusions.' };
       return {
         tMine: best.mine,
         tTheirs: best.theirs,
