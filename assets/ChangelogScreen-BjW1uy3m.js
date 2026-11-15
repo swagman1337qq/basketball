@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-arusV-Av.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-CB3TEwZm.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-15
 
 ### Changed
+- **Box scores have a new full-game layout.** Bigger team names, logos and scores, each team's previous/next game buttons, a line score with each quarter's winner in bold, Four Factors, and matching player columns for both teams. Traditional, Advanced and Both stay available. New games also have quarter/half filters and Box Score, Play-by-Play, Shot Charts and Plus/Minus tabs, including player filters on both teams' shot charts and rotation timelines. Shot markers show recorded zones, with illustrative positions within each zone. Earlier saved games keep their final box scores; details that were never recorded are unavailable.
 - **Postseason winners use their own team colors.** Play-in winners are highlighted in their team's primary color. In playoff series without your team, each G1, G2 and later box-score button is outlined in that game's winner's main color with a light wash of it, like the green and red on your own series (not filled in). Your team's series keep their existing highlight and green/red game results.
 
 ### Added
