@@ -1061,9 +1061,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
                       }
                       style={{ color: lim > seasonMax(s) && std.length > seasonMax(s) ? 'var(--color-accent-700)' : undefined }}
                     >
-                      {std.length} of {lim > seasonMax(s) ? seasonMax(s) + ' (' + lim + ' till opening night)' : lim} · two-way {tw.length}/
-                      {TWO_WAY_MAX}
+                      {std.length} of {lim > seasonMax(s) ? seasonMax(s) + ' (' + lim + ' till opening night)' : lim}
                       {ex10.length ? ' · Exhibit 10 ' + ex10.length : ''}
+                    </span>
+                    <span style={muted}>Two-way</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      {tw.length}/{TWO_WAY_MAX}
                     </span>
                   </>
                 )}
