@@ -630,6 +630,8 @@ export interface SimTeam {
   tempo?: number; // an extra pace multiplier on its trips' length (unused now that every team's staff sets the pace)
   aiKeys?: TacKey[]; // the settings its coaching staff runs (coach.ts); the rest come from `tactics` as set
   coach?: number; // the staff's quality, 0.35–0.95 (coach.ts coachQuality): how often it makes its reads
+  stO?: number; // your assistant coaches' edge on offense: shot quality (staff.ts staffFx, a few tenths of a percent)
+  stD?: number; // and on defense: the opponent's shot quality, down
 }
 export type ShotAction = 'drive' | 'cut' | 'roll' | 'post' | 'transition' | 'putback' | 'perimeter';
 export type HelpPosition = 'stays-home' | 'in-lane' | 'at-rim';
@@ -1849,7 +1851,9 @@ export class GameSim {
         (sh.protect && z !== 'rim' ? 0.02 : 0) -
         (onO.some(p => p.selfish && p !== sh) ? 0.015 : 0) +
         (onD.some(p => p.selfish) ? 0.012 : 0) +
-        ((this.teams[offK].chem ?? 50) - 50) * 0.00015;
+        ((this.teams[offK].chem ?? 50) - 50) * 0.00015 +
+        (this.teams[offK].stO ?? 0) -
+        (this.teams[defK].stD ?? 0);
 
       const three = z === 'c3' || z === 'atb',
         b = O.box[sh.id],

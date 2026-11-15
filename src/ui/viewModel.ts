@@ -68,6 +68,7 @@ import { pickHorizon } from '../engine/tradeLogic';
 import { facEffect, teamBudget } from '../engine/environment';
 import { isPlainHS } from '../data/leagues';
 import { coachMult } from '../engine/development';
+import { hasStaff, staffCost, staffFxRead } from '../engine/staff';
 import { mulberry32 } from '../engine/rng';
 import { TACTIC_GROUPS } from '../engine/tactics';
 import type { VM } from './vm';
@@ -366,6 +367,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     ['depth', 'Depth chart', 'Team'],
     ['dev', 'Development', 'Team'],
     ['hier', 'Hierarchy', 'Team'],
+    ['staff', 'Staff', 'Team'],
     ['tactics', 'Tactics', 'Team'],
     ['fin', 'Finances', 'Team'],
     ['capsheet', 'Cap sheet', 'Team'],
@@ -415,6 +417,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     fa: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'],
     draft: ['M10 6h11', 'M10 12h11', 'M10 18h11', 'M4 6h1v4', 'M4 10h2', 'M6 18H4c0-1 2-2 2-3s-1-1.5-2-1'],
     dev: ['m22 7-8.5 8.5-5-5L2 17', 'M16 7h6v6'],
+    staff: [
+      'M9 4h6v3H9z',
+      'M8 5.5H6a2 2 0 0 0-2 2V20a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5a2 2 0 0 0-2-2h-2',
+      'M12 11a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
+      'M8.5 19a3.5 3.5 0 0 1 7 0',
+    ],
     hier: [
       'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
       'M5 21h14',
@@ -487,6 +495,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     'depth',
     'dev',
     'hier',
+    'staff',
     'tactics',
     'fin',
     'capsheet',
@@ -1738,6 +1747,32 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       netColor: net < 0 ? 'var(--color-accent-800)' : 'var(--color-text)',
       budget: ['Tickets', 'Coaching', 'Health', 'Facilities', 'Scouting'].map(k => {
         const [mn, mx, , stp] = d.BUD[k];
+        // With a coaching staff (staff.ts), Coaching is their salaries plus support staff: set on the Staff screen.
+        if (k === 'Coaching' && hasStaff(gm, s, tid)) {
+          const sf = staffFxRead(gm, tid, !!s.god);
+          return {
+            name: 'Coaching',
+            locked: true,
+            min: mn,
+            max: mx,
+            step: stp,
+            v: b[k],
+            range: 'Your staff’s salaries',
+            amt: money(staffCost(gm, s, tid)),
+            rank: ord(1 + lgOf(k).filter(x => x > b[k]).length),
+            effect:
+              'Set by your coaching staff (Staff screen): player growth ' +
+              (sf.growth >= 0 ? '+' : '−') +
+              Math.abs(Math.round(sf.growth * 100)) +
+              '% · in-game reads ' +
+              Math.round(sf.q * 100) +
+              '%',
+            auto: false,
+            rec: '',
+            set: () => {},
+            toggleAuto: () => gm.setState({ screen: 'staff' }),
+          };
+        }
         return {
           name: k === 'Tickets' ? 'Ticket price' : k,
           min: mn,

@@ -2,6 +2,7 @@
 // contract incentives (with likely/unlikely cap accounting), stat-padding dilemmas and
 // owner-mandated fire sales. Everything the owner judges you on is computed here and
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
+import { hasStaff, staffBudget, staffCost } from './staff';
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
 import { capState, nums, rosterMin, seasonMax, stdIds, taxBill as cbaTax, teamSalary } from './cba';
@@ -234,7 +235,7 @@ export function financesOf(g: Game, s: any, tid: number) {
     ...(share > 0 ? [['Revenue sharing paid', share] as [string, number]] : []),
     ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []),
     ...(bonusPaid ? [[settled ? 'Incentive bonuses paid' : 'Incentive bonuses (projected)', bonusPaid] as [string, number]] : []),
-    ['Coaching', b.Coaching * lf],
+    hasStaff(g, s, tid) ? ['Coaching staff', staffCost(g, s, tid)] : ['Coaching', b.Coaching * lf], // your assistants' salaries and support staff (staff.ts)
     ['Health', b.Health * lf],
     ['Facilities', b.Facilities * lf],
     ['Scouting', b.Scouting * lf],
@@ -243,7 +244,19 @@ export function financesOf(g: Game, s: any, tid: number) {
   const short = Math.max(0, nums(g).FLOOR - payroll);
   if (short > 0.05) exp.push(['Salary-floor shortfall (paid to players)', +short.toFixed(1)]);
   const net = rev.reduce((a, r) => a + r[1], 0) - exp.reduce((a, r) => a + r[1], 0);
-  return { payroll, att, cap, full: att / cap, tix, taxBill, repeater, rev, exp, net, budget: b };
+  return {
+    payroll,
+    att,
+    cap,
+    full: att / cap,
+    tix,
+    taxBill,
+    repeater,
+    rev,
+    exp,
+    net,
+    budget: hasStaff(g, s, tid) ? { ...b, Coaching: staffBudget(g, s, tid) } : b,
+  };
 }
 
 // ── Owner expectations ───────────────────────────────────────────────────────────

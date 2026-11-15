@@ -17,6 +17,18 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import {
+  coachingOf,
+  devSlip,
+  ensureStaff,
+  hasStaff,
+  notify,
+  staffContractsEnd,
+  staffExpiring,
+  staffFx,
+  staffMonth,
+  staffYear,
+} from './staff';
+import {
   americanFirst,
   applyNativeMix,
   deepenLook,
@@ -387,6 +399,7 @@ export class Game {
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
     g.rollDevYear(g.state);
     if (opts.spectate) g.enterSpectator(); // spectator.ts: no team, the AI runs all of them
+    ensureStaff(g); // coaches: a pool, and a staff for each of your teams (staff.ts)
     return g;
   }
 
@@ -723,6 +736,7 @@ export class Game {
       settleAbroad(g, g.state.overseas || [], true);
       g.db.osV = 1;
     } // 2026-10-28: players abroad (cbaFlow.ts settleAbroad)
+    ensureStaff(g); // 2026-11-15: coaches as people, your assistant staff (staff.ts)
     if (!g.db.laTvV) {
       (g.state.teams || []).forEach((t: any) => {
         if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +((t.tv.fee * 200) / 115).toFixed(1) };
@@ -2810,7 +2824,9 @@ export class Game {
       tactics: club ? club.tactics : {},
       situ: club ? club.situ || null : null,
       aiKeys: this.aiTacKeys(club),
-      coach: coachQuality(teamBudget(this, s, tid).Coaching),
+      coach: hasStaff(this, s, tid) ? staffFx(this, s, tid).q : coachQuality(teamBudget(this, s, tid).Coaching), // your Lead Assistant (staff.ts), else the owner's budget
+      stO: hasStaff(this, s, tid) ? staffFx(this, s, tid).stO : 0,
+      stD: hasStaff(this, s, tid) ? staffFx(this, s, tid).stD : 0,
       players: ids.map((id, i) => {
         const p = P[id];
         return {
@@ -4275,7 +4291,13 @@ export class Game {
     });
   }
   startPreFA() {
-    if (!this.mailWaiting()) startPreFA(this);
+    if (this.mailWaiting()) return;
+    const was = !!this.state.preFA;
+    startPreFA(this);
+    if (!was && this.state.preFA) {
+      const n = staffExpiring(this, this.state);
+      if (n.length) this.setState(st => ({ notices: notify(st, n) })); // coaches' deals ending (staff.ts)
+    }
   }
   startFA() {
     if (this.mailWaiting()) return;
@@ -4417,6 +4439,11 @@ export class Game {
     if (this.state.phase === 'fa') {
       teamSales(this);
       offseasonMandates(this);
+      if (!this.db.coachEndY || this.db.coachEndY < this.Y) {
+        this.db.coachEndY = this.Y;
+        const n = staffContractsEnd(this, this.state);
+        if (n.length) this.setState(st => ({ notices: notify(st, n) })); // coaches whose deals ran out leave (staff.ts)
+      }
     } // team sales close with the new league year; owners' payroll orders
   }
   // Free agency runs on the NBA calendar: negotiations open June 30 (day 0), the moratorium ends
@@ -4716,7 +4743,7 @@ export class Game {
         brkP = Game.BREAK / Math.max(1, at98);
       const grow = (p, tid = -1, focus = 'Balanced') => {
         const env = envOf(this, s, p, tid, rosters),
-          cm = tid >= 0 ? coachMult(teamBudget(this, s, tid).Coaching) : 1;
+          cm = tid >= 0 ? coachMult(coachingOf(this, s, tid, teamBudget(this, s, tid).Coaching)) : 1;
         let pen = 0;
         if (p.age < 24 && (p.minorCount || 0) >= 4) {
           pen = -2;
@@ -5407,6 +5434,11 @@ export class Game {
     });
     this.enforceRetirement();
     offseasonMandates(this);
+    if (!this.db.coachYearY || this.db.coachYearY < this.Y) {
+      this.db.coachYearY = this.Y;
+      const { notices: cn } = staffYear(this, this.state); // coaches grow, retire, ask for raises (staff.ts)
+      if (cn.length) this.setState(st => ({ notices: notify(st, cn) }));
+    }
     if (dealNote) this.setState(st => ({ notices: addNotice(st, dealNote) })); // the summer's deals in the Mailbox
     if (abroadNote) this.setState(st => ({ notices: addNotice(st, abroadNote) })); // shortlisted players who signed abroad
   }
@@ -5762,7 +5794,7 @@ export class Game {
   potRead(p, tid, s = this.state) {
     if (tid == null || tid < 0 || !p) return p?.pot ?? 0;
     if (s.god && this.isUser(s, tid)) return p.tpot ?? p.pot;
-    if ((s.rosters[tid] || []).includes(p.id)) return potView(p, { own: true });
+    if ((s.rosters[tid] || []).includes(p.id)) return potView(p, { own: true, eye: staffFx(this, s, tid).eye });
     return teamRead(p, tid, scoutSd(teamBudget(this, s, tid).Scouting, !!s.easy?.scouting && this.isUser(s, tid)));
   }
   // A player's worth to a team with strategy st; tid: whose eyes (its read of his potential).
@@ -6181,7 +6213,7 @@ export class Game {
   growthPreview(s, tid, p, focus) {
     const a = p.age,
       club = this.clubOf(s, tid),
-      coach = coachMult(teamBudget(this, s, tid).Coaching),
+      coach = coachMult(coachingOf(this, s, tid, teamBudget(this, s, tid).Coaching)),
       wk = p.pers?.work ?? 50,
       annual = this.devRate(p),
       env = envOf(this, s, p, tid);
@@ -6331,6 +6363,7 @@ export class Game {
       reb: 'Reb',
       box: 'Box',
     };
+    staffMonth(this, s); // you get to know your coaches (staff.ts)
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => {
       const club = this.clubOf(s, +k);
@@ -6358,7 +6391,7 @@ export class Game {
         // mentor, together capped at ±25% and weighted toward fringe players. Good coaching also slows aging.
         const work = this.devMult(p, annual),
           env = envOf(this, s, p, +k, rosters),
-          cm = coachMult(teamBudget(this, s, +k).Coaching);
+          cm = coachMult(coachingOf(this, s, +k, teamBudget(this, s, +k).Coaching));
         const monthly =
           annual > 0
             ? (annual0 / 12) * Math.min(Game.GROW_CAP, (annual / annual0) * env.mult * work) * injF * stunt * (0.6 + Math.random() * 0.8) // personality, the hidden factor, this year's form and his environment, together at most GROW_CAP× his plan
@@ -6391,6 +6424,19 @@ export class Game {
           }),
         );
         applyChange(p, dl);
+        // A poor coaching staff (staff.ts devSlip): his skills slip a little each month.
+        if (mine && hasStaff(this, s, +k)) {
+          const sl = devSlip(staffFx(this, s, +k).devQ);
+          if (sl > 0) {
+            const sk = SKILLS[Math.floor(Math.random() * SKILLS.length)];
+            p.rx[sk] = (p.rx[sk] || 0) - sl * 2;
+            const w = Math.trunc(p.rx[sk]);
+            if (w) {
+              p.r[sk] = Math.max(1, p.r[sk] + w);
+              p.rx[sk] -= w;
+            }
+          }
+        }
         capToT(p);
         // A hidden gem's extra ceiling surfaces (intangibles.ts), and his potential is re-read (potential.ts).
         const gemUp = gemTick(p),
@@ -7481,6 +7527,10 @@ export class Game {
       const c = this.clubOf(s, tid),
         fac = c?.budget?.Facilities;
       if (fac != null && Math.abs(fac - 14) >= 3) f.push(['Team facilities', Math.round((fac - 14) / 3)]);
+    }
+    if (hasStaff(this, s, tid)) {
+      const mv = staffFx(this, s, tid).mot;
+      if (mv) f.push(['Coaching staff', mv]); // your coaches' motivation (staff.ts)
     }
     if (me.mkt >= 1.1 && wp >= 0.55) f.push(['Fan energy', 2]);
     else if (wp < 0.3 && (s.games || []).length > 60) f.push(['Fan energy', -2]);

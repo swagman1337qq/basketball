@@ -30,6 +30,8 @@ import { ScoutingScreen } from './screens/ScoutingScreen';
 import { OverseasScreen } from './screens/OverseasScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import { HierarchyScreen } from './screens/HierarchyScreen';
+import { StaffScreen } from './screens/StaffScreen';
+import { CoachProfile } from './modals/CoachProfile';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { DailyScheduleScreen } from './screens/DailyScheduleScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -224,6 +226,7 @@ export function GMView({ vm }: { vm: VM }) {
                     {!!vm.is.overseas && <OverseasScreen vm={vm} />}
                     {!!vm.is.dev && <DevelopmentScreen vm={vm} />}
                     {!!vm.is.hier && <HierarchyScreen vm={vm} />}
+                    {!!vm.is.staff && <StaffScreen vm={vm} />}
                     {!!vm.is.owner && <OwnerScreen vm={vm} />}
                     {!!vm.is.settings && <SettingsScreen vm={vm} />}
                     {!!vm.is.fin && <FinancesScreen vm={vm} />}
@@ -252,6 +255,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasList && <ListModal vm={vm} />}
         {!!vm.hasDialog &&
           (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
+        {vm.ctx.s.coachPid != null && <CoachProfile vm={vm} />}
         {!!vm.ctx.s.letterOpen && !vm.spec.on && <OwnerLetterModal vm={vm} />}
         {!!vm.ctx.s.specPick && vm.spec.on && <SpectatorPicker vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}

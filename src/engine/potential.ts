@@ -309,13 +309,14 @@ export function teamRead(p: any, tid: number, sd: number) {
 }
 // What a viewer sees: God Mode the truth; your staff your own players almost exactly; anyone else your
 // scouts' read (tid/sd) or, without them, the league's read.
-export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number }) {
+// eye: your coaching staff's eye for talent (staff.ts), 0–1; 0.5 reads as before.
+export function potView(p: any, o: { god?: boolean; own?: boolean; tid?: number; sd?: number; eye?: number }) {
   if (!p) return 0;
   const t = p.tpot ?? p.pot;
   return o.god
     ? t
     : o.own
-      ? Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0) * 0.3)))
+      ? Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0) * (0.55 - 0.5 * (o.eye ?? 0.5)))))
       : o.tid != null
         ? teamRead(p, o.tid, o.sd ?? 2)
         : p.pot;

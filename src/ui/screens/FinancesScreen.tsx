@@ -216,6 +216,15 @@ export function FinancesScreen({ vm }: { vm: VM }) {
                     v = Math.min(b.max, Math.max(b.min, Math.round(raw / b.step) * b.step));
                   b.set({ target: { value: +v.toFixed(2) } });
                 };
+                if (b.locked)
+                  return (
+                    <>
+                      <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>{b.effect}</div>
+                      <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '18px' }}>{b.amt}</span>
+                      </div>
+                    </>
+                  );
                 return (
                   <>
                     <div>
@@ -244,6 +253,10 @@ export function FinancesScreen({ vm }: { vm: VM }) {
               })()}
               {vm.fin.readOnly ? (
                 <span />
+              ) : b.locked ? (
+                <button onClick={b.toggleAuto} title="Hire, fire and pay your coaches on the Staff screen" style={autoBtn(false)}>
+                  Staff
+                </button>
               ) : (
                 <button
                   onClick={b.toggleAuto}

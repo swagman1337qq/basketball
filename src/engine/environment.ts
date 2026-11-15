@@ -12,6 +12,7 @@
 // he's asked for get reps, and his growth leans that way (development.ts).
 import type { Game } from './Game';
 import { coachMult } from './development';
+import { coachingOf, hasStaff, staffBudget } from './staff';
 import { lockerRoom, mentorOf } from './lockerRoom';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -27,7 +28,7 @@ const LIMIT: Record<string, [number, number]> = { Coaching: [5, 40], Facilities:
 // A team's development budgets: yours from Finances, an AI team's from its owner.
 export function teamBudget(g: Game, s: any, tid: number): Record<string, number> {
   const c = g.clubOf(s, tid);
-  if (c?.budget) return c.budget;
+  if (c?.budget) return hasStaff(g, s, tid) ? { ...c.budget, Coaching: staffBudget(g, s, tid) } : c.budget; // your coaching spend is your staff's pay
   const b = ARCH_BUD[s.teams[tid]?.arch] || ARCH_BUD['Meddling Micromanager'],
     h = (x: number) => (((((tid + 1) * 2654435761) ^ (x * 40503)) >>> 0) % 1000) / 1000 - 0.5;
   const out: Record<string, number> = {};
@@ -56,7 +57,7 @@ export function envOf(g: Game, s: any, p: any, tid: number, rosters = s.rosters)
     wk = p.pers?.work ?? 50;
   if (tid >= 0 && s.teams[tid]) {
     const b = teamBudget(g, s, tid);
-    parts.push(['Coaching', coachMult(b.Coaching) - 1], ['Facilities', facEffect(b.Facilities)]);
+    parts.push(['Coaching', coachMult(coachingOf(g, s, tid, b.Coaching)) - 1], ['Facilities', facEffect(b.Facilities)]); // your staff (staff.ts), else the budget
     parts.push(['Locker room', ((lockerRoom(g, s, tid, rosters).score - 50) / 500) * 0.6]);
     if (a <= 24) {
       const m = mentorOf(g, s, tid, p.id, rosters);

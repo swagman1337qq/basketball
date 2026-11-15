@@ -14,6 +14,7 @@ import { defaultTeamSpecs, teamListError } from '../src/data/world';
 import { relocateTeam } from '../src/engine/relocate';
 import { applyCard, PRESET_CARDS } from '../src/engine/playerCard';
 import { seasonLine } from '../src/engine/amateurStats';
+import * as ST from '../src/engine/staff';
 
 let n = 0;
 const test = (name: string, fn: () => void) => {
@@ -254,6 +255,57 @@ test('easy contracts: one plain deal under the ceiling, flat, extendable with a 
     r.errs.some(e => /ceiling/.test(e)),
     overA,
   );
+});
+
+test('coaches: a staff for your team, small capped effects, contracts and limits (2026-11-15)', () => {
+  const g: any = Game.create(31, [0]),
+    s = g.state,
+    me = s.me;
+  const st = ST.staffOf(g, me);
+  assert.equal(st.length, 5);
+  assert.deepEqual(
+    st.map(c => c.role),
+    ['lead', 'asst', 'asst', 'asst', 'dev'],
+  );
+  assert.ok(ST.freeCoaches(g).length >= ST.POOL);
+  const women = (Object.values(g.db.coaches) as any[]).filter(c => c.fem).length / Object.keys(g.db.coaches).length;
+  assert.ok(women < 0.15); // about 5%
+  // A starting staff is about average: no free edge over AI teams on the owner's budget.
+  const fx = ST.staffFx(g, s, me);
+  assert.ok(Math.abs(fx.ptsO) + Math.abs(fx.ptsD) < 1.2 && Math.abs(fx.q - 0.573) < 0.12, JSON.stringify(fx));
+  // The best possible staff tops out near 1.6 points per 100 in all; the worst costs a little and lets skills slip.
+  const best = ST.fxOf(
+    st
+      .map(c => ({ ...c, r: { off: 99, def: 30, dev: 99, game: 99, mot: 99, teach: 99, eye: 99 } }))
+      .concat(st.map(c => ({ ...c, role: 'asst' as const, r: { off: 30, def: 99, dev: 99, game: 99, mot: 99, teach: 99, eye: 99 } }))),
+  );
+  assert.ok(best.ptsO + best.ptsD <= 1.7 && best.ptsO + best.ptsD > 1.2, JSON.stringify(best));
+  assert.ok(best.growth <= 0.065);
+  const worst = ST.fxOf(st.map(c => ({ ...c, r: { off: 10, def: 10, dev: 10, game: 10, mot: 10, teach: 10, eye: 10 } })));
+  assert.ok(worst.ptsO < 0 && worst.ptsD < 0 && worst.ptsO + worst.ptsD >= -1.3);
+  assert.ok(ST.devSlip(worst.devQ) > 0 && ST.devSlip(0) === 0);
+  // Limits: 3 to 6 (God Mode: any number); contracts 1–5 years; a fired coach is paid out.
+  const c0 = ST.freeCoaches(g)[0];
+  assert.equal(ST.hireCoach(g, s, me, c0.id, { amt: 50, years: 6, role: 'asst' }), 'Coaching contracts run 1 to 5 years.');
+  assert.equal(ST.hireCoach(g, s, me, c0.id, { amt: 50, years: 3, role: 'asst' }), '');
+  const c1 = ST.freeCoaches(g)[0];
+  assert.match(ST.hireCoach(g, s, me, c1.id, { amt: 50, years: 3, role: 'asst' }), /full/);
+  assert.equal(ST.hireCoach(g, s, me, c1.id, { amt: 1, years: 3, role: 'asst' }, true), ''); // God Mode
+  const cost0 = ST.staffCost(g, s, me),
+    gone = ST.staffOf(g, me).find(c => c.role === 'asst')!;
+  assert.equal(ST.fireCoach(g, s, me, gone.id), '');
+  assert.ok(Math.abs(ST.staffCost(g, s, me) - cost0) < 0.01); // still paid
+  // His read firms up while he works for you.
+  const lead = ST.staffOf(g, me).find(c => c.role === 'lead')!,
+    r0 = lead.read;
+  ST.staffMonth(g, s);
+  assert.ok(lead.read > r0);
+  // A year: coaches grow toward their ceiling (not past it), never decline with age alone.
+  const young = ST.mkCoach(g, { age: 30 });
+  young.ceil = Math.round(ST.coachOvr(young) + 20);
+  const o0 = ST.coachOvr(young);
+  ST.staffYear(g, s);
+  if (!young.ret) assert.ok(ST.coachOvr(young) >= o0 - 8);
 });
 
 console.log((process.exitCode ? 'FAIL' : 'PASS') + ': ' + n + ' unit tests passed');
