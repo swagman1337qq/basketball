@@ -1073,10 +1073,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 {fin && (
                   <>
                     <span style={muted}>Payroll</span>
-                    <span>
-                      {fmtMoney(fin.payroll)} <span style={muted}>· cap {fmtMoney(N.CAP)} · profit</span>{' '}
-                      <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)', whiteSpace: 'nowrap' }}>{fmtMoney(fin.net)}</b>
-                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{fmtMoney(fin.payroll)}</span>
+                    <span style={muted}>Cap</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{fmtMoney(N.CAP)}</span>
+                    <span style={muted}>Profit</span>
+                    <b style={{ color: fin.net >= 0 ? 'var(--gm-good)' : 'var(--gm-bad)', whiteSpace: 'nowrap' }}>{fmtMoney(fin.net)}</b>
                   </>
                 )}
                 <span style={muted}>Locker room</span>
