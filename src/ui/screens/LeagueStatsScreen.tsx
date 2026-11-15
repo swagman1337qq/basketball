@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { VM } from '../vm';
 import { BASE } from '../../engine/sim';
 import { Link, muted, Seg, td, th } from '../kit';
+import { teamSeasonStats, teamSeasonValue } from '../teamSeasonStats';
 
 type Col = [string, (t: any, g: any) => number, number | null, number, boolean?];
 
@@ -12,9 +13,8 @@ export function LeagueStatsScreen({ vm }: { vm: VM }) {
   const [view, setView] = useState<'basic' | 'adv'>('basic');
   const [sort, setSort] = useState<number>(1);
   const pg = k => (t: any) => t[k] / t.gp;
-  const poss = (t: any) => gm.possOf(t) / t.gp;
   const BASIC: Col[] = [
-    ['Pace', t => (poss(t) * 48) / (t.min ? t.min / t.gp / 5 : 48), BASE.pace, 1],
+    ['Pace', t => teamSeasonValue(gm, t, 'pace'), BASE.pace, 1],
     ['PTS', pg('pts'), BASE.pts, 1],
     ['FG%', t => (100 * t.fgm) / t.fga, BASE.fg * 100, 1],
     ['3P%', t => (100 * t.tpm) / t.tpa, BASE.tp * 100, 1],
@@ -52,7 +52,8 @@ export function LeagueStatsScreen({ vm }: { vm: VM }) {
     ],
   ];
   const cols = view === 'basic' ? BASIC : ADV;
-  const rows = T.filter(t => s.tstats?.[t.tid]?.gp).map(t => ({ t, st: s.tstats[t.tid] }));
+  const seasonStats = teamSeasonStats(gm, s, gm.Y);
+  const rows = T.filter(t => seasonStats[t.tid]?.gp).map(t => ({ t, st: seasonStats[t.tid] }));
   if (!rows.length)
     return (
       <p style={{ ...muted, fontStyle: 'italic' }}>

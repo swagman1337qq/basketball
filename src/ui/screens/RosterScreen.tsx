@@ -5,7 +5,7 @@
 // control and moods that explain themselves (badges are on the player's profile). Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
 // two-way players and, in the offseason, Exhibit 10 camp deals.
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { howAcquired, yearsWithTeam } from '../../engine/txlog';
@@ -20,12 +20,45 @@ import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
-import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
+import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN, Seg } from '../kit';
 import { MiniBadges } from '../BadgeChip';
 import { knownBadges } from '../../engine/scoutReport';
 import { useAlignedTables } from '../useAlignedTables';
 import { RosterTeamDetails, RosterReports } from './RosterTeamDetails';
 import './RosterScreen.css';
+import { seasonAdvanced } from '../../engine/advanced';
+
+const ROSTER_ADV: [string, string, number?][] = [
+  ['per', 'PER'],
+  ['tsp', 'TS%'],
+  ['efg', 'eFG%'],
+  ['usgp', 'USG%'],
+  ['astp', 'AST%'],
+  ['tovp', 'TOV%'],
+  ['atr', 'AST/TO', 2],
+  ['orbp', 'ORB%'],
+  ['drbp', 'DRB%'],
+  ['trbp', 'TRB%'],
+  ['stlp', 'STL%'],
+  ['blkp', 'BLK%'],
+  ['tpar', '3PAr', 3],
+  ['ftr', 'FTr', 3],
+  ['ortg', 'ORtg', 0],
+  ['drtg', 'DRtg', 0],
+  ['ows', 'OWS'],
+  ['dws', 'DWS'],
+  ['ws', 'WS'],
+  ['ws48', 'WS/48', 3],
+  ['obpm', 'OBPM'],
+  ['dbpm', 'DBPM'],
+  ['bpm', 'BPM'],
+  ['vorp', 'VORP'],
+  ['ewa', 'EWA'],
+  ['onOff100', 'On/Off'],
+  ['epm', 'EPM'],
+  ['lebron', 'LEBRON'],
+  ['darko', 'DARKO'],
+];
 
 const PTI: [number, string][] = [
   [0, 'Only fully healthy players'],
@@ -101,6 +134,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const t = T[tid],
     first = gm.db.firstSeason || 2027,
     seasons = Array.from({ length: gm.Y - first + 1 }, (_, i) => gm.Y - i);
+  const [statsMode, setStatsMode] = useState<'trad' | 'adv'>(() => {
+    try {
+      return localStorage.getItem('rosterStatsMode') === 'adv' ? 'adv' : 'trad';
+    } catch {
+      return 'trad';
+    }
+  });
+  const advanced = useMemo(() => (statsMode === 'adv' ? seasonAdvanced(gm, s, season).byPid : {}), [gm, s, season, statsMode]);
   const AT = alphaTeams(T),
     step = (d: number) => {
       const i = AT.findIndex(x => x.tid === tid);
@@ -234,13 +275,13 @@ export function RosterScreen({ vm }: { vm: VM }) {
     [fPot, setFPot] = useState(0);
   const filtering = !!(fPos || fOvr || fPot);
   const tablesRef = useRef<HTMLDivElement>(null);
-  useAlignedTables(tablesRef, [s, tid, season, dense, fPos, fOvr, fPot, order]);
+  useAlignedTables(tablesRef, [s, tid, season, dense, fPos, fOvr, fPot, order, statsMode]);
   const columnCount =
     7 +
     (mine && !dense ? 1 : 0) +
     (cur ? (dense ? 3 : 2) : 0) +
     (mine ? 1 : 0) +
-    6 +
+    (statsMode === 'adv' ? 2 + ROSTER_ADV.length : 6) +
     (cur && isMine(tid) ? 1 : 0) +
     (dense && cur && !vm.spec?.on ? 1 : 0);
   const vis = (id: number) => {
@@ -289,6 +330,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
     const p = P[id],
       ln = line(p),
+      totals = statsMode === 'adv' ? gm.seasonTotals(p, season) : null,
       md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null,
       start = startersSet.has(id);
     const block = start
@@ -616,10 +658,23 @@ export function RosterScreen({ vm }: { vm: VM }) {
           })()}
         <td style={tdr}>{ln.gp}</td>
         <td style={tdr}>{ln.min.toFixed(1)}</td>
-        <td style={tdr}>{ln.pts.toFixed(1)}</td>
-        <td style={tdr}>{ln.reb.toFixed(1)}</td>
-        <td style={tdr}>{ln.ast.toFixed(1)}</td>
-        <td style={tdr}>{ln.per.toFixed(1)}</td>
+        {statsMode === 'trad' ? (
+          <>
+            <td style={tdr}>{ln.pts.toFixed(1)}</td>
+            <td style={tdr}>{ln.reb.toFixed(1)}</td>
+            <td style={tdr}>{ln.ast.toFixed(1)}</td>
+            <td style={tdr}>{ln.per.toFixed(1)}</td>
+          </>
+        ) : (
+          ROSTER_ADV.map(([key, label, decimals = 1]) => {
+            const value = key === 'atr' ? (totals?.tov ? totals.ast / totals.tov : NaN) : advanced[id]?.[key];
+            return (
+              <td key={key} style={tdr} title={label}>
+                {Number.isFinite(value) ? value.toFixed(decimals) : '—'}
+              </td>
+            );
+          })
+        )}
         {md && (
           <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
             <MoodChip label={md.hapLabel} color={md.hapColor} factors={md.factors} name={p.name} p={p} />
@@ -829,10 +884,20 @@ export function RosterScreen({ vm }: { vm: VM }) {
         )}
         <th style={tdr}>GP</th>
         <th style={tdr}>Min</th>
-        <th style={tdr}>Pts</th>
-        <th style={tdr}>Reb</th>
-        <th style={tdr}>Ast</th>
-        <th style={tdr}>PER</th>
+        {statsMode === 'trad' ? (
+          <>
+            <th style={tdr}>Pts</th>
+            <th style={tdr}>Reb</th>
+            <th style={tdr}>Ast</th>
+            <th style={tdr}>PER</th>
+          </>
+        ) : (
+          ROSTER_ADV.map(([key, label]) => (
+            <th key={key} style={tdr}>
+              {label}
+            </th>
+          ))
+        )}
         {cur && isMine(tid) && <th style={{ ...td, textAlign: 'left' }}>Mood</th>}
         {dense && cur && !vm.spec?.on && <th style={{ ...td, textAlign: 'left' }}>Actions</th>}
       </tr>
@@ -1564,6 +1629,26 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>
         );
       })()}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+        <Seg<'trad' | 'adv'>
+          value={statsMode}
+          options={[
+            ['trad', 'Traditional'],
+            ['adv', 'Advanced'],
+          ]}
+          onChange={mode => {
+            setStatsMode(mode);
+            try {
+              localStorage.setItem('rosterStatsMode', mode);
+            } catch {
+              /* private mode */
+            }
+          }}
+        />
+        {statsMode === 'adv' && (
+          <span style={{ ...muted, fontSize: '12px' }}>Full-season advanced stats · includes all teams played for that season.</span>
+        )}
+      </div>
       {cur ? (
         <>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>

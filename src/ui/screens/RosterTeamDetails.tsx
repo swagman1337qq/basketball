@@ -1,8 +1,7 @@
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
 import { staffOf } from '../../engine/assistants';
-import { financesOf } from '../../engine/frontOffice';
-import { mediaPreds, OUTLETS, fmtOdds } from '../../engine/media';
+import { teamSeasonStats, teamSeasonValue } from '../teamSeasonStats';
 
 // Schedule-adjusted scoring margins, centered on the teams with recorded games.
 export function rosterSrs(teams: any[], games: any[]) {
@@ -30,25 +29,15 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
   const { gm, s, T, openTeamPage } = vm.ctx;
   const cur = season === gm.Y,
     team = T[tid],
-    source = (cur ? s.tstats : s.tstatsHist?.[season]) || {};
+    manager = s.gm?.name?.trim() || 'Name not set',
+    source = teamSeasonStats(gm, s, season);
   const stats = source[tid],
     games = stats?.gp || 0;
   const fmt = (v: number | undefined) => (v != null && Number.isFinite(v) ? v.toFixed(1) : '—');
-  const value = (st: any, k: string) => {
-    if (!st?.gp) return NaN;
-    if (k === 'pts' || k === 'oPts') return st[k] / st.gp;
-    const poss = gm.possOf(st);
-    return k === 'pace'
-      ? (poss * 48 * 5) / st.min
-      : k === 'off'
-        ? (100 * st.pts) / poss
-        : k === 'def'
-          ? (100 * st.oPts) / poss
-          : (100 * (st.pts - st.oPts)) / poss;
-  };
+  const value = (st: any, k: string) => teamSeasonValue(gm, st, k);
   const ranked = (k: string, lower = false) => {
     const v = value(stats, k),
-      rows = Object.values(source).filter((x: any) => x.gp);
+      rows = Object.values(source).filter((x: any) => Number.isFinite(value(x, k)));
     if (!Number.isFinite(v)) return '—';
     const rank = 1 + rows.filter(x => (lower ? value(x, k) < v : value(x, k) > v)).length;
     return fmt(v) + ' (' + rank + ' of ' + T.length + ')';
@@ -56,11 +45,6 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
   const last = cur ? gm.resultsOf(s, tid)[0] : null;
   const post = cur && (s.phase === 'playin' || s.phase === 'playoffs') ? gm.nextPostGame(s, tid) : null;
   const next = cur && (s.phase === 'regular' || s.phase === 'preseason') ? gm.nextUserGame(s.day, tid) : null;
-  const staff = staffOf(tid),
-    fin = cur ? financesOf(gm, s, tid) : null;
-  const preds = cur ? mediaPreds(gm, s) : gm.db.preds?.[season];
-  const book = OUTLETS.find(o => o.book),
-    projection = book ? preds?.outlets?.[book.k] : null;
   const srs = cur && games ? rosterSrs(T, s.games || [])?.[tid] : null;
   const expected = games && stats.pts + stats.oPts > 0 ? Math.round(games / (1 + Math.pow(stats.oPts / Math.max(1, stats.pts), 14))) : null;
   return (
@@ -95,14 +79,19 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
       </div>
       {cur && (
         <>
+          {vm.ctx.isMine(tid) && (
+            <div>
+              <b>Head coach:</b> {manager}
+            </div>
+          )}
           <div>
-            <b>{staff[0].role}:</b> {staff[0].name}
-          </div>
-          <div>
-            <b>Executive:</b> {team.gm} · <b>Owner:</b> {team.owner}
+            <b>Executive:</b> {vm.ctx.isMine(tid) ? manager : team.gm} · <b>Owner:</b> {team.owner}
           </div>
         </>
       )}
+      <div style={{ ...muted, marginTop: 4 }}>
+        {season - 1}–{String(season).slice(2)} regular season · {games} game{games === 1 ? '' : 's'}
+      </div>
       <div>
         <b>PTS/G:</b> {ranked('pts')} · <b>Opp PTS/G:</b> {ranked('oPts', true)}
       </div>
@@ -118,16 +107,9 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
       <div title="Estimated wins from points scored and allowed: PF^14 / (PF^14 + PA^14), over games played">
         <b>Expected W–L (est.):</b> {expected == null ? '—' : expected + '–' + (games - expected)}
       </div>
-      {projection && (
-        <div title={book?.name}>
-          <b>Preseason odds:</b> Championship {projection.odds?.[tid] != null ? fmtOdds(projection.odds[tid]) : '—'} ·{' '}
-          <b>Projected wins:</b> {projection.wins?.[tid] ?? '—'}
-        </div>
-      )}
       {cur && (
         <div>
-          <b>Arena:</b> {team.arena || team.region + ' Arena'} · <b>Est. attendance/game:</b>{' '}
-          {fin ? Math.round(fin.att).toLocaleString() : '—'}
+          <b>Arena:</b> {team.arena || team.region + ' Arena'}
         </div>
       )}
     </div>

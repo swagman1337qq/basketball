@@ -9,6 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
   'unit',
   'boxScoreDetails',
+  'teamSeasonStats',
   'tradeExclusions',
   'ovrMigration',
   'aiRosterUpgrade',
