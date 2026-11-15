@@ -49,12 +49,26 @@ export function RosterTeamDetails({
     games = stats?.gp || 0;
   const fmt = (v: number | undefined) => (v != null && Number.isFinite(v) ? v.toFixed(1) : '—');
   const value = (st: any, k: string) => teamSeasonValue(gm, st, k);
+  const playoffTeams = new Set<number>();
+  if (playoffs) {
+    if (cur) {
+      for (const series of s.po?.rounds?.[0] || []) for (const id of [series.a, series.b]) if (T[id]) playoffTeams.add(id);
+    } else {
+      for (const [id, result] of Object.entries((s.history || []).find(h => h.year === season)?.teams || {}) as [string, any][])
+        if (result.fin && !['Missed the playoffs', 'Lost in the play-in'].includes(result.fin)) playoffTeams.add(+id);
+    }
+    // Older saves may lack a bracket/history entry. Use the postseason teams
+    // with recorded games rather than filling the pool with the whole league.
+    if (!playoffTeams.size) for (const [id, st] of Object.entries(source)) if (st.gp > 0) playoffTeams.add(+id);
+  }
   const ranked = (k: string, lower = false) => {
     const v = value(stats, k),
-      rows = Object.values(source).filter((x: any) => Number.isFinite(value(x, k)));
-    if (!Number.isFinite(v)) return '—';
+      rows = Object.entries(source)
+        .filter(([id, x]) => (!playoffs || playoffTeams.has(+id)) && Number.isFinite(value(x, k)))
+        .map(([, x]) => x);
+    if (!Number.isFinite(v) || (playoffs && !playoffTeams.has(tid))) return '—';
     const rank = 1 + rows.filter(x => (lower ? value(x, k) < v : value(x, k) > v)).length;
-    return fmt(v) + ' (' + rank + ' of ' + T.length + ')';
+    return fmt(v) + ' (' + rank + ' of ' + (playoffs ? playoffTeams.size : T.length) + ')';
   };
   const last = cur ? gm.resultsOf(s, tid).find(g => (playoffs ? g.po === 'po' : !g.po)) : null;
   const post = cur && (s.phase === 'playin' || s.phase === 'playoffs') ? gm.nextPostGame(s, tid) : null;

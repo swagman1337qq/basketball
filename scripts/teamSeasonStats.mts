@@ -64,6 +64,29 @@ assert(own.includes(teamSeasonValue(g, teams[0], 'pace').toFixed(1)), 'Pace rend
 const other = renderToStaticMarkup(React.createElement(RosterTeamDetails, { vm, tid: 1, season: g.Y }));
 assert(other.includes('Executive:</b> ' + g.state.teams[1].gm));
 assert(!other.includes('Morgan Hartwell'));
+const sample = (pts: number) => ({ ...teams[0], gp: 1, pts });
+const scoped: any = { teams: { 0: sample(110), 1: sample(90), 4: sample(500) }, players: {}, teamPlayers: {}, games: [], legacy: false };
+g.state.po = {
+  rounds: [
+    [
+      { a: 0, b: 1 },
+      { a: 2, b: 3 },
+    ],
+  ],
+};
+const playoffMarkup = renderToStaticMarkup(
+  React.createElement(RosterTeamDetails, { vm, tid: 0, season: g.Y, playoffs: true, data: scoped }),
+);
+assert(playoffMarkup.includes('110.0 (1 of 4)'), 'Rank only the playoff field; count teams whose first game is still upcoming');
+const regularMarkup = renderToStaticMarkup(React.createElement(RosterTeamDetails, { vm, tid: 0, season: g.Y, data: scoped }));
+assert(regularMarkup.includes('110.0 (2 of ' + g.state.teams.length + ')'), 'Regular-season rankings keep the whole league');
+g.state.history = [
+  { year: g.Y - 1, teams: { 0: { fin: 'Won the title' }, 1: { fin: 'Lost in the Finals' }, 4: { fin: 'Lost in the play-in' } } },
+];
+const historicalMarkup = renderToStaticMarkup(
+  React.createElement(RosterTeamDetails, { vm, tid: 0, season: g.Y - 1, playoffs: true, data: scoped }),
+);
+assert(historicalMarkup.includes('110.0 (1 of 2)'), "Historical rankings use that season's playoff qualifiers and exclude play-in exits");
 console.log(
   'PASS: real season scores, OT-aware pace, traded-player minutes, historical/playoff isolation, missing-data handling, and the manager name in both roles.',
 );
