@@ -11,7 +11,15 @@ try {
   const g = Game.create(349, [0]);
   const teams = [g.simTeam(g.state, 0), g.simTeam(g.state, 1)];
   let overtime = 0;
-  for (let seed = 0; seed < 20; seed++) {
+  // The sample must include an overtime game: find one with plain games first (cheap; overtime is rare in this
+  // matchup, about 1 in 80), then check it with the 20 regular seeds.
+  let otSeed = -1;
+  for (let k = 1000; k < 2000 && otSeed < 0; k++) {
+    Math.random = mulberry32(k);
+    if ((new GameSim(structuredClone(teams[0]), structuredClone(teams[1]), { norms: g.db.norms }).run() as any).ot) otSeed = k;
+  }
+  const seeds = [...Array.from({ length: 20 }, (_, i) => i), ...(otSeed >= 0 ? [otSeed] : [])];
+  for (const seed of seeds) {
     Math.random = mulberry32(seed);
     const plain = new GameSim(structuredClone(teams[0]), structuredClone(teams[1]), { norms: g.db.norms }).run();
     const next = Math.random();
@@ -65,7 +73,9 @@ try {
   }
   assert(overtime > 0, 'Include overtime in the recorded-game sample');
   console.log(
-    'PASS: 20 identical games, unchanged RNG, shots, quarters/halves/OT, full play-by-play, save round-trip and every player rotation reconcile.',
+    'PASS: ' +
+      seeds.length +
+      ' identical games (one in overtime), unchanged RNG, shots, quarters/halves/OT, full play-by-play, save round-trip and every player rotation reconcile.',
   );
 } finally {
   Math.random = random;
