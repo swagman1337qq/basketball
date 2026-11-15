@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-gMd9vh1E.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-PO0jrKax.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -14,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Traditional / Advanced player stats on every roster.** Switch between the usual points/rebounds/assists and the same full-season advanced calculations used on player profiles: shooting efficiency, usage and possession rates, win shares, BPM, VORP, EWA, On/Off, EPM, LEBRON and DARKO. Names, contracts, minutes controls and roster actions stay visible, and the choice is remembered.
 
 ### Changed
+- **Payroll, Cap and Profit have separate rows** in the compact roster summary, keeping their amounts aligned and on one line.
 - **Two-way roster counts have their own line.** In the compact roster summary, Two-way now sits directly below Roster so the counts don't wrap together.
 - **Roster stats follow the season selector and the Regular season / Playoffs tabs beside it.** Regular season is the default, and changing years keeps the selected tab. Team figures and both Traditional and Advanced player stats switch together. The duplicate season/game-count label is removed. Current-season playoff totals come from playoff box scores, excluding play-ins; older saved postseason totals stay available with a note where separate detail was not recorded.
 - **Roster columns fit their contents and line up across contract groups.** Standard, two-way and Exhibit 10 players share the same compact column widths, with full player names. Two-way players have a visible **Convert to standard** button. Every team's roster now has a larger logo, recent and upcoming games, scoring and efficiency ranks, schedule-adjusted margin, estimated expected record, existing preseason predictions, an injury table and its assistant staff. Conversion still follows the same roster and contract rules.
