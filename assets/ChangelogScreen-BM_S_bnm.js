@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-Bv-ap75N.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-DoSziBdG.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-15
+
+### Fixed
+- **Roster team stats use the season's actual results.** Pace now uses recorded game time, including overtime, and works in existing saves; league stats use the same calculation. The summary identifies the season and games played. Preseason forecasts and estimated attendance are no longer mixed into the actual-stat block. Your team's **Head coach** and **Executive** both show your in-game manager name.
 
 ### Changed
 - **Roster columns fit their contents and line up across contract groups.** Standard, two-way and Exhibit 10 players share the same compact column widths, with full player names. Two-way players have a visible **Convert to standard** button. Every team's roster now has a larger logo, recent and upcoming games, scoring and efficiency ranks, schedule-adjusted margin, estimated expected record, existing preseason predictions, an injury table and its assistant staff. Conversion still follows the same roster and contract rules.
@@ -11,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Postseason winners use their own team colors.** Play-in winners are highlighted in their team's primary color. In playoff series without your team, each G1, G2 and later box-score button is outlined in that game's winner's main color with a light wash of it, like the green and red on your own series (not filled in). Your team's series keep their existing highlight and green/red game results.
 
 ### Added
+- **Traditional / Advanced player stats on every roster.** Switch between the usual points/rebounds/assists and the same full-season advanced calculations used on player profiles: shooting efficiency, usage and possession rates, win shares, BPM, VORP, EWA, On/Off, EPM, LEBRON and DARKO. Names, contracts, minutes controls and roster actions stay visible, and the choice is remembered.
 - **Easy contracts (Settings).** A simpler contract system for the whole league. Every deal is 1 to 5 years at the same salary each year, up to the player's max (25, 30 or 35% of the cap, same rules as before), with a player option, a team option or neither. There are no exceptions or Bird rights: any team can sign anyone as long as its payroll stays under one ceiling (the old 2nd apron line), and minimum deals always fit. No bonuses, trade kickers, no-trade clauses, qualifying offers or offer sheets. Any player with one season left can extend, any time. Trades don't need matching salaries, but a team can't end up over the ceiling with more salary than it had. Rookie-scale deals, two-ways, Exhibit 10s and 10-days stay. Contracts already signed keep their terms, and you can switch it on or off any time.
 
 ## 2026-11-14
