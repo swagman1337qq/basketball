@@ -19,7 +19,7 @@ export interface LiveGameProps {
 const DELAY = [1400, 800, 420, 160, 40];
 
 export class LiveGame extends Component<LiveGameProps, { running: boolean; speed: number; tick: number }> {
-  sim = new GameSim(this.props.home, this.props.away, { pbp: true, norms: this.props.norms });
+  sim = new GameSim(this.props.home, this.props.away, { pbp: true, record: true, norms: this.props.norms });
   nameOf = (id: number) => [...this.props.home.players, ...this.props.away.players].find(p => p.id === id)?.name || '';
   tm: ReturnType<typeof setTimeout> | undefined;
   state = { running: true, speed: 3, tick: 0 };
@@ -142,7 +142,7 @@ export class LiveGame extends Component<LiveGameProps, { running: boolean; speed
       qLabels: Array.from({ length: nq }, (_, i) => (i < 4 ? String(i + 1) : 'OT')),
       clock: s.done ? 'Final' + (s.q > 4 ? ' / OT' : '') : qName(s.q) + ' · ' + fmtClock(s.t),
       sides: [side('away', A), side('home', H)],
-      pbp: s.pbp.map(e => ({
+      pbp: s.pbp.slice(0, 220).map(e => ({
         ...e,
         text:
           e.ids && e.ids.length

@@ -650,6 +650,7 @@ export interface ShotEvent {
   probability: number;
 }
 export interface SimOpts {
+  record?: boolean;
   pbp?: boolean;
   norms?: Norms;
   onShot?: (event: Readonly<ShotEvent>) => void;
@@ -740,18 +741,27 @@ export interface SideResult {
   stD?: Stints;
 }
 export interface GameResult {
+  details?: GameDetails;
   home: SideResult;
   away: SideResult;
   ot: number;
   coach?: { home: string[]; away: string[] };
 } // coach: the staffs' game plans and adjustments
 export interface PbpEvent {
+  q?: number;
   side: Side;
   time: string;
   text: string;
   sub: string;
   score: string;
   ids?: number[];
+}
+
+export interface GameDetails {
+  periods: Record<Side, number[][]>[];
+  shots: { side: Side; q: number; clock: number; pid: number; zone: Zone | 'paint'; made: boolean }[];
+  timeline: [number, number, number[], number[], number, number][];
+  pbp: PbpEvent[];
 }
 
 export const TIER_KEY: Record<Zone, ['rm' | 'mm' | 'cm' | 'bm', 'ra' | 'ma' | 'ca' | 'ba']> = {
@@ -882,6 +892,7 @@ export class GameSim {
   pos: Side = Math.random() < 0.5 ? 'home' : 'away';
   done = false;
   pbp: PbpEvent[] = [];
+  details: Omit<GameDetails, 'pbp'> = { periods: [], shots: [], timeline: [] };
   home: SideState;
   away: SideState;
   on: Record<Side, SimPlayer[]> = { home: [], away: [] };
@@ -1139,6 +1150,27 @@ export class GameSim {
   notes: Record<Side, string[]> = { home: [], away: [] };
 
   step() {
+    if (!this.opts.record || this.done) return this.trip();
+    const q = this.q,
+      t = this.t,
+      hp = this.home.pts,
+      ap = this.away.pts;
+    this.trip();
+    const elapsed = (quarter: number, clock: number) => (quarter <= 4 ? quarter * 720 - clock : 2880 + (quarter - 4) * 300 - clock);
+    this.details.timeline.push([
+      elapsed(q, t),
+      elapsed(this.q, this.t),
+      this.on.home.map(p => p.id),
+      this.on.away.map(p => p.id),
+      this.home.pts - hp,
+      this.away.pts - ap,
+    ]);
+    if (this.q === q && !this.done) return;
+    const fields = ['min', 'pts', 'fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'ast', 'stl', 'blk', 'tov', 'pf', 'pm', 'gs'];
+    const snapshot = (k: Side) => Object.entries(this[k].box).map(([id, b]) => [+id, ...fields.map(f => b[f])]);
+    this.details.periods[q - 1] = { home: snapshot('home'), away: snapshot('away') };
+  }
+  private trip() {
     if (this.done) return;
     this.rotate('home');
     this.rotate('away');
@@ -1152,7 +1184,7 @@ export class GameSim {
       tO = this.tac(offK),
       tD = this.tac(defK);
     const C = (p: SimPlayer) => this.cache.get(p)!;
-    const pbp = !!this.opts.pbp;
+    const pbp = !!this.opts.pbp || !!this.opts.record;
     const rebounder = this.orbOwner,
       recycled = this.afterOrb;
     const putback = recycled && rebounder != null && onO.includes(rebounder) && Math.random() < 0.55;
@@ -1354,7 +1386,8 @@ export class GameSim {
     const ev: Ev = (ids, text, sub, scoring) => {
       if (pbp)
         this.pbp.unshift({
-          side: offK,
+          q: this.q,
+          side: ids?.length ? (this.away.box[ids[0]] ? 'away' : 'home') : offK,
           time,
           text: text(),
           sub: sub ? sub() : '',
@@ -1934,6 +1967,8 @@ export class GameSim {
         keep = this.rebound(O, D, onO, onD, cAdv, ev, fx ? fx.orb : 0);
         if (!keep && tO.reb === 'Crash the glass' && Math.random() < 0.35) this.fastBreak = true;
       }
+      if (this.opts.record && (!shootingFoul || made))
+        this.details.shots.push({ side: offK, q: this.q, clock: this.t, pid: sh.id, zone: paint ? 'paint' : z, made });
       this.opts.onShot?.(
         Object.freeze({
           shooterId: sh.id,
@@ -1962,6 +1997,7 @@ export class GameSim {
         this.done = true;
         if (pbp)
           this.pbp.unshift({
+            q: this.q,
             side: this.home.pts > this.away.pts ? 'home' : 'away',
             time: 'Final',
             text: 'Final: ' + this.teams.away.abbr + ' ' + this.away.pts + ', ' + this.teams.home.abbr + ' ' + this.home.pts,
@@ -1971,6 +2007,7 @@ export class GameSim {
       } else {
         if (pbp)
           this.pbp.unshift({
+            q: this.q,
             side: offK,
             time: qName(this.q) + ' 0:00',
             text: 'End of ' + (this.q <= 4 ? 'quarter ' + this.q : 'overtime'),
@@ -1987,7 +2024,7 @@ export class GameSim {
         this.rest(this.q === 3 ? 18 : 6); // halftime, or a quarter break (before overtime too)
       }
     }
-    if (this.pbp.length > 220) this.pbp.length = 220;
+    if (!this.opts.record && this.pbp.length > 220) this.pbp.length = 220;
   }
 
   private profile(p: SimPlayer, _t: Tactics, fx: TacFx | null, fb = false) {
@@ -2265,6 +2302,7 @@ export class GameSim {
       home: pack('home'),
       away: pack('away'),
       ot: Math.max(0, this.q - 4),
+      ...(this.opts.record ? { details: { ...this.details, pbp: this.pbp.slice().reverse() } } : {}),
       ...(this.plan.home || this.plan.away ? { coach: { home: cn('home'), away: cn('away') } } : {}),
     };
   }

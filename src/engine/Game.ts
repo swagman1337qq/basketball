@@ -2973,7 +2973,11 @@ export class Game {
   // Optional diagnostics hook. Shot details are streamed, never written to the save.
   shotObserver?: (event: Readonly<ShotEvent>) => void;
   playGame(s, home, away): GameResult {
-    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), { norms: this.db.norms, onShot: this.shotObserver }).run();
+    return new GameSim(this.simTeam(s, home), this.simTeam(s, away), {
+      record: true,
+      norms: this.db.norms,
+      onShot: this.shotObserver,
+    }).run();
   }
   // God Mode: a game whose winner you picked. Played for real until that team wins (a few tries);
   // if it keeps losing, its best scorer gets the free throws that swing it, in the last quarter.
@@ -2993,6 +2997,8 @@ export class Game {
       }
       W.pts += d;
       W.qs[W.qs.length - 1] += d;
+      // A synthetic God Mode override has no corresponding possession history.
+      delete res.details;
     }
     return res;
   }
@@ -3151,14 +3157,27 @@ export class Game {
   keepBox(res: GameResult, day: number, kind?: string) {
     const d: any = this.db,
       id = this.Y + '-' + (d.boxSeq = (d.boxSeq || 0) + 1),
-      boxes = (d.boxes = d.boxes || {});
+      boxes = (d.boxes = d.boxes || {}),
+      details = res.details;
     const side = (sd: any) => ({
       tid: sd.tid,
       pts: sd.pts,
-      qs: sd.qs,
+      record: (() => {
+        const t = this.state.teams[sd.tid],
+          win = sd.pts > (sd === res.home ? res.away.pts : res.home.pts),
+          regular = !kind || kind === 'reg';
+        return t.w + (regular && win ? 1 : 0) + '–' + (t.l + (regular && !win ? 1 : 0));
+      })(),
+      qs: details
+        ? details.periods.map((period: any, i: number) => {
+            const side = sd === res.home ? 'home' : 'away',
+              sum = (rows: number[][]) => rows.reduce((n, l) => n + l[2], 0);
+            return sum(period[side]) - sum(details.periods[i - 1]?.[side] || []);
+          })
+        : sd.qs,
       lines: Object.entries(sd.box)
         .filter(([, b]: any) => b.min > 0)
-        .map(([pid, b]: any) => [+pid, ...Game.BOX_F.map(f => (f === 'min' ? +(b.min || 0).toFixed(1) : b[f] || 0))]),
+        .map(([pid, b]: any) => [+pid, ...Game.BOX_F.map(f => (f === 'min' ? +(b.min || 0).toFixed(3) : b[f] || 0))]),
     });
     const mine = (this.state?.managed || []).some((t: number) => t === res.home.tid || t === res.away.tid); // coaching notes: kept for your teams' games
     boxes[id] = {
@@ -3168,6 +3187,7 @@ export class Game {
       ot: res.ot,
       home: side(res.home),
       away: side(res.away),
+      ...(res.details ? { details: res.details } : {}),
       ...(mine && res.coach ? { coach: res.coach } : {}),
     };
     return id;

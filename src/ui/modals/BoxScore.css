@@ -1,0 +1,215 @@
+.box-score-page {
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+.box-score-page h2,
+.box-score-page h3 {
+  font-family: var(--font-heading);
+  margin: 12px 0 8px;
+}
+.box-page-nav,
+.box-view-tabs,
+.box-period-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.box-page-nav > span {
+  flex: 1;
+  color: var(--color-neutral-700);
+  font-size: 12px;
+}
+.box-score-header {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  max-width: 850px;
+  margin: 20px auto 10px;
+  text-align: center;
+}
+.box-score-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.box-team-link {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 2.2vw, 30px);
+  font-weight: 600;
+}
+.box-team-link:hover span {
+  text-decoration: underline;
+}
+.box-final-score {
+  font-family: var(--font-heading);
+  font-size: 44px;
+}
+.box-game-meta {
+  text-align: center;
+  margin: 12px 0 26px;
+  font-size: 13px;
+}
+.box-view-tabs {
+  justify-content: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.box-game-summary {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.box-mode-switch {
+  margin: 12px 0;
+}
+.box-period-tabs .btn {
+  min-width: 48px;
+}
+.box-summary-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.box-summary-table th,
+.box-summary-table td {
+  padding: 5px 9px;
+  border: 1px solid var(--color-divider);
+  text-align: right;
+  white-space: nowrap;
+}
+.box-summary-table th:first-child {
+  text-align: left;
+}
+.box-summary-table thead {
+  background: var(--color-neutral-100);
+}
+.box-team-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  align-items: stretch;
+}
+.box-team-sections > section {
+  min-width: 0;
+  width: 100%;
+}
+.box-stat-table {
+  table-layout: fixed;
+  margin: 0 !important;
+}
+.box-stat-table th,
+.box-stat-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.box-table-scroll {
+  overflow-x: auto;
+}
+.box-muted,
+.box-empty {
+  color: var(--color-neutral-700);
+  font-size: 12px;
+}
+.box-empty {
+  padding: 24px 0;
+}
+.box-court {
+  display: block;
+  width: 450px;
+  max-width: 100%;
+  margin-top: 12px;
+  color: var(--color-text);
+}
+.box-pbp {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.box-pbp th,
+.box-pbp td {
+  padding: 6px 9px;
+  border: 1px solid var(--color-divider);
+  vertical-align: top;
+}
+.box-pbp th:first-child,
+.box-pbp td:first-child {
+  width: 85px;
+  white-space: nowrap;
+}
+.box-pbp th:nth-child(3),
+.box-pbp td:nth-child(3) {
+  width: 65px;
+  text-align: center;
+  white-space: nowrap;
+}
+.box-pbp td:nth-child(2) {
+  text-align: right;
+}
+.box-pbp small {
+  display: block;
+  color: var(--color-neutral-700);
+}
+.box-scoring-play {
+  background: var(--color-accent-100);
+}
+.box-rotation-axis {
+  display: flex;
+  border-bottom: 1px solid var(--color-divider);
+  padding: 5px 0;
+}
+.box-rotation-axis span {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+}
+.box-rotation-player {
+  margin: 12px 0;
+  font-size: 12px;
+}
+.box-rotation-player > span {
+  color: var(--color-neutral-700);
+}
+.box-rotation-track {
+  height: 25px;
+  position: relative;
+  border: 1px solid var(--color-divider);
+  margin-top: 4px;
+}
+.box-rotation-track > span {
+  position: absolute;
+  top: 0;
+  height: 23px;
+  font-size: 11px;
+  text-align: center;
+  overflow: hidden;
+  border-right: 1px solid var(--color-bg);
+}
+@media (max-width: 600px) {
+  .box-game-summary {
+    gap: 12px;
+  }
+  .box-score-header {
+    gap: 12px;
+  }
+  .box-summary-table th,
+  .box-summary-table td {
+    padding: 4px;
+  }
+  .box-final-score {
+    font-size: 34px;
+  }
+  .box-page-nav > span {
+    display: none;
+  }
+}

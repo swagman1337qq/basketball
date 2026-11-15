@@ -5,7 +5,9 @@
 import { Fragment, useEffect, useLayoutEffect, useState } from 'react';
 import type { VM } from '../vm';
 import { Game } from '../../engine/Game';
-import { Kicker, Link, muted, Seg } from '../kit';
+import { Link, muted, Seg } from '../kit';
+import { BoxScoreDetails, FourFactors, periodBox } from './BoxScoreDetails';
+import './BoxScore.css';
 
 const F = Game.BOX_F; // min, pts, fgm, fga, tpm, tpa, ftm, fta, orb, drb, ast, stl, blk, tov, pf, pm, gs
 const at = (l: number[], k: string) => l[1 + F.indexOf(k)];
@@ -86,10 +88,24 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
       /* private mode */
     }
   };
+  const [tab, setTab] = useState('box');
+  const [period, setPeriod] = useState('Game');
+  useEffect(() => {
+    setPeriod('Game');
+  }, [s.boxId]);
   if (!bx) return null;
+  const selected = periodBox(bx, period);
+  const visitTeam = (tid: number) => {
+    close();
+    openTeam(tid);
+  };
+  const visitPlayer = (pid: number) => {
+    close();
+    open(pid);
+  };
   const sides = [bx.away, bx.home],
     per = Math.max(bx.home.qs?.length || 0, bx.away.qs?.length || 0);
-  const date = bx.kind === 'reg' ? gm.fmtS(bx.day) : KIND[bx.kind] || '';
+  const date = gm.fmtS(bx.day);
   const th = (t: string, left?: boolean) => (
     <th key={t} style={{ padding: '4px 6px', textAlign: left ? 'left' : 'right', whiteSpace: 'nowrap' }}>
       {t}
@@ -100,7 +116,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
   );
   // Traditional, advanced (worked out from this game's box: Basketball-Reference formulas) or both.
   const team = (sd: any) => {
-    const op = sd === bx.home ? bx.away : bx.home;
+    const op = sd.tid === selected.home.tid ? selected.away : selected.home;
     const lines = sd.lines.slice().sort((a: number[], b: number[]) => at(b, 'gs') - at(a, 'gs') || at(b, 'min') - at(a, 'min'));
     const sumOf = (ls: number[][], k: string) => ls.reduce((a: number, l: number[]) => a + at(l, k), 0);
     const sum = (k: string) => sumOf(lines, k),
@@ -172,7 +188,13 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
       ['GmSc', (g, a) => p1(a.gmsc), { fontWeight: 600 }],
     ];
     const cols: Col[] = [
-      ['MIN', (g, a, tm) => (tm ? '' : g('min').toFixed(0))],
+      [
+        'MIN',
+        (g, a, tm) => {
+          const seconds = Math.round(g('min') * 60);
+          return tm ? '' : Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+        },
+      ],
       ...(mode !== 'adv' ? TRAD : [['PTS', (g: any) => g('pts')] as Col]),
       ...(mode !== 'trad' ? ADV : []),
       ['+/−', (g, a, tm) => (tm ? '' : (g('pm') > 0 ? '+' : '') + g('pm')), undefined],
@@ -194,7 +216,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
       FT: g => g('ftm'),
       '+/−': g => g('pm'),
     };
-    const allLines = [...bx.home.lines, ...bx.away.lines],
+    const allLines = [...selected.home.lines, ...selected.away.lines],
       gameMax: Record<string, number> = {};
     Object.entries(LEADK).forEach(([k, f]) => (gameMax[k] = Math.max(...allLines.map((l: number[]) => f(x => at(l, x))))));
     const isLead = (c: string, g: (k: string) => number) => !!LEADK[c] && gameMax[c] > 0 && LEADK[c](g) === gameMax[c];
@@ -207,13 +229,19 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
               close();
               openTeam(sd.tid);
             }}
-            style={{ fontWeight: 600, fontSize: '15px' }}
+            style={{ fontWeight: 600, fontSize: '23px' }}
           >
             {T[sd.tid].region} {T[sd.tid].name}
           </Link>
           <span style={{ ...muted }}>{sd.pts}</span>
         </div>
-        <table className="table" style={{ fontSize: '12.5px' }}>
+        <table className="table box-stat-table" style={{ fontSize: '12.5px', width: 190 + cols.length * 52 }}>
+          <colgroup>
+            <col style={{ width: 190 }} />
+            {cols.map(c => (
+              <col key={c[0]} style={{ width: 52 }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {th('Player', true)}
@@ -230,11 +258,11 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
                 <Fragment key={l[0]}>
                   {i > 0 && !starter && at(lines[i - 1], 'gs') > 0 && (
                     <tr aria-hidden>
-                      <td colSpan={100} style={{ padding: 0, height: 0, borderTop: '3px solid var(--color-accent-700)' }} />
+                      <td colSpan={cols.length + 1} style={{ padding: 0, height: 0, borderTop: '3px solid var(--color-accent-700)' }} />
                     </tr>
                   )}
                   <tr>
-                    <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {p && (
                         <img
                           src={gm.flag(p.rep)}
@@ -331,140 +359,159 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
     );
   };
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button
-          className="hv4"
-          onClick={close}
-          style={{ all: 'unset', cursor: 'pointer', color: 'var(--color-accent-700)', fontSize: '13px' }}
-        >
+    <div className="box-score-page">
+      <div className="box-page-nav">
+        <button className="btn btn-ghost" onClick={close}>
           ← Back
         </button>
-        <span style={{ flex: 1 }} />
-        {focus != null && (
-          <span style={{ ...muted, fontSize: '12.5px' }}>
-            {T[focus].abbr} · {label(s.boxId)} · {idx + 1} of {games.length} box scores
-          </span>
-        )}
-        <button
-          className="btn btn-secondary"
-          disabled={!prev}
-          onClick={() => go(prev)}
-          title="Previous game (← key)"
-          style={{ fontSize: '12.5px' }}
-        >
-          ‹ {prev ? label(prev) : 'Previous'}
+        <span>{focus != null ? T[focus].abbr + ' · ' + label(s.boxId) : ''}</span>
+        <button className="btn btn-secondary" disabled={!prev} onClick={() => go(prev)}>
+          ‹ Previous game
         </button>
-        <button
-          className="btn btn-secondary"
-          disabled={!next}
-          onClick={() => go(next)}
-          title="Next game (→ key)"
-          style={{ fontSize: '12.5px' }}
-        >
-          {next ? label(next) : 'Next'} ›
+        <button className="btn btn-secondary" disabled={!next} onClick={() => go(next)}>
+          Next game ›
         </button>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div>
-            <Kicker accent>
-              Box score · {date}
-              {bx.ot ? ' · ' + (bx.ot > 1 ? bx.ot : '') + 'OT' : ''}
-            </Kicker>
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 6 }}>
-              {sides.map((sd: any, i: number) => (
-                <span key={i} style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                  {i === 1 && <span style={{ ...muted, fontSize: '13px' }}>at</span>}
+      <header className="box-score-header">
+        {sides.map((sd: any, i: number) => (
+          <div className="box-score-team" key={sd.tid}>
+            <button className="box-team-link" onClick={() => visitTeam(sd.tid)}>
+              {logo(sd.tid, 72)}
+              <span>
+                {T[sd.tid].region} {T[sd.tid].name}
+              </span>
+            </button>
+            <strong className="box-final-score" style={{ fontWeight: sd.pts > sides[1 - i].pts ? 800 : 400 }}>
+              {sd.pts}
+            </strong>
+            <span className="box-muted">
+              {sd.record ? sd.record + ' · ' : ''}
+              {i === 0 ? 'Away' : 'Home'}
+            </span>
+            <div className="box-view-tabs">
+              {[-1, 1].map(direction => {
+                const ids = Object.keys(all)
+                    .filter(id => all[id].season === bx.season && (all[id].home.tid === sd.tid || all[id].away.tid === sd.tid))
+                    .sort((a, b) => seq(a) - seq(b)),
+                  target = ids[ids.indexOf(s.boxId) + direction];
+                return (
                   <button
-                    className="hv4"
-                    title={'Open the ' + T[sd.tid].region + ' ' + T[sd.tid].name + ' page'}
+                    key={direction}
+                    className="btn btn-secondary"
+                    disabled={!target}
                     onClick={() => {
-                      close();
-                      openTeam(sd.tid);
+                      gm.setState({ boxId: target, boxTeam: sd.tid });
+                      main()?.scrollTo(0, 0);
                     }}
-                    style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', gap: 8, alignItems: 'center' }}
                   >
-                    {logo(sd.tid, 32)}
-                    <span style={{ fontFamily: 'var(--font-heading)', fontSize: '22px' }}>{T[sd.tid].abbr}</span>
+                    {direction < 0 ? '‹ Prev Game' : 'Next Game ›'}
                   </button>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-heading)',
-                      fontSize: '26px',
-                      fontWeight: sd.pts > sides[1 - i].pts ? 700 : 400,
-                      color: sd.pts > sides[1 - i].pts ? 'var(--color-text)' : 'var(--color-neutral-600)',
-                    }}
-                  >
-                    {sd.pts}
-                  </span>
-                </span>
-              ))}
+                );
+              })}
             </div>
           </div>
+        ))}
+      </header>
+      <div className="box-game-meta">
+        {KIND[bx.kind] || 'Game'} · {date}
+        {bx.ot ? ' · ' + bx.ot + 'OT' : ''}
+        <div>
+          {typeof T[bx.home.tid].arena === 'string' ? T[bx.home.tid].arena + ' · ' : ''}
+          {T[bx.home.tid].region}
         </div>
-        {per > 0 && (
-          <table className="table" style={{ fontSize: '12.5px', width: 'auto' }}>
-            <thead>
-              <tr>
-                {th('', true)}
-                {Array.from({ length: per }, (_, i) => th(i < 4 ? 'Q' + (i + 1) : 'OT' + (per > 5 ? i - 3 : '')))}
-                {th('Final')}
-              </tr>
-            </thead>
-            <tbody>
-              {sides.map((sd: any) => (
-                <tr key={sd.tid}>
-                  <td style={{ padding: '4px 6px', fontWeight: 600 }}>
-                    <Link
-                      onClick={() => {
-                        close();
-                        openTeam(sd.tid);
-                      }}
-                    >
-                      {T[sd.tid].abbr}
-                    </Link>
-                  </td>
-                  {Array.from({ length: per }, (_, i) => (
-                    <Fragment key={i}>{td(sd.qs?.[i] ?? '')}</Fragment>
-                  ))}
-                  {td(sd.pts, { fontWeight: 700 })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <Seg<'trad' | 'adv' | 'both'>
-            value={mode}
-            options={[
-              ['trad', 'Traditional'],
-              ['adv', 'Advanced'],
-              ['both', 'Both'],
-            ]}
-            onChange={setMode}
-          />
-          {mode !== 'trad' && (
-            <span style={{ ...muted, fontSize: '11.5px' }}>
-              Advanced stats from this game alone (Basketball-Reference formulas). GmSc = Hollinger’s Game Score.
-            </span>
-          )}
-        </div>
-        {sides.map(team)}
-        {bx.coach && bx.coach.home.length + bx.coach.away.length > 0 && (
-          <div style={{ fontSize: '12.5px' }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Coaching</div>
-            {(['away', 'home'] as const).map(
-              k =>
-                bx.coach[k].length > 0 && (
-                  <div key={k} style={{ marginBottom: 4 }}>
-                    <b>{T[bx[k].tid].abbr}</b> <span style={muted}>staff:</span> {bx.coach[k].join(' · ')}
-                  </div>
-                ),
-            )}
-          </div>
-        )}
       </div>
+      <nav className="box-view-tabs" aria-label="Game views">
+        {[
+          ['box', 'Box Score'],
+          ['pbp', 'Play-by-Play'],
+          ['shots', 'Shot Charts'],
+          ['pm', 'Plus/Minus'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            className={tab === key ? 'btn btn-primary' : 'btn btn-secondary'}
+            aria-pressed={tab === key}
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {tab === 'box' && (
+        <div className="box-game-summary">
+          <section>
+            <h3>Line Score</h3>
+            <table className="box-summary-table" aria-label="Line score">
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  {Array.from({ length: per }, (_, i) => (
+                    <th key={i}>{i < 4 ? 'Q' + (i + 1) : 'OT' + (i - 3)}</th>
+                  ))}
+                  <th>T</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sides.map((sd: any, j: number) => (
+                  <tr key={sd.tid}>
+                    <th>
+                      <Link onClick={() => visitTeam(sd.tid)}>{T[sd.tid].abbr}</Link>
+                    </th>
+                    {Array.from({ length: per }, (_, i) => (
+                      <td key={i} style={{ fontWeight: (sd.qs?.[i] ?? -1) > (sides[1 - j].qs?.[i] ?? -1) ? 800 : 400 }}>
+                        {sd.qs?.[i] ?? '—'}
+                      </td>
+                    ))}
+                    <td style={{ fontWeight: sd.pts > sides[1 - j].pts ? 800 : 400 }}>{sd.pts}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          <FourFactors box={selected} T={T} onTeam={visitTeam} />
+        </div>
+      )}
+      <div className="box-period-tabs" aria-label="Game period">
+        {['Game', 'Q1', 'Q2', 'H1', 'Q3', 'Q4', 'H2', ...Array.from({ length: Math.max(0, per - 4) }, (_, i) => 'OT' + (i + 1))].map(p => (
+          <button
+            key={p}
+            className={period === p ? 'btn btn-primary' : 'btn btn-secondary'}
+            disabled={p !== 'Game' && !bx.details}
+            aria-pressed={period === p}
+            onClick={() => setPeriod(p)}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+      {tab === 'box' ? (
+        <>
+          <div className="box-mode-switch">
+            <Seg<'trad' | 'adv' | 'both'>
+              value={mode}
+              options={[
+                ['trad', 'Traditional'],
+                ['adv', 'Advanced'],
+                ['both', 'Both'],
+              ]}
+              onChange={setMode}
+            />
+          </div>
+          <div className="box-team-sections">{[selected.away, selected.home].map(team)}</div>
+          {bx.coach && (
+            <section>
+              <h3>Coaching</h3>
+              {['away', 'home'].map(k => (
+                <p key={k}>
+                  <b>{T[bx[k].tid].abbr}</b> {(bx.coach[k] || []).join(' · ')}
+                </p>
+              ))}
+            </section>
+          )}
+        </>
+      ) : (
+        <BoxScoreDetails key={s.boxId} box={bx} vm={vm} tab={tab} period={period} onPlayer={visitPlayer} />
+      )}
     </div>
   );
 }
