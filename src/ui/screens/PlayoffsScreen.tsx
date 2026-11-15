@@ -4,7 +4,7 @@ import { mineTint } from '../teamTint';
 // East on the right and the Finals in the middle. Past seasons and the lottery below.
 import type { ReactNode } from 'react';
 import type { VM } from '../vm';
-import { h4Style, Kicker, Link, muted, td, th } from '../kit';
+import { h4Style, inkOn, Kicker, Link, muted, td, th } from '../kit';
 import { ChampBanner } from '../ChampBanner';
 
 const RN = ['First round', 'Conference semifinals', 'Conference finals', 'Finals'];
@@ -16,6 +16,7 @@ export function TeamLine({
   wins,
   won,
   lost,
+  highlightWinner,
   placeholder,
 }: {
   vm: VM;
@@ -24,22 +25,36 @@ export function TeamLine({
   wins?: ReactNode;
   won?: boolean;
   lost?: boolean;
+  highlightWinner?: boolean;
   placeholder?: string;
 }) {
   const { T, logo, openTeam, isMine } = vm.ctx;
-  const t = tid != null ? T[tid] : null;
+  const t = tid != null ? T[tid] : null,
+    winnerColor = highlightWinner && won ? t?.colors?.[0] : null;
   return (
     <div
+      className={winnerColor ? 'postseason-winner' : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
         minWidth: 0,
         fontWeight: won ? 600 : 400,
-        color: t && isMine(tid) ? 'var(--color-accent-700)' : lost ? 'var(--color-neutral-600)' : 'var(--color-text)',
+        color: winnerColor
+          ? inkOn(winnerColor)
+          : t && isMine(tid)
+            ? 'var(--color-accent-700)'
+            : lost
+              ? 'var(--color-neutral-600)'
+              : 'var(--color-text)',
+        background: winnerColor || undefined,
+        borderRadius: highlightWinner ? 3 : undefined,
+        padding: highlightWinner ? '2px 4px' : undefined,
       }}
     >
-      <span style={{ width: '16px', textAlign: 'right', fontSize: '11px', color: 'var(--color-neutral-600)' }}>{seed ?? ''}</span>
+      <span style={{ width: '16px', textAlign: 'right', fontSize: '11px', color: winnerColor ? 'inherit' : 'var(--color-neutral-600)' }}>
+        {seed ?? ''}
+      </span>
       {t ? (
         logo(tid, 16)
       ) : (
@@ -88,11 +103,12 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
               w = g.hp > g.ap ? g.h : g.h === x.a ? x.b : x.a;
             // Your series: games you won are green, games you lost red.
             const mine = vm.ctx.isMine(x.a) || vm.ctx.isMine(x.b),
-              res = mine ? (vm.ctx.isMine(w) ? 'var(--gm-good)' : 'var(--gm-bad)') : null;
+              res = mine ? (vm.ctx.isMine(w) ? 'var(--gm-good)' : 'var(--gm-bad)') : null,
+              winnerColor = !mine ? vm.ctx.T[w]?.colors?.[0] : null;
             return (
               <button
                 key={i}
-                className="hv4"
+                className={winnerColor ? 'hv6' : 'hv4'}
                 disabled={!box}
                 onClick={() => box && vm.ctx.gm.setState({ boxId: g.bid })}
                 title={
@@ -112,11 +128,11 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
                   fontSize: '10px',
                   padding: '0 4px',
                   borderRadius: 3,
-                  border: '1px solid ' + (res || 'var(--color-divider)'),
-                  background: res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined,
-                  fontWeight: res ? 700 : undefined,
+                  border: '1px solid ' + (winnerColor || res || 'var(--color-divider)'),
+                  background: winnerColor || (res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined),
+                  fontWeight: winnerColor || res ? 700 : undefined,
                   opacity: box ? 1 : 0.5,
-                  color: res || 'var(--color-neutral-700)',
+                  color: winnerColor ? inkOn(winnerColor) : res || 'var(--color-neutral-700)',
                 }}
               >
                 G{i + 1}
@@ -234,6 +250,7 @@ export function PlayinBracket({ vm }: { vm: VM }) {
                       wins={x.done ? x.hp : ''}
                       won={x.done && x.w === x.a}
                       lost={x.done && x.w !== x.a}
+                      highlightWinner
                       placeholder="Loser of 7 v 8"
                     />
                     <TeamLine
@@ -243,6 +260,7 @@ export function PlayinBracket({ vm }: { vm: VM }) {
                       wins={x.done ? x.ap : ''}
                       won={x.done && x.w === x.b}
                       lost={x.done && x.w !== x.b}
+                      highlightWinner
                       placeholder="Winner of 9 v 10"
                     />
                     {next && mineGame && (

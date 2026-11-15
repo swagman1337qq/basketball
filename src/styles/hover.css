@@ -5,4 +5,5 @@
 .hv4:hover { color:var(--color-accent-700) !important; text-decoration:underline !important; }
 .hv5:hover { color:var(--color-accent-700) !important; background:var(--color-accent-100) !important; }
 .hv6:hover { text-decoration:underline !important; }
+.postseason-winner .hv4:hover { color:inherit !important; }
 .hv7:hover { color:var(--color-accent-700) !important; text-decoration:underline !important; }
