@@ -27,6 +27,7 @@ import { useAlignedTables } from '../useAlignedTables';
 import { RosterTeamDetails, RosterReports } from './RosterTeamDetails';
 import './RosterScreen.css';
 import { seasonAdvanced } from '../../engine/advanced';
+import { rosterSeasonStats, rosterPlayoffAdvanced } from '../rosterSeasonStats';
 
 const ROSTER_ADV: [string, string, number?][] = [
   ['per', 'PER'],
@@ -124,11 +125,12 @@ export function RosterScreen({ vm }: { vm: VM }) {
     cycleSub = (d: number) => gm.setState({ rosterSub: SUBS[(subAt + d + SUBS.length) % SUBS.length][0] });
   // The team and season on show live in the game state (rosterView), so clicking a team anywhere opens
   // its roster here and Back from a player returns to the same team. The Roster tab starts on yours.
-  const view: { tid: number; season: number } = s.rosterView || { tid: s.me, season: gm.Y },
-    setView = (v: { tid: number; season: number }) => gm.setState({ rosterView: v });
+  const view: { tid: number; season: number; po?: boolean } = s.rosterView || { tid: s.me, season: gm.Y },
+    setView = (v: { tid: number; season: number; po?: boolean }) => gm.setState({ rosterView: { ...view, ...v } });
   const [advice, setAdvice] = useState<Advice | null>(null);
   const tid = T[view.tid] ? view.tid : s.me,
     season = view.season,
+    playoffs = !!view.po,
     cur = season === gm.Y,
     mine = isMine(tid) && cur;
   const t = T[tid],
@@ -141,7 +143,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
       return 'trad';
     }
   });
-  const advanced = useMemo(() => (statsMode === 'adv' ? seasonAdvanced(gm, s, season).byPid : {}), [gm, s, season, statsMode]);
+  const seasonStats = useMemo(() => rosterSeasonStats(gm, s, season, playoffs), [gm, s, season, playoffs]);
+  const advanced = useMemo(
+    () => (playoffs ? rosterPlayoffAdvanced(gm, s, season, seasonStats) : statsMode === 'adv' ? seasonAdvanced(gm, s, season).byPid : {}),
+    [gm, s, season, playoffs, seasonStats, statsMode],
+  );
   const AT = alphaTeams(T),
     step = (d: number) => {
       const i = AT.findIndex(x => x.tid === tid);
@@ -209,19 +215,20 @@ export function RosterScreen({ vm }: { vm: VM }) {
   };
   // ── Header numbers ──
   const hist = (s.history || []).find((h: any) => h.year === season)?.teams?.[tid];
-  const rec = cur ? t.w + '–' + t.l : hist?.rec || '—';
+  const postTeam = seasonStats.teams[tid];
+  const rec = playoffs ? (postTeam?.w != null ? postTeam.w + '–' + postTeam.l : '—') : cur ? t.w + '–' + t.l : hist?.rec || '—';
   const conf = T.filter(x => x.conf === t.conf).sort((a, b) => gm.pct(b) - gm.pct(a) || b.w - a.w),
     rank = conf.indexOf(t) + 1,
     lead = conf[0];
-  const gb = cur && rank > 1 ? ((lead.w - t.w + t.l - lead.l) / 2).toFixed(1).replace('.0', '') + ' GB' : '';
-  const games = (s.games || []).filter((x: any) => !x.po && (x.h === tid || x.a === tid)),
+  const gb = cur && !playoffs && rank > 1 ? ((lead.w - t.w + t.l - lead.l) / 2).toFixed(1).replace('.0', '') + ' GB' : '';
+  const games = seasonStats.games.filter((x: any) => x.h === tid || x.a === tid),
     mov = cur && games.length ? games.reduce((a: number, x: any) => a + (x.h === tid ? x.hp - x.ap : x.ap - x.hp), 0) / games.length : null;
   const ids: number[] = cur
     ? gm.isUser(s, tid)
       ? s.rosters[tid] || []
       : gm.aiOrder(s, tid)
     : (Object.values(P) as any[])
-        .filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !r.po))
+        .filter(p => (p.stats || []).some((r: any) => r.season === season && r.tid === tid && !!r.po === playoffs))
         .map(p => p.id);
   const ageOf = (p: any) => (cur ? p.age : gm.ageIn(p, season));
   const avgAge = ids.length ? ids.reduce((a, id) => a + ageOf(P[id]), 0) / ids.length : 0;
@@ -234,6 +241,18 @@ export function RosterScreen({ vm }: { vm: VM }) {
     fin = cur ? financesOf(gm, s, tid) : null;
   // ── Rows ──
   const line = (p: any) => {
+    if (playoffs) {
+      const t = (cur ? seasonStats.players[p.id] : seasonStats.teamPlayers[tid + ':' + p.id]) || {},
+        gp = t.gp || 0;
+      return {
+        gp,
+        min: gp ? t.min / gp : 0,
+        pts: gp ? t.pts / gp : 0,
+        reb: gp ? ((t.orb || 0) + (t.drb || 0)) / gp : 0,
+        ast: gp ? (t.ast || 0) / gp : 0,
+        per: advanced[p.id]?.per ?? 0,
+      };
+    }
     if (cur) return { gp: p.gp || 0, min: p.min || 0, pts: p.pts || 0, reb: p.reb || 0, ast: p.ast || 0, per: p.per || 0 };
     const rs = (p.stats || []).filter((r: any) => r.season === season && r.tid === tid && !r.po),
       tot: any = rs.reduce((a: any, r: any) => {
@@ -275,7 +294,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     [fPot, setFPot] = useState(0);
   const filtering = !!(fPos || fOvr || fPot);
   const tablesRef = useRef<HTMLDivElement>(null);
-  useAlignedTables(tablesRef, [s, tid, season, dense, fPos, fOvr, fPot, order, statsMode]);
+  useAlignedTables(tablesRef, [s, tid, season, dense, fPos, fOvr, fPot, order, statsMode, playoffs]);
   const columnCount =
     7 +
     (mine && !dense ? 1 : 0) +
@@ -330,7 +349,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const Row = ({ id, i, list }: { id: number; i: number; list: number[] }) => {
     const p = P[id],
       ln = line(p),
-      totals = statsMode === 'adv' ? gm.seasonTotals(p, season) : null,
+      totals = statsMode === 'adv' ? (playoffs ? seasonStats.players[id] : gm.seasonTotals(p, season)) : null,
       md = cur && isMine(tid) ? gm.moodOf(p, ids.indexOf(id), s, tid) : null,
       start = startersSet.has(id);
     const block = start
@@ -959,6 +978,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
             </option>
           ))}
         </select>
+        <Seg<'regular' | 'playoffs'>
+          value={playoffs ? 'playoffs' : 'regular'}
+          options={[
+            ['regular', 'Regular season'],
+            ['playoffs', 'Playoffs'],
+          ]}
+          onChange={v => setView({ tid, season, po: v === 'playoffs' })}
+        />
         {tid !== s.me && (
           <Link onClick={() => setView({ tid: s.me, season: gm.Y })} style={{ marginLeft: 6, fontSize: '12.5px' }}>
             Back to my team
@@ -995,7 +1022,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 <span style={muted}>Record</span>
                 <span>
                   <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
-                  {cur ? ' · ' + rank + (['st', 'nd', 'rd'][rank - 1] || 'th') + ' ' + t.conf + (gb ? ', ' + gb : '') : ''}
+                  {cur && !playoffs ? ' · ' + rank + (['st', 'nd', 'rd'][rank - 1] || 'th') + ' ' + t.conf + (gb ? ', ' + gb : '') : ''}
                   {hist?.fin ? ' · ' + hist.fin : ''}
                 </span>
                 {cur && (
@@ -1059,7 +1086,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   Cut {std.length - seasonMax(s)} by opening night (or convert Exhibit 10s to two-way deals).
                 </div>
               )}
-              <RosterTeamDetails vm={vm} tid={tid} season={season} />
+              <RosterTeamDetails vm={vm} tid={tid} season={season} playoffs={playoffs} data={seasonStats} />
             </div>
           </div>
           {mine && (
@@ -1234,8 +1261,8 @@ export function RosterScreen({ vm }: { vm: VM }) {
               Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
               {hist?.fin ? ' · ' + hist.fin : ''}
             </div>
-            <RosterTeamDetails vm={vm} tid={tid} season={season} />
-            {cur && (
+            <RosterTeamDetails vm={vm} tid={tid} season={season} playoffs={playoffs} data={seasonStats} />
+            {cur && !playoffs && (
               <div>
                 {rank}
                 {['st', 'nd', 'rd'][rank - 1] || 'th'} in the {t.conf}
@@ -1646,7 +1673,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
           }}
         />
         {statsMode === 'adv' && (
-          <span style={{ ...muted, fontSize: '12px' }}>Full-season advanced stats · includes all teams played for that season.</span>
+          <span style={{ ...muted, fontSize: '12px' }}>
+            {playoffs ? 'Playoff' : 'Full-season'} advanced stats · includes all teams played for that season.
+          </span>
         )}
       </div>
       {cur ? (

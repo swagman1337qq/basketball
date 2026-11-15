@@ -35,7 +35,7 @@ export function teamSeasonStats(gm: Game, state: any, season: number): Record<nu
 export function teamSeasonValue(gm: Game, stats: any, key: string): number {
   if (!stats?.gp) return NaN;
   if (key === 'pts' || key === 'oPts') return stats[key] / stats.gp;
-  const possessions = gm.possOf(stats);
+  const possessions = stats.poss ?? gm.possOf(stats);
   if (!(possessions > 0)) return NaN;
   return key === 'pace'
     ? (possessions * 48 * 5) / stats.min

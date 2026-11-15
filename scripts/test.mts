@@ -10,6 +10,7 @@ const SCRIPTS = [
   'unit',
   'boxScoreDetails',
   'teamSeasonStats',
+  'rosterSeasonStats',
   'tradeExclusions',
   'ovrMigration',
   'aiRosterUpgrade',

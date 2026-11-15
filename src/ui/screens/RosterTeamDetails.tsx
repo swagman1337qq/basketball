@@ -1,12 +1,13 @@
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
 import { staffOf } from '../../engine/assistants';
-import { teamSeasonStats, teamSeasonValue } from '../teamSeasonStats';
+import { teamSeasonValue } from '../teamSeasonStats';
+import { rosterSeasonStats, type RosterSeasonStats } from '../rosterSeasonStats';
 
 // Schedule-adjusted scoring margins, centered on the teams with recorded games.
-export function rosterSrs(teams: any[], games: any[]) {
+export function rosterSrs(teams: any[], games: any[], playoffs = false) {
   const rows = teams.map(t => ({ tid: t.tid, margin: 0, opponents: [] as number[] }));
-  for (const g of games.filter(g => !g.po)) {
+  for (const g of games.filter(g => (playoffs ? g.po === 'po' : !g.po))) {
     if (!rows[g.h] || !rows[g.a]) continue;
     rows[g.h].margin += g.hp - g.ap;
     rows[g.a].margin += g.ap - g.hp;
@@ -25,12 +26,25 @@ export function rosterSrs(teams: any[], games: any[]) {
   return played.length ? ratings : null;
 }
 
-export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; season: number }) {
+export function RosterTeamDetails({
+  vm,
+  tid,
+  season,
+  playoffs = false,
+  data,
+}: {
+  vm: VM;
+  tid: number;
+  season: number;
+  playoffs?: boolean;
+  data?: RosterSeasonStats;
+}) {
   const { gm, s, T, openTeamPage } = vm.ctx;
   const cur = season === gm.Y,
     team = T[tid],
     manager = s.gm?.name?.trim() || 'Name not set',
-    source = teamSeasonStats(gm, s, season);
+    scope = data || rosterSeasonStats(gm, s, season, playoffs),
+    source = scope.teams;
   const stats = source[tid],
     games = stats?.gp || 0;
   const fmt = (v: number | undefined) => (v != null && Number.isFinite(v) ? v.toFixed(1) : '—');
@@ -42,10 +56,10 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
     const rank = 1 + rows.filter(x => (lower ? value(x, k) < v : value(x, k) > v)).length;
     return fmt(v) + ' (' + rank + ' of ' + T.length + ')';
   };
-  const last = cur ? gm.resultsOf(s, tid)[0] : null;
+  const last = cur ? gm.resultsOf(s, tid).find(g => (playoffs ? g.po === 'po' : !g.po)) : null;
   const post = cur && (s.phase === 'playin' || s.phase === 'playoffs') ? gm.nextPostGame(s, tid) : null;
   const next = cur && (s.phase === 'regular' || s.phase === 'preseason') ? gm.nextUserGame(s.day, tid) : null;
-  const srs = cur && games ? rosterSrs(T, s.games || [])?.[tid] : null;
+  const srs = cur && games ? rosterSrs(T, scope.games, playoffs)?.[tid] : null;
   const expected = games && stats.pts + stats.oPts > 0 ? Math.round(games / (1 + Math.pow(stats.oPts / Math.max(1, stats.pts), 14))) : null;
   return (
     <div className="roster-team-details">
@@ -89,9 +103,11 @@ export function RosterTeamDetails({ vm, tid, season }: { vm: VM; tid: number; se
           </div>
         </>
       )}
-      <div style={{ ...muted, marginTop: 4 }}>
-        {season - 1}–{String(season).slice(2)} regular season · {games} game{games === 1 ? '' : 's'}
-      </div>
+      {scope.legacy && (
+        <p style={{ ...muted, fontSize: 12 }}>
+          Older saved postseason totals may include play-in games. Unrecorded team details are unavailable.
+        </p>
+      )}
       <div>
         <b>PTS/G:</b> {ranked('pts')} · <b>Opp PTS/G:</b> {ranked('oPts', true)}
       </div>

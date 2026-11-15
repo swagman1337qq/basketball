@@ -59,7 +59,7 @@ const own = renderToStaticMarkup(React.createElement(RosterTeamDetails, { vm, ti
 assert(own.includes('Head coach:</b> Morgan Hartwell'));
 assert(own.includes('Executive:</b> Morgan Hartwell'));
 assert(!own.includes('Associate head coach:') && !own.includes('Preseason odds:') && !own.includes('attendance/game:'));
-assert(own.includes('regular season · 3 game'));
+assert(!own.includes('regular season · 3 game'), 'The season selector is the only season label');
 assert(own.includes(teamSeasonValue(g, teams[0], 'pace').toFixed(1)), 'Pace renders from recorded game time');
 const other = renderToStaticMarkup(React.createElement(RosterTeamDetails, { vm, tid: 1, season: g.Y }));
 assert(other.includes('Executive:</b> ' + g.state.teams[1].gm));
