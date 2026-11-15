@@ -10,6 +10,7 @@ import {
   birdOf,
   capState,
   deadSchedule,
+  easyK,
   nums,
   remainingGuaranteed,
   rosterMax,
@@ -88,8 +89,9 @@ function Sign({ vm }: { vm: VM }) {
     years = +t0.years,
     inc = dg.inc || [],
     chosen = inc.map(x => x.k);
-  const fixedAmt = ['twoWay', 'tenDay', 'hardship', 'ex10', 'min'].includes(m.key);
-  const opts = !fixedAmt && m.key !== 'dpe' ? incentiveOptions(gm, s, p, tid, amt) : [];
+  const fixedAmt = ['twoWay', 'tenDay', 'hardship', 'ex10', 'min'].includes(m.key),
+    ez = easyK(gm); // easy contracts: salary, years and an option only
+  const opts = !fixedAmt && m.key !== 'dpe' && !ez ? incentiveOptions(gm, s, p, tid, amt) : [];
   const likely = inc.filter(x => x.likely).reduce((a, x) => a + x.amt, 0);
   const terms = { method: m.key, amt, years, opt: years >= 2 ? dg.opt || null : null, kicker: +(dg.kicker || 0) / 100, ntc: !!dg.ntc, inc };
   const v = validateSigning(gm, s, tid, p, { ...terms, amt: amt + likely }),
@@ -115,7 +117,7 @@ function Sign({ vm }: { vm: VM }) {
   const Y1 = ['fa', 'draft', 'lottery', 'playoffs', 'playin'].includes(s.phase) ? gm.Y + 1 : gm.Y;
   const sched = Array.from(
     { length: Math.max(1, years) },
-    (_, i) => +(amt * Math.pow(1 + (m.key === 'bird' ? 0.08 : fixedAmt ? 0 : 0.05), i)).toFixed(2),
+    (_, i) => +(amt * Math.pow(1 + (ez ? 0 : m.key === 'bird' ? 0.08 : fixedAmt ? 0 : 0.05), i)).toFixed(2),
   );
   return (
     <>
@@ -151,7 +153,7 @@ function Sign({ vm }: { vm: VM }) {
             </div>
           ) : null;
         })()}
-        <div style={lab}>How you sign him</div>
+        <div style={lab}>{ez ? 'Contract type' : 'How you sign him'}</div>
         <select value={m.key} onChange={e => pickMethod(e.target.value)} style={{ width: '100%' }}>
           {methods.map(x => (
             <option key={x.key} value={x.key} disabled={!x.ok && !s.god}>
@@ -214,7 +216,7 @@ function Sign({ vm }: { vm: VM }) {
             />
           </div>
         )}
-        {!fixedAmt && m.key !== 'dpe' && (
+        {!fixedAmt && m.key !== 'dpe' && !ez && (
           <div style={{ ...row, marginTop: '6px' }}>
             <span>Trade kicker</span>
             <NumInput
@@ -282,8 +284,10 @@ function Sign({ vm }: { vm: VM }) {
           }}
         >
           <div>
-            Cap hit {fmtMoney(hit)} · team salary after {fmtMoney(after)} ({status})
-            {cs.hardCap || m.hardCap
+            {ez ? 'Salary ' : 'Cap hit '}
+            {fmtMoney(hit)} · team salary after {fmtMoney(after)}
+            {ez ? ' (ceiling ' + fmtMoney(N.AP2) + ')' : ' (' + status + ')'}
+            {!ez && (cs.hardCap || m.hardCap)
               ? ' · hard cap at the ' +
                 ((m.hardCap || cs.hardCap) === 'AP1' ? '1st apron ' + fmtMoney(N.AP1) : '2nd apron ' + fmtMoney(N.AP2))
               : ''}

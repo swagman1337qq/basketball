@@ -12,6 +12,7 @@
     "test": "tsx scripts/test.mts",
     "realism": "tsx scripts/realism.mts",
     "test:league": "tsx scripts/realism.mts --seeds 11,12 --seasons 3",
+    "test:league:easy": "tsx scripts/realism.mts --seeds 11,12 --seasons 3 --easy-contracts",
     "test:ratings": "tsx scripts/measureOvr.mts check",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mts}\"",

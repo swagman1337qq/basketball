@@ -31,6 +31,7 @@ import {
   describeContract,
   exceptionsOf,
   extWindow,
+  easyK,
   maxFor,
   nums,
   qoEligible,
@@ -2407,7 +2408,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
                   ? 'Restricted free agent in July if you extend his ' +
                     money(qo) +
                     ' qualifying offer (decide on the Cap sheet): you could then match any offer sheet.'
-                  : 'Unrestricted free agent in July.') + (status === 'mine' ? ' With ' + bird + ' rights you ' + birdCap + '.' : '')
+                  : 'Unrestricted free agent in July.') +
+                (status === 'mine' && !easyK(gm) ? ' With ' + bird + ' rights you ' + birdCap + '.' : '')
               : 'Under contract through ' + (pp.ext ? pp.exp + pp.ext.yrs : pp.exp) + '.';
     const xw = extWindow(gm, s, pp),
       canExt = status === 'mine' && xw.ok;
@@ -2776,7 +2778,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         avg =
           (Object.values(s.rosters).flat() as number[]).reduce((a, id) => a + P[id].amt, 0) /
           Math.max(1, (Object.values(s.rosters).flat() as number[]).length);
-      const maxAllowed = +(rook ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2),
+      const ez = easyK(gm), // easy contracts: up to his max, up to 5 years, the same salary every year
+        rz = ez ? 0 : 0.08,
+        maxAllowed = +(rook || ez ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2),
         minS = N.min(yosP + 1);
       // A trade request in play (tradeRequests.ts): an ultimatum names his price; one you ignored ends the talks.
       const ult = pp.treq?.status === 'open' && pp.treq.cause === 'ext' && pp.treq.season === gm.Y ? pp.treq.ask : null,
@@ -2788,7 +2792,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       const super5 = /supermax|Rose/.test(mx.tier),
         over38 = Math.max(1, 38 - (pp.age + (pp.exp - gm.Y) + 1) + 1);
       const minYears0 = m === 'Money' && pp.age >= 30 ? 4 : m === 'Loyalty' ? 1 : 2,
-        maxYears = Math.max(1, Math.min(rook ? 5 : (super5 ? 6 : 5) - xw.left, pp.age >= 33 ? Math.max(3, over38) : 5));
+        maxYears = Math.max(1, Math.min(rook || ez ? 5 : (super5 ? 6 : 5) - xw.left, pp.age >= 33 ? Math.max(3, over38) : 5));
       const minYears = Math.min(ult ? ult.years : minYears0, maxYears);
       const yrs = Math.min(s.extYears ?? 3, maxYears),
         amt = s.extAmt ?? ask;
@@ -2800,27 +2804,29 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         max: maxAllowed,
         amt,
         amtLabel: money(amt),
-        rule: rook
-          ? 'Rookie-scale extension (' +
-            xw.why.replace(/^Rookie-scale extension window: /, '').replace(/\.$/, '') +
-            '): up to 5 years; first year up to ' +
-            money(maxSal) +
-            ' (' +
-            mx.tier +
-            '). The Rose Rule raises it to 30% of the cap if he makes an All-League team or wins MVP.'
-          : 'Veteran extension: ' +
-            xw.why +
-            ' Up to ' +
-            maxYears +
-            ' new season' +
-            (maxYears === 1 ? '' : 's') +
-            ' (' +
-            (super5 ? 6 : 5) +
-            ' including what’s left of his deal); the first year can be at most 140% of his salary or of the league-average salary (' +
-            money(maxAllowed) +
-            ')' +
-            (super5 ? '. He qualifies for the designated veteran supermax (35%).' : '.') +
-            (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
+        rule: ez
+          ? 'Extension (easy contracts): up to 5 years, the same salary every year, up to his max (' + money(maxSal) + ', ' + mx.tier + ').'
+          : rook
+            ? 'Rookie-scale extension (' +
+              xw.why.replace(/^Rookie-scale extension window: /, '').replace(/\.$/, '') +
+              '): up to 5 years; first year up to ' +
+              money(maxSal) +
+              ' (' +
+              mx.tier +
+              '). The Rose Rule raises it to 30% of the cap if he makes an All-League team or wins MVP.'
+            : 'Veteran extension: ' +
+              xw.why +
+              ' Up to ' +
+              maxYears +
+              ' new season' +
+              (maxYears === 1 ? '' : 's') +
+              ' (' +
+              (super5 ? 6 : 5) +
+              ' including what’s left of his deal); the first year can be at most 140% of his salary or of the league-average salary (' +
+              money(maxAllowed) +
+              ')' +
+              (super5 ? '. He qualifies for the designated veteran supermax (35%).' : '.') +
+              (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
         askLine: walks
           ? 'He asked for a trade and you kept him: he won’t extend, and he’ll leave in free agency.'
           : ult
@@ -2840,7 +2846,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         msg: s.extMsg,
         // God Mode: he signs these exact terms, whatever his mood, his ask or the league office says.
         force: () => {
-          pp.ext = { amt, yrs, raise: 0.08 };
+          pp.ext = { amt, yrs, raise: rz };
           addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) + ' (God Mode)' });
           gm.setState(st => ({
             extMsg:
@@ -2848,7 +2854,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
               yrs +
               ' years from ' +
               money(amt) +
-              ' (8% raises), starting ' +
+              (rz ? ' (8% raises), starting ' : ' (the same every year), starting ') +
               pp.exp +
               '–' +
               String(pp.exp + 1).slice(2) +
@@ -2862,8 +2868,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
           if (amt > maxAllowed + 0.005)
             return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' });
           if (amt >= ask - 0.05 && yrs >= minYears) {
-            pp.ext = { amt, yrs, raise: 0.08 };
-            if (amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day };
+            pp.ext = { amt, yrs, raise: rz };
+            if (!ez && amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day };
             addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) });
             gm.setState(st => ({
               extMsg:
@@ -2871,7 +2877,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
                 yrs +
                 ' years from ' +
                 money(amt) +
-                ' (8% raises), starting ' +
+                (rz ? ' (8% raises), starting ' : ' (the same every year), starting ') +
                 pp.exp +
                 '–' +
                 String(pp.exp + 1).slice(2) +
@@ -3330,6 +3336,16 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       open: openC(c),
     }));
   const capEasySet = { on: !!s.capEasy, toggle: () => gm.setState(st => ({ capEasy: !st.capEasy })) };
+  // Easy contracts (cba.ts easyK): turning it on ends restricted free agency now (qualifying offers and offer sheets lapse).
+  const easyContractsSet = {
+    on: !!s.easyContracts,
+    toggle: () =>
+      gm.setState(st => {
+        if (st.easyContracts) return { easyContracts: false };
+        (st.fa || []).forEach((id: number) => delete P[id]?.rfa);
+        return { easyContracts: true, offerSheets: [] };
+      }),
+  };
   const salesSet = { v: s.teamSales ?? 'real', set: (v: string) => gm.setState({ teamSales: v }) };
   // God Mode: how many drafts ahead picks can be traded (tradeLogic.ts; default 4).
   const rosterLimSet = { max: seasonMax(s), min: rosterMin(s), set: (max: number, min: number) => gm.setRosterLimits(max, min) };
@@ -4414,6 +4430,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     injuries,
     salesSet,
     capEasySet,
+    easyContractsSet,
     isGod: !!s.god,
     ph,
     pov,

@@ -20,6 +20,7 @@ import {
   twoWayIds,
   yosOf,
   deadSchedule,
+  easyK,
   type Method,
 } from './cba';
 
@@ -91,6 +92,9 @@ export function applySigning(
   const cap = { ...(box.cap[tid] || {}) },
     exc = { ...(cap.exc || freshExceptions(g)), used: [...((cap.exc || {}).used || [])] };
   const prevTid = p.birdTid;
+  // Easy contracts: a re-signing (or any deal) is a plain contract: same salary every year, no bonuses or clauses.
+  if (easyK(g) && !['twoWay', 'ex10', 'tenDay', 'hardship', 'rookie', 'god'].includes(t.method))
+    t = { ...t, method: t.method === 'min' ? 'min' : 'std', raise: 0, inc: [], kicker: 0, ntc: false, years: Math.min(5, t.years) };
   delete p.ext;
   delete p.extNoTrade;
   // Contract terms.
@@ -121,7 +125,7 @@ export function applySigning(
   if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.PLAYOFF_WAIVE) && p.waived?.season === g.Y) p.poIneligible = g.Y; // waived after March 1: not playoff-eligible elsewhere
   delete p.waived;
   p.signed = { season: Y1, day: s.day, phase: s.phase, tid, method: t.method, ovr: p.ovr, ask: p.ask }; // (his level and ask when he signed)
-  if (t.method !== 'bird') {
+  if (t.method !== 'bird' && !(easyK(g) && prevTid === tid)) {
     if (prevTid != null && prevTid !== tid) p.leftAsFA = true;
     p.yrsWith = 0;
   }
@@ -160,6 +164,7 @@ export function applySigning(
 function describe(g: Game, t: Terms, p: any) {
   const lab: Record<string, string> = {
     god: 'God Mode',
+    std: 'contract',
     cap: 'cap space',
     bird: 'Bird rights',
     ntmle: 'non-taxpayer mid-level',
@@ -234,7 +239,7 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
 
 // The signing methods that spend cap room or an exception (God Mode's Force Sign turns one he can't use
 // into a plain God Mode contract).
-export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min', 'dpe'];
+export const CAP_METHODS = ['cap', 'room', 'ntmle', 'tpmle', 'bae', 'bird', 'min', 'dpe', 'std'];
 
 // How an AI team would sign a player now (or null).
 // How far over his ask a team under the salary floor will go on a multi-year deal: half again, and no more than
@@ -261,6 +266,19 @@ export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
   const prem = (lim: number, f: number) => (contend ? +Math.max(ask, Math.min(lim, ask * f)).toFixed(2) : ask);
   if (pick('bird') && ask <= pick('bird')!.maxFirst)
     return { method: 'bird', amt: prem(pick('bird')!.maxFirst, CONTEND_PREM_BIRD), years: Math.min(yrs + 1, pick('bird')!.maxYears) };
+  // Easy contracts: one plain deal under the ceiling (own free agents with a little more loyalty pay), else the minimum.
+  if (easyK(g)) {
+    const m = pick('std'),
+      own = p.birdTid === tid;
+    if (m && ask <= m.maxFirst) {
+      const gap0 = N.FLOOR - teamSalary(g, s, tid),
+        fl = gap0 > ask && p.ovr >= 45 ? +Math.max(ask, Math.min(m.maxFirst, N.max(yos), gap0, floorOverpay1(ask))).toFixed(2) : ask,
+        amt = Math.max(fl, prem(m.maxFirst, own ? CONTEND_PREM_BIRD : CONTEND_PREM));
+      return { method: 'std', amt, years: Math.min(amt > floorOverpay(ask) ? 1 : amt > ask * 1.5 ? 2 : own ? yrs + 1 : yrs, m.maxYears) };
+    }
+    if (ask <= minS * 1.25 && pick('min')) return { method: 'min', amt: minS, years: p.age <= 23 ? Math.min(2, yrs) : 1 };
+    return null;
+  }
   // A team under the salary floor pays over market value to get closer to it (shorter deals) instead of paying
   // the shortfall at season's end, within what the method allows. The rest of the gap is for trades
   // (tradeLogic.ts floorTradeIdea).

@@ -1551,8 +1551,8 @@ export class Game {
     return this.db.caps.TAX;
   }
   get AP1() {
-    return this.state?.capEasy ? this.db.caps.AP2 : this.db.caps.AP1;
-  } // cap easy mode: no 1st apron
+    return this.state?.capEasy || this.state?.easyContracts ? this.db.caps.AP2 : this.db.caps.AP1;
+  } // cap easy mode and easy contracts: no 1st apron
   get AP2() {
     return this.db.caps.AP2;
   }

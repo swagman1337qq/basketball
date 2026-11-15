@@ -7,7 +7,7 @@
 // decision is made. It is the draft phase with s.preFA set, so every draft-phase rule holds.
 import type { Game } from './Game';
 import { exerciseOption } from './rosterAI';
-import { BIRD_LABEL, birdOf, capHold, extWindow, qoEligible, qoFor } from './cba';
+import { BIRD_LABEL, birdOf, capHold, easyK, extWindow, qoEligible, qoFor } from './cba';
 import { fmtMoney as money } from './capModel';
 
 // ── Notices: the popup that tells you how a move turned out ──────────────────────
@@ -169,7 +169,14 @@ export function preFARows(g: Game, s: any, tid: number): PreRow[] {
           pid: id,
           kind: 'expiring',
           head: 'Re-signed',
-          detail: ext.yrs + ' years from ' + money(ext.amt) + ' (8% raises), starting ' + yl(Y + 1) + '.',
+          detail:
+            ext.yrs +
+            ' years from ' +
+            money(ext.amt) +
+            (ext.raise ? ' (' + Math.round(ext.raise * 100) + '% raises)' : ' (the same every year)') +
+            ', starting ' +
+            yl(Y + 1) +
+            '.',
           status: 'Re-signed',
           choices: [],
           decided: true,
@@ -217,33 +224,38 @@ export function preFARows(g: Game, s: any, tid: number): PreRow[] {
           label: 'Re-sign in free agency',
           on: re === true,
           rec: keep && !canNow,
-          title: 'Keep his Bird rights and cap hold; negotiate with him once free agency opens',
+          title: easyK(g)
+            ? 'Negotiate with him once free agency opens (other teams can bid too)'
+            : 'Keep his Bird rights and cap hold; negotiate with him once free agency opens',
         });
       choices.push({
         k: 'let',
         label: 'Don’t re-sign',
         on: let_ === true,
         rec: !keep,
-        title: 'Renounce his rights: he’s an unrestricted free agent and his cap hold comes off your books',
+        title: easyK(g)
+          ? 'He becomes a free agent and his salary comes off your books'
+          : 'Renounce his rights: he’s an unrestricted free agent and his cap hold comes off your books',
       });
       out.push({
         pid: id,
         kind: 'expiring',
         head: (p.ctype === 'twoWay' ? 'Two-way contract' : 'Contract') + ' expires June 30 · ' + money(p.amt) + ' this season',
-        detail:
-          (bird ? BIRD_LABEL[bird] + ' rights' : 'No Bird rights') +
-          ' · cap hold ' +
-          money(hold) +
-          (qoOk ? ' · qualifying offer ' + money(qo) + ' makes him restricted' : '') +
-          '. ' +
-          (canNow
-            ? 'He can be re-signed now (an extension) or in free agency.'
-            : two
-              ? 'Two-way deals can’t be extended: re-sign him in free agency.'
-              : p.rookieScale
-                ? 'His rookie-scale extension window has closed: re-sign him in free agency' +
-                  (qoOk ? ', ideally as a restricted free agent.' : '.')
-                : 'Too soon since he signed for an extension: re-sign him in free agency.'),
+        detail: easyK(g)
+          ? 'He can be re-signed now or in free agency, or let go.'
+          : (bird ? BIRD_LABEL[bird] + ' rights' : 'No Bird rights') +
+            ' · cap hold ' +
+            money(hold) +
+            (qoOk ? ' · qualifying offer ' + money(qo) + ' makes him restricted' : '') +
+            '. ' +
+            (canNow
+              ? 'He can be re-signed now (an extension) or in free agency.'
+              : two
+                ? 'Two-way deals can’t be extended: re-sign him in free agency.'
+                : p.rookieScale
+                  ? 'His rookie-scale extension window has closed: re-sign him in free agency' +
+                    (qoOk ? ', ideally as a restricted free agent.' : '.')
+                  : 'Too soon since he signed for an extension: re-sign him in free agency.'),
         status: q === true ? 'Qualifying offer' : re === true ? 'Re-sign in free agency' : let_ === true ? 'Letting him go' : 'Undecided',
         choices,
         decided: q === true || re === true || let_ === true,
@@ -261,7 +273,9 @@ export function preFARows(g: Game, s: any, tid: number): PreRow[] {
         head: 'Final season next year · ' + money(g.salAt(p, Y + 1)),
         detail: xw.ok
           ? 'Extension-eligible now.'
-          : 'Extensions open July 6 (day 6 of free agency) if he’s eligible. Choose Extend and you’ll get a reminder then.',
+          : easyK(g)
+            ? 'He can extend once free agency opens (one season left on his deal). Choose Extend and you’ll get a reminder then.'
+            : 'Extensions open July 6 (day 6 of free agency) if he’s eligible. Choose Extend and you’ll get a reminder then.',
         status: v === true ? 'Extend' : v === false ? 'Not extending' : 'No plan yet',
         choices: [
           { k: 'extend', label: 'Extend', on: v === true, rec: p.ovr >= 58 && p.age <= 30 },

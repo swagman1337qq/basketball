@@ -29,6 +29,7 @@ import {
   TWO_WAY_MAX,
   twoWayIds,
   yosOf,
+  easyK,
 } from './cba';
 import {
   acceptance,
@@ -662,11 +663,11 @@ export function agentCallNotice(g: Game, s: any, c: any) {
 function callMethod(g: Game, s: any, c: any, p: any): { t?: Terms; why?: string } {
   const st = { ...s, fa: s.fa.includes(p.id) ? s.fa : [...s.fa, p.id] };
   let why = '';
-  for (const method of ['bird', 'cap', 'room', 'ntmle', 'tpmle', 'bae', 'min']) {
+  for (const method of easyK(g) ? ['std', 'min'] : ['bird', 'cap', 'room', 'ntmle', 'tpmle', 'bae', 'min']) {
     const t: Terms = { method, amt: c.ask.amt, years: c.ask.years },
       v = validateSigning(g, st, c.to, p, t);
     if (v.ok) return { t };
-    if (method === 'bird') why = v.why || '';
+    if (method === 'bird' || method === 'std') why = v.why || '';
   }
   return { why: why || 'No way to fit his salary.' };
 }
@@ -1099,7 +1100,8 @@ export function openFreeAgency(g: Game, s: any) {
         const keep =
           (rank < 9 || (p.age <= 24 && g.potRead(p, t, s) >= 60)) &&
           Math.random() < (star ? 0.95 : p.rfa ? 0.8 : rank < 8 ? KEEP_ROT : 0.5) &&
-          teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <= Math.max(g.teamCeiling(s.teams[t]), N.CAP, star);
+          teamSalary(g, { ...s, rosters: box.rosters }, t) - p.prevAmt + p.ask <=
+            (easyK(g) ? Math.min(N.AP2, Math.max(g.teamCeiling(s.teams[t]), star)) : Math.max(g.teamCeiling(s.teams[t]), N.CAP, star));
         if (keep) {
           const amt = +Math.min(maxFor(g, s, p, t).amt, p.ask * (rank < 8 && stratOf()[t] === 'contend' ? CONTEND_PREM_BIRD : 1)).toFixed(
               2,
@@ -1301,14 +1303,11 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
       if (!terms) continue;
       if (p.rfa && p.rfa.tid !== t) terms.raise = vRaise(g, st, t, p, terms.method);
       if (!validateSigning(g, st, t, p, terms).ok) continue;
+      const ownB = terms.method === 'bird' || (easyK(g) && p.birdTid === t); // easy contracts: his own team, as with Bird rights
       if (
         terms.method !== 'min' &&
         teamSalary(g, st, t) + terms.amt >
-          Math.max(
-            g.teamCeiling(T[t]) + (terms.method === 'bird' && p.ovr >= 62 ? 8 : 0),
-            N.CAP,
-            terms.method === 'bird' ? keepStarLimit(g, s, box.rosters, t, p, stratOf()) : 0,
-          )
+          Math.max(g.teamCeiling(T[t]) + (ownB && p.ovr >= 62 ? 8 : 0), N.CAP, ownB ? keepStarLimit(g, s, box.rosters, t, p, stratOf()) : 0)
       )
         continue;
       if (p.rfa && p.rfa.tid !== t) {
@@ -1472,7 +1471,7 @@ export function lastCall(g: Game, s: any, box: Box, lgLog: any[]) {
       const t = T.tid;
       if (g.isUser(s, t) || stdIds(g, box.rosters[t]).length >= campMax(s)) return;
       signingMethods(g, st, t, p).forEach((m: any) => {
-        if (!m.ok || !['cap', 'room', 'ntmle', 'tpmle', 'bae'].includes(m.key)) return;
+        if (!m.ok || !['cap', 'room', 'ntmle', 'tpmle', 'bae', 'std'].includes(m.key)) return;
         const terms: Terms = { method: m.key, amt: +Math.min(p.ask, m.maxFirst).toFixed(2), years: Math.max(1, Math.min(2, m.maxYears)) };
         if (
           terms.amt <= (best?.terms.amt ?? floor) ||
@@ -1715,7 +1714,8 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       const p = P[id];
       if (!p || p.ext || p.exp !== last || ['twoWay', 'ex10', 'tenDay', 'hardship'].includes(p.ctype)) return;
       const rook = !!p.rookieScale,
-        vetOk = !rook && (p.signed?.season != null ? g.Y - p.signed.season >= 2 : (p.yrsWith || 0) >= 2);
+        ez = easyK(g),
+        vetOk = !rook && (ez || (p.signed?.season != null ? g.Y - p.signed.season >= 2 : (p.yrsWith || 0) >= 2));
       if (!rook && !vetOk) return;
       // Worth keeping? Young players on what they'll become, veterans on what they are.
       const proj = p.age <= 24 ? p.ovr + Math.min(6, Math.max(0, g.potRead(p, t, s) - p.ovr) * 0.5) : p.ovr; // his team's own read of his potential
@@ -1727,7 +1727,7 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
           (p.mood === 'Wants out' || p.mood === 'Frustrated' ? 0.3 : 1);
       if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
       const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt,
-        cap = rook ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
+        cap = rook || ez ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
       // 2026-10-22: priced halfway between what he is and what he'll become (paying for all of the projection gave
       // 50s and 53s who never developed a fifth of the cap); the rookie max only for a player already good (62+).
       const raw = g.fair((p.ovr + proj) / 2),
@@ -1738,10 +1738,12 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
           ? mx /* a rising star's rookie extension: the rookie max */
           : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
       if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
+      if (ez && payroll - p.amt + amt > N.AP2) return; // easy contracts: never over the ceiling
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
-      p.ext = { amt, yrs, raise: 0.08, ovr: p.ovr };
+      const rz = ez ? 0 : 0.08;
+      p.ext = { amt, yrs, raise: rz, ovr: p.ovr };
       payroll += amt - p.amt; // (his level when he signed it)
-      const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1.08, i)).reduce((a, x) => a + x, 0),
+      const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1 + rz, i)).reduce((a, x) => a + x, 0),
         T = s.teams[t];
       addTx(g, s, p, {
         k: 'extend',

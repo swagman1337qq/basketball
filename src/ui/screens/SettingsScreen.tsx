@@ -299,6 +299,32 @@ export function SettingsScreen({ vm }: { vm: VM }) {
             {vm.capEasySet.on ? 'Turn off' : 'Turn on'}
           </button>
         </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '180px minmax(0,1fr) auto',
+            gap: '16px',
+            alignItems: 'center',
+            padding: '12px 0',
+            borderBottom: '1px solid var(--color-divider)',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>Easy contracts</div>
+          <div>
+            <div>{vm.easyContractsSet.on ? 'On: simple contracts for the whole league' : 'Off: full NBA contracts'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>
+              One kind of deal: 1 to 5 years, the same salary every year, up to his max (25, 30 or 35% of the cap, the usual rules), with a
+              player option, a team option or neither. No exceptions or Bird rights: any team can sign anyone while its payroll stays under
+              one ceiling (the 2nd apron line), and minimum deals always fit. No bonuses, trade kickers, no-trade clauses, qualifying offers
+              or offer sheets. Anyone with one season left can extend. Trades don't need matching salaries, but a team can't end up over the
+              ceiling with more salary than before. Rookie-scale deals, two-ways, Exhibit 10s and 10-days stay. Contracts already signed
+              keep their terms. You can switch it any time; turning it on ends restricted free agency.
+            </div>
+          </div>
+          <button className="btn btn-secondary" onClick={vm.easyContractsSet.toggle} style={{ whiteSpace: 'nowrap' }}>
+            {vm.easyContractsSet.on ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
         {vm.god.on && (
           <div
             style={{

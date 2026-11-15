@@ -6,9 +6,9 @@ import { curve, possessionKind, interiorD, glassSkill, USG_KNEE, USG_K } from '.
 import { finishCurve, finishingPct, finishMix, FINISH_TYPES, dunkAble, dunkOpening, naturalDunkShare } from '../src/engine/finishing';
 import { ovrWeights, sameOvrWeights, overallWith, ovrExact, OVR_W, FEEL_W } from '../src/engine/ratings';
 import { stayChance, pricedLevel } from '../src/engine/cbaFlow';
-import { CONTEND_PREM, CONTEND_PREM_BIRD } from '../src/engine/contracts';
+import { CONTEND_PREM, CONTEND_PREM_BIRD, applySigning, validateSigning } from '../src/engine/contracts';
 import { Game } from '../src/engine/Game';
-import { taxBill, nums } from '../src/engine/cba';
+import { taxBill, nums, signingMethods, extWindow, checkTrade, qoEligible, teamSalary } from '../src/engine/cba';
 import { newLeague } from './lib/headless.mts';
 import { defaultTeamSpecs, teamListError } from '../src/data/world';
 import { relocateTeam } from '../src/engine/relocate';
@@ -196,6 +196,63 @@ test("a card's college game drives his college stats, its ratings his NBA game (
   assert.equal(a.dx.o, 0); // no camp surprise on top of the card's own translation
   assert.ok(
     seasonLine(a, 2024, 0).disp.tpm / seasonLine(a, 2024, 0).disp.tpa > seasonLine(b, 2024, 0).disp.tpm / seasonLine(b, 2024, 0).disp.tpa,
+  );
+});
+
+test('easy contracts: one plain deal under the ceiling, flat, extendable with a year left (2026-11-15)', () => {
+  const g: any = Game.create(31, [0]);
+  g.setState({ easyContracts: true });
+  const s = g.state,
+    P = g.db.P,
+    N = nums(g),
+    fa = s.fa.map((id: number) => P[id]).sort((a: any, b: any) => b.ovr - a.ovr)[0];
+  assert.equal(N.AP1, N.AP2); // one ceiling
+  const keys = signingMethods(g, s, 3, fa).map(m => m.key);
+  assert.ok(keys.includes('std') && keys.includes('min'));
+  assert.ok(!['bird', 'cap', 'room', 'ntmle', 'tpmle', 'bae', 'dpe'].some(k => keys.includes(k)));
+  assert.equal(signingMethods(g, s, 3, fa).find(m => m.key === 'min')!.ok, true); // the minimum always fits
+  // A signing: flat salary, no bonuses or clauses, at most 5 years.
+  const box = { rosters: { ...s.rosters }, fa: s.fa.slice(), overseas: (s.overseas || []).slice(), cap: { ...(s.cap || {}) } };
+  applySigning(g, s, box, 3, fa, {
+    method: 'std',
+    amt: 10,
+    years: 7,
+    kicker: 0.1,
+    ntc: true,
+    inc: [{ k: 'x', amt: 1, likely: true }],
+    opt: 'player',
+  });
+  assert.equal(fa.raise, 0);
+  assert.equal(fa.kicker, 0);
+  assert.equal(fa.ntc, false);
+  assert.equal(fa.inc.length, 0);
+  assert.equal(fa.opt?.kind, 'player');
+  assert.equal(g.salAt(fa, fa.exp), g.salAt(fa, fa.exp - 2)); // the same every year
+  // The ceiling limits the first-year salary.
+  const q = P[s.fa[1]],
+    std = signingMethods(g, s, 4, q).find(m => m.key === 'std')!;
+  assert.ok(std.maxFirst <= Math.max(0, N.AP2 - teamSalary(g, s, 4)) + 0.01);
+  assert.equal(validateSigning(g, s, 4, q, { method: 'std', amt: std.maxFirst + 1, years: 2 }).ok, false);
+  // No qualifying offers; an extension any time with one season left.
+  const vet = (s.rosters[5] as number[]).map(id => P[id]).find((p: any) => p.exp === g.Y && !['twoWay', 'ex10'].includes(p.ctype));
+  if (vet) {
+    assert.equal(qoEligible(g, vet), false);
+    assert.equal(extWindow(g, s, vet).ok, true);
+  }
+  // Trades: no salary matching under the ceiling.
+  const a = 6,
+    b = 7,
+    lo = (s.rosters[a] as number[]).map(id => P[id]).sort((x: any, y: any) => x.amt - y.amt)[0],
+    hi = (s.rosters[b] as number[]).map(id => P[id]).sort((x: any, y: any) => y.amt - x.amt)[0];
+  const r = checkTrade(g, s, a, b, [lo.id], [hi.id], [], []);
+  const overA = teamSalary(g, s, a) - g.capHit(lo) + g.capHit(hi) > N.AP2;
+  assert.equal(
+    r.errs.some(e => /matching|takes back/.test(e)),
+    false,
+  );
+  assert.equal(
+    r.errs.some(e => /ceiling/.test(e)),
+    overA,
   );
 });
 

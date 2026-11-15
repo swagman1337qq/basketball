@@ -8,6 +8,7 @@
 //   npm run realism                       3 leagues (seeds 11, 12, 13), one regular season each
 //   npm run realism -- --seeds 11,12 --seasons 3
 //   npm run test:league                   the same with seeds 11, 12 and 3 seasons (offseasons included)
+//   npm run test:league:easy              the same with Settings → Easy contracts on
 //
 // A band is where real seasons sit with some room for a game league's spread; a failure means "look at this",
 // not always "this is wrong". Bands live in BANDS below.
@@ -23,7 +24,8 @@ const arg = (k: string, d: string) => {
 };
 const shotReport = arg('shots', '');
 if (shotReport) writeFileSync(shotReport, '');
-const seeds = arg('seeds', '11,12,13').split(',').map(Number),
+const easy = process.argv.includes('--easy-contracts'), // Settings → Easy contracts (cba.ts easyK)
+  seeds = arg('seeds', '11,12,13').split(',').map(Number),
   seasons = Math.max(1, +arg('seasons', '1'));
 
 // [low, high] for each check. Team numbers are per team per game.
@@ -249,6 +251,7 @@ function observeShot(players: Map<number, Map<string, ShotBucket>>, shot: Readon
 const t0 = Date.now();
 for (const seed of seeds) {
   const g: any = newLeague(seed);
+  if (easy) g.setState({ easyContracts: true });
   const start = rostered(g),
     mean0 = start.reduce((a, p) => a + p.ovr, 0) / start.length,
     top0 = start.filter(p => p.ovr >= 60).length;
