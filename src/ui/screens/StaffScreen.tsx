@@ -35,6 +35,7 @@ import {
   type Coach,
   type CoachRole,
 } from '../../engine/staff';
+import { careerSummary, coachRows, headCoachOf } from '../../engine/coachCareer';
 
 const SHORT: Record<string, string> = { off: 'OFF', def: 'DEF', dev: 'DEV', game: 'GM', mot: 'MOT', teach: 'TCH', eye: 'EYE' };
 const LONG: Record<string, string> = {
@@ -189,7 +190,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
               <tr key={c.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <CoachFace c={c} age={coachAge(gm, c)} size={34} />
+                    <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={34} />
                     <div>
                       <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
                         {c.name}
@@ -306,7 +307,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
           }}
         >
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <CoachFace c={oc} age={coachAge(gm, oc)} size={44} />
+            <CoachFace gm={gm} c={oc} age={coachAge(gm, oc)} size={44} />
             <div>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>
                 {oc.tid === tid ? 'Re-sign ' : 'Offer: '}
@@ -434,7 +435,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
               <tr key={c.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <CoachFace c={c} age={coachAge(gm, c)} size={30} />
+                    <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={30} />
                     <div>
                       <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
                         {c.name}
@@ -480,6 +481,69 @@ export function StaffScreen({ vm }: { vm: VM }) {
           Show more
         </button>
       )}
+
+      <h4 style={{ ...h4Style, marginTop: 22 }}>Head coaches around the league</h4>
+      <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
+        Every other team&rsquo;s head coach, with his record as a head coach (everywhere he&rsquo;s been one). Teams don&rsquo;t hire or
+        fire head coaches yet.
+      </p>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr>
+              <th style={th()}>Team</th>
+              <th style={th()}>Head coach</th>
+              <th style={th('right')}>Age</th>
+              <th style={th('right')}>Rep</th>
+              <th style={th('right')} title="His record as a head coach in this league (seasons finished)">
+                NBA W–L
+              </th>
+              <th style={th('right')} title="As a head coach at other levels: high school, college, abroad, the CCP league">
+                Other levels
+              </th>
+              <th style={th('right')}>Titles</th>
+              <th style={th('right')} title="Coach of the Year">
+                COY
+              </th>
+              <th style={th()}>Played</th>
+            </tr>
+          </thead>
+          <tbody>
+            {s.teams
+              .filter((t: any) => !gm.isUser(s, t.tid))
+              .map((t: any) => ({ t, c: headCoachOf(gm, t.tid) }))
+              .filter((x: any) => x.c)
+              .map(({ t, c }: any) => {
+                const sm = careerSummary(coachRows(gm, s, c));
+                return (
+                  <tr key={t.tid} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                    <td style={td()}>
+                      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        {vm.ctx.logo(t.tid, 16)}
+                        {t.abbr}
+                      </span>
+                    </td>
+                    <td style={td()}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
+                        <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                          {c.name}
+                        </button>
+                      </div>
+                    </td>
+                    <td style={td('right')}>{coachAge(gm, c)}</td>
+                    <td style={td('right')}>{c.rep}</td>
+                    <td style={td('right')}>{sm.nbaW + sm.nbaL ? sm.nbaW + '–' + sm.nbaL : '—'}</td>
+                    <td style={td('right')}>{sm.hcW - sm.nbaW + sm.hcL - sm.nbaL ? sm.hcW - sm.nbaW + '–' + (sm.hcL - sm.nbaL) : '—'}</td>
+                    <td style={td('right')}>{sm.hcRings || ''}</td>
+                    <td style={td('right')}>{c.coy?.length || ''}</td>
+                    <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

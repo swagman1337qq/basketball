@@ -28,13 +28,14 @@ import { firstSeason } from './contracts';
 import { addNotice } from './preFA';
 import { fmtMoney as money } from './capModel';
 
-export type CoachRole = 'lead' | 'asst' | 'dev';
+export type CoachRole = 'lead' | 'asst' | 'dev' | 'hc';
 export const ROLE_LABEL: Record<CoachRole, string> = {
   lead: 'Lead Assistant',
   asst: 'Assistant Coach',
   dev: 'Head of Player Development',
+  hc: 'Head Coach', // an AI team's head coach (coachCareer.ts); you are your teams' head coach
 };
-export const ROLE_ORDER: CoachRole[] = ['lead', 'asst', 'dev'];
+export const ROLE_ORDER: CoachRole[] = ['hc', 'lead', 'asst', 'dev'];
 export const STAFF_MIN = 3,
   STAFF_MAX = 6;
 export const CR_KEYS = ['off', 'def', 'dev', 'game', 'mot', 'teach', 'eye'] as const;
@@ -82,6 +83,10 @@ export interface Coach {
   raise?: { ask: number; season: number }; // asked you for a raise this season
   sour?: number; // season he soured on you (a refused raise): he won't re-sign
   ret?: number; // season he retired from coaching
+  pid?: number; // a former player in this league (coachCareer.ts): his playing career is linked
+  made?: number; // season he came into view (before it: a generated career, coachCareer.ts)
+  h?: number[][]; // a row a season he worked here: [season, team, role code, under you 1/0] (coachCareer.ts)
+  coy?: number[]; // seasons he was Coach of the Year (head coaches)
 }
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -159,6 +164,7 @@ export function mkCoach(g: Game, o: { age?: number; fem?: boolean; play?: string
     amt: 0,
     exp: 0,
     read: 0,
+    made: g.Y,
   };
   c.rep = repOf(g, c);
   C[id] = c;
@@ -220,6 +226,8 @@ export function playLine(c: Coach) {
   const p = c.play,
     s = (n: number) => n + ' season' + (n === 1 ? '' : 's');
   switch (p.k) {
+    case 'league':
+      return 'Played ' + s(p.yrs) + ' in this league' + (p.tier === 3 ? ' (a star)' : p.tier === 2 ? ' (a starter)' : ' (a role player)');
     case 'pro':
       return (
         'Played ' + s(p.yrs) + ' in the league' + (p.tier === 3 ? ' (an All-Star)' : p.tier === 2 ? ' (a starter)' : ' (a role player)')
@@ -238,11 +246,12 @@ export function playLine(c: Coach) {
       return 'Never played organized basketball';
   }
 }
-const PLAY_REP: Record<string, number> = { pro: 10, overseas: 6, women: 5, college: 4, ccp: 3, hs: 1, none: 0 };
+const PLAY_REP: Record<string, number> = { pro: 10, league: 10, overseas: 6, women: 5, college: 4, ccp: 3, hs: 1, none: 0 };
 // Reputation: his playing name (an All-Star's goes a long way at first) and his coaching years and results.
 export function repOf(g: Game, c: Coach) {
   const y = coachYears(g, c),
-    playR = (PLAY_REP[c.play.k] ?? 0) + (c.play.k === 'pro' ? ((c.play.tier ?? 1) - 1) * 12 : c.play.tier === 2 ? 6 : 0);
+    playR =
+      (PLAY_REP[c.play.k] ?? 0) + (c.play.k === 'pro' || c.play.k === 'league' ? ((c.play.tier ?? 1) - 1) * 12 : c.play.tier === 2 ? 6 : 0);
   const known = Math.min(1, y / 8); // the league learns how good a coach he is over the years
   return Math.round(cl(12 + playR + y * 1.3 + (coachOvr(c) - 45) * 0.9 * known + ((c as any).repAdj || 0), 0, 100));
 }
@@ -538,10 +547,17 @@ export function ensureStaff(g: Game) {
   const d: any = g.db,
     s: any = g.state;
   coachDb(g);
-  if (d.staffV) return;
-  for (let i = 0; i < POOL; i++) mkCoach(g);
-  d.staffV = 1;
-  (s.managed || [s.me]).forEach((tid: number) => starterStaff(g, s, tid));
+  if (!d.staffV) {
+    for (let i = 0; i < POOL; i++) mkCoach(g);
+    d.staffV = 1;
+    (s.managed || [s.me]).forEach((tid: number) => starterStaff(g, s, tid));
+  }
+  // Phase 2 (2026-11-15): careers. Coaches made before it came into view this season; retirements count from now.
+  if (d.staffV < 2) {
+    d.coachY0 = d.coachY0 ?? g.Y;
+    d.coachPipeY = d.coachPipeY ?? g.Y;
+    d.staffV = 2;
+  }
   bump(g);
 }
 // The staff a team starts with: ordinary coaches on short deals (an average staff, like the typical budget).
@@ -688,6 +704,11 @@ export function staffContractsEnd(g: Game, s: any): any[] {
   (Object.values(coachDb(g)) as Coach[]).forEach(c => {
     if (c.tid == null || c.ret || c.exp > g.Y) return;
     const tid = c.tid;
+    // An AI team's head coach stays on a new deal (hiring and firing come with phase 3).
+    if (c.role === 'hc' && !g.isUser(s, tid)) {
+      c.exp = g.Y + 2 + Math.floor(Math.random() * 3);
+      return;
+    }
     if (g.isUser(s, tid))
       out.push({
         tone: 'info',

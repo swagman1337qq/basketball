@@ -2,6 +2,7 @@
 // data/awardDefs.ts, editable in Settings). Regular-season awards are voted when the
 // regular season ends; series MVPs (Finals, conference finals) when those series end.
 // Coach of the Year stays a front-office award: wins above the roster's projection.
+import { headCoachOf } from './coachCareer';
 import type { Game } from './Game';
 import { DEFAULT_AWARDS, type AwardDef } from '../data/awardDefs';
 import { seasonAdvanced, seriesLine, type StatLine } from './advanced';
@@ -60,7 +61,7 @@ export interface SeasonAwards {
   roy: AwardEntry[];
   smoy: AwardEntry[];
   mip: AwardEntry[];
-  coy: { tid: number; name: string; line: string; pts?: number; first?: number; share?: number }[];
+  coy: { tid: number; name: string; cid?: number; line: string; pts?: number; first?: number; share?: number }[];
   allLeague: number[][];
   allDef: number[][];
   allRookie: number[];
@@ -213,7 +214,8 @@ export function computeAwards(g: Game, s: any): SeasonAwards {
     Y,
   ).map(({ t, score: v, pts, first, share }) => ({
     tid: t.tid,
-    name: g.isUser(s, t.tid) ? 'You (GM & head coach)' : t.gm,
+    name: g.isUser(s, t.tid) ? 'You (GM & head coach)' : headCoachOf(g, t.tid)?.name || t.gm, // the team's head coach (coachCareer.ts)
+    cid: g.isUser(s, t.tid) ? undefined : headCoachOf(g, t.tid)?.id,
     line: t.w + '–' + t.l + ' · ' + (v >= 0 ? '+' : '') + Math.round(v * 82) + ' wins over projection',
     pts,
     first,

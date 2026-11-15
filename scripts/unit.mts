@@ -15,6 +15,7 @@ import { relocateTeam } from '../src/engine/relocate';
 import { applyCard, PRESET_CARDS } from '../src/engine/playerCard';
 import { seasonLine } from '../src/engine/amateurStats';
 import * as ST from '../src/engine/staff';
+import * as CC from '../src/engine/coachCareer';
 
 let n = 0;
 const test = (name: string, fn: () => void) => {
@@ -306,6 +307,38 @@ test('coaches: a staff for your team, small capped effects, contracts and limits
   const o0 = ST.coachOvr(young);
   ST.staffYear(g, s);
   if (!young.ret) assert.ok(ST.coachOvr(young) >= o0 - 8);
+});
+
+test('coach careers: retiring players, AI head coaches, history that stays put (2026-11-15)', () => {
+  const g: any = Game.create(31, [0]),
+    s = g.state;
+  // Every AI team has one head coach; you are your team's.
+  s.teams.forEach((t: any) => {
+    const hc = CC.headCoachOf(g, t.tid);
+    if (g.isUser(s, t.tid)) assert.equal(hc, null);
+    else assert.ok(hc && hc.role === 'hc');
+  });
+  // A quarter of retiring players, at random, become coaches with their own playing career.
+  const ps = (Object.values(g.db.P) as any[]).filter(p => p.r && !p.retired).slice(0, 400);
+  ps.forEach(p => (p.retired = { season: g.Y, age: p.age, tid: -1, why: 'Retired' }));
+  const n0 = Object.keys(g.db.coaches).length,
+    n = CC.coachPipeline(g, s);
+  assert.ok(n >= 70 && n <= 130, String(n));
+  assert.equal(Object.keys(g.db.coaches).length - n0, n);
+  assert.equal(CC.coachPipeline(g, s), 0); // each player is considered once
+  const ex = (Object.values(g.db.coaches) as any[]).find(c => c.pid != null)!;
+  assert.equal(ex.name, g.db.P[ex.pid].name);
+  // Generated careers are the same every time they're shown.
+  const vet = CC.headCoachOf(g, 3)!;
+  assert.deepEqual(CC.coachRows(g, s, vet), CC.coachRows(g, s, vet));
+  assert.deepEqual(CC.playRows(g, s, vet), CC.playRows(g, s, vet));
+  assert.ok(CC.coachRows(g, s, vet).length >= 8);
+  // The season's row is stored once.
+  CC.staffSeason(g, s);
+  CC.staffSeason(g, s);
+  assert.equal((vet.h || []).filter((r: number[]) => r[0] === g.Y).length, 1);
+  const mine = ST.staffOf(g, s.me)[0];
+  assert.equal(mine.h!.find((r: number[]) => r[0] === g.Y)![3], 1); // under you
 });
 
 console.log((process.exitCode ? 'FAIL' : 'PASS') + ': ' + n + ' unit tests passed');

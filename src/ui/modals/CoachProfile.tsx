@@ -21,6 +21,8 @@ import {
   ROLE_LABEL,
   styleOf,
 } from '../../engine/staff';
+import { careerSummary, coachRows, playRows, WOMENS_LEAGUE } from '../../engine/coachCareer';
+import { th, td } from '../kit';
 
 export function CoachProfile({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx,
@@ -30,7 +32,14 @@ export function CoachProfile({ vm }: { vm: VM }) {
     age = coachAge(gm, c),
     close = () => gm.setState({ coachPid: null }),
     refresh = () => gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
-  const T = c.tid != null ? s.teams[c.tid] : null;
+  const T = c.tid != null ? s.teams[c.tid] : null,
+    tab: 'ov' | 'play' | 'coach' = s.coachTab || 'ov',
+    setTab = (k: string) => gm.setState({ coachTab: k });
+  const rows = coachRows(gm, s, c),
+    sum = careerSummary(rows),
+    plays = playRows(gm, s, c);
+  const f1 = (v: number) => v.toFixed(1),
+    f3 = (v: number) => (v ? v.toFixed(3).replace(/^0/, '') : '—');
   const trait = (k: string) => {
     const v = c.pers[k],
       [lo, hi] = CP_LABEL[k];
@@ -61,7 +70,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
         style={{ width: 'min(620px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 40px)', overflow: 'auto' }}
       >
         <div className="dialog-title" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <CoachFace c={c} age={age} size={84} />
+          <CoachFace gm={gm} c={c} age={age} size={84} />
           <div>
             <div>{c.name}</div>
             <div style={{ fontSize: '13px', fontWeight: 400, ...muted }}>
@@ -71,68 +80,228 @@ export function CoachProfile({ vm }: { vm: VM }) {
             </div>
           </div>
         </div>
-        <div className="dialog-body" style={{ fontSize: '13px' }}>
-          {row('Age', age + (c.fem ? ' · woman' : ''))}
-          {row('Nationality', gm.db.C?.[c.nat]?.n || c.nat)}
-          {row('Reputation', c.rep + ' / 100')}
-          {row('Personality', traits.length ? traits.join(' · ') : 'Nothing stands out')}
-          {row('Played', playLine(c))}
-          {row('Coaching', (coachYears(gm, c) ? coachYears(gm, c) + ' years · since ' + c.since + ' · ' : 'New · ') + c.bg)}
-          {T && !c.ret && row('Contract', money(c.amt) + ' a year through ' + (c.exp - 1) + '–' + String(c.exp).slice(2))}
-          <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
-            Coaching ratings{' '}
-            <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>
-              {god ? '(God Mode: exact)' : '(your read: ' + readLabel(c).toLowerCase() + ')'}
-            </span>
+        <div style={{ display: 'flex', gap: 16, padding: '0 20px', borderBottom: '1px solid var(--color-divider)', fontSize: '13px' }}>
+          {(
+            [
+              ['ov', 'Overview'],
+              ['play', 'Playing career'],
+              ['coach', 'Coaching career'],
+            ] as [string, string][]
+          ).map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                padding: '6px 0',
+                color: tab === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+                borderBottom: '2px solid ' + (tab === k ? 'var(--color-accent)' : 'transparent'),
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        {tab === 'play' && (
+          <div className="dialog-body" style={{ fontSize: '13px' }}>
+            <div style={{ marginBottom: 8 }}>
+              {playLine(c)}
+              {c.pid != null && gm.db.P[c.pid] && (
+                <>
+                  {' · '}
+                  <button
+                    className="hv4"
+                    style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => vm.ctx.open(c.pid!)}
+                  >
+                    his player profile
+                  </button>
+                </>
+              )}
+            </div>
+            {plays.length ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                  <thead>
+                    <tr>
+                      <th style={th()}>Season</th>
+                      <th style={th()}>Team</th>
+                      <th style={th('right')}>G</th>
+                      <th style={th('right')}>MPG</th>
+                      <th style={th('right')}>PTS</th>
+                      <th style={th('right')}>REB</th>
+                      <th style={th('right')}>AST</th>
+                      <th style={th('right')}>FG%</th>
+                      <th style={th('right')}>3P%</th>
+                      <th style={th('right')}>FT%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plays.map(r => (
+                      <tr key={r.season} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                        <td style={td()}>
+                          {r.season - 1}–{String(r.season).slice(2)}
+                        </td>
+                        <td style={td()} title={r.lg}>
+                          {r.team}
+                          {r.lg === WOMENS_LEAGUE ? ' (WPL)' : ''}
+                        </td>
+                        <td style={td('right')}>{r.gp}</td>
+                        <td style={td('right')}>{f1(r.mpg)}</td>
+                        <td style={td('right')}>{f1(r.pts)}</td>
+                        <td style={td('right')}>{f1(r.reb)}</td>
+                        <td style={td('right')}>{f1(r.ast)}</td>
+                        <td style={td('right')}>{f3(r.fg)}</td>
+                        <td style={td('right')}>{f3(r.tp)}</td>
+                        <td style={td('right')}>{f3(r.ft)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={muted}>No stats to show.</p>
+            )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '4px 16px' }}>
-            {CR_KEYS.map(k => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-                <span style={muted}>{CR_LABEL[k]}</span>
-                {god ? (
+        )}
+        {tab === 'coach' && (
+          <div className="dialog-body" style={{ fontSize: '13px' }}>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span>
+                <b>{sum.seasons}</b> seasons coaching
+              </span>
+              <span>
+                NBA head coach: <b>{sum.nbaW + sum.nbaL ? sum.nbaW + '–' + sum.nbaL : '—'}</b>
+              </span>
+              <span>
+                Head coach, all levels:{' '}
+                <b>
+                  {sum.hcW}–{sum.hcL}
+                </b>
+                {sum.hcW + sum.hcL ? ' (' + (sum.hcW / (sum.hcW + sum.hcL)).toFixed(3).replace(/^0/, '') + ')' : ''}
+              </span>
+              <span>
+                Titles: <b>{sum.hcRings}</b> as head coach, <b>{sum.asstRings}</b> as an assistant
+              </span>
+              {!!c.coy?.length && (
+                <span>
+                  Coach of the Year: <b>{c.coy.join(', ')}</b>
+                </span>
+              )}
+            </div>
+            {rows.length ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                  <thead>
+                    <tr>
+                      <th style={th()}>Season</th>
+                      <th style={th()}>Team</th>
+                      <th style={th()}>Level</th>
+                      <th style={th()}>Role</th>
+                      <th style={th('right')}>W–L</th>
+                      <th style={th()}>Finish</th>
+                      <th style={th()}>Under</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows
+                      .slice()
+                      .reverse()
+                      .map(r => (
+                        <tr key={r.season} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                          <td style={td()}>
+                            {r.season - 1}–{String(r.season).slice(2)}
+                            {r.cur ? ' (now)' : ''}
+                          </td>
+                          <td style={td()}>
+                            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                              {r.tid != null && vm.ctx.logo(r.tid, 14)}
+                              {r.team}
+                            </span>
+                          </td>
+                          <td style={td()}>{r.level}</td>
+                          <td style={td()}>{r.role}</td>
+                          <td style={td('right')}>{r.w != null ? r.w + '–' + r.l : ''}</td>
+                          <td style={td()}>
+                            {r.fin || (r.ring ? 'Won the title' : '')}
+                            {c.coy?.includes(r.season) ? ' · Coach of the Year' : ''}
+                          </td>
+                          <td style={td('left', { fontSize: '12px' })}>{r.under || ''}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={muted}>New to coaching.</p>
+            )}
+          </div>
+        )}
+        {tab === 'ov' && (
+          <div className="dialog-body" style={{ fontSize: '13px' }}>
+            {row('Age', age + (c.fem ? ' · woman' : ''))}
+            {row('Nationality', gm.db.C?.[c.nat]?.n || c.nat)}
+            {row('Reputation', c.rep + ' / 100')}
+            {row('Personality', traits.length ? traits.join(' · ') : 'Nothing stands out')}
+            {row('Played', playLine(c))}
+            {row('Coaching', (coachYears(gm, c) ? coachYears(gm, c) + ' years · since ' + c.since + ' · ' : 'New · ') + c.bg)}
+            {T && !c.ret && row('Contract', money(c.amt) + ' a year through ' + (c.exp - 1) + '–' + String(c.exp).slice(2))}
+            <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
+              Coaching ratings{' '}
+              <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>
+                {god ? '(God Mode: exact)' : '(your read: ' + readLabel(c).toLowerCase() + ')'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '4px 16px' }}>
+              {CR_KEYS.map(k => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                  <span style={muted}>{CR_LABEL[k]}</span>
+                  {god ? (
+                    <NumInput
+                      value={c.r[k]}
+                      min={1}
+                      max={99}
+                      width={60}
+                      onValue={v => {
+                        godEditCoach(gm, c.id, { [k]: v });
+                        refresh();
+                      }}
+                    />
+                  ) : (
+                    <b>{grade(readOf(c, k))}</b>
+                  )}
+                </div>
+              ))}
+            </div>
+            {god && (
+              <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span>
+                  Overall <b>{coachOvr(c).toFixed(1)}</b>
+                </span>
+                <span>
+                  Ceiling{' '}
                   <NumInput
-                    value={c.r[k]}
+                    value={c.ceil}
                     min={1}
                     max={99}
                     width={60}
                     onValue={v => {
-                      godEditCoach(gm, c.id, { [k]: v });
+                      godEditCoach(gm, c.id, { ceil: v });
                       refresh();
                     }}
                   />
-                ) : (
-                  <b>{grade(readOf(c, k))}</b>
-                )}
+                </span>
+                <span>
+                  Personality:{' '}
+                  {Object.keys(CP_LABEL)
+                    .map(k => CP_LABEL[k][1].split(' ').slice(-1)[0] + ' ' + c.pers[k])
+                    .join(' · ')}
+                </span>
               </div>
-            ))}
+            )}
           </div>
-          {god && (
-            <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span>
-                Overall <b>{coachOvr(c).toFixed(1)}</b>
-              </span>
-              <span>
-                Ceiling{' '}
-                <NumInput
-                  value={c.ceil}
-                  min={1}
-                  max={99}
-                  width={60}
-                  onValue={v => {
-                    godEditCoach(gm, c.id, { ceil: v });
-                    refresh();
-                  }}
-                />
-              </span>
-              <span>
-                Personality:{' '}
-                {Object.keys(CP_LABEL)
-                  .map(k => CP_LABEL[k][1].split(' ').slice(-1)[0] + ' ' + c.pers[k])
-                  .join(' · ')}
-              </span>
-            </div>
-          )}
-        </div>
+        )}
         <div className="dialog-actions">
           {god && !c.ret && c.tid !== s.me && (
             <button

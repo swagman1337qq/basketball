@@ -1,13 +1,16 @@
 // A coach's face (staff.ts coaches: a suit, no jersey), drawn once per coach and age.
 import { makeFace, faceSvg } from '../engine/faces';
 import type { Coach } from '../engine/staff';
+import type { Game } from '../engine/Game';
 
 const CACHE = new Map<string, any>();
-export function CoachFace({ c, age, size = 40 }: { c: Coach; age: number; size?: number }) {
-  const key = c.id + '|' + age + '|' + c.race + '|' + (c.fem ? 1 : 0);
+// A former player in this league (c.pid) keeps his own face, as old as he is now.
+export function CoachFace({ c, age, size = 40, gm }: { c: Coach; age: number; size?: number; gm?: Game }) {
+  const pl = c.pid != null && gm ? (gm.db.P as any)[c.pid] : null;
+  const key = c.id + '|' + age + '|' + c.race + '|' + (c.fem ? 1 : 0) + '|' + (pl ? 'p' : '');
   let el = CACHE.get(key);
   if (!el) {
-    el = faceSvg(makeFace({ id: 700000 + c.id, race: c.race, age, fem: c.fem }), ['#2f3136', '#d8d4cc']);
+    el = faceSvg(pl ? gm!.face(c.pid) : makeFace({ id: 700000 + c.id, race: c.race, age, fem: c.fem }), ['#2f3136', '#d8d4cc']);
     if (CACHE.size > 400) CACHE.clear();
     CACHE.set(key, el);
   }

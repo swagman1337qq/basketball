@@ -16,6 +16,7 @@ import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
+import { coachPipeline, syncHeadCoaches } from './coachCareer';
 import {
   coachingOf,
   devSlip,
@@ -400,6 +401,7 @@ export class Game {
     g.rollDevYear(g.state);
     if (opts.spectate) g.enterSpectator(); // spectator.ts: no team, the AI runs all of them
     ensureStaff(g); // coaches: a pool, and a staff for each of your teams (staff.ts)
+    syncHeadCoaches(g, g.state); // and a head coach for every AI team (coachCareer.ts)
     return g;
   }
 
@@ -737,6 +739,10 @@ export class Game {
       g.db.osV = 1;
     } // 2026-10-28: players abroad (cbaFlow.ts settleAbroad)
     ensureStaff(g); // 2026-11-15: coaches as people, your assistant staff (staff.ts)
+    {
+      const hl = syncHeadCoaches(g, g.state); // every AI team's head coach; your teams' staffs (coachCareer.ts)
+      if (hl.length) g.state.lgLog = [...hl, ...(g.state.lgLog || [])];
+    }
     if (!g.db.laTvV) {
       (g.state.teams || []).forEach((t: any) => {
         if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +((t.tv.fee * 200) / 115).toFixed(1) };
@@ -5437,7 +5443,9 @@ export class Game {
     if (!this.db.coachYearY || this.db.coachYearY < this.Y) {
       this.db.coachYearY = this.Y;
       const { notices: cn } = staffYear(this, this.state); // coaches grow, retire, ask for raises (staff.ts)
-      if (cn.length) this.setState(st => ({ notices: notify(st, cn) }));
+      coachPipeline(this, this.state); // a quarter of this year's retiring players turn to coaching (coachCareer.ts)
+      const hl = syncHeadCoaches(this, this.state); // a team whose head coach retired names a new one
+      this.setState(st => ({ ...(cn.length ? { notices: notify(st, cn) } : {}), ...(hl.length ? { lgLog: [...hl, ...st.lgLog] } : {}) }));
     }
     if (dealNote) this.setState(st => ({ notices: addNotice(st, dealNote) })); // the summer's deals in the Mailbox
     if (abroadNote) this.setState(st => ({ notices: addNotice(st, abroadNote) })); // shortlisted players who signed abroad

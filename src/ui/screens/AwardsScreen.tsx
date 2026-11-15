@@ -278,7 +278,11 @@ export function AwardsScreen({ vm }: { vm: VM }) {
                 <div
                   style={{ fontFamily: i ? 'inherit' : 'var(--font-heading)', fontSize: i ? '13px' : '19px', fontWeight: i ? 400 : 600 }}
                 >
-                  {c.name}
+                  {(c as any).cid != null && vm.ctx.gm.db.coaches?.[(c as any).cid] ? (
+                    <Link onClick={() => vm.ctx.gm.setState({ coachPid: (c as any).cid, coachTab: 'coach' })}>{c.name}</Link>
+                  ) : (
+                    c.name
+                  )}
                 </div>
                 <div style={{ fontSize: '12px', ...sub(c.tid) }}>
                   <Link onClick={() => openTeam(c.tid)}>{T[c.tid].abbr}</Link> · {c.line}

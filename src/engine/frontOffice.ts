@@ -2,6 +2,7 @@
 // contract incentives (with likely/unlikely cap accounting), stat-padding dilemmas and
 // owner-mandated fire sales. Everything the owner judges you on is computed here and
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
+import { staffSeason } from './coachCareer';
 import { hasStaff, staffBudget, staffCost } from './staff';
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
@@ -693,6 +694,7 @@ export function seasonReview(g: Game) {
       screen: s.spectator ? s.screen : fired.length ? 'career' : 'playoffs',
     };
   });
+  staffSeason(g, g.state); // every coach's season goes into his history (coachCareer.ts)
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
   (s.firedFrom || []).forEach(t => {

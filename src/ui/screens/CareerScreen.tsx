@@ -372,6 +372,7 @@ export function CareerScreen({ vm }: { vm: VM }) {
                     </td>
                     <td style={td()}>
                       {x.fin}
+                      {s.awards?.[x.season]?.coy?.[0]?.tid === x.tid ? <b> · Coach of the Year</b> : null}
                       {x.fired ? <span style={{ color: 'var(--gm-bad)' }}> · fired</span> : null}
                     </td>
                     <td style={td('right')}>{x.sec}</td>
@@ -381,6 +382,36 @@ export function CareerScreen({ vm }: { vm: VM }) {
             </table>
           )}
         </section>
+        {(() => {
+          // Your coaching tree (coachCareer.ts): everyone who has coached under you, and where he is now.
+          const tree = (Object.values(gm.db.coaches || {}) as any[])
+            .map(c => ({ c, yrs: (c.h || []).filter((r: number[]) => r[3]).length }))
+            .filter(x => x.yrs > 0)
+            .sort((a, b) => b.yrs - a.yrs);
+          if (!tree.length) return null;
+          return (
+            <section style={{ gridColumn: '1 / -1' }}>
+              <h4 style={ruleH4}>Your coaching tree</h4>
+              <p style={{ ...muted, fontSize: '12px', margin: '0 0 6px' }}>Assistants who have worked under you, and where they are now.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', fontSize: '13px' }}>
+                {tree.map(({ c, yrs }) => (
+                  <span key={c.id}>
+                    <Link onClick={() => gm.setState({ coachPid: c.id, coachTab: 'coach' })}>{c.name}</Link>{' '}
+                    <span style={muted}>
+                      ({yrs} season{yrs === 1 ? '' : 's'}
+                      {c.ret
+                        ? ', retired'
+                        : c.tid != null
+                          ? ', now ' + (c.role === 'hc' ? 'head coach' : 'assistant') + ' · ' + T[c.tid].abbr
+                          : ', available'}
+                      )
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
       </div>
     </>
   );
