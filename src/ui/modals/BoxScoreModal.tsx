@@ -2,12 +2,13 @@
 // Opened by clicking a result (Dashboard, Schedule, Playoffs). ← Back returns to where you were;
 // the arrows (or ← → keys) step through the same team's games in order: regular season, play-in,
 // playoffs. Kept for the current season.
-import { Fragment, useEffect, useLayoutEffect, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { VM } from '../vm';
 import { Game } from '../../engine/Game';
 import { Link, muted, Seg } from '../kit';
-import { BoxScoreDetails, FourFactors, periodBox } from './BoxScoreDetails';
+import { BoxScoreDetails, FourFactors, periodBox, periodNumbers } from './BoxScoreDetails';
 import './BoxScore.css';
+import { useAlignedTables } from '../useAlignedTables';
 
 const F = Game.BOX_F; // min, pts, fgm, fga, tpm, tpa, ftm, fta, orb, drb, ast, stl, blk, tov, pf, pm, gs
 const at = (l: number[], k: string) => l[1 + F.indexOf(k)];
@@ -90,10 +91,13 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
   };
   const [tab, setTab] = useState('box');
   const [period, setPeriod] = useState('Game');
+  const tablesRef = useRef<HTMLDivElement>(null);
+  useAlignedTables(tablesRef, [bx, mode, period, tab]);
   useEffect(() => {
     setPeriod('Game');
   }, [s.boxId]);
   if (!bx) return null;
+  const periodUnavailable = period !== 'Game' && !bx.details?.periods?.length;
   const selected = periodBox(bx, period);
   const visitTeam = (tid: number) => {
     close();
@@ -221,7 +225,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
     Object.entries(LEADK).forEach(([k, f]) => (gameMax[k] = Math.max(...allLines.map((l: number[]) => f(x => at(l, x))))));
     const isLead = (c: string, g: (k: string) => number) => !!LEADK[c] && gameMax[c] > 0 && LEADK[c](g) === gameMax[c];
     return (
-      <section key={sd.tid} style={{ overflowX: 'auto' }}>
+      <section key={sd.tid} className="box-team-table">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0 6px' }}>
           {logo(sd.tid, 24)}
           <Link
@@ -235,13 +239,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           </Link>
           <span style={{ ...muted }}>{sd.pts}</span>
         </div>
-        <table className="table box-stat-table" style={{ fontSize: '12.5px', width: 190 + cols.length * 52 }}>
-          <colgroup>
-            <col style={{ width: 190 }} />
-            {cols.map(c => (
-              <col key={c[0]} style={{ width: 52 }} />
-            ))}
-          </colgroup>
+        <table className="table box-stat-table" data-align-columns style={{ fontSize: '12.5px' }}>
           <thead>
             <tr>
               {th('Player', true)}
@@ -262,7 +260,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
                     </tr>
                   )}
                   <tr>
-                    <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
                       {p && (
                         <img
                           src={gm.flag(p.rep)}
@@ -468,7 +466,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
               </tbody>
             </table>
           </section>
-          <FourFactors box={selected} T={T} onTeam={visitTeam} />
+          {!periodUnavailable && <FourFactors box={selected} T={T} onTeam={visitTeam} />}
         </div>
       )}
       <div className="box-period-tabs" aria-label="Game period">
@@ -476,7 +474,6 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           <button
             key={p}
             className={period === p ? 'btn btn-primary' : 'btn btn-secondary'}
-            disabled={p !== 'Game' && !bx.details}
             aria-pressed={period === p}
             onClick={() => setPeriod(p)}
           >
@@ -484,6 +481,20 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           </button>
         ))}
       </div>
+      {periodUnavailable && (
+        <div className="box-period-unavailable" role="status">
+          <b>
+            {period}:{' '}
+            {sides
+              .map((sd: any) => T[sd.tid].abbr + ' ' + periodNumbers(period, per).reduce((n, q) => n + (sd.qs[q - 1] || 0), 0))
+              .join(' · ')}
+          </b>
+          <p>
+            Individual period stats were not recorded for this saved game. Choose Game for the full box score. Newly played games include
+            quarter and half stats.
+          </p>
+        </div>
+      )}
       {tab === 'box' ? (
         <>
           <div className="box-mode-switch">
@@ -497,7 +508,11 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
               onChange={setMode}
             />
           </div>
-          <div className="box-team-sections">{[selected.away, selected.home].map(team)}</div>
+          {!periodUnavailable && (
+            <div ref={tablesRef} className="box-team-sections box-player-tables">
+              {[selected.away, selected.home].map(team)}
+            </div>
+          )}
           {bx.coach && (
             <section>
               <h3>Coaching</h3>

@@ -1,0 +1,51 @@
+.roster-players {
+  width: max-content;
+  table-layout: auto;
+}
+.roster-players th,
+.roster-players td {
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.roster-team-details {
+  margin-top: 8px;
+  line-height: 1.6;
+  font-size: 12.5px;
+}
+.roster-team-details b {
+  font-weight: 600;
+}
+.roster-reports {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.roster-reports h3 {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  margin: 0 0 8px;
+}
+.roster-report-table {
+  border-collapse: collapse;
+  width: max-content;
+  max-width: 100%;
+  font-size: 12.5px;
+}
+.roster-report-table th,
+.roster-report-table td {
+  padding: 5px 9px;
+  border: 1px solid var(--color-divider);
+  text-align: left;
+}
+.roster-report-table th {
+  background: var(--color-neutral-100);
+  font-weight: 600;
+}
+.roster-report-table td:first-child {
+  white-space: nowrap;
+}
+.roster-staff td {
+  border: 0;
+  padding: 3px 20px 3px 0;
+}

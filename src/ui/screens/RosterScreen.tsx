@@ -5,7 +5,7 @@
 // control and moods that explain themselves (badges are on the player's profile). Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
 // two-way players and, in the offseason, Exhibit 10 camp deals.
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { howAcquired, yearsWithTeam } from '../../engine/txlog';
@@ -23,6 +23,9 @@ import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/au
 import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN } from '../kit';
 import { MiniBadges } from '../BadgeChip';
 import { knownBadges } from '../../engine/scoutReport';
+import { useAlignedTables } from '../useAlignedTables';
+import { RosterTeamDetails, RosterReports } from './RosterTeamDetails';
+import './RosterScreen.css';
 
 const PTI: [number, string][] = [
   [0, 'Only fully healthy players'],
@@ -230,6 +233,16 @@ export function RosterScreen({ vm }: { vm: VM }) {
     [fOvr, setFOvr] = useState(0),
     [fPot, setFPot] = useState(0);
   const filtering = !!(fPos || fOvr || fPot);
+  const tablesRef = useRef<HTMLDivElement>(null);
+  useAlignedTables(tablesRef, [s, tid, season, dense, fPos, fOvr, fPot, order]);
+  const columnCount =
+    7 +
+    (mine && !dense ? 1 : 0) +
+    (cur ? (dense ? 3 : 2) : 0) +
+    (mine ? 1 : 0) +
+    6 +
+    (cur && isMine(tid) ? 1 : 0) +
+    (dense && cur && !vm.spec?.on ? 1 : 0);
   const vis = (id: number) => {
     const p = P[id];
     return (!fPos || (fPos.startsWith('grp:') ? p.grp === fPos.slice(4) : p.pos === fPos)) && p.ovr >= fOvr && vm.ctx.potOf(p) >= fPot;
@@ -349,7 +362,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
             />
             <span
               title={p.name + (p.native ? ' (' + p.native + ')' : '')}
-              style={{ color: 'var(--color-accent-700)', fontWeight: start ? 600 : 400, ...PN }}
+              style={{
+                color: 'var(--color-accent-700)',
+                fontWeight: start ? 600 : 400,
+                ...PN,
+                maxWidth: 'none',
+                overflow: 'visible',
+                textOverflow: 'clip',
+              }}
             >
               {p.name}
             </span>
@@ -406,7 +426,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   title={o.label + ': ' + o.why}
                   style={{ fontSize: '11px', padding: '0 6px' }}
                 >
-                  {o.short}
+                  {p.ctype === 'twoWay' && o.to === 'standard' ? 'Convert to standard' : o.short}
                 </button>
               ))}
             {!dense && mine && tid === s.me && cur && (
@@ -609,7 +629,9 @@ export function RosterScreen({ vm }: { vm: VM }) {
           <td style={{ ...td, position: 'relative' }} onClick={e => e.stopPropagation()}>
             {(() => {
               const own = tid === s.me,
-                more = own && mine ? convOptions(p) : [];
+                conversions = own && mine ? convOptions(p) : [],
+                standard = p.ctype === 'twoWay' ? conversions.find(o => o.to === 'standard') : null,
+                more = conversions.filter(o => o !== standard);
               return (
                 <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
                   <button
@@ -634,6 +656,16 @@ export function RosterScreen({ vm }: { vm: VM }) {
                       onClick={() => gm.setState({ dialog: { type: 'release', pid: id } })}
                     >
                       Cut
+                    </button>
+                  )}
+                  {standard && (
+                    <button
+                      className="btn btn-secondary"
+                      title={standard.why}
+                      style={{ fontSize: '11.5px', padding: '1px 7px', whiteSpace: 'nowrap' }}
+                      onClick={() => convertContract(gm, id, 'standard')}
+                    >
+                      Convert to standard
                     </button>
                   )}
                   {own && mine && more.length > 0 && (
@@ -711,7 +743,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         commit();
       }}
     >
-      <td colSpan={100} style={{ padding: 0, borderBottom: 'none' }}>
+      <td colSpan={columnCount} style={{ padding: 0, borderBottom: 'none' }}>
         <div
           style={{
             display: 'flex',
@@ -810,7 +842,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
   const [noteOpen, setNoteOpen] = useState(false);
   const pastIds = cur ? [] : ids.slice().sort((a, b) => line(P[b]).min * line(P[b]).gp - line(P[a]).min * line(P[a]).gp);
   return (
-    <>
+    <div className="roster-page" ref={tablesRef}>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
         {(s.pageStack || []).length > 0 && (
           <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginRight: 6 }}>
@@ -885,7 +917,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         >
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: '1 1 380px', minWidth: 0 }}>
             <div style={{ cursor: 'pointer', flex: '0 0 auto' }} onClick={() => openTeamPage(tid)} title="Team overview">
-              {logo(tid, 52)}
+              {logo(tid, 120)}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', marginBottom: 3 }}>
@@ -962,6 +994,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   Cut {std.length - seasonMax(s)} by opening night (or convert Exhibit 10s to two-way deals).
                 </div>
               )}
+              <RosterTeamDetails vm={vm} tid={tid} season={season} />
             </div>
           </div>
           {mine && (
@@ -1123,7 +1156,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           }}
         >
           <div style={{ cursor: 'pointer' }} onClick={() => openTeamPage(tid)} title="Team overview">
-            {logo(tid, 110)}
+            {logo(tid, 130)}
           </div>
           <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '20px' }}>
@@ -1136,6 +1169,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
               Record: <b style={{ color: cur && t.w >= t.l ? 'var(--gm-good)' : undefined }}>{rec}</b>
               {hist?.fin ? ' · ' + hist.fin : ''}
             </div>
+            <RosterTeamDetails vm={vm} tid={tid} season={season} />
             {cur && (
               <div>
                 {rank}
@@ -1552,7 +1586,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>
           {tid === s.me && s.convMsg && <div style={{ color: 'var(--gm-bad)', fontSize: '12.5px', margin: '0 0 6px' }}>{s.convMsg}</div>}
           <div data-tour="roster-table" style={{ overflowX: 'auto' }}>
-            <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
+            <table
+              data-align-columns
+              className={dense ? 'table dense roster-players' : 'table roster-players'}
+              style={{ fontSize: dense ? '12.5px' : '13px' }}
+            >
               {Head()}
               <tbody>
                 {shown(mainIds).map((id, i) => (
@@ -1568,12 +1606,16 @@ export function RosterScreen({ vm }: { vm: VM }) {
             Two-way contracts · {tw.length} of {TWO_WAY_MAX}{' '}
             <span style={{ ...muted, fontWeight: 400, fontSize: '12px' }}>
               Off the {seasonMax(s)}-man roster and the cap; up to 50 NBA games; not playoff-eligible.
-              {mine ? ' Press Make standard to give one a standard contract.' : ''}
+              {mine ? ' Press Convert to standard to give one a standard contract.' : ''}
             </span>
           </div>
           {tw.length ? (
             <div style={{ overflowX: 'auto' }}>
-              <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
+              <table
+                data-align-columns
+                className={dense ? 'table dense roster-players' : 'table roster-players'}
+                style={{ fontSize: dense ? '12.5px' : '13px' }}
+              >
                 {Head()}
                 <tbody>{shown(tw).map((id, i) => vis(id) && Row({ id, i, list: tw }))}</tbody>
               </table>
@@ -1592,7 +1634,11 @@ export function RosterScreen({ vm }: { vm: VM }) {
                 </span>
               </div>
               <div style={{ overflowX: 'auto' }}>
-                <table className={dense ? 'table dense' : 'table'} style={{ fontSize: dense ? '12.5px' : '13px', minWidth: 900 }}>
+                <table
+                  data-align-columns
+                  className={dense ? 'table dense roster-players' : 'table roster-players'}
+                  style={{ fontSize: dense ? '12.5px' : '13px' }}
+                >
                   {Head()}
                   <tbody>{shown(ex10).map((id, i) => vis(id) && Row({ id, i, list: ex10 }))}</tbody>
                 </table>
@@ -1607,7 +1653,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           </div>
           {pastIds.length ? (
             <div style={{ overflowX: 'auto' }}>
-              <table className="table" style={{ fontSize: '13px', minWidth: 760 }}>
+              <table data-align-columns className="table roster-players" style={{ fontSize: '13px' }}>
                 {Head()}
                 <tbody>{pastIds.map((id, i) => vis(id) && Row({ id, i, list: pastIds }))}</tbody>
               </table>
@@ -1617,7 +1663,8 @@ export function RosterScreen({ vm }: { vm: VM }) {
           )}
         </>
       )}
-    </>
+      <RosterReports vm={vm} tid={tid} season={season} ids={ids} />
+    </div>
   );
 }
 

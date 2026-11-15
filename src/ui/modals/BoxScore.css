@@ -105,13 +105,36 @@
   width: 100%;
 }
 .box-stat-table {
-  table-layout: fixed;
-  margin: 0 !important;
+  table-layout: auto;
+  width: max-content;
+  margin: 0;
 }
 .box-stat-table th,
 .box-stat-table td {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  box-sizing: border-box;
+}
+.box-player-tables {
+  overflow-x: auto;
+}
+.box-player-tables > section {
+  width: max-content;
+  margin: 0 auto;
+}
+.box-game-summary,
+.box-period-tabs,
+.box-mode-switch {
+  justify-content: center;
+}
+.box-mode-switch {
+  display: flex;
+}
+.box-period-unavailable {
+  text-align: center;
+  font-size: 13px;
+  margin: 12px 0 20px;
 }
 .box-table-scroll {
   overflow-x: auto;
