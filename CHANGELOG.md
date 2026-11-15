@@ -5,7 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-15
 
 ### Changed
-- **Postseason winners use their own team colors.** Play-in winners are highlighted in their team's primary color. In playoff series without your team, each G1, G2 and later box-score button uses that game's winner's primary color, with readable light or dark text. Your team's series keep their existing highlight and green/red game results.
+- **Postseason winners use their own team colors.** Play-in winners are highlighted in their team's primary color. In playoff series without your team, each G1, G2 and later box-score button is outlined in that game's winner's main color with a light wash of it, like the green and red on your own series (not filled in). Your team's series keep their existing highlight and green/red game results.
 
 ### Added
 - **Easy contracts (Settings).** A simpler contract system for the whole league. Every deal is 1 to 5 years at the same salary each year, up to the player's max (25, 30 or 35% of the cap, same rules as before), with a player option, a team option or neither. There are no exceptions or Bird rights: any team can sign anyone as long as its payroll stays under one ceiling (the old 2nd apron line), and minimum deals always fit. No bonuses, trade kickers, no-trade clauses, qualifying offers or offer sheets. Any player with one season left can extend, any time. Trades don't need matching salaries, but a team can't end up over the ceiling with more salary than it had. Rookie-scale deals, two-ways, Exhibit 10s and 10-days stay. Contracts already signed keep their terms, and you can switch it on or off any time.

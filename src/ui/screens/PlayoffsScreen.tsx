@@ -128,11 +128,17 @@ function SeriesCard({ vm, x, title }: { vm: VM; x: any; title?: string }) {
                   fontSize: '10px',
                   padding: '0 4px',
                   borderRadius: 3,
+                  // Other series: the winner's main color as an outline with a light wash, like your own series' green and
+                  // red; the text leans toward the page's text color so dark team colors stay readable in either theme.
                   border: '1px solid ' + (winnerColor || res || 'var(--color-divider)'),
-                  background: winnerColor || (res ? 'color-mix(in srgb, ' + res + ' 22%, transparent)' : undefined),
+                  background: winnerColor
+                    ? 'color-mix(in srgb, ' + winnerColor + ' 22%, transparent)'
+                    : res
+                      ? 'color-mix(in srgb, ' + res + ' 22%, transparent)'
+                      : undefined,
                   fontWeight: winnerColor || res ? 700 : undefined,
                   opacity: box ? 1 : 0.5,
-                  color: winnerColor ? inkOn(winnerColor) : res || 'var(--color-neutral-700)',
+                  color: winnerColor ? 'color-mix(in srgb, ' + winnerColor + ' 65%, var(--color-text))' : res || 'var(--color-neutral-700)',
                 }}
               >
                 G{i + 1}
