@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-16
 
+### Changed
+- **Less empty space on rosters.** The overview stays on the left, lineup controls and team details share the middle, and injury settings sit on the right. Filters, stat tabs, God Mode happiness buttons and the team note share a compact wrapping toolbar below the full cap bar. Smaller screens stack the sections.
+
 ### Added
 - **God Mode staff identity randomizers.** Dice buttons beside Name and Nationality roll a new name or a different country. Names follow the selected country and gender. Rolls stay in the editor until Save changes.
 - **More varied international NCAA paths.** More generated prospects grow up overseas and arrive in the U.S. for college, alongside U.S.-born heritage players and earlier immigrants. Their birthplace, native names and national eligibility stay intact. Foreign youth teams keep the correct country even when no local club is listed. New generated players/classes use the change; existing and historical players keep their backgrounds.

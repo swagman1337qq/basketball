@@ -1,11 +1,26 @@
 // Salary-cap indicator: team salary against the floor, cap, tax line and both aprons.
 import type { Game } from '../engine/Game';
+import type { CSSProperties } from 'react';
 import { capState, nums, teamSalary } from '../engine/cba';
 import { fmtMoney } from '../engine/capModel';
 
 // delta: a hypothetical change (a trade being built): the bar and numbers show payroll after it,
 // with a tick where payroll is now.
-export function CapBar({ gm, s, tid, compact, delta = 0 }: { gm: Game; s: any; tid: number; compact?: boolean; delta?: number }) {
+export function CapBar({
+  gm,
+  s,
+  tid,
+  compact,
+  delta = 0,
+  style,
+}: {
+  gm: Game;
+  s: any;
+  tid: number;
+  compact?: boolean;
+  delta?: number;
+  style?: CSSProperties;
+}) {
   const N = nums(gm),
     offseason = s.phase === 'fa' || s.phase === 'draft';
   const pay0 = teamSalary(gm, s, tid),
@@ -41,7 +56,7 @@ export function CapBar({ gm, s, tid, compact, delta = 0 }: { gm: Game; s: any; t
         ];
   const room = N.CAP - payH;
   return (
-    <div data-tour="capbar" style={{ margin: compact ? '0 0 12px' : '0 0 16px' }}>
+    <div data-tour="capbar" style={{ marginTop: 0, marginRight: 0, marginBottom: compact ? 12 : 16, marginLeft: 0, ...style }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'baseline', flexWrap: 'wrap', fontSize: '12.5px', marginBottom: '4px' }}>
         <b style={{ color: state[1] }}>{state[0]}</b>
         <span>
