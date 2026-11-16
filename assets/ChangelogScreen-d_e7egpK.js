@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-CApul1fY.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-DG3WllO9.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-16
+
+### Added
+- **God Mode staff biography editor.** Open a coach profile, then Overview, to edit name, age, race/appearance, nationality, reputation, coaching experience and playing college/team where applicable. Save changes applies the edits; playing affiliations never change the coaching employer. Edits survive saving and reopening.
 
 ## 2026-11-15
 
