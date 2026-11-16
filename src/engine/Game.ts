@@ -1,4 +1,5 @@
 import { naturalDunkShare } from './finishing';
+import { TRAINABLE, MENTAL, ratingLimit, growIntangible, breakthroughEligible } from './ratingCeilings';
 import { askOffers } from './tradeOffers';
 import { excludesTrade } from './tradeExclusions';
 // The league: world generation, the season engine, and a tiny observable store.
@@ -80,7 +81,6 @@ import {
   setHgtKeepOvr,
   setRating,
   shiftOvr,
-  skillTop,
   syncOvr,
   teamRating,
   wngBonus,
@@ -364,6 +364,7 @@ export class Game {
     g.db.topV = 1;
     g.db.r99V = 1;
     g.db.tV = 1; // and every player with his own ceilings (potential.ts), 99s already rare
+    g.db.ratingCeilV = 1; // all 21 trainable ratings have fixed personal limits
     g.db.hgtV = 1; // and height ratings that follow listed height (ratings.ts blendHeight)
     g.db.finishV = 2;
     g.db.cardV = 6; // and nobody yet carrying a ready-made card's earlier build (playerCard.ts retuneCarriers)
@@ -1404,6 +1405,17 @@ export class Game {
         p.pers.mal = Math.round(Math.max(3, Math.min(97, 50 + (h(2654435761) + h(40503) + h(97) - 1.5) * 45)));
       }
     });
+    // Run after older migrations have supplied layups/acceleration/box out and position fields.
+    // Keep earned/manual ratings; a legacy rating already above its ceiling cannot gain farther.
+    if (!g.db.ratingCeilV) {
+      Object.values(g.db.P).forEach((p: any) => {
+        if (!p?.r || p.gone || p.retired) return;
+        ensureIntg(p);
+        if (!p.ceil) initCeil(p, p.pot ?? p.ovr, true);
+        floorCeil(p);
+      });
+      g.db.ratingCeilV = 1;
+    }
     assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams));
     g._rosterRef = g.state.rosters;
     if (recalibrateValue) {
@@ -2261,10 +2273,10 @@ export class Game {
       bodyAhead(p, squeezeTop(p.pot) - p.ovr);
       syncOvr(p);
     } // a young body is ahead of his game (development.ts); prospects: prospectPot
+    ensureIntg(p, rnd);
     initCeil(p, p.pot);
     rollPerr(p, age <= 22 ? 2.5 : age <= 26 ? 1.2 : 0);
     refreshPot(p); // potential is a ceiling (potential.ts); p.pot is the league's read
-    ensureIntg(p, rnd);
     rollGem(p, rnd, age <= 19 ? 0.07 : 0.05); // intangibles, and maybe a hidden gem (intangibles.ts)
     if (cls) ensureTranslation(p); // how his game will translate to the NBA: hidden until his first camp (translation.ts)
     P[p.id] = p;
@@ -4741,10 +4753,10 @@ export class Game {
           }
         });
       // Breakthroughs to 99: one in about 150 seasons league-wide, shared among the ratings sitting at 98 this summer.
-      const BK = [...SKILLS, 'spd', 'acc', 'jmp', 'stre', 'endu'],
+      const BK = TRAINABLE,
         at98 = [...(Object.values(rosters).flat() as number[]), ...fa].reduce((n, id) => {
           const q = P[id];
-          return q?.r && q.age < 31 ? n + BK.filter(k => q.r[k] === 98).length : n;
+          return q?.r && q.age < 31 ? n + BK.filter(k => breakthroughEligible(q, k)).length : n;
         }, 0),
         brkP = Game.BREAK / Math.max(1, at98);
       const grow = (p, tid = -1, focus = 'Balanced') => {
@@ -4773,8 +4785,7 @@ export class Game {
               )
             : this.devMult(p, rate) * coachAging(cm); // everything that speeds him up, together at most GROW_CAP× his plan
         let x = rate * boost * (0.25 + Math.random() * 0.5) + (a <= 25 ? form * 0.8 : form * 0.3) + nz() * (a <= 24 ? 1.3 : 0.8) + pen;
-        // Luck can carry him past his ceiling, but only partly: most of an overshoot is given back
-        // (otherwise good luck raises the ceiling for good while bad luck is grown back: a ratchet).
+        // Summer luck stays under the fixed overall upper bound and each personal rating limit.
         if (x > 0) x = Math.min(x, Math.max(0, trueT(p) - ovrExact(p))); // never past his true potential (potential.ts)
         let potD = 0;
         if (a <= 24 && (p.tpot ?? p.pot) - p.ovr >= 5) {
@@ -4801,9 +4812,9 @@ export class Game {
           });
         SKILLS.forEach(k => {
           const v0 = p.r[k] + (p.rx?.[k] || 0),
-            room = Math.min(skillTop(p, k), Math.max(p.ceil?.[k] ?? 100, v0)) - v0;
-          dl[k] = Math.min((dl[k] || 0) + (Math.random() - 0.5) * 3, Math.max(dl[k] || 0, room));
-        }); // a little noise, never past a ceiling (his own, unless the growth itself went there)
+            room = Math.max(0, ratingLimit(p, k) - v0);
+          dl[k] = Math.min((dl[k] || 0) + (Math.random() - 0.5) * 3, room);
+        }); // summer luck also stops at each fixed personal ceiling
         applyChange(p, dl);
         syncOvr(p);
         // A breakthrough, almost unheard of: a rating already at the top of the scale (98) makes the last step to 99.
@@ -4811,11 +4822,16 @@ export class Game {
         syncOvr(p);
         if (a <= 31 && ovrExact(p) < trueT(p) - 0.3)
           BK.forEach(k => {
-            if (p.r[k] !== 98 || p.brk?.[k] || p.gen === k || Math.random() >= brkP) return;
+            if (!breakthroughEligible(p, k) || Math.random() >= brkP) return;
             p.brk = { ...(p.brk || {}), [k]: 1 };
-            p.r[k] = 99;
-            if (p.rx) p.rx[k] = 0;
-            if (p.ceil && p.ceil[k] != null) p.ceil[k] = 99;
+            if (MENTAL.includes(k)) {
+              p.intg[k] = 99;
+              if (p.ix) p.ix[k === 'feel' ? 'f' : 'p'] = 0;
+            } else {
+              p.r[k] = 99;
+              if (p.rx) p.rx[k] = 0;
+            }
+            p.ceil[k] = 99; // the sole natural exception: a recorded, exceptionally rare breakthrough
             syncOvr(p);
             lgLog = [
               {
@@ -4905,16 +4921,12 @@ export class Game {
         rosters[k].forEach(id => {
           const p = P[id];
           if (!p?.dx || p.frozen) return;
-          const b0 = Object.fromEntries(SKILLS.map(k2 => [k2, p.r[k2]])),
-            e0 = ovrExact(p),
+          const e0 = ovrExact(p),
             tc = p.dx.c || 0,
             x = applyTranslation(p);
           if (!x) return;
           if (p.dv0) p.dv0.o = +(p.dv0.o + ovrExact(p) - e0).toFixed(2); // camp moved his level, not his growth: the plan moves with it (or a steal grows as if the jump were still ahead of him)
-          if (p.ceil)
-            SKILLS.forEach(k2 => {
-              p.ceil[k2] = Math.max(p.r[k2], Math.min(ceilMax(p, k2), p.ceil[k2] + p.r[k2] - b0[k2]));
-            }); // his ceilings move with what camp showed (potential.ts)
+          // Camp reveals his ability within his fixed limits; it cannot raise those limits.
           capToT(p);
           syncOvr(p);
           p.perr = +((p.perr || 0) * 0.75).toFixed(2);
@@ -6455,20 +6467,9 @@ export class Game {
         const wp = p.pot - pot0;
         // Intangibles grow slowly: composure with experience (to about 31), feel a little while young.
         {
-          const it = ensureIntg(p);
-          p.ix = p.ix || { f: 0, p: 0 };
-          if (a <= 31) p.ix.p += 0.1;
-          if (a <= 27) p.ix.f += 0.03 * (0.7 + wk / 167);
-          const wf = Math.trunc(p.ix.f),
-            wq = Math.trunc(p.ix.p);
-          if (wf) {
-            it.feel = cl(it.feel + wf, 1, 99);
-            p.ix.f -= wf;
-          }
-          if (wq) {
-            it.poise = cl(it.poise + wq, 1, 99);
-            p.ix.p -= wq;
-          }
+          ensureIntg(p);
+          if (a <= 31) growIntangible(p, 'poise', 0.1);
+          if (a <= 27) growIntangible(p, 'feel', 0.03 * (0.7 + wk / 167));
         }
         syncOvr(p); // the overall is the (new) ratings
         p.feed = [

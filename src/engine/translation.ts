@@ -12,6 +12,7 @@
 // The league's averages don't drift: the swings cancel out on average.
 import { mulberry32 } from './rng';
 import { syncOvr } from './ratings';
+import { limitWholeRating } from './ratingCeilings';
 
 export interface Translation {
   o: number;
@@ -119,11 +120,11 @@ export function applyTranslation(p: any) {
   let d = goal;
   for (let i = 0; i < 4; i++) {
     SKILLS.forEach(k => {
-      if (base[k] != null) p.r[k] = cl(base[k] + d);
+      if (base[k] != null) p.r[k] = limitWholeRating(p, k, cl(base[k] + d));
     });
     Object.entries(t.sh).forEach(([g, x]) =>
       GROUPS[g]?.keys.forEach(k => {
-        if (p.r[k] != null) p.r[k] = cl(p.r[k] + x);
+        if (p.r[k] != null) p.r[k] = limitWholeRating(p, k, cl(p.r[k] + x));
       }),
     );
     SKILLS.forEach(k => {

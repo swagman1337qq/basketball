@@ -34,6 +34,8 @@ const LB: Record<string, string> = {
   pss: 'Passing',
   reb: 'Rebounding',
   box: 'Boxing out',
+  feel: 'Feel',
+  poise: 'Poise',
 };
 // Attribute thresholds that unlock each on-court role (mirrors roleDefs in data/world).
 const ROLE_REQ: [string, Record<string, number>, string?][] = [
@@ -524,7 +526,7 @@ export function DevelopmentTab({ vm }: { vm: VM }) {
           {s.god && p.ceil && (
             <>
               <Row
-                k="Skill ceilings"
+                k="Rating ceilings"
                 v={ceilList(p)
                   .map(([k2, v2]) => LB[k2] + ' ' + v2)
                   .join(' · ')}

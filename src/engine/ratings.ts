@@ -916,7 +916,7 @@ export const RMAX = 99;
 export const SOFT_K = 85,
   TOP = 98;
 // The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99).
-export const skillTop = (p: any, k: string) => (p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4); // his overall is capped by his true potential (potential.ts capToT); skill ceilings only shape growth
+export const skillTop = (p: any, k: string) => (p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4); // scale limit; ratingCeilings.ts also enforces his fixed personal ceiling
 // The approach is slow (SOFT_SCALE): a raw 110 lands about 93, 130 about 96, and only an enormous target gets near 98.
 export const SOFT_SCALE = 16;
 export function softTop(v: number, top = TOP) {

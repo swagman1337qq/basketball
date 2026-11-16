@@ -1,5 +1,5 @@
 // Potential: a ceiling, not a prediction.
-//  • The truth, hidden: every skill has its own ceiling (p.ceil), shaped by his development profile
+//  • The truth, hidden: every trainable rating has its own fixed ceiling (p.ceil), shaped by his development profile
 //    (development.ts): a specialist's ceilings are high in his area and modest elsewhere. His full
 //    ceiling is the overall he'd have with every skill there and his body at its frame's best.
 //  • His development plan: from where he was when he came into the league (p.dv0) to his full ceiling,
@@ -12,13 +12,15 @@
 //  • What the league sees (p.pot): the scouting consensus of his true potential. It's a few points off
 //    either way (above or below) for a prospect and sharpens every season he plays. AI teams draft and trade on it; your staff reads
 //    your own players more closely; God Mode shows the truth.
-//  • God Mode's word (p.godPot): a true potential set in God Mode or by a player card holds exactly, up
-//    to 100 and at any age, even past what his ratings can show (skills stop at 100, his height and
-//    frame don't grow). A veteran with no plan years left gets a fresh three-season plan (dv0.n).
+//  • Switching God Mode on does not alter limits. A direct rating edit may exceed one without
+//    changing it; subsequent growth still stops there. An explicit potential/card edit can set a new
+//    skill plan; a veteran with no plan years left gets three seasons (dv0.n). Ratings still stop at 99.
 import { BODY, bodyLeft, devProfile, groupOf, SKILLS } from './development';
-import { ovrExact, OVR_ADJ, OVR_W, softTop, TOP, wngBonus } from './ratings';
+import { ovrExact, FEEL_W, OVR_ADJ, OVR_W, softTop, TOP, wngBonus } from './ratings';
 import { mulberry32 } from './rng';
 import { rollGem } from './intangibles';
+import { ensureIntg } from './intangibles';
+import { MENTAL, TRAINABLE, ratingValue } from './ratingCeilings';
 
 // His plan: the share of his growth planned at each age (from 18; renormalized from his first season).
 // 2026-10-28: a little later than before (was 14–15% a year from 18 to 21, then 13, 11, 9, 7, 5, 3, 1): most players improve
@@ -60,8 +62,9 @@ export const paceLabel = (x: number) => (x < 0.4 ? 'barely develops' : x < 0.85 
 const val = (p: any, k: string) => p.r[k] + ((p.rx || {})[k] || 0);
 function ovrOf(p: any, v: Record<string, number>) {
   const W = OVR_W[p.grp] || OVR_W.W;
-  let a = 0,
-    t = 0;
+  const fw = FEEL_W[p.grp] ?? 2.5;
+  let a = fw * (v.feel ?? p.intg?.feel ?? 50),
+    t = fw;
   for (const k in W) {
     const x = v[k] ?? val(p, k);
     if (x == null) continue;
@@ -73,6 +76,7 @@ function ovrOf(p: any, v: Record<string, number>) {
 const withBody = (p: any, c: Record<string, number>) => {
   const v = { ...c };
   BODY.forEach(k => (v[k] = val(p, k) + bodyLeft(p, k)));
+  v.feel = Math.max(p.intg?.feel ?? 50, p.ceil?.feel ?? 0);
   return v;
 };
 const current = (p: any) => Object.fromEntries(SKILLS.map(k => [k, val(p, k)]));
@@ -143,10 +147,12 @@ export const GEN_TOP = 100.5,
 export { softTop };
 export const genOf = (p: any): string | null => p.gen ?? null;
 function rollGen(p: any, rnd: () => number = Math.random) {
-  if (p.gen !== undefined || rnd() >= GEN_RATE) return;
+  if (p.gen !== undefined) return;
+  p.gen = null; // one lifetime roll, including prospects whose build is fitted more than once
+  if (rnd() >= GEN_RATE) return;
   const w = gapShape(p),
-    sc = (k: string) => w[k] * (0.3 + p.r[k] / 60);
-  p.gen = SKILLS.slice().sort((a, b) => sc(b) - sc(a))[0]; // where his game already points
+    sc = (k: string) => (w[k] ?? 1) * (0.3 + ratingValue(p, k) / 60);
+  p.gen = TRAINABLE.slice().sort((a, b) => sc(b) - sc(a))[0]; // where his game already points, including his body and intangibles
 }
 // A skill's ceiling for a raw target `v` (cap 100: God Mode's word, exact).
 export function ceilFor(p: any, k: string, v: number, cap = 99) {
@@ -177,7 +183,7 @@ function fit(p: any, base: Record<string, number>, F: number, cap = 99) {
     else hi = m;
   }
   const c = at((lo + hi) / 2);
-  p.ceil = Object.fromEntries(SKILLS.map(k => [k, +c[k].toFixed(1)]));
+  p.ceil = { ...p.ceil, ...Object.fromEntries(SKILLS.map(k => [k, Math.max(val(p, k), +c[k].toFixed(1))])) };
   floorCeil(p);
 }
 const startPlan = (p: any, n = 0) => {
@@ -205,7 +211,18 @@ export const unsqueezeTop = (x: number) => (x <= TOP_KNEE ? x : TOP_KNEE + (x - 
 // `raw`: the peak is already on today's scale (older saves' one-time ceilings).
 export function initCeil(p: any, peak: number, raw = false) {
   if (!raw) peak = squeezeTop(peak);
+  ensureIntg(p);
   rollGen(p);
+  if (!raw)
+    [...SKILLS, ...BODY].forEach(k => {
+      if (p.gen !== k && !p.brk?.[k] && p.r[k] > 98) {
+        p.r[k] = 98;
+        if (p.rx) p.rx[k] = 0;
+      }
+    }); // a generated build cannot begin with an unearned 99
+  delete p.ceil; // initial generation/rebuilding a draft build establishes a new complete set
+  p.ceil = {};
+  floorCeil(p); // establish the body's and intangibles' actual room before fitting skill potential
   startPlan(p);
   const o = p.dv0.o,
     want = o + Math.max(0, peak - o) / TYPICAL;
@@ -233,6 +250,10 @@ export function compressTruePot(p: any) {
 export function setTruePot(p: any, T: number, god = false) {
   T = Math.max(1, Math.min(99, Math.round(T)));
   delete p.godPot;
+  if (!p.ceil) {
+    p.ceil = {};
+    floorCeil(p);
+  }
   startPlan(p, god && wRem(p.age) < 0.1 ? GOD_YEARS : 0);
   fit(p, current(p), Math.max(p.dv0.o, T), god ? 100 : 99);
   p.tpot = Math.max(T, p.ovr ?? 0);
@@ -244,40 +265,39 @@ export function setTruePot(p: any, T: number, god = false) {
 export function moveTruePot(_p: any, _d: number) {
   /* fixed */
 }
-// God Mode raised a rating past its ceiling: that's his new ceiling there.
-// A ceiling never sits far below what he already has (2026-10-28): at least his rating minus 2, so the usual creep of a
-// point or two past it stays possible but a ceiling 30 points under the skill can't happen (new players, cards, God Mode
-// potential, and once for older saves).
+// Complete missing limits without raising an existing one. In particular, reading a profile,
+// changing a name, switching on God Mode, or refreshing a scout's estimate cannot move ceilings.
 export function floorCeil(p: any) {
   if (!p?.ceil || !p.r) return;
+  if (TRAINABLE.every(k => Number.isFinite(p.ceil[k]))) return;
   SKILLS.forEach(k => {
-    const v = p.r[k] + ((p.rx || {})[k] || 0);
-    if (v != null && !(p.ceil[k] >= v - 2)) p.ceil[k] = +(v - 2).toFixed(1);
+    if (!Number.isFinite(p.ceil[k])) p.ceil[k] = ratingValue(p, k);
+  });
+  const r = mulberry32(((p.id * 2654435761) ^ 0xb0d1) >>> 0),
+    d = devProfile(p);
+  BODY.forEach(k => {
+    if (Number.isFinite(p.ceil[k])) return;
+    const now = ratingValue(p, k);
+    // The same >85 curve as skills, in addition to his lifetime frame allowance.
+    p.ceil[k] = Math.max(now, +ceilFor(p, k, now + bodyLeft(p, k)).toFixed(1));
+  });
+  ensureIntg(p);
+  MENTAL.forEach(k => {
+    const room = k === 'feel' ? (1.5 + r() * 6) * d.aff.play : (4 + r() * 12) * Math.max(0.2, (32 - p.age) / 14);
+    if (!Number.isFinite(p.ceil[k])) p.ceil[k] = Math.max(ratingValue(p, k), +ceilFor(p, k, ratingValue(p, k) + room).toFixed(1));
   });
 }
 export function liftCeil(p: any) {
-  if (!p.ceil) return;
-  SKILLS.forEach(k => {
-    if (p.ceil[k] < p.r[k]) p.ceil[k] = p.r[k];
-  });
+  floorCeil(p); // compatibility for the editors: direct edits may exceed a ceiling, never erase it
 }
 
 // The league's read: what he could still reach plus the scouts' miss, which goes either way (they
 // sell some players short and oversell others, a bust they rate above anything he can reach), never
 // below his overall.
-// His skill ceilings must add up to at least his true potential (2026-10-28): after anything that moves either (camp,
-// cards, God Mode edits, a hidden gem, an older save, a position change), the missing points go into his ceilings the
-// way he grows (his development profile: a shooter's mostly into his shot), never past the top of the scale, never
-// lowering one. A bad camp is a setback, not a lower ceiling: he can still grow back to his true potential.
+// Compatibility for old save migrations. Potential is an overall upper bound, not permission
+// to keep moving individual ceilings upward when a player runs out of room.
 export function fitCeilToT(p: any) {
-  if (!p?.ceil || !p.r || p.godPot != null) return;
-  const T = trueT(p);
-  if (skillCeil(p) >= T - 0.25) return;
-  const old = { ...p.ceil };
-  fit(p, old, T + 0.25);
-  SKILLS.forEach(k => {
-    if (!(p.ceil[k] >= old[k])) p.ceil[k] = old[k];
-  });
+  floorCeil(p); // older callers may complete missing fields, never refit existing limits
 }
 export function refreshPot(p: any) {
   if (!p?.r) return;
@@ -285,7 +305,6 @@ export function refreshPot(p: any) {
   if (p.tpot == null) p.tpot = trueT(p);
   if (p.ovr > p.tpot) p.tpot = p.ovr;
   floorCeil(p);
-  fitCeilToT(p);
   p.pot = Math.max(p.ovr, Math.min(99, Math.round(reachOf(p) + (p.perr || 0))));
 }
 // The scouts' miss on a new player (points of potential, either way; fixed from his id).
@@ -369,6 +388,6 @@ export function makeFringe(p: any, rnd: () => number = Math.random) {
 // His ceilings in each skill (God Mode), highest first.
 export function ceilList(p: any): [string, number][] {
   return p.ceil
-    ? (Object.entries(p.ceil) as [string, number][]).map(([k, v]) => [k, Math.round(v)] as [string, number]).sort((a, b) => b[1] - a[1])
+    ? (Object.entries(p.ceil) as [string, number][]).map(([k, v]) => [k, +v.toFixed(1)] as [string, number]).sort((a, b) => b[1] - a[1])
     : [];
 }

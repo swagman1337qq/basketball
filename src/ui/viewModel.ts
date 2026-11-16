@@ -2466,7 +2466,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         refreshPot(pp);
         gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
         gm.enforceRetirement();
-      }; // ceilings follow edits (potential.ts)
+      }; // direct edits may exceed a ceiling; existing limits stay intact (potential.ts)
       const chip = on => ({
         bg: on ? 'var(--color-accent-100)' : 'transparent',
         color: on ? 'var(--color-accent-800)' : 'var(--color-text)',

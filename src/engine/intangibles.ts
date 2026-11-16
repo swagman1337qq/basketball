@@ -14,6 +14,7 @@
 // solid rotation players, some starters, a very few stars. Feel, Poise and work ethic make a gem
 // more likely: the traits the draft misses.
 import { mulberry32 } from './rng';
+import { softTop } from './ratings';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const bell = (r: () => number) => (r() + r() + r() - 1.5) * 2; // about −3…+3, sd ≈ 1
@@ -26,10 +27,12 @@ export function ensureIntg(p: any, rnd?: () => number) {
   const r = rnd || mulberry32(p.id * 7919 + 13),
     oiq = p.r?.oiq ?? 50,
     pss = p.r?.pss ?? 50;
-  const feel = cl(Math.round(0.35 * oiq + 0.15 * pss + 30 + bell(r) * 11), 15, 99); // league average ≈ 50
+  const feel = cl(Math.round(softTop(0.35 * oiq + 0.15 * pss + 30 + bell(r) * 11)), 15, 98); // league average ≈ 50
   const poise = cl(
     Math.round(
-      52 + ((p.age ?? 24) - 24) * 1.2 + bell(r) * 11 + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 12 : 0) + (p.pers?.pro ? 4 : 0),
+      softTop(
+        52 + ((p.age ?? 24) - 24) * 1.2 + bell(r) * 11 + (p.pers?.clutch ? 10 : 0) - (p.pers?.volatile ? 12 : 0) + (p.pers?.pro ? 4 : 0),
+      ),
     ),
     10,
     99,

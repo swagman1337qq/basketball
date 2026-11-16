@@ -15,11 +15,12 @@
 // The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { FEEL_W, OVR_W, ovrExact, RMAX, skillTop } from './ratings';
+import { FEEL_W, OVR_W, ovrExact, RMAX, softTop as softBodyTop } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
+import { PHYSICAL, limitGrowth, ratingLimit } from './ratingCeilings';
 
-export const BODY = ['spd', 'acc', 'jmp', 'stre', 'endu'];
+export const BODY = PHYSICAL;
 export const SKILLS = Object.values(GROUPS).flatMap(g => g.keys); // the 14 basketball skills, in five groups
 const GROUP_OF: Record<string, string> = Object.fromEntries(Object.entries(GROUPS).flatMap(([g, x]) => x.keys.map(k => [k, g])));
 export const groupOf = (k: string) => GROUP_OF[k];
@@ -155,7 +156,7 @@ export function skillWeights(p: any, o: WeightOpts): Weights {
     w[k] =
       i *
       cl(1 + (v(k) - avg) / 50, 0.6, 1.4) * // what he already has a feel for grows faster
-      cl(((p.ceil?.[k] ?? 100) - v(k)) / 12, 0.02, 1.4) *
+      cl((ratingLimit(p, k) - v(k)) / 12, 0, 1.4) *
       cl((100 - v(k)) / 40, 0.05, 1.2); // and slows near its ceiling
   });
   const mi = SKILLS.reduce((s, k) => s + it[k], 0) / SKILLS.length || 1;
@@ -221,20 +222,14 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
         out[k] *= f;
       }
     });
-  // A rating can't pass its ceiling (or drop below 4): what doesn't fit goes to his other skills, so
-  // the overall moves by `target` while there's room anywhere (a star maxed in his best skills grows
-  // elsewhere); with every skill at its ceiling, he's done growing. 2026-10-28: growth goes past a skill's own
-  // ceiling (p.ceil) only once every skill is within 2 of its own; until then what doesn't fit goes to skills
-  // still under theirs (the hard top, 98, holds either way).
-  const ceilOf = (k: string) => p.ceil?.[k] ?? 100,
-    vv0 = (k: string) => p.r[k] + ((p.rx || {})[k] || 0);
-  let soft = up && SKILLS.some(k => vv0(k) < ceilOf(k) - 2);
+  // Individual ceilings are hard limits, including when every other skill is maxed out.
+  // Excess growth can spill only into another skill with room, otherwise it is lost.
   for (let pass = 0; pass < 5; pass++) {
     const v = (k: string) => p.r[k] + ((p.rx || {})[k] || 0);
     let spill = 0;
     const open: string[] = [];
     SKILLS.forEach(k => {
-      const top = soft ? Math.min(skillTop(p, k), Math.max(ceilOf(k), v(k))) : skillTop(p, k),
+      const top = ratingLimit(p, k),
         hi = Math.max(0, top - v(k)),
         lo = 4 - v(k);
       if (out[k] > hi) {
@@ -243,13 +238,9 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
       } else if (out[k] < lo) {
         spill += W[k] * (out[k] - lo);
         out[k] = lo;
-      } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 1 : v(k) + out[k] > 6)) open.push(k);
+      } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 0.0001 : v(k) + out[k] > 6)) open.push(k);
     }); // growth that doesn't fit can land on any skill with room left
     if (pass === 0) spill += lost;
-    if (spill && !open.length && soft) {
-      soft = false;
-      open.push(...SKILLS.filter(k => v(k) + out[k] < skillTop(p, k) - 1));
-    } // every skill at its own ceiling: past them now
     if (!spill || !open.length) break;
     const sw2 = (k: string) => Math.max(0.15, u[k]) * (up ? dimAt(v(k), p.gen === k) : 1),
       den2 = open.reduce((a, k) => a + W[k] * sw2(k), 0);
@@ -258,7 +249,7 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
   // The last pass's spill isn't checked again: no skill ends up past its top (or under 4).
   SKILLS.forEach(k => {
     const v = p.r[k] + ((p.rx || {})[k] || 0);
-    out[k] = Math.max(4 - v, Math.min(out[k], Math.max(0, skillTop(p, k) - v)));
+    out[k] = Math.max(4 - v, limitGrowth(p, k, out[k]));
   });
   return out;
 }
@@ -276,7 +267,8 @@ const YEAR_CAP: Record<string, number> = { spd: 2.5, acc: 2.5, jmp: 2.5, stre: 4
 export function bodyLeft(p: any, k: string) {
   const d = devProfile(p),
     ph = p.ph || { a0: p.age, g: {} };
-  return Math.max(0, Math.min(d.cap[k] * YOUTH[k](ph.a0) - (ph.g[k] || 0), d.cap[k] * YOUTH[k](p.age)));
+  const frame = Math.max(0, Math.min(d.cap[k] * YOUTH[k](ph.a0) - (ph.g[k] || 0), d.cap[k] * YOUTH[k](p.age)));
+  return p.ceil?.[k] == null ? frame : limitGrowth(p, k, frame);
 }
 // How much of an athlete he is (speed, burst and leap; 1 at 55): what rides on his legs fades in proportion when they go,
 // so an explosive player loses more than a shooter who never played above the rim. (k: unused, kept for the call sites.)
@@ -318,6 +310,7 @@ export function bodyChange(p: any, frac: number, o: BodyOpts): Record<string, nu
         left,
         Math.min(YEAR_CAP[k], d.cap[k] * Math.max(0, Y(a) - Y(a + 1)) * f * (0.85 + o.work / 333) * (0.5 + o.rnd())) * frac,
       );
+      x = limitGrowth(p, k, x);
       if (!o.dry) ph.g[k] = +((ph.g[k] || 0) + x).toFixed(3);
     }
     const t = k === 'stre' ? a - 31 : k === 'endu' ? a - 29 : a - (o.pk ?? d.athPeak);
@@ -337,9 +330,12 @@ export function bodyAhead(p: any, room: number) {
   const d = devProfile(p),
     W = OVR_W[p.grp] || OVR_W.W,
     sh: Record<string, number> = {};
-  BODY.forEach(k => (sh[k] = cl(room - d.cap[k] * YOUTH[k](p.age), 0, 30)));
+  BODY.forEach(k => {
+    const raw = cl(room - d.cap[k] * YOUTH[k](p.age), 0, 30);
+    sh[k] = Math.round(cl(Math.max(p.r[k], softBodyTop(p.r[k] + raw)), 4, RMAX)) - p.r[k];
+  });
   const down = BODY.reduce((a, k) => a + W[k] * sh[k], 0) / SKILLS.reduce((a, k) => a + W[k], 0);
-  BODY.forEach(k => (p.r[k] = Math.round(cl(p.r[k] + sh[k], 4, RMAX))));
+  BODY.forEach(k => (p.r[k] += sh[k]));
   SKILLS.forEach(k => (p.r[k] = Math.round(cl(p.r[k] - down, 4, RMAX))));
 }
 // The overall change a set of rating changes makes.
@@ -355,8 +351,8 @@ export function applyChange(p: any, dl: Record<string, number>) {
   p.rx = p.rx || {};
   for (const k in dl) {
     if (k === 'hgt' || !dl[k]) continue;
-    const x = (p.rx[k] || 0) + dl[k],
-      whole = Math.trunc(x),
+    const x = (p.rx[k] || 0) + limitGrowth(p, k, dl[k]),
+      whole = Math.trunc(x + Math.sign(x) * 1e-9),
       r = p.r[k] + whole;
     if (r > RMAX || r < 4) {
       p.r[k] = cl(r, 4, RMAX);
@@ -407,8 +403,8 @@ export function develop(p: any, target: number, frac: number, o: BodyOpts & Weig
   const body = bodyChange(p, frac, o);
   BODY.forEach(k => {
     const v = p.r[k] + ((p.rx || {})[k] || 0);
-    if (body[k] > 0) body[k] = Math.min(body[k], Math.max(0, skillTop(p, k) - v));
-  }); // the body tops out at 98 too
+    if (body[k] > 0) body[k] = limitGrowth(p, k, body[k]);
+  });
   let bo = ovrDelta(p, body);
   if (target >= 0 && bo > target && bo > 0) {
     const f = target / bo;
@@ -427,6 +423,7 @@ export function develop(p: any, target: number, frac: number, o: BodyOpts & Weig
     ag.diq *= f;
   }
   Object.keys(ag).forEach(k => (sk[k] = (sk[k] || 0) + ag[k]));
+  Object.keys(sk).forEach(k => (sk[k] = limitGrowth(p, k, sk[k])));
   return { ...body, ...sk };
 }
 
