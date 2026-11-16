@@ -48,6 +48,8 @@ const LONG: Record<string, string> = {
   eye: 'Eye for talent',
 };
 const sgn = (v: number, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(d);
+type StaffTable = 'staff' | 'market' | 'league';
+type StaffSort = { key: string; dir: 1 | -1 };
 
 export function StaffScreen({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx,
@@ -56,7 +58,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
     T = s.teams[tid];
   void s.gv; // re-render when the staff changes
   const [offer, setOffer] = useState<{ id: number; role: CoachRole; amt: number; years: number } | null>(null);
-  const [sortK, setSortK] = useState<'rep' | 'age' | 'ask'>('rep');
+  const [sorts, setSorts] = useState<Record<StaffTable, StaffSort | null>>({ staff: null, market: { key: 'rep', dir: -1 }, league: null });
   const [styleF, setStyleF] = useState<string>('all');
   const [q, setQ] = useState('');
   const [more, setMore] = useState(30);
@@ -68,7 +70,81 @@ export function StaffScreen({ vm }: { vm: VM }) {
     fx = staffFxRead(gm, tid, god),
     cost = staffCost(gm, s, tid);
   const nat = (c: Coach) => gm.db.C?.[c.nat]?.n || c.nat;
+  const flag = (c: Coach) => (
+    <img
+      src={gm.flag(c.nat)}
+      alt={nat(c)}
+      title={nat(c)}
+      style={{ width: 18, height: 12, objectFit: 'contain', verticalAlign: 'middle', marginLeft: 6 }}
+    />
+  );
   const styleRead = (c: Coach) => styleOf(c, readRatings(c, god));
+  const sortHead = (table: StaffTable, key: string, label: string, align: 'left' | 'right' = 'left', title?: string) => {
+    const sort = sorts[table],
+      active = sort?.key === key;
+    return (
+      <th key={key} style={th(align)} title={title} aria-sort={active ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+        <button
+          onClick={() =>
+            setSorts(prev => ({
+              ...prev,
+              [table]: {
+                key,
+                dir:
+                  prev[table]?.key === key
+                    ? prev[table]!.dir === 1
+                      ? -1
+                      : 1
+                    : align === 'left' || key === 'age' || key === 'ask'
+                      ? 1
+                      : -1,
+              },
+            }))
+          }
+          style={{ all: 'unset', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          {label}{' '}
+          <span aria-hidden="true" style={{ opacity: active ? 1 : 0.45 }}>
+            {active ? (sort.dir === 1 ? '↑' : '↓') : '↕'}
+          </span>
+        </button>
+      </th>
+    );
+  };
+  const ordered = <R,>(rows: R[], table: StaffTable, value: (row: R, key: string) => number | string) => {
+    const sort = sorts[table];
+    if (!sort) return rows;
+    return [...rows].sort((a, b) => {
+      const av = value(a, sort.key),
+        bv = value(b, sort.key);
+      return (typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))) * sort.dir;
+    });
+  };
+  const coachValue = (c: Coach, key: string): number | string => {
+    if (CR_KEYS.includes(key as any)) return readOf(c, key as (typeof CR_KEYS)[number], god);
+    switch (key) {
+      case 'name':
+        return c.name;
+      case 'age':
+        return coachAge(gm, c);
+      case 'role':
+        return ROLE_LABEL[c.role || 'asst'];
+      case 'style':
+        return styleRead(c);
+      case 'rep':
+        return c.rep;
+      case 'contract':
+        return c.amt;
+      case 'ask':
+        return coachAsk(gm, c, 'asst');
+      case 'played':
+        return playLine(c);
+      case 'coaching':
+        return coachYears(gm, c);
+      default:
+        return '';
+    }
+  };
   const act = (f: () => string, ok?: string) => {
     const e = f();
     setMsg(e || ok || '');
@@ -107,16 +183,33 @@ export function StaffScreen({ vm }: { vm: VM }) {
     </div>
   );
   // ── The market ──
-  const pool = freeCoaches(gm)
-    .filter(c => (styleF === 'all' ? true : styleRead(c) === styleF))
-    .filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) =>
-      sortK === 'age'
-        ? coachAge(gm, a) - coachAge(gm, b)
-        : sortK === 'ask'
-          ? coachAsk(gm, a, 'asst') - coachAsk(gm, b, 'asst')
-          : b.rep - a.rep,
-    );
+  const pool = ordered(
+    freeCoaches(gm)
+      .filter(c => (styleF === 'all' ? true : styleRead(c) === styleF))
+      .filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase())),
+    'market',
+    coachValue,
+  );
+  const heads = ordered(
+    s.teams
+      .filter((t: any) => !gm.isUser(s, t.tid))
+      .map((t: any) => ({ t, c: headCoachOf(gm, t.tid) }))
+      .filter((x: any) => x.c)
+      .map(({ t, c }: any) => ({ t, c, sm: careerSummary(coachRows(gm, s, c)) })),
+    'league',
+    ({ t, c, sm }: any, key) => {
+      if (key === 'team') return t.abbr;
+      if (key === 'nba') return sm.nbaW + sm.nbaL ? sm.nbaW / (sm.nbaW + sm.nbaL) : -1;
+      if (key === 'other') {
+        const w = sm.hcW - sm.nbaW,
+          l = sm.hcL - sm.nbaL;
+        return w + l ? w / (w + l) : -1;
+      }
+      if (key === 'titles') return sm.hcRings;
+      if (key === 'coy') return c.coy?.length || 0;
+      return coachValue(c, key);
+    },
+  );
   const oc = offer ? gm.db.coaches?.[offer.id] : null;
   const acc = oc && offer ? coachAccept(gm, s, tid, oc, offer) : null;
   return (
@@ -170,23 +263,18 @@ export function StaffScreen({ vm }: { vm: VM }) {
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr>
-              <th style={th()}>Coach</th>
-              <th style={th()}>Role</th>
-              <th style={th()}>Style</th>
-              <th style={th('right')} title="Reputation (0–100)">
-                Rep
-              </th>
-              {CR_KEYS.map(k => (
-                <th key={k} style={th('right')} title={LONG[k]}>
-                  {SHORT[k]}
-                </th>
-              ))}
-              <th style={th('right')}>Contract</th>
+              {sortHead('staff', 'name', 'Coach')}
+              {sortHead('staff', 'age', 'Age', 'right')}
+              {sortHead('staff', 'role', 'Role')}
+              {sortHead('staff', 'style', 'Style')}
+              {sortHead('staff', 'rep', 'Rep', 'right', 'Reputation (0–100)')}
+              {CR_KEYS.map(k => sortHead('staff', k, SHORT[k], 'right', LONG[k]))}
+              {sortHead('staff', 'contract', 'Contract', 'right', 'Annual salary')}
               <th style={th()} />
             </tr>
           </thead>
           <tbody>
-            {st.map(c => (
+            {ordered(st, 'staff', coachValue).map(c => (
               <tr key={c.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -195,12 +283,14 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
                         {c.name}
                       </button>
+                      {flag(c)}
                       <div style={{ fontSize: '11px', ...muted }}>
-                        {coachAge(gm, c)} · {nat(c)} · {coachYears(gm, c)} yrs coaching · {readLabel(c)}
+                        {nat(c)} · {coachYears(gm, c)} yrs coaching · {readLabel(c)}
                       </div>
                     </div>
                   </div>
                 </td>
+                <td style={td('right')}>{coachAge(gm, c)}</td>
                 <td style={td()}>
                   <select
                     value={c.role || 'asst'}
@@ -424,11 +514,6 @@ export function StaffScreen({ vm }: { vm: VM }) {
           <option value="Defense-minded">Defense-minded</option>
           <option value="Balanced">Balanced</option>
         </select>
-        <select value={sortK} onChange={e => setSortK(e.target.value as any)}>
-          <option value="rep">Sort: reputation</option>
-          <option value="age">Sort: age</option>
-          <option value="ask">Sort: asking price</option>
-        </select>
         {god && (
           <button
             className="btn btn-secondary"
@@ -448,14 +533,13 @@ export function StaffScreen({ vm }: { vm: VM }) {
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr>
-              <th style={th()}>Coach</th>
-              <th style={th()}>Known for</th>
-              <th style={th('right')}>Rep</th>
-              <th style={th()}>Played</th>
-              <th style={th()}>Coaching</th>
-              <th style={th('right')} title="His asking price as an Assistant Coach">
-                Asks
-              </th>
+              {sortHead('market', 'name', 'Coach')}
+              {sortHead('market', 'age', 'Age', 'right')}
+              {sortHead('market', 'style', 'Known for')}
+              {sortHead('market', 'rep', 'Rep', 'right')}
+              {sortHead('market', 'played', 'Played')}
+              {sortHead('market', 'coaching', 'Coaching', 'left', 'Years coaching')}
+              {sortHead('market', 'ask', 'Asks', 'right', 'His asking price as an Assistant Coach')}
               <th style={th()} />
             </tr>
           </thead>
@@ -469,12 +553,12 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
                         {c.name}
                       </button>
-                      <div style={{ fontSize: '11px', ...muted }}>
-                        {coachAge(gm, c)} · {nat(c)}
-                      </div>
+                      {flag(c)}
+                      <div style={{ fontSize: '11px', ...muted }}>{nat(c)}</div>
                     </div>
                   </div>
                 </td>
+                <td style={td('right')}>{coachAge(gm, c)}</td>
                 <td style={td()}>{styleRead(c)}</td>
                 <td style={td('right')}>{c.rep}</td>
                 <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
@@ -520,56 +604,52 @@ export function StaffScreen({ vm }: { vm: VM }) {
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr>
-              <th style={th()}>Team</th>
-              <th style={th()}>Head coach</th>
-              <th style={th('right')}>Age</th>
-              <th style={th('right')}>Rep</th>
-              <th style={th('right')} title="His record as a head coach in this league (seasons finished)">
-                NBA W–L
-              </th>
-              <th style={th('right')} title="As a head coach at other levels: high school, college, abroad, the CCP league">
-                Other levels
-              </th>
-              <th style={th('right')}>Titles</th>
-              <th style={th('right')} title="Coach of the Year">
-                COY
-              </th>
-              <th style={th()}>Played</th>
+              {sortHead('league', 'team', 'Team')}
+              {sortHead('league', 'name', 'Head coach')}
+              {sortHead('league', 'age', 'Age', 'right')}
+              {sortHead('league', 'rep', 'Rep', 'right')}
+              {sortHead(
+                'league',
+                'nba',
+                'NBA W–L',
+                'right',
+                'Head coach record in this league (finished seasons); sorted by winning percentage',
+              )}
+              {sortHead('league', 'other', 'Other levels', 'right', 'Head coach record at other levels; sorted by winning percentage')}
+              {sortHead('league', 'titles', 'Titles', 'right')}
+              {sortHead('league', 'coy', 'COY', 'right', 'Coach of the Year')}
+              {sortHead('league', 'played', 'Played')}
             </tr>
           </thead>
           <tbody>
-            {s.teams
-              .filter((t: any) => !gm.isUser(s, t.tid))
-              .map((t: any) => ({ t, c: headCoachOf(gm, t.tid) }))
-              .filter((x: any) => x.c)
-              .map(({ t, c }: any) => {
-                const sm = careerSummary(coachRows(gm, s, c));
-                return (
-                  <tr key={t.tid} style={{ borderTop: '1px solid var(--color-divider)' }}>
-                    <td style={td()}>
-                      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                        {vm.ctx.logo(t.tid, 16)}
-                        {t.abbr}
-                      </span>
-                    </td>
-                    <td style={td()}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
-                        <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
-                          {c.name}
-                        </button>
-                      </div>
-                    </td>
-                    <td style={td('right')}>{coachAge(gm, c)}</td>
-                    <td style={td('right')}>{c.rep}</td>
-                    <td style={td('right')}>{sm.nbaW + sm.nbaL ? sm.nbaW + '–' + sm.nbaL : '—'}</td>
-                    <td style={td('right')}>{sm.hcW - sm.nbaW + sm.hcL - sm.nbaL ? sm.hcW - sm.nbaW + '–' + (sm.hcL - sm.nbaL) : '—'}</td>
-                    <td style={td('right')}>{sm.hcRings || ''}</td>
-                    <td style={td('right')}>{c.coy?.length || ''}</td>
-                    <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
-                  </tr>
-                );
-              })}
+            {heads.map(({ t, c, sm }: any) => {
+              return (
+                <tr key={t.tid} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                  <td style={td()}>
+                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                      {vm.ctx.logo(t.tid, 16)}
+                      {t.abbr}
+                    </span>
+                  </td>
+                  <td style={td()}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
+                      <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                        {c.name}
+                      </button>
+                      {flag(c)}
+                    </div>
+                  </td>
+                  <td style={td('right')}>{coachAge(gm, c)}</td>
+                  <td style={td('right')}>{c.rep}</td>
+                  <td style={td('right')}>{sm.nbaW + sm.nbaL ? sm.nbaW + '–' + sm.nbaL : '—'}</td>
+                  <td style={td('right')}>{sm.hcW - sm.nbaW + sm.hcL - sm.nbaL ? sm.hcW - sm.nbaW + '–' + (sm.hcL - sm.nbaL) : '—'}</td>
+                  <td style={td('right')}>{sm.hcRings || ''}</td>
+                  <td style={td('right')}>{c.coy?.length || ''}</td>
+                  <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
