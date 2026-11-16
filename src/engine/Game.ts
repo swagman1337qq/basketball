@@ -1,4 +1,5 @@
 import { naturalDunkShare } from './finishing';
+import { collegeRouteChance, youthBackground } from './prospectPathways';
 import { TRAINABLE, MENTAL, ratingLimit, growIntangible, breakthroughEligible } from './ratingCeilings';
 import { askOffers } from './tradeOffers';
 import { excludesTrade } from './tradeExclusions';
@@ -2176,10 +2177,9 @@ export class Game {
       CLUBS = clubs();
     const cc = CLUBS[raised];
     if (cls > 2027) {
-      if (cc && rnd() < 0.8) return { team: pick(cc)[0] + ' U18', lg: 'Junior', country: raised };
-      return { team: pick(C.US.cities) + ' ' + pick(['Prep', 'Academy', 'Christian']), lg: 'High school', country: 'US' };
+      return youthBackground(raised, C, cc || [], rnd);
     }
-    const cp = ['US', 'CA', 'BS'].includes(raised) ? 1 : C[raised].eu ? 0.15 : ['AU', 'NZ'].includes(raised) ? 0.5 : 0.3;
+    const cp = collegeRouteChance(raised, C);
     if (!cc || rnd() < cp) return { team: pickCollege(rnd), lg: 'NCAA', country: 'US' }; // spread over ~280 schools like the NBA's (world.ts pickCollege)
     const k = pick(cc);
     return { team: k[0], lg: k[1], country: raised };
@@ -2305,20 +2305,11 @@ export class Game {
     const home = p.raised || p.born,
       cc = ['US', 'CA', 'BS'].includes(home) ? [] : clubs()[home] || [],
       intl = cc.length > 0;
-    const youth = intl
-      ? { team: cc[Math.floor(rnd() * cc.length)][0] + ' U18', lg: 'Junior', country: home }
-      : {
-          team:
-            this.db.C.US.cities[Math.floor(rnd() * this.db.C.US.cities.length)] +
-            ' ' +
-            ['Prep', 'Academy', 'Christian', 'High'][Math.floor(rnd() * 4)],
-          lg: 'High school',
-          country: 'US',
-        };
+    const youth = youthBackground(home, this.db.C, cc, rnd);
     let k: 'hs' | 'col' | 'club',
       to: any = null;
     if (da === 18) k = 'hs';
-    else if (intl && rnd() < 0.75) {
+    else if (intl && rnd() >= collegeRouteChance(home, this.db.C)) {
       const c = cc[Math.floor(rnd() * cc.length)];
       k = 'club';
       to = { team: c[0], lg: c[1], country: p.raised || p.born };

@@ -3,8 +3,8 @@ import type { Game } from '../../engine/Game';
 import { ROLE_LABEL, ROLE_ORDER, type Coach, type CoachRole } from '../../engine/staff';
 import { firstSeason } from '../../engine/contracts';
 import { FACE_LOOKS, faceSvg } from '../../engine/faces';
-import { coachBioDraft, saveCoachBio, type EditableCoach } from '../coachEditing';
-import { CountryPicker, godBox, godBtn, muted, NumInput } from '../kit';
+import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type EditableCoach } from '../coachEditing';
+import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
 
@@ -30,17 +30,23 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           gap: 12,
         }}
       >
-        <label>
-          Name
-          <br />
-          <input
-            aria-label="Staff name"
-            value={draft.name}
-            maxLength={100}
-            onChange={e => setDraft({ ...draft, name: e.target.value })}
-            style={{ width: '100%' }}
-          />
-        </label>
+        <div>
+          <label htmlFor={'coach-name-' + coach.id}>Name</label>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              id={'coach-name-' + coach.id}
+              aria-label="Staff name"
+              value={draft.name}
+              maxLength={100}
+              onChange={e => setDraft({ ...draft, name: e.target.value })}
+              style={{ width: '100%', minWidth: 0, flex: 1 }}
+            />
+            <Dice
+              title="Randomize staff name"
+              onClick={() => setDraft({ ...draft, name: randomCoachName(draft.nat, draft.fem, draft.name) })}
+            />
+          </div>
+        </div>
         <label>
           Age
           <br />
@@ -72,7 +78,12 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <div>
           Nationality
           <br />
-          <CountryPicker C={gm.db.C} value={draft.nat} onPick={nat => setDraft({ ...draft, nat })} width="100%" />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <CountryPicker C={gm.db.C} value={draft.nat} onPick={nat => setDraft({ ...draft, nat })} width="100%" />
+            </div>
+            <Dice title="Randomize staff country" onClick={() => setDraft({ ...draft, nat: randomCoachCountry(gm.db.C, draft.nat) })} />
+          </div>
         </div>
         {coach.play.k !== 'none' && (
           <label>

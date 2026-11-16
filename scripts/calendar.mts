@@ -61,9 +61,17 @@ const team = 1;
 const shortDay = game.db.days.findIndex((_, slot) => game.userGame(slot, team) && game.restDays(team, slot) === 0);
 const restedDay = game.db.days.findIndex((_, slot) => game.userGame(slot, team) && game.restDays(team, slot) >= 2);
 for (const id of game.state.rosters[team]) game.db.P[id].fat = 90;
-const rested = game.simTeam({ ...game.state, day: restedDay }, team).players[0];
-const tired = game.simTeam({ ...game.state, day: shortDay }, team).players.find(p => p.id === rested.id);
-assert.ok(tired && tired.target < rested.target, 'AI reduces a tired starter’s target on a back-to-back');
+// Full-game load management is a separate policy. Isolate minute-target reduction
+// so this fixture cannot accidentally select a starter who is sitting out entirely.
+const fullGameRest = Game.MGR_B2B;
+try {
+  Game.MGR_B2B = -Infinity;
+  const rested = game.simTeam({ ...game.state, day: restedDay }, team).players[0];
+  const tired = game.simTeam({ ...game.state, day: shortDay }, team).players.find(p => p.id === rested.id);
+  assert.ok(tired && tired.target < rested.target, 'AI reduces a tired starter’s target on a back-to-back');
+} finally {
+  Game.MGR_B2B = fullGameRest;
+}
 const recoverySlot = game.db.days.findIndex((_, slot) => game.calNow({ ...game.state, day: slot }) === returnDay);
 assert.ok(recoverySlot > day);
 game.healCal({ ...game.state, day: recoverySlot });

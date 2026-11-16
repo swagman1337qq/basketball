@@ -4,9 +4,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Game } from '../src/engine/Game';
 import * as ST from '../src/engine/staff';
 import { coachRows, coachFromPlayer } from '../src/engine/coachCareer';
-import { coachBioDraft, coachPlayRows, saveCoachBio } from '../src/ui/coachEditing';
+import { coachBioDraft, coachPlayRows, saveCoachBio, randomCoachName, randomCoachCountry } from '../src/ui/coachEditing';
 import { coachFaceData } from '../src/ui/CoachFace';
 import { WOMENS_LEAGUE } from '../src/engine/coachCareer';
+import { randomName } from '../src/data/heritage';
+import { mulberry32 } from '../src/engine/rng';
 import { RosterReports } from '../src/ui/screens/RosterTeamDetails';
 
 const a = Game.create(31, [0]),
@@ -348,3 +350,24 @@ assert.equal(JSON.stringify(genderCoach), genderBeforeDenied);
 console.log(
   'PASS: God-only gender changes, matching playing leagues, reversible histories, custom/random faces, save persistence and isolated player archives.',
 );
+
+for (const fem of [false, true]) {
+  assert.equal(
+    randomCoachName('FI', fem, '', mulberry32(123)),
+    randomName('FI', mulberry32(123), undefined, fem).name,
+    'Name randomizer follows selected country and gender',
+  );
+}
+let randomCountry = 'US';
+const staffRandom = mulberry32(9981),
+  countriesSeen = new Set<string>();
+for (let i = 0; i < 100; i++) {
+  const nextCountry = randomCoachCountry(genderGame.db.C, randomCountry, staffRandom);
+  assert(genderGame.db.C[nextCountry]?.iso);
+  assert.notEqual(nextCountry, randomCountry);
+  countriesSeen.add(nextCountry);
+  randomCountry = nextCountry;
+}
+assert(countriesSeen.size > 20);
+assert.equal(randomCoachCountry({ US: { n: 'United States', iso: 'us' } }, 'US', staffRandom), 'US');
+console.log('PASS: staff identity randomizers use country/gender, draw valid flags, and avoid repeating the current country.');

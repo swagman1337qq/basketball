@@ -1052,6 +1052,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
               : ''),
       },
       { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) },
+      ...((pp.pth?.k === 'col' || ['NCAA', 'NAIA'].includes(pp.from?.lg)) && C[pp.raised]
+        ? [{ k: 'Grew up', hasFlag: true, flag: gm.flag(pp.raised), v: C[pp.raised].n }]
+        : []),
       { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' },
     ],
     elig: pp.elig.map(e => ({ flag: gm.flag(e.c), name: C[e.c].n, why: e.why })),

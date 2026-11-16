@@ -1,5 +1,6 @@
 // Explicit staff biography edits. Normal coaching and player development never call this editor.
 import type { Game } from '../engine/Game';
+import { randomName } from '../data/heritage';
 import { FACE_LOOKS } from '../engine/faces';
 import { playRows, preserveCoachCareer, syncHeadCoaches, WOMENS_LEAGUE, type PlayRow } from '../engine/coachCareer';
 import { godAppoint, godEditCoach, fireCoach, repOf, ROLE_ORDER, type Coach, type CoachRole } from '../engine/staff';
@@ -30,6 +31,15 @@ export type CoachBioDraft = {
 };
 
 export const coachPlayRows = (g: Game, c: EditableCoach) => c.bioPlayRows ?? playRows(g, g.state, c);
+export function randomCoachName(country: string, fem: boolean, current = '', rnd: () => number = Math.random): string {
+  let name = current;
+  for (let i = 0; i < 8 && name === current; i++) name = randomName(country, rnd, undefined, fem).name;
+  return name;
+}
+export function randomCoachCountry(countries: Record<string, any>, current: string, rnd: () => number = Math.random): string {
+  const choices = Object.keys(countries).filter(code => code !== current && countries[code]?.n && countries[code]?.iso);
+  return choices[Math.floor(rnd() * choices.length)] || current;
+}
 export const coachBioDraft = (g: Game, c: EditableCoach): CoachBioDraft => ({
   name: c.name,
   age: g.Y - c.born,
