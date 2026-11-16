@@ -3,7 +3,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Game } from '../src/engine/Game';
 import * as ST from '../src/engine/staff';
-import { coachRows } from '../src/engine/coachCareer';
+import { coachRows, coachFromPlayer } from '../src/engine/coachCareer';
+import { coachBioDraft, coachPlayRows, saveCoachBio } from '../src/ui/coachEditing';
 import { RosterReports } from '../src/ui/screens/RosterTeamDetails';
 
 const a = Game.create(31, [0]),
@@ -126,3 +127,81 @@ assert(!render().includes(incoming.name));
 console.log(
   'PASS: save-isolated staff effects; deferred, unique-role renewals; activation and firing guarantees; immutable careers; retired archives; actual roster staff.',
 );
+
+// God Mode biography edits persist while keeping the employer and recorded performance intact.
+const editGame = Game.create(35, [0]);
+const editedCoach = ST.staffOf(editGame, 0)[0];
+editedCoach.play = { k: 'college', yrs: 4, where: 'Old College' };
+const oldPlaying = coachPlayRows(editGame, editedCoach).map(r => ({ ...r }));
+const oldCoaching = structuredClone(coachRows(editGame, editGame.state, editedCoach));
+const jobBefore = { tid: editedCoach.tid, role: editedCoach.role, amt: editedCoach.amt, exp: editedCoach.exp };
+const draft = {
+  ...coachBioDraft(editGame, editedCoach),
+  name: 'Morgan Ellis',
+  age: 29,
+  race: 'dark',
+  nat: 'GB',
+  where: 'Harbor College',
+  rep: 87,
+  years: 6,
+};
+const beforeDenied = JSON.stringify(editedCoach);
+assert.match(saveCoachBio(editGame, editedCoach.id, draft), /God Mode/);
+assert.equal(JSON.stringify(editedCoach), beforeDenied, 'Normal mode cannot mutate staff identity');
+editGame.setState({ god: true });
+assert.equal(saveCoachBio(editGame, editedCoach.id, draft), '');
+assert.deepEqual(coachBioDraft(editGame, editedCoach), draft);
+assert.equal(editedCoach.first, 'Morgan');
+assert.equal(editedCoach.last, 'Ellis');
+assert.deepEqual({ tid: editedCoach.tid, role: editedCoach.role, amt: editedCoach.amt, exp: editedCoach.exp }, jobBefore);
+assert.deepEqual(
+  editedCoach.past,
+  oldCoaching.filter(r => r.season < editGame.Y),
+  'Existing coaching history is preserved',
+);
+assert(coachPlayRows(editGame, editedCoach).every(r => r.team === 'Harbor College'));
+assert.deepEqual(
+  coachPlayRows(editGame, editedCoach).map(({ team, ...r }) => r),
+  oldPlaying.map(({ team, ...r }) => r),
+  'School edits do not reroll playing stats',
+);
+const savedEdit = Game.load(JSON.parse(JSON.stringify(editGame.toSave())));
+assert.deepEqual(coachBioDraft(savedEdit, savedEdit.db.coaches[editedCoach.id]), draft);
+assert.deepEqual(coachPlayRows(savedEdit, savedEdit.db.coaches[editedCoach.id]), coachPlayRows(editGame, editedCoach));
+// Reputation edits must hit their target even when experience puts the natural formula above 100.
+for (const [years, rep] of [
+  [100, 1],
+  [0, 99],
+  [100, 0],
+  [0, 100],
+]) {
+  assert.equal(saveCoachBio(editGame, editedCoach.id, { ...draft, years, rep }), '');
+  assert.equal(editedCoach.rep, rep);
+}
+const beforeInvalid = JSON.stringify(editedCoach);
+assert(saveCoachBio(editGame, editedCoach.id, { ...draft, nat: 'invalid' }));
+assert.equal(JSON.stringify(editedCoach), beforeInvalid, 'Invalid edits are atomic');
+const former = editGame.db.P[editGame.state.rosters[0][0]];
+const linked = coachFromPlayer(editGame, former);
+const archivedPlayer = JSON.stringify(former);
+const linkedPlaying = structuredClone(coachPlayRows(editGame, linked));
+assert.equal(
+  saveCoachBio(editGame, linked.id, {
+    ...coachBioDraft(editGame, linked),
+    name: 'Jordan Mercer',
+    race: 'asian',
+    age: 48,
+    nat: 'CA',
+    where: 'Lakeside College',
+    years: 12,
+    rep: 64,
+  }),
+  '',
+);
+assert.equal(JSON.stringify(former), archivedPlayer, 'Staff edits leave the linked player archive untouched');
+assert.deepEqual(coachPlayRows(editGame, linked), linkedPlaying, 'Recorded league playing teams and stats stay authoritative');
+editGame.setState({ god: false });
+const afterGod = JSON.stringify(linked);
+assert(saveCoachBio(editGame, linked.id, coachBioDraft(editGame, linked)));
+assert.equal(JSON.stringify(linked), afterGod);
+console.log('PASS: staff biography edits require God Mode, persist, retain history and leave player archives and coaching jobs intact.');

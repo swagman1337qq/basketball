@@ -21,7 +21,9 @@ import {
   ROLE_LABEL,
   styleOf,
 } from '../../engine/staff';
-import { careerSummary, coachRows, playRows, WOMENS_LEAGUE } from '../../engine/coachCareer';
+import { careerSummary, coachRows, WOMENS_LEAGUE } from '../../engine/coachCareer';
+import { coachPlayRows } from '../coachEditing';
+import { CoachBioEditor } from './CoachBioEditor';
 import { th, td } from '../kit';
 
 export function CoachProfile({ vm }: { vm: VM }) {
@@ -37,7 +39,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
     setTab = (k: string) => gm.setState({ coachTab: k });
   const rows = coachRows(gm, s, c),
     sum = careerSummary(rows),
-    plays = playRows(gm, s, c);
+    plays = coachPlayRows(gm, c);
   const f1 = (v: number) => v.toFixed(1),
     f3 = (v: number) => (v ? v.toFixed(3).replace(/^0/, '') : '—');
   const trait = (k: string) => {
@@ -189,7 +191,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
             <div className="dialog-body" style={{ fontSize: '13px' }}>
               <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 8 }}>
                 <span>
-                  <b>{sum.seasons}</b> seasons coaching
+                  <b>{coachYears(gm, c)}</b> years coaching
                 </span>
                 <span>
                   NBA head coach: <b>{sum.nbaW + sum.nbaL ? sum.nbaW + '–' + sum.nbaL : '—'}</b>
@@ -275,6 +277,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
               {row('Reputation', c.rep + ' / 100')}
               {row('Personality', traits.length ? traits.join(' · ') : 'Nothing stands out')}
               {row('Played', playLine(c))}
+              {c.play.where && c.play.k !== 'none' && row('Playing college/team', c.play.where)}
               {row('Coaching', (coachYears(gm, c) ? coachYears(gm, c) + ' years · since ' + c.since + ' · ' : 'New · ') + c.bg)}
               {T && !c.ret && row('Contract', money(c.amt) + ' a year through ' + (c.exp - 1) + '–' + String(c.exp).slice(2))}
               {T &&
@@ -292,6 +295,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
                     '–' +
                     String(c.next.exp).slice(2),
                 )}
+              {god && <CoachBioEditor key={c.id} gm={gm} coach={c} onSave={refresh} />}
               <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
                 Coaching ratings{' '}
                 <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>

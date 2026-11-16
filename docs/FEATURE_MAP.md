@@ -396,6 +396,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Staff biographies could not be edited in God Mode.** Added 2026-11-16: `CoachBioEditor.tsx` in the coach Overview edits name, age, race/appearance, nationality, playing college/team, reputation and years coaching. `ui/coachEditing.ts` validates and enforces God Mode again when saving, adjusts birth/start years and reputation offset, and invalidates staff caches. Generated playing stats are retained in optional `bioPlayRows` while school/team labels can change; linked player archives and coaching employment stay intact. `bioFace` updates age/race portraits without mutating retired players. Experience edits preserve stored coaching history. `staffContracts.mts` covers access control, validation, persistence, exact reputation and archive/job isolation.
+
 - [x] **Staff lists lacked column sorting and separate ages.** Updated 2026-11-15: all data headers in your staff, available coaches and league head coaches toggle ascending/descending independently, with arrows and `aria-sort`. Age is a separate numeric column; national flags appear beside names. Ratings sort by the current scouting read (exact only in God Mode); contracts/asking prices are numeric, coaching sorts by years and head-coach records by win percentage. Sorting precedes available-coach pagination.
 
 - [x] **Coach headers moved when switching to an empty career tab.** Fixed 2026-11-15: all tabs share a fixed responsive card height; only the tab body scrolls, leaving the header and tabs in place.
