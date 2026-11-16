@@ -1,11 +1,24 @@
 // Explicit staff biography edits. Normal coaching and player development never call this editor.
 import type { Game } from '../engine/Game';
 import { FACE_LOOKS } from '../engine/faces';
-import { playRows, preserveCoachCareer, type PlayRow } from '../engine/coachCareer';
-import { godEditCoach, repOf, type Coach } from '../engine/staff';
+import { playRows, preserveCoachCareer, syncHeadCoaches, type PlayRow } from '../engine/coachCareer';
+import { godAppoint, godEditCoach, fireCoach, repOf, ROLE_ORDER, type Coach, type CoachRole } from '../engine/staff';
 
 export type EditableCoach = Coach & { bioFace?: boolean; bioPlayRows?: PlayRow[] };
-export type CoachBioDraft = { name: string; age: number; race: string; nat: string; where: string; rep: number; years: number };
+export type CoachBioDraft = {
+  name: string;
+  age: number;
+  race: string;
+  nat: string;
+  where: string;
+  rep: number;
+  years: number;
+  tid: number | null;
+  role: CoachRole;
+  amt: number;
+  exp: number;
+  next: Coach['next'] | null;
+};
 
 export const coachPlayRows = (g: Game, c: EditableCoach) => c.bioPlayRows ?? playRows(g, g.state, c);
 export const coachBioDraft = (g: Game, c: Coach): CoachBioDraft => ({
@@ -16,6 +29,11 @@ export const coachBioDraft = (g: Game, c: Coach): CoachBioDraft => ({
   where: c.play.where || (c.pid != null ? g.db.P[c.pid]?.from?.team : '') || '',
   rep: c.rep,
   years: Math.max(0, g.Y - c.since),
+  tid: c.tid,
+  role: c.role || 'asst',
+  amt: c.amt,
+  exp: c.exp,
+  next: c.next ? { ...c.next } : null,
 });
 
 export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string {
@@ -31,6 +49,24 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
   if (!Number.isFinite(draft.rep) || draft.rep < 0 || draft.rep > 100) return 'Reputation must be between 0 and 100.';
   if (!Number.isFinite(draft.years) || draft.years < 0 || draft.years > 100) return 'Coaching experience must be between 0 and 100 years.';
   if (where.length > 120) return 'Playing college/team must be at most 120 characters.';
+  if (draft.tid != null && !g.state.teams.some(t => t.tid === draft.tid)) return 'Choose a coaching team.';
+  if (!ROLE_ORDER.includes(draft.role)) return 'Choose a coaching role.';
+  if (!Number.isFinite(draft.amt) || draft.amt < 0 || draft.amt > 1000) return 'Annual salary must be between $0M and $1,000M.';
+  if (draft.tid != null && (!Number.isInteger(draft.exp) || draft.exp < g.Y || draft.exp > g.Y + 100))
+    return 'Choose a contract end season from this season through 100 years ahead.';
+  if (draft.next && draft.tid != null) {
+    if (
+      !Number.isFinite(draft.next.amt) ||
+      draft.next.amt < 0 ||
+      draft.next.amt > 1000 ||
+      !Number.isInteger(draft.next.start) ||
+      !Number.isInteger(draft.next.exp) ||
+      draft.next.start <= draft.exp ||
+      draft.next.exp < draft.next.start ||
+      draft.next.exp > g.Y + 100
+    )
+      return 'An extension must start after the current contract, end on or after its start, and have a valid salary.';
+  }
   preserveCoachCareer(g, g.state, c);
   // Keep generated stat lines stable when changing birth year, nationality or playing affiliation.
   const previousWhere = c.play.where;
@@ -50,6 +86,35 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
   c.nat = draft.nat;
   if (c.play.k !== 'none') c.play.where = where || undefined;
   c.since = g.Y - Math.round(draft.years);
+  const previousRole = c.role;
+  const jobChanged = c.tid !== draft.tid || (draft.tid != null && c.role !== draft.role);
+  const contractChanged = c.amt !== draft.amt || c.exp !== draft.exp || JSON.stringify(c.next ?? null) !== JSON.stringify(draft.next);
+  if (jobChanged) {
+    if (draft.tid == null) {
+      if (c.tid != null) fireCoach(g, g.state, c.tid, c.id, true);
+    } else {
+      delete c.ret;
+      godAppoint(g, g.state, draft.tid, c.id, draft.role);
+    }
+  }
+  if (draft.tid != null) {
+    c.amt = +draft.amt.toFixed(2);
+    c.exp = draft.exp;
+    if (draft.next) c.next = { ...draft.next, amt: +draft.next.amt.toFixed(2) };
+    else delete c.next;
+    if (draft.role === 'hc') c.godHeadCoach = true;
+    else delete c.godHeadCoach;
+  } else {
+    c.amt = 0;
+    c.exp = 0;
+    delete c.next;
+    delete c.godHeadCoach;
+  }
+  if (jobChanged || contractChanged) {
+    delete c.raise;
+    delete c.sour;
+  }
+  if (jobChanged && (previousRole === 'hc' || draft.role === 'hc')) syncHeadCoaches(g, g.state);
   // Set the requested reputation exactly, even when its natural formula is clipped at 0/100.
   // Subsequent seasons still change reputation normally.
   (c as any).repAdj = 0;

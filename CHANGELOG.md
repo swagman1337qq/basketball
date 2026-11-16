@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-16
 
 ### Added
+- **God Mode staff contracts and moves.** The coach editor now changes annual salary, contract end season and signed extensions, and assigns any team and coaching role—including head coach—or returns a coach to the available pool. Saved head-coach assignments stay in place after reopening, including on your team. Occupied lead, development and head-coach roles move the previous holder to assistant.
 - **God Mode staff biography editor.** Open a coach profile, then Overview, to edit name, age, race/appearance, nationality, reputation, coaching experience and playing college/team where applicable. Save changes applies the edits; playing affiliations never change the coaching employer. Edits survive saving and reopening.
 
 ## 2026-11-15

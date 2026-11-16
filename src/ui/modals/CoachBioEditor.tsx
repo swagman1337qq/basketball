@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Game } from '../../engine/Game';
-import type { Coach } from '../../engine/staff';
+import { ROLE_LABEL, ROLE_ORDER, type Coach, type CoachRole } from '../../engine/staff';
+import { firstSeason } from '../../engine/contracts';
 import { FACE_LOOKS } from '../../engine/faces';
 import { coachBioDraft, saveCoachBio } from '../coachEditing';
 import { CountryPicker, godBox, godBtn, muted, NumInput } from '../kit';
@@ -68,7 +69,123 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           <br />
           <NumInput value={draft.years} min={0} max={100} width={80} onValue={years => setDraft({ ...draft, years })} />
         </label>
+        <label>
+          Coaching team
+          <br />
+          <select
+            aria-label="Coaching team"
+            value={draft.tid ?? ''}
+            style={{ width: '100%' }}
+            onChange={e => {
+              const tid = e.target.value === '' ? null : Number(e.target.value);
+              setDraft(
+                tid == null
+                  ? { ...draft, tid, amt: 0, exp: 0, next: null }
+                  : { ...draft, tid, exp: Math.max(draft.exp, firstSeason(gm, gm.state)) },
+              );
+            }}
+          >
+            <option value="">Available / no team</option>
+            {[...gm.state.teams]
+              .sort((a, b) => (a.region + ' ' + a.name).localeCompare(b.region + ' ' + b.name))
+              .map(t => (
+                <option key={t.tid} value={t.tid}>
+                  {t.region} {t.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          Coaching role
+          <br />
+          <select aria-label="Coaching role" value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value as CoachRole })}>
+            {ROLE_ORDER.map(role => (
+              <option key={role} value={role}>
+                {ROLE_LABEL[role]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Annual salary
+          <br />
+          <NumInput
+            value={draft.amt}
+            min={0}
+            max={1000}
+            step={0.01}
+            width={100}
+            suffix="$M"
+            disabled={draft.tid == null}
+            onValue={amt => setDraft({ ...draft, amt })}
+          />
+        </label>
+        <label>
+          Contract end season
+          <br />
+          <NumInput
+            value={draft.tid == null ? gm.Y : draft.exp}
+            min={gm.Y}
+            max={gm.Y + 100}
+            width={100}
+            disabled={draft.tid == null}
+            onValue={exp => setDraft({ ...draft, exp })}
+          />
+        </label>
       </div>
+      {draft.tid != null && (
+        <div style={{ marginTop: 12 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={!!draft.next}
+              onChange={e =>
+                setDraft({ ...draft, next: e.target.checked ? { start: draft.exp + 1, exp: draft.exp + 3, amt: draft.amt } : null })
+              }
+            />{' '}
+            Signed extension
+          </label>
+          {draft.next && (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+              <label>
+                Extension salary
+                <br />
+                <NumInput
+                  value={draft.next.amt}
+                  min={0}
+                  max={1000}
+                  step={0.01}
+                  width={100}
+                  suffix="$M"
+                  onValue={amt => setDraft({ ...draft, next: { ...draft.next!, amt } })}
+                />
+              </label>
+              <label>
+                Extension starts
+                <br />
+                <NumInput
+                  value={draft.next.start}
+                  min={gm.Y}
+                  max={gm.Y + 100}
+                  width={100}
+                  onValue={start => setDraft({ ...draft, next: { ...draft.next!, start } })}
+                />
+              </label>
+              <label>
+                Extension ends
+                <br />
+                <NumInput
+                  value={draft.next.exp}
+                  min={gm.Y}
+                  max={gm.Y + 100}
+                  width={100}
+                  onValue={exp => setDraft({ ...draft, next: { ...draft.next!, exp } })}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
         <button
           className="btn btn-secondary"

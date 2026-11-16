@@ -95,7 +95,7 @@ export function syncHeadCoaches(g: Game, s: any): any[] {
   s.teams.forEach((T: any) => {
     const tid = T.tid,
       hcs = all.filter(c => c.tid === tid && c.role === 'hc' && !c.ret);
-    if (g.isUser(s, tid) && !s.spectator) {
+    if (g.isUser(s, tid) && !s.spectator && !hcs.some(c => c.godHeadCoach)) {
       hcs.forEach(c => preserveCoachCareer(g, s, c));
       hcs.forEach(c => Object.assign(c, { tid: null, role: null, amt: 0, exp: 0, bg: 'Head coach, ' + T.region + ' ' + T.name }));
       if (!staffOf(g, tid).length) starterStaff(g, s, tid); // a team you just took over comes with a staff

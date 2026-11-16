@@ -205,3 +205,86 @@ const afterGod = JSON.stringify(linked);
 assert(saveCoachBio(editGame, linked.id, coachBioDraft(editGame, linked)));
 assert.equal(JSON.stringify(linked), afterGod);
 console.log('PASS: staff biography edits require God Mode, persist, retain history and leave player archives and coaching jobs intact.');
+
+// God Mode can rewrite employment and both current/future contracts, in every role.
+const jobGame = Game.create(36, [0]);
+const jobCoach = ST.staffOf(jobGame, 0)[0];
+const jobBeforeDenied = JSON.stringify(jobCoach);
+assert(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: 1, role: 'hc', amt: 9.75, exp: jobGame.Y + 5 }));
+assert.equal(JSON.stringify(jobCoach), jobBeforeDenied);
+jobGame.setState({ god: true });
+const priorHead = Object.values(jobGame.db.coaches).find(x => x.tid === 1 && x.role === 'hc')!;
+const jobPast = structuredClone(jobCoach.past);
+const jobDeal = {
+  ...coachBioDraft(jobGame, jobCoach),
+  tid: 1,
+  role: 'hc' as const,
+  amt: 9.75,
+  exp: jobGame.Y + 5,
+  next: { start: jobGame.Y + 6, exp: jobGame.Y + 8, amt: 12.25 },
+};
+assert.equal(saveCoachBio(jobGame, jobCoach.id, jobDeal), '');
+assert.equal(jobCoach.tid, 1);
+assert.equal(jobCoach.role, 'hc');
+assert.equal(priorHead.role, 'asst', 'The occupied head coach job is replaced without duplicating head coaches');
+assert.equal(jobCoach.amt, 9.75);
+assert.equal(jobCoach.exp, jobGame.Y + 5);
+assert.deepEqual(jobCoach.next, jobDeal.next);
+assert.deepEqual(jobCoach.past, jobPast);
+assert(!(jobGame.db as any).coachDead?.[0]?.length, 'God moves do not create a firing payout');
+// Own-team head coach assignments remain after toggling God Mode off and reopening.
+assert.equal(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: 0, role: 'hc' }), '');
+jobGame.setState({ god: false });
+let jobReopen = Game.load(JSON.parse(JSON.stringify(jobGame.toSave())));
+assert.equal(jobReopen.db.coaches[jobCoach.id].tid, 0);
+assert.equal(jobReopen.db.coaches[jobCoach.id].role, 'hc');
+assert.deepEqual(jobReopen.db.coaches[jobCoach.id].next, jobDeal.next);
+assert.equal(
+  Object.values(jobReopen.db.coaches).filter(c => c.tid === 1 && c.role === 'hc').length,
+  1,
+  'The vacated AI head-coach job receives a replacement',
+);
+jobGame.setState({ god: true });
+for (const role of ST.ROLE_ORDER) {
+  assert.equal(
+    saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: 2, role, amt: 7.5, exp: jobGame.Y + 4, next: null }),
+    '',
+  );
+  jobReopen = Game.load(JSON.parse(JSON.stringify(jobGame.toSave())));
+  assert.equal(jobReopen.db.coaches[jobCoach.id].tid, 2);
+  assert.equal(jobReopen.db.coaches[jobCoach.id].role, role);
+  assert.equal(jobReopen.db.coaches[jobCoach.id].amt, 7.5);
+}
+const jobAtomic = JSON.stringify(jobCoach);
+assert(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: 99999 }));
+assert(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), next: { start: jobGame.Y, exp: jobGame.Y + 1, amt: 5 } }));
+assert.equal(JSON.stringify(jobCoach), jobAtomic, 'Invalid jobs and overlapping extensions are rejected before changing any field');
+// Editing the contract changes current payroll; a future extension activates only when due.
+assert.equal(
+  saveCoachBio(jobGame, jobCoach.id, {
+    ...coachBioDraft(jobGame, jobCoach),
+    tid: 0,
+    role: 'asst',
+    amt: 3.25,
+    exp: jobGame.Y,
+    next: { start: jobGame.Y + 1, exp: jobGame.Y + 3, amt: 8.5 },
+  }),
+  '',
+);
+const payrollBeforeExtension = ST.staffCost(jobGame, jobGame.state, 0);
+ST.ensureStaff(jobGame);
+assert.equal(jobCoach.amt, 3.25);
+assert.equal(ST.staffCost(jobGame, jobGame.state, 0), payrollBeforeExtension);
+jobGame.state.season++;
+ST.ensureStaff(jobGame);
+assert.equal(jobCoach.amt, 8.5);
+assert.equal(jobCoach.next, undefined);
+assert.equal(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: null }), '');
+assert.equal(jobCoach.tid, null);
+assert.equal(jobCoach.role, null);
+assert.equal(jobCoach.amt, 0);
+assert.equal(jobCoach.exp, 0);
+assert.equal(jobCoach.next, undefined);
+console.log(
+  'PASS: God-only contracts, extensions, all-team/all-role moves, own-team head-coach persistence, replacement heads and payroll activation.',
+);

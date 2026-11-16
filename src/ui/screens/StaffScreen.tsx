@@ -297,7 +297,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                     onChange={e => act(() => setRole(gm, s, tid, c.id, e.target.value as CoachRole, god))}
                     style={{ fontSize: '12.5px' }}
                   >
-                    {(['lead', 'asst', 'dev'] as CoachRole[]).map(r => (
+                    {([...(c.role === 'hc' ? ['hc'] : []), 'lead', 'asst', 'dev'] as CoachRole[]).map(r => (
                       <option key={r} value={r}>
                         {ROLE_LABEL[r]}
                       </option>

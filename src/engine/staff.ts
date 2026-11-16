@@ -91,6 +91,7 @@ export interface Coach {
   made?: number; // season he came into view (before it: a generated career, coachCareer.ts)
   h?: number[][]; // a row a season he worked here: [season, team, role code, under you 1/0] (coachCareer.ts)
   coy?: number[]; // seasons he was Coach of the Year (head coaches)
+  godHeadCoach?: boolean; // explicit God Mode appointment may remain head coach of a managed team
 }
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
