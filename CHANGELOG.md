@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-16
 
 ### Changed
+- **Latest roster transaction.** Acquired now shows only the latest arrival, extension or re-signing with its year, replacing the older draft/trade/signing entry. Full transaction history and years with the team stay intact.
 - **Less empty space on rosters.** The overview stays on the left, lineup controls and team details share the middle, and injury settings sit on the right. Filters, stat tabs, God Mode happiness buttons and the team note share a compact wrapping toolbar below the full cap bar. Smaller screens stack the sections.
 
 ### Added

@@ -82,7 +82,7 @@ const chip: React.CSSProperties = { fontSize: '12px', padding: '2px 9px' };
 // (s.rosterSub; the arrows show once there are two or more). Add an entry here to add a choice. How he got here has
 // its own column (Acquired) since 2026-11-11.
 const SUBS: [string, string][] = [['badges', 'Badges']];
-// howAcquired's sentence, shortened for the Acquired column ("Traded from BOS in 2026 · extended 2027" → "Trade from BOS ’26 · ext ’27")
+// Latest transaction, shortened for the Acquired column ("extended 2027" → "ext ’27").
 const shortHow = (h: string) =>
   h
     .replace(/#(\d+) pick in (\d{4})/, '#$1 pick ’$2')

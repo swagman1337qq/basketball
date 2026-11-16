@@ -78,8 +78,8 @@ export const pickUsed = (g: Game, assetId: string) => ((g.db as any).pickUsed ||
 export const pickTrades = (g: Game, assetId: string) => tradesOf(g).filter(t => t.aK.includes(assetId) || t.bK.includes(assetId));
 
 // A short note on how a player came to this team, for roster rows: "#2 pick in 2027",
-// "Signed as a free agent in 2027", "Traded from NSH in 2028", plus a later extension or
-// re-signing ("extended 2028"). Players already on the roster when the league began get nothing
+// "Signed as a free agent in 2027", "Traded from NSH in 2028". A later extension or
+// re-signing replaces the arrival note ("extended 2028"). Players on the opening roster get nothing
 // (unless they've since re-signed or extended).
 // The move that brought him to `tid` this time (his latest draft, trade, expansion pick or signing there), -1 if none
 // (he was on the team when the league began).
@@ -143,7 +143,7 @@ export function howAcquired(g: Game, s: any, p: any, tid: number): string {
     .reverse()
     .find(e => (e.k === 'extend' && e.tid === tid) || (e.k === 'sign' && e.tid === tid && /^Re-signed/.test(e.text || '')));
   const tail = later ? (later.k === 'extend' ? 'extended ' : 're-signed ') + yr(later) : '';
-  return [head, tail].filter(Boolean).join(' · ');
+  return tail || head;
 }
 
 // The last NBA team he was on (a free agent's old team): the latest of his transactions (signed,
