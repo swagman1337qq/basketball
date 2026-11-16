@@ -371,3 +371,48 @@ for (let i = 0; i < 100; i++) {
 assert(countriesSeen.size > 20);
 assert.equal(randomCoachCountry({ US: { n: 'United States', iso: 'us' } }, 'US', staffRandom), 'US');
 console.log('PASS: staff identity randomizers use country/gender, draw valid flags, and avoid repeating the current country.');
+// Gender-aware staff copy, including finished notices already present in an older save.
+const pronounGame = Game.create(942, [0]);
+const pc = ST.staffOf(pronounGame, 0).find(x => x.role === 'asst')!;
+Object.assign(pc, { name: 'Claire Walker', fem: true, born: pronounGame.Y - 35, amt: 0.01, exp: pronounGame.Y + 3 });
+delete pc.raise;
+delete pc.next;
+assert.equal(
+  ST.coachWording(pc, 'He thinks he’s worth more; turn him down when his deal ends.'),
+  'She thinks she’s worth more; turn her down when her deal ends.',
+);
+assert.equal(ST.coachWording({ fem: false }, 'He sees himself as a lead.'), 'He sees himself as a lead.');
+assert.equal(ST.coachWording(pc, 'He sees himself as a lead.'), 'She sees herself as a lead.');
+const savedRandom = Math.random;
+let raiseNotice: any;
+try {
+  Math.random = () => 0.5;
+  raiseNotice = ST.staffYear(pronounGame, pronounGame.state).notices.find(n => n.title === 'Claire Walker asks for a raise');
+} finally {
+  Math.random = savedRandom;
+}
+assert(raiseNotice);
+assert.match(raiseNotice.lines[0], /thinks she’s worth/);
+assert.match(raiseNotice.lines[1], /turn her down and she won’t re-sign when her deal ends/);
+pc.sour = pronounGame.Y;
+assert.match(ST.coachAccept(pronounGame, pronounGame.state, 0, pc, { role: 'asst', amt: 0.01, years: 3 }).why, /^She.*she won’t re-sign/);
+const oldLine = 'Your Assistant Coach makes $2.2M a year and thinks he’s worth $2.9M.';
+pronounGame.state.mail = [
+  {
+    id: 'old-raise',
+    title: 'Claire Walker asks for a raise',
+    lines: [oldLine, 'Answer on the Staff screen: turn him down and he won’t re-sign when his deal ends.'],
+    season: pronounGame.Y,
+    date: 'Jul 14, 2040',
+    seq: 1,
+  },
+  { id: 'player-copy', title: 'Player update', lines: [oldLine] },
+];
+const pronounReopen = Game.load(JSON.parse(JSON.stringify(pronounGame.toSave())));
+assert.match(pronounReopen.state.mail[0].lines[0], /thinks she’s worth \$2.9M/);
+assert.match(pronounReopen.state.mail[0].lines[1], /turn her down and she won’t re-sign when her deal ends/);
+assert.equal(pronounReopen.state.mail[1].lines[0], oldLine, 'Non-staff messages are untouched');
+const repairedCopy = JSON.stringify(pronounReopen.state.mail);
+ST.ensureStaff(pronounReopen);
+assert.equal(JSON.stringify(pronounReopen.state.mail), repairedCopy, 'Legacy repair is idempotent');
+console.log('PASS: female staff notices and contract wording, male wording, existing save repair and unrelated-message isolation.');

@@ -337,7 +337,33 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   });
 
   items.sort((a, b) => b.ms - a.ms);
-  const lk = (n: ReactNode) => (typeof n === 'string' ? linkNames(n, open, { P }) : n); // any player's name in the text opens his profile
+  // Coach names open coach profiles, without the player-only hover/identity attributes.
+  const coaches = Object.values(gm.db.coaches || {}) as { id: number; name: string }[];
+  const coachNames = new Map<string, number>();
+  for (const c of coaches) {
+    if (!c.name) continue;
+    coachNames.set(c.name, coachNames.has(c.name) ? -1 : c.id);
+  }
+  const names = [...coachNames.keys()].filter(name => coachNames.get(name)! >= 0).sort((a, b) => b.length - a.length);
+  const escCoach = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const coachPattern = names.length ? new RegExp('(' + names.map(escCoach).join('|') + ')', 'g') : null;
+  const lk = (n: ReactNode): ReactNode => {
+    if (typeof n !== 'string') return n;
+    if (!coachPattern) return linkNames(n, open, { P });
+    return n.split(coachPattern).map((part, i) =>
+      i % 2 ? (
+        <Link
+          key={i}
+          onClick={() => gm.setState({ coachPid: coachNames.get(part)! })}
+          style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-divider)', textUnderlineOffset: '2px' }}
+        >
+          {part}
+        </Link>
+      ) : (
+        <span key={i}>{linkNames(part, open, { P })}</span>
+      ),
+    );
+  };
   const shown = kind === 'all' ? items : items.filter(x => x.kind === kind),
     count = (k: Kind | 'all') => (k === 'all' ? items.length : items.filter(x => x.kind === k).length);
   const profiles = (x: Item) =>
@@ -464,7 +490,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
                         fontWeight: x.isNew ? 600 : 400,
                       }}
                     >
-                      {x.title}
+                      {lk(x.title)}
                     </span>
                     <span style={{ fontSize: '11.5px', fontWeight: 600, color: x.status?.[1], whiteSpace: 'nowrap' }}>
                       {x.status?.[0] || ''}

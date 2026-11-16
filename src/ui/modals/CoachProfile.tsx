@@ -8,6 +8,7 @@ import {
   coachAge,
   coachOvr,
   coachYears,
+  coachWording,
   CP_LABEL,
   CR_KEYS,
   CR_LABEL,
@@ -127,7 +128,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
                       style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline' }}
                       onClick={() => vm.ctx.open(c.pid!)}
                     >
-                      his player profile
+                      {coachWording(c, 'his player profile')}
                     </button>
                   </>
                 )}

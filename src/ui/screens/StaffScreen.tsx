@@ -3,7 +3,7 @@
 // shows them exactly and adds any coach to your staff on the spot.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
+import { Link, godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
 import { fmtMoney as money } from '../../engine/capModel';
 import {
@@ -13,6 +13,7 @@ import {
   coachAsk,
   coachPrefYears,
   coachYears,
+  coachWording,
   CR_KEYS,
   fireCoach,
   freeCoaches,
@@ -217,7 +218,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
       <h4 style={h4Style}>Coaching staff</h4>
       <p style={{ margin: '0 0 10px', fontSize: '13px', ...muted }}>
         You are the head coach of the {T.region} {T.name}. Your assistants: a Lead Assistant (your in-game reads), Assistant Coaches (each
-        helps the end of the floor his style points to) and a Head of Player Development. {STAFF_MIN} to {STAFF_MAX} coaches
+        helps the end of the floor their style points to) and a Head of Player Development. {STAFF_MIN} to {STAFF_MAX} coaches
         {god ? ' (God Mode: any number)' : ''}. Their effect is small next to the players&rsquo;: at most about 1.5 points per 100
         possessions in all.
       </p>
@@ -329,10 +330,10 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       <>
                         <button
                           className="btn btn-secondary"
-                          title={'He asks for ' + money(c.raise.ask) + ' a year'}
+                          title={coachWording(c, 'He asks for ') + money(c.raise.ask) + ' a year'}
                           onClick={() => {
                             answerRaise(gm, s, c.id, true);
-                            setMsg(c.name + ' got his raise.');
+                            setMsg(c.name + coachWording(c, ' got his raise.'));
                             refresh();
                           }}
                         >
@@ -340,7 +341,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                         </button>
                         <button
                           className="btn btn-secondary"
-                          title="Turn him down: he won’t re-sign when his deal ends"
+                          title={coachWording(c, 'Turn him down: he won’t re-sign when his deal ends')}
                           onClick={() => {
                             answerRaise(gm, s, c.id, false);
                             setMsg('You turned ' + c.name + ' down.');
@@ -352,7 +353,11 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       </>
                     )}
                     {c.exp <= gm.Y && !c.next && (
-                      <button className="btn btn-secondary" onClick={() => startOffer(c)} title="His contract ends this summer">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => startOffer(c)}
+                        title={coachWording(c, 'His contract ends this summer')}
+                      >
                         Re-sign
                       </button>
                     )}
@@ -392,7 +397,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       <button
                         className="btn btn-secondary"
                         onClick={() => setFiring(c.id)}
-                        title="Fire him: he’s paid to the end of his deal"
+                        title={coachWording(c, 'Fire him: he’s paid to the end of his deal')}
                       >
                         Fire
                       </button>
@@ -421,7 +426,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
             <div>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>
                 {oc.tid === tid ? 'Re-sign ' : 'Offer: '}
-                {oc.name}
+                <Link onClick={() => openC(oc.id)}>{oc.name}</Link>
               </div>
               <div style={{ fontSize: '12px', ...muted }}>
                 Reputation {oc.rep} · asks about {money(coachAsk(gm, oc, offer.role))} a year as {ROLE_LABEL[offer.role]} · prefers{' '}
@@ -461,7 +466,10 @@ export function StaffScreen({ vm }: { vm: VM }) {
           </div>
           {oc.tid === tid && (
             <div style={{ fontSize: '12px', ...muted }}>
-              Renewal starts after his current deal ends. To change his job, use the role selector on your staff first.
+              {coachWording(
+                oc,
+                'Renewal starts after his current deal ends. To change his job, use the role selector on your staff first.',
+              )}
             </div>
           )}
           <div style={{ fontSize: '13px', color: acc?.ok ? 'var(--gm-good)' : 'var(--color-accent-800)' }}>
@@ -503,8 +511,8 @@ export function StaffScreen({ vm }: { vm: VM }) {
 
       <h4 style={{ ...h4Style, marginTop: 18 }}>Coaches available</h4>
       <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
-        What you can see before you hire someone: reputation, playing days and where he&rsquo;s coached. His style is what he&rsquo;s known
-        for; his real ratings come into focus once he works for you.
+        What you can see before you hire someone: reputation, playing days and where they&rsquo;ve coached. Their style is what
+        they&rsquo;re known for; their real ratings come into focus once they work for you.
       </p>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
         <input placeholder="Search name" value={q} onChange={e => setQ(e.target.value)} style={{ width: 160 }} />
@@ -576,7 +584,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                       <button
                         className="btn btn-secondary"
                         style={godBtn}
-                        title="God Mode: put him on your staff now (his asking price, the years he wants)"
+                        title={coachWording(c, 'God Mode: put him on your staff now (his asking price, the years he wants)')}
                         onClick={() => act(() => godAppoint(gm, s, tid, c.id, 'asst'), c.name + ' joined your staff (God Mode).')}
                       >
                         Appoint
@@ -597,8 +605,8 @@ export function StaffScreen({ vm }: { vm: VM }) {
 
       <h4 style={{ ...h4Style, marginTop: 22 }}>Head coaches around the league</h4>
       <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
-        Every other team&rsquo;s head coach, with his record as a head coach (everywhere he&rsquo;s been one). Teams don&rsquo;t hire or
-        fire head coaches yet.
+        Every other team&rsquo;s head coach, with their record as a head coach (everywhere they&rsquo;ve been one). Teams don&rsquo;t hire
+        or fire head coaches yet.
       </p>
       <div style={{ overflowX: 'auto' }}>
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>

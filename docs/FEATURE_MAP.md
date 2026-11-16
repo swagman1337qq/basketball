@@ -398,6 +398,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Female coaches were called he/him in staff messages.** Fixed 2026-11-16: `staff.ts` `coachWording` uses stored `fem` for raise/contract notices, negotiation responses, read labels, Staff tooltips and profile links. `ensureStaff` repairs unambiguous legacy raise notices in mail/pending notices; unrelated mail is untouched. `staffContracts.mts` covers female/male copy, real generated raises, refusal responses, save/reopen and idempotent repair. Mailbox titles and bodies link known, unambiguous coach names to `coachPid`, without player hover metadata; existing player links remain. Staff offer headings also link to the coach profile.
+
 - [x] **Acquired combined old arrival and newer contract transactions.** Fixed 2026-11-16: `txlog.ts` `howAcquired` shows only the latest arrival or subsequent extension/re-signing for the current stint. Full transaction logs and `yearsWithTeam` remain unchanged.
 
 - [x] **Roster headers and cap/filter controls wasted vertical space.** Fixed 2026-11-16: move team details under lineup controls, injury settings right, and combine lower controls into a wrapping toolbar; preserve cap markers, full text and existing actions.

@@ -94,6 +94,29 @@ export interface Coach {
   godHeadCoach?: boolean; // explicit God Mode appointment may remain head coach of a managed team
 }
 
+// Staff copy follows the coach's saved gender; unrelated player messages are untouched.
+export function coachWording(c: Pick<Coach, 'fem'>, text: string): string {
+  if (!c.fem) return text;
+  const words: Record<string, string> = { he: 'she', his: 'her', him: 'her', himself: 'herself' };
+  return text.replace(/\b(he|his|him|himself)\b/gi, word => {
+    const replacement = words[word.toLowerCase()];
+    return word[0] === word[0].toUpperCase() ? replacement[0].toUpperCase() + replacement.slice(1) : replacement;
+  });
+}
+// Older saves stored raise notices as finished sentences. Repair only unambiguous staff notices.
+function repairStaffMessages(g: Game, s: any) {
+  const coaches = Object.values(coachDb(g));
+  for (const m of [...(s.mail || []), ...(s.notices || [])]) {
+    const matches = coaches.filter(c => m.title === c.name + ' asks for a raise');
+    if (matches.length !== 1 || !matches[0].fem || !Array.isArray(m.lines)) continue;
+    m.lines = m.lines.map((line: unknown) =>
+      typeof line === 'string' && (line.startsWith('Your ') || line.startsWith('Answer on the Staff screen:'))
+        ? coachWording(matches[0], line)
+        : line,
+    );
+  }
+}
+
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const bell = () => Math.random() + Math.random() + Math.random() - 1.5; // about −1.5..1.5, sd 0.5
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
@@ -297,7 +320,7 @@ export const grade = (v: number) =>
                       ? 'D'
                       : 'F';
 export const readLabel = (c: Coach) =>
-  c.read >= 0.95 ? 'Fully known' : c.read >= 0.6 ? 'Known well' : c.read >= 0.25 ? 'Getting to know him' : 'Just met';
+  c.read >= 0.95 ? 'Fully known' : c.read >= 0.6 ? 'Known well' : c.read >= 0.25 ? coachWording(c, 'Getting to know him') : 'Just met';
 
 // ── Your staff ──────────────────────────────────────────────────────────────────────
 export function staffOf(g: Game, tid: number): Coach[] {
@@ -410,16 +433,17 @@ export function coachAccept(g: Game, s: any, tid: number, c: Coach, t: { amt: nu
     ask = coachAsk(g, c, t.role) * (c.pers.amb >= 65 && wp >= 0.6 ? 0.9 : 1) * (c.tid === tid ? 0.95 - (c.pers.loyal - 50) / 500 : 1);
   const gap = Math.max(0, Math.abs(t.years - coachPrefYears(c)) - 1),
     value = t.amt * (1 - gap * 0.06);
-  if (c.sour && c.tid === tid) return { ok: false, ask, why: 'He hasn’t forgotten the raise you turned down: he won’t re-sign.' };
+  if (c.sour && c.tid === tid)
+    return { ok: false, ask, why: coachWording(c, 'He hasn’t forgotten the raise you turned down: he won’t re-sign.') };
   if (c.role !== 'lead' && t.role === 'asst' && c.tid !== tid && c.rep >= 75 && c.pers.ego >= 70)
-    return { ok: false, ask, why: 'He sees himself as more than an assistant: he wants to be your Lead Assistant.' };
+    return { ok: false, ask, why: coachWording(c, 'He sees himself as more than an assistant: he wants to be your Lead Assistant.') };
   return {
     ok: value >= ask - 0.005,
     ask: +ask.toFixed(2),
     why:
       value >= ask - 0.005
         ? ''
-        : 'He’s looking for about ' + money(ask) + ' a year' + (gap ? ' over ' + coachPrefYears(c) + ' years' : '') + '.',
+        : coachWording(c, 'He’s looking for about ') + money(ask) + ' a year' + (gap ? ' over ' + coachPrefYears(c) + ' years' : '') + '.',
   };
 }
 // The Coaching line in Finances for a team with a staff ($M this season): support staff, salaries, fired coaches still owed.
@@ -452,13 +476,13 @@ export function hireCoach(
   force = false,
 ): string {
   const c = coachDb(g)[id];
-  if (!c || c.ret) return 'He isn’t available.';
+  if (!c || c.ret) return c ? coachWording(c, 'He isn’t available.') : 'That coach isn’t available.';
   const resign = c.tid === tid;
-  if (resign && c.next) return 'He already has a signed extension.';
-  if (roleTaken(g, tid, t.role, id) && !force) return 'You already have a ' + ROLE_LABEL[t.role] + '. Move him first.';
-  if (resign && t.role !== c.role) return 'Change his role on your staff before renewing his contract.';
+  if (resign && c.next) return coachWording(c, 'He already has a signed extension.');
+  if (roleTaken(g, tid, t.role, id) && !force) return 'You already have a ' + ROLE_LABEL[t.role] + '. Move that coach first.';
+  if (resign && t.role !== c.role) return coachWording(c, 'Change his role on your staff before renewing his contract.');
   if (!resign) {
-    if (c.tid != null && !force) return 'He’s under contract with another team.';
+    if (c.tid != null && !force) return coachWording(c, 'He’s under contract with another team.');
     const err = staffCheck(g, s, tid, 1, force);
     if (err) return err;
   }
@@ -501,7 +525,7 @@ function activateExtension(c: Coach, year: number) {
 // Fire him: he's paid to the end of his deal (Coaching line in Finances).
 export function fireCoach(g: Game, s: any, tid: number, id: number, god = false): string {
   const c = coachDb(g)[id];
-  if (!c || c.tid !== tid) return 'He isn’t on your staff.';
+  if (!c || c.tid !== tid) return c ? coachWording(c, 'He isn’t on your staff.') : 'That coach isn’t on your staff.';
   const err = staffCheck(g, s, tid, -1, god);
   if (err) return err;
   preserveCoachCareer(g, s, c);
@@ -521,9 +545,9 @@ export function fireCoach(g: Game, s: any, tid: number, id: number, god = false)
 }
 export function setRole(g: Game, s: any, tid: number, id: number, role: CoachRole, god = false): string {
   const c = coachDb(g)[id];
-  if (!c || c.tid !== tid) return 'He isn’t on your staff.';
+  if (!c || c.tid !== tid) return c ? coachWording(c, 'He isn’t on your staff.') : 'That coach isn’t on your staff.';
   if (roleTaken(g, tid, role, id)) {
-    if (!god) return 'Someone already holds that job: move him first.';
+    if (!god) return 'Someone already holds that job: move that coach first.';
     staffOf(g, tid)
       .filter(x => x.role === role && x.id !== id)
       .forEach(x => (x.role = 'asst'));
@@ -535,7 +559,7 @@ export function setRole(g: Game, s: any, tid: number, id: number, role: CoachRol
 // God Mode: put any coach on a team (no contract talk; he keeps his salary or takes his asking price).
 export function godAppoint(g: Game, s: any, tid: number, id: number, role: CoachRole) {
   const c = coachDb(g)[id];
-  if (!c || c.ret) return 'He isn’t available.';
+  if (!c || c.ret) return c ? coachWording(c, 'He isn’t available.') : 'That coach isn’t available.';
   preserveCoachCareer(g, s, c);
   if (c.tid != null && c.tid !== tid) detach(g, c);
   if (role !== 'asst')
@@ -581,6 +605,7 @@ export function ensureStaff(g: Game) {
     d.staffV = 1;
     (s.managed || [s.me]).forEach((tid: number) => starterStaff(g, s, tid));
   }
+  repairStaffMessages(g, s);
   // Phase 2 (2026-11-15): careers. Coaches made before it came into view this season; retirements count from now.
   if (d.staffV < 2) {
     d.coachY0 = d.coachY0 ?? g.Y;
@@ -689,8 +714,8 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
           tone: 'warn',
           title: c.name + ' asks for a raise',
           lines: [
-            'Your ' + ROLE_LABEL[c.role!] + ' makes ' + money(c.amt) + ' a year and thinks he’s worth ' + money(ask) + '.',
-            'Answer on the Staff screen: turn him down and he won’t re-sign when his deal ends.',
+            'Your ' + ROLE_LABEL[c.role!] + ' makes ' + money(c.amt) + coachWording(c, ' a year and thinks he’s worth ') + money(ask) + '.',
+            coachWording(c, 'Answer on the Staff screen: turn him down and he won’t re-sign when his deal ends.'),
           ],
         });
       }
@@ -725,7 +750,7 @@ export function staffExpiring(g: Game, s: any): any[] {
           ex.map(c => c.name + ' (' + ROLE_LABEL[c.role!] + ')').join(', ') +
             (ex.length === 1 ? '’s contract ends' : '’s contracts end') +
             ' June 30. Re-sign on the Staff screen, or ' +
-            (ex.length === 1 ? 'he leaves' : 'they leave') +
+            (ex.length === 1 ? coachWording(ex[0], 'he leaves') : 'they leave') +
             ' when free agency opens.',
         ],
       });
@@ -750,7 +775,9 @@ export function staffContractsEnd(g: Game, s: any): any[] {
       out.push({
         tone: 'info',
         title: 'Coach gone: ' + c.name,
-        lines: [c.name + ' (' + ROLE_LABEL[c.role!] + ') left when his contract ended. Hire a replacement on the Staff screen.'],
+        lines: [
+          c.name + ' (' + ROLE_LABEL[c.role!] + coachWording(c, ') left when his contract ended. Hire a replacement on the Staff screen.'),
+        ],
       });
     c.bg = 'Assistant, ' + (s.teams[tid]?.region || '') + ' ' + (s.teams[tid]?.name || '');
     detach(g, c);
