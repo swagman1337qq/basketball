@@ -5,6 +5,8 @@ import { Game } from '../src/engine/Game';
 import * as ST from '../src/engine/staff';
 import { coachRows, coachFromPlayer } from '../src/engine/coachCareer';
 import { coachBioDraft, coachPlayRows, saveCoachBio } from '../src/ui/coachEditing';
+import { coachFaceData } from '../src/ui/CoachFace';
+import { WOMENS_LEAGUE } from '../src/engine/coachCareer';
 import { RosterReports } from '../src/ui/screens/RosterTeamDetails';
 
 const a = Game.create(31, [0]),
@@ -287,4 +289,62 @@ assert.equal(jobCoach.exp, 0);
 assert.equal(jobCoach.next, undefined);
 console.log(
   'PASS: God-only contracts, extensions, all-team/all-role moves, own-team head-coach persistence, replacement heads and payroll activation.',
+);
+
+// Staff gender/portraits edit independently of player archives, and playing leagues follow gender.
+const genderGame = Game.create(37, [0]);
+genderGame.setState({ god: true });
+const genderCoach = ST.staffOf(genderGame, 0)[0];
+genderCoach.fem = false;
+genderCoach.play = { k: 'pro', yrs: 6, tier: 2 };
+const malePlaying = structuredClone(coachPlayRows(genderGame, genderCoach));
+const genderCareer = structuredClone(coachRows(genderGame, genderGame.state, genderCoach));
+const femaleDraft = {
+  ...coachBioDraft(genderGame, genderCoach),
+  fem: true,
+  faceSeed: 123456,
+  faceX: { 'skin.tone': 0.47, 'marks.freckles': 0.2 },
+};
+assert.equal(saveCoachBio(genderGame, genderCoach.id, femaleDraft), '');
+assert.equal(genderCoach.fem, true);
+assert.equal(genderCoach.play.k, 'women');
+assert(coachPlayRows(genderGame, genderCoach).every(r => r.lg === WOMENS_LEAGUE));
+assert.deepEqual(
+  coachPlayRows(genderGame, genderCoach).map(({ lg, ...r }) => r),
+  malePlaying.map(({ lg, ...r }) => r),
+);
+assert.deepEqual(coachRows(genderGame, genderGame.state, genderCoach), genderCareer, 'Gender edits do not rewrite coaching jobs');
+const faceEdited = coachFaceData(genderGame, genderCoach, ST.coachAge(genderGame, genderCoach));
+assert.equal(faceEdited.fem, true);
+assert.equal(faceEdited.skin.tone, 0.47);
+const genderSave = Game.load(JSON.parse(JSON.stringify(genderGame.toSave())));
+assert.equal(genderSave.db.coaches[genderCoach.id].fem, true);
+assert.deepEqual(
+  coachFaceData(genderSave, genderSave.db.coaches[genderCoach.id], ST.coachAge(genderSave, genderSave.db.coaches[genderCoach.id])),
+  faceEdited,
+);
+assert.equal(
+  saveCoachBio(genderGame, genderCoach.id, { ...coachBioDraft(genderGame, genderCoach), faceSeed: 654321, faceX: undefined }),
+  '',
+);
+assert.notEqual(coachFaceData(genderGame, genderCoach, ST.coachAge(genderGame, genderCoach)).seed, faceEdited.seed);
+assert.equal(saveCoachBio(genderGame, genderCoach.id, { ...coachBioDraft(genderGame, genderCoach), fem: false }), '');
+assert.equal(genderCoach.play.k, 'pro');
+assert.deepEqual(coachPlayRows(genderGame, genderCoach), malePlaying);
+const collegeCoach = ST.mkCoach(genderGame, { fem: true, play: 'college' });
+assert.equal(saveCoachBio(genderGame, collegeCoach.id, { ...coachBioDraft(genderGame, collegeCoach), fem: false }), '');
+assert(coachPlayRows(genderGame, collegeCoach).every(r => r.lg === 'NCAA'));
+assert.equal(saveCoachBio(genderGame, collegeCoach.id, { ...coachBioDraft(genderGame, collegeCoach), fem: true }), '');
+assert(coachPlayRows(genderGame, collegeCoach).every(r => r.lg === 'Women’s NCAA'));
+const linkedGender = coachFromPlayer(genderGame, genderGame.db.P[genderGame.state.rosters[0][0]]);
+const playerUnchanged = JSON.stringify(genderGame.db.P[linkedGender.pid!]);
+assert.equal(saveCoachBio(genderGame, linkedGender.id, { ...coachBioDraft(genderGame, linkedGender), fem: true, faceSeed: 78901 }), '');
+assert.equal(JSON.stringify(genderGame.db.P[linkedGender.pid!]), playerUnchanged);
+assert.equal(coachFaceData(genderGame, linkedGender, ST.coachAge(genderGame, linkedGender)).fem, true);
+genderGame.setState({ god: false });
+const genderBeforeDenied = JSON.stringify(genderCoach);
+assert(saveCoachBio(genderGame, genderCoach.id, { ...coachBioDraft(genderGame, genderCoach), fem: true, faceSeed: 999 }));
+assert.equal(JSON.stringify(genderCoach), genderBeforeDenied);
+console.log(
+  'PASS: God-only gender changes, matching playing leagues, reversible histories, custom/random faces, save persistence and isolated player archives.',
 );

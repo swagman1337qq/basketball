@@ -149,6 +149,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
                       <tr>
                         <th style={th()}>Season</th>
                         <th style={th()}>Team</th>
+                        <th style={th()}>League</th>
                         <th style={th('right')}>G</th>
                         <th style={th('right')}>MPG</th>
                         <th style={th('right')}>PTS</th>
@@ -167,7 +168,9 @@ export function CoachProfile({ vm }: { vm: VM }) {
                           </td>
                           <td style={td()} title={r.lg}>
                             {r.team}
-                            {r.lg === WOMENS_LEAGUE ? ' (WPL)' : ''}
+                          </td>
+                          <td style={td()} title={r.lg}>
+                            {r.lg === WOMENS_LEAGUE ? 'WPL' : r.lg}
                           </td>
                           <td style={td('right')}>{r.gp}</td>
                           <td style={td('right')}>{f1(r.mpg)}</td>

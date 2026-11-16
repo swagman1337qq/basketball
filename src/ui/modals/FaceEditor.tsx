@@ -150,8 +150,8 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
         <div style={{ flex: '1 1 260px', minWidth: 0 }}>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', marginBottom: '4px' }}>Edit face</div>
           <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>
-            Every change shows right away. A new face rolls everything again; Undo my changes goes back to the generated face. He still
-            ages: hair greys and recedes with the years unless you set them here.
+            Every change shows right away. A new face rolls everything again; Undo my changes goes back to the generated face. The face
+            still ages: hair greys and recedes with the years unless you set them here.
           </p>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={newFace}>

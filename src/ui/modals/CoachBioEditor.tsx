@@ -2,18 +2,34 @@ import { useState } from 'react';
 import type { Game } from '../../engine/Game';
 import { ROLE_LABEL, ROLE_ORDER, type Coach, type CoachRole } from '../../engine/staff';
 import { firstSeason } from '../../engine/contracts';
-import { FACE_LOOKS } from '../../engine/faces';
-import { coachBioDraft, saveCoachBio } from '../coachEditing';
+import { FACE_LOOKS, faceSvg } from '../../engine/faces';
+import { coachBioDraft, saveCoachBio, type EditableCoach } from '../coachEditing';
 import { CountryPicker, godBox, godBtn, muted, NumInput } from '../kit';
+import { CoachFace, coachFaceData } from '../CoachFace';
+import { FaceEditor } from './FaceEditor';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
   const [draft, setDraft] = useState(() => coachBioDraft(gm, coach));
   const [message, setMessage] = useState('');
+  const [faceDraft, setFaceDraft] = useState<EditableCoach | null>(null);
+  const [, redrawFace] = useState(0);
   if (!gm.state.god) return null;
+  const preview: EditableCoach = { ...coach, ...draft, born: gm.Y - draft.age, bioFace: true, next: draft.next || undefined };
   return (
     <section style={{ ...godBox, padding: 12, marginTop: 16 }} aria-label="God Mode staff editor">
       <h4 style={{ margin: '0 0 10px' }}>Edit staff · God Mode</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+      <fieldset
+        disabled={!!faceDraft}
+        style={{
+          border: 0,
+          padding: 0,
+          margin: 0,
+          minWidth: 0,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+          gap: 12,
+        }}
+      >
         <label>
           Name
           <br />
@@ -29,6 +45,18 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           Age
           <br />
           <NumInput value={draft.age} min={18} max={100} width={80} onValue={age => setDraft({ ...draft, age })} />
+        </label>
+        <label>
+          Gender
+          <br />
+          <select
+            aria-label="Staff gender"
+            value={draft.fem ? 'woman' : 'man'}
+            onChange={e => setDraft({ ...draft, fem: e.target.value === 'woman', faceX: undefined })}
+          >
+            <option value="man">Man</option>
+            <option value="woman">Woman</option>
+          </select>
         </label>
         <label>
           Race / appearance
@@ -132,7 +160,40 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
             onValue={exp => setDraft({ ...draft, exp })}
           />
         </label>
+      </fieldset>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+        <CoachFace gm={gm} c={preview} age={draft.age} size={72} />
+        <button className="btn btn-secondary" disabled={!!faceDraft} onClick={() => setFaceDraft(structuredClone(preview))}>
+          Edit face
+        </button>
+        <button
+          className="btn btn-secondary"
+          disabled={!!faceDraft}
+          onClick={() => setDraft({ ...draft, faceSeed: Math.floor(Math.random() * 1e9), faceX: undefined })}
+        >
+          🎲 Randomize face
+        </button>
       </div>
+      {faceDraft && (
+        <FaceEditor
+          p={faceDraft}
+          gm={{
+            face: () => coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
+            faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc']),
+            resetFace: () => {},
+            setState: () => redrawFace(n => n + 1),
+          }}
+          onClose={() => {
+            setDraft({
+              ...draft,
+              race: faceDraft.race,
+              faceSeed: faceDraft.faceSeed,
+              faceX: faceDraft.faceX ? structuredClone(faceDraft.faceX) : undefined,
+            });
+            setFaceDraft(null);
+          }}
+        />
+      )}
       {draft.tid != null && (
         <div style={{ marginTop: 12 }}>
           <label>
@@ -190,6 +251,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <button
           className="btn btn-secondary"
           style={godBtn}
+          disabled={!!faceDraft}
           onClick={() => {
             const error = saveCoachBio(gm, coach.id, draft);
             setMessage(error || 'Changes saved.');
@@ -205,6 +267,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           className="btn btn-secondary"
           onClick={() => {
             setDraft(coachBioDraft(gm, coach));
+            setFaceDraft(null);
             setMessage('');
           }}
         >
