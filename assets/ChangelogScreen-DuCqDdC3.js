@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-lk9NFXiF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-ByOD375T.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-16
 
 ### Added
+- **God Mode staff identity randomizers.** Dice buttons beside Name and Nationality roll a new name or a different country. Names follow the selected country and gender. Rolls stay in the editor until Save changes.
+- **More varied international NCAA paths.** More generated prospects grow up overseas and arrive in the U.S. for college, alongside U.S.-born heritage players and earlier immigrants. Their birthplace, native names and national eligibility stay intact. Foreign youth teams keep the correct country even when no local club is listed. New generated players/classes use the change; existing and historical players keep their backgrounds.
 - **God Mode coach gender and faces.** Edit gender, preview a random face or use the full face editor in a coach’s Overview, then Save changes. Playing-league labels follow gender, including college and professional careers. Stats, coaching jobs and linked player archives stay intact; custom faces and gender survive save/reload.
 - **God Mode staff contracts and moves.** The coach editor now changes annual salary, contract end season and signed extensions, and assigns any team and coaching role—including head coach—or returns a coach to the available pool. Saved head-coach assignments stay in place after reopening, including on your team. Occupied lead, development and head-coach roles move the previous holder to assistant.
 - **God Mode staff biography editor.** Open a coach profile, then Overview, to edit name, age, race/appearance, nationality, reputation, coaching experience and playing college/team where applicable. Save changes applies the edits; playing affiliations never change the coaching employer. Edits survive saving and reopening.
