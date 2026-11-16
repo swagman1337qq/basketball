@@ -27,6 +27,7 @@ import { EUROLEAGUE } from '../data/leagues';
 import { firstSeason } from './contracts';
 import { addNotice } from './preFA';
 import { fmtMoney as money } from './capModel';
+import { preserveCoachCareer, type CoachRow } from './coachCareer';
 
 export type CoachRole = 'lead' | 'asst' | 'dev' | 'hc';
 export const ROLE_LABEL: Record<CoachRole, string> = {
@@ -79,6 +80,9 @@ export interface Coach {
   role: CoachRole | null;
   amt: number; // salary, $M a season
   exp: number; // last season of his contract
+  next?: { start: number; amt: number; exp: number }; // signed extension; current terms stay in force until start
+  past?: CoachRow[]; // immutable generated coaching seasons before he entered this league
+  careerOvr?: number; // ability when his generated career was established
   read: number; // your staff's read of his ratings, 0 (just met) to 1 (fully known)
   raise?: { ask: number; season: number }; // asked you for a raise this season
   sour?: number; // season he soured on you (a refused raise): he won't re-sign
@@ -315,7 +319,7 @@ export interface StaffFx {
   ptsD: number;
   growth: number; // growth speed, ±share
 }
-const FX_CACHE = new Map<string, StaffFx>();
+const FX_CACHE = new WeakMap<Game['db'], Map<string, StaffFx>>();
 const NEUTRAL: StaffFx = { stO: 0, stD: 0, q: 0.573, devQ: 0, mot: 0, eye: 0.5, ptsO: 0, ptsD: 0, growth: 0 };
 // One percentage point of shot quality on every shot is about 1.5 points per 100 possessions at that end
 // (measured 2026-11-15: +0.6% → +0.9 on offense, +0.9 on defense, 2,500 games each).
@@ -323,11 +327,13 @@ export const PTS_PER_PCT = 150;
 export function staffFx(g: Game, s: any, tid: number): StaffFx {
   if (!hasStaff(g, s, tid)) return NEUTRAL;
   const key = tid + '|' + staffRev(g) + '|' + g.Y;
-  const hit = FX_CACHE.get(key);
+  let cache = FX_CACHE.get(g.db);
+  if (!cache) FX_CACHE.set(g.db, (cache = new Map()));
+  const hit = cache.get(key);
   if (hit) return hit;
   const fx = fxOf(staffOf(g, tid));
-  if (FX_CACHE.size > 200) FX_CACHE.clear();
-  FX_CACHE.set(key, fx);
+  if (cache.size > 200) cache.clear();
+  cache.set(key, fx);
   return fx;
 }
 // The same from what you know of them (the Staff screen; God Mode: exact).
@@ -418,7 +424,9 @@ export function coachAccept(g: Game, s: any, tid: number, c: Coach, t: { amt: nu
 // The Coaching line in Finances for a team with a staff ($M this season): support staff, salaries, fired coaches still owed.
 export function staffCost(g: Game, s: any, tid: number) {
   const pay = staffOf(g, tid).reduce((a, c) => a + c.amt, 0),
-    dead = ((g.db as any).coachDead?.[tid] || []).filter((x: any) => x.thru >= g.Y).reduce((a: number, x: any) => a + x.amt, 0);
+    dead = ((g.db as any).coachDead?.[tid] || [])
+      .filter((x: any) => (x.from ?? -Infinity) <= g.Y && x.thru >= g.Y)
+      .reduce((a: number, x: any) => a + x.amt, 0);
   return +(SUPPORT * lfOf(g) + pay + dead).toFixed(2);
 }
 // For the budget scale (Finances multiplies by the cap factor).
@@ -445,11 +453,13 @@ export function hireCoach(
   const c = coachDb(g)[id];
   if (!c || c.ret) return 'He isn’t available.';
   const resign = c.tid === tid;
+  if (resign && c.next) return 'He already has a signed extension.';
+  if (roleTaken(g, tid, t.role, id) && !force) return 'You already have a ' + ROLE_LABEL[t.role] + '. Move him first.';
+  if (resign && t.role !== c.role) return 'Change his role on your staff before renewing his contract.';
   if (!resign) {
     if (c.tid != null && !force) return 'He’s under contract with another team.';
     const err = staffCheck(g, s, tid, 1, force);
     if (err) return err;
-    if (roleTaken(g, tid, t.role) && !force) return 'You already have a ' + ROLE_LABEL[t.role] + '. Move him first.';
   }
   if (!force) {
     if (t.years < 1 || t.years > 5) return 'Coaching contracts run 1 to 5 years.';
@@ -457,9 +467,12 @@ export function hireCoach(
     if (!a.ok) return a.why;
   }
   const Y1 = resign ? c.exp + 1 : firstSeason(g, s);
+  preserveCoachCareer(g, s, c);
   if (!resign && c.tid != null && c.tid !== tid) detach(g, c);
   if (!resign) c.read = Math.max(c.read, 0.15); // what you saw before hiring him
-  Object.assign(c, { tid, role: t.role, amt: +t.amt.toFixed(2), exp: Y1 + Math.max(1, Math.round(t.years)) - 1 });
+  const deal = { amt: +t.amt.toFixed(2), exp: Y1 + Math.max(1, Math.round(t.years)) - 1 };
+  if (resign) c.next = { start: Y1, ...deal };
+  else Object.assign(c, { tid, role: t.role, ...deal });
   delete c.raise;
   if (!resign) c.bg = c.bg || 'New to coaching';
   bump(g);
@@ -476,6 +489,13 @@ function detach(g: Game, c: Coach) {
   c.read = Math.min(c.read, 0.15);
   delete c.raise;
   delete c.sour;
+  delete c.next;
+}
+// The league year turns at training camp. June renewals leave this year's pay untouched.
+function activateExtension(c: Coach, year: number) {
+  if (!c.next || c.next.start > year) return;
+  Object.assign(c, { amt: c.next.amt, exp: c.next.exp });
+  delete c.next;
 }
 // Fire him: he's paid to the end of his deal (Coaching line in Finances).
 export function fireCoach(g: Game, s: any, tid: number, id: number, god = false): string {
@@ -483,10 +503,15 @@ export function fireCoach(g: Game, s: any, tid: number, id: number, god = false)
   if (!c || c.tid !== tid) return 'He isn’t on your staff.';
   const err = staffCheck(g, s, tid, -1, god);
   if (err) return err;
+  preserveCoachCareer(g, s, c);
   if (!god && c.exp >= g.Y) {
     const d: any = g.db;
     d.coachDead = d.coachDead || {};
-    d.coachDead[tid] = [...(d.coachDead[tid] || []).filter((x: any) => x.thru >= g.Y), { name: c.name, amt: c.amt, thru: c.exp }];
+    d.coachDead[tid] = [
+      ...(d.coachDead[tid] || []).filter((x: any) => x.thru >= g.Y),
+      { name: c.name, amt: c.amt, thru: c.exp },
+      ...(c.next ? [{ name: c.name, amt: c.next.amt, from: c.next.start, thru: c.next.exp }] : []),
+    ];
   }
   c.bg = 'Assistant, ' + (s.teams[tid]?.region || '') + ' ' + (s.teams[tid]?.name || '');
   detach(g, c);
@@ -510,6 +535,7 @@ export function setRole(g: Game, s: any, tid: number, id: number, role: CoachRol
 export function godAppoint(g: Game, s: any, tid: number, id: number, role: CoachRole) {
   const c = coachDb(g)[id];
   if (!c || c.ret) return 'He isn’t available.';
+  preserveCoachCareer(g, s, c);
   if (c.tid != null && c.tid !== tid) detach(g, c);
   if (role !== 'asst')
     staffOf(g, tid)
@@ -526,12 +552,14 @@ export function godAppoint(g: Game, s: any, tid: number, id: number, role: Coach
 }
 export function godNewCoach(g: Game) {
   const c = mkCoach(g);
+  preserveCoachCareer(g, g.state, c);
   bump(g);
   return c;
 }
 export function godEditCoach(g: Game, id: number, patch: Partial<Record<CRKey | 'ceil' | 'rep', number>>) {
   const c = coachDb(g)[id];
   if (!c) return;
+  preserveCoachCareer(g, g.state, c);
   Object.entries(patch).forEach(([k, v]) => {
     if (k === 'ceil') c.ceil = cl(Math.round(v as number), 1, 99);
     else if (k === 'rep') (c as any).repAdj = ((c as any).repAdj || 0) + (cl(Math.round(v as number), 0, 100) - c.rep);
@@ -558,6 +586,10 @@ export function ensureStaff(g: Game) {
     d.coachPipeY = d.coachPipeY ?? g.Y;
     d.staffV = 2;
   }
+  Object.values(coachDb(g)).forEach(c => {
+    preserveCoachCareer(g, s, c);
+    activateExtension(c, g.Y);
+  });
   bump(g);
 }
 // The staff a team starts with: ordinary coaches on short deals (an average staff, like the typical budget).
@@ -587,6 +619,7 @@ export function starterStaff(g: Game, s: any, tid: number) {
       read: 0.35,
       bg: c.bg,
     });
+    preserveCoachCareer(g, s, c);
   });
 }
 
@@ -609,6 +642,8 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
     notices: any[] = [];
   (Object.values(C) as Coach[]).forEach(c => {
     if (c.ret) return;
+    preserveCoachCareer(g, s, c);
+    activateExtension(c, g.Y);
     const T = c.tid != null ? s.teams[c.tid] : null,
       wp = T && T.w + T.l > 0 ? T.w / (T.w + T.l) : 0.5,
       ov = coachOvr(c);
@@ -645,7 +680,7 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
       return;
     }
     // A raise: a coach whose reputation has outgrown his salary asks (more often if he's about the money).
-    if (c.tid != null && g.isUser(s, c.tid) && c.exp > g.Y && !c.raise) {
+    if (c.tid != null && g.isUser(s, c.tid) && c.exp > g.Y && !c.raise && !c.next) {
       const ask = coachAsk(g, c, c.role!);
       if (ask > c.amt * 1.3 && Math.random() < 0.3 + c.pers.money / 200) {
         c.raise = { ask: +ask.toFixed(2), season: g.Y };
@@ -663,10 +698,8 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
   // Keep the pool full: new coaches come in.
   const free = freeCoaches(g).length;
   for (let i = free; i < POOL; i++) mkCoach(g, { age: 27 + Math.floor(Math.random() * 25) });
-  // Long-retired coaches are dropped from the store (phase 2 keeps their history).
-  Object.values(C).forEach((c: any) => {
-    if (c.ret && g.Y - c.ret > 3) delete C[c.id];
-  });
+  // Retired people remain available to career trees, awards and profile links.
+  Object.values(C).forEach(c => preserveCoachCareer(g, s, c));
   bump(g);
   return { notices };
 }
@@ -682,7 +715,7 @@ export function answerRaise(g: Game, s: any, id: number, yes: boolean) {
 export function staffExpiring(g: Game, s: any): any[] {
   const out: any[] = [];
   (s.managed || [s.me]).forEach((tid: number) => {
-    const ex = staffOf(g, tid).filter(c => c.exp <= g.Y);
+    const ex = staffOf(g, tid).filter(c => c.exp <= g.Y && !c.next);
     if (ex.length)
       out.push({
         tone: 'warn',
@@ -702,7 +735,10 @@ export function staffExpiring(g: Game, s: any): any[] {
 export function staffContractsEnd(g: Game, s: any): any[] {
   const out: any[] = [];
   (Object.values(coachDb(g)) as Coach[]).forEach(c => {
+    activateExtension(c, g.Y);
     if (c.tid == null || c.ret || c.exp > g.Y) return;
+    if (c.next) return; // renewed through the following seasons; activation waits for the year to turn
+    preserveCoachCareer(g, s, c);
     const tid = c.tid;
     // An AI team's head coach stays on a new deal (hiring and firing come with phase 3).
     if (c.role === 'hc' && !g.isUser(s, tid)) {

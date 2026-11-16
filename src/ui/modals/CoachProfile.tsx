@@ -247,6 +247,21 @@ export function CoachProfile({ vm }: { vm: VM }) {
             {row('Played', playLine(c))}
             {row('Coaching', (coachYears(gm, c) ? coachYears(gm, c) + ' years · since ' + c.since + ' · ' : 'New · ') + c.bg)}
             {T && !c.ret && row('Contract', money(c.amt) + ' a year through ' + (c.exp - 1) + '–' + String(c.exp).slice(2))}
+            {T &&
+              !c.ret &&
+              c.next &&
+              row(
+                'Signed extension',
+                money(c.next.amt) +
+                  ' a year from ' +
+                  (c.next.start - 1) +
+                  '–' +
+                  String(c.next.start).slice(2) +
+                  ' through ' +
+                  (c.next.exp - 1) +
+                  '–' +
+                  String(c.next.exp).slice(2),
+              )}
             <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
               Coaching ratings{' '}
               <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>

@@ -1,10 +1,11 @@
 // Coach careers (2026-11-15, phase 2): where coaches come from and what they've done.
 //  • Retiring players: a quarter of everyone who retires from playing (at random: stars, role players, an injury
 //    retirement at 27, a career spent abroad) becomes a coach. His playing career is his own, linked.
-//  • Generated careers, rebuilt from the coach's id whenever they're shown and never stored: the seasons he played
+//  • Generated careers, seeded by the coach's id: the seasons he played
 //    (college, abroad, the CCP league, the women's league, or the league before this one began) with stat lines,
 //    and the jobs he held before he came into view (high school, college, abroad, the CCP, an NBA bench), with
-//    records as a head coach, titles and the head coach he worked under.
+//    records as a head coach, titles and the head coach he worked under. Generated coaching seasons are saved
+//    when established, so later jobs, ratings and team changes cannot rewrite them.
 //  • Stored in the league: one short row a season for every coach with a job here ([season, team, role, under you]);
 //    the record, playoff finish and ring come from the team's own season (s.teamHist).
 //  • Every AI team has a head coach as a person (a record and a history; who he is doesn't change its games, and
@@ -69,6 +70,7 @@ export function coachFromPlayer(g: Game, p: any): Coach {
         : { k: 'overseas', yrs: Math.max(2, p.age - 21), where: p.abroad?.club || p.from?.team || EUROLEAGUE[0] },
   });
   c.rep = repOf(g, c);
+  preserveCoachCareer(g, g.state, c);
   return c;
 }
 
@@ -82,6 +84,7 @@ export function mkHeadCoach(g: Game, s: any, tid: number): Coach {
   c.bg = 'NBA assistant';
   c.rep = repOf(g, c);
   Object.assign(c, { tid, role: 'hc', amt: headCoachAsk(g, c), exp: firstSeason(g, s) + 1 + Math.floor(Math.random() * 3) });
+  preserveCoachCareer(g, s, c);
   return c;
 }
 // Every AI team has one head coach; your teams have you (a head coach there goes back on the market). Returns log lines.
@@ -93,6 +96,7 @@ export function syncHeadCoaches(g: Game, s: any): any[] {
     const tid = T.tid,
       hcs = all.filter(c => c.tid === tid && c.role === 'hc' && !c.ret);
     if (g.isUser(s, tid) && !s.spectator) {
+      hcs.forEach(c => preserveCoachCareer(g, s, c));
       hcs.forEach(c => Object.assign(c, { tid: null, role: null, amt: 0, exp: 0, bg: 'Head coach, ' + T.region + ' ' + T.name }));
       if (!staffOf(g, tid).length) starterStaff(g, s, tid); // a team you just took over comes with a staff
       return;
@@ -296,7 +300,7 @@ function genJobs(g: Game, s: any, c: Coach, from: number, to: number): CoachRow[
   const rnd = seeded(c, 2),
     fin = lastLevel(c) ?? 0,
     yrs = to - from + 1,
-    ov = coachOvr(c),
+    ov = c.careerOvr ?? coachOvr(c),
     out: CoachRow[] = [];
   // Stints: the last one at his final level, earlier ones lower down.
   const stints: { lv: number; len: number }[] = [];
@@ -345,12 +349,22 @@ const ROLE_NAME: Record<string, string> = {
   dev: 'Head of Player Development',
   hc: 'Head Coach',
 };
+// Establish generated seasons once, before job/background/rating changes can rewrite them.
+// Persisting the rows also keeps them stable across expansion, rebrands and save/reopen.
+export function preserveCoachCareer(g: Game, s: any, c: Coach) {
+  if (c.past) return;
+  const made = c.made ?? (g.db as any).coachY0 ?? g.Y;
+  c.made = made;
+  c.careerOvr = coachOvr(c);
+  const last = Math.max(c.since - 1, Math.min(made - 1, (c.ret ?? g.Y) - 1));
+  c.past = genJobs(g, s, c, c.since, last);
+}
 // Every season he's coached, oldest first: generated before he came into view, his jobs here after.
 export function coachRows(g: Game, s: any, c: Coach): CoachRow[] {
+  preserveCoachCareer(g, s, c);
   const made = c.made ?? (g.db as any).coachY0 ?? g.Y,
     stored = new Map<number, number[]>((c.h || []).map(r => [r[0], r]));
-  const lastDone = Math.max(c.since - 1, Math.min(made - 1, (c.ret ?? g.Y) - 1));
-  const rows: CoachRow[] = genJobs(g, s, c, c.since, lastDone);
+  const rows: CoachRow[] = c.past!.map(r => ({ ...r }));
   const gm = s.gm?.name || 'you';
   const lastGen = rows[rows.length - 1],
     everHere = (c.h || []).length > 0;
@@ -364,7 +378,7 @@ export function coachRows(g: Game, s: any, c: Coach): CoachRow[] {
           row: CoachRow = { ...lastGen, season: y };
         if (row.w != null) {
           const G = (row.w || 0) + (row.l || 0),
-            wp = cl(0.5 + (coachOvr(c) - 50) / 100 + (rr() - 0.5) * 0.24, 0.15, 0.85);
+            wp = cl(0.5 + ((c.careerOvr ?? coachOvr(c)) - 50) / 100 + (rr() - 0.5) * 0.24, 0.15, 0.85);
           row.w = Math.round(G * wp);
           row.l = G - row.w;
           row.ring = rr() < 0.03 + Math.max(0, wp - 0.65) * 0.3;

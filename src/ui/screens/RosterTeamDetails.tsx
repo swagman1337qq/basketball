@@ -1,6 +1,6 @@
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
-import { staffOf } from '../../engine/assistants';
+import { staffOf, ROLE_LABEL } from '../../engine/staff';
 import { teamSeasonValue } from '../teamSeasonStats';
 import { rosterSeasonStats, type RosterSeasonStats } from '../rosterSeasonStats';
 
@@ -150,7 +150,7 @@ export function RosterReports({ vm, tid, season, ids }: { vm: VM; tid: number; s
   const { gm, s, T, open, openTeamPage } = vm.ctx;
   if (season !== gm.Y) return null;
   const injured = ids.map(id => gm.db.P[id]).filter(p => p?.inj),
-    staff = staffOf(tid);
+    staff = staffOf(gm, tid);
   return (
     <div className="roster-reports">
       <section>
@@ -197,10 +197,12 @@ export function RosterReports({ vm, tid, season, ids }: { vm: VM; tid: number; s
         <h3>Assistant Coaches and Staff</h3>
         <table className="roster-report-table roster-staff" aria-label="Assistant coaches and staff">
           <tbody>
-            {staff.map((coach, i) => (
-              <tr key={i}>
-                <td>{coach.name}</td>
-                <td>{coach.role}</td>
+            {staff.map(coach => (
+              <tr key={coach.id}>
+                <td>
+                  <Link onClick={() => gm.setState({ coachPid: coach.id })}>{coach.name}</Link>
+                </td>
+                <td>{ROLE_LABEL[coach.role!]}</td>
               </tr>
             ))}
           </tbody>

@@ -226,6 +226,12 @@ export function StaffScreen({ vm }: { vm: VM }) {
                   <div style={{ fontSize: '11px', ...muted }}>
                     through {c.exp - 1}–{String(c.exp).slice(2)}
                   </div>
+                  {c.next && (
+                    <div style={{ fontSize: '11px', ...muted }}>
+                      Extension: {money(c.next.amt)} · {c.next.start - 1}–{String(c.next.start).slice(2)} through {c.next.exp - 1}–
+                      {String(c.next.exp).slice(2)}
+                    </div>
+                  )}
                 </td>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -255,7 +261,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                         </button>
                       </>
                     )}
-                    {c.exp <= gm.Y && (
+                    {c.exp <= gm.Y && !c.next && (
                       <button className="btn btn-secondary" onClick={() => startOffer(c)} title="His contract ends this summer">
                         Re-sign
                       </button>
@@ -272,7 +278,21 @@ export function StaffScreen({ vm }: { vm: VM }) {
                         >
                           {god
                             ? 'Confirm'
-                            : 'Confirm (' + money(c.amt) + ' a year through ' + (c.exp - 1) + '–' + String(c.exp).slice(2) + ')'}
+                            : 'Confirm (' +
+                              money(c.amt) +
+                              ' a year through ' +
+                              (c.exp - 1) +
+                              '–' +
+                              String(c.exp).slice(2) +
+                              (c.next
+                                ? '; plus signed extension: ' +
+                                  money(c.next.amt) +
+                                  ' a year through ' +
+                                  (c.next.exp - 1) +
+                                  '–' +
+                                  String(c.next.exp).slice(2)
+                                : '') +
+                              ')'}
                         </button>
                         <button className="btn btn-secondary" onClick={() => setFiring(null)}>
                           Keep
@@ -322,11 +342,15 @@ export function StaffScreen({ vm }: { vm: VM }) {
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
             <Seg<CoachRole>
               value={offer.role}
-              options={[
-                ['lead', 'Lead Assistant'],
-                ['asst', 'Assistant Coach'],
-                ['dev', 'Player Development'],
-              ]}
+              options={
+                oc.tid === tid
+                  ? [[oc.role!, ROLE_LABEL[oc.role!]]]
+                  : [
+                      ['lead', 'Lead Assistant'],
+                      ['asst', 'Assistant Coach'],
+                      ['dev', 'Player Development'],
+                    ]
+              }
               onChange={r => setOffer({ ...offer, role: r, amt: Math.max(offer.amt, coachAsk(gm, oc, r)) })}
             />
             <span>
@@ -345,6 +369,11 @@ export function StaffScreen({ vm }: { vm: VM }) {
               Years <NumInput value={offer.years} min={1} max={5} step={1} width={56} onValue={v => setOffer({ ...offer, years: v })} />
             </span>
           </div>
+          {oc.tid === tid && (
+            <div style={{ fontSize: '12px', ...muted }}>
+              Renewal starts after his current deal ends. To change his job, use the role selector on your staff first.
+            </div>
+          )}
           <div style={{ fontSize: '13px', color: acc?.ok ? 'var(--gm-good)' : 'var(--color-accent-800)' }}>
             {acc?.ok ? oc.name + ': “Let’s do it.”' : oc.name + ': “' + (acc?.why || '') + '”'}
           </div>
