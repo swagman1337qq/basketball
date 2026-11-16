@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-CcA6dxL0.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{O as t,m as n}from"./index-B_x2e1T8.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -14,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Traditional / Advanced player stats on every roster.** Switch between the usual points/rebounds/assists and the same full-season advanced calculations used on player profiles: shooting efficiency, usage and possession rates, win shares, BPM, VORP, EWA, On/Off, EPM, LEBRON and DARKO. Names, contracts, minutes controls and roster actions stay visible, and the choice is remembered.
 
 ### Changed
+- **Stable coach profile tabs.** The header and tabs stay put when switching careers, including coaches with no playing stats; long careers scroll inside the card.
 - **Roomier coach profiles.** Wider cards and more breathing room in playing and coaching career tables keep seasons, teams and stats readable. Small screens can scroll the tables.
 - **The elite rating range starts at 88.** Growth becomes sharply harder above it, leaving about 10% of marginal progress at 95. A 95 signature skill is attainable for exceptional players whose own ceiling allows it; 99 keeps its rare generational/breakthrough rules. Big offseason and training-camp gains cannot jump over the slowdown. Existing ratings and personal ceilings stay in place.
 - **Every trainable player rating now has its own fixed ceiling:** the 14 basketball skills, five physical ratings, Feel and Poise. Physical ceilings use the same increasingly difficult scale above 88 as skills. A natural 99 requires a generational rating or an exceptionally rare recorded breakthrough. Turning God Mode on changes no development rules; direct edits may exceed a ceiling without erasing it.
