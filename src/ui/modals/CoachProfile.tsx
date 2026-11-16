@@ -67,7 +67,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
       <div
         className="dialog"
         onClick={e => e.stopPropagation()}
-        style={{ width: 'min(620px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 40px)', overflow: 'auto' }}
+        style={{ width: 'min(960px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 40px)', overflow: 'auto' }}
       >
         <div className="dialog-title" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           <CoachFace gm={gm} c={c} age={age} size={84} />
@@ -122,7 +122,17 @@ export function CoachProfile({ vm }: { vm: VM }) {
             </div>
             {plays.length ? (
               <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <table
+                  className="table"
+                  style={{
+                    width: '100%',
+                    minWidth: 780,
+                    borderCollapse: 'collapse',
+                    fontSize: '13px',
+                    lineHeight: 1.6,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   <thead>
                     <tr>
                       <th style={th()}>Season</th>
@@ -192,7 +202,17 @@ export function CoachProfile({ vm }: { vm: VM }) {
             </div>
             {rows.length ? (
               <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <table
+                  className="table"
+                  style={{
+                    width: '100%',
+                    minWidth: 900,
+                    borderCollapse: 'collapse',
+                    fontSize: '13px',
+                    lineHeight: 1.6,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   <thead>
                     <tr>
                       <th style={th()}>Season</th>
