@@ -10,6 +10,7 @@ const SCRIPTS = [
   'unit',
   'staffContracts',
   'ratingCeilings',
+  'upperTail',
   'boxScoreDetails',
   'teamSeasonStats',
   'rosterSeasonStats',

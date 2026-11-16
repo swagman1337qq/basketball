@@ -910,19 +910,31 @@ export function shiftOvr(p: any, v: number) {
 // Both only partly follow Defensive IQ, so a leaper can swat everything and still be lost in
 // rotations (a Hassan Whiteside), and a guard can pile up steals without being a stopper (Luka).
 // `noise` is −0.5…0.5 (random for new players, a fixed hash for older saves).
-// The top of the skill scale (potential.ts): past 85 every point is harder to come by, leveling off below 98.
+// The top of the skill scale: above 88 every point gets much harder, approaching 98.
 // Every rating stops at 99, and a 99 is improbable (potential.ts breakthroughs, generational skills).
 export const RMAX = 99;
-export const SOFT_K = 85,
+export const SOFT_K = 88,
   TOP = 98;
 // The most growth can carry a rating: 98 (a generational skill, or one that broke through, p.brk, 99).
 export const skillTop = (p: any, k: string) => (p.gen === k || p.brk?.[k] ? RMAX + 0.4 : TOP + 0.4); // scale limit; ratingCeilings.ts also enforces his fixed personal ceiling
-// The approach is slow (SOFT_SCALE): a raw 110 lands about 93, 130 about 96, and only an enormous target gets near 98.
-export const SOFT_SCALE = 16;
+// An exceptional raw ceiling of about 117 reaches 95; 98 remains an asymptote.
+export const SOFT_SCALE = 24;
 export function softTop(v: number, top = TOP) {
   if (v <= SOFT_K) return v;
   const room = top - SOFT_K;
   return SOFT_K + room * (1 - Math.exp(-(v - SOFT_K) / ((room * SOFT_SCALE) / (TOP - SOFT_K))));
+}
+// Marginal growth above 88: about 51% at 90, 26% at 92, 10% at 95, 5% at 97.
+export const ratingGrowthFactor = (v: number, gen = false) => (v <= SOFT_K ? 1 : Math.exp(-(v - SOFT_K) / (gen ? 5 : 3)));
+// Integrate that slowdown across the whole gain. A big camp/month cannot jump across
+// the difficult range using the easier rate at its starting value. Splitting work up is equivalent.
+export function ratingGrowthGain(value: number, work: number, gen = false): number {
+  if (!(work > 0)) return work;
+  const easy = Math.min(work, Math.max(0, SOFT_K - value));
+  const tail = work - easy,
+    start = value + easy,
+    scale = gen ? 5 : 3;
+  return easy + scale * Math.log1p((tail / scale) * ratingGrowthFactor(start, gen));
 }
 export function deriveDefense(p: any, noise: (k: number) => number) {
   const r = p.r,

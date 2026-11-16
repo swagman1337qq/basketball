@@ -1,6 +1,6 @@
 // Development limits never depend on whether God Mode is switched on. Editors write ratings
 // directly; ordinary growth (including a manually edited player) still respects these limits.
-import { skillTop } from './ratings';
+import { skillTop, ratingGrowthGain } from './ratings';
 
 export const PHYSICAL = ['spd', 'acc', 'jmp', 'stre', 'endu'];
 export const MENTAL = ['feel', 'poise'];
@@ -17,8 +17,16 @@ export function ratingLimit(p: any, k: string): number {
 }
 export const limitGrowth = (p: any, k: string, change: number): number =>
   change > 0 ? Math.min(change, Math.max(0, ratingLimit(p, k) - ratingValue(p, k))) : change;
-export const limitWholeRating = (p: any, k: string, target: number): number =>
-  target > p.r[k] ? Math.min(target, Math.max(p.r[k], Math.floor(ratingLimit(p, k) - (p.rx?.[k] || 0) + 1e-9))) : target;
+// Camp changes keep their fractional gains too; a large reveal cannot skip the 88+ range.
+export function limitWholeRating(p: any, k: string, target: number): number {
+  if (target <= p.r[k]) return target;
+  const gain = limitGrowth(p, k, ratingGrowthGain(ratingValue(p, k), target - p.r[k], p.gen === k));
+  const carry = (p.rx?.[k] || 0) + gain,
+    whole = Math.trunc(carry + Math.sign(carry) * 1e-9);
+  p.rx = p.rx || {};
+  p.rx[k] = +(carry - whole).toFixed(4);
+  return p.r[k] + whole;
+}
 
 // An edited/legacy 98 above a lower personal ceiling cannot turn into a natural exception.
 export const breakthroughEligible = (p: any, k: string): boolean =>
@@ -27,7 +35,7 @@ export const breakthroughEligible = (p: any, k: string): boolean =>
 export function growIntangible(p: any, k: string, change: number) {
   const key = ixKey(k);
   p.ix = p.ix || { f: 0, p: 0 };
-  const value = ratingValue(p, k) + limitGrowth(p, k, change),
+  const value = ratingValue(p, k) + limitGrowth(p, k, ratingGrowthGain(ratingValue(p, k), change, p.gen === k)),
     whole = Math.trunc(value + 1e-9);
   p.intg[k] = Math.max(1, Math.min(99, whole));
   p.ix[key] = +(value - whole).toFixed(4);

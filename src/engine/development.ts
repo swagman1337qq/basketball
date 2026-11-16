@@ -12,10 +12,10 @@
 //    (a specialist pours it into one area, a well-rounded player spreads it), what he already has a
 //    feel for, his age (feel for the game comes late, the dunk early), his training focus and his
 //    team's system. Skills he isn't working on stall, and can slip.
-// The overall moves by the same amount as before; what changes is what it's made of. (Aging works the
+// Below the elite range, growth is allocated by his profile; above 88, progressively less work lands. (Aging works the
 // same way: athleticism goes first, feel for the game and the shot hold on.)
 import { mulberry32 } from './rng';
-import { FEEL_W, OVR_W, ovrExact, RMAX, softTop as softBodyTop } from './ratings';
+import { FEEL_W, OVR_W, ovrExact, RMAX, softTop as softBodyTop, ratingGrowthFactor, ratingGrowthGain } from './ratings';
 import { GROUPS } from './translation';
 import { repAffinity } from './tactics';
 import { PHYSICAL, limitGrowth, ratingLimit } from './ratingCeilings';
@@ -182,15 +182,13 @@ const SLIP: Record<string, number> = {
 };
 const NEGLECT = 0.22; // the cost of growth elsewhere: a skill he isn't working on stalls, or slips
 const SPILL = 1.6; // no skill grows more than about 1.6× faster than an even spread would need
-export const dimAt = (v: number, gen = false) => {
-  const k = gen ? 80 : 70;
-  return v <= k ? 1 : Math.exp(-(v - k) / 12);
-}; // a generational skill (p.gen, potential.ts) keeps growing longer
+export const SKILL_WORK_PER_YEAR = 10; // raw training work per skill, before the elite slowdown
+export const dimAt = ratingGrowthFactor;
 // Spread an overall change (in overall points) across his skills by the weights. A skill with a small
-// share slips a little, and the overall moves by `target`. When most of it would go into skills that
+// share slips a little. `target` is the requested budget: personal caps and the elite curve can reduce it. When most goes into skills that
 // count little at his position (a guard who learns to box out), part of it spills over evenly so a
 // single skill doesn't run away. Returns rating changes.
-export function skillChange(p: any, target: number, sw: Weights): Record<string, number> {
+export function skillChange(p: any, target: number, sw: Weights, frac = 1): Record<string, number> {
   const W = OVR_W[p.grp] || OVR_W.W,
     T = Object.values(W).reduce((a, b) => a + b, 0) + (FEEL_W[p.grp] ?? 2.5),
     out: Record<string, number> = {};
@@ -199,6 +197,7 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
     return out;
   }
   const up = target > 0,
+    workCap = up ? SKILL_WORK_PER_YEAR * Math.max(0, frac) : Infinity,
     base = up ? sw.w : SLIP,
     m = SKILLS.reduce((a, k) => a + base[k], 0) / SKILLS.length || 1;
   const u: Record<string, number> = Object.fromEntries(SKILLS.map(k => [k, base[k] / m - (up ? NEGLECT * sw.lazy[k] : 0)]));
@@ -210,18 +209,6 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
   }
   const c = (target * T) / SKILLS.reduce((a, k) => a + W[k] * u[k], 0);
   SKILLS.forEach(k => (out[k] = c * u[k]));
-  // Diminishing returns: the higher a skill already is, the less of the growth aimed at it lands there
-  // (two thirds at 75, under half at 80, 30% at 85, 19% at 90, 12% at 95); the rest goes to his other skills below.
-  const vv = (k: string) => p.r[k] + ((p.rx || {})[k] || 0);
-  let lost = 0;
-  if (up)
-    SKILLS.forEach(k => {
-      const f = dimAt(vv(k), p.gen === k);
-      if (f < 1 && out[k] > 0) {
-        lost += W[k] * out[k] * (1 - f);
-        out[k] *= f;
-      }
-    });
   // Individual ceilings are hard limits, including when every other skill is maxed out.
   // Excess growth can spill only into another skill with room, otherwise it is lost.
   for (let pass = 0; pass < 5; pass++) {
@@ -230,7 +217,7 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
     const open: string[] = [];
     SKILLS.forEach(k => {
       const top = ratingLimit(p, k),
-        hi = Math.max(0, top - v(k)),
+        hi = Math.min(workCap, Math.max(0, top - v(k))),
         lo = 4 - v(k);
       if (out[k] > hi) {
         spill += W[k] * (out[k] - hi);
@@ -238,18 +225,18 @@ export function skillChange(p: any, target: number, sw: Weights): Record<string,
       } else if (out[k] < lo) {
         spill += W[k] * (out[k] - lo);
         out[k] = lo;
-      } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 0.0001 : v(k) + out[k] > 6)) open.push(k);
+      } else if ((up || u[k] > 0) && (up ? v(k) + out[k] < top - 0.0001 && out[k] < workCap - 0.0001 : v(k) + out[k] > 6)) open.push(k);
     }); // growth that doesn't fit can land on any skill with room left
-    if (pass === 0) spill += lost;
     if (!spill || !open.length) break;
     const sw2 = (k: string) => Math.max(0.15, u[k]) * (up ? dimAt(v(k), p.gen === k) : 1),
       den2 = open.reduce((a, k) => a + W[k] * sw2(k), 0);
     open.forEach(k => (out[k] += (spill * sw2(k)) / den2));
   }
-  // The last pass's spill isn't checked again: no skill ends up past its top (or under 4).
+  // Apply the 88+ slowdown after redistribution, so spill cannot give the lost work
+  // straight back to highly rated skills. Personal ceilings still take priority.
   SKILLS.forEach(k => {
     const v = p.r[k] + ((p.rx || {})[k] || 0);
-    out[k] = Math.max(4 - v, limitGrowth(p, k, out[k]));
+    out[k] = Math.max(4 - v, limitGrowth(p, k, ratingGrowthGain(v, Math.min(workCap, out[k]), p.gen === k)));
   });
   return out;
 }
@@ -310,7 +297,7 @@ export function bodyChange(p: any, frac: number, o: BodyOpts): Record<string, nu
         left,
         Math.min(YEAR_CAP[k], d.cap[k] * Math.max(0, Y(a) - Y(a + 1)) * f * (0.85 + o.work / 333) * (0.5 + o.rnd())) * frac,
       );
-      x = limitGrowth(p, k, x);
+      x = limitGrowth(p, k, ratingGrowthGain(p.r[k] + (p.rx?.[k] || 0), x, p.gen === k));
       if (!o.dry) ph.g[k] = +((ph.g[k] || 0) + x).toFixed(3);
     }
     const t = k === 'stre' ? a - 31 : k === 'endu' ? a - 29 : a - (o.pk ?? d.athPeak);
@@ -397,6 +384,9 @@ export function skillAging(p: any, frac: number, slow = 1, seen?: { pk: number; 
           ? AGE_P.iq * (0.6 + (p.pers?.work ?? 50) / 125) * frac
           : (fall(t4, 0.4, 0.5, 0.03) / AGE_P.k) * AGE_P.kIq * (k === 'diq' ? athF(p) : 1) * sl),
   ); // defense rides on his legs too
+  ['oiq', 'diq'].forEach(k => {
+    if (out[k] > 0) out[k] = ratingGrowthGain(p.r[k] + (p.rx?.[k] || 0), out[k], p.gen === k);
+  });
   return out;
 }
 export function develop(p: any, target: number, frac: number, o: BodyOpts & WeightOpts): Record<string, number> {
@@ -412,7 +402,7 @@ export function develop(p: any, target: number, frac: number, o: BodyOpts & Weig
     bo = target;
   } // at his true potential the body stops growing too
   const rest = target >= 0 ? Math.max(0, target - bo) : target - bo;
-  const sk = skillChange(p, rest, skillWeights(p, o));
+  const sk = skillChange(p, rest, skillWeights(p, o), frac);
   // Aging on top (skillAging); feel for the game only grows while there's room under his true potential.
   const ag = skillAging(p, frac, o.slow);
   const iqUp = (ag.oiq || 0) > 0 ? ovrDelta(p, { oiq: ag.oiq, diq: ag.diq }) : 0;

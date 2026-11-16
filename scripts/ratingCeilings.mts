@@ -236,31 +236,57 @@ SKILLS.forEach(k => assert.equal(migrated.db.P[id].ceil[k], limits[k]));
 // Lifetime stress: real idle development for 300 young players across three worlds, 30 years each.
 let careers = 0,
   body90 = 0,
-  body99 = 0;
+  body99 = 0,
+  signature95 = 0;
+const signatureCases: any[] = [];
+let primeYears = 0,
+  eliteYears = 0;
 for (const world of worlds) {
   Math.random = mulberry32(world.Y + careers + 881);
   const sample = (Object.values(world.db.P) as any[]).filter(q => q?.r && q.age <= 23 && !q.retired && !q.gone).slice(0, 100);
   for (const source of sample) {
     const q = clone(source),
       ceiling = clone(q.ceil);
-    let elite = false;
+    let elite = false,
+      signature = false;
     for (let year = 0; year < 30; year++) {
       for (let month = 0; month < 12; month++) {
         world.devIdle(world.state, q);
-        MENTAL.forEach(k => growIntangible(q, k, k === 'feel' ? 0.04 : 0.1));
+        if (q.age <= 27) growIntangible(q, 'feel', 0.03 * (0.7 + (q.pers?.work ?? 50) / 167));
+        if (q.age <= 31) growIntangible(q, 'poise', 0.1);
         within(q, ceiling);
       }
       elite ||= PHYSICAL.some(k => q.r[k] >= 90);
+      const eliteKeys = TRAINABLE.filter(k => ratingValue(q, k) >= 95);
+      if (q.age <= 36) {
+        primeYears++;
+        if (eliteKeys.length) eliteYears++;
+      }
+      if (!signature && eliteKeys.length)
+        signatureCases.push({
+          id: q.id,
+          age: q.age,
+          ovr: q.ovr,
+          T: q.tpot,
+          keys: eliteKeys,
+          from: eliteKeys.map(k => ratingValue(source, k)),
+        });
+      signature ||= eliteKeys.length > 0;
       body99 += PHYSICAL.filter(k => q.r[k] === 99 && !q.brk?.[k] && q.gen !== k).length;
       q.age++;
     }
     assert.deepEqual(q.ceil, ceiling);
     careers++;
     if (elite) body90++;
+    if (signature) signature95++;
   }
 }
 assert.equal(body99, 0);
 assert(body90 / careers < 0.01, '90+ athletes remain very rare');
+if (signature95 / careers >= 0.02 || process.env.CEILING_AUDIT_DETAIL)
+  console.log(JSON.stringify({ signatureCases, primeYears, eliteYears }));
+assert(eliteYears / primeYears < 0.01, '95+ remains rare across sampled development years');
+assert(signature95 / careers < 0.02, `95+ signatures remain exceptional in ordinary sampled careers (${signature95}/${careers})`);
 console.log(
-  `PASS: ${count} generated players, all 21 varied ceilings; hard caps in growth/camp/summer/IQ/intangibles; God Mode and legacy saves; ${careers} 30-year careers, ${body90} reached a 90+ body rating, no unearned 99.`,
+  `PASS: ${count} generated players, all 21 varied ceilings; hard caps in growth/camp/summer/IQ/intangibles; God Mode and legacy saves; ${careers} 30-year careers, ${body90} reached a 90+ body rating, ${signature95} reached a 95+ signature, no unearned 99.`,
 );

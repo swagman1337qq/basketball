@@ -136,7 +136,7 @@ export function capToT(p: any) {
   }
 }
 
-// The top of the scale. Past 85, every point of a skill's ceiling is harder to come by (ratings.ts
+// The top of the scale. Past 88, every point of a skill's ceiling is harder to come by (ratings.ts
 // softTop): a normal player's ceilings level off below 98, so a 99 is out of reach. A generational
 // skill (p.gen: a Curry three, a Shaq inside game) runs higher and can reach 99 or 100 if he develops
 // into it. One league in 138 has one: rolled once when a player is created, and a 30-season league
@@ -158,7 +158,7 @@ function rollGen(p: any, rnd: () => number = Math.random) {
 export function ceilFor(p: any, k: string, v: number, cap = 99) {
   if (cap >= 100) return Math.min(cap, v);
   const g = genOf(p) === k;
-  return Math.min(g ? 99.4 : TOP, g ? softTop(Math.max(v + GEN_BOOST, 104), GEN_TOP) : softTop(v));
+  return Math.min(g ? 99.4 : TOP, g ? Math.max(96, softTop(v + GEN_BOOST, GEN_TOP)) : softTop(v));
 } // a generational skill's ceiling is never below about 96
 // The most a ceiling can be moved to by events (a training camp, a breakout): below 98, or 99.5 for his generational skill.
 export const ceilMax = (p: any, k: string) => (genOf(p) === k ? 99.4 : TOP - 0.5);

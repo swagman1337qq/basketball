@@ -81,6 +81,7 @@ import {
   setHgtKeepOvr,
   setRating,
   shiftOvr,
+  ratingGrowthGain,
   syncOvr,
   teamRating,
   wngBonus,
@@ -4812,8 +4813,9 @@ export class Game {
           });
         SKILLS.forEach(k => {
           const v0 = p.r[k] + (p.rx?.[k] || 0),
-            room = Math.max(0, ratingLimit(p, k) - v0);
-          dl[k] = Math.min((dl[k] || 0) + (Math.random() - 0.5) * 3, room);
+            room = Math.max(0, ratingLimit(p, k) - v0),
+            noise = (Math.random() - 0.5) * 3;
+          dl[k] = Math.min((dl[k] || 0) + ratingGrowthGain(v0 + (dl[k] || 0), noise, p.gen === k), room);
         }); // summer luck also stops at each fixed personal ceiling
         applyChange(p, dl);
         syncOvr(p);

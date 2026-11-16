@@ -29,7 +29,7 @@ A card can still carry the real player's name and bio. The card library shows th
 
 ---
 
-**Development limits (2026-11-15):** every generated player has separate, fixed ceilings for all 21 trainable ratings: 14 basketball skills, five physical ratings, Feel and Poise. Physical ceilings also soften above 85. Ordinary growth, training camp and summer luck stop at each personal limit; filling the other skills does not unlock more growth. A natural 99 requires a generational rating or a recorded rare breakthrough. Switching God Mode on does not change this. A direct rating edit can exceed a saved ceiling without moving it; an explicit potential/card edit establishes the new skill plan.
+**Development limits (2026-11-15):** every generated player has separate, fixed ceilings for all 21 trainable ratings: 14 basketball skills, five physical ratings, Feel and Poise. Physical ceilings also soften above 88. Above 88, normal development slows sharply (about 10% marginal growth at 95); the curve is integrated over each gain so a large update cannot skip it. A 95 signature is possible without a generational flag when the player has an exceptional personal ceiling. Ordinary growth, training camp and summer luck stop at each personal limit; filling the other skills does not unlock more growth. A natural 99 requires a generational rating or a recorded rare breakthrough. Switching God Mode on does not change this. A direct rating edit can exceed a saved ceiling without moving it; an explicit potential/card edit establishes the new skill plan.
 
 ## 2. The card format (JSON)
 
