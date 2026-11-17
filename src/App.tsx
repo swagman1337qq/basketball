@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createSaveWriter } from './db/saveWriter';
+import { SaveStatusContext } from './ui/SaveStatus';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { getSave, newSaveId, putSave, summarize, exportSave, type SaveRow } from './db/saves';
 import { adoptLeagueCards, loadCards } from './db/cards';
 import type { TeamSpec } from './data/world';
@@ -79,44 +81,59 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   const rootRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState(error || 'Saved');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const lastSaved = useRef(version);
+  const lastSaved = useRef(game.saveVersion);
+  const lastSavedView = useRef(game.version);
+  const writer = useMemo(() => createSaveWriter(), [game]);
+  const saving = useRef<Promise<void> | null>(null);
 
-  const save = useCallback(async () => {
-    clearTimeout(timer.current);
-    if (lastSaved.current === game.version) return;
-    const v = game.version,
-      data = game.toSave();
-    try {
-      await putSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: summarize(data), data });
-      lastSaved.current = v;
-      setStatus('Saved');
-    } catch {
-      setStatus('Save failed: browser storage unavailable');
-    }
-  }, [game, open]);
+  const save = useCallback(
+    async (force = false) => {
+      clearTimeout(timer.current);
+      // Coalesce simultaneous autosave, exit and visibility requests. An explicit exit
+      // waits for the latest version, even if a previous save was already in flight.
+      while (saving.current) await saving.current;
+      if (lastSaved.current === game.saveVersion && (!force || lastSavedView.current === game.version)) return;
+      const viewVersion = game.version;
+      const job = (async () => {
+        try {
+          lastSaved.current = await writer.save(game, open);
+          lastSavedView.current = viewVersion;
+          setStatus(lastSaved.current === game.saveVersion ? 'Saved' : 'Saving…');
+        } catch {
+          setStatus('Save failed: browser storage unavailable');
+        }
+      })();
+      saving.current = job;
+      await job;
+      if (saving.current === job) saving.current = null;
+    },
+    [game, open, writer],
+  );
 
   // Autosave shortly after every change, and immediately when the tab is hidden or closed. While a
   // multi-day sim runs, nothing is saved until it stops (writing a long league's whole save between
   // days slowed the sim down); the change that ends the sim brings the save.
   useEffect(() => {
-    if (version === lastSaved.current) return;
+    if (game.saveVersion === lastSaved.current) return;
     setStatus('Saving…');
     clearTimeout(timer.current);
     if (game.busy || game.state.simming) return;
-    timer.current = setTimeout(save, 700);
+    timer.current = setTimeout(() => void save(), 700);
   }, [version, save, game]);
   useEffect(() => {
     const flush = () => {
-      if (document.visibilityState === 'hidden') save();
+      if (document.visibilityState === 'hidden') void save(true);
     };
-    window.addEventListener('pagehide', save);
+    const hide = () => void save(true);
+    window.addEventListener('pagehide', hide);
     document.addEventListener('visibilitychange', flush);
     return () => {
-      window.removeEventListener('pagehide', save);
+      window.removeEventListener('pagehide', hide);
       document.removeEventListener('visibilitychange', flush);
-      save();
+      clearTimeout(timer.current);
+      void save(true).finally(() => writer.dispose());
     };
-  }, [save]);
+  }, [save, writer]);
 
   // Escape closes the topmost overlay: confirm dialog, then player, team and list modals.
   useEffect(() => {
@@ -139,32 +156,37 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   useLayoutEffect(() => {
     applyTheme(rootRef.current, dark, game.state.teams[game.state.me]?.colors);
     rememberTheme(dark ? 'dark' : 'light');
-  });
+  }, [dark, game.state.me, game.state.teams[game.state.me]?.colors]);
 
   const exportNow = () =>
     exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
-  const vm = buildView(game, rootRef, {
-    saveId: open.id,
-    saveName: open.name,
-    saveStatus: status,
-    onExit: async () => {
-      await save();
-      onExit();
-    },
-    onSwitch: async (id: string) => {
-      await save();
-      onSwitch(id);
-    },
-    onExport: exportNow,
-  });
+  const vm = useMemo(
+    () =>
+      buildView(game, rootRef, {
+        saveId: open.id,
+        saveName: open.name,
+        saveStatus: 'Saved',
+        onExit: async () => {
+          await save(true);
+          onExit();
+        },
+        onSwitch: async (id: string) => {
+          await save(true);
+          onSwitch(id);
+        },
+        onExport: exportNow,
+      }),
+    [game, version, open, save, onExit, onSwitch],
+  );
+  const content = useMemo(() => <GMView vm={vm} />, [vm]);
   return (
     <>
-      <GMView vm={vm} />
+      <SaveStatusContext.Provider value={status}>{content}</SaveStatusContext.Provider>
       <ErrorBoundary quiet resetKey={String(version)}>
         <PlayerHover gm={game} />
         <StatHover />
       </ErrorBoundary>
-      <UpdateBanner beforeReload={save} />
+      <UpdateBanner beforeReload={() => save(true)} />
     </>
   );
 }

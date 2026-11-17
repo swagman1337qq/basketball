@@ -349,7 +349,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   const coachPattern = names.length ? new RegExp('(' + names.map(escCoach).join('|') + ')', 'g') : null;
   const lk = (n: ReactNode): ReactNode => {
     if (typeof n !== 'string') return n;
-    if (!coachPattern) return linkNames(n, open, { P });
+    if (!coachPattern) return linkNames(n, open, { P, revision: gm.saveVersion });
     return n.split(coachPattern).map((part, i) =>
       i % 2 ? (
         <Link
@@ -360,7 +360,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
           {part}
         </Link>
       ) : (
-        <span key={i}>{linkNames(part, open, { P })}</span>
+        <span key={i}>{linkNames(part, open, { P, revision: gm.saveVersion })}</span>
       ),
     );
   };

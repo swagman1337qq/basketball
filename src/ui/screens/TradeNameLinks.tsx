@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import type { VM } from '../vm';
+import { entityNameIndex } from '../entityNameIndex';
 
 type Target = { kind: 'player' | 'team'; id: number; name: string };
 export type TradeText = (value: string | null | undefined) => ReactNode;
@@ -24,21 +25,17 @@ export function useTradeNameLinks(vm: VM): TradeText {
       if (!player.gone) add(player.name, { kind: 'player', id: player.id, name: player.name });
     }
     const names = [...targets.keys()].filter(name => targets.get(name)).sort((a, b) => b.length - a.length);
-    const escaped = names.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    return {
-      targets,
-      pattern: escaped.length ? new RegExp('(?<![\\p{L}\\p{N}_])(' + escaped.join('|') + ')(?![\\p{L}\\p{N}_])', 'gu') : null,
-    };
-  }, [gm, s]);
+    return { targets, find: entityNameIndex(names) };
+  }, [gm, gm.saveVersion, s.teams]);
 
   return value => {
-    if (!value || !index.pattern) return value;
+    if (!value) return value;
     const parts: ReactNode[] = [];
     let end = 0;
-    for (const match of value.matchAll(index.pattern)) {
-      const start = match.index;
+    for (const match of index.find(value)) {
+      const start = match.start;
       if (start > end) parts.push(value.slice(end, start));
-      const target = index.targets.get(match[0])!;
+      const target = index.targets.get(match.name)!;
       parts.push(
         <button
           key={start}
@@ -53,10 +50,10 @@ export function useTradeNameLinks(vm: VM): TradeText {
             else vm.ctx.openTeam(target.id);
           }}
         >
-          {match[0]}
+          {match.name}
         </button>,
       );
-      end = start + match[0].length;
+      end = start + match.name.length;
     }
     if (end === 0) return value;
     if (end < value.length) parts.push(value.slice(end));

@@ -285,6 +285,22 @@ const BIAS = {
 };
 const DIAS = ['BR', 'NG', 'SN', 'CM', 'CD', 'DO', 'GR', 'IT', 'PH', 'ML', 'JP', 'HR', 'RS', 'BS'];
 
+// Browsing does not change league data. It is saved with the next real change or explicit flush.
+const NAVIGATION_KEYS = new Set([
+  'screen',
+  'modal',
+  'pid',
+  'ptab',
+  'ptabHist',
+  'pageStack',
+  'teamModal',
+  'listModal',
+  'boxId',
+  'q',
+  'rosterAt',
+  'rosterView',
+  'showJson',
+]);
 // UI-only keys that should not survive a reload.
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }),
   MONTH_YR = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' });
@@ -1477,9 +1493,14 @@ export class Game {
   }
 
   // The save file is compacted (saveCodec.ts): the same data, lists stored as key list + rows.
-  toSave(): SaveData {
+  // A cheap snapshot envelope; worker postMessage clones it atomically before returning.
+  saveSnapshot(): SaveData {
     const { C, ...db } = this.db;
-    return { db: encodeDb(db, RATING_KEYS), state: encodeState({ ...this.state, ...TRANSIENT }) };
+    return { db, state: { ...this.state, ...TRANSIENT } };
+  }
+  toSave(): SaveData {
+    const { db, state } = this.saveSnapshot();
+    return { db: encodeDb(db, RATING_KEYS), state: encodeState(state) };
   }
 
   subscribe = (fn: () => void) => {
@@ -1489,6 +1510,7 @@ export class Game {
     };
   };
   getVersion = () => this.version;
+  saveVersion = 0; // advances only for updates that can change persistent league data
 
   // Same contract as React's class setState: an object patch or an updater returning one (or null for no change).
   setState(u: any, cb?: () => void) {
@@ -1529,6 +1551,8 @@ export class Game {
         this._rosterRef = patch.rosters;
       }
       this.version++;
+      if (!Object.keys(patch).every(k => NAVIGATION_KEYS.has(k) || (['extYears', 'extAmt', 'extMsg'].includes(k) && patch[k] == null)))
+        this.saveVersion++;
       // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
       const now = Date.now();
       if (this.quiet && now - this.lastEmit < 250) this.pendingEmit = true;

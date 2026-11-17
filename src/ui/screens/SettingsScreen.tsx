@@ -1,3 +1,4 @@
+import { useSaveStatus } from '../SaveStatus';
 import type { VM } from '../vm';
 import { GOD_PINK } from '../kit';
 import { CountryPicker } from '../kit';
@@ -7,6 +8,7 @@ import { AwardFormulas } from './AwardFormulas';
 import { RetirementSetting } from './RetirementSetting';
 
 export function SettingsScreen({ vm }: { vm: VM }) {
+  const saveStatus = useSaveStatus(vm.save.status);
   return (
     <>
       <section style={{ maxWidth: '900px' }}>
@@ -168,7 +170,7 @@ export function SettingsScreen({ vm }: { vm: VM }) {
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: '600' }}>Save file</div>
           <div>
             <div>
-              {vm.save.name} · {vm.save.status}
+              {vm.save.name} · {saveStatus}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-neutral-700)' }}>
               Saved automatically in this browser. Export a copy to back it up or move it to another device.

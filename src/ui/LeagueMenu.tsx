@@ -1,3 +1,4 @@
+import { useSaveStatus } from './SaveStatus';
 // The league menu: which league you're in and whether it's saved, with a way back to the main
 // menu, a new league, or straight into another saved league (this one is saved first).
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +21,7 @@ export function LeagueMenu({ vm, compact, bar }: { vm: VM; compact?: boolean; ba
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
+  const status = useSaveStatus(vm.save.status);
   const sv = vm.save,
     others = (saves || []).filter(r => r.id !== sv.id).sort((a, b) => b.updatedAt - a.updatedAt);
   const item = {
@@ -41,7 +43,7 @@ export function LeagueMenu({ vm, compact, bar }: { vm: VM; compact?: boolean; ba
           setPos({ top: r.bottom + 4, left: Math.max(8, Math.min(window.innerWidth - 268, bar ? r.right - 260 : r.left)) });
           setOpen(o => !o);
         }}
-        title={'League: ' + sv.name + ' · ' + sv.status}
+        title={'League: ' + sv.name + ' · ' + status}
         aria-expanded={open}
         style={
           bar
@@ -81,7 +83,7 @@ export function LeagueMenu({ vm, compact, bar }: { vm: VM; compact?: boolean; ba
         >
           <div style={{ padding: '4px 10px 8px', borderBottom: '1px solid var(--color-divider)', marginBottom: 4 }}>
             <div style={{ fontWeight: 600, fontSize: '13px' }}>{sv.name}</div>
-            <div style={{ fontSize: '11.5px', color: 'var(--color-neutral-700)' }}>{sv.status} · saved automatically in this browser</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--color-neutral-700)' }}>{status} · saved automatically in this browser</div>
           </div>
           <button
             className="hv2"

@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
   'unit',
+  'responsiveness',
   'staffContracts',
   'prospectPathways',
   'ratingCeilings',
@@ -37,7 +38,7 @@ const run = (name: string) =>
     c.stdout.on('data', d => (out += d));
     c.stderr.on('data', d => (out += d));
     c.on('exit', code =>
-      done({ name, ok: code === 0, s: (Date.now() - t0) / 1000, tail: out.trim().split('\n').slice(-3).join('\n    ') }),
+      done({ name, ok: code === 0, s: (Date.now() - t0) / 1000, tail: out.trim().split('\n').slice(-20).join('\n    ') }),
     );
   });
 const t0 = Date.now(),

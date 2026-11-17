@@ -1481,7 +1481,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     return isCur ? String(e) : Math.max(20, e - w) + '–' + Math.min(90, e + w);
   };
   const draftRows = sortBy(
-    clsIds.map(id => {
+    (is.draft && !s.modal && !s.teamModal && !s.boxId ? clsIds : []).map(id => {
       const p = P[id];
       return {
         ...pBase(id),
@@ -1996,7 +1996,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       teamLinks: String(x.teams)
         .split(' · ')
         .map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })),
-      text: linkNames(x.text, id => open(id)(null), { P }),
+      text: linkNames(x.text, id => open(id)(null), { P, revision: gm.saveVersion }),
       bg: x.mine ? 'var(--color-accent-100)' : 'transparent',
     }));
   const txYearOpts = txYears.map((y, i) => ({ v: i, label: (i === 0 ? 'This league year · ' : '') + y.label })),
@@ -4388,10 +4388,16 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     standGroups,
     standSegs,
     standConf: conf,
-    tMine: mine.map(tRow('tMine')),
-    tTheirs: s.rosters[s.tTid].map(tRow('tTheirs')),
-    tMinePicks: [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))],
-    tTheirPicks: [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))],
+    tMine: is.trade && !s.modal && !s.teamModal && !s.boxId ? mine.map(tRow('tMine')) : [],
+    tTheirs: is.trade && !s.modal && !s.teamModal && !s.boxId ? s.rosters[s.tTid].map(tRow('tTheirs')) : [],
+    tMinePicks:
+      is.trade && !s.modal && !s.teamModal && !s.boxId
+        ? [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))]
+        : [],
+    tTheirPicks:
+      is.trade && !s.modal && !s.teamModal && !s.boxId
+        ? [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))]
+        : [],
     protOpts: PROT_OPTIONS,
     tr,
     teamOptions,
@@ -4442,7 +4448,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       },
       { k: 'Next pick', v: myNext ? '#' + myNext.n : '—' },
     ],
-    log: s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P }) })),
+    log: variant === 'C' ? s.log.map(l => ({ ...l, text: linkNames(l.text, id => open(id)(null), { P, revision: gm.saveVersion }) })) : [],
     noLog: s.log.length === 0,
     pickYearsSet,
     rosterLimSet,

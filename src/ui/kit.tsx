@@ -217,22 +217,29 @@ export const tone = (v: number) => (v >= 65 ? 'var(--gm-elite)' : v < 45 ? 'var(
 
 // Turn player names inside a sentence into profile links. `people` limits the search
 // (e.g. an event's player ids); without it every player in the league is matched.
-let idxCache: { n: number; P: any; re: RegExp | null; byName: Record<string, number> } | null = null;
+let idxCache: { n: number; P: any; revision?: number; re: RegExp | null; byName: Record<string, number> } | null = null;
 const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function nameIndex(P: Record<number, any>) {
+function nameIndex(P: Record<number, any>, revision?: number) {
+  if (revision != null && idxCache?.P === P && idxCache.revision === revision) return idxCache;
   const list = (Object.values(P) as any[]).filter(p => !p.gone);
-  if (idxCache && idxCache.P === P && idxCache.n === list.length) return idxCache;
+  if (idxCache && idxCache.P === P && idxCache.n === list.length && revision == null) return idxCache;
   const byName: Record<string, number> = {};
   list.forEach(p => {
     if (p.name && p.name.length > 4) byName[p.name] = p.id;
   });
   const names = Object.keys(byName).sort((a, b) => b.length - a.length);
-  return (idxCache = { n: list.length, P, byName, re: names.length ? new RegExp('(' + names.map(esc).join('|') + ')', 'g') : null });
+  return (idxCache = {
+    n: list.length,
+    P,
+    revision,
+    byName,
+    re: names.length ? new RegExp('(' + names.map(esc).join('|') + ')', 'g') : null,
+  });
 }
 export function linkNames(
   text: string,
   open: (id: number) => void,
-  opts: { P?: Record<number, any>; people?: { id: number; name: string }[] },
+  opts: { P?: Record<number, any>; revision?: number; people?: { id: number; name: string }[] },
 ): ReactNode {
   if (!text) return text;
   let re: RegExp | null, byName: Record<string, number>;
@@ -244,7 +251,7 @@ export function linkNames(
     const ns = Object.keys(byName).sort((a, b) => b.length - a.length);
     re = ns.length ? new RegExp('(' + ns.map(esc).join('|') + ')', 'g') : null;
   } else {
-    const ix = nameIndex(opts.P || {});
+    const ix = nameIndex(opts.P || {}, opts.revision);
     re = ix.re;
     byName = ix.byName;
   }

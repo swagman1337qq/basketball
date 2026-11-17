@@ -2,11 +2,11 @@
 // numbers by season (per game, per 36 or totals; regular season or playoffs; NBA or CCP) with a
 // row per team in traded seasons, league leaders in bold, an Awards column, career and
 // per-team career lines; shooting efficiency and all five shot zones, advanced stats, and splits.
-import { cloneElement, Fragment, isValidElement, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, Fragment, isValidElement, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { muted, Ring, ruleH4, Seg } from '../kit';
-import { ccpAdvanced, seasonAdvanced } from '../../engine/advanced';
-import { roundStat, seasonLeaders, statVal } from '../../engine/leaders';
+import { cachedProfileSeason, computeProfileSeason, profileStatsEpoch, type ProfileSeasonData } from '../profileStatsData';
+import { roundStat, statVal } from '../../engine/leaders';
 import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
 import { titleYears } from '../../engine/hof';
@@ -151,21 +151,51 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             .map(k => parseInt(k, 10))
         : [...new Set((p?.stats || []).filter((r: any) => !!r.po === po).map((r: any) => r.season))]
       ).sort((a: any, b: any) => a - b) as number[],
-    [p, po, s.day, ccp],
+    [p, po, s.day, s.gv, gm.Y, ccp],
   );
-  // Advanced stats need every player's season (league context), regular season or playoffs.
-  const adv = useMemo(() => {
-    const out: Record<number, any> = {};
-    if (!p) return out;
-    seasons.forEach(y => {
-      try {
-        out[y] = (ccp ? ccpAdvanced(gm, s, y, po) : seasonAdvanced(gm, s, y, po)).byPid[p.id];
-      } catch {
-        /* old season without context */
-      }
-    });
-    return out;
-  }, [p, po, seasons.join(), s.day, ccp]);
+  // Paint the ordinary stats first. Historical league-wide calculations are split
+  // between tasks and retained across tab changes, rather than blocking the click.
+  const epoch = profileStatsEpoch(gm, s);
+  const token = [epoch, p?.id, +po, +ccp, seasons.join()].join('|');
+  const [loaded, setLoaded] = useState<{ token: string; rows: Record<number, ProfileSeasonData> }>({ token: '', rows: {} });
+  const ready: Record<number, ProfileSeasonData> =
+    loaded.token === token
+      ? loaded.rows
+      : Object.fromEntries(
+          seasons.flatMap(y => {
+            const hit = cachedProfileSeason(gm, s, p?.id, y, po, ccp);
+            return hit ? [[y, hit]] : [];
+          }),
+        );
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let i = 0;
+    const out = { ...ready };
+    const step = () => {
+      if (cancelled || profileStatsEpoch(gm, s) !== epoch) return;
+      const until = performance.now() + 8;
+      do {
+        const y = seasons[i++];
+        if (y != null && !out[y]) {
+          try {
+            out[y] = computeProfileSeason(gm, s, p.id, y, po, ccp);
+          } catch {
+            /* old season without context */
+          }
+        }
+      } while (i < seasons.length && performance.now() < until);
+      if (i < seasons.length) timer = setTimeout(step, 0);
+      else if (!cancelled) setLoaded({ token, rows: out });
+    };
+    if (p && seasons.length && loaded.token !== token) timer = setTimeout(step, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [token, gm.db]);
+  const adv: Record<number, any> = Object.fromEntries(Object.entries(ready).map(([y, data]) => [y, data.advanced]));
+  const calculating = seasons.some(y => !ready[y]) && loaded.token !== token;
   if (!p) return null;
   const lgSeg = (
     <span style={{ display: 'inline-flex', gap: 4 }}>
@@ -351,7 +381,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     ) : null;
 
   // Basketball-Reference's main table. League leaders (NBA regular season, per game or totals) in bold.
-  const lead = (y: number) => (!ccp && !po && mode !== 'p36' ? seasonLeaders(gm, s, y, mode === 'tot' ? 'tot' : 'pg') : null);
+  const lead = (y: number) => (!ccp && !po && mode !== 'p36' ? (ready[y]?.[mode === 'tot' ? 'tot' : 'pg'] ?? null) : null);
   const COLS: [string, string, string?][] = [
     ['gp', 'G'],
     ['gs', 'GS'],
@@ -478,6 +508,11 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
   return (
     <div>
       {controls}
+      {calculating && (
+        <p role="status" style={{ ...muted, fontSize: 12 }}>
+          Calculating advanced stats…
+        </p>
+      )}
 
       <h4 style={ruleH4}>
         {ccp ? 'CCP ' : ''}

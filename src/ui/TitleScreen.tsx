@@ -171,10 +171,10 @@ export function TitleScreen({
     setMessage('');
     setIsError(false);
   };
-  const exportSelected = () => {
+  const exportSelected = async () => {
     if (selected)
       try {
-        exportSave(selected);
+        await exportSave(selected);
       } catch (error) {
         reportError(error);
       }
