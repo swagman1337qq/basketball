@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-D7VdYbvG.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-CsfWgZHT.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-17
 
 ### Fixed
+- **Busy simulation days give the page more time to respond.** Regular-season simulations pause between groups of possessions and daily tasks, including development-league games. Game order, injuries and transactions keep their existing timing. Stop (or Escape) finishes the current day; editing waits until simulation stops. Saving and exporting wait for a completed day so they cannot capture unfinished results.
 - **Load game history when you open it.** Leagues open with compact scores and player lines; detailed play-by-play, shot charts and lineup timelines load only for the selected game. A small cache keeps recent games handy. New games keep their complete details until saving succeeds, exports include every archived and unsaved game, and delayed loads cannot replace a different game or league.
 - **Advanced stats calculate in the background.** Opening a player’s career stats keeps the traditional tables usable while advanced values are calculated. Switching players, stat tabs or leagues cancels obsolete work; games and edits invalidate pending results before they can be cached or displayed. Repeated views reuse valid results, and a failed calculation can be retried.
 - **Faster browsing and league lists.** Trade evaluation, transactions, finances, owner reviews, scouting, overseas and other screen-specific lists calculate when visible. Trade selections and sorting retain cached profile stats; games and edits still refresh them, and league-leader highlights stay isolated to each save. The starting screen and league menu read small previews instead of full leagues; opening and exporting keep all saved data.
