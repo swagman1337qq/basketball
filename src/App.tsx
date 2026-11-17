@@ -1,3 +1,4 @@
+import { disposeProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -85,6 +86,7 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   const lastSavedView = useRef(game.version);
   const writer = useMemo(() => createSaveWriter(), [game]);
   const saving = useRef<Promise<void> | null>(null);
+  useEffect(() => () => disposeProfileStats(game), [game]);
 
   const save = useCallback(
     async (force = false) => {

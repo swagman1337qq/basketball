@@ -9,6 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
   'unit',
   'responsiveness',
+  'profileStatsWorker',
   'saveSummaries',
   'viewVisibility',
   'staffContracts',

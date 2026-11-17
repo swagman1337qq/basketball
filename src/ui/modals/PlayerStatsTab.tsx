@@ -2,10 +2,11 @@
 // numbers by season (per game, per 36 or totals; regular season or playoffs; NBA or CCP) with a
 // row per team in traded seasons, league leaders in bold, an Awards column, career and
 // per-team career lines; shooting efficiency and all five shot zones, advanced stats, and splits.
-import { cloneElement, Fragment, isValidElement, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { cloneElement, Fragment, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import type { VM } from '../vm';
 import { muted, Ring, ruleH4, Seg } from '../kit';
-import { cachedProfileSeason, computeProfileSeason, profileStatsEpoch, type ProfileSeasonData } from '../profileStatsData';
+import { cachedProfileSeason, profileStatsEpoch, type ProfileSeasonData } from '../profileStatsData';
+import { loadProfileStats } from '../profileStatsClient';
 import { roundStat, statVal } from '../../engine/leaders';
 import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
@@ -151,13 +152,21 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             .map(k => parseInt(k, 10))
         : [...new Set((p?.stats || []).filter((r: any) => !!r.po === po).map((r: any) => r.season))]
       ).sort((a: any, b: any) => a - b) as number[],
-    [p, po, s.day, s.gv, gm.Y, ccp],
+    [p, po, s.day, s.gv, gm.Y, gm.statsVersion, ccp],
   );
-  // Paint the ordinary stats first. Historical league-wide calculations are split
-  // between tasks and retained across tab changes, rather than blocking the click.
+  // Paint traditional stats first; the worker supplies revision-checked advanced rows.
   const epoch = profileStatsEpoch(gm, s);
   const token = [epoch, p?.id, +po, +ccp, seasons.join()].join('|');
-  const [loaded, setLoaded] = useState<{ token: string; rows: Record<number, ProfileSeasonData> }>({ token: '', rows: {} });
+
+  const currentToken = useRef(token);
+  currentToken.current = token;
+  const [retry, setRetry] = useState(0);
+  const [loaded, setLoaded] = useState<{ token: string; rows: Record<number, ProfileSeasonData>; pending: boolean; error: string }>({
+    token: '',
+    rows: {},
+    pending: false,
+    error: '',
+  });
   const ready: Record<number, ProfileSeasonData> =
     loaded.token === token
       ? loaded.rows
@@ -167,35 +176,41 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             return hit ? [[y, hit]] : [];
           }),
         );
+
   useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    let i = 0;
+    if (!p || !seasons.length) return;
+    const abort = new AbortController();
+    const isCurrent = () =>
+      !abort.signal.aborted &&
+      currentToken.current === token &&
+      profileStatsEpoch(gm, gm.state) === epoch &&
+      gm.state.pid === p.id &&
+      !!gm.state.modal &&
+      gm.state.ptab === 'stats';
     const out = { ...ready };
-    const step = () => {
-      if (cancelled || profileStatsEpoch(gm, s) !== epoch) return;
-      const until = performance.now() + 8;
-      do {
-        const y = seasons[i++];
-        if (y != null && !out[y]) {
-          try {
-            out[y] = computeProfileSeason(gm, s, p.id, y, po, ccp);
-          } catch {
-            /* old season without context */
-          }
-        }
-      } while (i < seasons.length && performance.now() < until);
-      if (i < seasons.length) timer = setTimeout(step, 0);
-      else if (!cancelled) setLoaded({ token, rows: out });
-    };
-    if (p && seasons.length && loaded.token !== token) timer = setTimeout(step, 0);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [token, gm.db]);
+    setLoaded({ token, rows: { ...out }, pending: true, error: '' });
+    void loadProfileStats(gm, p.id, seasons, po, ccp, {
+      signal: abort.signal,
+      isCurrent,
+      onSeason: (year, value) => {
+        if (!isCurrent()) return;
+        out[year] = value;
+        // Retain valid partial results for recovery; redraw the tables only once at completion.
+      },
+    })
+      .then(rows => {
+        if (isCurrent()) setLoaded({ token, rows, pending: false, error: '' });
+      })
+      .catch(error => {
+        if (!isCurrent() || error?.name === 'AbortError') return;
+        setLoaded({ token, rows: { ...out }, pending: false, error: 'Some advanced stats could not be calculated.' });
+      });
+    return () => abort.abort();
+  }, [token, gm.db, retry]);
+
   const adv: Record<number, any> = Object.fromEntries(Object.entries(ready).map(([y, data]) => [y, data.advanced]));
-  const calculating = seasons.some(y => !ready[y]) && loaded.token !== token;
+  const calculating = seasons.some(y => !ready[y]) && (loaded.token !== token || loaded.pending);
+  const calculationError = loaded.token === token ? loaded.error : '';
   if (!p) return null;
   const lgSeg = (
     <span style={{ display: 'inline-flex', gap: 4 }}>
@@ -511,6 +526,15 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
       {calculating && (
         <p role="status" style={{ ...muted, fontSize: 12 }}>
           Calculating advanced stats…
+        </p>
+      )}
+
+      {calculationError && (
+        <p role="status" style={{ ...muted, fontSize: 12 }}>
+          {calculationError}{' '}
+          <button className="btn btn-ghost" onClick={() => setRetry(n => n + 1)}>
+            Retry
+          </button>
         </p>
       )}
 
