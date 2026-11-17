@@ -17,6 +17,7 @@ export function createSaveWriter() {
     unavailable = true;
   };
   const write = async (game: Game, meta: SaveMeta): Promise<number> => {
+    while (game.busy) await game.whenSimulationIdle();
     const version = game.saveVersion;
     const header = { id: meta.id, name: meta.name, createdAt: meta.createdAt };
     if (!unavailable) {
@@ -51,6 +52,7 @@ export function createSaveWriter() {
         stopWorker();
       }
     }
+    while (game.busy) await game.whenSimulationIdle();
     const fallbackVersion = game.saveVersion;
     const archive = planBoxArchive(meta.id, game.db.boxes || {});
     const data = game.toSave();

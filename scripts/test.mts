@@ -9,6 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
   'unit',
   'responsiveness',
+  'simulationYield',
   'profileStatsWorker',
   'saveSummaries',
   'lazyBoxArchive',

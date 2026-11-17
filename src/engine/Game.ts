@@ -1,3 +1,4 @@
+import { runCooperatively, yieldToBrowser } from './cooperative';
 import { naturalDunkShare } from './finishing';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
 import { TRAINABLE, MENTAL, ratingLimit, growIntangible, breakthroughEligible } from './ratingCeilings';
@@ -136,7 +137,7 @@ import { assignNumbers, numsWith, retiredNums } from './jerseys';
 import { gLeagueTick, placeInGLeague } from './gleague';
 import { dropOldSplits, removeUnplayed, slimRetired, trimLeagueLog } from './prune';
 import { decodeDb, decodeState, encodeDb, encodeState } from './saveCodec';
-import { ccpNewSeason, ccpPlay, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
+import { ccpNewSeason, ccpPlay, ccpPlaySteps, ccpRefreshClubs, ccpTopUp, dnOf } from './ccp';
 import { bestTactics, easyCuts, easyFreeAgency, easyLineups, easyMatch } from './easy';
 import { FRANCHISES, marketOf } from '../data/franchises';
 import { yearEndLetter } from './ownerLetter';
@@ -1513,6 +1514,7 @@ export class Game {
   // The save file is compacted (saveCodec.ts): the same data, lists stored as key list + rows.
   // A cheap snapshot envelope; worker postMessage clones it atomically before returning.
   saveSnapshot(): SaveData {
+    if (this.dayInProgress) throw new Error('Finish the simulation day before taking a save snapshot.');
     const { C, ...db } = this.db;
     return { db, state: { ...this.state, ...TRANSIENT } };
   }
@@ -1533,6 +1535,8 @@ export class Game {
 
   // Same contract as React's class setState: an object patch or an updater returning one (or null for no change).
   setState(u: any, cb?: () => void) {
+    // External actions cannot execute updaters against a half-finished day.
+    if (this.dayInProgress && !this.applyingSimStep) return;
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
       const prevNotices = this.state.notices,
@@ -3058,8 +3062,22 @@ export class Game {
   // God Mode: a game whose winner you picked. Played for real until that team wins (a few tries);
   // if it keeps losing, its best scorer gets the free throws that swing it, in the last quarter.
   playFixed(s, home, away, winner: number): GameResult {
-    let res: GameResult = this.playGame(s, home, away);
-    for (let i = 0; i < 30 && (res.home.pts > res.away.pts ? home : away) !== winner; i++) res = this.playGame(s, home, away);
+    const steps = this.playFixedSteps(s, home, away, winner);
+    let next = steps.next();
+    while (!next.done) next = steps.next();
+    return next.value;
+  }
+
+  *playGameSteps(s, home, away): Generator<void, GameResult, unknown> {
+    return yield* new GameSim(this.simTeam(s, home), this.simTeam(s, away), {
+      record: true,
+      norms: this.db.norms,
+      onShot: this.shotObserver,
+    }).runSteps();
+  }
+  *playFixedSteps(s, home, away, winner: number): Generator<void, GameResult, unknown> {
+    let res: GameResult = yield* this.playGameSteps(s, home, away);
+    for (let i = 0; i < 30 && (res.home.pts > res.away.pts ? home : away) !== winner; i++) res = yield* this.playGameSteps(s, home, away);
     const W = res.home.tid === winner ? res.home : res.away,
       L = W === res.home ? res.away : res.home;
     if (W.pts <= L.pts) {
@@ -6811,6 +6829,29 @@ export class Game {
     return null;
   }
   busy = false;
+  dayInProgress = false;
+  private applyingSimStep = false;
+  private simulationDone?: Promise<void>;
+  private finishSimulation?: () => void;
+  private simulationListeners = new Set<() => void>();
+  subscribeSimulation = (fn: () => void) => {
+    this.simulationListeners.add(fn);
+    return () => {
+      this.simulationListeners.delete(fn);
+    };
+  };
+  isSimulating = () => this.busy;
+  whenSimulationIdle() {
+    return this.simulationDone || Promise.resolve();
+  }
+  private simulationStep<T>(steps: Iterator<void, T, unknown>): IteratorResult<void, T> {
+    this.applyingSimStep = true;
+    try {
+      return steps.next();
+    } finally {
+      this.applyingSimStep = false;
+    }
+  }
   _rosterRef: any = null;
 
   // Your teams over the roster limit (God Mode can sign and move players past it).
@@ -6872,31 +6913,52 @@ export class Game {
   }
 
   // Play n days. Every game is simulated in full; `forced` is the finished Live Game
-  // for the user's game on the first day. Yields between days so the page stays responsive.
+  // for the user's game on the first day. Pause inside games and between ordered daily tasks;
+  // publish only completed days. Stop still finishes the day already in progress.
   async sim(n, forced?: GameResult) {
     if (this.busy || this.state.phase !== 'regular' || this.mailWaiting() || !this.canPlay()) return;
     this.busy = true;
+    this.simulationDone = new Promise<void>(resolve => {
+      this.finishSimulation = resolve;
+    });
     this.quiet = n > 1;
     this.stopReq = false;
     try {
+      this.simulationListeners.forEach(fn => fn());
+      await yieldToBrowser(); // paint the running/Stop control before the first day
       for (let i = 0; i < n; i++) {
         if (this.stopReq) break; // Stop pressed: finish the day in progress and halt
         const v = this.version;
         const mail0 = this.state.mailSeq || 0;
-        this.setState(s => this.simDay(s, i === 0 ? forced : undefined, n - i - 1));
+        this.dayInProgress = true;
+        const steps = this.simDaySteps(this.state, i === 0 ? forced : undefined, n - i - 1);
+        const patch = await runCooperatively({ next: () => this.simulationStep(steps) });
+        this.dayInProgress = false;
+        this.setState(patch);
         if (this.version === v) break;
         if ((this.state.mailSeq || 0) > mail0 && this.mailWaiting()) break; // new mail (a trade offer, an injury…): stop so you can read it
         if (!(this.state.allStars || {})[this.Y] && this.state.day >= allStarDay(this)) runAllStar(this); // All-Star Weekend
-        if (i < n - 1) await new Promise(r => setTimeout(r, 0));
+        if (i < n - 1) await yieldToBrowser();
       }
     } finally {
+      this.dayInProgress = false;
       this.busy = false;
+      this.finishSimulation?.();
+      this.finishSimulation = undefined;
+      this.simulationDone = undefined;
+      this.simulationListeners.forEach(fn => fn());
       this.flushEmit();
       if (this.state.simming) this.setState({ simming: null });
     }
   }
 
   simDay(s, forced: GameResult | undefined, left: number) {
+    const steps = this.simDaySteps(s, forced, left);
+    let next = steps.next();
+    while (!next.done) next = steps.next();
+    return next.value;
+  }
+  *simDaySteps(s, forced: GameResult | undefined, left: number): Generator<void, any, unknown> {
     if (s.phase !== 'regular' || this.gamesPlayed(s) >= 82) return null;
     const day = s.day,
       games = this.db.days[day];
@@ -6956,20 +7018,22 @@ export class Game {
       touched: number[] = [],
       mins: Record<number, number> = {};
     if (this.db.calendarV && games.length) this.healCal(cur, rosters);
+    yield;
     for (const [h, a] of games) {
       const pick = (s.godWin || {})[this.Y + ':' + day + ':' + h + ':' + a];
       const res =
         forced && forced.home.tid === h && forced.away.tid === a
           ? forced
           : pick != null
-            ? this.playFixed(cur, h, a, pick)
-            : this.playGame(cur, h, a);
+            ? yield* this.playFixedSteps(cur, h, a, pick)
+            : yield* this.playGameSteps(cur, h, a);
       this.addBox(res, false, touched, mins, cur);
       const bid = this.keepBox(res, day);
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true);
       rec(teams[a], !homeWon, false);
       gameLog.push({ day, h, a, hp: res.home.pts, ap: res.away.pts, ot: res.ot, bid });
+      yield;
     }
     if (touched.length) this.refreshAverages(touched);
     touched.forEach(id => {
@@ -6984,6 +7048,7 @@ export class Game {
     this.healCal({ ...s, day: this.db.calendarV ? day + 1 : day, rosters }, rosters); // anyone whose day has come (free agents and players abroad too)
     const cbaLog: Record<number, string[]> = {};
     seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj, routineDay);
+    yield;
     let clubs = { ...(s.clubs || {}) },
       patch: any = {};
     // Monthly club upkeep: scouting intel, scouts with a brief picking their own players (scoutBrief.ts), dev reports, mentoring.
@@ -7019,6 +7084,7 @@ export class Game {
         }
       }); // players abroad develop on their plan (devIdle)
     }
+    yield;
     // Budget categories on Auto follow the recommendation as the record and revenue move.
     s.managed.forEach(t => {
       const c = this.clubOf({ ...s, ...patch, clubs }, t),
@@ -7058,7 +7124,8 @@ export class Game {
       if (mine.length) addClub(t, c => ({ log: [...mine.map(text => ({ date: this.fmtS(day), day, text })), ...(c.log || [])] }));
     });
     inj.filter(x => x.major).forEach(x => lgLog.unshift({ day: day + 1, type: 'Injury', teams: s.teams[x.tid].abbr, text: x.text }));
-    ccpPlay(this, { ...s, fa: box.fa, rosters: box.rosters }, dnOf(this.Y, this.dateOf(day))); // today's CCP games
+    yield* ccpPlaySteps(this, { ...s, fa: box.fa, rosters: box.rosters }, dnOf(this.Y, this.dateOf(day))); // today's CCP games
+    yield;
     // AI teams call you with trades that fit their plans (tradeLogic.ts offerToUser); an offer lasts about
     // ten days, and goes away if the players in it move.
     let inOffers = (s.inOffers || []).filter(

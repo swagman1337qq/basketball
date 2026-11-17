@@ -2285,10 +2285,19 @@ export class GameSim {
     return off;
   }
 
-  run() {
+  *runSteps(): Generator<void, GameResult, unknown> {
     let guard = 0;
-    while (!this.done && guard++ < 8000) this.step();
+    while (!this.done && guard++ < 8000) {
+      this.step();
+      if (guard % 24 === 0) yield;
+    }
     return this.result();
+  }
+  run() {
+    const steps = this.runSteps();
+    let next = steps.next();
+    while (!next.done) next = steps.next();
+    return next.value;
   }
 
   result(): GameResult {

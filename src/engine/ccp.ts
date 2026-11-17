@@ -533,7 +533,7 @@ export function ccpQuickGame(g: Game, hT: any, aT: any) {
   return { home: { pts: hs, box: box(H) }, away: { pts: as, box: box(A) }, ot };
 }
 
-function play(g: Game, s: any, x: CcpGame) {
+function* playSteps(g: Game, s: any, x: CcpGame): Generator<void, void, unknown> {
   const c = s.ccp,
     P = g.db.P,
     H = c.teams[x.h],
@@ -545,7 +545,7 @@ function play(g: Game, s: any, x: CcpGame) {
     x.as = 1 - x.hs;
     return;
   } // forfeit (shouldn't happen)
-  const r: any = s.ccpFull ? new GameSim(hT as any, aT as any, { norms: g.db.norms }).run() : ccpQuickGame(g, hT, aT);
+  const r: any = s.ccpFull ? yield* new GameSim(hT as any, aT as any, { norms: g.db.norms }).runSteps() : ccpQuickGame(g, hT, aT);
   x.hs = r.home.pts;
   x.as = r.away.pts;
   if (r.ot) x.ot = r.ot;
@@ -691,6 +691,12 @@ function advance(s: any) {
 
 // Play every CCP game scheduled up to day `upto` (days since Oct 1), in date order.
 export function ccpPlay(g: Game, s: any, upto: number) {
+  const steps = ccpPlaySteps(g, s, upto);
+  let next = steps.next();
+  while (!next.done) next = steps.next();
+  return next.value;
+}
+export function* ccpPlaySteps(g: Game, s: any, upto: number): Generator<void, number, unknown> {
   const c = s.ccp;
   if (!c) return 0;
   let played = 0;
@@ -710,10 +716,11 @@ export function ccpPlay(g: Game, s: any, upto: number) {
       if (c.games.length === before) break;
       continue;
     }
-    due.forEach((x: CcpGame) => {
-      play(g, s, x);
+    for (const x of due) {
+      yield* playSteps(g, s, x);
       played++;
-    });
+      yield;
+    }
     advance(s);
   }
   if (c.po?.champ != null && !c.hist.some((h: any) => h.season === c.season)) {

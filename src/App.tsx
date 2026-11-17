@@ -1,6 +1,7 @@
 import { disposeProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
+import { SimulationGuard } from './ui/SimulationGuard';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { getSave, newSaveId, putSave, summarize, exportSave, type SaveRow } from './db/saves';
 import { adoptLeagueCards, loadCards } from './db/cards';
@@ -91,6 +92,8 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   const save = useCallback(
     async (force = false) => {
       clearTimeout(timer.current);
+      if (force && game.busy) game.stopSim();
+      while (game.busy) await game.whenSimulationIdle();
       // Coalesce simultaneous autosave, exit and visibility requests. An explicit exit
       // waits for the latest version, even if a previous save was already in flight.
       while (saving.current) await saving.current;
@@ -162,6 +165,8 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
 
   const exportNow = async () => {
     try {
+      if (game.busy) game.stopSim();
+      while (game.busy) await game.whenSimulationIdle();
       await exportSave({
         id: open.id,
         name: open.name,
@@ -194,13 +199,13 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   );
   const content = useMemo(() => <GMView vm={vm} />, [vm]);
   return (
-    <>
+    <SimulationGuard game={game}>
       <SaveStatusContext.Provider value={status}>{content}</SaveStatusContext.Provider>
       <ErrorBoundary quiet resetKey={String(version)}>
         <PlayerHover gm={game} />
         <StatHover />
       </ErrorBoundary>
       <UpdateBanner beforeReload={() => save(true)} />
-    </>
+    </SimulationGuard>
   );
 }
