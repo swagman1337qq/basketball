@@ -1,3 +1,4 @@
+import { seasonLeaders } from '../src/engine/leaders';
 import { entityNameIndex } from '../src/ui/entityNameIndex';
 import { planBoxArchive, rememberBoxArchive } from '../src/db/boxArchive';
 import assert from 'node:assert/strict';
@@ -42,6 +43,13 @@ const values = computeProfileSeason(g, g.state, pid, y, false, false);
 assert.deepEqual(values.advanced, seasonAdvanced(g, g.state, y).byPid[pid]);
 g.setState({ modal: true, pid, ptab: 'stats' });
 assert.strictEqual(cachedProfileSeason(g, g.state, pid, y, false, false), values, 'Profile navigation reuses exact calculated values');
+const statsRevision = g.statsVersion;
+g.setState({ tMine: [pid], tkMine: [], tExcludeK: ['pick'], tMsg: 'Test proposal', offers: null });
+assert.equal(g.statsVersion, statsRevision, 'Proposed trades do not change statistical revisions');
+assert.strictEqual(cachedProfileSeason(g, g.state, pid, y, false, false), values, 'Proposed trades retain exact profile statistics');
+g.setState({ unknownFutureData: true });
+assert.equal(cachedProfileSeason(g, g.state, pid, y, false, false), undefined, 'Unknown data changes invalidate conservatively');
+computeProfileSeason(g, g.state, pid, y, false, false);
 g.setState({ gv: (g.state.gv || 0) + 1 });
 assert.equal(cachedProfileSeason(g, g.state, pid, y, false, false), undefined, 'Data edits invalidate profile values');
 const reopened = Game.load(JSON.parse(JSON.stringify(g.toSave())));
@@ -85,3 +93,30 @@ assert.deepEqual(links('LAL XLAX 2LA LA2 _LA A. Brown C++'), [
 ]);
 assert.deepEqual(links('𐐀LA'), [], 'Unicode letters also enforce word boundaries');
 console.log('PASS: trade name links preserve longest matches, punctuation, Unicode names and word boundaries.');
+
+const makeLeaders = (pts: number) => {
+  const totals = { gp: 82, min: 2460, pts, fgm: 300, fga: 650, tpm: 100, tpa: 250, ftm: 120, fta: 140, ast: 200 };
+  return {
+    Y: 2055,
+    db: {},
+    statsVersion: 0,
+    state: { day: 9, phase: 'regular', gv: 0, teams: [{ w: 82, l: 0 }] },
+    playersIn: () => [{ stats: [{ season: 2055, gp: 82 }] }],
+    seasonTotals: () => totals,
+    totals,
+  };
+};
+const a = makeLeaders(820),
+  b = makeLeaders(1640);
+const aResult = seasonLeaders(a as any, a.state, 2055, 'pg');
+assert.equal(aResult.pts, 100);
+assert.equal(seasonLeaders(b as any, b.state, 2055, 'pg').pts, 200, 'League-leader caches cannot leak across saves');
+assert.strictEqual(seasonLeaders(a as any, a.state, 2055, 'pg'), aResult);
+a.totals.pts = 2460;
+a.statsVersion++;
+assert.equal(seasonLeaders(a as any, a.state, 2055, 'pg').pts, 300, 'A statistical edit with the same game count refreshes leaders');
+a.Y = 2056;
+a.state.gv++;
+a.totals.pts = 3280;
+assert.equal(seasonLeaders(a as any, a.state, 2055, 'pg').pts, 400, 'Historical leader edits refresh too');
+console.log('PASS: league-isolated leader caches, proposed-trade reuse, unknown-change safety, and current/historical edits.');

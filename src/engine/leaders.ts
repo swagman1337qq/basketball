@@ -6,7 +6,7 @@ import type { Game } from './Game';
 import { seasonAdvanced } from './advanced';
 
 export type LeadMode = 'pg' | 'tot';
-const CACHE = new Map<string, Record<string, number>>();
+const CACHE = new WeakMap<object, { revision: string; values: Map<string, Record<string, number>> }>();
 
 // Display value for a stat key from season totals (the same rounding the tables show).
 export function statVal(t: any, k: string, mode: LeadMode | 'p36'): number {
@@ -94,7 +94,15 @@ const seasonGames = (g: Game, s: any, y: number) => (y === g.Y ? Math.max(1, ...
 export function seasonLeaders(g: Game, s: any, y: number, mode: LeadMode): Record<string, number> {
   const cur = y === g.Y,
     key = y + '|' + mode + (cur ? '|' + s.day + '|' + s.phase : '');
-  const hit = CACHE.get(key);
+  const revision = [g.statsVersion || 0, s.gv || 0].join(':');
+  const owner = g.db;
+  let entry = CACHE.get(owner);
+  if (!entry || entry.revision !== revision) {
+    entry = { revision, values: new Map() };
+    CACHE.set(owner, entry);
+  }
+  const cache = entry.values;
+  const hit = cache.get(key);
   if (hit) return hit;
   const maxGp = seasonGames(g, s, y),
     f = maxGp / 82,
@@ -114,8 +122,8 @@ export function seasonLeaders(g: Game, s: any, y: number, mode: LeadMode): Recor
       if (isFinite(v) && (best[k] == null || v > best[k])) best[k] = v;
     });
   });
-  if (CACHE.size > 60) CACHE.clear();
-  CACHE.set(key, best);
+  if (cache.size > 60) cache.delete(cache.keys().next().value!);
+  cache.set(key, best);
   return best;
 }
 

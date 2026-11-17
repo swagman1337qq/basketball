@@ -3,12 +3,12 @@ import { useSaveStatus } from './SaveStatus';
 // menu, a new league, or straight into another saved league (this one is saved first).
 import { useEffect, useRef, useState } from 'react';
 import type { VM } from './vm';
-import { listSaves, type SaveRow } from '../db/saves';
+import { listSaves, type SaveSummary } from '../db/saves';
 
 export function LeagueMenu({ vm, compact, bar }: { vm: VM; compact?: boolean; bar?: boolean }) {
   const [open, setOpen] = useState(false),
     [pos, setPos] = useState<{ top: number; left: number } | null>(null),
-    [saves, setSaves] = useState<SaveRow[] | null>(null),
+    [saves, setSaves] = useState<SaveSummary[] | null>(null),
     ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;

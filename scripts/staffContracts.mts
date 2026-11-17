@@ -375,6 +375,8 @@ console.log('PASS: staff identity randomizers use country/gender, draw valid fla
 const pronounGame = Game.create(942, [0]);
 const pc = ST.staffOf(pronounGame, 0).find(x => x.role === 'asst')!;
 Object.assign(pc, { name: 'Claire Walker', fem: true, born: pronounGame.Y - 35, amt: 0.01, exp: pronounGame.Y + 3 });
+// Guarantee the raise branch under the fixed 0.5 roll; generated personalities vary.
+pc.pers.money = 99;
 delete pc.raise;
 delete pc.next;
 assert.equal(

@@ -710,14 +710,17 @@ export function seriesLine(t: any): StatLine {
 // results need the seasons before it (which need theirs), so whatever a page asks for stays until the league
 // moves on to a new season; then only the last six are kept (a long session used to keep every season it played,
 // about 2 MB each).
-const PAST = new WeakMap<object, { y: number; m: Map<number, SeasonAdvanced> }>();
+const PAST = new WeakMap<object, { y: number; edit: number; history: any; m: Map<number, SeasonAdvanced> }>();
 function pastSeason(g: Game, y: number): SeasonAdvanced | null {
   if (y >= g.Y || y < (g.db.firstSeason ?? 2027) - 1) return null;
   let c = PAST.get(g.db);
-  if (!c) PAST.set(g.db, (c = { y: g.Y, m: new Map() }));
+  const edit = g.state.gv || 0,
+    history = g.state.tstatsHist;
+  if (!c || c.edit !== edit || (c.y === g.Y && c.history !== history)) PAST.set(g.db, (c = { y: g.Y, edit, history, m: new Map() }));
   if (c.y !== g.Y) {
     for (const k of c.m.keys()) if (k < g.Y - 6) c.m.delete(k);
     c.y = g.Y;
+    c.history = history;
   }
   const m = c.m;
   if (!m.has(y)) {

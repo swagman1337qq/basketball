@@ -8,9 +8,9 @@ export interface ProfileSeasonData {
   tot: Record<string, number> | null;
 }
 // Store only this player's display values, not a full league result per season.
-// Navigation leaves saveVersion alone; games, edits and other data changes invalidate the cache.
+// Only relevant data revisions invalidate values; browsing and proposed trades reuse them.
 const CACHE = new WeakMap<object, { epoch: string; rows: Map<string, ProfileSeasonData> }>();
-export const profileStatsEpoch = (g: Game, s: any) => [g.saveVersion, g.Y, s.day, s.gv || 0].join(':');
+export const profileStatsEpoch = (g: Game, s: any) => [g.statsVersion, g.Y, s.day, s.gv || 0].join(':');
 const keyOf = (pid: number, y: number, po: boolean, ccp: boolean) => [pid, y, +po, +ccp].join(':');
 function rows(g: Game, s: any) {
   const epoch = profileStatsEpoch(g, s);

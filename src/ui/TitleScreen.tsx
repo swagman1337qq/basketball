@@ -1,7 +1,7 @@
 import type { TeamSpec } from '../data/world';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ChevronRight, Download, Eye, Moon, Play, Plus, Sun, Trash2, Upload } from 'lucide-react';
-import { deleteSave, exportSave, importSave, listSaves, type SaveRow } from '../db/saves';
+import { deleteSave, exportSave, importSave, listSaves, type SaveSummary } from '../db/saves';
 import { TeamLogo } from './TeamLogo';
 import { applyTheme, lastTheme, rememberTheme } from './theme';
 import { TitleNewLeague, type LeagueStart } from './TitleNewLeague';
@@ -15,33 +15,8 @@ const PLAIN = {
   '--accent-ink': 'var(--color-text)',
   '--team-line': 'var(--color-text)',
 };
-const PHASE: Record<string, string> = {
-  regular: 'Regular season',
-  playin: 'Play-in',
-  playoffs: 'Playoffs',
-  lottery: 'Lottery',
-  draft: 'Draft',
-  preFA: 'Pre-free agency',
-  fa: 'Free agency',
-  preseason: 'Preseason',
-};
-
-// Read the saved snapshot without loading, migrating or modifying a league just to preview it.
-function overview(row: SaveRow) {
-  const s = row.data?.state;
-  const spectator = !!s?.spectator;
-  const team = spectator ? undefined : s?.teams?.[s.me ?? 0] || s?.teams?.[0];
-  const year = Number(s?.season);
-  const pick = s?.phase === 'draft' ? s.picks?.[s.pi ?? 0] : undefined;
-  return {
-    team,
-    spectator,
-    teamName: spectator ? 'Spectator league' : team ? team.region + ' ' + team.name : 'Saved league',
-    season: Number.isFinite(year) ? year - 1 + '–' + String(year).slice(2) : 'League',
-    phase: pick ? 'Draft · Pick ' + pick.n : PHASE[s?.phase] || s?.phase || 'Saved league',
-    managed: s?.managed?.length || (spectator ? 0 : 1),
-  };
-}
+// The save list reads only its lightweight preview; opening/exporting loads the full league.
+const overview = (row: SaveSummary) => row.preview;
 function savedAt(value: number) {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
@@ -60,7 +35,7 @@ export function TitleScreen({
   const fileRef = useRef<HTMLInputElement>(null);
   const deleteRef = useRef<HTMLDialogElement>(null);
   const pending = useRef(false);
-  const [saves, setSaves] = useState<SaveRow[] | null>(null);
+  const [saves, setSaves] = useState<SaveSummary[] | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [setupMounted, setSetupMounted] = useState(false);
@@ -69,7 +44,7 @@ export function TitleScreen({
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [busy, setBusy] = useState('');
-  const [confirmDel, setConfirmDel] = useState<SaveRow | null>(null);
+  const [confirmDel, setConfirmDel] = useState<SaveSummary | null>(null);
   const selected = saves?.find(row => row.id === selectedId) || saves?.[0];
   const info = selected ? overview(selected) : null;
   const activeTeam = showNew ? newTeam : info?.team;

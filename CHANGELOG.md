@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-17
 
 ### Fixed
+- **Faster browsing and league lists.** Trade evaluation, transactions, finances, owner reviews, scouting, overseas and other screen-specific lists calculate when visible. Trade selections and sorting retain cached profile stats; games and edits still refresh them, and league-leader highlights stay isolated to each save. The starting screen and league menu read small previews instead of full leagues; opening and exporting keep all saved data.
 - **Fewer pauses when clicking around.** Opening players, switching profile tabs and browsing screens no longer serialize the whole league. Autosave compression and storage run in a background worker, and its status indicator no longer rebuilds the current screen. Completed box scores are stored separately, so routine saves write only new or changed games while retaining play-by-play, shot charts and lineup details. Hidden draft/trade lists and an unused activity log no longer rebuild on unrelated clicks. Trade explanations use a smaller name lookup that preserves clickable player and team names. Historical player stats calculate between browser tasks and are reused when you return to the tab. Real edits, trades and simulation changes still autosave; exiting or switching leagues waits for saving.
 
 ## 2026-11-16

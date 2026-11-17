@@ -301,6 +301,24 @@ const NAVIGATION_KEYS = new Set([
   'rosterView',
   'showJson',
 ]);
+// These patches affect presentation/proposed trades, not recorded statistics.
+// Everything else invalidates conservatively, including games, edits and completed trades.
+const STATS_VIEW_KEYS = new Set([
+  ...NAVIGATION_KEYS,
+  'tMine',
+  'tTheirs',
+  'tkMine',
+  'tkTheirs',
+  'tTid',
+  'tMsg',
+  'tAdvice',
+  'tExcludeP',
+  'tExcludeK',
+  'tProt',
+  'offers',
+  'sort',
+  'adv',
+]);
 // UI-only keys that should not survive a reload.
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }),
   MONTH_YR = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' });
@@ -1511,6 +1529,7 @@ export class Game {
   };
   getVersion = () => this.version;
   saveVersion = 0; // advances only for updates that can change persistent league data
+  statsVersion = 0; // excludes only known presentation/proposed-trade changes
 
   // Same contract as React's class setState: an object patch or an updater returning one (or null for no change).
   setState(u: any, cb?: () => void) {
@@ -1553,6 +1572,13 @@ export class Game {
       this.version++;
       if (!Object.keys(patch).every(k => NAVIGATION_KEYS.has(k) || (['extYears', 'extAmt', 'extMsg'].includes(k) && patch[k] == null)))
         this.saveVersion++;
+      if (!Object.keys(patch).every(k => STATS_VIEW_KEYS.has(k) || (['extYears', 'extAmt', 'extMsg'].includes(k) && patch[k] == null)))
+        this.statsVersion++;
+      // Editing statistics can leave the same game counts; drop PER context and player indices too.
+      if ('gv' in patch || 'tstatsHist' in patch || 'tstats' in patch) {
+        this.perCache.clear();
+        if ('gv' in patch) this.seasonDirty();
+      }
       // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
       const now = Date.now();
       if (this.quiet && now - this.lastEmit < 250) this.pendingEmit = true;

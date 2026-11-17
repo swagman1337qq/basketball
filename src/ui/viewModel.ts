@@ -560,6 +560,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   is.game = s.screen === 'game';
   is.playin = s.screen === 'playin';
   is.lottery = s.screen === 'lottery';
+  const screenVisible = !s.modal && s.teamModal == null && !(s.boxId && d.boxes?.[s.boxId]);
+  const visible = (key: string) => !!is[key] && screenVisible;
 
   // Your next game: the regular-season schedule, or your next play-in / playoff game.
   const post = s.phase === 'playin' || s.phase === 'playoffs' ? gm.nextPostGame(s, s.me) : null;
@@ -1203,47 +1205,56 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const inH = a => a.yr <= gm.Y + pickHorizon(s); // the God Mode trading horizon (tradeLogic.ts)
   const myAssets = s.assets.filter(a => a.owner === s.me && inH(a) && (!usedPick(a) || gm.draftRights(a, s))),
     theirAssets = s.assets.filter(a => a.owner === s.tTid && inH(a) && (!usedPick(a) || gm.draftRights(a, s)));
-  const send = s.tMine.map(id => P[id]),
-    get = s.tTheirs.map(id => P[id]);
-  const out = send.reduce((a, p) => a + gm.capHit(p), 0),
-    inc = get.reduce((a, p) => a + gm.capHit(p), 0),
-    after = payroll - out + inc;
-  const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs),
-    salOk = chk.ok,
-    rosOk = true;
-  const any = send.length + get.length + s.tkMine.length + s.tkTheirs.length > 0;
-  const ev = gm.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
-  const tst = strat[s.tTid] || 'middle';
-  const tr = {
-    out: money(out),
-    in: money(inc),
-    after: money(after),
-    sal: chk.ok ? (after <= gm.CAP ? 'Under the cap' : 'Passes the league office') : chk.errs[0],
-    salColor: chk.ok ? 'var(--color-text)' : 'var(--gm-bad)',
-    ros: chk.errs.length > 1 ? chk.errs.slice(1).join(' ') : chk.notes.join(' ') || 'OK',
-    rosColor: chk.errs.length > 1 ? 'var(--gm-bad)' : 'var(--color-text)',
-    stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0],
-    stratDesc: mine2(s.tTid) ? 'You run both franchises, so any trade you build goes through (salary rules still apply).' : STRAT[tst][1],
-    meter: (any ? cl(50 + (ev.diff / Math.max(10, Math.abs(ev.give))) * 60, 2, 98) : 50) + '%',
-    verdict: !any
-      ? 'Pick players or picks on either side to build an offer.'
-      : ev.ok
-        ? 'They would likely accept.'
-        : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4
-          ? 'Not close yet.'
-          : 'Close. A little more should do it.',
-    cantPropose: !any || !salOk || !rosOk,
-    cantForce: !any,
-    god: !!s.god,
-    cantBalance: !any,
-    hasMsg: !!s.tMsg,
-    msg: s.tMsg,
-    delta: inc - out,
-    afterNum: after,
-    advice:
-      any && s.tAdvice && s.screen === 'trade' ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal') : null,
-    askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })),
-  };
+  const tr = visible('trade')
+    ? (() => {
+        const send = s.tMine.map(id => P[id]),
+          get = s.tTheirs.map(id => P[id]);
+        const out = send.reduce((a, p) => a + gm.capHit(p), 0),
+          inc = get.reduce((a, p) => a + gm.capHit(p), 0),
+          after = payroll - out + inc;
+        const chk = checkTrade(gm, { ...s, god: false }, s.me, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs),
+          salOk = chk.ok,
+          rosOk = true;
+        const any = send.length + get.length + s.tkMine.length + s.tkTheirs.length > 0;
+        const ev = gm.evalTrade(s, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs);
+        const tst = strat[s.tTid] || 'middle';
+        const tr = {
+          out: money(out),
+          in: money(inc),
+          after: money(after),
+          sal: chk.ok ? (after <= gm.CAP ? 'Under the cap' : 'Passes the league office') : chk.errs[0],
+          salColor: chk.ok ? 'var(--color-text)' : 'var(--gm-bad)',
+          ros: chk.errs.length > 1 ? chk.errs.slice(1).join(' ') : chk.notes.join(' ') || 'OK',
+          rosColor: chk.errs.length > 1 ? 'var(--gm-bad)' : 'var(--color-text)',
+          stratName: mine2(s.tTid) ? 'Also yours' : STRAT[tst][0],
+          stratDesc: mine2(s.tTid)
+            ? 'You run both franchises, so any trade you build goes through (salary rules still apply).'
+            : STRAT[tst][1],
+          meter: (any ? cl(50 + (ev.diff / Math.max(10, Math.abs(ev.give))) * 60, 2, 98) : 50) + '%',
+          verdict: !any
+            ? 'Pick players or picks on either side to build an offer.'
+            : ev.ok
+              ? 'They would likely accept.'
+              : ev.diff < -Math.max(10, Math.abs(ev.give)) * 0.4
+                ? 'Not close yet.'
+                : 'Close. A little more should do it.',
+          cantPropose: !any || !salOk || !rosOk,
+          cantForce: !any,
+          god: !!s.god,
+          cantBalance: !any,
+          hasMsg: !!s.tMsg,
+          msg: s.tMsg,
+          delta: inc - out,
+          afterNum: after,
+          advice:
+            any && s.tAdvice && s.screen === 'trade'
+              ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal')
+              : null,
+          askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })),
+        };
+        return tr;
+      })()
+    : null;
   // Offers on request: shop your selected players/picks around the league, or ask the other team
   // what it wants for its selected players/picks. Step through them, then accept, decline or negotiate.
   const assetName = id => {
@@ -1284,67 +1295,68 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     ofc = OF && OF.list[OF.i];
   const setOf = patch => gm.setState(st => ({ offers: st.offers ? { ...st.offers, ...patch } : null }));
   const load = o => ({ tTid: o.tid, tMine: o.mine, tTheirs: o.theirs, tkMine: o.kMine, tkTheirs: o.kTheirs });
-  const offersV = !OF
-    ? null
-    : {
-        title:
-          OF.kind === 'incoming'
-            ? 'Trade offers to you'
-            : OF.kind === 'shop'
-              ? 'Offers for ' + OF.what
-              : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
-        loading: !!OF.loading,
-        count: OF.list.length,
-        pos: OF.list.length ? OF.i + 1 : 0,
-        empty: !OF.loading && OF.list.length === 0,
-        emptyMsg:
-          OF.kind === 'shop'
-            ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' +
-              (s.phase === 'regular' && s.day > gm.ruleSlot(DAY.TRADE_DEADLINE) ? ' (the trade deadline has passed)' : '') +
-              '.'
-            : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
-        ...(ofc
-          ? {
-              logo: logo(ofc.tid, 34),
-              team: T[ofc.tid].region + ' ' + T[ofc.tid].name,
-              strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0],
-              note: ofc.note,
-              get: [...ofc.theirs.map(pLine), ...ofc.kTheirs.map(kLine)],
-              send: [...ofc.mine.map(pLine), ...ofc.kMine.map(kLine)],
-              gm: T[ofc.tid].gm,
-              advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null,
-            }
-          : {}),
-        askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })),
-        adviceOn: !!s.ofAdvice,
-        prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }),
-        next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
-        accept: () => {
-          if (!ofc) return;
-          gm.setState({ ...load(ofc), offers: null });
-          gm.propose(false, OF.kind === 'incoming' ? ofc.id : null);
-        }, // an offer they called with stands; if the league office stops it, it stays in your offers
-        decline: () =>
-          gm.setState(st => {
-            const o = st.offers;
-            if (!o) return null;
-            const gone = o.list[o.i],
-              list = o.list.filter((_, j) => j !== o.i);
-            return {
-              offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) },
-              ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}),
-            };
-          }),
-        negotiate: () => {
-          if (!ofc) return;
-          gm.setState({
-            ...load(ofc),
-            offers: null,
-            tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”',
-          });
-        },
-        close: () => gm.setState({ offers: null }),
-      };
+  const offersV =
+    !visible('trade') || !OF
+      ? null
+      : {
+          title:
+            OF.kind === 'incoming'
+              ? 'Trade offers to you'
+              : OF.kind === 'shop'
+                ? 'Offers for ' + OF.what
+                : T[OF.tid].region + ' ' + T[OF.tid].name + ': what they want for ' + OF.what,
+          loading: !!OF.loading,
+          count: OF.list.length,
+          pos: OF.list.length ? OF.i + 1 : 0,
+          empty: !OF.loading && OF.list.length === 0,
+          emptyMsg:
+            OF.kind === 'shop'
+              ? 'No team made an offer. Nobody can build a deal they like that also passes the league office' +
+                (s.phase === 'regular' && s.day > gm.ruleSlot(DAY.TRADE_DEADLINE) ? ' (the trade deadline has passed)' : '') +
+                '.'
+              : 'They don’t see a deal: nothing on your roster works for them (or the salaries can’t be matched).',
+          ...(ofc
+            ? {
+                logo: logo(ofc.tid, 34),
+                team: T[ofc.tid].region + ' ' + T[ofc.tid].name,
+                strat: mine2(ofc.tid) ? '' : STRAT[strat[ofc.tid]][0],
+                note: ofc.note,
+                get: [...ofc.theirs.map(pLine), ...ofc.kTheirs.map(kLine)],
+                send: [...ofc.mine.map(pLine), ...ofc.kMine.map(kLine)],
+                gm: T[ofc.tid].gm,
+                advice: s.ofAdvice ? tradeAdvice(gm, s, ofc.tid, ofc.mine, ofc.theirs, ofc.kMine, ofc.kTheirs, 'offer') : null,
+              }
+            : {}),
+          askAdvice: () => gm.setState(st => ({ ofAdvice: !st.ofAdvice })),
+          adviceOn: !!s.ofAdvice,
+          prev: () => setOf({ i: (OF.i - 1 + OF.list.length) % Math.max(1, OF.list.length) }),
+          next: () => setOf({ i: (OF.i + 1) % Math.max(1, OF.list.length) }),
+          accept: () => {
+            if (!ofc) return;
+            gm.setState({ ...load(ofc), offers: null });
+            gm.propose(false, OF.kind === 'incoming' ? ofc.id : null);
+          }, // an offer they called with stands; if the league office stops it, it stays in your offers
+          decline: () =>
+            gm.setState(st => {
+              const o = st.offers;
+              if (!o) return null;
+              const gone = o.list[o.i],
+                list = o.list.filter((_, j) => j !== o.i);
+              return {
+                offers: { ...o, list, i: Math.min(o.i, Math.max(0, list.length - 1)) },
+                ...(o.kind === 'incoming' && gone ? { inOffers: (st.inOffers || []).filter(x => x.id !== gone.id) } : {}),
+              };
+            }),
+          negotiate: () => {
+            if (!ofc) return;
+            gm.setState({
+              ...load(ofc),
+              offers: null,
+              tMsg: 'Loaded the ' + T[ofc.tid].abbr + ' offer. Adjust it and propose, or ask “What would it take?”',
+            });
+          },
+          close: () => gm.setState({ offers: null }),
+        };
   const teamOptions = alphaTeams(T.filter(t => t.tid !== s.me)).map(t => ({
     value: t.tid,
     label: t.region + ' ' + t.name + ' · ' + (mine2(t.tid) ? 'Also yours' : STRAT[strat[t.tid]][0]),
@@ -1370,88 +1382,89 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   // Free agents (with every contract option) are only worked out on the Free agency screen.
   // Signable now: a way to pay him (room, an exception, his Bird rights, the minimum) that reaches what he asks of
   // you, and terms he'd accept (contracts.ts acceptance: his asking price for your team, years near what he wants).
-  const faRows =
-    s.screen !== 'fa'
-      ? []
-      : sortBy(
-          s.fa.map(id => {
-            const p = P[id],
-              ask = gm.askFor(p, s),
-              ms0 = signingMethods(gm, s, s.me, p).filter(m => m.ok),
-              ms = ms0.filter(
-                m =>
-                  m.maxFirst + 0.005 >= ask &&
-                  acceptance(gm, s, s.me, p, {
-                    method: m.key,
-                    amt: ask,
-                    years: m.maxYears > 0 ? Math.max(1, Math.min(m.maxYears, prefYears(p))) : 1,
-                  } as any).ok,
-              ),
-              how = ms.length
-                ? ms
-                    .slice(0, 2)
-                    .map(m => m.label.replace(' (restricted FA)', ''))
-                    .join(' / ')
-                : null,
-              best = ms0.slice().sort((x, y) => y.maxFirst - x.maxFirst)[0];
-            const lt = lastTeam(s, p),
-              LT = lt ? s.teams[lt.tid] : null;
-            return {
-              ...pBase(id),
-              last: LT ? LT.abbr : 'ZZZ',
-              lastAbbr: LT ? LT.abbr : '',
-              lastD: !!lt?.drafted,
-              lastTitle: LT
-                ? lt!.drafted
-                  ? 'Drafted by the ' + LT.region + ' ' + LT.name + ' in ' + lt!.season + '; never played for them'
-                  : 'Last on the ' + LT.region + ' ' + LT.name + ' (' + (lt!.season - 1) + '–' + String(lt!.season).slice(2) + ')'
-                : 'Never on an NBA roster',
-              lastOpen: LT ? openTeam(lt!.tid) : null,
-              lastLogo: LT ? logo(lt!.tid, 16) : null,
-              udT: p.undrafted
-                ? 'Undrafted ' + p.undrafted + (gm.Y - p.undrafted >= 2 ? ' · ' + (gm.Y - p.undrafted) + ' yrs unsigned' : '')
-                : '',
-              glT: glLabel(s, p),
-              glLine: p.gl?.tid != null ? 'CCP: ' + p.gl.pts + ' pts · ' + p.gl.reb + ' reb · ' + p.gl.ast + ' ast' : '',
-              ask: gm.askFor(p, s),
-              askS: money(gm.askFor(p, s)) + (p.rfa ? ' · RFA' : ''),
-              mot: p.pers.mot,
-              moodBg: MOOD[p.mood][0],
-              moodFg: MOOD[p.mood][1],
-              cant: !how,
-              how:
-                how ||
-                (best
-                  ? 'Asks ' +
-                    money(ask) +
-                    ' of you; the most you can offer is ' +
-                    money(best.maxFirst) +
-                    ' (' +
-                    best.label.replace(' (restricted FA)', '') +
-                    ')'
-                  : signingMethods(gm, s, s.me, p).find(m => !m.ok)?.why || 'Can\u2019t fit'),
-              sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }),
-            };
-          }),
-          s.sort.fa,
+  const faRows = !visible('fa')
+    ? []
+    : sortBy(
+        s.fa.map(id => {
+          const p = P[id],
+            ask = gm.askFor(p, s),
+            ms0 = signingMethods(gm, s, s.me, p).filter(m => m.ok),
+            ms = ms0.filter(
+              m =>
+                m.maxFirst + 0.005 >= ask &&
+                acceptance(gm, s, s.me, p, {
+                  method: m.key,
+                  amt: ask,
+                  years: m.maxYears > 0 ? Math.max(1, Math.min(m.maxYears, prefYears(p))) : 1,
+                } as any).ok,
+            ),
+            how = ms.length
+              ? ms
+                  .slice(0, 2)
+                  .map(m => m.label.replace(' (restricted FA)', ''))
+                  .join(' / ')
+              : null,
+            best = ms0.slice().sort((x, y) => y.maxFirst - x.maxFirst)[0];
+          const lt = lastTeam(s, p),
+            LT = lt ? s.teams[lt.tid] : null;
+          return {
+            ...pBase(id),
+            last: LT ? LT.abbr : 'ZZZ',
+            lastAbbr: LT ? LT.abbr : '',
+            lastD: !!lt?.drafted,
+            lastTitle: LT
+              ? lt!.drafted
+                ? 'Drafted by the ' + LT.region + ' ' + LT.name + ' in ' + lt!.season + '; never played for them'
+                : 'Last on the ' + LT.region + ' ' + LT.name + ' (' + (lt!.season - 1) + '–' + String(lt!.season).slice(2) + ')'
+              : 'Never on an NBA roster',
+            lastOpen: LT ? openTeam(lt!.tid) : null,
+            lastLogo: LT ? logo(lt!.tid, 16) : null,
+            udT: p.undrafted
+              ? 'Undrafted ' + p.undrafted + (gm.Y - p.undrafted >= 2 ? ' · ' + (gm.Y - p.undrafted) + ' yrs unsigned' : '')
+              : '',
+            glT: glLabel(s, p),
+            glLine: p.gl?.tid != null ? 'CCP: ' + p.gl.pts + ' pts · ' + p.gl.reb + ' reb · ' + p.gl.ast + ' ast' : '',
+            ask: gm.askFor(p, s),
+            askS: money(gm.askFor(p, s)) + (p.rfa ? ' · RFA' : ''),
+            mot: p.pers.mot,
+            moodBg: MOOD[p.mood][0],
+            moodFg: MOOD[p.mood][1],
+            cant: !how,
+            how:
+              how ||
+              (best
+                ? 'Asks ' +
+                  money(ask) +
+                  ' of you; the most you can offer is ' +
+                  money(best.maxFirst) +
+                  ' (' +
+                  best.label.replace(' (restricted FA)', '') +
+                  ')'
+                : signingMethods(gm, s, s.me, p).find(m => !m.ok)?.why || 'Can\u2019t fit'),
+            sign: () => gm.setState({ dialog: { type: 'sign', pid: id } }),
+          };
+        }),
+        s.sort.fa,
+      );
+  const faNote = visible('fa')
+    ? (() => {
+        const e = exceptionsOf(gm, s, s.me),
+          N = nums(gm);
+        return (
+          'Every signing uses a CBA mechanism (pick it in the signing dialog). Your room: ' +
+          money(Math.max(0, N.CAP - teamSalary(gm, s, s.me, { holds: true }))) +
+          ' counting cap holds. Mid-level: ' +
+          (e.used.includes('ntmle') || e.used.includes('tpmle')
+            ? 'used'
+            : e.used.includes('cap')
+              ? 'gone (you used cap space; the room exception is ' + money(e.room) + ')'
+              : money(e.ntmle) + ' non-taxpayer / ' + money(e.tpmle) + ' taxpayer') +
+          '. Bi-annual: ' +
+          (e.used.includes('bae') ? 'used' : money(e.bae)) +
+          '. Minimum deals always work below a hard cap. RFA = restricted free agent: his team can match an offer sheet.'
         );
-  const faNote = (() => {
-    const e = exceptionsOf(gm, s, s.me),
-      N = nums(gm);
-    return (
-      'Every signing uses a CBA mechanism (pick it in the signing dialog). Your room: ' +
-      money(Math.max(0, N.CAP - teamSalary(gm, s, s.me, { holds: true }))) +
-      ' counting cap holds. Mid-level: ' +
-      (e.used.includes('ntmle') || e.used.includes('tpmle')
-        ? 'used'
-        : e.used.includes('cap')
-          ? 'gone (you used cap space; the room exception is ' + money(e.room) + ')'
-          : money(e.ntmle) + ' non-taxpayer / ' + money(e.tpmle) + ' taxpayer') +
-      '. Bi-annual: ' +
-      (e.used.includes('bae') ? 'used' : money(e.bae)) +
-      '. Minimum deals always work below a hard cap. RFA = restricted free agent: his team can match an offer sheet.'
-    );
-  })();
+      })()
+    : '';
 
   const scoutF = 1.5 - (s.budget.Scouting - 1) / 11;
   const yearsOut = s.dClass - gm.Y,
@@ -1481,7 +1494,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     return isCur ? String(e) : Math.max(20, e - w) + '–' + Math.min(90, e + w);
   };
   const draftRows = sortBy(
-    (is.draft && !s.modal && !s.teamModal && !s.boxId ? clsIds : []).map(id => {
+    (visible('draft') ? clsIds : []).map(id => {
       const p = P[id];
       return {
         ...pBase(id),
@@ -1832,16 +1845,18 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     return fin;
   };
   const finT = s.god && s.finTid != null && T[s.finTid] ? s.finTid : s.me;
-  const fin = {
-    ...finOf(finT),
-    teams: s.god
-      ? T.map(t => ({ v: t.tid, label: t.region + ' ' + t.name + (t.tid === s.me ? ' (yours)' : '') })).sort((a, c) =>
-          a.label.localeCompare(c.label),
-        )
-      : null,
-    teamV: finT,
-    setTeam: (e: any) => gm.setState({ finTid: +e.target.value }),
-  };
+  const fin = visible('fin')
+    ? {
+        ...finOf(finT),
+        teams: s.god
+          ? T.map(t => ({ v: t.tid, label: t.region + ' ' + t.name + (t.tid === s.me ? ' (yours)' : '') })).sort((a, c) =>
+              a.label.localeCompare(c.label),
+            )
+          : null,
+        teamV: finT,
+        setTeam: (e: any) => gm.setState({ finTid: +e.target.value }),
+      }
+    : null;
 
   const onGame = s.screen === 'game',
     usL = onGame ? gm.simTeam(s, s.me) : null,
@@ -1945,79 +1960,88 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       };
     }),
   ];
-  const typeOf = t => (/^Traded/.test(t) ? 'Trade' : /^Signed/.test(t) ? 'Signing' : /^Released/.test(t) ? 'Release' : 'Draft');
-  // This season only: the league year starts when free agency opens (the "salary cap is" line in
-  // the league log, "Free agency opened" in yours); before the first free agency, everything counts.
-  // League years (each starts when free agency opens, with the new salary cap): this one by default,
-  // any earlier one from the picker, so past seasons' moves stay readable.
-  const capIdx: number[] = s.lgLog.reduce((a, e, i) => (e.teams === 'League' && /salary cap is/.test(e.text || '') ? [...a, i] : a), []),
-    myCut = s.log.findIndex(l => /^Free agency opened/.test(l.text || ''));
-  const first0 = gm.db.firstSeason || 2027,
-    txYears = [
-      ...capIdx.map((ci, k) => ({
-        from: k ? capIdx[k - 1] + 1 : 0,
-        to: ci,
-        label: (/The (\d{4}–\d{2}) salary cap/.exec(s.lgLog[ci].text) || [])[1] || 'Season',
-      })),
-      {
-        from: capIdx.length ? capIdx[capIdx.length - 1] + 1 : 0,
-        to: s.lgLog.length - 1,
-        label: first0 - 1 + '–' + String(first0).slice(2),
-      },
-    ].filter(y => y.to >= y.from);
-  const txYi = Math.min(s.txYear || 0, Math.max(0, txYears.length - 1)),
-    txSeg = txYears[txYi] || { from: 0, to: s.lgLog.length - 1 };
-  const lgNow = s.lgLog.slice(txSeg.from, txSeg.to + 1),
-    myNow = txYi > 0 ? [] : myCut >= 0 ? s.log.slice(0, myCut + 1) : s.log;
-  // Newest first. The day counter restarts at training camp, so order by (stage, day): walking each
-  // log oldest → newest, a big drop in the day means camp has opened.
-  const keyed = (list: any[]) => {
-    const out: any[] = [];
-    let era = 0,
-      prev = -1;
-    for (let i = list.length - 1; i >= 0; i--) {
-      const d = list[i].day ?? s.day;
-      if (prev >= 0 && d < prev - 5) era++;
-      prev = d;
-      out.push({ ...list[i], _k: era * 100000 + d, _i: i });
-    }
-    return out;
-  };
-  const allTx = [
-    ...keyed(myNow).map(l => ({ ...l, day: l.day ?? s.day, type: typeOf(l.text), teams: me.abbr, mine: true })),
-    ...keyed(lgNow).map(e => ({ ...e, mine: false })),
-  ].sort((x, y) => y._k - x._k || x._i - y._i);
-  const txRows = allTx
-    .filter(x => s.txFilter === 'All' || x.type === s.txFilter)
-    .map(x => ({
-      date: x.date || gm.fmtS(x.day),
-      type: x.type,
-      teams: x.teams,
-      teamLinks: String(x.teams)
-        .split(' · ')
-        .map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })),
-      text: linkNames(x.text, id => open(id)(null), { P, revision: gm.saveVersion }),
-      bg: x.mine ? 'var(--color-accent-100)' : 'transparent',
-    }));
-  const txYearOpts = txYears.map((y, i) => ({ v: i, label: (i === 0 ? 'This league year · ' : '') + y.label })),
-    setTxYear = (i: number) => gm.setState({ txYear: i });
-  const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft', 'Injury'].map(k => ({
-    label:
-      k === 'All'
-        ? 'All'
-        : k === 'Trade'
-          ? 'Trades'
-          : k === 'Signing'
-            ? 'Signings'
-            : k === 'Release'
-              ? 'Releases'
-              : k === 'Injury'
-                ? 'Injuries'
-                : 'Draft',
-    onClick: () => gm.setState({ txFilter: k }),
-    color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)',
-    ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
-  }));
+  const { txRows, txSegs, txYearOpts, txYi, setTxYear } = visible('tx')
+    ? (() => {
+        const typeOf = t => (/^Traded/.test(t) ? 'Trade' : /^Signed/.test(t) ? 'Signing' : /^Released/.test(t) ? 'Release' : 'Draft');
+        // This season only: the league year starts when free agency opens (the "salary cap is" line in
+        // the league log, "Free agency opened" in yours); before the first free agency, everything counts.
+        // League years (each starts when free agency opens, with the new salary cap): this one by default,
+        // any earlier one from the picker, so past seasons' moves stay readable.
+        const capIdx: number[] = s.lgLog.reduce(
+            (a, e, i) => (e.teams === 'League' && /salary cap is/.test(e.text || '') ? [...a, i] : a),
+            [],
+          ),
+          myCut = s.log.findIndex(l => /^Free agency opened/.test(l.text || ''));
+        const first0 = gm.db.firstSeason || 2027,
+          txYears = [
+            ...capIdx.map((ci, k) => ({
+              from: k ? capIdx[k - 1] + 1 : 0,
+              to: ci,
+              label: (/The (\d{4}–\d{2}) salary cap/.exec(s.lgLog[ci].text) || [])[1] || 'Season',
+            })),
+            {
+              from: capIdx.length ? capIdx[capIdx.length - 1] + 1 : 0,
+              to: s.lgLog.length - 1,
+              label: first0 - 1 + '–' + String(first0).slice(2),
+            },
+          ].filter(y => y.to >= y.from);
+        const txYi = Math.min(s.txYear || 0, Math.max(0, txYears.length - 1)),
+          txSeg = txYears[txYi] || { from: 0, to: s.lgLog.length - 1 };
+        const lgNow = s.lgLog.slice(txSeg.from, txSeg.to + 1),
+          myNow = txYi > 0 ? [] : myCut >= 0 ? s.log.slice(0, myCut + 1) : s.log;
+        // Newest first. The day counter restarts at training camp, so order by (stage, day): walking each
+        // log oldest → newest, a big drop in the day means camp has opened.
+        const keyed = (list: any[]) => {
+          const out: any[] = [];
+          let era = 0,
+            prev = -1;
+          for (let i = list.length - 1; i >= 0; i--) {
+            const d = list[i].day ?? s.day;
+            if (prev >= 0 && d < prev - 5) era++;
+            prev = d;
+            out.push({ ...list[i], _k: era * 100000 + d, _i: i });
+          }
+          return out;
+        };
+        const allTx = [
+          ...keyed(myNow).map(l => ({ ...l, day: l.day ?? s.day, type: typeOf(l.text), teams: me.abbr, mine: true })),
+          ...keyed(lgNow).map(e => ({ ...e, mine: false })),
+        ].sort((x, y) => y._k - x._k || x._i - y._i);
+        const txRows = allTx
+          .filter(x => s.txFilter === 'All' || x.type === s.txFilter)
+          .map(x => ({
+            date: x.date || gm.fmtS(x.day),
+            type: x.type,
+            teams: x.teams,
+            teamLinks: String(x.teams)
+              .split(' · ')
+              .map(ab => ({ abbr: ab, open: openTeam(T.findIndex(t => t.abbr === ab)) })),
+            text: linkNames(x.text, id => open(id)(null), { P, revision: gm.saveVersion }),
+            bg: x.mine ? 'var(--color-accent-100)' : 'transparent',
+          }));
+        const txYearOpts = txYears.map((y, i) => ({ v: i, label: (i === 0 ? 'This league year · ' : '') + y.label })),
+          setTxYear = (i: number) => gm.setState({ txYear: i });
+        const txSegs = ['All', 'Trade', 'Signing', 'Release', 'Draft', 'Injury'].map(k => ({
+          label:
+            k === 'All'
+              ? 'All'
+              : k === 'Trade'
+                ? 'Trades'
+                : k === 'Signing'
+                  ? 'Signings'
+                  : k === 'Release'
+                    ? 'Releases'
+                    : k === 'Injury'
+                      ? 'Injuries'
+                      : 'Draft',
+          onClick: () => gm.setState({ txFilter: k }),
+          color: s.txFilter === k ? 'var(--color-accent-700)' : 'var(--color-text)',
+          ring: s.txFilter === k ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+        }));
+        return { txRows, txSegs, txYearOpts, txYi, setTxYear };
+      })()
+    : { txRows: [], txSegs: [], txYearOpts: [], txYi: 0, setTxYear: (i: number) => gm.setState({ txYear: i }) };
+
   const teamOf = id => {
     const t = tidOf[id];
     return t >= 0
@@ -3004,36 +3028,41 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         };
       })();
   const dark = (s.theme ?? 'dark') === 'dark';
-  const RV = ownerReview(gm, s, s.me),
-    secV = RV.sec;
-  const own = {
-    name: me.owner,
-    arch: me.arch,
-    desc: RV.desc,
-    sec: secV,
-    secW: secV + '%',
-    secLabel: RV.label,
-    secColor: secV >= 70 ? 'var(--gm-good)' : secV >= 40 ? 'var(--color-text)' : 'var(--gm-bad)',
-    demands: RV.demands.map(([d0, cur, stt]) => ({
-      d: d0,
-      cur,
-      stt,
-      color: stt === 'Met' ? 'var(--gm-good)' : stt === 'At risk' ? 'var(--color-accent-700)' : 'var(--gm-bad)',
-    })),
-    limits: s.god ? ['None in God Mode: payroll, spending and the books are yours to run'] : RV.limits,
-    fire: s.god
-      ? [
-          'Never. In God Mode the owner has no power over you: no firing, no payroll orders, no fire sales, and your contract renews itself.',
-        ]
-      : s.ownerFiring === false
-        ? ['Firing is off in Settings: the owner still reviews you, but can’t fire you.']
-        : RV.fire,
-    god: !!s.god,
-    hist: ((s.teamHist || {})[s.me] || []).slice().reverse(),
-    fails: (s.mandateFails || {})[s.me] || 0,
-    sales: (me.sales || []).slice().reverse(),
-    newOwner: me.ownerSince === gm.Y || (me.ownerSince === gm.Y + 1 && ['fa', 'preseason'].includes(s.phase)),
-  };
+  const own = visible('owner')
+    ? (() => {
+        const RV = ownerReview(gm, s, s.me),
+          secV = RV.sec;
+        const own = {
+          name: me.owner,
+          arch: me.arch,
+          desc: RV.desc,
+          sec: secV,
+          secW: secV + '%',
+          secLabel: RV.label,
+          secColor: secV >= 70 ? 'var(--gm-good)' : secV >= 40 ? 'var(--color-text)' : 'var(--gm-bad)',
+          demands: RV.demands.map(([d0, cur, stt]) => ({
+            d: d0,
+            cur,
+            stt,
+            color: stt === 'Met' ? 'var(--gm-good)' : stt === 'At risk' ? 'var(--color-accent-700)' : 'var(--gm-bad)',
+          })),
+          limits: s.god ? ['None in God Mode: payroll, spending and the books are yours to run'] : RV.limits,
+          fire: s.god
+            ? [
+                'Never. In God Mode the owner has no power over you: no firing, no payroll orders, no fire sales, and your contract renews itself.',
+              ]
+            : s.ownerFiring === false
+              ? ['Firing is off in Settings: the owner still reviews you, but can’t fire you.']
+              : RV.fire,
+          god: !!s.god,
+          hist: ((s.teamHist || {})[s.me] || []).slice().reverse(),
+          fails: (s.mandateFails || {})[s.me] || 0,
+          sales: (me.sales || []).slice().reverse(),
+          newOwner: me.ownerSince === gm.Y || (me.ownerSince === gm.Y + 1 && ['fa', 'preseason'].includes(s.phase)),
+        };
+        return own;
+      })()
+    : null;
 
   const FOCS = ['Balanced', 'Shooting', 'Finishing', 'Playmaking', 'Defense', 'Rebounding', 'Athleticism', 'Conditioning'];
   const lastRep = s.reports[0],
@@ -3055,7 +3084,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       return { coachAuto: auto, log };
     });
   const coachAll = mine.length > 0 && mine.every(id => isCoached(s, id));
-  const devRows = mine.map(id => {
+  const devRows = (visible('dev') ? mine : []).map(id => {
     const p = P[id],
       el = p.dev || (p.age <= 25 && p.ovr < 58),
       auto = isCoached(s, id),
@@ -3094,7 +3123,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     allOn: () => setCoach(mine, true),
     allOff: () => setCoach(mine, false),
   };
-  const reportsV = s.reports.map(r => ({
+  const reportsV = (visible('dev') ? s.reports : []).map(r => ({
     label: r.label,
     rows: r.rows.map(x => ({ ...x, color: x.up ? 'var(--gm-good)' : 'var(--gm-bad)', open: open(x.id) })),
   }));
@@ -3217,8 +3246,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     pl.isPro = false;
     pl.sr = {};
   }
-  const allPros = [gm.Y, gm.Y + 1, gm.Y + 2].flatMap(y => d.cls[y] || []);
-  const scoutRegions = (Object.entries(REG) as [string, any][]).map(([k, r]) => {
+  const allPros = visible('scouting') ? [gm.Y, gm.Y + 1, gm.Y + 2].flatMap(y => d.cls[y] || []) : [];
+  const scoutRegions = ((visible('scouting') ? Object.entries(REG) : []) as [string, any][]).map(([k, r]) => {
     const sc = s.scouts.filter(x => x.assign === k);
     return {
       name: r.name,
@@ -3237,7 +3266,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         st2 = { ...st, scouts };
       return { scouts, ...runBriefs(gm, st2, st2) };
     });
-  const scoutsV = s.scouts.map((x, i) => ({
+  const scoutsV = (visible('scouting') ? s.scouts : []).map((x, i) => ({
     name: x.name,
     spec: REG[x.spec].name,
     skill: '★'.repeat(x.skill) + '☆'.repeat(5 - x.skill),
@@ -3280,7 +3309,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       })
       .filter(Boolean),
   }));
-  const promisesV = (Object.entries(s.promises) as [string, any][]).map(([id, pr]) => ({
+  const promisesV = ((visible('scouting') ? Object.entries(s.promises) : []) as [string, any][]).map(([id, pr]) => ({
     name: P[id].name,
     n: '#' + pr.n,
     open: open(+id),
@@ -3290,7 +3319,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     label: s.agentRep >= 65 ? 'Trusted by agents' : s.agentRep >= 40 ? 'Neutral' : 'Agents are wary',
     w: s.agentRep + '%',
   };
-  const ovRows = (s.overseas || [])
+  const ovRows = (visible('overseas') ? s.overseas || [] : [])
     .map(id => {
       const p = P[id],
         a = p.abroad || {};
@@ -3327,39 +3356,41 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     .sort((x, y) => y.ovr - x.ovr);
   const TAC: any[] = TACTIC_GROUPS.map(g => [g.k, g.label, g.opts.map(o => o.v), g.desc]);
   // Target minutes per player: his own setting, else the default for his slot among healthy players.
-  const plan = gm.minutesPlan(s, s.me),
+  const plan = visible('tactics') ? gm.minutesPlan(s, s.me) : {},
     rotOf = id => Math.round(P[id].rot ?? plan[id] ?? 0);
-  const tacV = {
-    groups: TAC.map(([k, label, opts, desc]) => ({
-      label,
-      desc,
-      opts: opts.map(o => ({
-        label: o,
-        onClick: () => gm.setState(st => ({ tactics: { ...st.tactics, [k]: o } })),
-        color: s.tactics[k] === o ? 'var(--color-accent-700)' : 'var(--color-text)',
-        ring: s.tactics[k] === o ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
-      })),
-    })),
-    fit: (() => {
-      const f = gm.tacFit(mine, s.tactics);
-      return (f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1) + ' roster fit: how well these settings suit your players';
-    })(),
-    total: Math.round(mine.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0)),
-    rot: mine.map((id, i) => ({
-      name: P[id].name,
-      pos: P[id].pos,
-      tag: P[id].inj ? 'Injured' : P[id].dev ? 'CCP' : i < 5 ? 'Starter' : '',
-      v: rotOf(id),
-      val: rotOf(id) + ' min' + (P[id].gp ? ' · plays ' + Math.round(P[id].min) : ''),
-      dis: !!(P[id].inj || P[id].dev),
-      set: e => {
-        P[id].rot = +e.target.value;
-        gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
-      },
-    })),
-  };
+  const tacV = visible('tactics')
+    ? {
+        groups: TAC.map(([k, label, opts, desc]) => ({
+          label,
+          desc,
+          opts: opts.map(o => ({
+            label: o,
+            onClick: () => gm.setState(st => ({ tactics: { ...st.tactics, [k]: o } })),
+            color: s.tactics[k] === o ? 'var(--color-accent-700)' : 'var(--color-text)',
+            ring: s.tactics[k] === o ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+          })),
+        })),
+        fit: (() => {
+          const f = gm.tacFit(mine, s.tactics);
+          return (f >= 0 ? '+' : '−') + Math.abs(f).toFixed(1) + ' roster fit: how well these settings suit your players';
+        })(),
+        total: Math.round(mine.reduce((a, id) => a + (P[id].inj || P[id].dev ? 0 : rotOf(id)), 0)),
+        rot: mine.map((id, i) => ({
+          name: P[id].name,
+          pos: P[id].pos,
+          tag: P[id].inj ? 'Injured' : P[id].dev ? 'CCP' : i < 5 ? 'Starter' : '',
+          v: rotOf(id),
+          val: rotOf(id) + ' min' + (P[id].gp ? ' · plays ' + Math.round(P[id].min) : ''),
+          dis: !!(P[id].inj || P[id].dev),
+          set: e => {
+            P[id].rot = +e.target.value;
+            gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
+          },
+        })),
+      }
+    : null;
   const natTot = (Object.values(s.natW) as any[]).reduce((a, x) => a + (+x || 0), 0);
-  const natRows = Object.keys(C)
+  const natRows = (visible('settings') ? Object.keys(C) : [])
     .filter(c => s.natW[c] !== undefined)
     .sort((x, y) => (s.natW[y] || 0) - (s.natW[x] || 0))
     .map(c => ({
@@ -4388,16 +4419,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     standGroups,
     standSegs,
     standConf: conf,
-    tMine: is.trade && !s.modal && !s.teamModal && !s.boxId ? mine.map(tRow('tMine')) : [],
-    tTheirs: is.trade && !s.modal && !s.teamModal && !s.boxId ? s.rosters[s.tTid].map(tRow('tTheirs')) : [],
-    tMinePicks:
-      is.trade && !s.modal && !s.teamModal && !s.boxId
-        ? [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))]
-        : [],
-    tTheirPicks:
-      is.trade && !s.modal && !s.teamModal && !s.boxId
-        ? [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))]
-        : [],
+    tMine: visible('trade') ? mine.map(tRow('tMine')) : [],
+    tTheirs: visible('trade') ? s.rosters[s.tTid].map(tRow('tTheirs')) : [],
+    tMinePicks: visible('trade') ? [...myAssets.map(kRow('tkMine')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkMine', true)))] : [],
+    tTheirPicks: visible('trade')
+      ? [...theirAssets.map(kRow('tkTheirs')), ...(mine2(s.tTid) ? [] : swapYears.map(sRow('tkTheirs', false)))]
+      : [],
     protOpts: PROT_OPTIONS,
     tr,
     teamOptions,
