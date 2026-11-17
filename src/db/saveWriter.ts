@@ -31,7 +31,7 @@ export function createSaveWriter() {
           meta: { ...header, updatedAt: Date.now(), summary: summarize(snapshot) },
           snapshot,
           ratingKeys: RATING_KEYS,
-          archive: { keys: archive.keys, records: archive.records },
+          archive: { keys: archive.keys, records: archive.records, references: archive.references },
         };
         await new Promise<void>((resolve, reject) => {
           active.onmessage = ({ data: result }: MessageEvent<SaveResult>) => {
@@ -43,7 +43,7 @@ export function createSaveWriter() {
           active.onmessageerror = () => reject(new Error('Background save transfer failed'));
           active.postMessage(job);
         });
-        archive.acknowledge();
+        archive.acknowledge(true);
         return version;
       } catch {
         // Older browsers, startup failures and storage errors get the original save path.
@@ -52,8 +52,10 @@ export function createSaveWriter() {
       }
     }
     const fallbackVersion = game.saveVersion;
+    const archive = planBoxArchive(meta.id, game.db.boxes || {});
     const data = game.toSave();
     await putSave({ ...header, updatedAt: Date.now(), summary: summarize(data), data });
+    archive.acknowledge(true);
     return fallbackVersion;
   };
   return {

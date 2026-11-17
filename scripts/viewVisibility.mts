@@ -9,7 +9,8 @@ try {
   await build({
     stdin: {
       contents: `
-      export {Game} from './src/engine/Game'; export {buildView} from './src/ui/viewModel';
+      export {Game} from './src/engine/Game'; export {GameSim} from './src/engine/sim';
+      export {BoxScoreModal} from './src/ui/modals/BoxScoreModal'; export {boxSummary} from './src/db/boxArchive'; export {buildView} from './src/ui/viewModel';
       export {renderToString} from 'react-dom/server'; export {createElement} from 'react';
       export {FinancesScreen} from './src/ui/screens/FinancesScreen';
       export {OwnerScreen} from './src/ui/screens/OwnerScreen';
@@ -78,6 +79,19 @@ try {
   assert(evaluations > 0, 'Visible trades retain evaluation');
   g.setState({ screen: 'owner', modal: false, teamModal: 0 });
   assert.equal(vm().own, null, 'Team 0 also hides the underlying screen');
+
+  let bid = Object.keys(g.db.boxes || {})[0];
+  if (!bid) bid = g.keepBox(new m.GameSim(g.simTeam(g.state, 0), g.simTeam(g.state, 1), { norms: g.db.norms, record: true }).run(), 0);
+  g.setState({ screen: 'dash', modal: false, teamModal: null, boxId: bid });
+  const fullBox = g.db.boxes[bid];
+  const completeHtml = m.renderToString(m.createElement(m.BoxScoreModal, { vm: vm() }));
+  assert(!completeHtml.includes('Loading game details'));
+  g.db.boxes[bid] = m.boxSummary(fullBox, extras.saveId, bid);
+  const lazyHtml = m.renderToString(m.createElement(m.BoxScoreModal, { vm: vm() }));
+  assert(lazyHtml.includes('Loading game details'), 'Lazy games show loading rather than claim details were not recorded');
+  assert(lazyHtml.includes('Line Score') && lazyHtml.includes('Four Factors'));
+  assert(lazyHtml.includes('Play-by-Play') && lazyHtml.includes('Shot Charts') && lazyHtml.includes('Plus/Minus'));
+  assert(lazyHtml.includes('Q1') && lazyHtml.includes('Q4'), 'Quarter controls remain available');
   console.log(
     'PASS: visible screen data, rendered finance/owner/transactions/scouting/overseas/development/trade screens, hidden profile work and intact shell controls.',
   );

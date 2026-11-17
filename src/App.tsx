@@ -51,7 +51,7 @@ export function App() {
   );
 
   const onOpen = useCallback(async (id: string) => {
-    const row = await getSave(id);
+    const row = await getSave(id, { lazyBoxes: true });
     if (!row) return;
     const game = Game.load(row.data);
     // A league from before cards were shared: its cards join the shared library, then leave the save.
@@ -160,8 +160,20 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
     rememberTheme(dark ? 'dark' : 'light');
   }, [dark, game.state.me, game.state.teams[game.state.me]?.colors]);
 
-  const exportNow = () =>
-    exportSave({ id: open.id, name: open.name, createdAt: open.createdAt, updatedAt: Date.now(), summary: '', data: game.toSave() });
+  const exportNow = async () => {
+    try {
+      await exportSave({
+        id: open.id,
+        name: open.name,
+        createdAt: open.createdAt,
+        updatedAt: Date.now(),
+        summary: '',
+        data: game.toSave(),
+      });
+    } catch {
+      setStatus('Export failed: game details could not be loaded. Please try again.');
+    }
+  };
   const vm = useMemo(
     () =>
       buildView(game, rootRef, {

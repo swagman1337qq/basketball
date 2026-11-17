@@ -1,6 +1,14 @@
 import { saveSummary, type SaveSummary } from './saveSummary';
 export type { SaveSummary } from './saveSummary';
-import { rememberBoxArchive, type BoxBatch } from './boxArchive';
+import {
+  boxSummary,
+  boxVersion,
+  rememberBoxVersion,
+  isBoxReference,
+  validBoxReference,
+  rememberBoxArchive,
+  type BoxBatch,
+} from './boxArchive';
 // Save files live in the browser's IndexedDB (via Dexie): free, offline, no server.
 // League state and immutable box-score records are stored separately; exports remain self-contained.
 import Dexie, { type Table } from 'dexie';
@@ -18,7 +26,7 @@ export interface SaveRow {
 class SaveDB extends Dexie {
   saves!: Table<SaveRow, string>;
   saveIndex!: Table<SaveSummary, string>;
-  boxes!: Table<{ saveId: string; bid: string; box: any }, [string, string]>;
+  boxes!: Table<{ saveId: string; bid: string; box: any; version?: string | null }, [string, string]>;
   meta!: Table<{ key: string; value: any }, string>; // shared across leagues: the player-card library (cards.ts)
   constructor() {
     super('front-office');
@@ -46,41 +54,177 @@ export async function listSaves() {
 }
 
 async function hydrateSave(row: SaveRow): Promise<SaveRow> {
-  const keys: string[] | undefined = row.data.db.$boxKeys;
-  if (!keys) return row;
-  const stored = await db.boxes.bulkGet(keys.map(bid => [row.id, bid] as [string, string]));
-  if (stored.some(x => !x)) throw new Error('The saved box-score archive is incomplete.');
-  const boxes = Object.fromEntries(stored.map(x => [x!.bid, x!.box]));
-  const { $boxKeys, ...rest } = row.data.db;
+  const input = row.data.db.boxes || {};
+  const manifest: string[] = row.data.db.$boxKeys || [];
+  const keys = [...new Set([...manifest, ...Object.keys(input)])];
+  const boxes: Record<string, any> = { ...input };
+  const needed = keys.filter(bid => !input[bid] || isBoxReference(input[bid]));
+  for (const bid of Object.keys(input))
+    if (isBoxReference(input[bid]) && !validBoxReference(input[bid], row.id, bid))
+      throw new Error('Game details belong to another saved league.');
+  const stored = await db.boxes.bulkGet(needed.map(bid => [row.id, bid] as [string, string]));
+  if (stored.some(x => !x || isBoxReference(x.box)))
+    throw new Error('The saved game archive is incomplete. No partial export was created.');
+  for (const item of stored) {
+    const ref = input[item!.bid];
+    if (isBoxReference(ref) && (ref.$detailRef.version ?? null) !== (item!.version ?? null))
+      throw new Error('Saved game details changed in another session. Reload the league before exporting.');
+    rememberBoxVersion(item!.box, item!.version ?? null);
+    boxes[item!.bid] = item!.box;
+  }
+  const { $boxKeys, $boxHeads, ...rest } = row.data.db;
   rememberBoxArchive(row.id, boxes);
   return { ...row, data: { ...row.data, db: { ...rest, boxes } } };
 }
-export async function getSave(id: string) {
-  const row = await db.saves.get(id);
-  if (!row) return row;
-  if (!row.data.db.$boxKeys && Object.keys(row.data.db.boxes || {}).length) {
-    // One-time, transactional migration when an old league is opened. No records are removed.
-    try {
+function hasBoxSummaries(row: SaveRow) {
+  const keys: string[] | undefined = row.data.db.$boxKeys;
+  const boxes = row.data.db.boxes || {};
+  return (
+    row.data.db.$boxHeads === 1 &&
+    !!keys &&
+    keys.length === Object.keys(boxes).length &&
+    keys.every(bid => validBoxReference(boxes[bid], row.id, bid))
+  );
+}
+async function prepareLazySave(id: string) {
+  return db.transaction('rw', db.saves, db.boxes, db.saveIndex, async () => {
+    let row = await db.saves.get(id);
+    if (!row || hasBoxSummaries(row)) return row;
+    if (!row.data.db.$boxKeys) {
+      // The existing inline save is replaced only after the archive and summaries commit together.
       await putSave(row);
-    } catch {
-      /* the original inline save remains intact */
+      return db.saves.get(id);
     }
+    const keys: string[] = row.data.db.$boxKeys;
+    const wanted = new Set(keys);
+    const summaries: Record<string, any> = {};
+    // One-time conversion of older split saves. Cursor records are discarded after
+    // their summary is copied; do not hydrate the whole detailed season into memory.
+    await db.boxes
+      .where('saveId')
+      .equals(id)
+      .each(item => {
+        if (wanted.has(item.bid)) {
+          if (isBoxReference(item.box)) throw new Error('The saved game archive is incomplete.');
+          summaries[item.bid] = boxSummary(item.box, id, item.bid, item.version ?? null);
+        }
+      });
+    if (Object.keys(summaries).length !== keys.length) throw new Error('The saved game archive is incomplete.');
+    row = { ...row, data: { ...row.data, db: { ...row.data.db, boxes: summaries, $boxHeads: 1 } } };
+    await db.saves.put(row);
     return row;
+  });
+}
+export async function getSave(id: string, options: { lazyBoxes?: boolean } = {}) {
+  let row = await db.saves.get(id);
+  if (!row) return row;
+  if (options.lazyBoxes) {
+    if (!hasBoxSummaries(row)) {
+      try {
+        row = await prepareLazySave(id);
+      } catch {
+        // A failed optimization must not prevent opening an intact older save.
+        return db.transaction('r', db.saves, db.boxes, async () => {
+          const current = await db.saves.get(id);
+          return current ? hydrateSave(current) : current;
+        });
+      }
+    }
+    if (!row) return row;
+    const { $boxKeys, $boxHeads, ...rest } = row.data.db;
+    const boxes = rest.boxes || {};
+    rememberBoxArchive(id, boxes);
+    return { ...row, data: { ...row.data, db: rest } };
   }
-  return hydrateSave(row);
+  if (!row.data.db.$boxKeys && Object.keys(row.data.db.boxes || {}).length) {
+    try {
+      await prepareLazySave(id);
+    } catch {
+      /* the original inline save stays readable */
+    }
+  }
+  // Full readers/exports keep the save and its archive in one read transaction.
+  return db.transaction('r', db.saves, db.boxes, async () => {
+    const current = await db.saves.get(id);
+    return current ? hydrateSave(current) : current;
+  });
+}
+export async function readSavedBox(saveId: string, bid: string) {
+  const item = await db.boxes.get([saveId, bid]);
+  if (!item || isBoxReference(item.box)) throw new Error('This game’s details could not be loaded. Please try again.');
+  rememberBoxVersion(item.box, item.version ?? null);
+  return item.box;
 }
 export async function putSave(row: SaveRow, batch?: BoxBatch) {
   const boxes = row.data.db.boxes || {};
-  const archive = batch ?? { keys: Object.keys(boxes), records: Object.entries(boxes).map(([bid, box]) => ({ bid, box })) };
-  const stored = { ...row, data: { ...row.data, db: { ...row.data.db, boxes: {}, $boxKeys: archive.keys } } };
+  const archive = batch ?? {
+    keys: Object.keys(boxes),
+    records: Object.entries(boxes)
+      .filter(([, box]) => !isBoxReference(box))
+      .map(([bid, box]) => ({ bid, box, version: boxVersion(box) })),
+  };
+  for (const [bid, box] of Object.entries(boxes))
+    if (isBoxReference(box) && !validBoxReference(box, row.id, bid)) throw new Error('Game details belong to another saved league.');
+  if (archive.records.some(item => isBoxReference(item.box))) throw new Error('A game summary cannot replace saved game details.');
+  const summaries: Record<string, any> = {};
+  const stored = { ...row, data: { ...row.data, db: { ...row.data.db, boxes: summaries, $boxKeys: archive.keys, $boxHeads: 1 } } };
   await db.transaction('rw', db.saves, db.boxes, db.saveIndex, async () => {
-    if (archive.records.length) await db.boxes.bulkPut(archive.records.map(x => ({ saveId: row.id, ...x })));
+    const expected =
+      archive.references ||
+      Object.entries(boxes)
+        .filter(([, box]) => isBoxReference(box))
+        .map(([bid, box]: [string, any]) => ({ bid, version: box.$detailRef.version ?? null }));
+    const previous = expected.length ? await db.saves.get(row.id) : undefined;
+    const oldReferences = expected.filter(ref => !validBoxReference(previous?.data.db.boxes?.[ref.bid], row.id, ref.bid));
+    for (const ref of expected) {
+      const header = previous?.data.db.boxes?.[ref.bid];
+      if (validBoxReference(header, row.id, ref.bid) && (header.$detailRef.version ?? null) !== ref.version)
+        throw new Error('Saved game details changed in another session. Reload the league before saving.');
+    }
+    for (let i = 0; i < oldReferences.length; i += 8) {
+      const refs = oldReferences.slice(i, i + 8);
+      const found = await db.boxes.bulkGet(refs.map(ref => [row.id, ref.bid] as [string, string]));
+      for (let j = 0; j < refs.length; j++)
+        if (!found[j] || (found[j]!.version ?? null) !== refs[j].version)
+          throw new Error('Saved game details changed or are unavailable. Reload the league before saving.');
+    }
+    if (archive.records.length)
+      await db.boxes.bulkPut(
+        archive.records.map(x => ({ saveId: row.id, ...x, version: x.version === undefined ? boxVersion(x.box) : x.version })),
+      );
     const keep = new Set(archive.keys);
     const old = await db.boxes.where('saveId').equals(row.id).primaryKeys();
     const available = new Set([...old.map(key => key[1]), ...archive.records.map(x => x.bid)]);
     if (archive.keys.some(bid => !available.has(bid))) throw new Error('A full box-score snapshot is required.');
     const removed = old.filter(key => !keep.has(key[1]));
     if (removed.length) await db.boxes.bulkDelete(removed);
+    const written = new Map(archive.records.map(item => [item.bid, item]));
+    for (const bid of archive.keys) {
+      const item = written.get(bid),
+        box = item?.box || boxes[bid];
+      if (box)
+        summaries[bid] = boxSummary(
+          box,
+          row.id,
+          bid,
+          item ? (item.version === undefined ? boxVersion(box) : item.version) : boxVersion(box),
+        );
+    }
+    // A worker sends only changed games. Reuse the previous immutable summaries
+    // for unchanged games rather than reading their detailed records.
+    const prior = Object.keys(summaries).length < archive.keys.length ? previous || (await db.saves.get(row.id)) : undefined;
+    for (const bid of archive.keys)
+      if (!summaries[bid] && validBoxReference(prior?.data.db.boxes?.[bid], row.id, bid)) summaries[bid] = prior!.data.db.boxes[bid];
+    // Compatibility with the first save made from an older v3/v4 archive.
+    const missing = archive.keys.filter(bid => !summaries[bid]);
+    for (let i = 0; i < missing.length; i += 8) {
+      const items = await db.boxes.bulkGet(missing.slice(i, i + 8).map(bid => [row.id, bid] as [string, string]));
+      for (const item of items) {
+        if (!item || isBoxReference(item.box)) throw new Error('The saved game archive is incomplete.');
+        summaries[item.bid] = boxSummary(item.box, row.id, item.bid, item.version ?? null);
+      }
+    }
+
     await db.saves.put(stored);
     await db.saveIndex.put(saveSummary(row));
   });
@@ -131,7 +275,10 @@ export async function exportSave(row: SaveRow | SaveSummary) {
     if (!full) throw new Error('This saved league is no longer available.');
     row = full;
   }
-  row = await hydrateSave(row);
+  // Capture live unsaved games before yielding: a concurrent save may compact
+  // the live map, but this export must retain its own complete snapshot.
+  const snapshot = { ...row, data: structuredClone(row.data) };
+  row = await db.transaction('r', db.boxes, () => hydrateSave(snapshot));
   const body = JSON.stringify({ kind: FILE_KIND, version: 1, name: row.name, createdAt: row.createdAt, data: row.data });
   const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
   const a = document.createElement('a');
@@ -149,6 +296,9 @@ export async function exportSave(row: SaveRow | SaveSummary) {
 export async function importSave(file: File): Promise<SaveRow> {
   const json = JSON.parse(await file.text());
   if (json?.kind !== FILE_KIND || !json.data?.db || !json.data?.state) throw new Error('That file is not a Basketball Manager save.');
+  const importedBoxes = json.data.db.boxes || {};
+  if (Object.values(importedBoxes).some(isBoxReference) || (json.data.db.$boxKeys || []).some((bid: string) => !importedBoxes[bid]))
+    throw new Error('This file is missing game details. Export the complete league again before importing it.');
   const now = Date.now();
   const row: SaveRow = {
     id: newSaveId(),

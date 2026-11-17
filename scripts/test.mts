@@ -11,6 +11,7 @@ const SCRIPTS = [
   'responsiveness',
   'profileStatsWorker',
   'saveSummaries',
+  'lazyBoxArchive',
   'viewVisibility',
   'staffContracts',
   'prospectPathways',

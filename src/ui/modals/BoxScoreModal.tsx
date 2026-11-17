@@ -1,3 +1,4 @@
+import { useBoxScore } from '../useBoxScore';
 // A game's box score, as a full page: the score by quarter and every player's line for both teams.
 // Opened by clicking a result (Dashboard, Schedule, Playoffs). ← Back returns to where you were;
 // the arrows (or ← → keys) step through the same team's games in order: regular season, play-in,
@@ -17,8 +18,8 @@ const KIND: Record<string, string> = { reg: 'Regular season', playin: 'Play-in',
 
 export function BoxScoreModal({ vm }: { vm: VM }) {
   const { gm, s, T, logo, open, openTeam } = vm.ctx,
-    P = gm.db.P,
-    bx = (gm.db as any).boxes?.[s.boxId];
+    P = gm.db.P;
+  const { box: bx, loading: detailsLoading, error: detailsError, retry: retryDetails } = useBoxScore(gm, vm.save.id, s.boxId);
   const main = () => document.querySelector('main');
   // Remember where you were on the page underneath, and put you back there on ← Back.
   useLayoutEffect(() => {
@@ -469,6 +470,19 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           {!periodUnavailable && <FourFactors box={selected} T={T} onTeam={visitTeam} />}
         </div>
       )}
+      {(detailsLoading || detailsError) && (
+        <p role="status" style={muted}>
+          {detailsError || 'Loading game details…'}
+          {detailsError && (
+            <>
+              {' '}
+              <button className="btn btn-secondary" onClick={retryDetails}>
+                Retry
+              </button>
+            </>
+          )}
+        </p>
+      )}
       <div className="box-period-tabs" aria-label="Game period">
         {['Game', 'Q1', 'Q2', 'H1', 'Q3', 'Q4', 'H2', ...Array.from({ length: Math.max(0, per - 4) }, (_, i) => 'OT' + (i + 1))].map(p => (
           <button
@@ -481,7 +495,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           </button>
         ))}
       </div>
-      {periodUnavailable && (
+      {periodUnavailable && !detailsLoading && !detailsError && (
         <div className="box-period-unavailable" role="status">
           <b>
             {period}:{' '}
@@ -525,7 +539,8 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
           )}
         </>
       ) : (
-        <BoxScoreDetails key={s.boxId} box={bx} vm={vm} tab={tab} period={period} onPlayer={visitPlayer} />
+        !detailsLoading &&
+        !detailsError && <BoxScoreDetails key={s.boxId} box={bx} vm={vm} tab={tab} period={period} onPlayer={visitPlayer} />
       )}
     </div>
   );
