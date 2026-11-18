@@ -167,6 +167,44 @@ export function encodeDb(db: any, RK: string[]) {
     REG = null;
   }
 }
+// Reconstruct a complete compact save from separately stored players. Preserve
+// already-encoded world tables exactly: decoding/re-encoding those tables can
+// reorder their union of column keys, even though the decoded data is equivalent.
+export function attachSavedPlayers(db: any, players: any, RK: string[]) {
+  const encoded = encodeDb({ P: players }, RK),
+    lists: string[][] = encoded.$keys.slice();
+  const at = new Map(lists.map((keys, i) => [JSON.stringify(keys), i]));
+  const rebase = (value: any): any => {
+    if (Array.isArray(value)) return value.map(rebase);
+    if (!plain(value)) return value;
+    const out: any = {};
+    for (const key of Object.keys(value)) out[key] = rebase(value[key]);
+    if (isTab(value) && typeof value.$k === 'number') {
+      const keys = db.$keys?.[value.$k];
+      if (!keys) throw Error('Invalid saved world table.');
+      const signature = JSON.stringify(keys);
+      let index = at.get(signature);
+      if (index === undefined) {
+        index = lists.length;
+        lists.push(keys);
+        at.set(signature, index);
+      }
+      out.$k = index;
+    }
+    return out;
+  };
+  const { $ret, $gone, $keys, ...rest } = db,
+    deep: any = {};
+  for (const key of DEEP_DB) if (db[key] != null) deep[key] = rebase(db[key]);
+  return {
+    ...rest,
+    ...deep,
+    P: encoded.P,
+    $keys: lists,
+    ...(encoded.$gone ? { $gone: encoded.$gone } : {}),
+    ...(encoded.$ret ? { $ret: encoded.$ret } : {}),
+  };
+}
 function encodeDb1(db: any, RK: string[]) {
   const P: any = {},
     gone: any[] = [],

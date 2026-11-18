@@ -135,6 +135,7 @@ try {
   await putSave(
     { ...job.meta, data: { db: encodeDb(job.snapshot.db, job.ratingKeys), state: encodeState(job.snapshot.state) } },
     job.archive,
+    job.players,
   );
   pending.onmessage({ data: { id: job.id, ok: true } });
   await saving;

@@ -1,4 +1,6 @@
 import { saveSummary, type SaveSummary } from './saveSummary';
+import { rememberRowRevision, type PlayerBatch } from './playerArchive';
+import { hydratePlayers, preparePlayers, revisionOf, writePlayers, type PlayerRecord } from './playerRecords';
 export type { SaveSummary } from './saveSummary';
 import {
   boxSummary,
@@ -27,6 +29,7 @@ class SaveDB extends Dexie {
   saves!: Table<SaveRow, string>;
   saveIndex!: Table<SaveSummary, string>;
   boxes!: Table<{ saveId: string; bid: string; box: any; version?: string | null }, [string, string]>;
+  players!: Table<PlayerRecord, [string, string]>;
   meta!: Table<{ key: string; value: any }, string>; // shared across leagues: the player-card library (cards.ts)
   constructor() {
     super('front-office');
@@ -42,6 +45,14 @@ class SaveDB extends Dexie {
         });
         await Promise.all(pending);
       });
+    // No eager rewriting: old leagues remain complete until their next successful save.
+    this.version(5).stores({
+      saves: 'id, updatedAt',
+      meta: 'key',
+      boxes: '[saveId+bid], saveId',
+      saveIndex: 'id, updatedAt',
+      players: '[saveId+pid], saveId',
+    });
   }
 }
 
@@ -87,12 +98,12 @@ function hasBoxSummaries(row: SaveRow) {
   );
 }
 async function prepareLazySave(id: string) {
-  return db.transaction('rw', db.saves, db.boxes, db.saveIndex, async () => {
+  return db.transaction('rw', db.saves, db.boxes, db.saveIndex, db.players, async () => {
     let row = await db.saves.get(id);
     if (!row || hasBoxSummaries(row)) return row;
     if (!row.data.db.$boxKeys) {
       // The existing inline save is replaced only after the archive and summaries commit together.
-      await putSave(row);
+      await putSave(await hydratePlayers(row, db.players));
       return db.saves.get(id);
     }
     const keys: string[] = row.data.db.$boxKeys;
@@ -124,19 +135,10 @@ export async function getSave(id: string, options: { lazyBoxes?: boolean } = {})
         row = await prepareLazySave(id);
       } catch {
         // A failed optimization must not prevent opening an intact older save.
-        return db.transaction('r', db.saves, db.boxes, async () => {
-          const current = await db.saves.get(id);
-          return current ? hydrateSave(current) : current;
-        });
+        /* The original archive will be read in the consistent transaction below. */
       }
     }
-    if (!row) return row;
-    const { $boxKeys, $boxHeads, ...rest } = row.data.db;
-    const boxes = rest.boxes || {};
-    rememberBoxArchive(id, boxes);
-    return { ...row, data: { ...row.data, db: rest } };
-  }
-  if (!row.data.db.$boxKeys && Object.keys(row.data.db.boxes || {}).length) {
+  } else if (!row.data.db.$boxKeys && Object.keys(row.data.db.boxes || {}).length) {
     try {
       await prepareLazySave(id);
     } catch {
@@ -144,10 +146,21 @@ export async function getSave(id: string, options: { lazyBoxes?: boolean } = {})
     }
   }
   // Full readers/exports keep the save and its archive in one read transaction.
-  return db.transaction('r', db.saves, db.boxes, async () => {
+  return db.transaction('r', db.saves, db.boxes, db.players, async () => {
     const current = await db.saves.get(id);
-    return current ? hydrateSave(current) : current;
+    if (!current) return current;
+    let full = await hydratePlayers(current, db.players);
+    if (options.lazyBoxes && hasBoxSummaries(full)) {
+      const { $boxKeys, $boxHeads, ...rest } = full.data.db;
+      full = { ...full, data: { ...full.data, db: rest } };
+      rememberBoxArchive(id, rest.boxes || {});
+    } else full = await hydrateSave(full);
+    rememberRowRevision(full, revisionOf(current));
+    return full;
   });
+}
+export async function savedPlayerRevision(id: string) {
+  return revisionOf(await db.saves.get(id));
 }
 export async function readSavedBox(saveId: string, bid: string) {
   const item = await db.boxes.get([saveId, bid]);
@@ -155,7 +168,8 @@ export async function readSavedBox(saveId: string, bid: string) {
   rememberBoxVersion(item.box, item.version ?? null);
   return item.box;
 }
-export async function putSave(row: SaveRow, batch?: BoxBatch) {
+export async function putSave(row: SaveRow, batch?: BoxBatch, playerBatch?: PlayerBatch) {
+  const prepared = preparePlayers(row, playerBatch);
   const boxes = row.data.db.boxes || {};
   const archive = batch ?? {
     keys: Object.keys(boxes),
@@ -167,14 +181,18 @@ export async function putSave(row: SaveRow, batch?: BoxBatch) {
     if (isBoxReference(box) && !validBoxReference(box, row.id, bid)) throw new Error('Game details belong to another saved league.');
   if (archive.records.some(item => isBoxReference(item.box))) throw new Error('A game summary cannot replace saved game details.');
   const summaries: Record<string, any> = {};
-  const stored = { ...row, data: { ...row.data, db: { ...row.data.db, boxes: summaries, $boxKeys: archive.keys, $boxHeads: 1 } } };
-  await db.transaction('rw', db.saves, db.boxes, db.saveIndex, async () => {
+  const stored = { ...row, data: { ...row.data, db: { ...prepared.db, boxes: summaries, $boxKeys: archive.keys, $boxHeads: 1 } } };
+  await db.transaction('rw', db.saves, db.boxes, db.saveIndex, db.players, async () => {
+    const previous = await db.saves.get(row.id);
+    // A worker may commit and then lose its acknowledgement. Retrying the same
+    // immutable job is harmless; a different/newer revision is never overwritten.
+    if (playerBatch && revisionOf(previous) === playerBatch.revision) return;
+    await writePlayers(db.players, row.id, previous, prepared, playerBatch);
     const expected =
       archive.references ||
       Object.entries(boxes)
         .filter(([, box]) => isBoxReference(box))
         .map(([bid, box]: [string, any]) => ({ bid, version: box.$detailRef.version ?? null }));
-    const previous = expected.length ? await db.saves.get(row.id) : undefined;
     const oldReferences = expected.filter(ref => !validBoxReference(previous?.data.db.boxes?.[ref.bid], row.id, ref.bid));
     for (const ref of expected) {
       const header = previous?.data.db.boxes?.[ref.bid];
@@ -228,10 +246,12 @@ export async function putSave(row: SaveRow, batch?: BoxBatch) {
     await db.saves.put(stored);
     await db.saveIndex.put(saveSummary(row));
   });
+  rememberRowRevision(row, prepared.manifest.revision);
   if (!batch) rememberBoxArchive(row.id, boxes);
 }
 export async function deleteSave(id: string) {
-  await db.transaction('rw', db.saves, db.boxes, db.saveIndex, async () => {
+  await db.transaction('rw', db.saves, db.boxes, db.saveIndex, db.players, async () => {
+    await db.players.where('saveId').equals(id).delete();
     await db.boxes.where('saveId').equals(id).delete();
     await db.saves.delete(id);
     await db.saveIndex.delete(id);
@@ -278,7 +298,7 @@ export async function exportSave(row: SaveRow | SaveSummary) {
   // Capture live unsaved games before yielding: a concurrent save may compact
   // the live map, but this export must retain its own complete snapshot.
   const snapshot = { ...row, data: structuredClone(row.data) };
-  row = await db.transaction('r', db.boxes, () => hydrateSave(snapshot));
+  row = await db.transaction('r', db.boxes, db.players, async () => hydrateSave(await hydratePlayers(snapshot, db.players)));
   const body = JSON.stringify({ kind: FILE_KIND, version: 1, name: row.name, createdAt: row.createdAt, data: row.data });
   const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
   const a = document.createElement('a');
@@ -296,6 +316,7 @@ export async function exportSave(row: SaveRow | SaveSummary) {
 export async function importSave(file: File): Promise<SaveRow> {
   const json = JSON.parse(await file.text());
   if (json?.kind !== FILE_KIND || !json.data?.db || !json.data?.state) throw new Error('That file is not a Basketball Manager save.');
+  if (json.data.db.$playersArchive) throw new Error('This file is missing player records. Export the complete league before importing it.');
   const importedBoxes = json.data.db.boxes || {};
   if (Object.values(importedBoxes).some(isBoxReference) || (json.data.db.$boxKeys || []).some((bid: string) => !importedBoxes[bid]))
     throw new Error('This file is missing game details. Export the complete league again before importing it.');

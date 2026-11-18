@@ -10,6 +10,8 @@ const SCRIPTS = [
   'unit',
   'responsiveness',
   'simulationYield',
+  'playerPersistence',
+  'playerSaveWorker',
   'profileStatsWorker',
   'saveSummaries',
   'lazyBoxArchive',

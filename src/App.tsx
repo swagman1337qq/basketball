@@ -2,6 +2,8 @@ import { disposeProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
 import { SimulationGuard } from './ui/SimulationGuard';
+import { bindGameSave, isStaleSave } from './db/playerArchive';
+import { protectUnsavedLeave } from './ui/unsavedLeave';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { getSave, newSaveId, putSave, summarize, exportSave, type SaveRow } from './db/saves';
 import { adoptLeagueCards, loadCards } from './db/cards';
@@ -43,6 +45,7 @@ export function App() {
       row.summary = summarize(row.data);
       try {
         await putSave(row);
+        bindGameSave(game, row);
       } catch {
         setError('Could not write to browser storage; this league will not be saved.');
       }
@@ -55,6 +58,7 @@ export function App() {
     const row = await getSave(id, { lazyBoxes: true });
     if (!row) return;
     const game = Game.load(row.data);
+    bindGameSave(game, row);
     // A league from before cards were shared: its cards join the shared library, then leave the save.
     if (game.state.cards) {
       try {
@@ -92,6 +96,7 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   const save = useCallback(
     async (force = false) => {
       clearTimeout(timer.current);
+      if (force) writer.expedite();
       if (force && game.busy) game.stopSim();
       while (game.busy) await game.whenSimulationIdle();
       // Coalesce simultaneous autosave, exit and visibility requests. An explicit exit
@@ -101,16 +106,25 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
       const viewVersion = game.version;
       const job = (async () => {
         try {
-          lastSaved.current = await writer.save(game, open);
+          lastSaved.current = await writer.save(game, open, { urgent: force });
           lastSavedView.current = viewVersion;
           setStatus(lastSaved.current === game.saveVersion ? 'Saved' : 'Saving…');
-        } catch {
-          setStatus('Save failed: browser storage unavailable');
+        } catch (error) {
+          setStatus(
+            isStaleSave(error)
+              ? 'Save stopped: this league changed in another session. Reload before continuing.'
+              : 'Save failed: browser storage unavailable',
+          );
+          if (force) throw error;
         }
       })();
       saving.current = job;
-      await job;
-      if (saving.current === job) saving.current = null;
+      try {
+        await job;
+      } finally {
+        if (saving.current === job) saving.current = null;
+      }
+      if (force && (lastSaved.current !== game.saveVersion || lastSavedView.current !== game.version)) await save(true);
     },
     [game, open, writer],
   );
@@ -127,16 +141,27 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   }, [version, save, game]);
   useEffect(() => {
     const flush = () => {
-      if (document.visibilityState === 'hidden') void save(true);
+      if (document.visibilityState === 'hidden') void save(true).catch(() => {});
     };
-    const hide = () => void save(true);
+    const hide = () => void save(true).catch(() => {});
     window.addEventListener('pagehide', hide);
     document.addEventListener('visibilitychange', flush);
+    const removeLeaveGuard = protectUnsavedLeave(
+      window,
+      game,
+      () => lastSaved.current === game.saveVersion,
+      () => {
+        void save(true).catch(() => {});
+      },
+    );
     return () => {
       window.removeEventListener('pagehide', hide);
       document.removeEventListener('visibilitychange', flush);
+      removeLeaveGuard();
       clearTimeout(timer.current);
-      void save(true).finally(() => writer.dispose());
+      void save(true)
+        .catch(() => {})
+        .finally(() => writer.dispose());
     };
   }, [save, writer]);
 
@@ -186,12 +211,20 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
         saveName: open.name,
         saveStatus: 'Saved',
         onExit: async () => {
-          await save(true);
-          onExit();
+          try {
+            await save(true);
+            onExit();
+          } catch {
+            /* Keep the league open; save status explains the failure. */
+          }
         },
         onSwitch: async (id: string) => {
-          await save(true);
-          onSwitch(id);
+          try {
+            await save(true);
+            onSwitch(id);
+          } catch {
+            /* Keep the league open; save status explains the failure. */
+          }
         },
         onExport: exportNow,
       }),
