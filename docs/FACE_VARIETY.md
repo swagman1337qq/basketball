@@ -1,6 +1,16 @@
 # Face variety and facial hair
 
-Implemented 2026-11-18. This updates generation and editing; it does not replace the SVG renderer with the illustrated concept sheets.
+Implemented 2026-11-18. Generation, editing and the illustrated SVG renderer share the same editable face description.
+
+## Illustrated portraits
+
+`faceSvg` now paints the approved illustrated direction with defined local-color contours, broad cel tones, shaped eyes/brows/noses/lips, grouped hair locks/curls and connected facial-hair shapes. The drawing style does not force a square jaw or identical eyes on everyone: head width/height, roundness, cheeks, jaw, chin and individual features still control the geometry. It is an editable procedural interpretation of the concept sheets, rather than a fixed picture assigned to a player.
+
+The portrait uses a consistent closer framing with headroom for tall hair. Team names and jersey numbers remain complete in their own stable branding layer. Player, staff and manager portraits use the shared renderer, including aging, women, mixed appearances, dyes, glasses, face shields, piercings and undershirts. Uploaded custom headshots remain custom images.
+
+The renderer is deterministic and never changes a face description, saved edits, the gameplay RNG or simulation values. Existing face seeds and all generation distributions are unchanged by this art update. It uses native SVG shapes without external portrait downloads, filters, gradients, clip paths or shared ids. A representative 18-face comparison uses about 25% fewer drawing elements and about 25% fewer SVG bytes than the earlier renderer; this is a structural comparison, not a browser frame-time guarantee.
+
+`scripts/faceRendering.mts` checks 936 hairstyle/texture/expression combinations, all offered feature controls, every beard density control, accessories, repeated instances, deterministic immutable painting and SVG size budgets. The face-variety/save tests below remain separate. This drawing-only change does not alter possession, rating, contract or development logic.
 
 ## Appearance sources
 
