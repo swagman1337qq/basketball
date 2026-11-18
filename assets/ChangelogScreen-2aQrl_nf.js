@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-64BvnVkM.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DnjNW_1J.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-18
+
+### Added
+- **Arrows on potential.** When a player's potential goes up or down, the roster shows ▲▼ next to it as it does for overall, in God Mode too (edits included). The arrows follow the potential you see: the true one in God Mode, your staff's or scouts' read otherwise. In a league already under way they compare the league's read until the next season snapshot (opening night or the end of the season).
 
 ### Changed
 - **Blake Griffin's player card is now his rookie year (2010–11).** He rates 60 (up from 55), tested against his Rookie of the Year season: about 23 points, 12 rebounds and 4 assists. His college stats still come from his Oklahoma season. A saved copy or a player already given the card updates too.
