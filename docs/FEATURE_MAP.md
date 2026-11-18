@@ -381,7 +381,7 @@ All in `src/engine/`.
 | `overseas.ts` | Overseas market, league translation, scouting intel |
 | `ccp.ts` | The CCP development league |
 | `gleague.ts` | G League affiliates |
-| `eligibility.ts` | National-team eligibility |
+| `eligibility.ts` | National-team eligibility (`refreshElig`; a heritage edit in `GodPlayerEditor` `mut` keeps the country he represents, adding it as "set in God Mode" when the new heritage drops it, 2026-11-18) |
 | `family.ts` | Sons and brothers of former players; God Mode's family-link editing |
 | `faces.ts` | Face generator (`makeFace`), layered SVG renderer (`faceSvg`) and the option lists the face editor offers |
 | `spectator.ts` | Spectator Mode: hand every team to the AI (`enterSpectator`), take one back (`manageTeam`), and the driver that runs the season toward a goal (`spectate`) |

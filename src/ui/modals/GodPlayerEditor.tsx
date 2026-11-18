@@ -159,12 +159,22 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   };
   // Changing where he was born or raised, or his heritage, redoes his national-team eligibility.
   const mut = (f: (p: any) => void) => {
-    const k0 = p.born + '|' + p.raised + '|' + p.her;
+    const k0 = p.born + '|' + p.raised + '|' + p.her,
+      her0 = p.her || p.born || p.rep,
+      rep0 = p.rep;
     f(p);
     gm.autoPos(p);
     liftCeil(p);
     refreshPot(p);
-    if (k0 !== p.born + '|' + p.raised + '|' + p.her) refreshElig(p, C);
+    if (k0 !== p.born + '|' + p.raised + '|' + p.her) {
+      refreshElig(p, C);
+      // A new heritage never changes the country he represents: a Mongolian American born abroad to American
+      // parents still plays for the U.S. (his eligibility for it stays, as set in God Mode).
+      if ((p.her || p.born || p.rep) !== her0 && rep0 && p.rep !== rep0) {
+        p.rep = rep0;
+        if (!p.elig.some((e: any) => e.c === rep0)) p.elig = [{ c: rep0, why: 'set in God Mode', manual: true }, ...p.elig];
+      }
+    }
     gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
     gm.enforceRetirement();
   };

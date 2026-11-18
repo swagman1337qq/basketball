@@ -16,6 +16,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Jarred Vanderbilt's card retuned (2022–23).** He rates 56, down from 59, and no longer scores 10 points on .590 shooting; tested at about 8 points, 7.5 rebounds and 2.4 assists, like his real season.
 - **Jarrett Culver's card retuned (2019–20 rookie year).** More assists, better finishing inside and fewer free-throw trips, closer to his real line (9.2 points, .404 shooting, 1.7 assists). Still 52 overall.
 
+### Fixed
+- **Changing a player's heritage keeps the country he represents.** In God Mode you can make a Mongolian American (or any heritage) without him switching national teams; he also becomes eligible for his heritage country.
+
+
 ## 2026-11-17
 
 ### Fixed
