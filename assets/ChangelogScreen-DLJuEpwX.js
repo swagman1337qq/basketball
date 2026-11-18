@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DnjNW_1J.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-CbIgi9AD.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -15,6 +15,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-17
 
 ### Fixed
+- **Routine autosaves write only changed players.** Complete player contents are checked in small batches, including nested stats, contracts, injuries and history. Unchanged players stay in storage, and a changing league restarts snapshot preparation. Players, league state, game history and the league-list preview save together. Failed saves keep changes pending, retries cannot overwrite newer sessions, and exports remain complete. Leaving or reloading prioritizes saving; the browser warns if real changes are still unsaved.
 - **Busy simulation days give the page more time to respond.** Regular-season simulations pause between groups of possessions and daily tasks, including development-league games. Game order, injuries and transactions keep their existing timing. Stop (or Escape) finishes the current day; editing waits until simulation stops. Saving and exporting wait for a completed day so they cannot capture unfinished results.
 - **Load game history when you open it.** Leagues open with compact scores and player lines; detailed play-by-play, shot charts and lineup timelines load only for the selected game. A small cache keeps recent games handy. New games keep their complete details until saving succeeds, exports include every archived and unsaved game, and delayed loads cannot replace a different game or league.
 - **Advanced stats calculate in the background.** Opening a player’s career stats keeps the traditional tables usable while advanced values are calculated. Switching players, stat tabs or leagues cancels obsolete work; games and edits invalidate pending results before they can be cached or displayed. Repeated views reuse valid results, and a failed calculation can be retried.
