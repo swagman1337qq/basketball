@@ -1,7 +1,10 @@
 // Every earlier build of the ready-made player cards (playerCard.ts), oldest first: their ratings and potential
 // as each version shipped. A saved library copy that still holds one exactly was never edited and takes today's
 // build (upgradePresetCard); a player who was given one takes it too, keeping his growth since (retuneCarriers).
-export const OLD_CARD_BUILDS: Record<string, { r: Record<string, number>; pot: number; preset?: number; ten?: Record<string, number>; notes?: string; sources?: string[] }[]> = {
+export const OLD_CARD_BUILDS: Record<
+  string,
+  { r: Record<string, number>; pot: number; preset?: number; age?: number; intg?: Record<string, number>; ten?: Record<string, number>; notes?: string; sources?: string[] }[]
+> = {
   "Luka Dončić": [
     { r: {hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 62, dnk: 34, lay: 62, ft: 44, fg: 45, tp: 56, oiq: 82, diq: 44, drb: 90, pss: 62, reb: 61, box: 56}, pot: 83 },
     { r: {hgt: 73, stre: 78, spd: 52, acc: 62, jmp: 42, endu: 58, ins: 48, dnk: 30, lay: 42, ft: 42, fg: 95, tp: 51, oiq: 70, diq: 44, drb: 85, pss: 58, reb: 61, box: 56}, pot: 83 },
@@ -169,3 +172,9 @@ export const OLD_CARD_TENS: Record<string, Record<string, number>[]> = {
 (OLD_CARD_BUILDS["Andrei Kirilenko"] ||= []).push({"preset":10,"r":{"hgt":60,"stre":54,"spd":84,"acc":70,"jmp":88,"endu":86,"ins":40,"dnk":44,"lay":31,"ft":50,"fg":15,"tp":29,"oiq":35,"diq":86,"blk":95,"stl":50,"drb":30,"pss":43,"reb":45,"box":52},"pot":75,"ten":{"usage":53.66,"ftr":89.03,"ra":58.9635,"paint":7.6471,"mid":18.1117,"c3":3.8194,"atb":11.4583,"cns":65.6,"pullup":19,"step":10.9,"fade":4.5,"turnovers":45.07,"fouls":81.12,"crash":83.42}});
 (OLD_CARD_BUILDS["Jan Veselý"] ||= []).push({"preset":13,"r":{"hgt":66,"stre":50,"spd":74,"acc":67,"jmp":84,"endu":70,"ins":44,"dnk":52,"lay":37,"ft":15,"fg":34,"tp":14,"oiq":29,"diq":50,"blk":67,"stl":82,"drb":15,"pss":31,"reb":49,"box":53},"pot":52,"ten":{"usage":21.19,"ftr":54.16,"ra":66.5,"paint":19.7,"mid":13.3,"c3":0,"atb":0.5,"cns":26.1,"pullup":23.6,"step":11.2,"fade":39.1,"turnovers":56.08,"fouls":62.95,"crash":62.16}});
 (OLD_CARD_BUILDS["Bismack Biyombo"] ||= []).push({"preset":14,"r":{"hgt":60,"stre":72,"spd":62,"acc":65,"jmp":95,"endu":70,"ins":37,"dnk":43,"lay":36,"ft":7,"fg":5,"tp":1,"oiq":30,"diq":70,"blk":79,"stl":1,"drb":15,"pss":1,"reb":56,"box":37},"pot":60,"ten":{"usage":28.66,"ftr":74.17,"ra":50,"paint":35.6,"mid":14.4,"c3":0,"atb":0,"cns":36.4,"pullup":22.1,"step":8.5,"fade":33,"turnovers":83.89,"fouls":57.83,"crash":38.31,"dom":29.66}});
+
+// 2026-11-18: Jarrett Culver retuned (passing, finishing, fewer free throws); Jarred Vanderbilt retuned for today's engine
+// (59 to 56 overall); Blake Griffin's draft-night card became his rookie year (2010–11), his college game kept in "am".
+(OLD_CARD_BUILDS["Jarrett Culver"] ||= []).push({"preset":16,"age":20,"intg":{"feel":50,"poise":45},"r":{"hgt":46,"stre":46,"spd":70,"acc":80,"jmp":68,"endu":72,"ins":27,"dnk":33,"lay":21,"ft":5,"fg":36,"tp":30,"oiq":73,"diq":60,"blk":54,"stl":43,"drb":65,"pss":42,"reb":48,"box":50},"pot":54,"ten":{"usage":65.3,"ftr":52.18,"ra":45.5947,"paint":6.6438,"mid":9.1189,"c3":11.3225,"atb":27.32,"cns":52.6,"pullup":32.2,"step":12.8,"fade":2.4,"turnovers":53.33,"fouls":63.18,"crash":75.6}});
+(OLD_CARD_BUILDS["Jarred Vanderbilt"] ||= []).push({"preset":17,"age":23,"intg":{"feel":55,"poise":55},"r":{"hgt":56,"stre":60,"spd":72,"acc":78,"jmp":80,"endu":78,"ins":66,"dnk":81,"lay":69,"ft":36,"fg":42,"tp":30,"oiq":55,"diq":72,"blk":15,"stl":72,"drb":42,"pss":61,"reb":79,"box":67},"pot":60,"ten":{"usage":15.33,"ftr":59.61,"ra":47.4478,"paint":27.6779,"mid":3.954,"c3":18.8283,"atb":2.092,"cns":85,"pullup":10,"step":0,"fade":5,"turnovers":57.19,"fouls":63.87,"crash":38.82}});
+(OLD_CARD_BUILDS["Blake Griffin"] ||= []).push({"preset":24,"age":20,"intg":{"feel":60,"poise":60},"r":{"hgt":62,"stre":88,"spd":70,"acc":82,"jmp":87,"endu":70,"ins":74,"dnk":92,"lay":63,"ft":23,"fg":70,"tp":31,"oiq":67,"diq":50,"blk":38,"stl":37,"drb":35,"pss":41,"reb":78,"box":69},"pot":67,"ten":{"usage":42.63,"ftr":49.22,"ra":63.578,"paint":22.5599,"mid":12.3054,"c3":0.3892,"atb":1.1675,"cns":30,"pullup":30,"step":5,"fade":35,"turnovers":49.56,"fouls":45.01,"crash":35.28}});

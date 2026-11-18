@@ -162,23 +162,7 @@ export function applyCard(p: any, card: any, C: Record<string, any>): string {
   // atb), each optional }. The card already says how he translated, so his first camp brings no surprise.
   const am = card.am && typeof card.am === 'object' ? card.am : null;
   if (am) {
-    const pick = (o: any, keys: readonly string[], base: any) =>
-      Object.fromEntries(keys.map(k => [k, num(o?.[k]) ? o[k] : base?.[k]]).filter(([, v]) => num(v)));
-    p.am = {
-      r: {
-        ...p.r,
-        ...Object.fromEntries(
-          Object.entries(am.r || {})
-            .filter(([, v]) => num(v))
-            .map(([k, v]) => [k, cl(v as number, 1, 99)]),
-        ),
-      },
-      rx: null,
-      grp: p.grp,
-      feel: num(am.feel) ? cl(am.feel, 1, 99) : p.intg?.feel,
-      habits: pick(am.habits, ['usage', 'ftr', 'turnovers', 'fouls', 'crash', 'dunk'], p.ten),
-      zones: pick(am.zones, ['ra', 'paint', 'mid', 'c3', 'atb'], p.ten),
-    };
+    p.am = cardAm(p, am);
     if (p.dx) p.dx = { o: 0, c: 0, sh: {}, tier: 'same' };
   }
   const preset = PRESET_CARDS.findIndex(x => x.card.name === card.name && JSON.stringify(x.card.r) === JSON.stringify(card.r));
@@ -250,6 +234,29 @@ export const BLANK_CARD = {
   },
 };
 
+// A card's college game ("am", see applyCard) as the player's p.am, on top of his card ratings and style.
+function cardAm(p: any, am: any) {
+  const num = (v: any) => typeof v === 'number' && isFinite(v),
+    cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, Math.round(v)));
+  const pick = (o: any, keys: readonly string[], base: any) =>
+    Object.fromEntries(keys.map(k => [k, num(o?.[k]) ? o[k] : base?.[k]]).filter(([, v]) => num(v)));
+  return {
+    r: {
+      ...p.r,
+      ...Object.fromEntries(
+        Object.entries(am.r || {})
+          .filter(([, v]) => num(v))
+          .map(([k, v]) => [k, cl(v as number, 1, 99)]),
+      ),
+    },
+    rx: null,
+    grp: p.grp,
+    feel: num(am.feel) ? cl(am.feel, 1, 99) : p.intg?.feel,
+    habits: pick(am.habits, ['usage', 'ftr', 'turnovers', 'fouls', 'crash', 'dunk'], p.ten),
+    zones: pick(am.zones, ['ra', 'paint', 'mid', 'c3', 'atb'], p.ten),
+  };
+}
+
 // The ready-made cards' playing style before 2026-10-08, as the old multipliers: a saved copy that still has
 // exactly these was never edited and takes the new tendencies (upgradePresetCard). The multipliers were
 // tuned against the old engine and, read by today's tendency system, gave Klay Thompson 39% usage.
@@ -297,7 +304,7 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
   // and leave explicit style/potential/feel/work edits alone.
   if (
     previous?.ten &&
-    (c.pot !== previous.pot || !sameStyle(c.ten, previous.ten) || !same(c.intg, P0.intg) || c.pers?.work !== P0.pers.work)
+    (c.pot !== previous.pot || !sameStyle(c.ten, previous.ten) || !same(c.intg, previous.intg ?? P0.intg) || c.pers?.work !== P0.pers.work)
   )
     return false;
   if (c.name === P0.name && same(c.r, P0.r) && previous?.ten && sameStyle(c.ten, previous.ten) && P0.ten && !sameStyle(c.ten, P0.ten)) {
@@ -309,6 +316,10 @@ export function upgradePresetCard(row: { id: string; card: any }): boolean {
     c.pot = P0.pot;
     c.intg = { ...P0.intg };
     c.pers = { ...(c.pers || {}), work: P0.pers.work };
+    // A card that became another season of his (2026-11-18: Blake Griffin's draft night became his rookie year) takes
+    // its new age and college game too.
+    if (previous.age != null && c.age === previous.age) c.age = P0.age;
+    if (P0.am) c.am = JSON.parse(JSON.stringify(P0.am));
     if (P0.ten) {
       c.ten = { ...P0.ten };
       delete c.tend;
@@ -400,6 +411,10 @@ export function retuneCarriers(P: Record<number, any>): number {
         for (const keys of [ZONE_TEN, CRE_TEN]) Object.assign(p.ten, round100(Object.fromEntries(keys.map(k => [k, c.ten[k] || 0]))));
       }
     }
+    if (c.am && !p.am) p.am = cardAm({ ...p, r: { ...o.r } }, c.am); // his college game stays the one he was given
+    if (o.intg && c.intg && p.intg)
+      for (const k of Object.keys(c.intg))
+        if (o.intg[k] != null && p.intg[k] != null) p.intg[k] = Math.max(1, Math.min(99, Math.round(p.intg[k] + c.intg[k] - o.intg[k])));
     const pot0 = p.tpot;
     syncOvr(p);
     if (c.ten) anchorCardStyle(p, c.ten, c.age, c.r);
@@ -1949,9 +1964,10 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // willing wing defender whose shot never came: one of the worst free-throw shooters in the league. Tested over 800
       // games at about 23.5 minutes: 9.3 pts, 3.2 reb, 1.7 ast, 0.9 stl, 0.6 blk, 1.4 tov, .417 FG on 8.8, .309 on 3.6
       // threes, .458 FT on 1.8.
-      // Retuned 2026-10-18 for today's engine, playing the AI's own tendencies (which replace a card's every month) at his
-      // real minutes and role on a mid-table team: 8.4 pts, 2.7 reb, 1.7 ast, 0.6 stl, 0.5 blk, 0.6 tov, .462 FG on 7.2, .353 on 3.4 threes, .418 FT on 1.3 in 24.1 min.
-      // 53 overall; potential 54.
+      // Retuned 2026-11-18 (more passing, better finishing inside, fewer free throws) and tested over 1,000 games at his
+      // real minutes on a mid-table team: 9.3 pts, 3.6 reb, 1.8 ast, 0.8 stl, 0.6 blk, 1.1 tov, .405 FG on 9.0, .307 on 3.4
+      // threes, .471 FT on 2.0 in 24.5 min.
+      // 52 overall; potential 54.
       // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
       r: {
         hgt: 46,
@@ -1960,19 +1976,19 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         acc: 80,
         jmp: 68,
         endu: 72,
-        ins: 27,
-        dnk: 33,
-        lay: 21,
-        ft: 5,
+        ins: 34,
+        dnk: 40,
+        lay: 30,
+        ft: 6,
         fg: 36,
-        tp: 30,
+        tp: 27,
         oiq: 73,
         diq: 60,
-        blk: 54,
-        stl: 43,
+        blk: 62,
+        stl: 48,
         drb: 65,
-        pss: 42,
-        reb: 48,
+        pss: 50,
+        reb: 52,
         box: 50,
       },
       pot: 54,
@@ -2001,7 +2017,7 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // Playing style tuned with the ratings to his real rookie numbers (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
       ten: {
         usage: 65.3,
-        ftr: 52.18,
+        ftr: 44,
         ra: 45.5947,
         paint: 6.6438,
         mid: 9.1189,
@@ -2041,34 +2057,34 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       // 7.9 pts, 7.5 reb, 2.4 ast, 1.1 stl, 0.3 blk, 1.2 tov, .548 FG on 5.8 shots, .322 on 1.2 threes, .691 FT on 1.8.
       // A long, relentless rebounder and switchable defender who scores on putbacks, cuts and dunks.
       // Shots: 48% from 0–3 ft (.720), 28% from 3–10 ft (.449), 4% mid-range, 20% threes (88% of them from the corner).
-      // Tested over 430 games at his real minutes and role on a mid-table team, playing the AI's own tendencies (which
-      // replace a card's every month): 7.1 pts, 7.1 reb, 2.3 ast, 0.9 stl, 0.4 blk, 0.7 tov, .552 FG on 5.2, .306 on 1.3 threes,
-      // .728 FT on 1.3 in 23.7 min (fewer turnovers than his real 1.2, as for every low-usage big).
-      // 59 overall; potential 60.
+      // Retuned 2026-11-18: today's engine had him at 10.4 points on .593 shooting, and he rated 59, as high as a team's
+      // second-best player. Tested over 800 games at his real minutes and role on a mid-table team: 8.1 pts, 7.4 reb,
+      // 2.4 ast, 1.0 stl, 0.2 blk, 1.1 tov, .536 FG on 6.1, .319 on 1.2 threes, .689 FT on 1.7 in 23.5 min.
+      // 56 overall (a good starter on a middling team); potential 57.
       // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
       r: {
         hgt: 56,
         stre: 60,
-        spd: 72,
-        acc: 78,
-        jmp: 80,
-        endu: 78,
-        ins: 66,
-        dnk: 81,
-        lay: 69,
+        spd: 68,
+        acc: 68,
+        jmp: 76,
+        endu: 70,
+        ins: 52,
+        dnk: 70,
+        lay: 54,
         ft: 36,
         fg: 42,
         tp: 30,
-        oiq: 55,
-        diq: 72,
-        blk: 15,
-        stl: 72,
+        oiq: 46,
+        diq: 56,
+        blk: 24,
+        stl: 76,
         drb: 42,
-        pss: 61,
-        reb: 79,
+        pss: 74,
+        reb: 84,
         box: 67,
       },
-      pot: 60,
+      pot: 57,
       intg: { feel: 55, poise: 55 },
       pers: {
         mot: 'Winning',
@@ -2093,8 +2109,8 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       },
       // Playing style from his real 2022–23 shot chart (zones and how he created his jumpers add up to 100%; usage and free throws as scores).
       ten: {
-        usage: 15.33,
-        ftr: 59.61,
+        usage: 8.5,
+        ftr: 58,
         ra: 47.4478,
         paint: 27.6779,
         mid: 3.954,
@@ -2664,14 +2680,14 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
     },
   },
   {
-    label: 'Blake Griffin – Draft night (2009, Oklahoma)',
+    label: 'Blake Griffin – Rookie year (2010–11)',
     card: {
       card: 1,
       name: 'Blake Griffin',
       first: 'Blake',
       last: 'Griffin',
       pos: 'PF',
-      age: 20,
+      age: 21,
       dob: '1989-03-16',
       hgt: '6′10″',
       wt: 251,
@@ -2682,39 +2698,44 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
       city: 'Oklahoma City',
       her: 'US',
       race: 'black',
-      // Real (No. 1 pick in 2009 after his sophomore season, the national Player of the Year): 35 games, 22.7 pts, 14.4 reb,
-      // 2.3 ast, .654 FG, .594 FT on 9.3 a game (school records for free throws tried). An explosive leaper and a powerful
-      // finisher and rebounder; his jumper and free throws came later. Later a five-time All-Star (third in the MVP vote, 2014).
-      // Fitted 2026-10-27 to his per-40 numbers with the game's college-stats model (Oklahoma as a power conference, ratings
-      // held near a scouting prior): 27.6 pts, 15.2 reb, 3.1 ast, 1.6 stl, 1.8 blk, .686 FG, .621 FT per 40 (his real free-throw
-      // rate, 11.1 a 40, is beyond the model's: 8.4; his real 17.2 rebounds a 40 too).
-      // 54 overall on draft night; potential 67, his All-Star peak (2013–14), near the top of today's scale.
-      // Historical-season calibration (2026-10-29); current validation and remaining gaps: docs/PLAYER_CARD_AUDIT_2026-10-29.md.
-      // Contact/style calibration: docs/PLAYER_CARD_REALISM_FIXES_2026-10-30.md.
+      // Real (No. 1 pick in 2009 out of Oklahoma; a broken kneecap cost him all of 2009–10, so this was his first season):
+      // 82 games (all starts), 38.0 min, 22.5 pts, 12.1 reb (3.3 offensive), 3.8 ast, 0.8 stl, 0.5 blk, 2.7 tov, .506 FG on
+      // 16.8 shots, .292 on 0.3 threes, .642 FT on 8.5. Rookie of the Year by a unanimous vote and an All-Star (PER 21.9). An
+      // explosive leaper and a powerful finisher and rebounder; his jumper and free throws came later. Shots: 41% at the rim
+      // (.689), 32% from 3–10 ft (.432), 26% from 10 ft to the arc (.320), 2% threes. Later a five-time All-Star (third in
+      // the MVP vote, 2014).
+      // Fitted 2026-11-18 over 1,200 games on a mid-table team, his own style locked: 22.1 pts, 11.8 reb, 3.7 ast, 1.0 stl,
+      // 0.7 blk, 2.3 tov, .530 FG on 15.6 shots (.738 at the rim), .638 FT on 8.6 in 36.0 min (per 38: 23.3 pts, 12.4 reb).
+      // 60 overall as a rookie, a team's second-best player; potential 67, his All-Star peak (2013–14), near the top of
+      // today's scale.
+      // His college game (Oklahoma, sophomore year, the national Player of the Year) is kept in "am" below: 35 games,
+      // 22.7 pts, 14.4 reb, 2.3 ast, .654 FG, .594 FT on 9.3 a game. It is the draft-night build of 2026-10-27; with the
+      // game's college-stats model at Oklahoma (a power conference), per 40 over 300 players: 27.5 pts, 16.8 reb, 2.7 ast,
+      // 1.3 stl, 1.4 blk, .663 FG, .592 FT on 10.7 (real per 40: 27.1, 17.2, 2.7, .654, .594 on 11.1).
       r: {
         hgt: 62,
         stre: 88,
-        spd: 70,
-        acc: 82,
+        spd: 74,
+        acc: 84,
         jmp: 87,
-        endu: 70,
-        ins: 74,
-        dnk: 92,
-        lay: 63,
-        ft: 23,
-        fg: 70,
-        tp: 31,
-        oiq: 67,
-        diq: 50,
-        blk: 38,
-        stl: 37,
-        drb: 35,
-        pss: 41,
-        reb: 78,
-        box: 69,
+        endu: 90,
+        ins: 50,
+        dnk: 72,
+        lay: 32,
+        ft: 30,
+        fg: 22,
+        tp: 34,
+        oiq: 78,
+        diq: 67,
+        blk: 36,
+        stl: 38,
+        drb: 50,
+        pss: 60,
+        reb: 82,
+        box: 72,
       },
       pot: 67,
-      intg: { feel: 60, poise: 60 },
+      intg: { feel: 68, poise: 60 },
       pers: {
         mot: 'Winning',
         alpha: true,
@@ -2736,22 +2757,50 @@ export const PRESET_CARDS: { label: string; card: any }[] = [
         loyalty: 60,
         ambition: 85,
       },
-      // Playing style from his Oklahoma season: dunks and finishes at the rim, post-ups, a huge free-throw rate, almost no threes.
+      // Playing style as a rookie (his real 2010–11 shot chart): at the rim and in the paint, a quarter of his shots jumpers, almost no threes.
       ten: {
-        usage: 42.63,
-        ftr: 49.22,
-        ra: 63.578,
-        paint: 22.5599,
-        mid: 12.3054,
-        c3: 0.3892,
-        atb: 1.1675,
+        usage: 53,
+        ftr: 80,
+        ra: 40.8,
+        paint: 31.8,
+        mid: 25.6,
+        c3: 0.3,
+        atb: 1.5,
         cns: 30,
-        pullup: 30,
+        pullup: 35,
         step: 5,
-        fade: 35,
-        turnovers: 49.56,
-        fouls: 45.01,
-        crash: 35.28,
+        fade: 30,
+        turnovers: 50,
+        fouls: 50,
+        crash: 50,
+      },
+      // His college game (Oklahoma, sophomore year), what his college stats come from: dunks and finishes at the rim,
+      // post-ups, a huge free-throw rate, almost no jumpers.
+      am: {
+        r: {
+          hgt: 62,
+          stre: 88,
+          spd: 70,
+          acc: 82,
+          jmp: 87,
+          endu: 70,
+          ins: 74,
+          dnk: 92,
+          lay: 63,
+          ft: 23,
+          fg: 70,
+          tp: 31,
+          oiq: 67,
+          diq: 50,
+          blk: 38,
+          stl: 37,
+          drb: 35,
+          pss: 41,
+          reb: 78,
+          box: 69,
+        },
+        habits: { usage: 42.63, ftr: 49.22, turnovers: 49.56, fouls: 45.01, crash: 35.28 },
+        zones: { ra: 63.578, paint: 22.5599, mid: 12.3054, c3: 0.3892, atb: 1.1675 },
       },
     },
   },

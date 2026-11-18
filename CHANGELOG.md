@@ -2,6 +2,13 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-18
+
+### Changed
+- **Blake Griffin's player card is now his rookie year (2010–11).** He rates 60 (up from 55), tested against his Rookie of the Year season: about 23 points, 12 rebounds and 4 assists. His college stats still come from his Oklahoma season. A saved copy or a player already given the card updates too.
+- **Jarred Vanderbilt's card retuned (2022–23).** He rates 56, down from 59, and no longer scores 10 points on .590 shooting; tested at about 8 points, 7.5 rebounds and 2.4 assists, like his real season.
+- **Jarrett Culver's card retuned (2019–20 rookie year).** More assists, better finishing inside and fewer free-throw trips, closer to his real line (9.2 points, .404 shooting, 1.7 assists). Still 52 overall.
+
 ## 2026-11-17
 
 ### Fixed
