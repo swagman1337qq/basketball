@@ -731,7 +731,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
               <b style={{ color: pl.progOvr > 0 ? 'var(--gm-good)' : pl.progOvr < 0 ? 'var(--gm-bad)' : undefined }}>
                 {fmtChange(pl.progOvr)}
               </b>
-              , potential{' '}
+              , {s.god ? 'true potential' : 'potential'}{' '}
               <b style={{ color: pl.progPot > 0 ? 'var(--gm-good)' : pl.progPot < 0 ? 'var(--gm-bad)' : undefined }}>
                 {fmtChange(pl.progPot, 0)}
               </b>

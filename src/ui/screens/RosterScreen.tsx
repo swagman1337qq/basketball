@@ -9,7 +9,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { VM } from '../vm';
 import { LockerRoomChip } from '../LockerRoom';
 import { howAcquired, yearsWithTeam } from '../../engine/txlog';
-import { baseline, deltas, fmtChange } from '../../engine/progress';
+import { baseline, deltas, fmtChange, potChange } from '../../engine/progress';
 import { CapBar } from '../CapBar';
 import { MoodChip } from '../MoodChip';
 import { teamRating } from '../../engine/ratings';
@@ -587,7 +587,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
               </td>
               <td style={{ ...tdr, color: vm.ctx.tone(vm.ctx.potOf(p)) }}>
                 {vm.ctx.potOf(p)}
-                {d && !s.god && mark(d.pot, 0, 'Potential')}
+                {d && b && mark(potChange(p, b.snap, vm.ctx.potOf(p), !!s.god), 0, s.god ? 'True potential' : 'Potential')}
               </td>
             </>
           );

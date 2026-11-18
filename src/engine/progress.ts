@@ -3,21 +3,32 @@
 // changed over the past year, during the season, and over the summer.
 // Stored on the player as p.rh[season] = { o: opening night, e: end of season }.
 import type { Game } from './Game';
+import { potView, scoutSd } from './potential';
 
 export interface Snap {
   ovr: number;
   pot: number;
   r: Record<string, number>;
   ovrI?: number;
+  tp?: number; // true potential (what God Mode shows), 2026-11-18
+  sv?: number; // the potential you were shown then: your staff's read of your players, your scouts' of the rest
 }
 // Exact values: the displayed rating plus its hidden decimal progress (so changes read like ▲6.9).
 export const exactOvr = (p: any) => +(p.ovr + (p.ox || 0)).toFixed(2);
 export const exactR = (p: any, k: string) => +(p.r[k] + ((p.rx || {})[k] || 0)).toFixed(2);
-const snap = (p: any): Snap => ({
+type View = { own: Set<number>; tid: number; sd: number };
+const snap = (p: any, v?: View): Snap => ({
   ovr: exactOvr(p),
   ovrI: p.ovr,
   pot: p.pot,
+  tp: p.tpot ?? p.pot,
+  ...(v ? { sv: potView(p, { own: v.own.has(p.id), tid: v.tid, sd: v.sd }) } : {}),
   r: Object.fromEntries(Object.keys(p.r).map(k => [k, exactR(p, k)])),
+});
+const viewOf = (s: any): View => ({
+  own: new Set<number>((s.managed || []).flatMap((t: number) => s.rosters[t] || [])),
+  tid: s.me,
+  sd: scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting),
 });
 const d1 = (x: number) => Math.round(x * 10) / 10;
 // ▲6.9 / ▼1.1 / – (one decimal).
@@ -27,22 +38,24 @@ const everyone = (s: any): number[] => [...(Object.values(s.rosters).flat() as n
 
 // Opening night of `season` (also used when a league starts, or an older save first loads).
 export function snapOpening(g: Game, s: any, season = g.Y) {
-  const P = g.db.P;
+  const P = g.db.P,
+    v = viewOf(s);
   everyone(s).forEach(id => {
     const p = P[id];
     if (!p) return;
     const h = (p.rh = p.rh || {});
-    if (!h[season]?.o) h[season] = { ...(h[season] || {}), o: snap(p) };
+    if (!h[season]?.o) h[season] = { ...(h[season] || {}), o: snap(p, v) };
   });
 }
 // End of `season`, just before offseason development.
 export function snapEnd(g: Game, s: any, season = g.Y) {
-  const P = g.db.P;
+  const P = g.db.P,
+    v = viewOf(s);
   everyone(s).forEach(id => {
     const p = P[id];
     if (!p) return;
     const h = (p.rh = p.rh || {});
-    h[season] = { ...(h[season] || {}), e: snap(p) };
+    h[season] = { ...(h[season] || {}), e: snap(p, v) };
   });
 }
 
@@ -67,6 +80,13 @@ export function deltas(p: any, b: Snap) {
     if (b.r[k] != null) r[k] = d1(exactR(p, k) - b.r[k]);
   });
   return { ovr: d1(exactOvr(p) - b.ovr), pot: p.pot - b.pot, r };
+}
+// The ▲▼ on potential: the potential shown now (`shown`) against the one shown at the baseline, so it moves when
+// the number you see moves: God Mode the true potential (edits included), otherwise your staff's or scouts' read.
+// A snapshot from before 2026-11-18 has neither and compares the league's read, as before.
+export function potChange(p: any, b: Snap, shown: number, god: boolean) {
+  const was = god ? b.tp : b.sv;
+  return was != null ? shown - was : p.pot - b.pot;
 }
 
 // Season by season: opening-night overall, the change during the season, over the summer, and

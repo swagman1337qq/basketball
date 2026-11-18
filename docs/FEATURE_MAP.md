@@ -349,7 +349,7 @@ All in `src/engine/`.
 | `ratingCeilings.ts` | Shared limits for all 21 trainable ratings, positive growth guards and intangible growth |
 | `potential.ts` | Potential as a ceiling: skill ceilings, the development plan and hidden pace, true potential vs the league's scouting read |
 | `environment.ts` | Development environment: team budgets (AI teams' from their owners), the capped environment multiplier, role reps |
-| `progress.ts` | Opening-night and end-of-season rating snapshots |
+| `progress.ts` | Opening-night and end-of-season rating snapshots; each also records true potential (`tp`) and the potential you were shown (`sv`: your staff's read of your players, your scouts' of the rest), so `potChange` puts ▲▼ on the potential you see (Roster, profile Ratings), God Mode edits included (2026-11-18) |
 | `intangibles.ts` | Intangibles and hidden gems |
 | `traits.ts` | Personality traits and their descriptions |
 | `lockerRoom.ts` | Team morale and mentoring |

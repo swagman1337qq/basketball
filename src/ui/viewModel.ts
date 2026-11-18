@@ -12,7 +12,7 @@ import { glLabel } from '../engine/gleague';
 import { natDefault, regionOf, regions, roleDefs } from '../data/world';
 import { hometownOf } from '../data/hometown';
 import { Game } from '../engine/Game';
-import { baseline, deltas } from '../engine/progress';
+import { baseline, deltas, potChange } from '../engine/progress';
 import { addTx, lastTeam } from '../engine/txlog';
 import { intelF } from '../engine/overseas';
 import { badgesOf, setOverall, setRating, setWing, syncOvr, teamRating, wngOf } from '../engine/ratings';
@@ -938,7 +938,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     ...pp,
     progLabel: progB ? progB.label : null,
     progOvr: progD ? progD.ovr : null,
-    progPot: progD ? progD.pot : null,
+    progPot: progB ? potChange(pp, progB.snap, potOf(pp, pp.id), !!s.god) : null,
     flag: gm.flag(pp.rep),
     cname: C[pp.rep].n,
     tone: tone(pp.ovr),
