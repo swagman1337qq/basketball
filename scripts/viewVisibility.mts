@@ -11,6 +11,7 @@ try {
       contents: `
       export {Game} from './src/engine/Game'; export {GameSim} from './src/engine/sim';
       export {BoxScoreModal} from './src/ui/modals/BoxScoreModal'; export {boxSummary} from './src/db/boxArchive'; export {buildView} from './src/ui/viewModel';
+      export {ProfileOverview} from './src/ui/modals/ProfileMain';
       export {renderToString} from 'react-dom/server'; export {createElement} from 'react';
       export {FinancesScreen} from './src/ui/screens/FinancesScreen';
       export {OwnerScreen} from './src/ui/screens/OwnerScreen';
@@ -79,6 +80,35 @@ try {
   assert(evaluations > 0, 'Visible trades retain evaluation');
   g.setState({ screen: 'owner', modal: false, teamModal: 0 });
   assert.equal(vm().own, null, 'Team 0 also hides the underlying screen');
+
+  const profilePlayer = g.db.P[g.state.rosters[g.state.me][0]],
+    originalFrom = profilePlayer.from,
+    originalBio = { born: profilePlayer.born, raised: profilePlayer.raised, rep: profilePlayer.rep };
+  g.setState({ screen: 'dash', modal: true, pid: profilePlayer.id, ptab: 'overview', teamModal: null, listModal: null, boxId: null });
+  for (const [country, league, team] of [
+    ['US', 'NCAA', 'UCLA'],
+    ['FR', 'LNB', 'Test French Club'],
+    ['', 'Unknown', 'Unknown Location Club'],
+  ]) {
+    profilePlayer.from = { country, lg: league, team };
+    profilePlayer.born = profilePlayer.raised = profilePlayer.rep = country === 'US' ? 'FR' : 'US';
+    g.setState({ gv: (g.state.gv || 0) + 1, listModal: null });
+    const current = vm(),
+      row = current.pl.bgRows.find((r: any) => r.v === team || r.v.startsWith(team + ' ('));
+    assert(row, 'School/club biography row is present');
+    assert.equal(row.hasFlag, !!country);
+    assert.equal(row.flag, country ? g.flag(country) : '', 'Flag follows the institution country, not nationality');
+    assert(!current.pl.bgRows.some((r: any) => r.k === 'Grew up'));
+    const html = m.renderToString(m.createElement(m.ProfileOverview, { vm: current }));
+    assert(!html.includes('Grew up'));
+    if (country) assert(html.includes('title="' + g.db.C[country].n + '"'), 'Institution country labels the flag');
+    row.open();
+    assert.equal(g.state.listModal.type, 'from');
+    assert.equal(g.state.listModal.team, team, 'School/club still opens its existing list');
+  }
+  profilePlayer.from = originalFrom;
+  Object.assign(profilePlayer, originalBio);
+  g.setState({ listModal: null });
 
   let bid = Object.keys(g.db.boxes || {})[0];
   if (!bid) bid = g.keepBox(new m.GameSim(g.simTeam(g.state, 0), g.simTeam(g.state, 1), { norms: g.db.norms, record: true }).run(), 0);

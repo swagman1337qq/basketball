@@ -5,6 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-18
 
 ### Added
+- **Pre-draft school and club flags.** Player profiles show the country flag of the school or club a player came from, alongside its name. The separate “Grew up” row is removed.
 - **Arrows on potential.** When a player's potential goes up or down, the roster shows ▲▼ next to it as it does for overall, in God Mode too (edits included). The arrows follow the potential you see: the true one in God Mode, your staff's or scouts' read otherwise. In a league already under way they compare the league's read until the next season snapshot (opening night or the end of the season).
 
 ### Changed

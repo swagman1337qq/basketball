@@ -549,7 +549,8 @@ export function ProfileOverview({ vm }: { vm: VM }) {
                 {r.hasFlag && (
                   <img
                     src={r.flag}
-                    alt=""
+                    alt={r.flagTitle || ''}
+                    title={r.flagTitle}
                     style={{ width: 16, height: 11, objectFit: 'cover', outline: '1px solid var(--color-divider)' }}
                   />
                 )}

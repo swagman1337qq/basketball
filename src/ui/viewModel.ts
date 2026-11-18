@@ -1011,7 +1011,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
           ? 'high school'
           : pp.from.lg === 'NCAA' || pp.from.lg === 'NAIA' || pp.from.lg === 'High school'
             ? pp.from.team + ' (' + pp.from.lg + ')'
-            : pp.from.team + ', ' + C[pp.from.country].n;
+            : pp.from.team + (C[pp.from.country]?.n ? ', ' + C[pp.from.country].n : '');
         if (status === 'pro' && !pk) return 'Playing for ' + fr;
         const dd = pk ? { rd: 1, pick: pk.n } : pp.dr;
         return dd
@@ -1054,9 +1054,6 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
               : ''),
       },
       { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) },
-      ...((pp.pth?.k === 'col' || ['NCAA', 'NAIA'].includes(pp.from?.lg)) && C[pp.raised]
-        ? [{ k: 'Grew up', hasFlag: true, flag: gm.flag(pp.raised), v: C[pp.raised].n }]
-        : []),
       { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' },
     ],
     elig: pp.elig.map(e => ({ flag: gm.flag(e.c), name: C[e.c].n, why: e.why })),
@@ -2116,8 +2113,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
                 : pp.from.lg === 'High school'
                   ? 'High school'
                   : 'Came from',
-            hasFlag: false,
-            flag: '',
+            hasFlag: !!C[pp.from.country],
+            flag: C[pp.from.country] ? gm.flag(pp.from.country) : '',
+            flagTitle: C[pp.from.country]?.n,
             v: isPlainHS(pp.from)
               ? 'High school'
               : pp.from.team + (pp.from.lg && pp.from.lg !== 'NCAA' && pp.from.lg !== 'High school' ? ' (' + pp.from.lg + ')' : ''),
