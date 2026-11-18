@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { DYES, DYE_KINDS, EYE_COLORS, FACE_LOOKS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
 import { faceAncestry, faceLook, rerollFace } from '../../engine/faceAncestry';
+import { HEAD_ART, NOSE_ART, MOUTH_ART, PAINTED_TEXTURE_CUTS } from '../../engine/illustratedFaces';
 import { muted } from '../kit';
 
 type Opt = string[];
@@ -212,6 +213,7 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
         </fieldset>
         <fieldset style={fs}>
           <div style={lg}>Head</div>
+          {pick('Shape', 'head.style', HEAD_ART)}
           {range('Width', 'head.w', 0.86, 1.14)}
           {range('Length', 'head.h', 0.92, 1.1)}
           {range('Cheekbones', 'head.cheek', 0.94, 1.06)}
@@ -242,10 +244,10 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
         </fieldset>
         <fieldset style={fs}>
           <div style={lg}>Nose, mouth and ears</div>
+          {pick('Nose shape', 'nose.style', NOSE_ART)}
           {range('Nose width', 'nose.w', 0, 1)}
           {range('Nose length', 'nose.len', 0, 1)}
-          {range('Bridge', 'nose.bridge', 0, 1)}
-          {range('Nose tip', 'nose.tip', 0, 1)}
+          {pick('Lip shape', 'mouth.style', MOUTH_ART)}
           {range('Mouth width', 'mouth.w', 0, 1)}
           {range('Upper lip', 'mouth.upper', 0, 1)}
           {range('Lower lip', 'mouth.lower', 0, 1)}
@@ -255,7 +257,7 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
         <fieldset style={fs}>
           <div style={lg}>Hair</div>
           {pick('Style', 'hair.style', hairStyleOpts())}
-          {pick('Texture', 'hair.tex', TEXTURES)}
+          {PAINTED_TEXTURE_CUTS.has(get('hair.style')) && pick('Texture', 'hair.tex', TEXTURES)}
           {pick('Color', 'hair.natural', named(HAIR_COLORS))}
           {sel(
             'Dyed',

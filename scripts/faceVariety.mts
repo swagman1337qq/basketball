@@ -105,6 +105,9 @@ assert.notEqual(mixedChild.skin.tone, singleChild.skin.tone, "A same-primary-loo
 // Every manual feature wins, including a dense beard on an East Asian or female portrait.
 const edits = {
   ancestry: { black: 0.5, asian: 0.5 },
+  'head.style': 'round',
+  'nose.style': 'broad',
+  'mouth.style': 'full',
   'head.w': 1.12,
   'head.h': 0.95,
   'head.jaw': 0.72,
@@ -181,6 +184,7 @@ g.resetFace(p.id);
 const face = g.face(p.id);
 const html = renderToStaticMarkup(createElement(FaceEditor, { gm: g, p, onClose() {} }));
 assert(html.includes('Blend with') && html.includes('Appearance blend') && html.includes('Thickness'));
+assert(html.includes('Nose shape') && html.includes('Lip shape') && html.includes('Soft square'));
 const copy = clonePlayer(g, p.id)!;
 assert.deepEqual(g.db.P[copy].faceAncestry, p.faceAncestry);
 assert.deepEqual(g.db.P[copy].faceX, p.faceX);

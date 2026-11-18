@@ -2,15 +2,17 @@
 
 Implemented 2026-11-18. Generation, editing and the illustrated SVG renderer share the same editable face description.
 
-## Illustrated portraits
+## Painted, editable portraits
 
-`faceSvg` now paints the approved illustrated direction with defined local-color contours, broad cel tones, shaped eyes/brows/noses/lips, grouped hair locks/curls and connected facial-hair shapes. The drawing style does not force a square jaw or identical eyes on everyone: head width/height, roundness, cheeks, jaw, chin and individual features still control the geometry. It is an editable procedural interpretation of the concept sheets, rather than a fixed picture assigned to a player.
+The shared `faces.ts` `faceSvg` entry point now delegates to `illustratedFaces.ts`. It assembles generated illustration parts from `src/assets/portraits/`: eight head bases, eyes with independently tinted eyelid/iris/ink layers, brows, noses, lips, ears, hair and facial hair. These are bitmap artwork components made from the approved art reference, not the previous procedural polygon drawings or a small bank of complete player pictures. The components combine with the existing individual face descriptions and appearance blends.
 
-The portrait uses a consistent closer framing with headroom for tall hair. Team names and jersey numbers remain complete in their own stable branding layer. Player, staff and manager portraits use the shared renderer, including aging, women, mixed appearances, dyes, glasses, face shields, piercings and undershirts. Uploaded custom headshots remain custom images.
+The editor offers head, nose and lip shape choices, eye and brow options, hair and beard options, and working proportion/color sliders. Nose bridge/tip anatomy is chosen through Nose shape; width and length remain sliders. Hair Texture appears for the cuts with painted texture variants; structured braids/locs keep their selected structure. Head width/length, cheek/jaw/chin proportions, eyes, lips and ears still vary independently. Faces can retain round, broad, narrow and softer features.
 
-The renderer is deterministic and never changes a face description, saved edits, the gameplay RNG or simulation values. Existing face seeds and all generation distributions are unchanged by this art update. It uses native SVG shapes without external portrait downloads, filters, gradients, clip paths or shared ids. A representative 18-face comparison uses about 25% fewer drawing elements and about 25% fewer SVG bytes than the earlier renderer; this is a structural comparison, not a browser frame-time guarantee.
+Colors use local SVG tint tables; eye-white/pupil/catchlight artwork stays separate from tinted skin and iris parts. Head strips overlap to avoid seams during proportion changes. Root headroom follows tall hair at editor extremes. Masks use stable ids whose definitions are identical whenever the ids repeat. Team jerseys, numbers, aging accents, accessories, marks, staff and manager portraits use the same assembly. Uploaded custom headshots remain custom images.
 
-`scripts/faceRendering.mts` checks 936 hairstyle/texture/expression combinations, all offered feature controls, every beard density control, accessories, repeated instances, deterministic immutable painting and SVG size budgets. The face-variety/save tests below remain separate. This drawing-only change does not alter possession, rating, contract or development logic.
+Generation, seeds, ancestry/beard probabilities, saved edits and the gameplay RNG are unchanged. New shape choices are optional `faceX` fields and need no migration. Artwork stays in shared bundled assets, never inside a league save, and there are no image-generation requests while playing. The library has 118 PNG parts (including the separately tintable eye layers), about 6.4 MB before HTTP compression. See `docs/PORTRAIT_ARTWORK.md` for production details and limits.
+
+`scripts/faceRendering.mts` checks 936 hair/texture/expression combinations, existing edited features, beard density, all painted shape options, bundled file/dimension validity, repeated tint/mask definitions, deterministic immutable rendering and node/byte budgets. Save/load and generation checks below remain separate. Actual assembled renders are also inspected at profile and small-avatar sizes. This art change does not change possession, rating, contract or development logic.
 
 ## Appearance sources
 

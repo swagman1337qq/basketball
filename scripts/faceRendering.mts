@@ -1,8 +1,26 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { makeFace, faceSvg, HAIR_STYLES, FACE_OPTS } from '../src/engine/faces';
+import { PORTRAIT_PARTS } from '../src/engine/portraitParts';
+import { HEAD_ART, NOSE_ART, MOUTH_ART } from '../src/engine/illustratedFaces';
+
+const assetUrls = new Set(Object.values(PORTRAIT_PARTS).map(a => a.url));
+let artworkBytes = 0;
+for (const asset of Object.values(PORTRAIT_PARTS)) {
+  const path = fileURLToPath(asset.url);
+  assert(existsSync(path), 'Artwork must be bundled in the repository');
+  const bytes = readFileSync(path);
+  assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(bytes.readUInt32BE(16), asset.width);
+  assert.equal(bytes.readUInt32BE(20), asset.height);
+  artworkBytes += bytes.length;
+}
+assert(artworkBytes < 8 * 1024 * 1024, 'The complete shared artwork library stays bounded');
+const definitions = new Map<string, string>();
 
 const draw = (face: any, label?: { name?: string; num?: string }) => renderToStaticMarkup(faceSvg(face, ['#613487', '#f4e9ce'], label));
 const base = { id: 310, race: 'black', age: 25, hgt: '6′5″', wt: 205, faceAncestry: { black: 0.5, asian: 0.5 } };
@@ -38,15 +56,23 @@ for (const [index, hair] of Object.keys(HAIR_STYLES).entries()) {
       const face = freeze(makeFace(p, 79)),
         before = JSON.stringify(face);
       const svg = draw(face, { name: 'STARS', num: '88' });
-      assert(svg.startsWith('<svg') && svg.includes('data-face-art="illustrated"'));
+      assert(svg.startsWith('<svg') && svg.includes('data-face-art="layered-illustration"'));
       assert(!/(?:NaN|Infinity|undefined)/.test(svg), hair + '/' + texture + '/' + expr);
-      assert(!/<(?:image|filter|linearGradient|radialGradient|clipPath)\b/.test(svg), 'No image assets or per-instance SVG resources');
-      assert(!/\bid=/.test(svg), 'Repeated faces cannot collide through shared SVG ids');
+      assert(svg.includes('<image'), 'Faces must use the painted artwork, including in the editor');
+      for (const [, url] of svg.matchAll(/\bhref="([^"]+)"/g)) assert(assetUrls.has(url), 'Only bundled art is loaded');
+      const ids = new Set([...svg.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
+      for (const [, id] of svg.matchAll(/url\(#([^)]+)\)/g)) assert(ids.has(id), 'Every tint/mask is defined inside its portrait');
+      for (const [, tag, id, body] of svg.matchAll(/<(filter|clipPath) id="([^"]+)"([^]*?)<\/\1>/g)) {
+        const definition = tag + body;
+        if (definitions.has(id)) assert.equal(definitions.get(id), definition, 'Repeated ids have identical definitions in every portrait');
+        definitions.set(id, definition);
+      }
       for (const [, value] of svg.matchAll(/\b(?:r|rx|ry)="([^"]+)"/g)) assert(Number(value) > 0);
       assert(svg.includes('STARS') && svg.includes('>88</text>'), 'Branding and multi-digit numbers remain complete');
       assert.equal(JSON.stringify(face), before, 'Painting a cached face must not mutate its data');
       assert.equal(svg, draw(face, { name: 'STARS', num: '88' }), 'Painting is deterministic');
-      const elements = (svg.match(/<(?:path|circle|ellipse|text)\b/g) || []).length;
+      const elements = (svg.match(/<(?:path|circle|ellipse|text|image|svg|g|filter|feComponentTransfer|feFunc[RGB]|clipPath)\b/g) || [])
+        .length;
       maxElements = Math.max(maxElements, elements);
       maxBytes = Math.max(maxBytes, svg.length);
       assert(elements < 650, 'Bound portrait DOM size even for intricate hairstyles');
@@ -149,7 +175,15 @@ assert.equal(JSON.stringify(f), data);
 const row = renderToStaticMarkup(
   createElement('div', null, ...Array.from({ length: 12 }, (_, key) => createElement('span', { key }, faceSvg(f)))),
 );
-assert.equal((row.match(/data-face-art="illustrated"/g) || []).length, 12);
+assert.equal((row.match(/data-face-art="layered-illustration"/g) || []).length, 12);
+for (const [path, options] of [
+  ['head.style', HEAD_ART],
+  ['nose.style', NOSE_ART],
+  ['mouth.style', MOUTH_ART],
+] as const) {
+  const images = options.slice(1).map(([key]) => draw(makeFace({ ...base, faceX: { [path]: key } }, 79)));
+  assert.equal(new Set(images).size, images.length, 'Every painted feature option is distinct: ' + path);
+}
 console.log(
   JSON.stringify({
     combinations: count,
@@ -157,8 +191,10 @@ console.log(
     maxElements,
     maxBytes,
     faceDataHash: createHash('sha256').update(data).digest('hex'),
+    artworkParts: assetUrls.size,
+    artworkBytes,
   }),
 );
 console.log(
-  'PASS: illustrated portraits, feature controls, beard density, accessories, safe repeated SVGs, immutable data and rendering budget',
+  'PASS: layered artwork, bundled assets, feature controls, beard density, accessories, safe repeated tints/masks, immutable data and rendering budget',
 );
