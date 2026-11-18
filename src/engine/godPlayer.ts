@@ -105,6 +105,7 @@ export function deletePlayer(g: Game, pid: number): boolean {
     race: p.race,
     faceSeed: p.faceSeed,
     faceX: p.faceX,
+    faceAncestry: p.faceAncestry,
     retired: { season: g.Y, age: p.age, tid: -1, why: 'Deleted in God Mode' },
     gone: 1,
     deleted: 1,

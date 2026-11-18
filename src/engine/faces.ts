@@ -12,6 +12,7 @@
 // shapes, never gradients or clip paths, so one face can appear many times on a page without id clashes.
 import { createElement } from 'react';
 import { mulberry32 } from './rng';
+import { FACE_LOOK_KEYS, ancestryValue, ancestryWeights, beardWeights, faceAncestry } from './faceAncestry';
 
 type Pt = [number, number];
 type Rnd = () => number;
@@ -272,7 +273,7 @@ const HAIR_LABELS = Object.keys(HAIR_STYLES).map(k => [k, HAIR_STYLES[k].label])
 export const hairStyleOpts = () => HAIR_LABELS;
 
 // ── Generation ──
-const RACES = ['white', 'black', 'dark', 'asian', 'brown'];
+const RACES: readonly string[] = FACE_LOOK_KEYS;
 // The looks the editors offer (p.race). 'dark' is very dark skin, as in much of Africa; 'black' is the
 // range of most Black Americans, many of whom also have European ancestry. Both share features and hair.
 export const FACE_LOOKS: [string, string][] = [
@@ -473,16 +474,26 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     race = RACES.includes(p.race) ? p.race : 'white',
     age = p.age ?? 25,
     fem = !!p.fem; // a missing look never breaks a page
-  const fr = race === 'dark' ? 'black' : race; // features and hair: very dark skin shares the darker-skin tables
-  const k = kin && kin.v === 3 ? kin : null,
-    same = !!k && k.race === race;
+  const ancestry = faceAncestry(p),
+    sources = Object.keys(ancestry),
+    mixed = sources.length > 1;
+  const source = mixed ? race : sources[0];
+  const fr = source === 'dark' ? 'black' : source; // the deepest skin tone shares the feature tables
+  const weights = (tables: Record<string, Record<string, number>>) => (mixed ? ancestryWeights(ancestry, tables) : tables[fr]);
+  const k = kin && kin.v === 3 ? kin : null;
+  const kinAncestry = k ? faceAncestry({ race: k.race, faceAncestry: k.ancestry }) : null;
+  const same = !!k && k.race === race && FACE_LOOK_KEYS.every(key => Math.abs((ancestry[key] || 0) - (kinAncestry?.[key] || 0)) < 1e-9);
   // Build: heavier for his height → a fuller face and neck.
   const hm = /(\d+)\D+(\d+)/.exec(p.hgt || ''),
     hIn = hm ? +hm[1] * 12 + +hm[2] : 0;
   const build = r2(cl((hIn && p.wt ? (p.wt - (hIn * 2.9 + 7.5)) / 14 : 0) + bell(rnd) * 0.18, -1, 1));
-  const [tm, ts, tlo, thi] = TONE[race];
+  const [tm, ts, tlo, thi] = mixed
+    ? [0, 1]
+        .map(i => ancestryValue(ancestry, Object.fromEntries(Object.entries(TONE).map(([key, value]) => [key, value[i]]))))
+        .concat(Math.min(...sources.map(key => TONE[key][2])), Math.max(...sources.map(key => TONE[key][3])))
+    : TONE[source];
   let tone = cl(tm + ts * bell(rnd), tlo, thi),
-    under = wpick(rnd, UNDER_W[fr]);
+    under = wpick(rnd, weights(UNDER_W));
   if (k) {
     tone = cl(same ? k.skin.tone + 0.03 * bell(rnd) : (tone + k.skin.tone) / 2);
     if (rnd() < 0.8) under = k.skin.under;
@@ -513,11 +524,17 @@ export function makeFace(p: any, salt = 0, kin?: any) {
   const ears: any = { size: r2(0.85 + 0.3 * rnd()), out: r2(rnd()) };
   const eShape = wpick(
     rnd,
-    fr === 'asian'
-      ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 }
-      : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 },
+    mixed
+      ? ancestryWeights(ancestry, {
+          asian: { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 },
+          black: { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 },
+        })
+      : fr === 'asian'
+        ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 }
+        : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 },
   );
-  const lightEyes = rnd() < ({ white: 0.55, brown: 0.07, asian: 0.015, black: 0.02 } as any)[fr];
+  const lightChance = { white: 0.55, brown: 0.07, asian: 0.015, black: 0.02 };
+  const lightEyes = rnd() < (mixed ? ancestryValue(ancestry, lightChance) : lightChance[fr]);
   const eyes: any = {
     shape: eShape,
     size: r2(0.9 + 0.22 * rnd()),
@@ -537,8 +554,16 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     tilt: r2((rnd() - 0.5) * 0.4),
     slit: rnd() < 0.035 ? (rnd() < 0.7 ? 1 : 2) : 0,
   };
-  const nb = ({ black: 0.2, brown: 0.08, asian: 0.05 } as any)[fr] || 0,
-    lb = fr === 'black' ? 0.22 : fr === 'brown' ? 0.08 : 0;
+  const nb = mixed
+      ? ancestryValue(ancestry, { black: 0.2, dark: 0.2, brown: 0.08, asian: 0.05, white: 0 })
+      : ({ black: 0.2, brown: 0.08, asian: 0.05 } as any)[fr] || 0,
+    lb = mixed
+      ? ancestryValue(ancestry, { black: 0.22, dark: 0.22, brown: 0.08, white: 0, asian: 0 })
+      : fr === 'black'
+        ? 0.22
+        : fr === 'brown'
+          ? 0.08
+          : 0;
   const nose: any = {
     w: r2(cl(rnd() * 0.85 + nb + build * 0.08)),
     len: r2(rnd()),
@@ -572,8 +597,8 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     recAt = 22 + 32 * rnd(),
     recede = fem ? 0 : r2(cl((age - recAt) / 12) * (rnd() < 0.55 ? 1 : 0.35));
   const bags = r2(cl(lines * 0.7 + rnd() * 0.15));
-  let tex = wpick(rnd, TEX_W[fr]),
-    natural = wpick(rnd, NAT_W[fr]);
+  let tex = wpick(rnd, weights(TEX_W)),
+    natural = wpick(rnd, weights(NAT_W));
   if (k) {
     if (rnd() < 0.8) tex = k.hair.tex;
     if (rnd() < 0.75) natural = k.hair.natural;
@@ -659,9 +684,14 @@ export function makeFace(p: any, salt = 0, kin?: any) {
             chinpuff: 2,
             patchy: 2,
           };
-  const fStyle = fem ? 'none' : wpick(rnd, fw as Record<string, number>),
+  const beard = beardWeights(fw as Record<string, number>, ancestry, seed);
+  const fStyle = fem ? 'none' : wpick(rnd, beard.weights),
     fDen = rnd();
-  const facial: any = { style: fStyle, density: r2(fStyle === 'patchy' ? 0.45 : 0.65 + 0.35 * fDen), grey: beardGrey };
+  const facial: any = {
+    style: fStyle,
+    density: r2(fStyle === 'patchy' ? Math.min(0.55, beard.density) : Math.min(1, beard.density + fDen * 0.03)),
+    grey: beardGrey,
+  };
   // Accessories, each drawn on its own: headbands are common, earrings fairly common, nose studs
   // uncommon, lip and eyebrow rings rare, glasses and face shields exceptionally rare.
   const metal = () => wpick(rnd, { diamond: 45, gold: 22, silver: 18, black: 15 }),
@@ -705,6 +735,7 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     generator: 'Basketball Manager faces',
     seed: seed >>> 0,
     race,
+    ancestry,
     ...(fem ? { fem: true } : {}),
     skin: { tone: r2(tone), under },
     build,
@@ -722,6 +753,7 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     age: { years: age, lines, bags },
   };
   if (p.faceX) applyFaceX(face, p.faceX);
+  face.ancestry = ancestry; // derived metadata stays normalized after applying editable feature overrides
   return finishFace(face);
 }
 

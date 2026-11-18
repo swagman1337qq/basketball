@@ -102,6 +102,10 @@ const makeNew = (g: Game, tag: string) => {
 };
 const oldWorker = globalThis.Worker;
 let pending: any;
+let signalWorkerReady: () => void;
+const workerReady = new Promise<void>(resolve => {
+  signalWorkerReady = resolve;
+});
 class HeldWorker {
   onmessage: any;
   onerror: any;
@@ -110,6 +114,7 @@ class HeldWorker {
   postMessage(job: any) {
     this.job = structuredClone(job);
     pending = this;
+    signalWorkerReady();
   }
   terminate() {}
 }
@@ -122,7 +127,9 @@ try {
   assert(!!(await loader.load(loaded, row.id, firstNew)).details);
   assert.equal(reads, at);
   const saving = writer.save(loaded, row);
-  for (let i = 0; i < 100 && !pending; i++) await new Promise(r => setTimeout(r, 2));
+  // Snapshot preparation deliberately yields. CPU load must not turn an arbitrary
+  // 200 ms polling allowance into a failed assertion and an unreleased held job.
+  await Promise.race([workerReady, saving]);
   assert(pending);
   const secondNew = makeNew(loaded, 'unsaved-b');
   const expectedA = structuredClone(loaded.db.boxes[firstNew]),

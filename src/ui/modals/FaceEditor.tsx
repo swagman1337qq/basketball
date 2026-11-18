@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { DYES, DYE_KINDS, EYE_COLORS, FACE_LOOKS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
+import { faceAncestry, faceLook, rerollFace } from '../../engine/faceAncestry';
 import { muted } from '../kit';
 
 type Opt = string[];
@@ -40,6 +41,13 @@ const TEXTURES = [
 export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () => void }) {
   const [orig] = useState(() => ({ faceSeed: p.faceSeed, faceX: p.faceX ? { ...p.faceX } : undefined, faceImg: p.faceImg, race: p.race }));
   const f = gm.face(p.id);
+  const ancestry = faceAncestry(p),
+    primary = faceLook(p.race);
+  const secondary =
+    Object.keys(ancestry)
+      .filter(key => key !== primary)
+      .sort((a, b) => (ancestry[b] || 0) - (ancestry[a] || 0))[0] || '';
+  const blendShare = secondary ? ancestry[secondary] || 0.5 : 0.5;
   const redraw = () => {
     gm.resetFace(p.id);
     gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
@@ -55,9 +63,7 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
     redraw();
   };
   const newFace = () => {
-    p.faceSeed = Math.floor(Math.random() * 1e9);
-    delete p.faceX;
-    delete p.faceImg;
+    rerollFace(p, Math.floor(Math.random() * 1e9));
     redraw();
   };
   // A new look (skin tone range and features): his skin is drawn fresh from it, and New face rolls within it.
@@ -70,6 +76,8 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
       p.faceX = Object.keys(x).length ? x : undefined;
       if (!p.faceX) delete p.faceX;
     }
+    // Selecting a single look explicitly replaces a generated or inherited blend.
+    p.faceX = { ...(p.faceX || {}), ancestry: { [v]: 1 } };
     delete p.faceImg;
     redraw();
   };
@@ -175,6 +183,29 @@ export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () =>
           <div style={lg}>Expression and skin</div>
           {pick('Expression', 'expr', FACE_OPTS.expr)}
           {sel('Look', p.race || 'white', FACE_LOOKS, setLook)}
+          {sel(
+            'Blend with',
+            secondary,
+            FACE_LOOKS.filter(([key]) => key !== primary),
+            value => set('ancestry', value ? { [primary]: 0.5, [value]: 0.5 } : { [primary]: 1 }),
+            'None',
+          )}
+          {secondary && (
+            <label style={row}>
+              <span>Blend {Math.round(blendShare * 100)}%</span>
+              <input
+                aria-label="Appearance blend"
+                type="range"
+                min={1}
+                max={99}
+                value={Math.round(blendShare * 100)}
+                onChange={e => {
+                  const share = +e.target.value / 100;
+                  set('ancestry', { [primary]: 1 - share, [secondary]: share });
+                }}
+              />
+            </label>
+          )}
           {range('Skin tone', 'skin.tone', 0, 1)}
           {pick('Undertone', 'skin.under', FACE_OPTS.under)}
           {range('Build', 'build', -1, 1)}

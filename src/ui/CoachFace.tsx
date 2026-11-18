@@ -13,6 +13,7 @@ export function coachFaceData(gm: Game | undefined, c: EditableCoach, age: numbe
     {
       ...base,
       race: c.race,
+      faceAncestry: c.race === base.race ? base.faceAncestry : undefined,
       age,
       fem: c.fem,
       faceSeed: c.faceSeed ?? base.faceSeed,

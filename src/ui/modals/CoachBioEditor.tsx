@@ -7,6 +7,7 @@ import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type 
 import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
+import { rerollFace } from '../../engine/faceAncestry';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
   const [draft, setDraft] = useState(() => coachBioDraft(gm, coach));
@@ -180,7 +181,11 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <button
           className="btn btn-secondary"
           disabled={!!faceDraft}
-          onClick={() => setDraft({ ...draft, faceSeed: Math.floor(Math.random() * 1e9), faceX: undefined })}
+          onClick={() => {
+            const next = { ...draft };
+            rerollFace(next, Math.floor(Math.random() * 1e9));
+            setDraft(next);
+          }}
         >
           🎲 Randomize face
         </button>
