@@ -110,61 +110,6 @@ export function fullPortraitOverlays(
         2,
       );
   fullPortraitTattoos(ctx, p, warp, skin);
-  if (p.headband !== 'none') {
-    const colors: Record<string, string> = {
-        team: jersey[0],
-        team2: jersey[1],
-        white: '#f0ece2',
-        black: '#23201e',
-        red: '#b8393a',
-        navy: '#26354d',
-        grey: '#9a9690',
-      },
-      color = colors[p.headband],
-      h = p.bandKind === 'thin' ? 0.018 : p.bandKind === 'wide' ? 0.054 : 0.033;
-    path(
-      [
-        [0.299, 0.384],
-        [0.36, 0.374],
-        [0.5, 0.368],
-        [0.64, 0.374],
-        [0.701, 0.384],
-        [0.698, 0.384 + h],
-        [0.64, 0.374 + h],
-        [0.5, 0.368 + h],
-        [0.36, 0.374 + h],
-        [0.302, 0.384 + h],
-      ],
-      true,
-    );
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(29,24,20,.5)';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-    stroke(
-      [
-        [0.315, 0.388],
-        [0.5, 0.376],
-        [0.685, 0.388],
-      ],
-      'rgba(255,255,255,.18)',
-      1,
-    );
-    if (p.bandKind === 'tied') {
-      path(
-        [
-          [0.69, 0.399],
-          [0.76, 0.416],
-          [0.79, 0.459],
-          [0.75, 0.445],
-        ],
-        true,
-      );
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
-  }
   if (p.glasses !== 'none') {
     const frame = { black: '#292421', tortoise: '#785331', metal: '#a6afb1', clear: 'rgba(218,231,232,.72)' }[p.frame] ?? '#292421',
       goggles = p.glasses === 'goggles',

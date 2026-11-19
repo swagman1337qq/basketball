@@ -44,7 +44,7 @@
     "minimumMeasuredBaselineCurvePixels": 1.0397,
     "strongestMeasuredSideWidthRatio": 0.6875,
     "skinHighlightPreservationChannelDifference": 28,
-    "jewelryExactMatchesAgainstEarlierRenderer": 64,
+    "jewelryExactMatchesDuringPriorTattooOnlyFix": 64,
     "noTattooIsPixelExact": true,
     "diffusionInSourcePixels": 0.35,
     "filteredInkAndMetalContextsIsolated": true,
@@ -52,11 +52,29 @@
     "existingSettingsUnchanged": true,
     "browserErrors": []
   },
+  "fittedChainsAndHeadbands": {
+    "status": "PASS",
+    "headbandFitCases": 64,
+    "heads": 16,
+    "headbandKinds": 4,
+    "eyeOverlaps": 0,
+    "allHeadbandKindsDistinct": true,
+    "framingUnchanged": true,
+    "hangingHairOcclusion": true,
+    "bandDoesNotFloatOutsideSyntheticHead": true,
+    "necklaceConnectivityCases": 14,
+    "necklaceKinds": 7,
+    "necklaceChecksIncludeExtremeFaceEdits": true,
+    "doubleChainsShareAttachments": true,
+    "allSavedOptionsRetained": true,
+    "all16HeadsVisuallyReviewed": true,
+    "browserErrors": []
+  },
   "regression": {
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 80
+    "elapsedSeconds": 93
   },
   "libraryRetirementAndFraming": {
     "status": "PASS",

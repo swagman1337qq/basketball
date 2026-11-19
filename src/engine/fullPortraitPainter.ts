@@ -415,6 +415,150 @@ export function portraitLandmarks(base: string) {
   const [lip, chin] = FACE_ANCHORS[fullHead(base)!.index];
   return { cx: 160, lip, mouth: lip + 11, nose: lip - 12, eye: lip - 50, brow: lip - 69, chin };
 }
+const bandFits = new WeakMap<Uint8ClampedArray, { cx: number; half: number }>();
+const hangingFringe = new Set([
+  'sidepart',
+  'locsShort',
+  'locsLong',
+  'braids',
+  'curlyMop',
+  'fringe',
+  'curtains',
+  'messy',
+  'long',
+  'shag',
+  'bob',
+  'longPart',
+  'longCurls',
+  'pixie',
+  'wolf',
+  'kpop',
+]);
+function paintHeadband(
+  out: Uint8ClampedArray,
+  head: Uint8ClampedArray,
+  p: FullPortraitSettings,
+  skin: Uint8Array,
+  jersey: [string, string],
+) {
+  if (p.headband === 'none') return;
+  const f = portraitLandmarks(p.base),
+    cy = f.brow - 17,
+    isSkin = (x: number, y: number) => {
+      const i = (y * W + x) * 4;
+      return head[i] > head[i + 1] * 1.13 && head[i + 1] > head[i + 2] * 1.16 && head[i] - head[i + 2] > 24 && head[i + 1] > 29;
+    };
+  let fit = bandFits.get(head);
+  if (!fit) {
+    const centres: number[] = [],
+      halves: number[] = [];
+    for (let y = Math.round(cy - 3); y <= cy + 5; y += 2) {
+      let left = W,
+        right = 0;
+      for (let x = 80; x < 240; x++)
+        if (isSkin(x, y)) {
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+        }
+      if (right - left > 65) {
+        centres.push((left + right) / 2);
+        halves.push((right - left) / 2 + 1);
+      }
+    }
+    centres.sort((a, b) => a - b);
+    halves.sort((a, b) => a - b);
+    fit = {
+      cx: fullClamp(centres[centres.length >> 1] ?? f.cx, f.cx - 6, f.cx + 6),
+      half: fullClamp(halves[halves.length >> 1] ?? 56, 42, 64),
+    };
+    bandFits.set(head, fit);
+  }
+  const color = rgb(
+      (
+        {
+          team: jersey[0],
+          team2: jersey[1],
+          white: '#f0ece2',
+          black: '#23201e',
+          red: '#b8393a',
+          navy: '#26354d',
+          grey: '#9a9690',
+        } as Record<string, string>
+      )[p.headband],
+    ),
+    height = p.bandKind === 'thin' ? 6 : p.bandKind === 'wide' ? 18 : 11;
+  for (let y = Math.max(0, Math.floor(cy - height / 2 - 1)); y <= Math.min(W - 1, Math.ceil(cy + height / 2 + 12)); y++) {
+    let left = W,
+      right = -1;
+    for (let x = 80; x < 240; x++)
+      if (isSkin(x, y)) {
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+      }
+    for (let x = Math.max(left, Math.floor(fit.cx - fit.half)); x <= Math.min(right, Math.ceil(fit.cx + fit.half)); x++) {
+      const u = (x - fit.cx) / fit.half;
+      if (Math.abs(u) > 1) continue;
+      const facing = Math.sqrt(1 - u * u),
+        mid = cy + 9 * (1 - facing),
+        h = height * (0.68 + 0.32 * facing),
+        d = Math.abs(y - mid) - h / 2,
+        i = y * W + x,
+        j = i * 4;
+      if (d < 0.75) {
+        const a = fullClamp(0.75 - d),
+          top = y - mid + h / 2,
+          shade =
+            0.77 +
+            0.23 * facing -
+            0.045 * u +
+            (top < 1.5 ? 0.12 : 0) +
+            (Math.abs(y - mid) > h / 2 - 1 ? -0.1 : 0) +
+            ((x + y) % 3 === 0 ? 0.018 : 0);
+        for (let k = 0; k < 3; k++) out[j + k] = out[j + k] * (1 - a) + fullClamp(color[k] * shade, 0, 255) * a;
+        if (a > 0.2) skin[i] = 0;
+      } else if (y > mid && d < 2.5 && skin[i]) {
+        const shadow = 1 - 0.12 * (1 - d / 2.5);
+        for (let k = 0; k < 3; k++) out[j + k] *= shadow;
+      }
+    }
+  }
+  if (p.bandKind === 'tied') {
+    const x = fit.cx + fit.half - 2,
+      y = cy + 7;
+    // Two short fabric ends join the wrap at the temple, before hanging hair.
+    for (const points of [
+      [
+        [x - 3, y - 3],
+        [x + 6, y],
+        [x + 19, y + 22],
+        [x + 10, y + 17],
+      ],
+      [
+        [x - 2, y],
+        [x + 5, y + 2],
+        [x + 10, y + 27],
+        [x + 3, y + 18],
+      ],
+    ]) {
+      for (let yy = Math.floor(y - 4); yy <= y + 28; yy++)
+        for (let xx = Math.floor(x - 4); xx <= x + 20; xx++) {
+          if (xx < 0 || xx >= W || yy < 0 || yy >= W) continue;
+          let inside = false;
+          for (let a = 0, b = points.length - 1; a < points.length; b = a++)
+            if (
+              points[a][1] > yy !== points[b][1] > yy &&
+              xx < ((points[b][0] - points[a][0]) * (yy - points[a][1])) / (points[b][1] - points[a][1]) + points[a][0]
+            )
+              inside = !inside;
+          if (inside) {
+            const i = yy * W + xx;
+            for (let k = 0; k < 3; k++) out[i * 4 + k] = color[k] * (0.83 + 0.08 * ((xx + yy) % 2));
+            skin[i] = 0;
+          }
+        }
+    }
+  }
+}
 const faceFits = new WeakMap<Uint8ClampedArray, Map<number, { centre: number; half: number; lip: number; chin: number }>>();
 function faceFit(head: Uint8ClampedArray, index: number) {
   let fits = faceFits.get(head);
@@ -615,6 +759,7 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
       for (let k = 0; k < 3; k++) out[j + k] = out[j + k] * (1 - a) + assets.clothes[j + k] * a;
     }
   if (assets.beard) overlay(out, assets.beard, p, 'beard', age, skin, undefined, beardFit(assets.head, p));
+  if (hangingFringe.has(p.hair)) paintHeadband(out, assets.head, p, skin, jersey);
   if (assets.hair) {
     const fit = crownFit(assets.head, assets.hair);
     overlay(
@@ -629,6 +774,7 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
       foreground,
     );
   }
+  if (!hangingFringe.has(p.hair)) paintHeadband(out, assets.head, p, skin, jersey);
   const warp = fullWarp(p),
     pixels = new Uint8ClampedArray(out),
     framedForeground = new Uint8Array(foreground);

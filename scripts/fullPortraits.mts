@@ -16,6 +16,7 @@ import {
   randomFullFeatures,
 } from '../src/engine/fullPortraits';
 import { fullWarp, paintFullPixels } from '../src/engine/fullPortraitPainter';
+import { necklaceDrape } from '../src/engine/fullPortraitAdornments';
 import { tattooSurface, tattooSurfacePoint, tattooSurfaceSample, tattooInkTransmission } from '../src/engine/portraitTattooSurface';
 import { Game } from '../src/engine/Game';
 import { clonePlayer } from '../src/engine/godPlayer';
@@ -42,6 +43,21 @@ for (const group of ['eyes', 'brows', 'expr'] as const)
   assert.deepEqual(new Set(FULL_OPTIONS[group].map(x => x[0])), new Set(FACE_OPTS[group].map(x => x[0])));
 for (const items of [FULL_HEADS, FULL_HAIR, FULL_BEARDS]) assert.equal(new Set(items.map(p => p.id)).size, items.length);
 const defaults = fullDefaults();
+for (const head of FULL_HEADS) {
+  const p = fullDefaults(head.id),
+    chain = necklaceDrape(p),
+    second = necklaceDrape(p, undefined, 6);
+  assert(chain[48][0] - chain[0][0] >= 96, 'Chain ends reach the lateral neck rather than stopping inside it');
+  assert.equal(chain[0][1], chain[48][1]);
+  assert.deepEqual(second[0], chain[0]);
+  assert.deepEqual(second[48], chain[48]);
+  assert.equal(second[24][1] - chain[24][1], 6, 'Double chains share neck attachment points');
+  for (let i = 1; i < chain.length; i++) {
+    assert(chain[i][0] > chain[i - 1][0]);
+    assert(chain[i].every(Number.isFinite));
+  }
+  assert(chain[24][1] > chain[0][1] + 50, 'The chain hangs onto the upper chest');
+}
 // A tattoo covers skin arc length: its side view must foreshorten, its front
 // baseline must curve, and the inverse map cannot mirror or fold the design.
 let tattooSurfaceCases = 0;
@@ -97,6 +113,19 @@ for (let y = 0; y < 320; y++)
 const hairConfig = { ...defaults, ageAuto: false },
   bare = paintFullPixels({ head: testHead }, hairConfig),
   rooted = paintFullPixels({ head: testHead, hair: testHair }, hairConfig);
+const band = paintFullPixels({ head: testHead }, { ...hairConfig, headband: 'white' });
+assert.notDeepEqual(band.pixels, bare.pixels, 'A fitted headband is visible on the bare forehead');
+for (let y = 0; y < 320; y++)
+  for (let x = 0; x < 320; x++) {
+    const i = (y * 320 + x) * 4;
+    if (band.pixels[i] !== bare.pixels[i])
+      assert(x >= 120 && x <= 200 && y >= 65 && y <= 160, 'A standard band cannot float outside the head');
+  }
+const fringeConfig = { ...hairConfig, hair: 'bob' },
+  fringe = paintFullPixels({ head: testHead, hair: testHair }, fringeConfig),
+  fringeBand = paintFullPixels({ head: testHead, hair: testHair }, { ...fringeConfig, headband: 'white' });
+assert.deepEqual(fringeBand.pixels, fringe.pixels, 'Opaque hanging hair covers the headband');
+assert.equal(band.frameTop, bare.frameTop, 'A fitted headband does not change portrait framing');
 assert(rooted.frameTop > 0 && rooted.frameTop <= 40, 'Ordinary hair receives a bounded top crop');
 assert.equal(
   paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, natural: 'lightBlonde', skinTone: -1 }).frameTop,

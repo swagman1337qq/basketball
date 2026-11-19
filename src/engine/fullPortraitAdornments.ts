@@ -1,5 +1,5 @@
 import { FULL_SIZE as W, type FullPortraitSettings } from './fullPortraits';
-import { portraitLandmarks, type fullWarp } from './fullPortraitPainter';
+import { portraitLandmarks, fullClamp, type fullWarp } from './fullPortraitPainter';
 import { tattooSurface, tattooSurfacePoint, tattooSurfaceSample, tattooInkTransmission, type TattooSurface } from './portraitTattooSurface';
 type Warp = ReturnType<typeof fullWarp>;
 let scratch: HTMLCanvasElement | null = null,
@@ -391,6 +391,35 @@ export function fullPortraitTattoos(ctx: CanvasRenderingContext2D, p: FullPortra
   );
 }
 const COLORS: Record<string, string> = { diamond: '#e8e8e1', gold: '#d3ae61', silver: '#c5cccf', black: '#292521', roseGold: '#cd9d8c' };
+export function necklaceDrape(p: FullPortraitSettings, skin?: Uint8Array, lower = 0) {
+  const f = portraitLandmarks(p.base),
+    lefts: number[] = [],
+    rights: number[] = [];
+  if (skin)
+    for (let y = f.chin + 2; y <= f.chin + 14; y += 3) {
+      let left = W,
+        right = -1;
+      for (let x = f.cx - 65; x <= f.cx + 65; x++)
+        if (skin[y * W + x]) {
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+        }
+      if (right - left > 55) {
+        lefts.push(left);
+        rights.push(right);
+      }
+    }
+  lefts.sort((a, b) => a - b);
+  rights.sort((a, b) => a - b);
+  const cx = fullClamp(lefts.length ? (lefts[lefts.length >> 1] + rights[rights.length >> 1]) / 2 : f.cx, f.cx - 5, f.cx + 5),
+    half = fullClamp(lefts.length ? (rights[rights.length >> 1] - lefts[lefts.length >> 1]) / 2 + 4 : 55, 48, 62),
+    bottom = f.chin + 46 + lower,
+    sag = 55 + lower;
+  return Array.from({ length: 49 }, (_, i) => {
+    const u = i / 24 - 1;
+    return [cx + half * u, bottom - (sag * (Math.cosh(1.2 * u) - 1)) / (Math.cosh(1.2) - 1)];
+  });
+}
 export function fullPortraitJewelry(ctx: CanvasRenderingContext2D, p: FullPortraitSettings, warp: Warp, skin?: Uint8Array) {
   const f = portraitLandmarks(p.base),
     metal = COLORS[p.metal] || COLORS.silver;
@@ -448,17 +477,13 @@ export function fullPortraitJewelry(ctx: CanvasRenderingContext2D, p: FullPortra
       ctx,
       warp,
       c => {
-        const chain = (dy = 0) =>
-          Array.from({ length: 33 }, (_, i) => {
-            const t = i / 32;
-            return [f.cx - 39 + t * 78, f.chin + 8 + Math.sin(t * Math.PI) * (42 + dy)];
-          });
-        const pts = chain();
+        const pts = necklaceDrape(p, skin);
         line(c, pts, p.necklace === 'rope' ? 2.5 : 1.3);
         if (p.necklace === 'beads') for (let i = 0; i < pts.length; i += 2) dot(c, pts[i][0], pts[i][1], 1.8);
-        if (p.necklace === 'double') line(c, chain(7), 1.2);
-        const x = f.cx,
-          y = f.chin + 54;
+        if (p.necklace === 'double') line(c, necklaceDrape(p, skin, 6), 1.2);
+        const [x, bottom] = pts[24],
+          y = bottom + 7;
+        if (['pendant', 'cross', 'tags'].includes(p.necklace)) ring(c, x, bottom + 2, 1.3, 2);
         if (p.necklace === 'pendant') {
           ring(c, x, y, 4, 5);
           dot(c, x, y, 2.3);
@@ -467,7 +492,7 @@ export function fullPortraitJewelry(ctx: CanvasRenderingContext2D, p: FullPortra
           line(
             c,
             [
-              [x, y - 3],
+              [x, y - 4],
               [x, y + 8],
             ],
             2,

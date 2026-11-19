@@ -22,6 +22,8 @@ Pigment multiplies into the painted skin with slight diffusion in skin coordinat
 
 Default decorations use isolated seeded choices, with face tattoos uncommon and lighter decoration rates for staff. Existing Classic accessory cues are retained when supported. All choices remain manually editable and independent of gameplay.
 
+Necklaces use a gravity-shaped drape anchored at the neck's sides, with the low point on the upper chest. Double chains share those attachment points; pendant bails connect to the chain's low point. Visible skin and collars still occlude them naturally. Headbands now belong to the base painted composition: their width comes from each forehead's pixels, and their fabric curves, narrows and shades around its sides. Hanging hairstyles cover the band where the hair lies in front; cropped/upright styles keep the band over the roots. Tied ends join the wrap at the temple. The entire composition follows the same feature warp and frame crop. No saved setting changes are needed.
+
 ## Saves and compatibility
 
 Settings use the existing `faceX.illustration` field. Version 1 retains its original decoder and painter; version 2 records the base/part IDs, proportions, colors, accessories, clothing and aging flags. Pictures are shared WebP assets, never embedded into each player’s save.
