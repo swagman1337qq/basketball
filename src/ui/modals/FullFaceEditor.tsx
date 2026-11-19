@@ -174,7 +174,7 @@ export function FullFaceEditor({
                   }}
                 >
                   <span style={{ display: 'block', width: '100%', height: 96 }}>
-                    <FullPortraitFallback config={{ ...config, base: h.id }} />
+                    <FullPortraitFallback config={{ ...fullDefaults(h.id), hair: 'bald', facial: 'none' }} />
                   </span>
                   <span style={{ fontSize: 11, marginTop: 4 }}>{h.label}</span>
                 </button>

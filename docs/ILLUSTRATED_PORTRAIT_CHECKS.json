@@ -5,7 +5,47 @@
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 67
+    "elapsedSeconds": 86
+  },
+  "beardAndRootRegistration": {
+    "status": "PASS",
+    "headBeardPairs": 256,
+    "renderedBeardCases": 768,
+    "noseBridgeChecks": 768,
+    "neckArtifactChecks": 240,
+    "beardContactSheetsGenerated": 16,
+    "beardContactSheetsReviewed": 6,
+    "hairCentresAndMohawkPreviewReviewed": true,
+    "checks": [
+      "Per-style mustache/chin anchors match each registered base head",
+      "Beards cannot draw across the nose bridge",
+      "Stubble and chinstraps cannot add a second jaw on the neck",
+      "Synthetic displaced hair is centred without moving the head",
+      "Mohawk has no full-width source cap band",
+      "Black/darker-skin automatic choices use actual textured drawings and exclude the other straight/parted sources",
+      "All 45 hairstyles and 17 facial-hair options remain manually editable",
+      "First-load previews wait for fitted artwork and head choices show clean base heads"
+    ],
+    "browserErrors": []
+  },
+  "hairAlignment": {
+    "status": "PASS",
+    "headHairPairs": 704,
+    "renderedLengthCases": 2112,
+    "lengths": [-1, 0, 1],
+    "crownPixelsInvariantAcrossLengths": true,
+    "visualContactSheetsInspected": 3,
+    "checks": [
+      "Reproduced the reported bob, curly mop and messy-hair scalp gaps before the change",
+      "Crown fitting covers the synthetic previously exposed scalp",
+      "Hair length changes the free ends while leaving the crown fixed",
+      "Intentional balding bypasses cap expansion",
+      "All 16 heads and 44 painted hairstyles retain their crown across length extremes",
+      "Production browser pixels match a fresh painter render",
+      "Rapid edits, unmounts, team colors, aging and artwork retry remain correct",
+      "Editor controls, Cancel/Done, save restoration, mobile and staff God Mode pass"
+    ],
+    "browserErrors": []
   },
   "appearanceDefaults": {
     "status": "PASS",

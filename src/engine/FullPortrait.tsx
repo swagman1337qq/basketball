@@ -208,7 +208,22 @@ export function FullPortrait({
       style={{ display: 'block', position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <span style={{ display: 'block', width: '100%', height: '100%', visibility: hasFrame ? 'hidden' : 'visible' }}>
-        <FullPortraitFallback config={config} />
+        <span
+          role="img"
+          aria-label={error ? 'Portrait artwork unavailable' : 'Loading illustrated portrait'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            width: '100%',
+            height: '100%',
+            fontSize: 10,
+            background: 'var(--color-neutral-100)',
+          }}
+        >
+          {error ? 'Portrait unavailable' : '…'}
+        </span>
       </span>
       <canvas
         ref={canvas}

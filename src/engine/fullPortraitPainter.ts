@@ -1,6 +1,6 @@
 // Painted pixels remain the artwork. Geometry uses a smooth, bounded inverse
 // map: no cut-and-paste eyes, no procedural replacement head.
-import { FULL_SIZE as W, FULL_HAIR_COLORS, FULL_DYES, FULL_EYE_COLORS, type FullPortraitSettings } from './fullPortraits';
+import { FULL_SIZE as W, FULL_HAIR_COLORS, FULL_DYES, FULL_EYE_COLORS, fullHead, type FullPortraitSettings } from './fullPortraits';
 import { mulberry32 } from './rng';
 const N = W * W,
   G = 160,
@@ -283,6 +283,74 @@ function clothingMask(head: Uint8ClampedArray) {
   return mask;
 }
 const bounds = new WeakMap<Uint8ClampedArray, { min: number; max: number; front: Float32Array; level: number }>();
+const crownFits = new WeakMap<Uint8ClampedArray, WeakMap<Uint8ClampedArray, { scale: number; offset: number }>>();
+// Fit the painted cap to this head once. Different hair sheets have slightly
+// different crown heights; their front hairline remains anchored in place.
+function crownFit(head: Uint8ClampedArray, hair: Uint8ClampedArray) {
+  let heads = crownFits.get(hair);
+  if (!heads) crownFits.set(hair, (heads = new WeakMap()));
+  const old = heads.get(head);
+  if (old !== undefined) return old;
+  const anchor = W * 0.38,
+    ratios: number[] = [];
+  for (let x = Math.round(W * 0.4); x <= W * 0.6; x += 3) {
+    let scalp = -1,
+      top = -1;
+    for (let y = Math.floor(W * 0.16); y < anchor; y++) {
+      const i = (y * W + x) * 4,
+        r = head[i],
+        g = head[i + 1],
+        b = head[i + 2];
+      if (r > g * 1.13 && g > b * 1.16 && r - b > 24 && g > 24) {
+        scalp = y;
+        break;
+      }
+    }
+    for (let y = Math.floor(W * 0.1); y < anchor - 8; y++) {
+      if (hair[(y * W + x) * 4 + 3] > 180) {
+        top = y;
+        break;
+      }
+    }
+    if (scalp >= 0 && top >= 0) ratios.push((anchor - scalp + 4) / (anchor - top));
+  }
+  ratios.sort((a, b) => a - b);
+  const scale = fullClamp(ratios[Math.floor(ratios.length * 0.9)] || 1, 1, 1.4),
+    centres: number[] = [],
+    hairCentres: number[] = [];
+  for (let y = Math.round(W * 0.32); y <= W * 0.39; y += 3) {
+    let left = W,
+      right = 0,
+      hleft = W,
+      hright = 0;
+    for (let x = Math.round(W * 0.16); x < W * 0.84; x++) {
+      const i = (y * W + x) * 4,
+        r = head[i],
+        g = head[i + 1],
+        b = head[i + 2];
+      if (r > g * 1.13 && g > b * 1.16 && r - b > 24 && g > 24) {
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+      }
+      if (hair[i + 3] > 180) {
+        hleft = Math.min(hleft, x);
+        hright = Math.max(hright, x);
+      }
+    }
+    if (right - left > 60) centres.push((left + right) / 2);
+    if (hright - hleft > 15) hairCentres.push((hleft + hright) / 2);
+  }
+  centres.sort((a, b) => a - b);
+  hairCentres.sort((a, b) => a - b);
+  const offset = fullClamp(
+      (centres[Math.floor(centres.length / 2)] ?? 160) - (hairCentres[Math.floor(hairCentres.length / 2)] ?? 160),
+      -10,
+      10,
+    ),
+    fit = { scale, offset };
+  heads.set(head, fit);
+  return fit;
+}
 function verticalBounds(a: Uint8ClampedArray) {
   let b = bounds.get(a);
   if (!b) {
@@ -304,6 +372,89 @@ function verticalBounds(a: Uint8ClampedArray) {
   }
   return b;
 }
+// The source beard cells have different mouth/chin registrations. Align each
+// drawing to the selected head before the shared facial-feature warp runs.
+const BEARD_ANCHORS: Record<string, [number, number, number]> = {
+  stubble: [204, 263, 0],
+  heavyStubble: [205, 264, 0],
+  patchy: [204, 264, 0],
+  mustache: [207, 0, 0],
+  soulpatch: [228, 0, 0],
+  chinpuff: [247, 0, 0],
+  goatee: [190, 256, 3],
+  circle: [189, 256, 2],
+  vandyke: [172, 242, 6],
+  chinstrap: [173, 237, 0],
+  chinstrapMustache: [172, 236, 0],
+  shortBeard: [173, 237, 3],
+  fullBeard: [173, 240, 8],
+  thickBeard: [173, 246, 15],
+  pencil: [172, 0, 0],
+  longGoatee: [171, 257, 20],
+};
+// Mustache centre just above the upper lip, and bottom of the chin, in the base art.
+const FACE_ANCHORS = [
+  [201, 248],
+  [198, 249],
+  [198, 249],
+  [198, 247],
+  [200, 248],
+  [198, 249],
+  [197, 246],
+  [198, 250],
+  [202, 250],
+  [200, 248],
+  [200, 250],
+  [199, 248],
+  [205, 251],
+  [204, 253],
+  [205, 251],
+  [204, 252],
+];
+const faceFits = new WeakMap<Uint8ClampedArray, Map<number, { centre: number; half: number; lip: number; chin: number }>>();
+function faceFit(head: Uint8ClampedArray, index: number) {
+  let fits = faceFits.get(head);
+  if (!fits) faceFits.set(head, (fits = new Map()));
+  const old = fits.get(index);
+  if (old) return old;
+  const [lip, chin] = FACE_ANCHORS[index],
+    lefts: number[] = [],
+    rights: number[] = [];
+  for (let y = lip + 3; y <= lip + 13; y += 2) {
+    let left = W,
+      right = 0;
+    for (let x = Math.floor(W * 0.27); x < W * 0.73; x++) {
+      const i = (y * W + x) * 4,
+        r = head[i],
+        g = head[i + 1],
+        b = head[i + 2];
+      if (r > g * 1.13 && g > b * 1.16 && r - b > 24 && g > 24) {
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+      }
+    }
+    if (right - left > 60) {
+      lefts.push(left);
+      rights.push(right);
+    }
+  }
+  lefts.sort((a, b) => a - b);
+  rights.sort((a, b) => a - b);
+  const left = lefts[Math.floor(lefts.length / 2)] ?? 106,
+    right = rights[Math.floor(rights.length / 2)] ?? 214,
+    fit = { centre: (left + right) / 2, half: (right - left) / 2, lip, chin };
+  fits.set(index, fit);
+  return fit;
+}
+function beardFit(head: Uint8ClampedArray, p: FullPortraitSettings) {
+  const f = faceFit(head, fullHead(p.base)!.index),
+    a = BEARD_ANCHORS[p.facial] || BEARD_ANCHORS.stubble,
+    target = p.facial === 'soulpatch' ? f.lip + 24 : p.facial === 'chinpuff' ? f.chin - 5 : f.lip,
+    scaleY = a[1] ? (f.chin + a[2] - target) / (a[1] - a[0]) : p.facial === 'chinpuff' ? 0.8 : 0.85,
+    scaleX = fullClamp(f.half / 61, 0.76, 1.05),
+    clipped = ['stubble', 'heavyStubble', 'patchy', 'chinstrap', 'chinstrapMustache'].includes(p.facial);
+  return { ...f, sourceY: a[0], target, scaleY, scaleX, clipped };
+}
 function overlay(
   out: Uint8ClampedArray,
   src: Uint8ClampedArray,
@@ -311,6 +462,8 @@ function overlay(
   part: 'hair' | 'beard',
   age: number,
   skin: Uint8Array,
+  cap = { scale: 1, offset: 0 },
+  beard?: ReturnType<typeof beardFit>,
 ) {
   const isHair = part === 'hair',
     grey = isHair
@@ -322,20 +475,42 @@ function overlay(
   const recede = Math.max(p.recede, p.ageAuto && !p.recedeManual ? fullClamp((age - 36) / 85) * 0.55 : 0);
   for (let y = 0; y < W; y++)
     for (let x = 0; x < W; x++) {
-      let sy = y;
+      let sy = y,
+        sx = x;
+      if (!isHair && beard) {
+        sy = beard.sourceY + (y - beard.target) / beard.scaleY;
+        sx = 160.5 + (x - beard.centre) / beard.scaleX;
+      }
       if (isHair) {
-        sy = 0.38 * W + (y - 0.38 * W) / (1 + p.hairLength * 0.15);
+        sx = x - cap.offset;
+        // Length changes the free ends below the roots, never the cap above them.
+        // The cap's registration stays the same at every length setting.
+        const anchor = 0.38 * W;
+        sy = anchor + (y - anchor) / (y < anchor ? cap.scale : 1 + p.hairLength * 0.15);
         sy -= p.sideburns * W * 0.024 * smooth(0.44, 0.56, y / W) * smooth(0.08, 0.17, Math.abs(x / W - 0.5));
       }
-      const si = (Math.round(fullClamp(sy, 0, W - 1)) * W + x) * 4,
+      if (sy < 0 || sy >= W || sx < 0 || sx >= W) continue;
+      const si = (Math.round(fullClamp(sy, 0, W - 1)) * W + Math.round(fullClamp(sx, 0, W - 1))) * 4,
         i = (y * W + x) * 4;
       let a = src[si + 3] / 255;
       if (!a) continue;
+      if (!isHair && beard) {
+        // Discard faint source fragments over the nose; cheek/sideburn coverage
+        // remains independent of the upper-lip registration.
+        const nose = 1 - smooth(22, 34, Math.abs(x - beard.centre));
+        a *= 1 - nose * (1 - smooth(beard.lip - 11, beard.lip - 8, y));
+      }
+      if (isHair && p.hair === 'mohawk') a *= 1 - smooth(W * 0.065, W * 0.105, Math.abs(sx - W * 0.5));
+      if (!isHair && beard?.clipped) {
+        const t = fullClamp((y - (beard.lip - 10)) / (beard.chin - (beard.lip - 10))),
+          width = 12 + (beard.half - 12) * Math.sqrt(Math.max(0, 1 - t ** 1.3));
+        a *= (1 - smooth(width - 1, width + 1, Math.abs(x - beard.centre))) * (1 - smooth(beard.chin - 1, beard.chin + 1, y));
+      }
       if (isHair && (recede > 0 || p.hairline !== 'natural')) {
         const u = x / W - 0.5,
           v = y / W,
           centre = 1 - smooth(0.13, 0.24, Math.abs(u));
-        let edge = b.front[x] - recede * 0.07;
+        let edge = b.front[Math.round(fullClamp(sx, 0, W - 1))] - recede * 0.07;
         if (p.hairline === 'peak') edge -= 0.04 * fullClamp(Math.abs(u) / 0.16);
         if (p.hairline === 'round') edge -= 0.045 * fullClamp(Math.abs(u) / 0.21) ** 2;
         if (p.hairline === 'shapeup') edge = b.level - 0.012 - recede * 0.07;
@@ -431,8 +606,11 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
       if (a > 0.2) skin[i] = 0;
       for (let k = 0; k < 3; k++) out[j + k] = out[j + k] * (1 - a) + assets.clothes[j + k] * a;
     }
-  if (assets.beard) overlay(out, assets.beard, p, 'beard', age, skin);
-  if (assets.hair) overlay(out, assets.hair, p, 'hair', age, skin);
+  if (assets.beard) overlay(out, assets.beard, p, 'beard', age, skin, undefined, beardFit(assets.head, p));
+  if (assets.hair) {
+    const fit = crownFit(assets.head, assets.hair);
+    overlay(out, assets.hair, p, 'hair', age, skin, ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit);
+  }
   const warp = fullWarp(p),
     pixels = new Uint8ClampedArray(out);
   for (let y = 0, i = 0; y < W; y++)

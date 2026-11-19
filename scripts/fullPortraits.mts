@@ -15,7 +15,7 @@ import {
   newFullPortrait,
   randomFullFeatures,
 } from '../src/engine/fullPortraits';
-import { fullWarp } from '../src/engine/fullPortraitPainter';
+import { fullWarp, paintFullPixels } from '../src/engine/fullPortraitPainter';
 import { Game } from '../src/engine/Game';
 import { clonePlayer } from '../src/engine/godPlayer';
 import { readIllustration, setIllustration, rerollPersonFace } from '../src/engine/illustratedPortraits';
@@ -40,6 +40,74 @@ for (const group of ['eyes', 'brows', 'expr'] as const)
   assert.deepEqual(new Set(FULL_OPTIONS[group].map(x => x[0])), new Set(FACE_OPTS[group].map(x => x[0])));
 for (const items of [FULL_HEADS, FULL_HAIR, FULL_BEARDS]) assert.equal(new Set(items.map(p => p.id)).size, items.length);
 const defaults = fullDefaults();
+// A short hair setting must shorten loose ends without lifting the cap off the
+// scalp. The synthetic cap deliberately starts below the head's crown.
+const testHead = new Uint8ClampedArray(320 * 320 * 4),
+  testHair = new Uint8ClampedArray(testHead.length);
+for (let y = 0; y < 320; y++)
+  for (let x = 0; x < 320; x++) {
+    const i = (y * 320 + x) * 4,
+      scalp = x >= 120 && x <= 200 && y >= 65 && y <= 160;
+    testHead.set(scalp ? [220, 160, 100, 255] : [170, 142, 132, 255], i);
+    if (x >= 80 && x <= 240 && y >= 75 && y <= 230) testHair.set([35 + (y % 31), 25 + (y % 21), 18 + (y % 13), 255], i);
+  }
+const hairConfig = { ...defaults, ageAuto: false },
+  bare = paintFullPixels({ head: testHead }, hairConfig),
+  rooted = paintFullPixels({ head: testHead, hair: testHair }, hairConfig);
+const crownPixel = (70 * 320 + 160) * 4;
+assert.notDeepEqual(
+  rooted.pixels.slice(crownPixel, crownPixel + 3),
+  bare.pixels.slice(crownPixel, crownPixel + 3),
+  'Cap registration covers a previously exposed crown',
+);
+for (const hairLength of [-1, 1]) {
+  const changed = paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, hairLength });
+  assert.deepEqual(changed.pixels.slice(0, 110 * 320 * 4), rooted.pixels.slice(0, 110 * 320 * 4), 'Hair length cannot move the crown');
+  assert.notDeepEqual(changed.pixels.slice(160 * 320 * 4), rooted.pixels.slice(160 * 320 * 4), 'The free hair ends still change length');
+}
+const balding = paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, hair: 'balding' });
+assert.deepEqual(
+  balding.pixels.slice(crownPixel, crownPixel + 3),
+  bare.pixels.slice(crownPixel, crownPixel + 3),
+  'Intentional balding is not filled in by cap fitting',
+);
+const shiftedHair = new Uint8ClampedArray(testHair.length);
+for (let y = 0; y < 320; y++)
+  for (let x = 10; x < 320; x++) shiftedHair.set(testHair.subarray((y * 320 + x - 10) * 4, (y * 320 + x - 9) * 4), (y * 320 + x) * 4);
+assert.deepEqual(
+  paintFullPixels({ head: testHead, hair: shiftedHair }, hairConfig).pixels,
+  rooted.pixels,
+  'Root registration recentres an offset hairstyle without changing the head',
+);
+const mohawk = paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, hair: 'mohawk' }),
+  bandPixel = (110 * 320 + 100) * 4;
+assert.deepEqual(
+  mohawk.pixels.slice(bandPixel, bandPixel + 3),
+  bare.pixels.slice(bandPixel, bandPixel + 3),
+  'Mohawk does not leave a full-width cap band',
+);
+for (const facial of ['pencil', 'shortBeard']) {
+  const beard = new Uint8ClampedArray(testHair.length);
+  for (let y = 170; y <= 175; y++) for (let x = 130; x <= 190; x++) beard.set([30, 20, 15, 255], (y * 320 + x) * 4);
+  const r = paintFullPixels({ head: testHead, beard }, { ...hairConfig, facial });
+  const lip = (201 * 320 + 160) * 4,
+    nose = (173 * 320 + 160) * 4;
+  assert.notDeepEqual(r.pixels.slice(lip, lip + 3), bare.pixels.slice(lip, lip + 3), 'Mustache follows the upper lip for ' + facial);
+  assert.deepEqual(
+    r.pixels.slice(nose, nose + 3),
+    bare.pixels.slice(nose, nose + 3),
+    'Mustache cannot float across the nose for ' + facial,
+  );
+}
+const stubbleMask = new Uint8ClampedArray(testHair.length);
+for (let y = 259; y <= 265; y++) for (let x = 100; x <= 220; x++) stubbleMask.set([35, 25, 18, 255], (y * 320 + x) * 4);
+const stubbled = paintFullPixels({ head: testHead, beard: stubbleMask }, { ...hairConfig, facial: 'stubble' }),
+  neckPixel = (262 * 320 + 160) * 4;
+assert.deepEqual(
+  stubbled.pixels.slice(neckPixel, neckPixel + 3),
+  bare.pixels.slice(neckPixel, neckPixel + 3),
+  'Stubble cannot add a second jawline on the neck',
+);
 assert.equal(readFullPortrait({ ...defaults, base: 'missing' }), null);
 assert.equal(readFullPortrait({ ...defaults, v: 3 }), null);
 const malformed: any = { ...defaults, headWidth: Infinity, hair: 'not-real', facial: 'bad', browSlit: 99, grey: 8, enabled: 'true' };
@@ -80,7 +148,7 @@ const hairSet = new Set<string>(),
   sigs = new Set<string>();
 for (let seed = 0; seed < 2000; seed++) {
   const head = FULL_HEADS[seed % FULL_HEADS.length],
-    current = { ...defaults, base: head.id },
+    current = { ...defaults, base: head.id, texture: ['straight', 'wavy', 'curly', 'coily'][Math.floor(seed / FULL_HEADS.length) % 4] },
     p = randomFullFeatures(current, seed, { appearanceMix: head.looks, fem: head.gender === 'woman', age: 40 });
   hairSet.add(p.hair);
   assert.equal(p.base, current.base);
@@ -118,7 +186,34 @@ try {
           rerollPersonFace(person, seed);
           for (const p of [generated, shuffled, person.faceX.illustration]) {
             if (race === 'black' || race === 'dark')
-              assert(!['curtains', 'longPart', 'kpop'].includes(p.hair), 'No automatic middle-part/K-pop preset for ' + race);
+              assert(
+                ![
+                  'curtains',
+                  'longPart',
+                  'kpop',
+                  'long',
+                  'wolf',
+                  'manbun',
+                  'sidepart',
+                  'messy',
+                  'ponytail',
+                  'longPonytail',
+                  'shag',
+                  'mullet',
+                  'slick',
+                  'fringe',
+                  'quiff',
+                  'undercut',
+                  'spiky',
+                  'mohawk',
+                  'bob',
+                  'bun',
+                  'pixie',
+                  'longCurls',
+                  'crop',
+                ].includes(p.hair),
+                'No automatic straight-hair drawing for ' + race,
+              );
             if (race === 'asian') {
               assert(
                 !['locsShort', 'locsLong', 'locsUp', 'cornrows', 'braids', 'afro', 'shortAfro', 'twists'].includes(p.hair),

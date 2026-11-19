@@ -478,6 +478,36 @@ function portraitHair(f: any, rnd: () => number, preferredTexture?: string) {
     texture = preferredTexture && weights[preferredTexture] ? preferredTexture : weightedChoice(rnd, weights),
     age = f.age?.years ?? f.age ?? 25;
   let candidates = [...(f.fem ? FEMALE_HAIR[texture] : HAIR_BY_TEXTURE[texture]), 'bald', 'shaved'];
+  // Select the actual textured drawings, not a straight-hair drawing with a
+  // coily texture setting applied to its colour. Several long/parted drawings
+  // were visually unsuitable even though their IDs did not say "middle part".
+  if (look === 'black' || look === 'dark')
+    candidates = [
+      ...(f.fem
+        ? ['afro', 'shortAfro', 'twists', 'braids', 'cornrows', 'locsLong', 'locsUp', 'curlyMop', 'buzz']
+        : [
+            'buzz',
+            'crew',
+            'fade',
+            'caesar',
+            'waves',
+            'shortAfro',
+            'afro',
+            'twists',
+            'frohawk',
+            'locsShort',
+            'locsLong',
+            'locsUp',
+            'cornrows',
+            'braids',
+            'curlyTop',
+            'curlyMop',
+            'hightop',
+            'flattop',
+          ]),
+      'bald',
+      'shaved',
+    ];
   if (!f.fem && age >= 32) candidates.push('baldingBuzz', 'balding');
   // A wavy/curly texture must not accidentally put a middle part on the darker-skin
   // game presets. East Asian presets never draw locs/coily styles automatically.
