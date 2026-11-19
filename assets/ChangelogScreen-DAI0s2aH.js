@@ -1,6 +1,14 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-iDCNTw4m.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-BUfnfV8F.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-19
+
+### Added
+- **Season and team link to that year's roster.** In a player's Stats tab, click a season or a team to open that team's roster for that year (its playoff roster from the Playoffs view). A season he split between teams opens the team he played most for; each team's own line opens its roster.
+
+### Changed
+- **Pos in a player's stats is the position he played most that season**, by minutes at the position he was listed at on each game day. Seasons played before this update still show his position now.
 
 ## 2026-11-18
 
