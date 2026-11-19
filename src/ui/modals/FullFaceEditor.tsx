@@ -93,7 +93,7 @@ export function FullFaceEditor({
           <div style={{ fontSize: 18, fontFamily: 'var(--font-heading)', marginBottom: 6 }}>Editable illustrated portrait</div>
           <p style={{ ...muted, fontSize: 12, margin: '0 0 10px' }}>
             16 painted heads, 45 hairstyles and 17 facial-hair choices. Edit each feature below. Head and hairstyle choices are open to
-            everyone; the person’s name, background and gender stay unchanged.
+            everyone. Random choices follow the person’s in-game appearance; their name, background and gender stay unchanged.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <button
@@ -102,10 +102,27 @@ export function FullFaceEditor({
             >
               New portrait
             </button>
-            <button className="btn btn-secondary" onClick={() => onChange(randomFullFeatures(config, Math.floor(Math.random() * 1e9)))}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => onChange(randomFullFeatures(config, Math.floor(Math.random() * 1e9), face))}
+            >
               Shuffle features
             </button>
-            <button className="btn btn-ghost" onClick={() => onChange({ ...fullDefaults(config.base), outfit: config.outfit })}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                const fresh = newFullPortrait(face, config.seed, context);
+                onChange({
+                  ...fullDefaults(config.base),
+                  hair: fresh.hair,
+                  texture: fresh.texture,
+                  facial: fresh.facial,
+                  natural: fresh.natural,
+                  outfit: config.outfit,
+                  seed: config.seed,
+                });
+              }}
+            >
               Reset edits
             </button>
             <button className="btn btn-ghost" onClick={onLegacy}>

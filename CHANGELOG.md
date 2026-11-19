@@ -10,6 +10,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Season and team link to that year's roster.** In a player's Stats tab, click a season or a team to open that team's roster for that year (its playoff roster from the Playoffs view). A season he split between teams opens the team he played most for; each team's own line opens its roster.
 
 ### Changed
+- **Automatic illustrated faces follow the person’s in-game appearance.** New portrait, New Face, Shuffle features and Reset edits use matching hair textures and style pools. Black/darker-skin presets no longer randomly receive middle-part or K-pop cuts, and East Asian presets no longer randomly receive locs or coily styles. Facial-hair defaults also account for appearance and age. Buzz cuts remain available across every group; manual choices and saved portraits stay intact.
 - **Illustrated staff keep their style when gender or appearance changes.** The staff editor recommends a matching painted head. Painted previews retain the last finished image during edits, fill their frames, and offer retry if artwork cannot load.
 - **Pos in a player's stats is the position he played most that season**, by minutes at the position he was listed at on each game day. Seasons played before this update still show his position now.
 

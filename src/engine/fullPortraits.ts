@@ -345,7 +345,7 @@ export function readFullPortrait(value: any): FullPortraitSettings | null {
 export function chooseFullHead(f: any, seed: number, exclude?: string): string {
   const rnd = mulberry32(seed ^ 0x732e596a),
     gender = f.fem ? 'woman' : 'man',
-    look: Record<string, number> = f.appearanceMix || { [f.race || 'white']: 1 };
+    look = appearanceWeights(f);
   const pool = FULL_HEADS.filter(h => h.gender === gender);
   const d = (h: (typeof FULL_HEADS)[number]) =>
     ['asian', 'black', 'dark', 'brown', 'white'].reduce((n, k) => n + ((look[k] || 0) - (h.looks[k] || 0)) ** 2, 0);
@@ -355,39 +355,200 @@ export function chooseFullHead(f: any, seed: number, exclude?: string): string {
   let n = rnd() * near.reduce((a, h) => a + Math.exp(-2 * d(h)), 0);
   return near.find(h => (n -= Math.exp(-2 * d(h))) < 0)?.id || pool[0].id;
 }
+// These are authored game defaults, not restrictions on what a real person can wear.
+// Manual editor choices and already-saved portraits are deliberately unrestricted.
+const TEXTURE_WEIGHTS: Record<string, Record<string, number>> = {
+  black: { coily: 74, curly: 20, wavy: 6 },
+  dark: { coily: 74, curly: 20, wavy: 6 },
+  asian: { straight: 76, wavy: 18, curly: 6 },
+  white: { straight: 48, wavy: 36, curly: 16 },
+  brown: { straight: 28, wavy: 38, curly: 28, coily: 6 },
+};
+const HAIR_BY_TEXTURE: Record<string, string[]> = {
+  coily: [
+    'buzz',
+    'fade',
+    'waves',
+    'shortAfro',
+    'afro',
+    'twists',
+    'locsShort',
+    'locsLong',
+    'locsUp',
+    'cornrows',
+    'crew',
+    'braids',
+    'curlyTop',
+    'hightop',
+    'flattop',
+    'caesar',
+    'frohawk',
+    'mohawk',
+    'manbun',
+    'ponytail',
+    'longPonytail',
+  ],
+  curly: [
+    'buzz',
+    'crew',
+    'curlyTop',
+    'curlyMop',
+    'crop',
+    'fade',
+    'longCurls',
+    'manbun',
+    'wolf',
+    'messy',
+    'shag',
+    'mullet',
+    'undercut',
+    'long',
+    'ponytail',
+    'longPonytail',
+  ],
+  wavy: [
+    'buzz',
+    'crew',
+    'crop',
+    'sidepart',
+    'messy',
+    'quiff',
+    'curtains',
+    'wolf',
+    'ponytail',
+    'long',
+    'shag',
+    'slick',
+    'fringe',
+    'undercut',
+    'mullet',
+    'manbun',
+    'longPonytail',
+  ],
+  straight: [
+    'buzz',
+    'crew',
+    'crop',
+    'sidepart',
+    'curtains',
+    'kpop',
+    'wolf',
+    'fringe',
+    'pixie',
+    'slick',
+    'messy',
+    'spiky',
+    'quiff',
+    'undercut',
+    'long',
+    'manbun',
+    'ponytail',
+    'longPonytail',
+    'mullet',
+    'shag',
+    'caesar',
+    'mohawk',
+  ],
+};
+const FEMALE_HAIR: Record<string, string[]> = {
+  coily: ['afro', 'shortAfro', 'braids', 'locsLong', 'locsUp', 'twists', 'cornrows', 'bun', 'longCurls', 'buzz', 'pixie'],
+  curly: ['longCurls', 'curlyMop', 'bun', 'bob', 'long', 'shag', 'pixie', 'wolf', 'ponytail', 'longPonytail', 'buzz'],
+  wavy: ['long', 'longPart', 'bob', 'bun', 'shag', 'pixie', 'slick', 'longCurls', 'sidepart', 'wolf', 'ponytail', 'longPonytail', 'buzz'],
+  straight: ['long', 'longPart', 'bob', 'bun', 'shag', 'pixie', 'fringe', 'slick', 'wolf', 'kpop', 'ponytail', 'longPonytail', 'buzz'],
+};
+function weightedChoice(rnd: () => number, weights: Record<string, number>): string {
+  const entries = Object.entries(weights).filter(([, w]) => Number.isFinite(w) && w > 0);
+  let n = rnd() * entries.reduce((sum, [, w]) => sum + w, 0);
+  return entries.find(([, w]) => (n -= w) < 0)?.[0] || entries[0][0];
+}
+function appearanceWeights(f: any): Record<string, number> {
+  const mix = Object.fromEntries(
+    Object.keys(TEXTURE_WEIGHTS)
+      .map(k => [k, f.appearanceMix?.[k]])
+      .filter(([, w]) => Number.isFinite(w) && w > 0),
+  ) as Record<string, number>;
+  const total = Object.values(mix).reduce((sum, weight) => sum + weight, 0);
+  return total > 0
+    ? Object.fromEntries(Object.entries(mix).map(([key, weight]) => [key, weight / total]))
+    : { [TEXTURE_WEIGHTS[f.race] ? f.race : 'white']: 1 };
+}
+function portraitHair(f: any, rnd: () => number, preferredTexture?: string) {
+  const look = weightedChoice(rnd, appearanceWeights(f)),
+    weights = TEXTURE_WEIGHTS[look],
+    texture = preferredTexture && weights[preferredTexture] ? preferredTexture : weightedChoice(rnd, weights),
+    age = f.age?.years ?? f.age ?? 25;
+  let candidates = [...(f.fem ? FEMALE_HAIR[texture] : HAIR_BY_TEXTURE[texture]), 'bald', 'shaved'];
+  if (!f.fem && age >= 32) candidates.push('baldingBuzz', 'balding');
+  // A wavy/curly texture must not accidentally put a middle part on the darker-skin
+  // game presets. East Asian presets never draw locs/coily styles automatically.
+  if (look === 'black' || look === 'dark') candidates = candidates.filter(id => !['curtains', 'longPart', 'kpop'].includes(id));
+  if (look === 'asian')
+    candidates = candidates.filter(
+      id => !['locsShort', 'locsLong', 'locsUp', 'cornrows', 'braids', 'afro', 'shortAfro', 'twists'].includes(id),
+    );
+  return { texture, candidates, look };
+}
+function choosePortraitHair(hair: ReturnType<typeof portraitHair>, rnd: () => number, f: any): string {
+  return weightedChoice(
+    rnd,
+    Object.fromEntries(
+      hair.candidates.map(id => [
+        id,
+        id === 'bald' ? (f.fem ? 0.1 : 3) : id === 'shaved' ? (f.fem ? 0.3 : 5) : id === 'balding' ? 1 : id === 'baldingBuzz' ? 2 : 10,
+      ]),
+    ),
+  );
+}
+function portraitFacial(f: any, look: string, rnd: () => number): string {
+  const age = f.age?.years ?? f.age ?? 25;
+  if (f.fem) return 'none';
+  if (age < 20) return weightedChoice(rnd, { none: 60, stubble: 19, patchy: 14, mustache: 4, soulpatch: 1, chinpuff: 2 });
+  // Sparse/clean-shaven defaults are common here; substantial beards remain a rare
+  // automatic exception and every beard stays selectable by hand.
+  if (look === 'asian')
+    return weightedChoice(rnd, {
+      none: 78,
+      stubble: 10,
+      patchy: 6,
+      mustache: 3,
+      soulpatch: 1,
+      chinpuff: 1,
+      goatee: 0.5,
+      heavyStubble: 0.3,
+      shortBeard: 0.18,
+      fullBeard: 0.02,
+    });
+  return weightedChoice(rnd, {
+    none: 30,
+    stubble: 18,
+    patchy: 7,
+    heavyStubble: 8,
+    mustache: 5,
+    soulpatch: 3,
+    chinpuff: 3,
+    goatee: 6,
+    circle: 5,
+    vandyke: 2,
+    chinstrap: 3,
+    chinstrapMustache: 2,
+    shortBeard: age < 23 ? 5 : 10,
+    fullBeard: age < 23 ? 1 : 6,
+    thickBeard: age < 23 ? 0.2 : 2,
+    pencil: 1,
+    longGoatee: 1,
+  });
+}
 export function newFullPortrait(f: any, seed: number, context: 'player' | 'staff' = 'player', exclude?: string): FullPortraitSettings {
   const rnd = mulberry32(seed ^ 0x2c6a138f),
-    p = fullDefaults(chooseFullHead(f, seed, exclude));
+    p = fullDefaults(chooseFullHead(f, seed, exclude)),
+    hair = portraitHair(f, rnd, f.hair?.tex);
   p.seed = seed | 0;
-  const texture = f.hair?.tex || (['black', 'dark'].includes(f.race) ? 'coily' : f.race === 'asian' ? 'straight' : 'wavy');
-  const hairPool: Record<string, string[]> = {
-    coily: [
-      'buzz',
-      'fade',
-      'waves',
-      'shortAfro',
-      'afro',
-      'twists',
-      'locsShort',
-      'locsLong',
-      'cornrows',
-      'crew',
-      'braids',
-      'curlyTop',
-      'hightop',
-    ],
-    curly: ['buzz', 'crew', 'curlyTop', 'curlyMop', 'crop', 'fade', 'longCurls', 'manbun', 'wolf'],
-    wavy: ['buzz', 'crew', 'crop', 'sidepart', 'messy', 'quiff', 'curtains', 'wolf', 'ponytail', 'long', 'shag'],
-    straight: ['buzz', 'crew', 'crop', 'sidepart', 'curtains', 'kpop', 'wolf', 'fringe', 'pixie', 'slick', 'shaved'],
-  };
-  const candidates = hairPool[texture] || hairPool.straight;
-  p.hair = candidates[Math.floor(rnd() * candidates.length)];
-  if (!f.fem && rnd() > (f.race === 'asian' ? 0.88 : 0.48))
-    p.facial = ['stubble', 'heavyStubble', 'mustache', 'goatee', 'shortBeard', 'fullBeard'][Math.floor(rnd() * 6)];
-  if (FULL_HAIR.some(h => h.id === f.hair?.style)) p.hair = f.hair.style;
-  if (FULL_BEARDS.some(h => h.id === f.facial?.style)) p.facial = f.facial.style;
+  p.hair = choosePortraitHair(hair, rnd, f);
+  // Only inherit a source style when it also passes the automatic appearance pool.
+  if (hair.candidates.includes(f.hair?.style)) p.hair = f.hair.style;
+  p.facial = portraitFacial(f, hair.look, rnd);
   p.natural = FULL_HAIR_COLORS[f.hair?.natural] ? f.hair.natural : 'black';
-  p.texture = texture;
+  p.texture = hair.texture;
   p.outfit = context === 'staff' ? (f.fem ? 'blouse' : 'polo') : 'jersey';
   for (const k of [
     'headWidth',
@@ -404,15 +565,19 @@ export function newFullPortrait(f: any, seed: number, context: 'player' | 'staff
     'earSize',
   ] as const)
     p[k] = Math.round((rnd() - 0.5) * 0.8 * 100) / 100 || 0;
-  if (f.fem) p.facial = 'none';
   return p;
 }
-export function randomFullFeatures(current: FullPortraitSettings, seed: number): FullPortraitSettings {
+export function randomFullFeatures(current: FullPortraitSettings, seed: number, face?: any): FullPortraitSettings {
   const p = { ...current, seed: seed | 0 },
-    rnd = mulberry32(seed ^ 0x19b6ad43);
+    rnd = mulberry32(seed ^ 0x19b6ad43),
+    head = fullHead(current.base)!,
+    source = face || { appearanceMix: head.looks, fem: head.gender === 'woman' },
+    hair = portraitHair(source, rnd, current.texture);
+  p.hair = choosePortraitHair(hair, rnd, source);
+  p.texture = hair.texture;
   for (const k of FULL_PROPORTIONS)
     if (!['skinTone', 'hairLength', 'sideburns'].includes(k)) p[k] = Math.round((rnd() - 0.5) * 1.25 * 100) / 100 || 0;
-  for (const k of ['hair', 'eyes', 'brows', 'expr'] as const) {
+  for (const k of ['eyes', 'brows', 'expr'] as const) {
     const options = FULL_OPTIONS[k];
     p[k] = options[Math.floor(rnd() * options.length)][0];
   }

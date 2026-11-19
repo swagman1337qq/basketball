@@ -5,7 +5,30 @@
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 83
+    "elapsedSeconds": 67
+  },
+  "appearanceDefaults": {
+    "status": "PASS",
+    "profiles": 15000,
+    "automaticSelections": 45000,
+    "appearancePresets": 5,
+    "genders": 2,
+    "ages": [18, 26, 50],
+    "mixedProfileSamples": 1000,
+    "automaticBrowserActions": 130,
+    "checks": [
+      "Initial conversion, New portrait, New Face, Shuffle features and Reset edits use appearance-compatible defaults",
+      "Unsuitable source hairstyles cannot bypass automatic pools",
+      "No automatic middle-part or K-pop choices for Black/darker-skin game presets",
+      "No automatic locs/coily choices for East Asian game presets",
+      "Buzz cuts remain available to every appearance group",
+      "Facial-hair defaults respect age and appearance",
+      "Explicit mixed weights use both profiles and normalize consistently",
+      "Nationality does not replace the in-game appearance",
+      "All 45 manual hairstyles remain selectable and saved choices remain unrestricted",
+      "No gameplay RNG use or biography changes"
+    ],
+    "browserErrors": []
   },
   "productionBuild": {
     "command": "npm run build",

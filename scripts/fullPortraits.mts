@@ -79,9 +79,11 @@ try {
 const hairSet = new Set<string>(),
   sigs = new Set<string>();
 for (let seed = 0; seed < 2000; seed++) {
-  const p = randomFullFeatures(defaults, seed);
+  const head = FULL_HEADS[seed % FULL_HEADS.length],
+    current = { ...defaults, base: head.id },
+    p = randomFullFeatures(current, seed, { appearanceMix: head.looks, fem: head.gender === 'woman', age: 40 });
   hairSet.add(p.hair);
-  assert.equal(p.base, defaults.base);
+  assert.equal(p.base, current.base);
   assert.equal(p.skinTone, defaults.skinTone);
   sigs.add(JSON.stringify(p));
   for (const k of FULL_PROPORTIONS) assert(Number.isFinite(p[k]) && Math.abs(p[k]) <= 1);
@@ -90,6 +92,77 @@ for (let seed = 0; seed < 2000; seed++) {
 }
 assert.equal(hairSet.size, FULL_HAIR.length);
 assert.equal(sigs.size, 2000);
+// Appearance rules apply to initial conversion, editor shuffle and raw-player rerolls.
+// They never alter stored/manual choices, which were exhaustively roundtripped above.
+const appearanceStats: Record<string, { count: number; beards: number; styles: Set<string> }> = {};
+try {
+  Math.random = () => {
+    throw Error('Appearance choices consumed gameplay RNG');
+  };
+  for (const race of ['white', 'black', 'dark', 'asian', 'brown']) {
+    const stats = (appearanceStats[race] = { count: 0, beards: 0, styles: new Set<string>() });
+    for (const fem of [false, true])
+      for (const age of [18, 26, 50])
+        for (let seed = 0; seed < 500; seed++) {
+          // Deliberately supply an unsuitable Classic/source style: it cannot bypass the pool.
+          const face = {
+              race,
+              fem,
+              age,
+              hair: { style: race === 'asian' ? 'locsLong' : 'curtains', tex: race === 'asian' ? 'coily' : 'wavy' },
+              facial: { style: 'fullBeard' },
+            },
+            generated = newFullPortrait(face, seed),
+            shuffled = randomFullFeatures({ ...generated, hair: 'curtains', texture: 'coily' }, seed, face),
+            person: any = { race, fem, age, faceX: { illustration: generated } };
+          rerollPersonFace(person, seed);
+          for (const p of [generated, shuffled, person.faceX.illustration]) {
+            if (race === 'black' || race === 'dark')
+              assert(!['curtains', 'longPart', 'kpop'].includes(p.hair), 'No automatic middle-part/K-pop preset for ' + race);
+            if (race === 'asian') {
+              assert(
+                !['locsShort', 'locsLong', 'locsUp', 'cornrows', 'braids', 'afro', 'shortAfro', 'twists'].includes(p.hair),
+                'No automatic locs/coily style for East Asian preset',
+              );
+              assert.notEqual(p.texture, 'coily');
+            }
+            if (fem) assert.equal(p.facial, 'none');
+            if (age < 20) assert(!['shortBeard', 'fullBeard', 'thickBeard'].includes(p.facial));
+            stats.styles.add(p.hair);
+          }
+          if (!fem && age === 26) {
+            stats.count++;
+            if (['shortBeard', 'fullBeard', 'thickBeard'].includes(generated.facial)) stats.beards++;
+          }
+        }
+    assert(stats.styles.has('buzz'), 'Buzz cuts remain available automatically for every appearance');
+    assert(stats.styles.size >= 10, 'Automatic choices retain variety for ' + race);
+  }
+  assert(appearanceStats.asian.beards / appearanceStats.asian.count < 0.02, 'Substantial beards are rare East Asian defaults');
+  assert(appearanceStats.white.beards > appearanceStats.asian.beards, 'Facial-hair defaults vary with appearance');
+  const textures = new Set<string>(),
+    mixedStyles = new Set<string>();
+  for (let seed = 0; seed < 1000; seed++) {
+    const p = newFullPortrait({ race: 'asian', appearanceMix: { asian: 0.5, black: 0.5 }, age: 26 }, seed);
+    textures.add(p.texture);
+    mixedStyles.add(p.hair);
+  }
+  assert(textures.has('straight') && textures.has('coily'), 'Explicit mixed appearance uses both contributing profiles');
+  assert(mixedStyles.has('kpop') && mixedStyles.has('locsLong'));
+  assert.deepEqual(
+    newFullPortrait({ appearanceMix: { asian: 0.5, black: 0.5 } }, 14),
+    newFullPortrait({ appearanceMix: { asian: 50, black: 50 } }, 14),
+    'Mixed appearance weights are normalized',
+  );
+  assert.deepEqual(
+    newFullPortrait({ race: 'black', nat: 'Japan' }, 31),
+    newFullPortrait({ race: 'black', nat: 'USA' }, 31),
+    'Nationality does not replace in-game appearance',
+  );
+  assert.doesNotThrow(() => newFullPortrait({ race: 'unknown', appearanceMix: { asian: NaN, black: -1 } }, 31));
+} finally {
+  Math.random = old;
+}
 for (const k of FULL_UNIT) assert.equal(readFullPortrait({ ...defaults, [k]: -100 })![k], 0);
 // Combined extremes cannot fold the image, and accessories follow the same map.
 for (let seed = 0; seed < 120; seed++) {
