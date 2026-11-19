@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-f55VnDMW.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DwWDBhP9.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -13,6 +13,10 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Automatic illustrated faces follow the person’s in-game appearance.** New portrait, New Face, Shuffle features and Reset edits use matching hair textures and style pools. Black/darker-skin presets no longer randomly receive middle-part or K-pop cuts, and East Asian presets no longer randomly receive locs or coily styles. Facial-hair defaults also account for appearance and age. Buzz cuts remain available across every group; manual choices and saved portraits stay intact.
 - **Illustrated staff keep their style when gender or appearance changes.** The staff editor recommends a matching painted head. Painted previews retain the last finished image during edits, fill their frames, and offer retry if artwork cannot load.
 - **Pos in a player's stats is the position he played most that season**, by minutes at the position he was listed at on each game day. Seasons played before this update still show his position now.
+
+### Fixed
+- **Illustrated beards follow the selected face.** Each facial-hair drawing now aligns to that head’s upper lip, face width and chin. Removed stray beard fragments over the nose and the extra stubble outline below the jaw. Mohawks no longer carry a full-width hair band, and hairstyles fit the head’s center as well as its crown. Black/darker-skin random choices now use the textured drawings, excluding other straight/parted drawings that previously slipped through. Existing saved feature settings remain intact.
+- **Shortening illustrated hair no longer pulls it off the scalp.** Hair length now changes the loose ends while keeping the crown anchored. Styles with lower crowns also fit the selected head more closely, removing the exposed cap above cuts such as the bob, curly mop and buzz cut. Intentional balding and recession remain available. Existing portraits receive the rendering correction without losing their saved edits.
 
 ## 2026-11-18
 
