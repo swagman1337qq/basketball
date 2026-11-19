@@ -464,6 +464,7 @@ function overlay(
   skin: Uint8Array,
   cap = { scale: 1, offset: 0 },
   beard?: ReturnType<typeof beardFit>,
+  framing?: Uint8Array,
 ) {
   const isHair = part === 'hair',
     grey = isHair
@@ -519,6 +520,7 @@ function overlay(
       }
       if (!isHair) a *= p.beardDensity;
       if (a > 0.2) skin[y * W + x] = 0;
+      if (isHair && framing && a > 0.2) framing[y * W + x] = 1;
       let target = natural;
       if (isHair && dye) {
         const strand = 0.5 + 0.5 * Math.sin(x * 0.23 + Math.sin(y * 0.08) * 2 + Math.sin(y * 0.025 + x * 0.03) * 1.8),
@@ -556,7 +558,8 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
     trim = rgb(jersey[1]),
     garment = clothingMask(assets.head);
   const under: Record<string, number[]> = { neutral: [0, 0, 0], warm: [4, 1, -3], olive: [-1, 2, -3], rosy: [4, -2, 1] };
-  const skin = new Uint8Array(N);
+  const skin = new Uint8Array(N),
+    foreground = new Uint8Array(N);
   for (let y = 0, i = 0; y < W; y++)
     for (let x = 0; x < W; x++, i++) {
       const j = i * 4,
@@ -567,6 +570,7 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
       const skinLike = v > 0.2 && r > g * 1.13 && g > b * 1.16 && r - b > 24 && g > 29;
       if (skinLike) {
         skin[i] = 1;
+        if (v < 0.44) foreground[i] = 1;
         const d = under[p.under];
         const pale = [247, 222, 202],
           t = Math.max(0, p.skinTone) * 0.26;
@@ -609,10 +613,21 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
   if (assets.beard) overlay(out, assets.beard, p, 'beard', age, skin, undefined, beardFit(assets.head, p));
   if (assets.hair) {
     const fit = crownFit(assets.head, assets.hair);
-    overlay(out, assets.hair, p, 'hair', age, skin, ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit);
+    overlay(
+      out,
+      assets.hair,
+      p,
+      'hair',
+      age,
+      skin,
+      ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit,
+      undefined,
+      foreground,
+    );
   }
   const warp = fullWarp(p),
-    pixels = new Uint8ClampedArray(out);
+    pixels = new Uint8ClampedArray(out),
+    framedForeground = new Uint8Array(foreground);
   for (let y = 0, i = 0; y < W; y++)
     for (let x = 0; x < W; x++, i++) {
       const [dX, dY] = warp.offset(x, y);
@@ -629,9 +644,22 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
         b = (iy * W + x1) * 4,
         c = (y1 * W + ix) * 4,
         d = (y1 * W + x1) * 4;
+      framedForeground[i] = foreground[Math.round(sy) * W + Math.round(sx)];
       for (let k = 0; k < 4; k++)
         pixels[i * 4 + k] = (out[a + k] * (1 - fx) + out[b + k] * fx) * (1 - fy) + (out[c + k] * (1 - fx) + out[d + k] * fx) * fy;
     }
-  return { pixels, warp, garment, skin };
+  let foregroundTop = 0;
+  for (let y = 0; y < W * 0.44; y++) {
+    let count = 0;
+    for (let x = 0; x < W; x++) count += framedForeground[y * W + x];
+    if (count >= 3) {
+      foregroundTop = y;
+      break;
+    }
+  }
+  // A modest top crop reduces dead space without cutting tall hair. It depends
+  // on geometry/alpha, so changing hair or skin colour cannot move the framing.
+  const frameTop = Math.round(fullClamp((foregroundTop - 14) / (1 - 14 / W), 0, 40));
+  return { pixels, warp, garment, skin, frameTop };
 }
 const H = W;

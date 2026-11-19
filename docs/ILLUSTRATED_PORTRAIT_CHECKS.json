@@ -5,7 +5,23 @@
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 86
+    "elapsedSeconds": 82
+  },
+  "libraryRetirementAndFraming": {
+    "status": "PASS",
+    "retiredPickerRemoved": true,
+    "retiredEditorDeleted": true,
+    "oldSaveCancelRestoresExactPortrait": true,
+    "oldSaveDoneAcceptsEditableReplacement": true,
+    "oldSaveRerollUsesEditableCatalogue": true,
+    "classicEditsPreserved": true,
+    "frameCropRange": [0, 40],
+    "browserCropSamples": {"buzz":40,"crop":40,"mohawk":12,"afro":40,"locsLong":40,"longPart":40},
+    "noBottomBars": true,
+    "colourIndependentCrop": true,
+    "hairLengthIndependentCropCases": 2112,
+    "beforeAfterPreviewInspected": true,
+    "browserErrors": []
   },
   "beardAndRootRegistration": {
     "status": "PASS",

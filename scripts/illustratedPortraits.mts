@@ -108,6 +108,7 @@ assert.equal(renderToStaticMarkup(g.faceEl(pid, 0)), editedClassic, 'Classic edi
 setIllustration(p, config);
 rerollPersonFace(p, 191);
 assert(readIllustration(p.faceX.illustration)?.enabled);
+assert.equal(p.faceX.illustration.v, 2, 'Rerolling a retired portrait uses the editable catalogue');
 assert.notEqual(p.faceX.illustration.base, config.base);
 assert.deepEqual({ race: p.race, fem: p.fem, r: p.r, from: p.from, ten: p.ten, ceil: p.ceil }, bio);
 p.faceImg = 'data:image/png;base64,custom-upload';

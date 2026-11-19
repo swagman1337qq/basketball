@@ -124,7 +124,7 @@ export function FullPortraitFallback({ config }: { config: FullPortraitSettings 
     <svg
       width="100%"
       height="100%"
-      viewBox={'0 0 ' + W + ' ' + W}
+      viewBox={'0 40 ' + W + ' ' + (W - 40)}
       preserveAspectRatio="xMidYMin slice"
       role="img"
       aria-label="Illustrated portrait"
@@ -167,6 +167,7 @@ export function FullPortrait({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [painted, setPainted] = useState(''),
+    [frameTop, setFrameTop] = useState(0),
     [error, setError] = useState(false),
     [retry, setRetry] = useState(0);
   const key = JSON.stringify([config, age, jersey]),
@@ -187,6 +188,7 @@ export function FullPortrait({
         if (!ctx) throw Error('Canvas unavailable');
         ctx.putImageData(new ImageData(new Uint8ClampedArray(result.pixels), W, W), 0, 0);
         fullPortraitOverlays(ctx, config, result.warp, age, jersey, label, result.garment, result.skin);
+        setFrameTop(result.frameTop);
         setPainted(displayKey);
       })
       .catch(() => {
@@ -205,6 +207,7 @@ export function FullPortrait({
       data-portrait-id={config.base}
       data-portrait-painted={ready ? 'true' : 'false'}
       data-portrait-error={error ? 'true' : 'false'}
+      data-portrait-crop-top={frameTop}
       style={{ display: 'block', position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       <span style={{ display: 'block', width: '100%', height: '100%', visibility: hasFrame ? 'hidden' : 'visible' }}>
@@ -234,9 +237,10 @@ export function FullPortrait({
         style={{
           display: hasFrame ? 'block' : 'none',
           position: 'absolute',
-          inset: 0,
+          left: 0,
+          top: (-100 * frameTop) / (W - frameTop) + '%',
           width: '100%',
-          height: '100%',
+          height: (100 * W) / (W - frameTop) + '%',
           objectFit: 'cover',
           objectPosition: 'center top',
         }}

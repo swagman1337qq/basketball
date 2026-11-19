@@ -107,8 +107,7 @@ export function rerollPersonFace(person: any, seed: number, context: PortraitCon
   const current = readIllustration(person.faceX?.illustration);
   person.faceSeed = seed;
   delete person.faceImg;
-  if (current?.enabled && current.v === 2) setIllustration(person, newFullPortrait(person, seed, context, current.base));
-  else if (current?.enabled) setIllustration(person, illustrationDefaults(chooseIllustration({ ...person, seed }, context, current.base)));
+  if (current?.enabled) setIllustration(person, newFullPortrait(person, seed, context, current.v === 2 ? current.base : undefined));
   else delete person.faceX;
 }
 

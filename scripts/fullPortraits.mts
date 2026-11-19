@@ -54,6 +54,18 @@ for (let y = 0; y < 320; y++)
 const hairConfig = { ...defaults, ageAuto: false },
   bare = paintFullPixels({ head: testHead }, hairConfig),
   rooted = paintFullPixels({ head: testHead, hair: testHair }, hairConfig);
+assert(rooted.frameTop > 0 && rooted.frameTop <= 40, 'Ordinary hair receives a bounded top crop');
+assert.equal(
+  paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, natural: 'lightBlonde', skinTone: -1 }).frameTop,
+  rooted.frameTop,
+  'Colours cannot shift portrait framing',
+);
+const tallHair = new Uint8ClampedArray(testHair);
+for (let y = 8; y < 75; y++) for (let x = 155; x <= 165; x++) tallHair.set([30, 20, 15, 255], (y * 320 + x) * 4);
+assert(
+  paintFullPixels({ head: testHead, hair: tallHair }, hairConfig).frameTop < rooted.frameTop,
+  'Tall hair is protected from the ordinary top crop',
+);
 const crownPixel = (70 * 320 + 160) * 4;
 assert.notDeepEqual(
   rooted.pixels.slice(crownPixel, crownPixel + 3),

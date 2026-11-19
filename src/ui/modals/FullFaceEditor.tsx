@@ -23,13 +23,11 @@ export function FullFaceEditor({
   face,
   context,
   onChange,
-  onLegacy,
 }: {
   config: FullPortraitSettings;
   face: any;
   context: 'player' | 'staff';
   onChange: (p: FullPortraitSettings) => void;
-  onLegacy: () => void;
 }) {
   const [tab, setTab] = useState('face'),
     [heads, setHeads] = useState(false);
@@ -124,9 +122,6 @@ export function FullFaceEditor({
               }}
             >
               Reset edits
-            </button>
-            <button className="btn btn-ghost" onClick={onLegacy}>
-              Previous portrait library
             </button>
           </div>
         </div>

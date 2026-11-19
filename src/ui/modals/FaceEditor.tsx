@@ -5,15 +5,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { DYES, DYE_KINDS, EYE_COLORS, FACE_LOOKS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
 import { muted } from '../kit';
-import {
-  chooseIllustration,
-  illustrationDefaults,
-  readIllustration,
-  rerollPersonFace,
-  setIllustration,
-  type PortraitContext,
-} from '../../engine/illustratedPortraits';
-import { IllustratedFaceEditor } from './IllustratedFaceEditor';
+import { readIllustration, rerollPersonFace, setIllustration, type PortraitContext } from '../../engine/illustratedPortraits';
 import { FullFaceEditor } from './FullFaceEditor';
 import { newFullPortrait } from '../../engine/fullPortraits';
 
@@ -57,6 +49,7 @@ export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p:
   }));
   const f = gm.face(p.id);
   const illustration = readIllustration(f.illustration);
+  const editableIllustration = illustration?.enabled ? (illustration.v === 2 ? illustration : newFullPortrait(f, f.seed, context)) : null;
   const redraw = () => {
     gm.resetFace(p.id);
     gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
@@ -157,7 +150,7 @@ export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p:
           value={illustration?.enabled ? 'illustrated' : 'classic'}
           onChange={e => {
             if (e.target.value === 'illustrated')
-              setIllustration(p, { ...(illustration || newFullPortrait(f, f.seed, context)), enabled: true });
+              setIllustration(p, { ...(illustration?.v === 2 ? illustration : newFullPortrait(f, f.seed, context)), enabled: true });
             else if (illustration) setIllustration(p, { ...illustration, enabled: false });
             redraw();
           }}
@@ -168,48 +161,29 @@ export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p:
       </label>
       {illustration?.enabled ? (
         <>
-          {illustration.v === 2 ? (
-            <FullFaceEditor
-              config={illustration}
-              face={f}
-              context={context}
-              onChange={value => {
-                setIllustration(p, value);
-                redraw();
-              }}
-              onLegacy={() => {
-                setIllustration(p, illustrationDefaults(chooseIllustration(f, context)));
-                redraw();
-              }}
-            />
-          ) : (
-            <>
-              <button
-                className="btn btn-secondary"
-                style={{ marginBottom: 12 }}
-                onClick={() => {
-                  setIllustration(p, newFullPortrait(f, f.seed, context));
-                  redraw();
-                }}
-              >
-                Open full editable catalogue
-              </button>
-              <IllustratedFaceEditor
-                config={illustration}
-                face={f}
-                context={context}
-                onChange={value => {
-                  setIllustration(p, value);
-                  redraw();
-                }}
-              />
-            </>
-          )}
+          <FullFaceEditor
+            config={editableIllustration!}
+            face={f}
+            context={context}
+            onChange={value => {
+              setIllustration(p, value);
+              redraw();
+            }}
+          />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
             <button className="btn btn-ghost" onClick={cancel}>
               Cancel
             </button>
-            <button className="btn btn-primary" onClick={onClose}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                if (illustration.v !== 2) {
+                  setIllustration(p, editableIllustration!);
+                  redraw();
+                }
+                onClose();
+              }}
+            >
               Done
             </button>
           </div>

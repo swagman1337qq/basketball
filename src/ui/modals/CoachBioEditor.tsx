@@ -7,13 +7,7 @@ import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type 
 import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
-import {
-  chooseIllustration,
-  illustrationDefaults,
-  readIllustration,
-  rerollPersonFace,
-  setIllustration,
-} from '../../engine/illustratedPortraits';
+import { readIllustration, rerollPersonFace, setIllustration } from '../../engine/illustratedPortraits';
 import { newFullPortrait } from '../../engine/fullPortraits';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
@@ -28,10 +22,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
       next = { ...draft, ...patch };
     if (current?.enabled) {
       const face = coachFaceData(gm, { ...preview, ...patch, faceX: undefined }, draft.age);
-      setIllustration(
-        next,
-        current.v === 2 ? newFullPortrait(face, face.seed, 'staff') : illustrationDefaults(chooseIllustration(face, 'staff')),
-      );
+      setIllustration(next, newFullPortrait(face, face.seed, 'staff'));
     } else if (patch.fem !== undefined) next.faceX = undefined;
     setDraft(next);
   };

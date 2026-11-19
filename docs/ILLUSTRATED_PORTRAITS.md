@@ -1,6 +1,6 @@
 # Editable illustrated portraits
 
-Expanded 2026-11-19. Open a player’s **Edit face → Portrait style → Illustrated**. Existing illustrated portraits keep their previous version; use **Open full editable catalogue** to switch one to the new set. Staff use the same editor through their existing God Mode biography editor.
+Expanded 2026-11-19. Open a player’s **Edit face → Portrait style → Illustrated**. The Illustrated editor now offers only the full editable catalogue. Staff use the same editor through their existing God Mode biography editor.
 
 ## Catalogue
 
@@ -10,13 +10,13 @@ The Face group edits head width/length, cheekbones, jaw, chin, cleft, seven eye 
 
 Head choices are open to everyone and do not edit the person’s name, background, gender or gameplay data. Authored head recommendations overlap and include mixed looks. Automatic hair choices use validated in-game appearance and texture pools, including on initial conversion, New portrait, New Face, Shuffle features and Reset edits. Source hair cannot bypass the pool: Black/darker-skin presets exclude middle-part/K-pop defaults, and East Asian presets exclude locs/coily defaults. Explicit appearance mixtures use normalized weights from both contributing profiles; nationality does not choose the pool. Facial-hair defaults account for appearance and age, with substantial East Asian beards a rare automatic exception and no substantial teenage beards. These are authored game defaults. Manual hairstyles/beards and already-saved portraits have no race gate. Buzz cuts remain available to every group. Shuffle features preserves the selected base, skin tone and manually chosen facial hair. New portrait chooses a recommended head and fresh proportions using isolated seeded randomness.
 
-The original one-head/seven-hairstyle editor and 56 finished paintings remain under **Previous portrait library**. Those 56 paintings still have fixed features. Classic remains available with all its original controls. No existing/generated population is automatically replaced.
+The previous library picker and its one-head/seven-hairstyle editor have been removed. The older 56 finished paintings cannot be selected or randomly assigned through the game. Their decoder, renderer and artwork remain solely to load older saves without replacing saved faces. Editing an older illustration opens an editable replacement draft: Done accepts it, while Cancel restores the old portrait exactly. Classic remains available with all its original controls. No existing/generated population is automatically replaced.
 
 ## Saves and compatibility
 
 Settings use the existing `faceX.illustration` field. Version 1 retains its original decoder and painter; version 2 records the base/part IDs, proportions, colors, accessories, clothing and aging flags. Pictures are shared WebP assets, never embedded into each player’s save.
 
-There is no save migration or simulation change. Unknown versions/base IDs safely use Classic; recognized settings are validated and bounded. Existing Classic feature edits remain alongside the illustrated settings. Switching styles restores them; switching back restores the illustrated settings. Cancel restores a deep snapshot of the original seed, edits, race and uploaded image. Done uses the existing autosave system. Uploads retain priority. New Face preserves an actively selected illustrated version.
+There is no bulk save migration or simulation change. Unknown versions/base IDs safely use Classic; recognized settings are validated and bounded. Existing Classic feature edits remain alongside the illustrated settings. Switching styles restores them; switching back restores editable illustrated settings. Cancel restores a deep snapshot of the original seed, edits, race and uploaded image. Done uses the existing autosave system. Uploads retain priority. New Face keeps the Illustrated style and always uses the full editable catalogue, including when replacing a retired illustration. Explicit staff appearance/gender changes also use the editable catalogue.
 
 Staff use the same renderer and `faceX` field. Their face edits remain drafts until Done followed by Save changes; God Mode is enforced again by `saveCoachBio`. Changing staff gender or appearance keeps the active illustrated style and recommends a matching head. Existing playing/coaching records retain their existing editing rules. Player archives are not edited when changing a former player’s staff portrait.
 
@@ -38,6 +38,8 @@ Hair length only changes loose ends below the root anchor; the painted crown sta
 That registration also centres the painted roots on the head’s scalp, with a bounded horizontal offset. The mohawk is restricted to its centre strip so its source cap does not form an unintended band across the forehead. Beard cells have independent authored mouth/chin anchors: each is mapped to the selected head’s upper lip, width and chin before the common feature warp. Stubble and chinstraps stay within the jaw; faint fragments above the upper lip are masked over the nose. Longer beard styles retain their intentional length below the chin. The Black/darker-skin automatic hair pool uses the textured drawings themselves, avoiding straight-haired long, parted, bun and fringe drawings whose IDs were not labelled as middle parts. Manual choices remain unrestricted.
 
 First-load previews wait for the fitted drawing, avoiding a flash of unfitted source layers; existing completed frames remain visible while edits render. The head picker shows clean base heads. Alignment corrections apply to saved version-2 portraits after updating the app; revised automatic style pools are used on the next New portrait, New Face, Shuffle features or Reset edits. Saved manual selections are not replaced automatically.
+
+Portraits use a closer frame with less blank space above the hair. A temporary head/hair alpha mask follows the same geometry warp; it chooses a bounded top crop (0–40 source pixels), protecting tall styles and keeping framing stable across hair/skin colour edits. The crop only changes presentation, with no source-pixel or save changes. The canvas extends to the bottom of its frame without a new bar. Clean base-head thumbnails use the same closer framing.
 
 The new set follows team jersey colors where fabric is visible. Staff have painted polos, suits and blouses. Age can add grey, recession and subtle lines; manual grey/recession overrides remain available. Skin details respect visible skin, and shirt numbers are only drawn on visible jersey fabric.
 
