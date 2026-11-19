@@ -7,7 +7,7 @@ import { makeFace, faceSvg } from '../src/engine/faces';
 import { FACE_LOOK_KEYS, faceAncestry, generatedFaceAncestry, normalizeFaceAncestry, rerollFace } from '../src/engine/faceAncestry';
 import { FaceEditor } from '../src/ui/modals/FaceEditor';
 import { clonePlayer } from '../src/engine/godPlayer';
-import { coachFaceData } from '../src/ui/CoachFace';
+import { coachFaceData, CoachFace } from '../src/ui/CoachFace';
 import { coachBioDraft, saveCoachBio } from '../src/ui/coachEditing';
 import { staffOf } from '../src/engine/staff';
 import { mulberry32 } from '../src/engine/rng';
@@ -108,6 +108,7 @@ const edits = {
   'head.style': 'round',
   'nose.style': 'broad',
   'mouth.style': 'full',
+  'portrait.id': 'approved-08',
   'head.w': 1.12,
   'head.h': 0.95,
   'head.jaw': 0.72,
@@ -183,8 +184,7 @@ p.faceX = structuredClone(edits);
 g.resetFace(p.id);
 const face = g.face(p.id);
 const html = renderToStaticMarkup(createElement(FaceEditor, { gm: g, p, onClose() {} }));
-assert(html.includes('Blend with') && html.includes('Appearance blend') && html.includes('Thickness'));
-assert(html.includes('Nose shape') && html.includes('Lip shape') && html.includes('Soft square'));
+assert(html.includes('Choose portrait') && html.includes('Upload JPG/PNG') && !html.includes('type="range"'));
 const copy = clonePlayer(g, p.id)!;
 assert.deepEqual(g.db.P[copy].faceAncestry, p.faceAncestry);
 assert.deepEqual(g.db.P[copy].faceX, p.faceX);
@@ -192,6 +192,7 @@ g.state.god = true;
 const coach = staffOf(g, 0)[0];
 const draft = coachBioDraft(g, coach);
 draft.faceX = structuredClone(edits);
+draft.faceImg = 'data:image/jpeg;base64,cG9ydHJhaXQ=';
 assert.equal(saveCoachBio(g, coach.id, draft), '');
 const coachFace = coachFaceData(g, g.db.coaches[coach.id], g.Y - coach.born);
 assert.deepEqual(coachFace.ancestry, inherited);
@@ -200,6 +201,21 @@ const reopened = Game.load(JSON.parse(JSON.stringify(g.toSave())));
 assert.deepEqual(reopened.db.P[p.id].faceAncestry, mixture);
 assert.deepEqual(reopened.face(p.id), face, 'Save/load retains editable mixed faces exactly');
 assert.deepEqual(reopened.db.coaches[coach.id].faceX, edits, 'Staff ancestry edits survive save/load');
+assert.equal(reopened.db.coaches[coach.id].faceImg, draft.faceImg, 'Staff portrait uploads survive save/load');
+const staffUpload = renderToStaticMarkup(
+  createElement(CoachFace, { gm: reopened, c: reopened.db.coaches[coach.id], age: reopened.Y - coach.born }),
+);
+assert(staffUpload.includes(draft.faceImg!) && !staffUpload.includes('data-face-art'), 'A custom staff photo overrides the default');
+const staffClear = coachBioDraft(reopened, reopened.db.coaches[coach.id]);
+delete staffClear.faceImg;
+assert.equal(saveCoachBio(reopened, coach.id, staffClear), '');
+const staffPicture = renderToStaticMarkup(
+  createElement(CoachFace, { gm: reopened, c: reopened.db.coaches[coach.id], age: reopened.Y - coach.born }),
+);
+assert(
+  staffPicture.includes('data-face-art="complete-illustration"') && staffPicture.includes('data-portrait-id="approved-08"'),
+  'Removing an upload restores the selected finished portrait',
+);
 console.log(
   JSON.stringify({
     beardSamples: summary,

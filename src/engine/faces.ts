@@ -1,15 +1,8 @@
-// Faces: Basketball Manager's own generator and renderer (not facesjs).
-//
-// makeFace(p, salt, kin) describes a face as plain JSON. It is deterministic from the player's face seed
-// (his id until he gets a new face) mixed with the league's seed, so player #57 doesn't look the same in
-// every league. Nothing is stored: the face follows the player's age (grey hair, a receding hairline,
-// lines) and his father's or older brother's face (family resemblance). What you change in the face
-// editor is stored on the player (p.faceX) and laid over the generated face.
-// Looks are drawn independently of each other: hair style follows hair texture rather than race, and dyed
-// hair, beards, accessories and expressions can show up on anyone.
-// faceSvg(face, jersey, label) combines painted portrait parts with editable proportions and colors.
-// Bundled artwork, tints and masks live in illustratedFaces.ts; generation and saved descriptions stay here.
-import { illustratedFaceSvg } from './illustratedFaces';
+// Seeded legacy face descriptions remain available as plain JSON for save/export compatibility.
+// They retain ancestry, age and family metadata, plus old saved feature overrides.
+// Visible portraits are complete finished illustrations selected by portraitCatalog.ts.
+// They are never assembled, recolored or aged from the individual legacy features.
+import { completePortraitSvg, type PortraitContext } from './portraitCatalog';
 import { mulberry32 } from './rng';
 import { FACE_LOOK_KEYS, ancestryValue, ancestryWeights, beardWeights, faceAncestry } from './faceAncestry';
 
@@ -751,7 +744,7 @@ export function finishFace(f: any) {
   return f;
 }
 
-// Paint composable illustration assets; generation and saved feature data remain unchanged.
-export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
-  return illustratedFaceSvg(f, jersey, label);
+// Display complete illustrations; generation and saved feature descriptions remain unchanged.
+export function faceSvg(f: any, jersey?: [string, string], label?: { name?: string; num?: string }, context: PortraitContext = 'player') {
+  return completePortraitSvg(f, context);
 }

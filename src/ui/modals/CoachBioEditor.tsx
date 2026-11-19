@@ -193,9 +193,16 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
       {faceDraft && (
         <FaceEditor
           p={faceDraft}
+          context={faceDraft.pid != null && gm.db.P[faceDraft.pid] ? 'player' : 'staff'}
           gm={{
             face: () => coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
-            faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc']),
+            faceEl: () =>
+              faceSvg(
+                coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
+                ['#2f3136', '#d8d4cc'],
+                undefined,
+                faceDraft.pid != null && gm.db.P[faceDraft.pid] ? 'player' : 'staff',
+              ),
             resetFace: () => {},
             setState: () => redrawFace(n => n + 1),
           }}
@@ -205,6 +212,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
               race: faceDraft.race,
               faceSeed: faceDraft.faceSeed,
               faceX: faceDraft.faceX ? structuredClone(faceDraft.faceX) : undefined,
+              faceImg: faceDraft.faceImg,
             });
             setFaceDraft(null);
           }}
