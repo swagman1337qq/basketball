@@ -44,3 +44,7 @@ lin-finishing/
 # Finishing research, snapshots and calibration
 finishing-dive/
 finishing-fix/
+
+# Test scripts' temporary folders (playerSaveWorker, profileStatsWorker)
+player-worker-*/
+profile-worker-*/
