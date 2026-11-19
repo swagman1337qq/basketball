@@ -795,7 +795,8 @@ const FRAME: Record<string, string> = { black: '#161616', tortoise: '#5b3a20', m
 
 export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
   const illustration = readIllustration(f.illustration);
-  if (illustration?.enabled) return createElement(IllustratedPortrait, { config: illustration });
+  if (illustration?.enabled)
+    return createElement(IllustratedPortrait, { key: f.seed, config: illustration, jersey, label, age: f.age?.years ?? 25 });
   const out: any[] = [];
   let kk = 0;
   const add = (t: string, a: Record<string, any>, child?: string) => {

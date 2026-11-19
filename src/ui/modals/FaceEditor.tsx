@@ -14,6 +14,8 @@ import {
   type PortraitContext,
 } from '../../engine/illustratedPortraits';
 import { IllustratedFaceEditor } from './IllustratedFaceEditor';
+import { FullFaceEditor } from './FullFaceEditor';
+import { newFullPortrait } from '../../engine/fullPortraits';
 
 type Opt = string[];
 const box: CSSProperties = {
@@ -150,11 +152,12 @@ export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p:
       <label style={{ ...row, maxWidth: 320, marginBottom: 14 }}>
         <span>Portrait style</span>
         <select
+          aria-label="Portrait style"
           className="input"
           value={illustration?.enabled ? 'illustrated' : 'classic'}
           onChange={e => {
             if (e.target.value === 'illustrated')
-              setIllustration(p, { ...(illustration || illustrationDefaults(chooseIllustration(f, context))), enabled: true });
+              setIllustration(p, { ...(illustration || newFullPortrait(f, f.seed, context)), enabled: true });
             else if (illustration) setIllustration(p, { ...illustration, enabled: false });
             redraw();
           }}
@@ -165,15 +168,43 @@ export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p:
       </label>
       {illustration?.enabled ? (
         <>
-          <IllustratedFaceEditor
-            config={illustration}
-            face={f}
-            context={context}
-            onChange={value => {
-              setIllustration(p, value);
-              redraw();
-            }}
-          />
+          {illustration.v === 2 ? (
+            <FullFaceEditor
+              config={illustration}
+              face={f}
+              context={context}
+              onChange={value => {
+                setIllustration(p, value);
+                redraw();
+              }}
+              onLegacy={() => {
+                setIllustration(p, illustrationDefaults(chooseIllustration(f, context)));
+                redraw();
+              }}
+            />
+          ) : (
+            <>
+              <button
+                className="btn btn-secondary"
+                style={{ marginBottom: 12 }}
+                onClick={() => {
+                  setIllustration(p, newFullPortrait(f, f.seed, context));
+                  redraw();
+                }}
+              >
+                Open full editable catalogue
+              </button>
+              <IllustratedFaceEditor
+                config={illustration}
+                face={f}
+                context={context}
+                onChange={value => {
+                  setIllustration(p, value);
+                  redraw();
+                }}
+              />
+            </>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
             <button className="btn btn-ghost" onClick={cancel}>
               Cancel

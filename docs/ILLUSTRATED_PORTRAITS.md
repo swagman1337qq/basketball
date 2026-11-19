@@ -1,36 +1,48 @@
-# Optional illustrated portraits
+# Editable illustrated portraits
 
-Added 2026-11-18. Open a player’s **Edit face**, then choose **Illustrated** under Portrait style. Staff use the same library through their existing God Mode editor. The current implementation is an optional first art library, not a replacement for the full generated population.
+Expanded 2026-11-19. Open a player’s **Edit face → Portrait style → Illustrated**. Existing illustrated portraits keep their previous version; use **Open full editable catalogue** to switch one to the new set. Staff use the same editor through their existing God Mode biography editor.
 
-## Available art and controls
+## Catalogue
 
-- One editable head with seven hairstyles (swept, textured crop, buzz, wolf cut, crew, middle part and K-pop two-block), two eye/nose/brow/facial-hair/expression choices and jaw-width, eye-spacing and mouth-width sliders.
-- 24 additional complete player illustrations and 32 complete staff illustrations (16 men and 16 women). These have fixed features. The editor labels this and only offers detailed controls on the editable head.
-- All pictures can be selected for any person. Hair choices have no race restriction. Choosing a picture never edits race, nationality, gender, ratings or any background record.
-- Default recommendations use authored appearance tags, role, gender and broad age band. They consume their own seeded randomness, not the simulation’s random stream. There is no new genetics or mixed-background generator in this release.
+The new painted set has **16 editable base heads, 45 hairstyles and 17 facial-hair choices**. It includes all 39 Classic hairstyle IDs and all 15 Classic facial-hair IDs, plus wolf cuts, K-pop two-blocks, small/long ponytails, balding buzz cuts, horseshoe balding, pencil mustaches and long goatees.
 
-## Persistence and compatibility
+The Face group edits head width/length, cheekbones, jaw, chin, cleft, seven eye shapes, eye colors, eye size/spacing/tilt, six brow shapes and weight, brow slits, six expressions, nose width/length/bridge/tip, mouth width, both lips, ears and build. Other groups edit skin tone/undertone, extra freckles, moles, tattoos, hair texture/length/sideburns/hairline/recession/grey, natural colors, dyes and highlights/tips, beard density/grey, headbands, earrings/metals, piercings, glasses/frames, face shields, undershirts and five clothing choices.
 
-Settings live in existing `faceX.illustration`: version 1, enabled, base ID, hair/eyes/nose/brows/beard/smile choices and jaw/spacing/mouth proportions. Source images are shared assets, not embedded into every player’s save.
+Head choices are open to everyone and do not edit the person’s name, background, gender or gameplay data. Authored head recommendations overlap and include mixed looks. Defaults follow the existing generated face’s appearance, hair texture and facial-hair cues; manual hairstyles and beards have no race gate. Shuffle features preserves the selected base and skin tone. New portrait chooses a recommended head and fresh proportions using isolated seeded randomness.
 
-Classic remains the default for new and existing players. No migration or generation code is changed. The original `makeFace` and SVG drawing remain intact; `faceSvg` selects an illustration only for a valid enabled record. Unknown base IDs/versions use Classic safely. Existing Classic feature overrides remain alongside the illustrated settings. Switching styles restores them, and switching back restores the illustrated choice. Cancel restores a deep snapshot of the original seed, edits, race and uploaded image. Done keeps changes through the existing save system. Uploads retain priority. New Face rerolls within the currently enabled style.
+The original one-head/seven-hairstyle editor and 56 finished paintings remain under **Previous portrait library**. Those 56 paintings still have fixed features. Classic remains available with all its original controls. No existing/generated population is automatically replaced.
 
-Coaches use the shared renderer and their existing `faceX` field. Draft edits require Done followed by Save changes; God Mode access remains enforced by `saveCoachBio`. Former-player coaches refresh when the linked player’s face changes. Managers’ setup and generated portraits are unchanged.
+## Saves and compatibility
 
-## Rendering
+Settings use the existing `faceX.illustration` field. Version 1 retains its original decoder and painter; version 2 records the base/part IDs, proportions, colors, accessories, clothing and aging flags. Pictures are shared WebP assets, never embedded into each player’s save.
 
-`illustratedPortraits.ts` contains the catalog, validation, selection and bounded painter; `IllustratedPortrait.tsx` contains lazy image decoding and the shared React renderer. Four WebP sheets hold the art. Each static face has its own cropped SVG view and clip path, so neighbouring cells never leak into the portrait. SVG slice and canvas cover use the same top-centred fill, removing letterbox bars without stretching the face.
+There is no save migration or simulation change. Unknown versions/base IDs safely use Classic; recognized settings are validated and bounded. Existing Classic feature edits remain alongside the illustrated settings. Switching styles restores them; switching back restores the illustrated settings. Cancel restores a deep snapshot of the original seed, edits, race and uploaded image. Done uses the existing autosave system. Uploads retain priority. New Face preserves an actively selected illustrated version.
 
-The editable source uses the successful matched-head prototype’s eleven 320px frames. Smooth masks limit patches to each feature; proportional adjustments are bounded locally. The wolf-cut mask includes its longer nape and limits beard blending to avoid erasing that hair. Canvas decoding happens only when an editable control is used. Canceled jobs never paint after a newer selection or unmount. Rendering is queued by animation frame and the pixel cache is capped at 16 configurations. Static choices require no pixel processing. Image errors show a readable placeholder; a drawing error retains the same intact base illustration.
+Staff use the same renderer and `faceX` field. Their face edits remain drafts until Done followed by Save changes; God Mode is enforced again by `saveCoachBio`. Changing staff gender or appearance keeps the active illustrated style and recommends a matching head. Existing playing/coaching records retain their existing editing rules. Player archives are not edited when changing a former player’s staff portrait.
 
-## Current limits
+## Rendering and performance
 
-This is **one fully editable identity**, not 57 independently editable heads. It does not yet supply the full Classic option catalogue in painted form. The additional portraits have diverse authored appearances, including mixed looks, but the finite library can repeat. Paintings retain their pictured age, hairstyle and clothing: birthdays and team changes do not repaint them. Classic still supports age, family resemblance, team jerseys and all its original feature controls.
+- `fullPortraits.ts`: stable catalogue, version-2 validation and deterministic recommendations.
+- `fullPortraitPainter.ts`: painted layer composition, color/skin/clothing masks and bounded proportions.
+- `fullPortraitOverlays.ts`: small inked accessories and age details at transformed landmarks.
+- `FullPortrait.tsx`: lazy image loading, cropped fallback, cancellation, drawing queue and bounded caches.
+- `FullFaceEditor.tsx`: feature groups and head picker; shared by player and staff editors.
+- `illustratedPortraits.ts` / `IllustratedPortrait.tsx`: version dispatch and unchanged version-1 painting.
 
-Do not enable these pictures automatically for every generated player until a substantially larger, fully editable library exists and its appearance/age/clothing behavior has been reviewed. Do not describe parameter counts as unique people or infer demographics from the paintings.
+Six new sheets in `assets/illustrated/full/` hold registered heads, three hair collections, beards and staff clothing. New artwork uses the approved inked/cel-painted style. Proportions adjust the existing painting with a smooth inverse map. Combined changes are limited using every corner of the interpolation cells; accessories follow that same map. Hair remains separately painted, preserving head identity when cuts change.
 
-## Verification
+Only requested sheets/frames are decoded. The frame cache is capped at 24, completed drawings at 16, and one drawing job runs per animation frame. Obsolete requests never paint after a newer selection or unmount. During an edit, the last completed image stays visible to avoid source-art flicker. Different people get different component identities. Failed artwork can be retried without losing settings. Cropped SVGs and canvases fill portrait frames without letterbox bars or stretching.
 
-`scripts/illustratedPortraits.mts` runs with `npm test`: 30 exact pre-change Classic render baselines, all 57 catalog boundaries, invalid-setting handling, isolated deterministic defaults, save/load, cloning, retained Classic edits, uploads, rerolls, staff persistence/access control and former-player coach cache refresh.
+The new set follows team jersey colors where fabric is visible. Staff have painted polos, suits and blouses. Age can add grey, recession and subtle lines; manual grey/recession overrides remain available. Skin details respect visible skin, and shirt numbers are only drawn on visible jersey fabric.
 
-Browser checks additionally exercise the real editor and player profile, rapid changes against exact expected pixels, Cancel/Done, style restoration, staff draft/Save, dark/light modes, phone sizing and unavailable artwork. All 224 painted presets and 1,792 proportion extremes are checked against the production painter, including opaque pixels, reset identity and feature isolation. The full game regression suite and production build run before publication.
+## Limits
+
+The catalogue starts from 16 painted identities (12 men, four women). Shape, color, hair and accessory edits add variation; combination counts must not be presented as a count of unique people. Eye/brow/expression presets are bounded adjustments to the base painting. Existing freckles/shading intrinsic to a base remain; Extra freckles adds more.
+
+Portrait selection is optional. Classic’s detailed family-resemblance generation is not replaced by the painted set. The older finished paintings retain their pictured age/clothing. Managers’ setup portraits are unchanged.
+
+## Checks
+
+`scripts/fullPortraits.mts` runs with `npm test`: exact original option coverage, 12,240 valid independent head/hair/beard selections, 2,000 stable randomized settings, invalid-input handling, isolated randomness, combined proportion limits, inverse landmark accuracy, complete player/staff save/load, clone isolation, exact Classic restoration, uploads, one-player incremental autosave and complete export/import.
+
+`scripts/illustratedPortraits.mts` retains 30 exact Classic render baselines and version-1 compatibility coverage. Additional browser/art checks exercise actual painted pixels, all hairstyles/facial hair, visible feature/accessory choices, Cancel/Done, Classic/version switches, mobile layout, staff gender/appearance and God Mode, rapid/out-of-order requests, unmount/person changes, team colors, aging and asset retry. Contact sheets are visually inspected. The validation record is in `docs/ILLUSTRATED_PORTRAIT_CHECKS.json`; source prompts and registration notes are in the asset folder.

@@ -7,7 +7,14 @@ import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type 
 import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
-import { rerollPersonFace } from '../../engine/illustratedPortraits';
+import {
+  chooseIllustration,
+  illustrationDefaults,
+  readIllustration,
+  rerollPersonFace,
+  setIllustration,
+} from '../../engine/illustratedPortraits';
+import { newFullPortrait } from '../../engine/fullPortraits';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
   const [draft, setDraft] = useState(() => coachBioDraft(gm, coach));
@@ -16,6 +23,18 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
   const [, redrawFace] = useState(0);
   if (!gm.state.god) return null;
   const preview: EditableCoach = { ...coach, ...draft, born: gm.Y - draft.age, bioFace: true, next: draft.next || undefined };
+  const changeAppearance = (patch: { fem?: boolean; race?: string }) => {
+    const current = readIllustration(draft.faceX?.illustration),
+      next = { ...draft, ...patch };
+    if (current?.enabled) {
+      const face = coachFaceData(gm, { ...preview, ...patch, faceX: undefined }, draft.age);
+      setIllustration(
+        next,
+        current.v === 2 ? newFullPortrait(face, face.seed, 'staff') : illustrationDefaults(chooseIllustration(face, 'staff')),
+      );
+    } else if (patch.fem !== undefined) next.faceX = undefined;
+    setDraft(next);
+  };
   return (
     <section style={{ ...godBox, padding: 12, marginTop: 16 }} aria-label="God Mode staff editor">
       <h4 style={{ margin: '0 0 10px' }}>Edit staff · God Mode</h4>
@@ -59,7 +78,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           <select
             aria-label="Staff gender"
             value={draft.fem ? 'woman' : 'man'}
-            onChange={e => setDraft({ ...draft, fem: e.target.value === 'woman', faceX: undefined })}
+            onChange={e => changeAppearance({ fem: e.target.value === 'woman' })}
           >
             <option value="man">Man</option>
             <option value="woman">Woman</option>
@@ -68,7 +87,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <label>
           Race / appearance
           <br />
-          <select aria-label="Staff race / appearance" value={draft.race} onChange={e => setDraft({ ...draft, race: e.target.value })}>
+          <select aria-label="Staff race / appearance" value={draft.race} onChange={e => changeAppearance({ race: e.target.value })}>
             {FACE_LOOKS.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}

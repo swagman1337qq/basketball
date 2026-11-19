@@ -6,7 +6,9 @@ import {
   readIllustration,
   type IllustrationSettings,
   type IllustratedChoice,
+  type AnyIllustration,
 } from './illustratedPortraits';
+import { FullPortrait } from './FullPortrait';
 
 export function IllustratedBase({ portrait }: { portrait: IllustratedChoice }) {
   const [failed, setFailed] = useState(false);
@@ -137,8 +139,32 @@ function schedule() {
     }
   });
 }
-export function IllustratedPortrait({ config }: { config: IllustrationSettings }) {
-  const settings = readIllustration(config)!,
+export function IllustratedPortrait({
+  config,
+  jersey,
+  age,
+  label,
+}: {
+  config: AnyIllustration;
+  jersey?: [string, string];
+  age?: number;
+  label?: { name?: string; num?: string };
+}) {
+  const value = readIllustration(config);
+  if (!value)
+    return (
+      <span role="img" aria-label="Portrait artwork unavailable">
+        Portrait unavailable
+      </span>
+    );
+  return value.v === 2 ? (
+    <FullPortrait config={value} jersey={jersey} age={age} label={label} />
+  ) : (
+    <LegacyIllustratedPortrait config={value} />
+  );
+}
+function LegacyIllustratedPortrait({ config }: { config: IllustrationSettings }) {
+  const settings = readIllustration(config) as IllustrationSettings,
     portrait = illustratedChoice(settings.base)!;
   const ref = useRef<HTMLCanvasElement>(null),
     [painted, setPainted] = useState('');

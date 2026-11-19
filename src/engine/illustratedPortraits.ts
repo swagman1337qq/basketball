@@ -2,6 +2,7 @@
 // authored fictional drawing presets, not a demographic or genetics model.
 import catalog from '../assets/illustrated/catalog.json';
 import { mulberry32 } from './rng';
+import { newFullPortrait, readFullPortrait, type FullPortraitSettings } from './fullPortraits';
 
 export type PortraitContext = 'player' | 'staff';
 export type IllustratedChoice = {
@@ -57,7 +58,9 @@ export const illustrationDefaults = (base = 'editable-01'): IllustrationSettings
   spacing: 0,
   mouth: 0,
 });
-export function readIllustration(value: any): IllustrationSettings | null {
+export type AnyIllustration = IllustrationSettings | FullPortraitSettings;
+export function readIllustration(value: any): AnyIllustration | null {
+  if (value?.v === 2) return readFullPortrait(value);
   if (!value || value.v !== 1 || typeof value.base !== 'string' || !byId.has(value.base)) return null;
   const p = illustrationDefaults(value.base);
   p.enabled = value.enabled === true;
@@ -84,7 +87,7 @@ export function chooseIllustration(f: any, context: PortraitContext = 'player', 
   let n = rnd() * near.reduce((sum, p) => sum + Math.exp(-distance(a, p.looks) * 2) * (p.age === band ? 1.8 : 1), 0);
   return near.find(p => (n -= Math.exp(-distance(a, p.looks) * 2) * (p.age === band ? 1.8 : 1)) < 0)?.id || near[0]?.id || 'editable-01';
 }
-export function setIllustration(person: any, config: IllustrationSettings) {
+export function setIllustration(person: any, config: AnyIllustration) {
   const value = readIllustration(config);
   if (!value) return false;
   person.faceX = { ...(person.faceX || {}), illustration: value };
@@ -104,7 +107,8 @@ export function rerollPersonFace(person: any, seed: number, context: PortraitCon
   const current = readIllustration(person.faceX?.illustration);
   person.faceSeed = seed;
   delete person.faceImg;
-  if (current?.enabled) setIllustration(person, illustrationDefaults(chooseIllustration({ ...person, seed }, context, current.base)));
+  if (current?.enabled && current.v === 2) setIllustration(person, newFullPortrait(person, seed, context, current.base));
+  else if (current?.enabled) setIllustration(person, illustrationDefaults(chooseIllustration({ ...person, seed }, context, current.base)));
   else delete person.faceX;
 }
 
@@ -167,7 +171,7 @@ export function createIllustrationPainter(frames: Uint8ClampedArray[]) {
     part === 'hair' ? hairMasks[p.hair] : part === 'beard' && p.hair === 3 ? masks.wolfBeard : masks[part];
   function render(config: IllustrationSettings) {
     const p = readIllustration(config);
-    if (!p || !byId.get(p.base)?.editable) throw Error('This portrait does not have editable feature sources');
+    if (!p || p.v !== 1 || !byId.get(p.base)?.editable) throw Error('This portrait does not have editable feature sources');
     const combined = new Uint8ClampedArray(frames[0]);
     for (const part of ['hair', 'brows', 'beard', 'eyes', 'nose'] as Part[])
       if (p[part]) {

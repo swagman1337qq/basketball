@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-19",
+  "scope": "Optional version-2 illustrated portraits; no simulation, contract or population migration changes.",
+  "regression": {
+    "command": "npm test",
+    "scripts": 31,
+    "status": "PASS",
+    "elapsedSeconds": 83
+  },
+  "productionBuild": {
+    "command": "npm run build",
+    "typecheck": "PASS",
+    "vite": "PASS"
+  },
+  "classicAndVersion1": {
+    "exactClassicRenderBaselines": 30,
+    "status": "PASS",
+    "browserExactFinalPixels": true,
+    "cancel": true,
+    "styleRestore": true,
+    "staffGodMode": true,
+    "actualProfileReroll": true,
+    "assetFailure": true,
+    "phoneWidth": 360,
+    "browserErrors": []
+  },
+  "version2": {
+    "optionCoverage": {
+      "heads": 16,
+      "hairstyles": 45,
+      "facialHair": 17,
+      "validIndependentHeadHairBeardSettings": 12240,
+      "deterministicRandomSettings": 2000
+    },
+    "testScript": "scripts/fullPortraits.mts",
+    "status": "PASS",
+    "checks": [
+      "Invalid input validation",
+      "No gameplay RNG consumption",
+      "Combined shape displacement maximum row slope <= 0.42",
+      "Inverse landmark accuracy",
+      "Complete Game save/load",
+      "Clone isolation",
+      "Exact Classic restoration",
+      "Uploads retain priority",
+      "Staff God Mode enforcement and persistence",
+      "Single edited player causes one archived-player write",
+      "Complete export/import equality"
+    ]
+  },
+  "browser": {
+    "status": "PASS",
+    "all45HairAnd17BeardChoicesProduceDistinctPixels": true,
+    "featureControls": true,
+    "cancelAndStyleRestore": true,
+    "staffGenderAndAppearance": true,
+    "staffGodMode": true,
+    "phoneWidth": 360,
+    "errors": [],
+    "rapidChanges": true,
+    "unmountAndPersonSwitch": true,
+    "exactFinalPixels": true,
+    "ageAndTeamColors": true,
+    "assetRetry": true
+  },
+  "artwork": {
+    "status": "PASS",
+    "headHairCompositionsRendered": 720,
+    "sampledCompositions": 64,
+    "sampledDistinctOpaqueRenders": 64,
+    "combinedWarpCases": 200,
+    "minSampledJacobian": 0.5481214134337351,
+    "toneCases": 48,
+    "numericControlCases": 28,
+    "backgroundPixelsChangedBySkinTone": 0,
+    "sourceArtworkImmutable": true
+  },
+  "visualReview": [
+    "Editor at small and large portrait sizes",
+    "Player hair/face contact sheet",
+    "Skin-tone extremes across all 16 heads",
+    "Staff clothing and accessories",
+    "Mobile editor",
+    "Frame filling with top-aligned crop"
+  ],
+  "limits": [
+    "The 12,240 count measures valid settings, not visually inspected unique identities.",
+    "16 authored base heads (12 men and four women); controls add variation.",
+    "Contact sheets and representative combinations were inspected; every possible feature combination was not manually reviewed.",
+    "Previous finished paintings still have fixed features.",
+    "Existing/generated populations remain Classic unless the user selects Illustrated."
+  ],
+  "provenance": "src/assets/illustrated/full/provenance.json"
+}
