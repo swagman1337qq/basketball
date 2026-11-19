@@ -1,17 +1,51 @@
 {
   "date": "2026-11-19",
-  "scope": "Optional version-2 illustrated portraits; no simulation, contract or population migration changes.",
+  "scope": "Default editable illustrated portraits, source-only Classic fallback, tattoos and jewelry; no simulation, contract or bulk-save migration changes.",
+  "defaultAndRollback": {
+    "status": "PASS",
+    "playersStaffAndManagersDefaultIllustrated": true,
+    "noStyleSelector": true,
+    "implicitDefaultsDoNotMutatePerson": true,
+    "classicRendererRetained": true,
+    "classicFeatureEditorRetained": true,
+    "sourceSwitchRestoresClassic": true,
+    "exactClassicHashes": 30,
+    "uploadedHeadshotPriority": true,
+    "newFieldsSaveCloneAutosaveExportImport": true
+  },
+  "tattoosAndJewelry": {
+    "status": "PASS",
+    "faceDesignsExcludingNone": 12,
+    "neckDesignsExcludingNone": 14,
+    "earringStylesExcludingNone": 14,
+    "cartilageStylesExcludingNone": 4,
+    "noseStylesExcludingNone": 6,
+    "lipStylesExcludingNone": 5,
+    "eyebrowStylesExcludingNone": 3,
+    "necklacesExcludingNone": 7,
+    "metalChoices": 5,
+    "tattooSkinCases": 1248,
+    "skinClippingLeaks": 0,
+    "naturallyOccludedCases": 52,
+    "independentExtremeShapeWarpCases": 192,
+    "maximumWarpChannelError": 2.046,
+    "all16HeadsVisuallyReviewed": true,
+    "everyStyleHasVisibleEffect": true,
+    "textAndNumericValidation": true,
+    "editorControlsAndCancelDone": true,
+    "browserErrors": []
+  },
   "regression": {
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 82
+    "elapsedSeconds": 104
   },
   "libraryRetirementAndFraming": {
     "status": "PASS",
     "retiredPickerRemoved": true,
     "retiredEditorDeleted": true,
-    "oldSaveCancelRestoresExactPortrait": true,
+    "oldSaveCancelRestoresExactRecord": true,
     "oldSaveDoneAcceptsEditableReplacement": true,
     "oldSaveRerollUsesEditableCatalogue": true,
     "classicEditsPreserved": true,
@@ -166,8 +200,10 @@
     "The 12,240 count measures valid settings, not visually inspected unique identities.",
     "16 authored base heads (12 men and four women); controls add variation.",
     "Contact sheets and representative combinations were inspected; every possible feature combination was not manually reviewed.",
-    "Previous finished paintings still have fixed features.",
-    "Existing/generated populations remain Classic unless the user selects Illustrated."
+    "Previous finished paintings remain in source but are not offered or displayed as the live default.",
+    "Existing/generated populations display deterministic Illustrated defaults without a bulk save rewrite.",
+    "Tattoos may be partly or fully hidden by hair, beards or collars; the decoration layer follows skin occlusion.",
+    "Painted appearance recommendations do not add a new family-likeness model."
   ],
   "provenance": "src/assets/illustrated/full/provenance.json"
 }

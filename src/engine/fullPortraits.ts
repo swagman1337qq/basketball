@@ -238,23 +238,79 @@ export const FULL_OPTIONS = {
     ['stud2', 'Studs'],
     ['hoop1', 'One hoop'],
     ['hoop2', 'Hoops'],
+    ['huggie1', 'One huggie'],
+    ['huggie2', 'Huggies'],
+    ['bar1', 'One bar'],
+    ['bar2', 'Bars'],
+    ['drop1', 'One drop'],
+    ['drop2', 'Drops'],
+    ['stack1', 'One stacked set'],
+    ['stack2', 'Stacked sets'],
+    ['cuff1', 'One ear cuff'],
+    ['cuff2', 'Ear cuffs'],
+  ],
+  earSide: [
+    ['left', 'Left'],
+    ['right', 'Right'],
+  ],
+  cartilage: [
+    ['none', 'None'],
+    ['stud', 'Cartilage stud'],
+    ['hoop', 'Cartilage hoop'],
+    ['industrial', 'Industrial bar'],
+    ['double', 'Double studs'],
   ],
   metal: [
     ['diamond', 'Diamond'],
     ['gold', 'Gold'],
     ['silver', 'Silver'],
     ['black', 'Black'],
+    ['roseGold', 'Rose gold'],
   ],
   noseRing: [
     ['none', 'None'],
     ['stud', 'Stud'],
     ['ring', 'Ring'],
     ['septum', 'Septum ring'],
+    ['doubleStud', 'Double studs'],
+    ['doubleRing', 'Double rings'],
+    ['horseshoe', 'Septum horseshoe'],
+  ],
+  noseSide: [
+    ['right', 'Right'],
+    ['left', 'Left'],
   ],
   lipRing: [
     ['none', 'None'],
     ['ring', 'Ring'],
     ['labret', 'Stud'],
+    ['snakeBites', 'Snake bites'],
+    ['vertical', 'Vertical labret'],
+    ['medusa', 'Medusa stud'],
+  ],
+  lipSide: [
+    ['right', 'Right'],
+    ['left', 'Left'],
+  ],
+  browPiercing: [
+    ['none', 'None'],
+    ['barbell', 'Barbell'],
+    ['hoop', 'Hoop'],
+    ['double', 'Double barbell'],
+  ],
+  browSide: [
+    ['right', 'Right'],
+    ['left', 'Left'],
+  ],
+  necklace: [
+    ['none', 'None'],
+    ['chain', 'Fine chain'],
+    ['rope', 'Rope chain'],
+    ['beads', 'Beaded necklace'],
+    ['double', 'Double chain'],
+    ['pendant', 'Round pendant'],
+    ['tags', 'Dog tags'],
+    ['cross', 'Cross pendant'],
   ],
   shield: [
     ['none', 'None'],
@@ -265,6 +321,53 @@ export const FULL_OPTIONS = {
     ['none', 'None'],
     ['script', 'Script'],
     ['design', 'Star'],
+    ['rose', 'Rose'],
+    ['wings', 'Wings'],
+    ['geometric', 'Geometric'],
+    ['numerals', 'Roman numerals'],
+    ['crown', 'Crown'],
+    ['flower', 'Flower'],
+    ['wave', 'Wave'],
+    ['music', 'Music notes'],
+    ['cross', 'Cross'],
+    ['bolt', 'Lightning'],
+    ['swallow', 'Swallow'],
+    ['bands', 'Bands'],
+  ],
+  tattooPlace: [
+    ['right', 'Right side'],
+    ['left', 'Left side'],
+    ['front', 'Front'],
+    ['wrap', 'Both sides'],
+  ],
+  faceTattoo: [
+    ['none', 'None'],
+    ['star', 'Star'],
+    ['cross', 'Cross'],
+    ['bolt', 'Lightning'],
+    ['heart', 'Heart'],
+    ['diamond', 'Diamond'],
+    ['dots', 'Three dots'],
+    ['tear', 'Teardrop'],
+    ['numerals', 'Roman numerals'],
+    ['script', 'Small script'],
+    ['rose', 'Small rose'],
+    ['spark', 'Spark'],
+    ['crescent', 'Crescent'],
+  ],
+  faceTattooPlace: [
+    ['leftCheek', 'Left cheek'],
+    ['rightCheek', 'Right cheek'],
+    ['leftEye', 'Below left eye'],
+    ['rightEye', 'Below right eye'],
+    ['leftTemple', 'Left temple'],
+    ['rightTemple', 'Right temple'],
+    ['forehead', 'Forehead'],
+  ],
+  tattooInk: [
+    ['black', 'Black'],
+    ['blue', 'Blue-black'],
+    ['red', 'Muted red'],
   ],
   undershirt: [
     ['none', 'None'],
@@ -307,13 +410,18 @@ export const FULL_PROPORTIONS = [
   'hairLength',
   'sideburns',
 ] as const;
-export const FULL_UNIT = ['recede', 'grey', 'beardGrey', 'freckles'] as const;
+export const FULL_UNIT = ['recede', 'grey', 'beardGrey', 'freckles', 'faceTattooSize', 'neckTattooSize', 'tattooOpacity'] as const;
 export type FullNumberKey = (typeof FULL_PROPORTIONS)[number] | (typeof FULL_UNIT)[number] | 'beardDensity';
 export const FULL_FLAGS = ['cleft', 'mole', 'browRing', 'ageAuto', 'greyManual', 'recedeManual', 'beardGreyManual'] as const;
-export type FullPortraitSettings = { v: 2; enabled: boolean; base: string; browSlit: number; seed: number } & Record<
-  FullChoiceKey,
-  string
-> &
+export type FullPortraitSettings = {
+  v: 2;
+  enabled: boolean;
+  base: string;
+  browSlit: number;
+  seed: number;
+  faceTattooText: string;
+  neckTattooText: string;
+} & Record<FullChoiceKey, string> &
   Record<FullNumberKey, number> &
   Record<(typeof FULL_FLAGS)[number], boolean>;
 export const fullHead = (id: string) => FULL_HEADS.find(h => h.id === id);
@@ -326,6 +434,10 @@ export function fullDefaults(base = 'full-01'): FullPortraitSettings {
   for (const k of FULL_FLAGS) p[k] = k === 'ageAuto';
   p.hair = 'sidepart';
   p.outfit = 'jersey';
+  p.faceTattooSize = p.neckTattooSize = 0.5;
+  p.tattooOpacity = 0.65;
+  p.faceTattooText = 'VII';
+  p.neckTattooText = 'RISE';
   return p;
 }
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
@@ -340,6 +452,9 @@ export function readFullPortrait(value: any): FullPortraitSettings | null {
   p.browSlit = Number.isInteger(value.browSlit) ? clamp(value.browSlit, 0, 2) : 0;
   p.seed = Number.isInteger(value.seed) ? value.seed | 0 : 1;
   for (const k of FULL_FLAGS) if (typeof value[k] === 'boolean') p[k] = value[k];
+  for (const key of ['faceTattooText', 'neckTattooText'] as const)
+    if (typeof value[key] === 'string')
+      p[key] = value[key].replace(/[\u0000-\u001f\u007f]/g, '').slice(0, key === 'faceTattooText' ? 12 : 20);
   return p;
 }
 export function chooseFullHead(f: any, seed: number, exclude?: string): string {
@@ -580,6 +695,30 @@ export function newFullPortrait(f: any, seed: number, context: 'player' | 'staff
   p.natural = FULL_HAIR_COLORS[f.hair?.natural] ? f.hair.natural : 'black';
   p.texture = hair.texture;
   p.outfit = context === 'staff' ? (f.fem ? 'blouse' : 'polo') : 'jersey';
+  const pick = (key: FullChoiceKey) => {
+    const options = FULL_OPTIONS[key].filter(([id]) => id !== 'none');
+    return options[Math.floor(rnd() * options.length)][0];
+  };
+  p.metal = pick('metal');
+  if (f.acc?.earrings) {
+    p.earrings = (f.acc.earrings.kind === 'hoop' ? 'hoop' : 'stud') + (f.acc.earrings.both ? '2' : '1');
+    if (FULL_OPTIONS.metal.some(([id]) => id === f.acc.earrings.metal)) p.metal = f.acc.earrings.metal;
+  } else if (rnd() < (f.fem ? 0.55 : 0.18)) p.earrings = pick('earrings');
+  p.earSide = rnd() < 0.5 ? 'left' : 'right';
+  p.noseSide = rnd() < 0.5 ? 'left' : 'right';
+  p.lipSide = rnd() < 0.5 ? 'left' : 'right';
+  if (rnd() < 0.045) p.cartilage = pick('cartilage');
+  if (f.acc?.nose?.kind && FULL_OPTIONS.noseRing.some(([id]) => id === f.acc.nose.kind)) p.noseRing = f.acc.nose.kind;
+  else if (rnd() < 0.035) p.noseRing = pick('noseRing');
+  if (f.acc?.lip?.kind && FULL_OPTIONS.lipRing.some(([id]) => id === f.acc.lip.kind)) p.lipRing = f.acc.lip.kind;
+  else if (rnd() < 0.012) p.lipRing = pick('lipRing');
+  if (f.acc?.brow || rnd() < 0.012) p.browPiercing = pick('browPiercing');
+  if (rnd() < (context === 'staff' ? 0.06 : 0.12)) p.necklace = pick('necklace');
+  if (f.marks?.tattoo?.kind && FULL_OPTIONS.tattoo.some(([id]) => id === f.marks.tattoo.kind)) p.tattoo = f.marks.tattoo.kind;
+  else if (rnd() < (context === 'staff' ? 0.025 : 0.09)) p.tattoo = pick('tattoo');
+  if (rnd() < (context === 'staff' ? 0.003 : 0.015)) p.faceTattoo = pick('faceTattoo');
+  p.faceTattooPlace = ['leftCheek', 'rightCheek', 'leftEye', 'rightEye', 'leftTemple', 'rightTemple'][Math.floor(rnd() * 6)];
+  p.tattooPlace = ['left', 'right', 'front', 'wrap'][Math.floor(rnd() * 4)];
   for (const k of [
     'headWidth',
     'headLength',

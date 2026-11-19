@@ -5,7 +5,10 @@ import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Game } from '../src/engine/Game';
-import { makeFace, faceSvg } from '../src/engine/faces';
+import { makeFace, faceSvg, classicFaceSvg } from '../src/engine/faces';
+import { PORTRAIT_MODE } from '../src/engine/portraitMode';
+import { newFullPortrait } from '../src/engine/fullPortraits';
+import { FaceEditor } from '../src/ui/modals/FaceEditor';
 import {
   chooseIllustration,
   ILLUSTRATED_CHOICES,
@@ -21,13 +24,15 @@ import { coachBioDraft, saveCoachBio } from '../src/ui/coachEditing';
 import { coachFaceData, CoachFace } from '../src/ui/CoachFace';
 
 const html = (p: any) => renderToStaticMarkup(faceSvg(makeFace(p, 2027), ['#e11344', '#eeeddc'], { name: 'STARS', num: '12' }));
+const classicHtml = (p: any) =>
+  renderToStaticMarkup(classicFaceSvg(makeFace(p, 2027), ['#e11344', '#eeeddc'], { name: 'STARS', num: '12' }));
 const baseline = JSON.parse(readFileSync(new URL('./fixtures/classicFaces.json', import.meta.url), 'utf8'));
 for (const { p, hash } of baseline) {
-  assert.equal(createHash('sha256').update(html(p)).digest('hex'), hash, 'Classic drawing stays exactly unchanged');
+  assert.equal(createHash('sha256').update(classicHtml(p)).digest('hex'), hash, 'Classic drawing stays exactly unchanged in the codebase');
   assert.equal(
-    html({ ...p, faceX: { illustration: { v: 1, enabled: true, base: 'missing' } } }),
-    html(p),
-    'Unknown artwork safely uses Classic',
+    classicHtml({ ...p, faceX: { illustration: { v: 1, enabled: true, base: 'missing' } } }),
+    classicHtml(p),
+    'Classic rollback ignores illustrated metadata safely',
   );
 }
 assert.equal(ILLUSTRATED_CHOICES.length, 57);
@@ -76,11 +81,28 @@ const g = Game.create(117, [0]),
   p = g.db.P[pid];
 const original = structuredClone(p),
   oldFace = renderToStaticMarkup(g.faceEl(pid, 0));
-assert(!oldFace.includes('data-portrait-style'));
+assert(oldFace.includes('data-portrait-catalogue="full"'), 'Illustrated is the display default');
 assert(!Object.values(g.db.P).some((q: any) => q.faceX?.illustration), 'No automatic replacement of existing/generated faces');
+assert(
+  !renderToStaticMarkup(createElement(FaceEditor, { gm: g, p, onClose: () => {} })).includes('Portrait style'),
+  'No Classic selector is exposed in the live editor',
+);
+try {
+  PORTRAIT_MODE.style = 'classic';
+  g.resetFace(pid);
+  const ui = renderToStaticMarkup(createElement(FaceEditor, { gm: g, p, onClose: () => {} }));
+  assert(ui.includes('Eye shape') && ui.includes('Hair'), 'The source rollback restores the complete Classic editor');
+} finally {
+  PORTRAIT_MODE.style = 'illustrated';
+  g.resetFace(pid);
+}
 p.faceX = { 'hair.style': 'afro', 'head.jaw': 0.82 };
 g.resetFace(pid);
+PORTRAIT_MODE.style = 'classic';
+g.resetFace(pid);
 const editedClassic = renderToStaticMarkup(g.faceEl(pid, 0));
+PORTRAIT_MODE.style = 'illustrated';
+g.resetFace(pid);
 const config = { ...illustrationDefaults(), hair: 6, eyes: 1, beard: 1, jaw: 0.65 };
 setIllustration(p, config);
 g.resetFace(pid);
@@ -104,7 +126,19 @@ assert.deepEqual(g.db.P[cloneId].faceX, p.faceX);
 assert.notEqual(g.db.P[cloneId].faceX, p.faceX, 'Cloned edits are independent');
 setIllustration(p, { ...config, enabled: false });
 g.resetFace(pid);
-assert.equal(renderToStaticMarkup(g.faceEl(pid, 0)), editedClassic, 'Classic edits and team jersey return exactly');
+assert.match(
+  renderToStaticMarkup(g.faceEl(pid, 0)),
+  /data-portrait-catalogue="full"/,
+  'Saved disabled flags cannot re-enable Classic in the game',
+);
+try {
+  PORTRAIT_MODE.style = 'classic';
+  g.resetFace(pid);
+  assert.equal(renderToStaticMarkup(g.faceEl(pid, 0)), editedClassic, 'The source switch restores Classic edits and jersey exactly');
+} finally {
+  PORTRAIT_MODE.style = 'illustrated';
+  g.resetFace(pid);
+}
 setIllustration(p, config);
 rerollPersonFace(p, 191);
 assert(readIllustration(p.faceX.illustration)?.enabled);
@@ -126,14 +160,21 @@ assert.match(renderToStaticMarkup(faceSvg(coachFaceData(g, coach, g.Y - coach.bo
 const loadedCoach = Game.load(JSON.parse(JSON.stringify(g.toSave())));
 assert.deepEqual(loadedCoach.db.coaches[coach.id].faceX, draft.faceX);
 const linked: any = { ...coach, id: 94838, pid, bioFace: false, faceX: undefined, faceSeed: undefined, race: p.race, fem: !!p.fem };
+setIllustration(p, { ...newFullPortrait(makeFace(p, g.db.seed), 19), base: 'full-01' });
+g.resetFace(pid);
 const first = renderToStaticMarkup(createElement(CoachFace, { c: linked, age: p.age, gm: g }));
-setIllustration(p, illustrationDefaults('players-24'));
+setIllustration(p, { ...newFullPortrait(makeFace(p, g.db.seed), 20), base: 'full-02' });
 g.resetFace(pid);
 const second = renderToStaticMarkup(createElement(CoachFace, { c: linked, age: p.age, gm: g }));
 assert.notEqual(second, first, 'Former-player staff portraits refresh with their linked player');
 const classicPerson: any = { id: 3, race: 'black', faceX: { 'hair.style': 'buzz' }, faceImg: 'upload' };
-rerollPersonFace(classicPerson, 19);
-assert.equal(classicPerson.faceX, undefined);
+try {
+  PORTRAIT_MODE.style = 'classic';
+  rerollPersonFace(classicPerson, 19);
+  assert.equal(classicPerson.faceX, undefined);
+} finally {
+  PORTRAIT_MODE.style = 'illustrated';
+}
 assert.equal(classicPerson.faceImg, undefined);
 console.log(
   'PASS: 30 exact Classic baselines; 57 valid portraits; isolated defaults; normalized edits; player/staff saves, cloning, rerolls, uploads and God Mode.',

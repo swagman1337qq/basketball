@@ -3,6 +3,7 @@
 import catalog from '../assets/illustrated/catalog.json';
 import { mulberry32 } from './rng';
 import { newFullPortrait, readFullPortrait, type FullPortraitSettings } from './fullPortraits';
+import { PORTRAIT_MODE } from './portraitMode';
 
 export type PortraitContext = 'player' | 'staff';
 export type IllustratedChoice = {
@@ -107,7 +108,8 @@ export function rerollPersonFace(person: any, seed: number, context: PortraitCon
   const current = readIllustration(person.faceX?.illustration);
   person.faceSeed = seed;
   delete person.faceImg;
-  if (current?.enabled) setIllustration(person, newFullPortrait(person, seed, context, current.v === 2 ? current.base : undefined));
+  if (PORTRAIT_MODE.style === 'illustrated')
+    setIllustration(person, newFullPortrait(person, seed, context, current?.v === 2 ? current.base : undefined));
   else delete person.faceX;
 }
 

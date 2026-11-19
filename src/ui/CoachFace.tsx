@@ -50,7 +50,7 @@ export function CoachFace({ c, age, size = 40, gm }: { c: Coach; age: number; si
     JSON.stringify(pl?.faceX);
   let el = CACHE.get(key);
   if (!el) {
-    el = faceSvg(coachFaceData(gm, editable, age), ['#2f3136', '#d8d4cc']);
+    el = faceSvg(coachFaceData(gm, editable, age), ['#2f3136', '#d8d4cc'], undefined, 'staff');
     if (CACHE.size > 400) CACHE.clear();
     CACHE.set(key, el);
   }

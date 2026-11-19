@@ -39,7 +39,9 @@ export function FullFaceEditor({
           ? { recedeManual: true }
           : key === 'beardGrey'
             ? { beardGreyManual: true }
-            : {};
+            : key === 'browPiercing'
+              ? { browRing: false }
+              : {};
     onChange({ ...config, [key]: value, ...extra });
   };
   const select = (label: string, key: FullChoiceKey) => (
@@ -132,6 +134,7 @@ export function FullFaceEditor({
           ['hair', 'Hair'],
           ['facial', 'Facial hair'],
           ['skin', 'Skin and marks'],
+          ['tattoos', 'Tattoos'],
           ['accessories', 'Accessories'],
           ['clothing', 'Clothing'],
         ].map(([id, name]) => (
@@ -252,19 +255,72 @@ export function FullFaceEditor({
           {select('Undertone', 'under')}
           {range('Extra freckles', 'freckles', 0, 1)}
           {flag('Mole', 'mole')}
-          {select('Neck tattoo', 'tattoo')}
           {flag('Follow age', 'ageAuto')}
         </div>
+      )}
+      {tab === 'tattoos' && (
+        <>
+          <div style={grid}>
+            {select('Face tattoo', 'faceTattoo')}
+            {config.faceTattoo !== 'none' && (
+              <>
+                {select('Face placement', 'faceTattooPlace')}
+                {range('Face tattoo size', 'faceTattooSize', 0, 1)}
+                {['script', 'numerals'].includes(config.faceTattoo) && (
+                  <label style={row}>
+                    <span>Face tattoo text</span>
+                    <input
+                      className="input"
+                      aria-label="Face tattoo text"
+                      maxLength={12}
+                      value={config.faceTattooText}
+                      onChange={e => onChange({ ...config, faceTattooText: e.target.value })}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+            {select('Neck tattoo', 'tattoo')}
+            {config.tattoo !== 'none' && (
+              <>
+                {select('Neck placement', 'tattooPlace')}
+                {range('Neck tattoo size', 'neckTattooSize', 0, 1)}
+                {config.tattoo === 'script' && (
+                  <label style={row}>
+                    <span>Neck tattoo text</span>
+                    <input
+                      className="input"
+                      aria-label="Neck tattoo text"
+                      maxLength={20}
+                      value={config.neckTattooText}
+                      onChange={e => onChange({ ...config, neckTattooText: e.target.value })}
+                    />
+                  </label>
+                )}
+              </>
+            )}
+            {select('Tattoo ink', 'tattooInk')}
+            {range('Tattoo strength', 'tattooOpacity', 0, 1)}
+          </div>
+          <p style={{ ...muted, fontSize: 12 }}>Hair, beards and clothing cover tattoos naturally.</p>
+        </>
       )}
       {tab === 'accessories' && (
         <div style={grid}>
           {select('Headband', 'headband')}
           {config.headband !== 'none' && select('Headband type', 'bandKind')}
           {select('Earrings', 'earrings')}
+          {select('Cartilage piercing', 'cartilage')}
+          {(config.cartilage !== 'none' || (!config.earrings.endsWith('2') && config.earrings !== 'none')) &&
+            select('Earring side', 'earSide')}
           {select('Metal', 'metal')}
           {select('Nose piercing', 'noseRing')}
+          {!['none', 'septum', 'horseshoe'].includes(config.noseRing) && select('Nose side', 'noseSide')}
           {select('Lip piercing', 'lipRing')}
-          {flag('Eyebrow ring', 'browRing')}
+          {config.lipRing === 'ring' && select('Lip side', 'lipSide')}
+          {select('Eyebrow piercing', 'browPiercing')}
+          {config.browPiercing !== 'none' && select('Eyebrow side', 'browSide')}
+          {select('Necklace', 'necklace')}
           {select('Glasses', 'glasses')}
           {config.glasses !== 'none' && select('Frames', 'frame')}
           {select('Face shield', 'shield')}

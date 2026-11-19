@@ -23,6 +23,7 @@ import { staffOf } from '../src/engine/staff';
 import { coachBioDraft, saveCoachBio } from '../src/ui/coachEditing';
 import { coachFaceData } from '../src/ui/CoachFace';
 import { faceSvg } from '../src/engine/faces';
+import { PORTRAIT_MODE } from '../src/engine/portraitMode';
 assert.equal(FULL_HEADS.length, 16);
 assert.equal(FULL_HAIR.length, 45);
 assert.equal(FULL_BEARDS.length, 17);
@@ -125,6 +126,19 @@ assert.equal(readFullPortrait({ ...defaults, v: 3 }), null);
 const malformed: any = { ...defaults, headWidth: Infinity, hair: 'not-real', facial: 'bad', browSlit: 99, grey: 8, enabled: 'true' };
 const safe = readFullPortrait(malformed)!;
 assert.equal(safe.enabled, false);
+const tattooInput = readFullPortrait({
+  ...defaults,
+  faceTattooText: '\u0000X\nV\u007f' + 'I'.repeat(30),
+  neckTattooText: 'A'.repeat(40),
+  faceTattooSize: -7,
+  neckTattooSize: 8,
+  tattooOpacity: Infinity,
+})!;
+assert.equal(tattooInput.faceTattooText, 'XVI' + 'I'.repeat(9));
+assert.equal(tattooInput.neckTattooText.length, 20);
+assert.equal(tattooInput.faceTattooSize, 0);
+assert.equal(tattooInput.neckTattooSize, 1);
+assert.equal(tattooInput.tattooOpacity, defaults.tattooOpacity);
 assert.equal(safe.headWidth, 0);
 assert.equal(safe.hair, 'sidepart');
 assert.equal(safe.facial, 'none');
@@ -293,9 +307,20 @@ const g = Game.create(1131, [0]),
   pid = g.state.rosters[0][0],
   player = g.db.P[pid];
 const original = structuredClone(player);
+const untouched = JSON.stringify(player);
+assert.match(
+  renderToStaticMarkup(g.faceEl(pid, 0)),
+  /data-portrait-catalogue="full"/,
+  'Existing/generated players display Illustrated without a stored face edit',
+);
+assert.equal(JSON.stringify(player), untouched, 'Default portraits do not rewrite player records');
 player.faceX = { 'hair.style': 'afro', 'head.jaw': 0.82 };
 g.resetFace(pid);
+PORTRAIT_MODE.style = 'classic';
+g.resetFace(pid);
 const classic = renderToStaticMarkup(g.faceEl(pid, 0));
+PORTRAIT_MODE.style = 'illustrated';
+g.resetFace(pid);
 const config = {
   ...newFullPortrait(makeFace(player, g.db.seed), 715),
   hair: 'wolf',
@@ -306,6 +331,18 @@ const config = {
   glasses: 'round',
   browSlit: 2,
   mole: true,
+  faceTattoo: 'rose',
+  faceTattooPlace: 'leftEye',
+  faceTattooText: 'VII',
+  tattoo: 'geometric',
+  tattooPlace: 'front',
+  neckTattooText: 'RISE',
+  earrings: 'stack2',
+  cartilage: 'industrial',
+  necklace: 'cross',
+  noseRing: 'horseshoe',
+  lipRing: 'medusa',
+  metal: 'roseGold',
 };
 setIllustration(player, config);
 g.resetFace(pid);
@@ -320,7 +357,15 @@ g.db.P[clone].faceX.illustration.jaw = -0.75;
 assert.equal(player.faceX.illustration.jaw, 0.45, 'Clones do not share nested edits');
 setIllustration(player, { ...config, enabled: false });
 g.resetFace(pid);
-assert.equal(renderToStaticMarkup(g.faceEl(pid, 0)), classic, 'Classic edits restore exactly');
+assert.match(renderToStaticMarkup(g.faceEl(pid, 0)), /data-portrait-catalogue="full"/);
+try {
+  PORTRAIT_MODE.style = 'classic';
+  g.resetFace(pid);
+  assert.equal(renderToStaticMarkup(g.faceEl(pid, 0)), classic, 'Archived Classic edits restore through the source switch');
+} finally {
+  PORTRAIT_MODE.style = 'illustrated';
+  g.resetFace(pid);
+}
 setIllustration(player, config);
 rerollPersonFace(player, 721);
 assert.equal(player.faceX.illustration.v, 2);

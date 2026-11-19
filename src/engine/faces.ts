@@ -13,6 +13,8 @@
 import { createElement } from 'react';
 import { IllustratedPortrait } from './IllustratedPortrait';
 import { readIllustration } from './illustratedPortraits';
+import { newFullPortrait } from './fullPortraits';
+import { PORTRAIT_MODE } from './portraitMode';
 import { mulberry32 } from './rng';
 
 type Pt = [number, number];
@@ -793,10 +795,19 @@ const METALS: Record<string, string> = { diamond: '#eef4f9', gold: '#d6a92e', si
 const BAND: Record<string, string> = { white: '#f4f4f2', black: '#1b1b1d', red: '#c8202f', navy: '#1d2f5e', grey: '#8d9196' };
 const FRAME: Record<string, string> = { black: '#161616', tortoise: '#5b3a20', metal: '#a9adb2', clear: '#cfd6dc' };
 
-export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
-  const illustration = readIllustration(f.illustration);
-  if (illustration?.enabled)
-    return createElement(IllustratedPortrait, { key: f.seed, config: illustration, jersey, label, age: f.age?.years ?? 25 });
+export function faceSvg(
+  f: any,
+  jersey: [string, string] = ['#605d5d', '#bab6b6'],
+  label?: { name?: string; num?: string },
+  context: 'player' | 'staff' = 'player',
+) {
+  if (PORTRAIT_MODE.style === 'classic') return classicFaceSvg(f, jersey, label);
+  const stored = readIllustration(f.illustration),
+    illustration = stored?.v === 2 ? { ...stored, enabled: true } : newFullPortrait(f, f.seed, context);
+  return createElement(IllustratedPortrait, { key: f.seed, config: illustration, jersey, label, age: f.age?.years ?? 25 });
+}
+// Preserved verbatim drawing implementation for source rollback and hash checks.
+export function classicFaceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
   const out: any[] = [];
   let kk = 0;
   const add = (t: string, a: Record<string, any>, child?: string) => {

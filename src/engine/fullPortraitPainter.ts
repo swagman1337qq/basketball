@@ -411,6 +411,10 @@ const FACE_ANCHORS = [
   [205, 251],
   [204, 252],
 ];
+export function portraitLandmarks(base: string) {
+  const [lip, chin] = FACE_ANCHORS[fullHead(base)!.index];
+  return { cx: 160, lip, mouth: lip + 11, nose: lip - 12, eye: lip - 50, brow: lip - 69, chin };
+}
 const faceFits = new WeakMap<Uint8ClampedArray, Map<number, { centre: number; half: number; lip: number; chin: number }>>();
 function faceFit(head: Uint8ClampedArray, index: number) {
   let fits = faceFits.get(head);

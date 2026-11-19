@@ -71,7 +71,7 @@ export function Headshot({ gm, team, size = 96, year }: { gm: GMProfile; team?: 
       {gm.img ? (
         <img src={gm.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
-        faceSvg(makeFace(gmFaceInput(gm, year)), ['#2f3136', '#d8d4cc'])
+        faceSvg(makeFace(gmFaceInput(gm, year)), ['#2f3136', '#d8d4cc'], undefined, 'staff')
       )}
     </div>
   );

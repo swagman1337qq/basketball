@@ -206,7 +206,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           context="staff"
           gm={{
             face: () => coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
-            faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc']),
+            faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc'], undefined, 'staff'),
             resetFace: () => {},
             setState: () => redrawFace(n => n + 1),
           }}

@@ -1,5 +1,6 @@
 import { type FullPortraitSettings, FULL_SIZE as W } from './fullPortraits';
 import { fullClamp, fullWarp } from './fullPortraitPainter';
+import { fullPortraitTattoos, fullPortraitJewelry } from './fullPortraitAdornments';
 
 // Small accessories are inked over the painting at landmarks transformed by
 // exactly the same bounded map as the face beneath them.
@@ -46,15 +47,6 @@ export function fullPortraitOverlays(
     ctx.arc(v[0], v[1], r, 0, Math.PI * 2);
     ctx.fill();
   };
-  const ring = (x: number, y: number, rx: number, ry: number, color: string, width = 1.4) => {
-    const v = at(x, y);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.ellipse(v[0], v[1], rx, ry, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  };
-  const metal = { diamond: '#e5e4dc', gold: '#d3ae61', silver: '#c5cccf', black: '#211e1b' }[p.metal] ?? '#c5cccf';
   ctx.save();
   if (p.ageAuto && age > 37) {
     const alpha = fullClamp((age - 37) / 65, 0, 0.65);
@@ -117,6 +109,7 @@ export function fullPortraitOverlays(
         'rgba(52,32,25,.12)',
         2,
       );
+  fullPortraitTattoos(ctx, p, warp, skin);
   if (p.headband !== 'none') {
     const colors: Record<string, string> = {
         team: jersey[0],
@@ -224,46 +217,7 @@ export function fullPortraitOverlays(
       width,
     );
   }
-  if (p.earrings !== 'none') {
-    for (const x of p.earrings.endsWith('2') ? [0.29, 0.711] : [0.29]) {
-      if (p.earrings.startsWith('hoop')) ring(x, 0.592, 3.5, 5.4, metal);
-      else {
-        dot(x, 0.58, 2.3, '#392c23');
-        dot(x, 0.58, 1.6, metal);
-        dot(x - 0.002, 0.577, 0.6, '#fff9df');
-      }
-    }
-  }
-  if (p.noseRing === 'stud') dot(0.539, 0.571, 1.55, metal);
-  if (p.noseRing === 'ring') ring(0.539, 0.575, 2.5, 3.4, metal, 1.1);
-  if (p.noseRing === 'septum') ring(0.5, 0.579, 3.2, 2.8, metal, 1);
-  if (p.lipRing === 'labret') dot(0.5, 0.686, 1.5, metal);
-  if (p.lipRing === 'ring') ring(0.541, 0.665, 2.2, 3.4, metal, 1.1);
-  if (p.browRing) ring(0.615, 0.421, 2.3, 3.2, metal, 1.2);
-  if (p.tattoo === 'design') {
-    const pts = Array.from({ length: 10 }, (_, i) => {
-      const a = -Math.PI / 2 + (i * Math.PI) / 5,
-        r = i % 2 ? 0.008 : 0.018;
-      return [0.565 + Math.cos(a) * r, 0.838 + Math.sin(a) * r];
-    });
-    path(pts, true);
-    ctx.fillStyle = 'rgba(44,37,29,.66)';
-    ctx.fill();
-  } else if (p.tattoo === 'script') {
-    stroke(
-      [
-        [0.557, 0.819],
-        [0.548, 0.846],
-        [0.559, 0.834],
-        [0.566, 0.847],
-        [0.572, 0.827],
-        [0.576, 0.845],
-        [0.588, 0.834],
-      ],
-      'rgba(44,37,29,.65)',
-      0.85,
-    );
-  }
+  fullPortraitJewelry(ctx, p, warp, skin);
   if (p.undershirt !== 'none' && p.outfit === 'jersey') {
     const color = p.undershirt === 'team' ? jersey[0] : p.undershirt === 'white' ? '#e7e4dc' : '#2a2522';
     for (const side of [0, 1]) {
