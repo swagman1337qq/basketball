@@ -19,7 +19,7 @@ Coaches use the shared renderer and their existing `faceX` field. Draft edits re
 
 ## Rendering
 
-`illustratedPortraits.ts` contains the catalog, validation, selection and bounded painter; `IllustratedPortrait.tsx` contains lazy image decoding and the shared React renderer. Four WebP sheets hold the art. Each static face has its own cropped SVG view and clip path, so neighbouring cells never leak into the portrait.
+`illustratedPortraits.ts` contains the catalog, validation, selection and bounded painter; `IllustratedPortrait.tsx` contains lazy image decoding and the shared React renderer. Four WebP sheets hold the art. Each static face has its own cropped SVG view and clip path, so neighbouring cells never leak into the portrait. SVG slice and canvas cover use the same top-centred fill, removing letterbox bars without stretching the face.
 
 The editable source uses the successful matched-head prototype’s eleven 320px frames. Smooth masks limit patches to each feature; proportional adjustments are bounded locally. The wolf-cut mask includes its longer nape and limits beard blending to avoid erasing that hair. Canvas decoding happens only when an editable control is used. Canceled jobs never paint after a newer selection or unmount. Rendering is queued by animation frame and the pixel cache is capped at 16 configurations. Static choices require no pixel processing. Image errors show a readable placeholder; a drawing error retains the same intact base illustration.
 

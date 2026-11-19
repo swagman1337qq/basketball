@@ -39,7 +39,7 @@ export function IllustratedBase({ portrait }: { portrait: IllustratedChoice }) {
       viewBox={portrait.crop.join(' ')}
       width="100%"
       height="100%"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMidYMin slice"
       style={{ display: 'block' }}
       role="img"
       aria-label={portrait.label}
@@ -198,7 +198,15 @@ export function IllustratedPortrait({ config }: { config: IllustrationSettings }
           height={PORTRAIT_SIZE}
           role="img"
           aria-label="Edited illustrated portrait"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', display: ready ? 'block' : 'none' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center top',
+            display: ready ? 'block' : 'none',
+          }}
         />
       )}
     </span>

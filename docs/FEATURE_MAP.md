@@ -403,6 +403,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Illustrated portraits had empty bars in taller frames.** Fixed 2026-11-18: the cropped SVG and edited canvas both fill their bounds with the same top-centred crop. Portraits keep their proportions; neighbouring atlas cells remain clipped.
+
 - [ ] **Painted portrait coverage is partial.** The optional library has one editable identity; its other 56 paintings have fixed features. It retains pictured age/clothing and is not a full replacement for Classic generation, family likeness, team jerseys or all hairstyle/facial-hair options. Keep population replacement disabled until there is a substantially larger tested editable library.
 
 - [x] **Pre-draft schools/clubs lacked a location flag in player profiles.** Updated 2026-11-18: `viewModel.ts` gives the College / High school / Came from biography row a flag from `p.from.country`, independent of birthplace, upbringing or national-team eligibility. `ProfileMain.tsx` shows the institution country as the flag's accessible label/tooltip; unknown institution countries omit the flag. The separate Grew up biography row is removed; underlying player background data is retained. `viewVisibility.mts` checks foreign-born NCAA players, overseas clubs, missing country metadata, rendering and the existing school/club list link.
