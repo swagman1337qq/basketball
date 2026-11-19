@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
+  'illustratedPortraits',
   'unit',
   'responsiveness',
   'simulationYield',

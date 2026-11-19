@@ -7,6 +7,7 @@ import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type 
 import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
+import { rerollPersonFace } from '../../engine/illustratedPortraits';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
   const [draft, setDraft] = useState(() => coachBioDraft(gm, coach));
@@ -180,7 +181,11 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <button
           className="btn btn-secondary"
           disabled={!!faceDraft}
-          onClick={() => setDraft({ ...draft, faceSeed: Math.floor(Math.random() * 1e9), faceX: undefined })}
+          onClick={() => {
+            const next = structuredClone(draft);
+            rerollPersonFace(next, Math.floor(Math.random() * 1e9), 'staff');
+            setDraft(next);
+          }}
         >
           🎲 Randomize face
         </button>
@@ -188,6 +193,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
       {faceDraft && (
         <FaceEditor
           p={faceDraft}
+          context="staff"
           gm={{
             face: () => coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
             faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc']),

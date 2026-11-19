@@ -5,6 +5,7 @@ import { setGodPlayerAge } from '../../engine/amateurStats';
 // (father, brothers, sons: real player records, linked both ways, family.ts). The player's ID and
 // past-season stats stay locked.
 import { FACE_LOOKS } from '../../engine/faces';
+import { rerollPersonFace } from '../../engine/illustratedPortraits';
 import { useEffect, useState } from 'react';
 import { liftCeil, refreshPot } from '../../engine/potential';
 import type { VM } from '../vm';
@@ -862,9 +863,7 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
               className="btn btn-secondary"
               onClick={() =>
                 mut(q => {
-                  q.faceSeed = Math.floor(Math.random() * 1e9);
-                  delete q.faceImg;
-                  delete q.faceX;
+                  rerollPersonFace(q, Math.floor(Math.random() * 1e9));
                   gm.resetFace(q.id);
                 })
               }

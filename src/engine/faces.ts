@@ -11,6 +11,8 @@
 // the player's number across the jersey when he's shown with a team. Shading uses translucent
 // shapes, never gradients or clip paths, so one face can appear many times on a page without id clashes.
 import { createElement } from 'react';
+import { IllustratedPortrait } from './IllustratedPortrait';
+import { readIllustration } from './illustratedPortraits';
 import { mulberry32 } from './rng';
 
 type Pt = [number, number];
@@ -792,6 +794,8 @@ const BAND: Record<string, string> = { white: '#f4f4f2', black: '#1b1b1d', red: 
 const FRAME: Record<string, string> = { black: '#161616', tortoise: '#5b3a20', metal: '#a9adb2', clear: '#cfd6dc' };
 
 export function faceSvg(f: any, jersey: [string, string] = ['#605d5d', '#bab6b6'], label?: { name?: string; num?: string }) {
+  const illustration = readIllustration(f.illustration);
+  if (illustration?.enabled) return createElement(IllustratedPortrait, { config: illustration });
   const out: any[] = [];
   let kk = 0;
   const add = (t: string, a: Record<string, any>, child?: string) => {

@@ -1,0 +1,1145 @@
+[
+  {
+    "id": "editable-01",
+    "label": "Editable illustrated face",
+    "sheet": "editable",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1280,
+    "height": 960,
+    "crop": [
+      0,
+      0,
+      320,
+      320
+    ],
+    "editable": true
+  },
+  {
+    "id": "players-01",
+    "label": "Player portrait 01",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      13,
+      12,
+      245,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-02",
+    "label": "Player portrait 02",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      270,
+      12,
+      241,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-03",
+    "label": "Player portrait 03",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      523,
+      12,
+      241,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-04",
+    "label": "Player portrait 04",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      776,
+      12,
+      241,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-05",
+    "label": "Player portrait 05",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1030,
+      12,
+      243,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-06",
+    "label": "Player portrait 06",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1285,
+      12,
+      238,
+      242
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-07",
+    "label": "Player portrait 07",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "dark": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      13,
+      265,
+      245,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-08",
+    "label": "Player portrait 08",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      270,
+      265,
+      241,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-09",
+    "label": "Player portrait 09",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      523,
+      265,
+      241,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-10",
+    "label": "Player portrait 10",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "dark": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      776,
+      265,
+      241,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-11",
+    "label": "Player portrait 11",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1030,
+      265,
+      243,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-12",
+    "label": "Player portrait 12",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1285,
+      265,
+      238,
+      241
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-13",
+    "label": "Player portrait 13",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      13,
+      517,
+      245,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-14",
+    "label": "Player portrait 14",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      270,
+      517,
+      241,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-15",
+    "label": "Player portrait 15",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      523,
+      517,
+      241,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-16",
+    "label": "Player portrait 16",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      776,
+      517,
+      241,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-17",
+    "label": "Player portrait 17",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1030,
+      517,
+      243,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-18",
+    "label": "Player portrait 18",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1285,
+      517,
+      238,
+      238
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-19",
+    "label": "Player portrait 19",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      13,
+      767,
+      245,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-20",
+    "label": "Player portrait 20",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      270,
+      767,
+      241,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-21",
+    "label": "Player portrait 21",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "black": 0.5,
+      "asian": 0.5
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      523,
+      767,
+      241,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-22",
+    "label": "Player portrait 22",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "brown": 0.5,
+      "white": 0.5
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      776,
+      767,
+      241,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-23",
+    "label": "Player portrait 23",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1030,
+      767,
+      243,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "players-24",
+    "label": "Player portrait 24",
+    "sheet": "players",
+    "role": "player",
+    "gender": "man",
+    "looks": {
+      "asian": 0.5,
+      "white": 0.5
+    },
+    "age": "young",
+    "width": 1536,
+    "height": 1024,
+    "crop": [
+      1285,
+      767,
+      238,
+      244
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-01",
+    "label": "Staff portrait M 01",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-02",
+    "label": "Staff portrait M 02",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-03",
+    "label": "Staff portrait M 03",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-04",
+    "label": "Staff portrait M 04",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-05",
+    "label": "Staff portrait M 05",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-06",
+    "label": "Staff portrait M 06",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-07",
+    "label": "Staff portrait M 07",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-08",
+    "label": "Staff portrait M 08",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-09",
+    "label": "Staff portrait M 09",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-10",
+    "label": "Staff portrait M 10",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-11",
+    "label": "Staff portrait M 11",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-12",
+    "label": "Staff portrait M 12",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-13",
+    "label": "Staff portrait M 13",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "asian": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-14",
+    "label": "Staff portrait M 14",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "black": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-15",
+    "label": "Staff portrait M 15",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "white": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffMen-16",
+    "label": "Staff portrait M 16",
+    "sheet": "staffMen",
+    "role": "staff",
+    "gender": "man",
+    "looks": {
+      "brown": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-01",
+    "label": "Staff portrait W 01",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "asian": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-02",
+    "label": "Staff portrait W 02",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "black": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-03",
+    "label": "Staff portrait W 03",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "white": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-04",
+    "label": "Staff portrait W 04",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "brown": 1
+    },
+    "age": "young",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      1,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-05",
+    "label": "Staff portrait W 05",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "asian": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-06",
+    "label": "Staff portrait W 06",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "black": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-07",
+    "label": "Staff portrait W 07",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "white": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-08",
+    "label": "Staff portrait W 08",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "brown": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      363,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-09",
+    "label": "Staff portrait W 09",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "asian": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-10",
+    "label": "Staff portrait W 10",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "black": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-11",
+    "label": "Staff portrait W 11",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "white": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-12",
+    "label": "Staff portrait W 12",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "brown": 1
+    },
+    "age": "adult",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      725,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-13",
+    "label": "Staff portrait W 13",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "asian": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      1,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-14",
+    "label": "Staff portrait W 14",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "black": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      272.5,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-15",
+    "label": "Staff portrait W 15",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "white": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      544,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  },
+  {
+    "id": "staffWomen-16",
+    "label": "Staff portrait W 16",
+    "sheet": "staffWomen",
+    "role": "staff",
+    "gender": "woman",
+    "looks": {
+      "brown": 1
+    },
+    "age": "older",
+    "width": 1086,
+    "height": 1448,
+    "crop": [
+      815.5,
+      1087,
+      269.5,
+      360
+    ],
+    "editable": false
+  }
+]

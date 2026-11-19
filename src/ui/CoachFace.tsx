@@ -43,7 +43,11 @@ export function CoachFace({ c, age, size = 40, gm }: { c: Coach; age: number; si
     '|' +
     editable.faceSeed +
     '|' +
-    JSON.stringify(editable.faceX);
+    JSON.stringify(editable.faceX) +
+    '|' +
+    (pl?.faceSeed ?? '') +
+    '|' +
+    JSON.stringify(pl?.faceX);
   let el = CACHE.get(key);
   if (!el) {
     el = faceSvg(coachFaceData(gm, editable, age), ['#2f3136', '#d8d4cc']);
