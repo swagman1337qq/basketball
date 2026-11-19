@@ -16,6 +16,7 @@ import {
   randomFullFeatures,
 } from '../src/engine/fullPortraits';
 import { fullWarp, paintFullPixels } from '../src/engine/fullPortraitPainter';
+import { tattooSurface, tattooSurfacePoint, tattooSurfaceSample, tattooInkTransmission } from '../src/engine/portraitTattooSurface';
 import { Game } from '../src/engine/Game';
 import { clonePlayer } from '../src/engine/godPlayer';
 import { readIllustration, setIllustration, rerollPersonFace } from '../src/engine/illustratedPortraits';
@@ -41,6 +42,47 @@ for (const group of ['eyes', 'brows', 'expr'] as const)
   assert.deepEqual(new Set(FULL_OPTIONS[group].map(x => x[0])), new Set(FACE_OPTS[group].map(x => x[0])));
 for (const items of [FULL_HEADS, FULL_HAIR, FULL_BEARDS]) assert.equal(new Set(items.map(p => p.id)).size, items.length);
 const defaults = fullDefaults();
+// A tattoo covers skin arc length: its side view must foreshorten, its front
+// baseline must curve, and the inverse map cannot mirror or fold the design.
+let tattooSurfaceCases = 0;
+for (const head of FULL_HEADS) {
+  const p = fullDefaults(head.id),
+    neck = tattooSurface(p, true),
+    frontWidth = tattooSurfacePoint(neck, 16, 0)[0] - tattooSurfacePoint(neck, -16, 0)[0];
+  assert(
+    tattooSurfacePoint(neck, 16, 0)[1] < tattooSurfacePoint(neck, 0, 0)[1] - 0.5,
+    'Neck lettering bends around a surface, not a screen rectangle',
+  );
+  for (const side of [-1, 1]) {
+    const s = tattooSurface(p, true, side),
+      width = tattooSurfacePoint(s, 16, 0)[0] - tattooSurfacePoint(s, -16, 0)[0];
+    assert(width > 0 && width < frontWidth * 0.85, 'The same ink foreshortens toward the neck sides');
+  }
+  const surfaces = [-1, 0, 1].map(side => tattooSurface(p, true, side));
+  for (const [faceTattooPlace] of FULL_OPTIONS.faceTattooPlace) surfaces.push(tattooSurface({ ...p, faceTattooPlace }));
+  for (const s of surfaces) {
+    for (const v of [-24, 0, 24]) {
+      let lastX = -Infinity;
+      for (let u = -24; u <= 24; u += 4) {
+        if (Math.abs(s.angle + u / s.radius) > 1.4) continue;
+        const [x, y] = tattooSurfacePoint(s, u, v),
+          q = tattooSurfaceSample(s, x, y)!;
+        assert(q && Number.isFinite(q.u) && Number.isFinite(q.v));
+        assert(Math.abs(q.u - u) < 0.01 && Math.abs(q.v - v) < 0.01, 'Surface lookup preserves skin attachment');
+        assert(x > lastX && q.coverage > 0 && q.coverage <= 1, 'No mirrored text, folds or invalid opacity');
+        lastX = x;
+        tattooSurfaceCases++;
+      }
+    }
+    assert.equal(tattooSurfaceSample(s, s.cx + s.radius * 1.1, s.cy), null, 'Ink cannot project beyond the visible surface');
+  }
+}
+assert(tattooSurfaceCases > 5000);
+for (const light of [25, 70, 130, 210, 250]) {
+  const flat = tattooInkTransmission(light, light),
+    highlight = tattooInkTransmission(light, light - 45);
+  assert(flat > 0 && flat <= 1 && highlight > 0 && highlight < flat * 0.8, 'Reflected skin highlights stay above the ink');
+}
 // A short hair setting must shorten loose ends without lifting the cap off the
 // scalp. The synthetic cap deliberately starts below the head's crown.
 const testHead = new Uint8ClampedArray(320 * 320 * 4),

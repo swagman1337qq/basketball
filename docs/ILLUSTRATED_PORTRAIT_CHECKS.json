@@ -26,7 +26,7 @@
     "metalChoices": 5,
     "tattooSkinCases": 1248,
     "skinClippingLeaks": 0,
-    "naturallyOccludedCases": 52,
+    "naturallyOccludedCases": 88,
     "independentExtremeShapeWarpCases": 192,
     "maximumWarpChannelError": 2.046,
     "all16HeadsVisuallyReviewed": true,
@@ -35,11 +35,28 @@
     "editorControlsAndCancelDone": true,
     "browserErrors": []
   },
+  "tattooSurfaceWrapping": {
+    "status": "PASS",
+    "surfaceInverseSamplesMoreThan": 5000,
+    "perHeadFaceAndNeckSurfaces": 16,
+    "curvedFrontBaselines": 16,
+    "foreshortenedSideCases": 32,
+    "minimumMeasuredBaselineCurvePixels": 1.0397,
+    "strongestMeasuredSideWidthRatio": 0.6875,
+    "skinHighlightPreservationChannelDifference": 28,
+    "jewelryExactMatchesAgainstEarlierRenderer": 64,
+    "noTattooIsPixelExact": true,
+    "diffusionInSourcePixels": 0.35,
+    "filteredInkAndMetalContextsIsolated": true,
+    "all16HeadsVisuallyReviewed": true,
+    "existingSettingsUnchanged": true,
+    "browserErrors": []
+  },
   "regression": {
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 104
+    "elapsedSeconds": 80
   },
   "libraryRetirementAndFraming": {
     "status": "PASS",

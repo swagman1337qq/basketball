@@ -1,8 +1,11 @@
 import { FULL_SIZE as W, type FullPortraitSettings } from './fullPortraits';
 import { portraitLandmarks, type fullWarp } from './fullPortraitPainter';
+import { tattooSurface, tattooSurfacePoint, tattooSurfaceSample, tattooInkTransmission, type TattooSurface } from './portraitTattooSurface';
 type Warp = ReturnType<typeof fullWarp>;
 let scratch: HTMLCanvasElement | null = null,
-  output: HTMLCanvasElement | null = null;
+  output: HTMLCanvasElement | null = null,
+  inkScratch: HTMLCanvasElement | null = null,
+  inkOutput: HTMLCanvasElement | null = null;
 function layer(
   ctx: CanvasRenderingContext2D,
   warp: Warp,
@@ -12,13 +15,24 @@ function layer(
 ) {
   const doc = ctx.canvas.ownerDocument;
   if (!doc) return;
-  if (!scratch) {
-    scratch = doc.createElement('canvas');
-    output = doc.createElement('canvas');
-    scratch.width = scratch.height = output.width = output.height = W;
+  // Ink uses filtered bitmap stamps; keep its raster context separate from
+  // the small vector metal details so one cannot change the other's raster state.
+  let sourceCanvas = multiply ? inkScratch : scratch,
+    targetCanvas = multiply ? inkOutput : output;
+  if (!sourceCanvas) {
+    sourceCanvas = doc.createElement('canvas');
+    targetCanvas = doc.createElement('canvas');
+    sourceCanvas.width = sourceCanvas.height = targetCanvas.width = targetCanvas.height = W;
+    if (multiply) {
+      inkScratch = sourceCanvas;
+      inkOutput = targetCanvas;
+    } else {
+      scratch = sourceCanvas;
+      output = targetCanvas;
+    }
   }
-  const c = scratch.getContext('2d', { willReadFrequently: true })!,
-    o = output!.getContext('2d')!;
+  const c = sourceCanvas.getContext('2d', { willReadFrequently: true })!,
+    o = targetCanvas!.getContext('2d')!;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, W, W);
   c.save();
@@ -26,7 +40,12 @@ function layer(
   c.restore();
   const src = c.getImageData(0, 0, W, W).data,
     img = o.createImageData(W, W),
-    dst = img.data;
+    dst = img.data,
+    skinPixels = multiply ? ctx.getImageData(0, 0, W, W).data : null;
+  const light = (x: number, y: number) => {
+    const i = (Math.max(0, Math.min(W - 1, y)) * W + Math.max(0, Math.min(W - 1, x))) * 4;
+    return skinPixels![i] * 0.2126 + skinPixels![i + 1] * 0.7152 + skinPixels![i + 2] * 0.0722;
+  };
   let left = W,
     right = -1,
     top = W,
@@ -78,12 +97,14 @@ function layer(
       if (alpha <= 0) continue;
       for (let k = 0; k < 3; k++)
         dst[di + k] = (src[a * 4 + k] * aa + src[b * 4 + k] * ab + src[c * 4 + k] * ac + src[d * 4 + k] * ad) / alpha;
-      dst[di + 3] = alpha;
+      dst[di + 3] =
+        alpha *
+        (skinPixels ? tattooInkTransmission(light(x, y), (light(x - 2, y) + light(x + 2, y) + light(x, y - 2) + light(x, y + 2)) / 4) : 1);
     }
   o.putImageData(img, 0, 0);
   ctx.save();
   ctx.globalCompositeOperation = multiply ? 'multiply' : 'source-over';
-  ctx.drawImage(output!, 0, 0);
+  ctx.drawImage(targetCanvas!, 0, 0);
   ctx.restore();
 }
 function shape(c: CanvasRenderingContext2D, id: string, x: number, y: number, size: number, text: string) {
@@ -275,38 +296,93 @@ function shape(c: CanvasRenderingContext2D, id: string, x: number, y: number, si
   }
   c.restore();
 }
+let stamp: HTMLCanvasElement | null = null,
+  curved: HTMLCanvasElement | null = null;
+function surfaceTattoo(ctx: CanvasRenderingContext2D, s: TattooSurface, id: string, size: number, text: string, ink: number[]) {
+  const D = 128,
+    C = D / 2;
+  if (!stamp) {
+    stamp = ctx.canvas.ownerDocument.createElement('canvas');
+    stamp.width = stamp.height = D;
+    curved = ctx.canvas.ownerDocument.createElement('canvas');
+    curved.width = curved.height = W;
+  }
+  const c = stamp.getContext('2d', { willReadFrequently: true })!,
+    out = curved!.getContext('2d')!;
+  c.clearRect(0, 0, D, D);
+  c.fillStyle = c.strokeStyle = '#000';
+  // A tiny diffusion in source-skin coordinates, not a screen-space glow.
+  c.filter = 'blur(0.35px)';
+  shape(c, id, C, C, size, text);
+  const source = c.getImageData(0, 0, D, D).data;
+  let u0 = D,
+    u1 = -1,
+    v0 = D,
+    v1 = -1;
+  for (let y = 0; y < D; y++)
+    for (let x = 0; x < D; x++)
+      if (source[(y * D + x) * 4 + 3]) {
+        u0 = Math.min(u0, x);
+        u1 = Math.max(u1, x);
+        v0 = Math.min(v0, y);
+        v1 = Math.max(v1, y);
+      }
+  if (u1 < u0) return;
+  u0 -= C + 1;
+  u1 -= C - 1;
+  v0 -= C + 1;
+  v1 -= C - 1;
+  // Include the frontmost point of the cylinder as well as its corners.
+  const points = [u0, u1, Math.max(u0, Math.min(u1, -s.angle * s.radius))].flatMap(u => [v0, v1].map(v => tattooSurfacePoint(s, u, v))),
+    left = Math.max(0, Math.floor(Math.min(...points.map(q => q[0])) - 2)),
+    top = Math.max(0, Math.floor(Math.min(...points.map(q => q[1])) - 2)),
+    width = Math.min(W - left, Math.ceil(Math.max(...points.map(q => q[0])) + 2) - left),
+    height = Math.min(W - top, Math.ceil(Math.max(...points.map(q => q[1])) + 2) - top);
+  if (width <= 0 || height <= 0) return;
+  const image = out.createImageData(width, height),
+    dst = image.data;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const q = tattooSurfaceSample(s, x + left, y + top);
+      if (!q) continue;
+      const sx = q.u + C,
+        sy = q.v + C;
+      if (sx < 0 || sx >= D - 1 || sy < 0 || sy >= D - 1) continue;
+      const ix = Math.floor(sx),
+        iy = Math.floor(sy),
+        fx = sx - ix,
+        fy = sy - iy,
+        a = (iy * D + ix) * 4 + 3,
+        alpha = (source[a] * (1 - fx) + source[a + 4] * fx) * (1 - fy) + (source[a + D * 4] * (1 - fx) + source[a + D * 4 + 4] * fx) * fy,
+        i = (y * width + x) * 4;
+      dst[i] = ink[0];
+      dst[i + 1] = ink[1];
+      dst[i + 2] = ink[2];
+      dst[i + 3] = alpha * q.coverage;
+    }
+  out.putImageData(image, left, top);
+  ctx.drawImage(curved!, left, top, width, height, left, top, width, height);
+}
 export function fullPortraitTattoos(ctx: CanvasRenderingContext2D, p: FullPortraitSettings, warp: Warp, skin?: Uint8Array) {
   if (p.faceTattoo === 'none' && p.tattoo === 'none') return;
-  const f = portraitLandmarks(p.base),
-    ink = { black: '#26231f', blue: '#233846', red: '#703735' }[p.tattooInk] || '#26231f';
+  const ink = { black: [38, 35, 31], blue: [35, 56, 70], red: [112, 55, 53] }[p.tattooInk] || [38, 35, 31];
   layer(
     ctx,
     warp,
     c => {
-      c.fillStyle = c.strokeStyle = ink;
       c.globalAlpha = p.tattooOpacity;
       if (p.faceTattoo !== 'none') {
-        const places: Record<string, number[]> = {
-            leftCheek: [f.cx - 40, f.nose + 8],
-            rightCheek: [f.cx + 40, f.nose + 8],
-            leftEye: [f.cx - 34, f.eye + 17],
-            rightEye: [f.cx + 34, f.eye + 17],
-            leftTemple: [f.cx - 53, f.eye - 8],
-            rightTemple: [f.cx + 53, f.eye - 8],
-            forehead: [f.cx, f.brow - 25],
-          },
-          [x, y] = places[p.faceTattooPlace] || places.leftCheek;
-        shape(c, p.faceTattoo, x, y, 6 + p.faceTattooSize * 6, p.faceTattooText);
+        surfaceTattoo(c, tattooSurface(p), p.faceTattoo, 6 + p.faceTattooSize * 6, p.faceTattooText, ink);
       }
       if (p.tattoo !== 'none')
         for (const side of p.tattooPlace === 'wrap' ? [-1, 1] : [p.tattooPlace === 'left' ? -1 : p.tattooPlace === 'front' ? 0 : 1]) {
-          shape(
+          surfaceTattoo(
             c,
+            tattooSurface(p, true, side),
             p.tattoo,
-            f.cx + side * 27,
-            f.chin + 25,
             10 + p.neckTattooSize * 12,
             p.tattoo === 'numerals' ? 'XIII' : p.neckTattooText,
+            ink,
           );
         }
     },

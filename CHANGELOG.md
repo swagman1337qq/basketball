@@ -21,6 +21,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Pos in a player's stats is the position he played most that season**, by minutes at the position he was listed at on each game day. Seasons played before this update still show his position now.
 
 ### Fixed
+- **Tattoos wrap around the skin.** Neck designs now curve and narrow around the throat and its sides, while face tattoos follow the cheeks, temples and forehead. Softer ink keeps skin shading and reflected highlights visible. Saved designs, placement and size controls stay intact.
 - **Illustrated beards follow the selected face.** Each facial-hair drawing now aligns to that head’s upper lip, face width and chin. Removed stray beard fragments over the nose and the extra stubble outline below the jaw. Mohawks no longer carry a full-width hair band, and hairstyles fit the head’s center as well as its crown. Black/darker-skin random choices now use the textured drawings, excluding other straight/parted drawings that previously slipped through. Existing saved feature settings remain intact.
 - **Shortening illustrated hair no longer pulls it off the scalp.** Hair length now changes the loose ends while keeping the crown anchored. Styles with lower crowns also fit the selected head more closely, removing the exposed cap above cuts such as the bob, curly mop and buzz cut. Intentional balding and recession remain available. Existing portraits receive the rendering correction without losing their saved edits.
 
