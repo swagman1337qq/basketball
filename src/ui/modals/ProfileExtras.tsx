@@ -103,7 +103,7 @@ export function fiveZones(t: any) {
 }
 export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
 
-// His last five regular-season games, newest first, as a game log (Game.addBox p.last5). Games kept before
+// His last five regular-season games, newest first, as a game log (Game.addBox p.last5), on the Stats tab under Per game. Games kept before
 // 2026-11-19 have only points, rebounds, assists and minutes: the other columns read —.
 export function LastFive({ vm }: { vm: VM }) {
   const { gm, s, T } = vm.ctx,
@@ -148,8 +148,8 @@ export function LastFive({ vm }: { vm: VM }) {
     ],
   ];
   return (
-    <section style={{ marginBottom: '22px' }}>
-      <h4 style={ruleH4}>Last 5 games</h4>
+    <section>
+      <h4 style={{ ...ruleH4, marginTop: 18 }}>Last 5 games</h4>
       <div style={{ overflowX: 'auto' }}>
         <table className="table" style={{ fontSize: '12px', width: '100%' }}>
           <thead>

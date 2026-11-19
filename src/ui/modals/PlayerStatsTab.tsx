@@ -11,7 +11,7 @@ import { roundStat, statVal } from '../../engine/leaders';
 import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
 import { titleYears } from '../../engine/hof';
-import { fiveZones, LEAGUE_ZONE } from './ProfileExtras';
+import { fiveZones, LastFive, LEAGUE_ZONE } from './ProfileExtras';
 
 type Mode = 'pg' | 'p36' | 'tot';
 const f1 = (x: number) => (isFinite(x) ? x.toFixed(1) : '—');
@@ -665,6 +665,8 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
           </>
         )}
       </p>
+
+      {!ccp && <LastFive vm={vm} />}
 
       <h4 style={{ ...ruleH4, marginTop: 18 }}>Scoring and plus-minus</h4>
       <Wrap>

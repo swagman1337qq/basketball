@@ -9,7 +9,7 @@ import { BadgeChip } from '../BadgeChip';
 import { HoverCard } from '../HoverCard';
 import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, ratingTier, ruleH4 } from '../kit';
 import { useState } from 'react';
-import { LastFive, OverviewExtras } from './ProfileExtras';
+import { OverviewExtras } from './ProfileExtras';
 import { FaceEditor } from './FaceEditor';
 import { PlayingStyle } from '../PlayingStyle';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
@@ -538,7 +538,6 @@ export function ProfileOverview({ vm }: { vm: VM }) {
           )}
         </section>
       )}
-      <LastFive vm={vm} />
       <div
         style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.1fr)', gap: '30px', alignItems: 'start' }}
       >
