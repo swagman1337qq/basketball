@@ -3345,6 +3345,8 @@ export class Game {
         }
         row.gp++;
         if (p.numTid === side.tid && p.num != null) row.num = p.num; // the number he wore for them (Team history)
+        // Minutes at each position, by the position he was listed at that day: the season's Pos is where he played most.
+        if (p.pos) (row.posMin = row.posMin || {})[p.pos] = Math.round(((row.posMin[p.pos] || 0) + b.min) * 10) / 10;
         Object.keys(b).forEach(f => {
           if (typeof b[f] === 'number' && f !== 'gp' && f !== 'season' && f !== 'tid')
             row[f] = f === 'xF' || f === 'xA' || f === 'xP' ? +((row[f] || 0) + b[f]).toFixed(2) : (row[f] || 0) + b[f];

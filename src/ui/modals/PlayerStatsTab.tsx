@@ -4,7 +4,7 @@
 // per-team career lines; shooting efficiency and all five shot zones, advanced stats, and splits.
 import { cloneElement, Fragment, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import type { VM } from '../vm';
-import { muted, Ring, ruleH4, Seg } from '../kit';
+import { Link, muted, Ring, ruleH4, Seg } from '../kit';
 import { cachedProfileSeason, profileStatsEpoch, type ProfileSeasonData } from '../profileStatsData';
 import { loadProfileStats } from '../profileStatsClient';
 import { roundStat, statVal } from '../../engine/leaders';
@@ -274,18 +274,35 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     return t;
   };
   const rowsOf = (y: number) => (p.stats || []).filter((r: any) => r.season === y && !!r.po === po);
+  // Where he played most: minutes at each listed position (Game.addBox, row.posMin, from 2026-11-19); an older
+  // season without that record shows his position now.
+  const posOf = (rs: any[]) => {
+    const m: Record<string, number> = {};
+    rs.forEach((r: any) => Object.entries(r.posMin || {}).forEach(([k, v]) => (m[k] = (m[k] || 0) + (v as number))));
+    const best = Object.entries(m).sort((a, b) => b[1] - a[1])[0];
+    return best ? best[0] : p.pos;
+  };
+  type Part = { team: string; t: any; tid?: number; pos?: string };
   const lines = seasons.map(y => {
     if (ccp) {
       const c = ccpLine(y);
-      return { y, t: c, teams: c?.team || '—', parts: [] as { team: string; t: any }[] };
+      return { y, t: c, teams: c?.team || '—', parts: [] as Part[], tid: undefined as number | undefined, pos: p.pos };
     }
     const rs = rowsOf(y),
-      tids = [...new Set(rs.map((r: any) => r.tid))] as number[];
+      tids = [...new Set(rs.map((r: any) => r.tid))] as number[],
+      main = rs.slice().sort((a: any, b: any) => (b.min || 0) - (a.min || 0))[0]?.tid;
     return {
       y,
       t: gm.seasonTotals(p, y, po),
       teams: tids.length > 1 ? tids.length + 'TM' : T[tids[0]]?.abbr || '—',
-      parts: tids.length > 1 ? tids.map(tid => ({ team: T[tid]?.abbr || '—', t: sumRows(rs.filter((r: any) => r.tid === tid)) })) : [],
+      tid: main as number | undefined,
+      pos: posOf(rs),
+      parts: (tids.length > 1
+        ? tids.map(tid => {
+            const tr = rs.filter((r: any) => r.tid === tid);
+            return { team: T[tid]?.abbr || '—', t: sumRows(tr), tid, pos: posOf(tr) };
+          })
+        : []) as Part[],
     };
   });
   const career: any = {};
@@ -492,33 +509,64 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     team: string,
     t: any,
     y: number | null,
-    opts: { grey?: boolean; bold?: boolean; top?: boolean } = {},
-  ) => (
-    <tr
-      key={key}
-      style={{
-        borderTop: opts.top ? '2px solid var(--color-text)' : undefined,
-        background: opts.bold ? 'var(--color-neutral-100)' : undefined,
-      }}
-    >
-      <td
+    opts: { grey?: boolean; bold?: boolean; top?: boolean; pos?: string; tid?: number; teamLink?: boolean } = {},
+  ) => {
+    // The season and the team open that team's roster that year (its playoff roster from the Playoffs view).
+    const go = opts.tid != null && y != null && !ccp ? () => vm.ctx.openTeam(opts.tid!, y, po) : null,
+      goStyle = {
+        color: 'var(--color-accent-700)',
+        textDecoration: 'underline',
+        textDecorationStyle: 'dotted' as const,
+        textUnderlineOffset: 2,
+      },
+      seasonTitle = go ? 'The ' + (T[opts.tid!]?.abbr || '') + ' roster in ' + lbl(y!) + (po ? ' (playoffs)' : '') : undefined;
+    return (
+      <tr
+        key={key}
         style={{
-          padding: '4px 6px',
-          whiteSpace: 'nowrap',
-          fontWeight: opts.bold ? 700 : undefined,
-          color: opts.grey ? 'var(--color-neutral-600)' : undefined,
+          borderTop: opts.top ? '2px solid var(--color-text)' : undefined,
+          background: opts.bold ? 'var(--color-neutral-100)' : undefined,
         }}
       >
-        {first}
-      </td>
-      <td style={{ padding: '4px 6px', textAlign: 'right', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{age}</td>
-      <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{team}</td>
-      <td style={{ padding: '4px 6px', color: 'var(--color-neutral-600)' }}>{y != null ? lgName : ''}</td>
-      <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{y != null ? p.pos : ''}</td>
-      {COLS.map(([k]) => cell(t, k, y != null && !opts.grey ? lead(y) : null, opts.grey))}
-      {y != null && !opts.grey ? <Aw y={y} /> : <td />}
-    </tr>
-  );
+        <td
+          style={{
+            padding: '4px 6px',
+            whiteSpace: 'nowrap',
+            fontWeight: opts.bold ? 700 : undefined,
+            color: opts.grey ? 'var(--color-neutral-600)' : undefined,
+          }}
+        >
+          {go ? (
+            <span title={seasonTitle}>
+              <Link onClick={go} style={goStyle}>
+                {first}
+              </Link>
+            </span>
+          ) : (
+            first
+          )}
+        </td>
+        <td style={{ padding: '4px 6px', textAlign: 'right', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{age}</td>
+        <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
+          {go && opts.teamLink ? (
+            <span title={seasonTitle}>
+              <Link onClick={go} style={goStyle}>
+                {team}
+              </Link>
+            </span>
+          ) : (
+            team
+          )}
+        </td>
+        <td style={{ padding: '4px 6px', color: 'var(--color-neutral-600)' }}>{y != null ? lgName : ''}</td>
+        <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
+          {y != null ? (opts.pos ?? p.pos) : ''}
+        </td>
+        {COLS.map(([k]) => cell(t, k, y != null && !opts.grey ? lead(y) : null, opts.grey))}
+        {y != null && !opts.grey ? <Aw y={y} /> : <td />}
+      </tr>
+    );
+  };
   const nYrs = seasons.length;
   return (
     <div>
@@ -560,7 +608,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
           </tr>
         </thead>
         <tbody>
-          {lines.map(({ y, t, teams, parts }) => (
+          {lines.map(({ y, t, teams, parts, tid, pos }) => (
             <Fragment key={y}>
               {bbRow(
                 's' + y,
@@ -589,8 +637,11 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
                 teams,
                 t,
                 y,
+                { tid, pos, teamLink: !parts.length },
               )}
-              {parts.map(x => bbRow('s' + y + x.team, lbl(y), ageIn(y), x.team, x.t, y, { grey: true }))}
+              {parts.map(x =>
+                bbRow('s' + y + x.team, lbl(y), ageIn(y), x.team, x.t, y, { grey: true, tid: x.tid, pos: x.pos, teamLink: true }),
+              )}
             </Fragment>
           ))}
           {nYrs > 1 && bbRow('car', nYrs + ' Yr' + (nYrs === 1 ? '' : 's'), '', '', career, null, { bold: true, top: true })}

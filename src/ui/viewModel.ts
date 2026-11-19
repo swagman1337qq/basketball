@@ -160,23 +160,26 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       navTick: (st.navTick || 0) + 1,
     })); // clicking the tab you're on starts it fresh (your team, this season)
   // Clicking a team anywhere opens its Roster page (this season); the team overview is a button there.
-  const openTeam = tid => e => {
-    e && e.stopPropagation && e.stopPropagation();
-    if (tid < 0 || !s.teams[tid]) return;
-    gm.setState(st => ({
-      screen: 'roster',
-      rosterView: { tid, season: gm.Y },
-      teamModal: null,
-      modal: false,
-      boxId: null,
-      listModal: null,
-      q: '',
-      baseY: st.modal || st.teamModal != null ? st.baseY : curY(),
-      pageStack: trail(st),
-      navTick: (st.navTick || 0) + 1,
-    }));
-    scrollTo(0);
-  };
+  // A past season (and its playoffs) opens that year's roster: a player's stats table links them.
+  const openTeam =
+    (tid, season = gm.Y, po = false) =>
+    e => {
+      e && e.stopPropagation && e.stopPropagation();
+      if (tid < 0 || !s.teams[tid]) return;
+      gm.setState(st => ({
+        screen: 'roster',
+        rosterView: { tid, season, ...(po ? { po: true } : {}) },
+        teamModal: null,
+        modal: false,
+        boxId: null,
+        listModal: null,
+        q: '',
+        baseY: st.modal || st.teamModal != null ? st.baseY : curY(),
+        pageStack: trail(st),
+        navTick: (st.navTick || 0) + 1,
+      }));
+      scrollTo(0);
+    };
   const openTeamPage = tid => e => {
     e && e.stopPropagation && e.stopPropagation();
     if (tid < 0) return;
@@ -4257,7 +4260,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       T,
       logo,
       open: id => open(id)(null),
-      openTeam: tid => openTeam(tid)(null),
+      openTeam: (tid: number, season?: number, po?: boolean) => openTeam(tid, season, po)(null),
       openTeamPage: tid => openTeamPage(tid)(null),
       isMine: mine2,
       isMe: (tid: number) => !spect && tid === s.me,
