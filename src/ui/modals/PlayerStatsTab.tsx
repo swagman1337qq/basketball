@@ -11,7 +11,7 @@ import { roundStat, statVal } from '../../engine/leaders';
 import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
 import { titleYears } from '../../engine/hof';
-import { fiveZones, LastFive, LEAGUE_ZONE } from './ProfileExtras';
+import { fiveZones, LEAGUE_ZONE } from './ProfileExtras';
 
 type Mode = 'pg' | 'p36' | 'tot';
 const f1 = (x: number) => (isFinite(x) ? x.toFixed(1) : '—');
@@ -79,7 +79,9 @@ function Wrap({ children }: { children: ReactNode }) {
   const [sort, setSort] = useState<[number, number] | null>(null);
   const parts = flat(children) as ReactElement<any>[],
     head = parts.find(x => x.type === 'thead'),
-    body = parts.find(x => x.type === 'tbody');
+    bodies = parts.filter(x => x.type === 'tbody'),
+    body = bodies[0],
+    extra = bodies.slice(1); // more row groups (Per game's Last 5 games), kept as they are under the sorted rows
   if (!head || !body)
     return (
       <div style={{ overflowX: 'auto', marginBottom: 6 }}>
@@ -101,6 +103,7 @@ function Wrap({ children }: { children: ReactNode }) {
       <table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>
         {head2}
         <tbody>{orderRows(body.props.children, sort)}</tbody>
+        {extra.map((b, i) => cloneElement(b, { key: 'x' + i }))}
       </table>
     </div>
   );
@@ -568,6 +571,150 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     );
   };
   const nYrs = seasons.length;
+  // His last five games this season (the Regular season or Playoffs view: play-in and playoff games), newest
+  // first, from the kept box scores (Game.keepBox: every game this season, lines in Game.BOX_F order), shown as
+  // rows of the Per game table so each stat sits under its column.
+  const BOX_F: string[] = (gm.constructor as any).BOX_F || [],
+    recent: any[] = [];
+  if (!ccp) {
+    const boxes = (gm.db as any).boxes || {},
+      seq = (id: string) => +String(id).split('-')[1] || 0;
+    Object.keys(boxes)
+      .filter(id => {
+        const b = boxes[id],
+          k = b?.kind || 'reg';
+        return b && b.season === gm.Y && (po ? k === 'po' || k === 'playin' : k === 'reg');
+      })
+      .sort((a, b) => seq(b) - seq(a))
+      .some(id => {
+        const b = boxes[id];
+        for (const side of ['home', 'away'] as const) {
+          const ln = (b[side]?.lines || []).find((l: any[]) => l[0] === p.id);
+          if (!ln) continue;
+          const o: any = Object.fromEntries(BOX_F.map((f, i) => [f, ln[i + 1] || 0])),
+            me = b[side],
+            op = b[side === 'home' ? 'away' : 'home'];
+          recent.push({ id, b, o, home: side === 'home', tid: me.tid, opp: op.tid, sc: me.pts, os: op.pts });
+          break;
+        }
+        return recent.length >= 5;
+      });
+  }
+  const ymd = (day: number) => {
+      const d = gm.dateOf(day);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    },
+    pct3 = (m: number, a: number) => (a ? (m / a).toFixed(3).replace(/^0/, '') : ''),
+    gmScore = (o: any) =>
+      o.pts +
+      0.4 * o.fgm -
+      0.7 * o.fga -
+      0.4 * (o.fta - o.ftm) +
+      0.7 * o.orb +
+      0.3 * o.drb +
+      o.stl +
+      0.7 * o.ast +
+      0.7 * o.blk -
+      0.4 * o.pf -
+      o.tov,
+    dotted = {
+      color: 'var(--color-accent-700)',
+      textDecoration: 'underline',
+      textDecorationStyle: 'dotted' as const,
+      textUnderlineOffset: 2,
+    };
+  const gameCell = (o: any, k: string) => {
+    const v: Record<string, any> = {
+      gp: '',
+      gs: o.gs ? '*' : '',
+      min: Math.round(o.min),
+      fgp: pct3(o.fgm, o.fga),
+      tpp: pct3(o.tpm, o.tpa),
+      twm: o.fgm - o.tpm,
+      twa: o.fga - o.tpa,
+      twp: pct3(o.fgm - o.tpm, o.fga - o.tpa),
+      efg: o.fga ? ((o.fgm + 0.5 * o.tpm) / o.fga).toFixed(3).replace(/^0/, '') : '',
+      ftp: pct3(o.ftm, o.fta),
+      trb: o.orb + o.drb,
+    };
+    return (
+      <td key={k} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: k === 'pts' ? 700 : undefined }}>
+        {k in v ? v[k] : o[k]}
+      </td>
+    );
+  };
+  const hcell = (txt: ReactNode, l = false, span = 1, title?: string) => (
+    <th
+      colSpan={span}
+      title={title}
+      style={{
+        padding: '5px 7px',
+        textAlign: l ? 'left' : 'right',
+        whiteSpace: 'nowrap',
+        fontSize: '11px',
+        color: 'var(--color-neutral-600)',
+      }}
+    >
+      {txt}
+    </th>
+  );
+  const lastFive = ccp ? null : (
+    <tbody>
+      <tr>
+        <td colSpan={6 + COLS.length} style={{ padding: '16px 6px 4px', borderBottom: '1px solid var(--color-text)' }}>
+          <b style={{ fontFamily: 'var(--font-heading)', fontSize: '15px' }}>Last 5 games</b>
+          <span style={{ ...muted, fontSize: '11.5px', marginLeft: 8 }}>
+            {lbl(gm.Y)} {po ? 'play-in and playoffs' : 'regular season'} · click a date for the box score
+          </span>
+        </td>
+      </tr>
+      <tr>
+        {hcell('Date', true)}
+        {hcell('')}
+        {hcell('Team', true)}
+        {hcell('Opp · Result', true, 2)}
+        {COLS.map(([k, h]) => (k === 'gp' ? <th key={k} /> : <Fragment key={k}>{hcell(h)}</Fragment>))}
+        {hcell('GmSc · +/-', true, 1, 'Game Score (one number for his game) and plus-minus')}
+      </tr>
+      {recent.length ? (
+        recent.map(g => {
+          const won = g.sc > g.os,
+            o = g.o,
+            gs = gmScore(o);
+          return (
+            <tr key={g.id}>
+              <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+                <Link onClick={() => gm.setState({ boxId: g.id })} style={dotted}>
+                  {ymd(g.b.day)}
+                </Link>
+              </td>
+              <td />
+              <td style={{ padding: '4px 6px' }}>{T[g.tid]?.abbr || '—'}</td>
+              <td colSpan={2} style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+                {g.home ? 'vs ' : '@ '}
+                {T[g.opp] ? <Link onClick={() => vm.ctx.openTeam(g.opp)}>{T[g.opp].abbr}</Link> : '—'}{' '}
+                <span style={{ color: won ? 'var(--gm-good)' : 'var(--gm-bad)', fontWeight: 600 }}>{won ? 'W' : 'L'}</span> {g.sc}–{g.os}
+                {g.b.ot ? ' (' + (g.b.ot > 1 ? g.b.ot : '') + 'OT)' : ''}
+              </td>
+              {COLS.map(([k]) => gameCell(o, k))}
+              <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+                {gs.toFixed(1)} ·{' '}
+                <span style={{ color: o.pm > 0 ? 'var(--gm-good)' : o.pm < 0 ? 'var(--gm-bad)' : undefined }}>
+                  {o.pm > 0 ? '+' + o.pm : o.pm}
+                </span>
+              </td>
+            </tr>
+          );
+        })
+      ) : (
+        <tr>
+          <td colSpan={6 + COLS.length} style={{ ...muted, padding: '6px', fontStyle: 'italic' }}>
+            No {po ? 'play-in or playoff ' : ''}games yet this season.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  );
   return (
     <div>
       {controls}
@@ -652,6 +799,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
               }),
             )}
         </tbody>
+        {lastFive}
       </Wrap>
       <p style={{ ...muted, fontSize: '11px', margin: '0 0 6px' }}>
         {ccp ? (
@@ -665,8 +813,6 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
           </>
         )}
       </p>
-
-      {!ccp && <LastFive vm={vm} />}
 
       <h4 style={{ ...ruleH4, marginTop: 18 }}>Scoring and plus-minus</h4>
       <Wrap>

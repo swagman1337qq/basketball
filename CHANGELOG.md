@@ -5,7 +5,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-19
 
 ### Added
-- **Last 5 games in a player's Stats tab.** A full game log of his last five regular-season games (date, team, opponent, result, minutes, shooting, rebounds, assists, steals, blocks, turnovers, fouls, points, Game Score, +/-), right below Per game. Click a date for the box score or the opponent for its roster. Games played before this update show only points, rebounds, assists and minutes.
+- **Last 5 games in a player's Stats tab.** His last five games this season sit inside the Per game table, every stat under its own column (date, team, opponent and result, minutes, shooting, rebounds, assists, steals, blocks, turnovers, fouls, points, Game Score, +/-). They follow the Regular season / Playoffs switch and come from the season's box scores, so games played before this update show too. Click a date for the box score or the opponent for its roster.
 - **Season and team link to that year's roster.** In a player's Stats tab, click a season or a team to open that team's roster for that year (its playoff roster from the Playoffs view). A season he split between teams opens the team he played most for; each team's own line opens its roster.
 
 ### Changed

@@ -3366,29 +3366,8 @@ export class Game {
             0.7 * b.blk -
             0.4 * b.pf -
             b.tov;
-          const opp = res[k === 'home' ? 'away' : 'home'];
-          // His line in each of his last five games (the profile's Last 5 games table; its date d and box id bid set once the box is kept).
           p.last5 = [
-            {
-              pts: b.pts,
-              reb: b.orb + b.drb,
-              ast: b.ast,
-              min: +b.min.toFixed(1),
-              gmsc: +gmsc.toFixed(1),
-              home: k === 'home',
-              tid: side.tid,
-              opp: opp.tid,
-              sc: side.pts,
-              os: opp.pts,
-              ot: res.ot || 0,
-              gs: b.gs ? 1 : 0,
-              ...Object.fromEntries(
-                (['fgm', 'fga', 'tpm', 'tpa', 'ftm', 'fta', 'orb', 'drb', 'stl', 'blk', 'tov', 'pf', 'pm'] as const).map(f => [
-                  f,
-                  b[f] || 0,
-                ]),
-              ),
-            },
+            { pts: b.pts, reb: b.orb + b.drb, ast: b.ast, min: +b.min.toFixed(1), gmsc: +gmsc.toFixed(1), home: k === 'home' },
             ...(p.last5 || []),
           ].slice(0, 5);
         }
@@ -7053,12 +7032,6 @@ export class Game {
             : yield* this.playGameSteps(cur, h, a);
       this.addBox(res, false, touched, mins, cur);
       const bid = this.keepBox(res, day);
-      for (const sd of [res.home, res.away])
-        for (const id in sd.box) {
-          const l = this.db.P[+id]?.last5?.[0];
-          if (l && l.d == null && l.tid === sd.tid)
-            Object.assign(l, { d: Math.floor(this.dateOf(day).getTime() / 864e5), ...(bid ? { bid } : {}) }); // d: the calendar day
-        }
       const homeWon = res.home.pts > res.away.pts;
       rec(teams[h], homeWon, true);
       rec(teams[a], !homeWon, false);
