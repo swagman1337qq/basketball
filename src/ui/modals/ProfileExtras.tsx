@@ -103,6 +103,125 @@ export function fiveZones(t: any) {
 }
 export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
 
+// His last five regular-season games, newest first, as a game log (Game.addBox p.last5). Games kept before
+// 2026-11-19 have only points, rebounds, assists and minutes: the other columns read —.
+export function LastFive({ vm }: { vm: VM }) {
+  const { gm, s, T } = vm.ctx,
+    { p } = useP(vm);
+  const l5: any[] = p?.last5 || [];
+  if (!l5.length) return null;
+  const n = (x: any) => (x == null ? '—' : x),
+    pc = (m: any, a: any) => (a == null ? '—' : a ? (m / a).toFixed(3).replace(/^0/, '') : ''),
+    boxes = (gm.db as any).boxes || {},
+    pad = { padding: '4px 5px' },
+    ymd = (d: number) => new Date(d * 864e5).toISOString().slice(0, 10);
+  const cols: [string, (g: any) => ReactNode, string?][] = [
+    ['GS', g => (g.gs == null ? '—' : g.gs ? '*' : '')],
+    ['MP', g => Math.round(g.min)],
+    ['FG', g => n(g.fgm)],
+    ['FGA', g => n(g.fga)],
+    ['FG%', g => pc(g.fgm, g.fga)],
+    ['3P', g => n(g.tpm)],
+    ['3PA', g => n(g.tpa)],
+    ['3P%', g => pc(g.tpm, g.tpa)],
+    ['FT', g => n(g.ftm)],
+    ['FTA', g => n(g.fta)],
+    ['FT%', g => pc(g.ftm, g.fta)],
+    ['ORB', g => n(g.orb)],
+    ['DRB', g => n(g.drb)],
+    ['TRB', g => g.reb],
+    ['AST', g => g.ast],
+    ['STL', g => n(g.stl)],
+    ['BLK', g => n(g.blk)],
+    ['TOV', g => n(g.tov)],
+    ['PF', g => n(g.pf)],
+    ['PTS', g => <b>{g.pts}</b>],
+    [
+      'GmSc',
+      g => g.gmsc.toFixed(1),
+      'Game Score: one number for his game (points, shooting, rebounds, assists, steals, blocks, fouls, turnovers)',
+    ],
+    [
+      '+/-',
+      g =>
+        g.pm == null ? '—' : <span style={{ color: g.pm > 0 ? good : g.pm < 0 ? bad : undefined }}>{g.pm > 0 ? '+' + g.pm : g.pm}</span>,
+    ],
+  ];
+  return (
+    <section style={{ marginBottom: '22px' }}>
+      <h4 style={ruleH4}>Last 5 games</h4>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="table" style={{ fontSize: '12px', width: '100%' }}>
+          <thead>
+            <tr>
+              <th style={{ ...th(), padding: '6px 5px' }}>Date</th>
+              <th style={{ ...th(), padding: '6px 5px' }}>Team</th>
+              <th style={{ ...th(), padding: '6px 5px' }}></th>
+              <th style={{ ...th(), padding: '6px 5px' }}>Opp</th>
+              <th style={{ ...th(), padding: '6px 5px' }}>Result</th>
+              {cols.map(([h, , t]) => (
+                <th key={h} style={{ ...th('right'), padding: '6px 5px' }} title={t}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {l5.map((g, i) => {
+              const box = g.bid && boxes[g.bid] ? () => gm.setState({ boxId: g.bid }) : null,
+                won = g.sc != null && g.sc > g.os;
+              return (
+                <tr key={i}>
+                  <td style={td('left', { ...pad, whiteSpace: 'nowrap' })} title={g.d != null ? gm.fmtDay(g.d) : undefined}>
+                    {g.d == null ? (
+                      '—'
+                    ) : box ? (
+                      <Link
+                        onClick={box}
+                        style={{
+                          color: 'var(--color-accent-700)',
+                          textDecoration: 'underline',
+                          textDecorationStyle: 'dotted',
+                          textUnderlineOffset: 2,
+                        }}
+                      >
+                        {ymd(g.d)}
+                      </Link>
+                    ) : (
+                      ymd(g.d)
+                    )}
+                  </td>
+                  <td style={td('left', pad)}>{g.tid != null ? T[g.tid]?.abbr || '—' : '—'}</td>
+                  <td style={td('left', pad)}>{g.home ? '' : '@'}</td>
+                  <td style={td('left', pad)}>
+                    {g.opp != null && T[g.opp] ? <Link onClick={() => vm.ctx.openTeam(g.opp)}>{T[g.opp].abbr}</Link> : '—'}
+                  </td>
+                  <td style={td('left', { ...pad, whiteSpace: 'nowrap' })}>
+                    {g.sc == null ? (
+                      '—'
+                    ) : (
+                      <>
+                        <span style={{ color: won ? good : bad, fontWeight: 600 }}>{won ? 'W' : 'L'}</span>, {g.sc}–{g.os}
+                        {g.ot ? ' (' + (g.ot > 1 ? g.ot : '') + 'OT)' : ''}
+                      </>
+                    )}
+                  </td>
+                  {cols.map(([h, f]) => (
+                    <td key={h} style={td('right', pad)}>
+                      {f(g)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {s.phase !== 'regular' && <p style={{ ...muted, fontSize: '11.5px', margin: '4px 0 0' }}>Regular season.</p>}
+    </section>
+  );
+}
+
 export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
   const { gm, s, open } = vm.ctx,
     { p, tid } = useP(vm);
