@@ -1,6 +1,22 @@
 {
   "date": "2026-11-19",
-  "scope": "Default editable illustrated portraits, source-only Classic fallback, tattoos and jewelry; no simulation, contract or bulk-save migration changes.",
+  "scope": "Default editable illustrated portraits, source-only Classic fallback, fitted tattoos/jewelry/headbands and scalp-hugging buzz cuts; no simulation, contract or bulk-save migration changes.",
+  "closeBuzzCut": {
+    "status": "PASS",
+    "headsVisuallyReviewed": 16,
+    "guardLengthAndFramingCases": 48,
+    "colourDyeTextureHairlineControlCases": 464,
+    "otherHairstylesComparedUnchanged": 44,
+    "exactOtherHairstyleCases": 88,
+    "lowerFaceOrJerseyChanges": 0,
+    "syntheticScalpSilhouetteClipping": true,
+    "scalpHighlightCoverage": true,
+    "repeatableFollicleGrain": true,
+    "sourceSheetsUnchanged": true,
+    "savedOptionsRetained": true,
+    "existingSelectionsUpdateWithoutMigration": true,
+    "browserErrors": []
+  },
   "defaultAndRollback": {
     "status": "PASS",
     "playersStaffAndManagersDefaultIllustrated": true,
@@ -74,7 +90,7 @@
     "command": "npm test",
     "scripts": 31,
     "status": "PASS",
-    "elapsedSeconds": 93
+    "elapsedSeconds": 118
   },
   "libraryRetirementAndFraming": {
     "status": "PASS",

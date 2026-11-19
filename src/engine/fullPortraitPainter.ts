@@ -603,6 +603,104 @@ function beardFit(head: Uint8ClampedArray, p: FullPortraitSettings) {
     clipped = ['stubble', 'heavyStubble', 'patchy', 'chinstrap', 'chinstrapMustache'].includes(p.facial);
   return { ...f, sourceY: a[0], target, scaleY, scaleX, clipped };
 }
+const buzzFits = new WeakMap<Uint8ClampedArray, { mask: Uint8Array; cx: number; half: number; top: number }>();
+function paintBuzz(
+  out: Uint8ClampedArray,
+  head: Uint8ClampedArray,
+  p: FullPortraitSettings,
+  age: number,
+  skin: Uint8Array,
+  foreground: Uint8Array,
+) {
+  const f = portraitLandmarks(p.base);
+  let fit = buzzFits.get(head);
+  if (!fit) {
+    const mask = new Uint8Array(N),
+      centres: number[] = [],
+      halves: number[] = [];
+    let top = W;
+    for (let y = 32; y <= f.eye + 22; y++) {
+      let left = W,
+        right = -1;
+      for (let x = 80; x < 240; x++) {
+        const i = (y * W + x) * 4,
+          t = (x - 60) / 200;
+        let contrast = 0;
+        for (let k = 0; k < 3; k++) {
+          const background = head[(y * W + 60) * 4 + k] * (1 - t) + head[(y * W + 260) * 4 + k] * t;
+          contrast = Math.max(contrast, Math.abs(head[i + k] - background));
+        }
+        if (contrast > 20) {
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+        }
+      }
+      // Fill the enclosed scalp, including pale highlights which aren't
+      // orange/brown enough for a skin-colour threshold on every painted head.
+      if (right - left >= 3) {
+        for (let x = left; x <= right; x++) mask[y * W + x] = 1;
+        top = Math.min(top, y);
+      }
+      if (y >= f.brow - 20 && y <= f.brow - 13 && right - left > 65) {
+        centres.push((left + right) / 2);
+        halves.push((right - left) / 2 + 1);
+      }
+    }
+    centres.sort((a, b) => a - b);
+    halves.sort((a, b) => a - b);
+    fit = {
+      mask,
+      cx: fullClamp(centres[centres.length >> 1] ?? f.cx, f.cx - 6, f.cx + 6),
+      half: fullClamp(halves[halves.length >> 1] ?? 56, 44, 65),
+      top,
+    };
+    buzzFits.set(head, fit);
+  }
+  const grey = Math.max(p.grey, p.ageAuto && !p.greyManual ? fullClamp((age - 34) / 65) * 0.65 : 0),
+    natural = mix(rgb(FULL_HAIR_COLORS[p.natural][1]), [185, 183, 178], grey),
+    dye = p.dye === 'none' ? null : rgb(FULL_DYES[p.dye][1]),
+    recede = Math.max(p.recede, p.ageAuto && !p.recedeManual ? fullClamp((age - 36) / 85) * 0.55 : 0),
+    salt = { straight: 0x1f123bb5, wavy: 0x64ac3a29, curly: 0x3c6ef372, coily: 0x72e9a57b }[p.texture] || 0,
+    front = f.brow - 20;
+  for (let y = Math.max(32, fit.top); y <= f.eye + 22; y++)
+    for (let x = 80; x < 240; x++) {
+      const n = y * W + x;
+      if (!fit.mask[n]) continue;
+      const u = Math.abs((x - fit.cx) / fit.half);
+      if (u > 1.025) continue;
+      const centre = 1 - smooth(0.3, 0.8, u),
+        side = smooth(0.8, 0.98, u);
+      let edge = front - 5 * smooth(0.45, 0.8, u);
+      if (p.hairline === 'straight') edge = front - 1;
+      if (p.hairline === 'shapeup') edge = front + 1;
+      if (p.hairline === 'peak') edge = front + 5 * (1 - smooth(0, 0.35, u)) - 5 * smooth(0.45, 0.8, u);
+      if (p.hairline === 'round') edge = front + 2 * (1 - Math.min(1, u * u));
+      edge -= recede * (14 + 9 * centre + 10 * smooth(0.3, 0.8, u));
+      edge += side * (f.eye + 7 + p.sideburns * 10 - front);
+      const boundary = 1 - smooth(edge - 0.65, edge + 0.85, y);
+      if (!boundary) continue;
+      // Clipper stubble occupies the original scalp. It adds no cap volume and
+      // retains the painted skin shading between tiny, evenly cropped follicles.
+      let h = Math.imul(x + (p.texture === 'straight' ? y >> 1 : 0), 374761393) ^ Math.imul(y, 668265263) ^ p.seed ^ salt;
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      const grain = (h ^ (h >>> 16)) >>> 0,
+        noise = grain / 4294967295,
+        a = fullClamp(boundary * (0.68 + p.hairLength * 0.16) * (0.84 + noise * 0.32) * (1 - 0.5 * smooth(0.55, 1, u))),
+        i = n * 4,
+        light = (out[i] * 0.2126 + out[i + 1] * 0.7152 + out[i + 2] * 0.0722) / 255;
+      let target = natural;
+      if (dye) {
+        const v = fullClamp((y - fit.top) / Math.max(1, front - fit.top)),
+          t = p.dyeKind === 'full' ? 1 : p.dyeKind === 'tips' ? smooth(0.5, 0.9, v) : smooth(0.64, 0.9, noise) * 0.85;
+        target = mix(natural, dye, t);
+      }
+      for (let k = 0; k < 3; k++) out[i + k] = out[i + k] * (1 - a) + target[k] * (0.72 + 0.24 * light) * a;
+      if (a > 0.2) {
+        skin[n] = 0;
+        foreground[n] = 1;
+      }
+    }
+}
 function overlay(
   out: Uint8ClampedArray,
   src: Uint8ClampedArray,
@@ -761,18 +859,21 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
   if (assets.beard) overlay(out, assets.beard, p, 'beard', age, skin, undefined, beardFit(assets.head, p));
   if (hangingFringe.has(p.hair)) paintHeadband(out, assets.head, p, skin, jersey);
   if (assets.hair) {
-    const fit = crownFit(assets.head, assets.hair);
-    overlay(
-      out,
-      assets.hair,
-      p,
-      'hair',
-      age,
-      skin,
-      ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit,
-      undefined,
-      foreground,
-    );
+    if (p.hair === 'buzz') paintBuzz(out, assets.head, p, age, skin, foreground);
+    else {
+      const fit = crownFit(assets.head, assets.hair);
+      overlay(
+        out,
+        assets.hair,
+        p,
+        'hair',
+        age,
+        skin,
+        ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit,
+        undefined,
+        foreground,
+      );
+    }
   }
   if (!hangingFringe.has(p.hair)) paintHeadband(out, assets.head, p, skin, jersey);
   const warp = fullWarp(p),

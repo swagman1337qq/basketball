@@ -113,6 +113,25 @@ for (let y = 0; y < 320; y++)
 const hairConfig = { ...defaults, ageAuto: false },
   bare = paintFullPixels({ head: testHead }, hairConfig),
   rooted = paintFullPixels({ head: testHead, hair: testHair }, hairConfig);
+const buzzConfig = { ...hairConfig, hair: 'buzz' },
+  buzz = paintFullPixels({ head: testHead, hair: testHair }, buzzConfig),
+  tightBuzz = paintFullPixels({ head: testHead, hair: testHair }, { ...buzzConfig, hairLength: -1 }),
+  longerBuzz = paintFullPixels({ head: testHead, hair: testHair }, { ...buzzConfig, hairLength: 1 });
+assert.notDeepEqual(buzz.pixels, bare.pixels, 'A buzz cut has visible close-cropped stubble');
+assert.notDeepEqual(tightBuzz.pixels, longerBuzz.pixels, 'Buzz length changes clipper density');
+assert.equal(tightBuzz.frameTop, longerBuzz.frameTop, 'Changing a buzz guard cannot raise the crown');
+for (let y = 0; y < 320; y++)
+  for (let x = 0; x < 320; x++) {
+    const i = (y * 320 + x) * 4;
+    if (buzz.pixels[i] !== bare.pixels[i])
+      assert(x >= 120 && x <= 200 && y >= 65 && y <= 160, 'Buzz stubble cannot grow outside the original scalp');
+  }
+assert.deepEqual(buzz.pixels.slice(180 * 320 * 4), bare.pixels.slice(180 * 320 * 4), 'A buzz cut cannot change the lower face or jersey');
+assert.deepEqual(
+  paintFullPixels({ head: testHead, hair: testHair }, buzzConfig).pixels,
+  buzz.pixels,
+  'Clipper grain stays stable across renders',
+);
 const band = paintFullPixels({ head: testHead }, { ...hairConfig, headband: 'white' });
 assert.notDeepEqual(band.pixels, bare.pixels, 'A fitted headband is visible on the bare forehead');
 for (let y = 0; y < 320; y++)
