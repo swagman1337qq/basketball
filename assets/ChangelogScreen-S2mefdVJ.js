@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-sy6DyuEj.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-Bvwolvsv.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -14,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-18
 
 ### Added
+- **Optional illustrated portraits.** Edit face now offers an Illustrated style for players and staff (staff editing stays in God Mode). Try the editable painted head with seven hairstyles and feature controls, or choose from 24 player and 32 staff portraits with fixed features. Classic stays available with its original controls and saved edits. This first painted library keeps the pictured age and clothing; it does not replace everyone’s generated face.
 - **Pre-draft school and club flags.** Player profiles show the country flag of the school or club a player came from, alongside its name. The separate “Grew up” row is removed.
 - **Arrows on potential.** When a player's potential goes up or down, the roster shows ▲▼ next to it as it does for overall, in God Mode too (edits included). The arrows follow the potential you see: the true one in God Mode, your staff's or scouts' read otherwise. In a league already under way they compare the league's read until the next season snapshot (opening night or the end of the season).
 
