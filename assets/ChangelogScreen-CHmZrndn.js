@@ -1,17 +1,15 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-sJi8SpcF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-iDCNTw4m.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-18
 
 ### Added
-- **Editable mixed appearances.** Edit face now has Blend with and a blend-strength slider. Players can combine different facial-feature and hair distributions, including Black/East Asian appearances. New Face keeps the selected blend, and individual feature edits still take priority.
 - **Pre-draft school and club flags.** Player profiles show the country flag of the school or club a player came from, alongside its name. The separate “Grew up” row is removed.
 - **Arrows on potential.** When a player's potential goes up or down, the roster shows ▲▼ next to it as it does for overall, in God Mode too (edits included). The arrows follow the potential you see: the true one in God Mode, your staff's or scouts' read otherwise. In a league already under way they compare the league's read until the next season snapshot (opening night or the end of the season).
 
 ### Changed
-- **Complete illustrated player and staff portraits.** Portraits now use finished artwork, including the original approved pictures. Added a portrait gallery, reroll and image upload. Removed individual-feature controls so the artwork keeps its original proportions and shading. Existing uploaded headshots stay in place.
-- **More individual beard growth.** Generated facial hair varies with age, appearance blend and the person's own growth tendency. East Asian appearances more often have lighter or sparse facial hair, with full-beard exceptions; every beard style remains available in the face editor. Existing unedited head shapes, eyes, noses, hair and accessories keep their original seeds. New fictional players include stored mixed appearances; existing recorded mixed backgrounds now affect their faces too.
+- **Original faces restored.** Returned players, staff and your manager to the face style and individual-feature editor from before the redesign.
 - **Blake Griffin's player card is now his rookie year (2010–11).** He rates 60 (up from 55), tested against his Rookie of the Year season: about 23 points, 12 rebounds and 4 assists. His college stats still come from his Oklahoma season. A saved copy or a player already given the card updates too.
 - **Jarred Vanderbilt's card retuned (2022–23).** He rates 56, down from 59, and no longer scores 10 points on .590 shooting; tested at about 8 points, 7.5 rebounds and 2.4 assists, like his real season.
 - **Jarrett Culver's card retuned (2019–20 rookie year).** More assists, better finishing inside and fewer free-throw trips, closer to his real line (9.2 points, .404 shooting, 1.7 assists). Still 52 overall.
