@@ -1,11 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-16GBExJK.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-CpT5n8yR.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-19
 
 ### Added
-- **Full editable illustrated portrait catalogue.** Edit face now offers 16 painted heads, all 39 original hairstyles plus six more, and all 15 original facial-hair styles plus two more. Edit eyes, brows, nose, jaw, lips, ears, skin, hair colors/dyes, accessories and clothing individually. Players and staff share the style; staff editing stays in God Mode. New illustrated selections use the full editable catalogue. Classic remains available; older saved illustrations can be replaced through Edit face.
+- **Tattoos, piercings and jewelry.** Edit face now includes 12 face-tattoo and 14 neck-tattoo designs, placement, size, ink and text controls, more ear/nose/lip/eyebrow piercings, and seven necklace styles. Decorations follow face edits; tattoos stay on visible skin beneath hair, beards and clothing. Players and staff share the options.
+- **Full editable illustrated portrait catalogue.** Edit face now offers 16 painted heads, all 39 original hairstyles plus six more, and all 15 original facial-hair styles plus two more. Edit eyes, brows, nose, jaw, lips, ears, skin, hair colors/dyes, accessories and clothing individually. Players and staff share the style; staff editing stays in God Mode. Classic's source is retained for rollback.
 - **Last 5 games in a player's Stats tab.** His last five games this season sit inside the Per game table, every stat under its own column (date, team, opponent and result, minutes, shooting, rebounds, assists, steals, blocks, turnovers, fouls, points, Game Score, +/-). They follow the Regular season / Playoffs switch and come from the season's box scores, so games played before this update show too. Click a date for the box score or the opponent for its roster.
 - **Season and team link to that year's roster.** In a player's Stats tab, click a season or a team to open that team's roster for that year (its playoff roster from the Playoffs view). A season he split between teams opens the team he played most for; each team's own line opens its roster.
 
@@ -13,6 +14,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Previous portrait library.** Removed the old fixed-portrait picker and its earlier editor. Newly selected illustrated faces use the fully editable catalogue. Older saved portraits still load; editing one offers an editable replacement, with Cancel restoring the original.
 
 ### Changed
+- **Illustrated portraits are now the default.** Players, staff and your manager use the editable illustrated style. Removed Classic from the game’s selector while preserving its complete renderer, editor and saved feature data in the codebase for a future rollback. Existing saves display illustrated defaults without a bulk rewrite; uploaded headshots retain priority.
 - **Closer portrait framing.** Reduced the empty space above the head and hair across illustrated player and staff portraits. Taller hairstyles receive a smaller crop so their tips remain visible.
 - **Automatic illustrated faces follow the person’s in-game appearance.** New portrait, New Face, Shuffle features and Reset edits use matching hair textures and style pools. Black/darker-skin presets no longer randomly receive middle-part or K-pop cuts, and East Asian presets no longer randomly receive locs or coily styles. Facial-hair defaults also account for appearance and age. Buzz cuts remain available across every group; manual choices and saved portraits stay intact.
 - **Illustrated staff keep their style when gender or appearance changes.** The staff editor recommends a matching painted head. Painted previews retain the last finished image during edits, fill their frames, and offer retry if artwork cannot load.
