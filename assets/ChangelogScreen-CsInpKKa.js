@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-BFzkgmO9.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DDQhBSsL.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -21,6 +21,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Pos in a player's stats is the position he played most that season**, by minutes at the position he was listed at on each game day. Seasons played before this update still show his position now.
 
 ### Fixed
+- **A properly close buzz cut.** Buzz cuts now follow the player’s own scalp with fine, evenly cropped stubble and tapered sides, instead of a tall hair cap. Hair length changes the clipper density; hair colors, textures, hairlines, recession and grey still work. Existing buzz-cut selections update automatically.
 - **Chains and headbands sit naturally.** Necklaces now reach the sides of the neck and hang onto the upper chest, with pendants joined to the chain. Headbands fit each forehead, curve and shade around its sides, and sit beneath hanging hair. Existing accessory choices stay saved.
 - **Tattoos wrap around the skin.** Neck designs now curve and narrow around the throat and its sides, while face tattoos follow the cheeks, temples and forehead. Softer ink keeps skin shading and reflected highlights visible. Saved designs, placement and size controls stay intact.
 - **Illustrated beards follow the selected face.** Each facial-hair drawing now aligns to that head’s upper lip, face width and chin. Removed stray beard fragments over the nose and the extra stubble outline below the jaw. Mohawks no longer carry a full-width hair band, and hairstyles fit the head’s center as well as its crown. Black/darker-skin random choices now use the textured drawings, excluding other straight/parted drawings that previously slipped through. Existing saved feature settings remain intact.
