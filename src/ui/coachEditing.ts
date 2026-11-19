@@ -11,7 +11,6 @@ export type EditableCoach = Coach & {
   bioMalePlay?: string;
   faceSeed?: number;
   faceX?: Record<string, any>;
-  faceImg?: string;
 };
 export type CoachBioDraft = {
   name: string;
@@ -24,7 +23,6 @@ export type CoachBioDraft = {
   fem: boolean;
   faceSeed?: number;
   faceX?: Record<string, any>;
-  faceImg?: string;
   tid: number | null;
   role: CoachRole;
   amt: number;
@@ -53,7 +51,6 @@ export const coachBioDraft = (g: Game, c: EditableCoach): CoachBioDraft => ({
   fem: c.fem,
   faceSeed: c.faceSeed,
   faceX: c.faceX ? structuredClone(c.faceX) : undefined,
-  faceImg: c.faceImg,
   tid: c.tid,
   role: c.role || 'asst',
   amt: c.amt,
@@ -75,7 +72,6 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
     return 'Invalid face seed.';
   if (Object.keys(draft.faceX || {}).some(k => k.split('.').some(part => ['__proto__', 'prototype', 'constructor'].includes(part))))
     return 'Invalid face edit.';
-  if (draft.faceImg != null && (typeof draft.faceImg !== 'string' || draft.faceImg.length > 2_000_000)) return 'Invalid portrait image.';
   if (!Number.isFinite(draft.age) || draft.age < 18 || draft.age > 100) return 'Age must be between 18 and 100.';
   if (!Number.isFinite(draft.rep) || draft.rep < 0 || draft.rep > 100) return 'Reputation must be between 0 and 100.';
   if (!Number.isFinite(draft.years) || draft.years < 0 || draft.years > 100) return 'Coaching experience must be between 0 and 100 years.';
@@ -128,8 +124,7 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
     draft.race !== c.race ||
     Math.round(draft.age) !== g.Y - c.born ||
     draft.faceSeed !== c.faceSeed ||
-    JSON.stringify(draft.faceX) !== JSON.stringify(c.faceX) ||
-    draft.faceImg !== c.faceImg
+    JSON.stringify(draft.faceX) !== JSON.stringify(c.faceX)
   )
     c.bioFace = true;
   c.fem = draft.fem;
@@ -137,8 +132,6 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
   else c.faceSeed = draft.faceSeed;
   if (draft.faceX == null) delete c.faceX;
   else c.faceX = structuredClone(draft.faceX);
-  if (draft.faceImg == null) delete c.faceImg;
-  else c.faceImg = draft.faceImg;
   c.name = name;
   const parts = name.split(' ');
   c.first = parts.shift()!;

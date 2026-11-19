@@ -120,8 +120,6 @@ function inherit(g: Game, p: any, rel: any, rnd: () => number) {
   delete p.tribe2;
   delete p.mix;
   if (rel.tribe2) p.tribe2 = rel.tribe2;
-  if (rel.faceAncestry) p.faceAncestry = { ...rel.faceAncestry };
-  else delete p.faceAncestry;
   if (rel.mix) {
     p.mix = rel.mix;
     p.first = randomName('US', rnd).first;

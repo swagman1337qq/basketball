@@ -1,247 +1,347 @@
-// Select complete finished artwork without changing its features or proportions.
-import { useEffect, useRef, useState } from 'react';
-import {
-  PORTRAITS,
-  anotherPortrait,
-  clearPortrait,
-  portraitEditSnapshot,
-  restorePortraitEdit,
-  portraitElement,
-  portraitForFace,
-  selectPortrait,
-  type PortraitContext,
-} from '../../engine/portraitCatalog';
-import { processImage } from '../upload';
+// The face editor, in normal mode and God Mode: a new random face, or any part of the face changed by
+// hand. Changes are stored on the player as p.faceX ({ 'hair.style': 'afro', ... }) and laid over his
+// generated face, so everything else about him (age, family resemblance) keeps working.
+import { useState } from 'react';
+import type { CSSProperties } from 'react';
+import { DYES, DYE_KINDS, EYE_COLORS, FACE_LOOKS, FACE_OPTS, HAIR_COLORS, hairStyleOpts } from '../../engine/faces';
 import { muted } from '../kit';
 
-export function FaceEditor({ gm, p, onClose, context = 'player' }: { gm: any; p: any; onClose: () => void; context?: PortraitContext }) {
-  const [orig] = useState(() => portraitEditSnapshot(p));
-  const f = gm.face(p.id),
-    current = portraitForFace(f, context);
-  const [collection, setCollection] = useState(context === 'staff' ? 'staff' : 'approved'),
-    [gender, setGender] = useState(f.fem ? 'woman' : 'man');
-  const [page, setPage] = useState(0),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
-  const alive = useRef(true);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
+type Opt = string[];
+const box: CSSProperties = {
+  border: '1px solid var(--color-divider)',
+  borderRadius: 'var(--radius-md)',
+  padding: '10px 12px',
+  margin: '0 0 14px',
+};
+const fs: CSSProperties = { border: 'none', margin: 0, padding: 0, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' };
+const lg: CSSProperties = {
+  fontSize: '11px',
+  letterSpacing: '.08em',
+  textTransform: 'uppercase',
+  fontWeight: 600,
+  marginBottom: '2px',
+  ...muted,
+};
+const row: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '82px minmax(0,1fr)',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '12px',
+};
+const named = (o: Record<string, [string, string]>): Opt[] => Object.keys(o).map(k => [k, o[k][0]]);
+const TEXTURES = [
+  ['straight', 'Straight'],
+  ['wavy', 'Wavy'],
+  ['curly', 'Curly'],
+  ['coily', 'Coily'],
+];
+
+export function FaceEditor({ gm, p, onClose }: { gm: any; p: any; onClose: () => void }) {
+  const [orig] = useState(() => ({ faceSeed: p.faceSeed, faceX: p.faceX ? { ...p.faceX } : undefined, faceImg: p.faceImg, race: p.race }));
+  const f = gm.face(p.id);
   const redraw = () => {
     gm.resetFace(p.id);
-    gm.setState((s: any) => ({ gv: (s.gv || 0) + 1 }));
+    gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
   };
-  const choose = (id: string) => {
-    if (selectPortrait(p, id)) {
-      setError('');
-      redraw();
+  const set = (path: string, v: any) => {
+    p.faceX = { ...(p.faceX || {}), [path]: v };
+    delete p.faceImg;
+    redraw();
+  };
+  const setMany = (o: Record<string, any>) => {
+    p.faceX = { ...(p.faceX || {}), ...o };
+    delete p.faceImg;
+    redraw();
+  };
+  const newFace = () => {
+    p.faceSeed = Math.floor(Math.random() * 1e9);
+    delete p.faceX;
+    delete p.faceImg;
+    redraw();
+  };
+  // A new look (skin tone range and features): his skin is drawn fresh from it, and New face rolls within it.
+  const setLook = (v: string) => {
+    p.race = v;
+    if (p.faceX) {
+      const x = { ...p.faceX };
+      delete x['skin.tone'];
+      delete x['skin.under'];
+      p.faceX = Object.keys(x).length ? x : undefined;
+      if (!p.faceX) delete p.faceX;
     }
+    delete p.faceImg;
+    redraw();
+  };
+  const undoEdits = () => {
+    delete p.faceX;
+    redraw();
   };
   const cancel = () => {
-    alive.current = false;
-    restorePortraitEdit(p, orig);
+    (['faceSeed', 'faceX', 'faceImg', 'race'] as const).forEach(k => (orig[k] === undefined ? delete p[k] : (p[k] = orig[k])));
     redraw();
     onClose();
   };
-  const upload = async (file?: File) => {
-    if (!file) return;
-    setBusy(true);
-    setError('');
-    try {
-      const url = await processImage(file, 320, 400, 'image/jpeg');
-      if (alive.current) {
-        p.faceImg = url;
-        redraw();
-      }
-    } catch (e: any) {
-      if (alive.current) setError(e.message || 'Unable to open this image.');
-    } finally {
-      if (alive.current) setBusy(false);
-    }
-  };
-  const filtered = PORTRAITS.filter(
-    x =>
-      (gender === 'all' || x.gender === gender) &&
-      (collection === 'all' || (collection === 'approved' ? x.sheet === 'approved' : x.role === collection)),
+  const get = (path: string) => path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), f);
+  // Plain functions that return elements (not components), so a slider being dragged isn't remounted.
+  const sel = (label: string, value: any, opts: Opt[], on: (v: string) => void, none?: string) => (
+    <label key={label} style={row}>
+      <span>{label}</span>
+      <select
+        className="input"
+        value={value == null ? '' : String(value)}
+        onChange={e => on(e.target.value)}
+        style={{ fontSize: '12px', padding: '3px 6px', minWidth: 0 }}
+      >
+        {none != null && <option value="">{none}</option>}
+        {opts.map(([k, l]) => (
+          <option key={k} value={k}>
+            {l}
+          </option>
+        ))}
+      </select>
+    </label>
   );
-  const size = 16,
-    lastPage = Math.max(0, Math.ceil(filtered.length / size) - 1),
-    shownPage = Math.min(page, lastPage),
-    visible = filtered.slice(shownPage * size, (shownPage + 1) * size);
+  const pick = (label: string, path: string, opts: Opt[], none?: string) =>
+    sel(label, get(path), opts, v => set(path, v === '' ? null : v), none);
+  const range = (label: string, path: string, lo: number, hi: number) => {
+    const v = Number(get(path) ?? lo);
+    return (
+      <label key={label} style={row}>
+        <span>{label}</span>
+        <input
+          type="range"
+          min={lo}
+          max={hi}
+          step={(hi - lo) / 100}
+          value={v}
+          onChange={e => set(path, +(+e.target.value).toFixed(3))}
+          style={{ width: '100%' }}
+        />
+      </label>
+    );
+  };
+  const check = (label: string, value: boolean, on: (v: boolean) => void) => (
+    <label key={label} style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
+      <input type="checkbox" checked={!!value} onChange={e => on(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+  const A = f.acc || {},
+    M = f.marks || {};
+  const er = A.earrings,
+    erV = er ? er.kind + (er.both ? '2' : '1') : '';
   return (
-    <section style={{ border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', padding: 12, marginBottom: 14 }}>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ width: 152, flex: 'none' }}>
-          <div
-            className="gm-face"
-            style={{
-              width: 152,
-              height: 180,
-              overflow: 'hidden',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--color-neutral-100)',
-            }}
-          >
-            {p.faceImg ? (
-              <img
-                src={p.faceImg}
-                alt="Selected portrait"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-              />
-            ) : (
-              gm.faceEl(p.id, -1)
-            )}
-          </div>
-          <div style={{ ...muted, fontSize: 11, marginTop: 5 }}>{p.faceImg ? 'Custom upload' : current.label}</div>
+    <div style={box}>
+      <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div
+          className="gm-face"
+          style={{
+            width: 84,
+            height: 112,
+            overflow: 'hidden',
+            flex: 'none',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--color-neutral-100)',
+          }}
+        >
+          {gm.faceEl(p.id, -1)}
         </div>
-        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 20, marginBottom: 8 }}>Choose portrait</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary" disabled={busy} onClick={() => choose(anotherPortrait(f, context, current.id).id)}>
-              🎲 New portrait
-            </button>
-            <label className="btn btn-secondary" style={{ cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}>
-              {busy ? 'Opening image…' : 'Upload JPG/PNG'}
-              <input
-                type="file"
-                accept="image/png,image/jpeg"
-                disabled={busy}
-                style={{ display: 'none' }}
-                onChange={e => {
-                  void upload(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-            <button
-              className="btn btn-ghost"
-              disabled={busy || (!p.faceImg && !f.portrait?.id)}
-              onClick={() => {
-                clearPortrait(p);
-                setError('');
-                redraw();
-              }}
-            >
-              Use automatic portrait
-            </button>
-          </div>
-          <p style={{ ...muted, fontSize: 12, margin: '10px 0' }}>
-            Your portrait stays selected until you choose another. Portrait choices do not change the person’s biography.
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', marginBottom: '4px' }}>Edit face</div>
+          <p style={{ ...muted, fontSize: '12px', margin: '0 0 8px' }}>
+            Every change shows right away. A new face rolls everything again; Undo my changes goes back to the generated face. The face
+            still ages: hair greys and recedes with the years unless you set them here.
           </p>
-          {error && (
-            <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 12 }}>
-              {error}
-            </p>
-          )}
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" onClick={cancel}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={newFace}>
+              🎲 New face
+            </button>
+            <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={undoEdits} disabled={!p.faceX}>
+              Undo my changes
+            </button>
+            <span style={{ flex: 1 }} />
+            <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={cancel}>
               Cancel
             </button>
-            <button
-              className="btn btn-primary"
-              disabled={busy}
-              onClick={() => {
-                alive.current = false;
-                onClose();
-              }}
-            >
+            <button className="btn btn-primary" style={{ fontSize: '12px' }} onClick={onClose}>
               Done
             </button>
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '14px 0 10px' }}>
-        <label style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-          Collection
-          <select
-            className="input"
-            value={collection}
-            onChange={e => {
-              setCollection(e.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="approved">Approved portraits</option>
-            <option value="player">Players</option>
-            <option value="staff">Staff</option>
-            <option value="all">All portraits</option>
-          </select>
-        </label>
-        <label style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
-          Portraits
-          <select
-            className="input"
-            value={gender}
-            onChange={e => {
-              setGender(e.target.value);
-              setPage(0);
-              if (collection === 'approved' && e.target.value === 'woman') setCollection('staff');
-            }}
-          >
-            <option value="man">Men</option>
-            <option value="woman">Women</option>
-            <option value="all">All</option>
-          </select>
-        </label>
-        <span style={{ flex: 1 }} />
-        <button
-          className="btn btn-secondary"
-          aria-label="Previous portrait page"
-          disabled={shownPage === 0}
-          onClick={() => setPage(shownPage - 1)}
-        >
-          ‹
-        </button>
-        <span style={{ ...muted, fontSize: 12 }}>
-          {filtered.length
-            ? `${shownPage * size + 1}–${Math.min(filtered.length, (shownPage + 1) * size)} of ${filtered.length}`
-            : '0 portraits'}
-        </span>
-        <button
-          className="btn btn-secondary"
-          aria-label="Next portrait page"
-          disabled={shownPage === lastPage}
-          onClick={() => setPage(shownPage + 1)}
-        >
-          ›
-        </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px 18px' }}>
+        <fieldset style={fs}>
+          <div style={lg}>Expression and skin</div>
+          {pick('Expression', 'expr', FACE_OPTS.expr)}
+          {sel('Look', p.race || 'white', FACE_LOOKS, setLook)}
+          {range('Skin tone', 'skin.tone', 0, 1)}
+          {pick('Undertone', 'skin.under', FACE_OPTS.under)}
+          {range('Build', 'build', -1, 1)}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Head</div>
+          {range('Width', 'head.w', 0.86, 1.14)}
+          {range('Length', 'head.h', 0.92, 1.1)}
+          {range('Cheekbones', 'head.cheek', 0.94, 1.06)}
+          {range('Jaw', 'head.jaw', 0.7, 1)}
+          {range('Chin width', 'head.chinW', 0.2, 0.56)}
+          {range('Chin length', 'head.chin', 0, 1)}
+          {check('Cleft chin', get('head.cleft'), v => set('head.cleft', v))}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Eyes and brows</div>
+          {pick('Eye shape', 'eyes.shape', FACE_OPTS.eyes)}
+          {pick('Eye color', 'eyes.color', named(EYE_COLORS))}
+          {range('Eye size', 'eyes.size', 0.86, 1.14)}
+          {range('Spacing', 'eyes.spacing', 0.9, 1.1)}
+          {range('Tilt', 'eyes.tilt', -0.14, 0.2)}
+          {pick('Brows', 'brows.shape', FACE_OPTS.brows)}
+          {range('Brow weight', 'brows.thick', 0.7, 2.1)}
+          {sel(
+            'Brow slit',
+            get('brows.slit') || 0,
+            [
+              ['0', 'None'],
+              ['1', 'One line'],
+              ['2', 'Two lines'],
+            ],
+            v => set('brows.slit', +v),
+          )}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Nose, mouth and ears</div>
+          {range('Nose width', 'nose.w', 0, 1)}
+          {range('Nose length', 'nose.len', 0, 1)}
+          {range('Bridge', 'nose.bridge', 0, 1)}
+          {range('Nose tip', 'nose.tip', 0, 1)}
+          {range('Mouth width', 'mouth.w', 0, 1)}
+          {range('Upper lip', 'mouth.upper', 0, 1)}
+          {range('Lower lip', 'mouth.lower', 0, 1)}
+          {range('Ear size', 'ears.size', 0.82, 1.18)}
+          {range('Ears out', 'ears.out', 0, 1)}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Hair</div>
+          {pick('Style', 'hair.style', hairStyleOpts())}
+          {pick('Texture', 'hair.tex', TEXTURES)}
+          {pick('Color', 'hair.natural', named(HAIR_COLORS))}
+          {sel(
+            'Dyed',
+            get('hair.dye'),
+            named(DYES),
+            v =>
+              v
+                ? setMany({ 'hair.dye': v, 'hair.dyeKind': get('hair.dyeKind') || 'full' })
+                : setMany({ 'hair.dye': null, 'hair.dyeKind': null }),
+            'Not dyed',
+          )}
+          {get('hair.dye') && sel('Dye', get('hair.dyeKind') || 'full', DYE_KINDS, v => set('hair.dyeKind', v))}
+          {pick('Hairline', 'hair.hairline', FACE_OPTS.hairline)}
+          {range('Receding', 'hair.recede', 0, 1)}
+          {range('Grey', 'hair.grey', 0, 0.9)}
+          {range('Length', 'hair.len', 0, 1)}
+          {range('Sideburns', 'hair.sb', 0, 1)}
+          {sel(
+            'Part',
+            get('hair.part') || 1,
+            [
+              ['-1', 'Left'],
+              ['1', 'Right'],
+            ],
+            v => set('hair.part', +v),
+          )}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Facial hair</div>
+          {pick('Style', 'facial.style', FACE_OPTS.facial)}
+          {range('Thickness', 'facial.density', 0.4, 1)}
+          {range('Grey', 'facial.grey', 0, 0.9)}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Accessories</div>
+          {sel(
+            'Headband',
+            A.headband?.color,
+            FACE_OPTS.headband,
+            v => set('acc.headband', v ? { color: v, kind: A.headband?.kind || 'standard' } : null),
+            'None',
+          )}
+          {A.headband &&
+            sel('Band', A.headband.kind || 'standard', FACE_OPTS.headbandKind, v => set('acc.headband', { ...A.headband, kind: v }))}
+          {sel(
+            'Earrings',
+            erV,
+            [
+              ['stud1', 'One stud'],
+              ['stud2', 'Studs'],
+              ['hoop1', 'One hoop'],
+              ['hoop2', 'Hoops'],
+            ],
+            v => set('acc.earrings', v ? { kind: v.slice(0, -1), both: v.endsWith('2'), metal: er?.metal || 'diamond' } : null),
+            'None',
+          )}
+          {er && sel('Earring', er.metal, FACE_OPTS.metal, v => set('acc.earrings', { ...er, metal: v }))}
+          {sel(
+            'Nose',
+            A.nose?.kind,
+            [
+              ['stud', 'Stud'],
+              ['ring', 'Ring'],
+              ['septum', 'Septum ring'],
+            ],
+            v => set('acc.nose', v ? { kind: v, metal: A.nose?.metal || 'silver', side: A.nose?.side || 1 } : null),
+            'None',
+          )}
+          {sel(
+            'Lip',
+            A.lip?.kind,
+            [
+              ['ring', 'Ring'],
+              ['labret', 'Stud'],
+            ],
+            v => set('acc.lip', v ? { kind: v, metal: A.lip?.metal || 'silver', side: A.lip?.side || 1 } : null),
+            'None',
+          )}
+          {check('Eyebrow ring', !!A.brow, v => set('acc.brow', v ? { metal: 'silver', side: 1 } : null))}
+          {sel(
+            'Glasses',
+            A.glasses?.kind,
+            FACE_OPTS.glasses,
+            v =>
+              setMany({ 'acc.glasses': v ? { kind: v, color: A.glasses?.color || 'black' } : null, ...(v ? { 'acc.shield': null } : {}) }),
+            'None',
+          )}
+          {A.glasses && sel('Frames', A.glasses.color, FACE_OPTS.frame, v => set('acc.glasses', { ...A.glasses, color: v }))}
+          {sel(
+            'Face shield',
+            A.shield?.kind,
+            [
+              ['clear', 'Clear'],
+              ['black', 'Black'],
+            ],
+            v => setMany({ 'acc.shield': v ? { kind: v } : null, ...(v ? { 'acc.glasses': null } : {}) }),
+            'None',
+          )}
+          {sel('Undershirt', A.undershirt, FACE_OPTS.undershirt, v => set('acc.undershirt', v || null), 'None')}
+        </fieldset>
+        <fieldset style={fs}>
+          <div style={lg}>Marks</div>
+          {range('Freckles', 'marks.freckles', 0, 1)}
+          {check('Mole', !!M.mole, v => set('marks.mole', v ? [+(Math.random() * 2 - 1).toFixed(2), +Math.random().toFixed(2)] : null))}
+          {sel(
+            'Neck tattoo',
+            M.tattoo?.kind,
+            [
+              ['script', 'Script'],
+              ['design', 'Star'],
+            ],
+            v => set('marks.tattoo', v ? { kind: v, side: M.tattoo?.side || 1 } : null),
+            'None',
+          )}
+          {check('Dimples (when he smiles)', !!M.dimples, v => set('marks.dimples', v))}
+        </fieldset>
       </div>
-      {visible.length ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8 }}>
-          {visible.map(portrait => {
-            const selected = !p.faceImg && portrait.id === current.id;
-            return (
-              <button
-                key={portrait.id}
-                type="button"
-                aria-label={'Choose ' + portrait.label}
-                aria-pressed={selected}
-                disabled={busy}
-                onClick={() => choose(portrait.id)}
-                style={{
-                  padding: 4,
-                  border: `2px solid ${selected ? 'var(--color-accent-700)' : 'var(--color-divider)'}`,
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'transparent',
-                  color: 'inherit',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ height: 132, overflow: 'hidden' }}>{portraitElement(portrait)}</div>
-                <div style={{ fontSize: 10, marginTop: 4 }}>
-                  {selected ? '✓ ' : ''}
-                  {portrait.label}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <p style={{ ...muted, fontSize: 12 }}>No portraits in this collection. Choose another collection or show all portraits.</p>
-      )}
-    </section>
+    </div>
   );
 }

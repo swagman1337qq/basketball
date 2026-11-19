@@ -18,8 +18,6 @@ const SCRIPTS = [
   'viewVisibility',
   'staffContracts',
   'prospectPathways',
-  'faceVariety',
-  'faceRendering',
   'ratingCeilings',
   'upperTail',
   'boxScoreDetails',

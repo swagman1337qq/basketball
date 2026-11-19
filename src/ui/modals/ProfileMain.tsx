@@ -11,7 +11,6 @@ import { CountryPicker, godBox, godText, Kicker, Link, muted, RATING_TIERS, rati
 import { useState } from 'react';
 import { OverviewExtras } from './ProfileExtras';
 import { FaceEditor } from './FaceEditor';
-import { rerollFace } from '../../engine/faceAncestry';
 import { PlayingStyle } from '../PlayingStyle';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { potView, scoutSd } from '../../engine/potential';
@@ -159,7 +158,9 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             style={{ fontSize: '11.5px', padding: '3px 6px' }}
             title="A new random face. Nothing else about him changes."
             onClick={() => {
-              rerollFace(p, Math.floor(Math.random() * 1e9));
+              p.faceSeed = Math.floor(Math.random() * 1e9);
+              delete p.faceX;
+              delete p.faceImg;
               gm.resetFace(p.id);
               gm.setState(st => ({ gv: (st.gv || 0) + 1 }));
             }}

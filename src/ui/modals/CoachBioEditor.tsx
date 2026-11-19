@@ -7,7 +7,6 @@ import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type 
 import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
-import { rerollFace } from '../../engine/faceAncestry';
 
 export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; onSave: () => void }) {
   const [draft, setDraft] = useState(() => coachBioDraft(gm, coach));
@@ -181,11 +180,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         <button
           className="btn btn-secondary"
           disabled={!!faceDraft}
-          onClick={() => {
-            const next = { ...draft };
-            rerollFace(next, Math.floor(Math.random() * 1e9));
-            setDraft(next);
-          }}
+          onClick={() => setDraft({ ...draft, faceSeed: Math.floor(Math.random() * 1e9), faceX: undefined })}
         >
           🎲 Randomize face
         </button>
@@ -193,16 +188,9 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
       {faceDraft && (
         <FaceEditor
           p={faceDraft}
-          context={faceDraft.pid != null && gm.db.P[faceDraft.pid] ? 'player' : 'staff'}
           gm={{
             face: () => coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
-            faceEl: () =>
-              faceSvg(
-                coachFaceData(gm, faceDraft, gm.Y - faceDraft.born),
-                ['#2f3136', '#d8d4cc'],
-                undefined,
-                faceDraft.pid != null && gm.db.P[faceDraft.pid] ? 'player' : 'staff',
-              ),
+            faceEl: () => faceSvg(coachFaceData(gm, faceDraft, gm.Y - faceDraft.born), ['#2f3136', '#d8d4cc']),
             resetFace: () => {},
             setState: () => redrawFace(n => n + 1),
           }}
@@ -212,7 +200,6 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
               race: faceDraft.race,
               faceSeed: faceDraft.faceSeed,
               faceX: faceDraft.faceX ? structuredClone(faceDraft.faceX) : undefined,
-              faceImg: faceDraft.faceImg,
             });
             setFaceDraft(null);
           }}

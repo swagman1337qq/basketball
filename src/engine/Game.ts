@@ -210,7 +210,6 @@ import {
   teamStyle,
 } from '../data/world';
 import { faceSvg, makeFace } from './faces';
-import { generatedFaceAncestry } from './faceAncestry';
 import { hopelessPicks, hopelessReport, hopelessTid, makeHopeless } from './startRoster';
 import { mulberry32, nextRandom } from './rng';
 import { drawLottery, expectedByRank, expectedPick, firstRoundOrder, lotteryField, lotteryOdds } from './lottery';
@@ -1716,7 +1715,6 @@ export class Game {
       heritage: p.heritage,
       mix: p.mix,
       tribe2: p.tribe2,
-      faceAncestry: p.faceAncestry,
       familyFirst: p.familyFirst,
       name: p.name,
       native: p.native,
@@ -1733,7 +1731,6 @@ export class Game {
     p.heritage = nm.heritage;
     delete p.mix;
     delete p.tribe2;
-    delete p.faceAncestry;
     this.resetFace(p.id);
     if (withName) {
       const { race, heritage, ...name } = nm;
@@ -2297,8 +2294,6 @@ export class Game {
       stats: [],
       ...b,
     };
-    const appearance = generatedFaceAncestry(p, this.db.seed | 0);
-    if (appearance) p.faceAncestry = appearance;
     p.pers = {
       mot: wpick({ Winning: 3, Money: 3, Fame: 1.5, Loyalty: 1.5, 'Playing time': 2 }),
       alpha: rnd() < 0.2,

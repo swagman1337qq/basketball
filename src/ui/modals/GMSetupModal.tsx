@@ -71,7 +71,7 @@ export function Headshot({ gm, team, size = 96, year }: { gm: GMProfile; team?: 
       {gm.img ? (
         <img src={gm.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
-        faceSvg(makeFace(gmFaceInput(gm, year)), ['#2f3136', '#d8d4cc'], undefined, 'staff')
+        faceSvg(makeFace(gmFaceInput(gm, year)), ['#2f3136', '#d8d4cc'])
       )}
     </div>
   );
@@ -278,8 +278,8 @@ export function GMSetupModal({ vm }: { vm: VM }) {
                 <NumInput value={gmAge(p)} min={GM_AGE.min} max={GM_AGE.max} onValue={v => set({ age: v })} width={60} />
               </div>
               <div style={{ ...muted, fontSize: '11.5px', marginTop: 2 }}>
-                {GM_AGE.min} to {GM_AGE.max}. You age a year each season; at {GM_AGE.cap} you stay {GM_AGE.cap}. Your portrait stays the
-                same until you choose another.
+                {GM_AGE.min} to {GM_AGE.max}. You age a year each season; at {GM_AGE.cap} you stay {GM_AGE.cap}. Your headshot follows your
+                age.
               </div>
             </div>
             <div

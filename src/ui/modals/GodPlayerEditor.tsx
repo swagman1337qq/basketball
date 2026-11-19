@@ -22,7 +22,6 @@ import { refreshElig } from '../../engine/eligibility';
 import { autoTen, ensureTen, optionRanks, targetTen } from '../../engine/tendencies';
 import { TendencyEditor } from '../TendencyEditor';
 import { allPools, applyNativeMix, groupsOf, heritageLabel, NATIVE_MIX, randomName } from '../../data/heritage';
-import { rerollFace } from '../../engine/faceAncestry';
 import { addBrother, addSon, relateBlock, relOf, setFather, unrelate } from '../../engine/family';
 import { clonePlayer } from '../../engine/godPlayer';
 import { nowLabel } from '../../engine/godMove';
@@ -204,7 +203,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
       heritage: p.heritage,
       mix: p.mix,
       tribe2: p.tribe2,
-      faceAncestry: p.faceAncestry,
       her: p.her,
       born: p.born,
       raised: p.raised,
@@ -216,7 +214,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
     Object.assign(p, nm, { race, heritage, her: code });
     delete p.mix;
     delete p.tribe2;
-    delete p.faceAncestry;
     // His hometown moves with him (eligibility is left alone: edit it on the profile).
     const cities = C[code]?.cities || [];
     if (cities.length) p.city = cities[Math.floor(Math.random() * cities.length)];
@@ -363,7 +360,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
                   q.her = c;
                   delete q.mix;
                   delete q.tribe2;
-                  delete q.faceAncestry;
                   if (gs.length) {
                     const g0 = [...gs].sort((a, b) => b.w - a.w)[0];
                     q.heritage = g0.k;
@@ -383,7 +379,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
                     const g0 = groupsOf(q.her || q.rep).find(x => x.k === e.target.value);
                     q.her = q.her || q.rep;
                     q.heritage = e.target.value;
-                    delete q.faceAncestry;
                     if (g0) q.race = pickRace(g0.race);
                     gm.resetFace(q.id);
                   })
@@ -423,8 +418,6 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
               onChange={e =>
                 mut(q => {
                   q.race = e.target.value;
-                  delete q.faceAncestry;
-                  if (q.faceX) delete q.faceX.ancestry;
                   gm.resetFace(q.id);
                 })
               }
@@ -869,7 +862,9 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
               className="btn btn-secondary"
               onClick={() =>
                 mut(q => {
-                  rerollFace(q, Math.floor(Math.random() * 1e9));
+                  q.faceSeed = Math.floor(Math.random() * 1e9);
+                  delete q.faceImg;
+                  delete q.faceX;
                   gm.resetFace(q.id);
                 })
               }
