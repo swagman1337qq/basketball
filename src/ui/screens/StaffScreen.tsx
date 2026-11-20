@@ -1,7 +1,7 @@
 // Coaching staff (2026-11-15, staff.ts): your assistants (you are the head coach), what they add, their contracts,
 // and the coaches you can hire. Hidden ratings show as your read (grades that firm up month by month); God Mode
 // shows them exactly and adds any coach to your staff on the spot.
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { VM } from '../vm';
 import { Link, godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
@@ -36,7 +36,8 @@ import {
   type Coach,
   type CoachRole,
 } from '../../engine/staff';
-import { careerSummary, coachRows, headCoachOf } from '../../engine/coachCareer';
+import { careerSummary, coachRows, headCoachOf, ROLE_CODE } from '../../engine/coachCareer';
+import { hotSeat, projectedWins } from '../../engine/carousel';
 
 const SHORT: Record<string, string> = { off: 'OFF', def: 'DEF', dev: 'DEV', game: 'GM', mot: 'MOT', teach: 'TCH', eye: 'EYE' };
 const LONG: Record<string, string> = {
@@ -65,6 +66,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
   const [more, setMore] = useState(30);
   const [msg, setMsg] = useState('');
   const [firing, setFiring] = useState<number | null>(null);
+  const [openT, setOpenT] = useState<number | null>(null);
   const refresh = () => gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
   const openC = (id: number) => gm.setState({ coachPid: id });
   const st = staffOf(gm, tid),
@@ -191,6 +193,14 @@ export function StaffScreen({ vm }: { vm: VM }) {
     'market',
     coachValue,
   );
+  // The season he took this job: his unbroken run as this team's head coach (coachCareer.ts rows), else this one.
+  const sinceOf = (c: Coach, t: number) => {
+    let y = gm.Y;
+    const rows = new Map((c.h || []).map(r => [r[0], r]));
+    while (rows.get(y - 1)?.[1] === t && rows.get(y - 1)?.[2] === ROLE_CODE.hc) y--;
+    return y;
+  };
+  const seasonLbl = (y: number) => y - 1 + '–' + String(y).slice(2);
   const heads = ordered(
     s.teams
       .filter((t: any) => !gm.isUser(s, t.tid))
@@ -208,6 +218,10 @@ export function StaffScreen({ vm }: { vm: VM }) {
       }
       if (key === 'titles') return sm.hcRings;
       if (key === 'coy') return c.coy?.length || 0;
+      if (key === 'since') return sinceOf(c, t.tid);
+      if (key === 'exp') return c.exp;
+      if (key === 'seat') return hotSeat(gm, t.tid);
+      if (key === 'owner') return t.arch || '';
       return coachValue(c, key);
     },
   );
@@ -605,8 +619,10 @@ export function StaffScreen({ vm }: { vm: VM }) {
 
       <h4 style={{ ...h4Style, marginTop: 22 }}>Head coaches around the league</h4>
       <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
-        Every other team&rsquo;s head coach, with their record as a head coach (everywhere they&rsquo;ve been one). Teams don&rsquo;t hire
-        or fire head coaches yet.
+        Every other team&rsquo;s head coach, with their record as a head coach (everywhere they&rsquo;ve been one). Each owner judges his
+        coach against the media&rsquo;s preseason win projection (a win-now owner also wants the playoffs): a coach is fired only after
+        missing it two seasons in a row (three on a rebuilding team), and a frugal owner waits for the contract to end rather than pay two
+        coaches. Teams hire after the playoffs, and can offer any assistant a head coaching job, yours too. Click a team for its staff.
       </p>
       <div style={{ overflowX: 'auto' }}>
         <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -616,6 +632,16 @@ export function StaffScreen({ vm }: { vm: VM }) {
               {sortHead('league', 'name', 'Head coach')}
               {sortHead('league', 'age', 'Age', 'right')}
               {sortHead('league', 'rep', 'Rep', 'right')}
+              {sortHead('league', 'since', 'Since', 'right', 'The season he took this job')}
+              {sortHead('league', 'exp', 'Contract', 'right', 'Last season of his contract')}
+              {sortHead('league', 'owner', 'Owner')}
+              {sortHead(
+                'league',
+                'seat',
+                'Target',
+                'left',
+                'Seasons in a row his team has missed the owner’s target (the media’s preseason win projection; a win-now owner also wants the playoffs). Two in a row and he’s fired (three on a rebuilding team).',
+              )}
               {sortHead(
                 'league',
                 'nba',
@@ -631,31 +657,79 @@ export function StaffScreen({ vm }: { vm: VM }) {
           </thead>
           <tbody>
             {heads.map(({ t, c, sm }: any) => {
+              const seat = hotSeat(gm, t.tid),
+                proj = projectedWins(gm, t.tid),
+                staff = openT === t.tid ? staffOf(gm, t.tid).filter(x => x.role !== 'hc') : [];
               return (
-                <tr key={t.tid} style={{ borderTop: '1px solid var(--color-divider)' }}>
-                  <td style={td()}>
-                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                      {vm.ctx.logo(t.tid, 16)}
-                      {t.abbr}
-                    </span>
-                  </td>
-                  <td style={td()}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
-                      <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
-                        {c.name}
+                <Fragment key={t.tid}>
+                  <tr style={{ borderTop: '1px solid var(--color-divider)' }}>
+                    <td style={td()}>
+                      <button
+                        onClick={() => setOpenT(openT === t.tid ? null : t.tid)}
+                        title={openT === t.tid ? 'Hide this team’s staff' : 'Show this team’s staff'}
+                        style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', gap: 6, alignItems: 'center' }}
+                      >
+                        <span aria-hidden="true" style={{ fontSize: 10, width: 8 }}>
+                          {openT === t.tid ? '▾' : '▸'}
+                        </span>
+                        {vm.ctx.logo(t.tid, 16)}
+                        {t.abbr}
                       </button>
-                      {flag(c)}
-                    </div>
-                  </td>
-                  <td style={td('right')}>{coachAge(gm, c)}</td>
-                  <td style={td('right')}>{c.rep}</td>
-                  <td style={td('right')}>{sm.nbaW + sm.nbaL ? sm.nbaW + '–' + sm.nbaL : '—'}</td>
-                  <td style={td('right')}>{sm.hcW - sm.nbaW + sm.hcL - sm.nbaL ? sm.hcW - sm.nbaW + '–' + (sm.hcL - sm.nbaL) : '—'}</td>
-                  <td style={td('right')}>{sm.hcRings || ''}</td>
-                  <td style={td('right')}>{c.coy?.length || ''}</td>
-                  <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
-                </tr>
+                    </td>
+                    <td style={td()}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
+                        <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                          {c.name}
+                        </button>
+                        {flag(c)}
+                      </div>
+                    </td>
+                    <td style={td('right')}>{coachAge(gm, c)}</td>
+                    <td style={td('right')}>{c.rep}</td>
+                    <td style={td('right')}>{seasonLbl(sinceOf(c, t.tid))}</td>
+                    <td style={td('right')}>{c.exp}</td>
+                    <td style={td('left', { fontSize: '12px', whiteSpace: 'nowrap' })}>{t.arch || '—'}</td>
+                    <td
+                      style={td('left', {
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        color: seat >= 2 ? 'var(--gm-bad)' : seat === 1 ? 'var(--color-accent-700)' : undefined,
+                      })}
+                      title={(c as any).lastMiss ? 'Last season he ' + (c as any).lastMiss + '.' : undefined}
+                    >
+                      {seat >= 2 ? 'Hot seat (' + seat + ' missed)' : seat === 1 ? 'Missed last season' : 'On target'}
+                      {proj != null && <span style={muted}> · proj. {Math.round(proj)} W</span>}
+                    </td>
+                    <td style={td('right')}>{sm.nbaW + sm.nbaL ? sm.nbaW + '–' + sm.nbaL : '—'}</td>
+                    <td style={td('right')}>{sm.hcW - sm.nbaW + sm.hcL - sm.nbaL ? sm.hcW - sm.nbaW + '–' + (sm.hcL - sm.nbaL) : '—'}</td>
+                    <td style={td('right')}>{sm.hcRings || ''}</td>
+                    <td style={td('right')}>{c.coy?.length || ''}</td>
+                    <td style={td('left', { fontSize: '12px' })}>{playLine(c)}</td>
+                  </tr>
+                  {staff.map(x => (
+                    <tr key={'s' + x.id} style={{ background: 'var(--color-neutral-100)' }}>
+                      <td style={td('left', { fontSize: '12px', ...muted })}>{ROLE_LABEL[x.role!]}</td>
+                      <td style={td()}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <CoachFace gm={gm} c={x} age={coachAge(gm, x)} size={22} />
+                          <button className="hv4" onClick={() => openC(x.id)} style={{ all: 'unset', cursor: 'pointer' }}>
+                            {x.name}
+                          </button>
+                          {flag(x)}
+                        </div>
+                      </td>
+                      <td style={td('right')}>{coachAge(gm, x)}</td>
+                      <td style={td('right')}>{x.rep}</td>
+                      <td />
+                      <td style={td('right')}>{x.exp}</td>
+                      <td colSpan={7} style={td('left', { fontSize: '12px' })}>
+                        {god ? styleOf(x) + ' · ' : ''}
+                        {playLine(x)}
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
               );
             })}
           </tbody>

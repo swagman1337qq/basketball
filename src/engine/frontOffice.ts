@@ -3,7 +3,8 @@
 // owner-mandated fire sales. Everything the owner judges you on is computed here and
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import { staffSeason } from './coachCareer';
-import { hasStaff, staffBudget, staffCost } from './staff';
+import { carousel } from './carousel';
+import { hasStaff, notify, staffBudget, staffCost } from './staff';
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
 import { capState, nums, rosterMin, seasonMax, stdIds, taxBill as cbaTax, teamSalary } from './cba';
@@ -695,6 +696,17 @@ export function seasonReview(g: Game) {
     };
   });
   staffSeason(g, g.state); // every coach's season goes into his history (coachCareer.ts)
+  // The coaching carousel (carousel.ts): AI head coaches judged against their owners' targets, fired, hired.
+  {
+    const st = g.state,
+      finOf = (tid: number) => (st.teamHist?.[tid] || []).find((h: any) => h.season === g.Y)?.fin || '',
+      cv = carousel(g, st, finOf);
+    if (cv.notices.length || cv.log.length)
+      g.setState(x => ({
+        ...(cv.notices.length ? { notices: notify(x, cv.notices) } : {}),
+        ...(cv.log.length ? { lgLog: [...cv.log, ...(x.lgLog || [])] } : {}),
+      }));
+  }
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
   (s.firedFrom || []).forEach(t => {

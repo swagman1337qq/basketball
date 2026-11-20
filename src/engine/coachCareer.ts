@@ -17,6 +17,7 @@ import { pickCollege } from '../data/world';
 import { EUROLEAGUE, leaguesIn } from '../data/leagues';
 import { firstSeason } from './contracts';
 import { coachDb, coachOvr, mkCoach, repOf, starterStaff, staffOf, type Coach, type CoachRole } from './staff';
+import { hireHeadCoach } from './carousel';
 
 const cl = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 export const ROLE_CODE: Record<string, number> = { lead: 0, asst: 1, dev: 2, hc: 3 };
@@ -87,8 +88,10 @@ export function mkHeadCoach(g: Game, s: any, tid: number): Coach {
   preserveCoachCareer(g, s, c);
   return c;
 }
-// Every AI team has one head coach; your teams have you (a head coach there goes back on the market). Returns log lines.
-export function syncHeadCoaches(g: Game, s: any): any[] {
+// Every AI team has one head coach; your teams have you (a head coach there goes back on the market). Returns log
+// lines; an opening filled after the league began (a head coach retired) goes through the carousel's hiring
+// (carousel.ts), with a Mailbox notice in `notices`.
+export function syncHeadCoaches(g: Game, s: any, notices?: any[]): any[] {
   const C = coachDb(g),
     log: any[] = [],
     all = Object.values(C) as Coach[];
@@ -103,9 +106,21 @@ export function syncHeadCoaches(g: Game, s: any): any[] {
     }
     hcs.slice(1).forEach(c => (c.role = 'asst'));
     if (!hcs.length) {
-      const c = mkHeadCoach(g, s, tid);
-      if ((g.db as any).hcV)
-        log.push({ day: s.day, type: 'Staff', teams: T.abbr, text: T.region + ' ' + T.name + ' named ' + c.name + ' head coach' });
+      if (!(g.db as any).hcV || (g.db as any).staffV < 3) {
+        const c = mkHeadCoach(g, s, tid);
+        if ((g.db as any).hcV)
+          log.push({ day: s.day, type: 'Staff', teams: T.abbr, text: T.region + ' ' + T.name + ' named ' + c.name + ' head coach' });
+        return;
+      }
+      // Not from its own bench: a God Mode edit that moved its head coach to another job stays as made.
+      const out = { notices: [] as any[], log: [] as any[] },
+        h = hireHeadCoach(g, s, tid, out, new Set(staffOf(g, tid).map(c => c.id)));
+      log.push({ day: s.day, type: 'Staff', teams: T.abbr, text: T.region + ' ' + T.name + ' named ' + h.c.name + ' head coach' });
+      notices?.push(...out.notices, {
+        tone: 'info',
+        title: 'Coaching change: ' + T.region + ' ' + T.name,
+        lines: ['The ' + T.region + ' ' + T.name + ' named ' + h.c.name + ' head coach (reputation ' + h.c.rep + ').'],
+      });
     }
   });
   (g.db as any).hcV = 1;

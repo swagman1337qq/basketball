@@ -5520,7 +5520,7 @@ export class Game {
       this.db.coachYearY = this.Y;
       const { notices: cn } = staffYear(this, this.state); // coaches grow, retire, ask for raises (staff.ts)
       coachPipeline(this, this.state); // a quarter of this year's retiring players turn to coaching (coachCareer.ts)
-      const hl = syncHeadCoaches(this, this.state); // a team whose head coach retired names a new one
+      const hl = syncHeadCoaches(this, this.state, cn); // a team whose head coach retired names a new one (carousel.ts)
       this.setState(st => ({ ...(cn.length ? { notices: notify(st, cn) } : {}), ...(hl.length ? { lgLog: [...hl, ...st.lgLog] } : {}) }));
     }
     if (dealNote) this.setState(st => ({ notices: addNotice(st, dealNote) })); // the summer's deals in the Mailbox
@@ -6508,8 +6508,8 @@ export class Game {
           }),
         );
         applyChange(p, dl);
-        // A poor coaching staff (staff.ts devSlip): his skills slip a little each month.
-        if (mine && hasStaff(this, s, +k)) {
+        // A poor coaching staff (staff.ts devSlip), on any team: his skills slip a little each month.
+        if (hasStaff(this, s, +k)) {
           const sl = devSlip(staffFx(this, s, +k).devQ);
           if (sl > 0) {
             const sk = SKILLS[Math.floor(Math.random() * SKILLS.length)];

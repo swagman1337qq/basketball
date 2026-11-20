@@ -35,6 +35,7 @@ export function teamBudget(g: Game, s: any, tid: number): Record<string, number>
   Object.keys(LIMIT).forEach(
     (k, i) => (out[k] = +cl(b[k] + h(i + 1) * (k === 'Scouting' ? 2 : k === 'Health' ? 5 : 8), LIMIT[k][0], LIMIT[k][1]).toFixed(1)),
   );
+  if (hasStaff(g, s, tid)) out.Coaching = staffBudget(g, s, tid); // an AI staff's real cost (carousel.ts), from phase 3
   return out;
 }
 // Facilities' share: a modern gym and recovery center, at most +6% (−4% for a bare-bones one).

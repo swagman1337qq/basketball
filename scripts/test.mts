@@ -19,6 +19,7 @@ const SCRIPTS = [
   'lazyBoxArchive',
   'viewVisibility',
   'staffContracts',
+  'coachCarousel',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

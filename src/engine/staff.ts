@@ -18,8 +18,8 @@
 //    – motivation: a small mood factor; eye for talent: how close your staff's read of your players' potential is.
 //  • Contracts: 1–5 years, negotiated; paid from the Coaching line in Finances (salaries plus a fixed support
 //    staff), with fired coaches paid out to the end of their deals.
-// AI teams don't have staffs yet (phase 3): they keep their owner's Coaching budget, and an average staff
-// equals the typical budget, so a staff gives no edge by itself.
+// AI teams have staffs too (phase 3, carousel.ts): their coaches replace the owner's Coaching budget. An average
+// staff equals the typical budget, so a staff gives no edge by itself.
 import type { Game } from './Game';
 import { randomName } from '../data/heritage';
 import { pickCollege, natDefault } from '../data/world';
@@ -28,6 +28,7 @@ import { firstSeason } from './contracts';
 import { addNotice } from './preFA';
 import { fmtMoney as money } from './capModel';
 import { preserveCoachCareer, type CoachRow } from './coachCareer';
+import { fillAiStaffs, payF, supportF } from './carousel';
 
 export type CoachRole = 'lead' | 'asst' | 'dev' | 'hc';
 export const ROLE_LABEL: Record<CoachRole, string> = {
@@ -329,8 +330,11 @@ export function staffOf(g: Game, tid: number): Coach[] {
     .sort((a, b) => ROLE_ORDER.indexOf(a.role!) - ROLE_ORDER.indexOf(b.role!) || b.rep - a.rep);
 }
 export const freeCoaches = (g: Game) => (Object.values(coachDb(g)) as Coach[]).filter(c => c.tid == null && !c.ret);
-// A team runs a staff of people when it's yours (AI staffs: phase 3).
-export const hasStaff = (g: Game, s: any, tid: number) => !!g.clubOf(s, tid) && !!(g.db as any).staffV;
+// A team runs a staff of people: yours, and from phase 3 (db.staffV 3, carousel.ts) every AI team too.
+export const hasStaff = (g: Game, s: any, tid: number) => {
+  const v = (g.db as any).staffV;
+  return !!v && (v >= 3 || !!g.clubOf(s, tid));
+};
 
 export interface StaffFx {
   stO: number; // shot-quality edge on offense (sim.ts)
@@ -363,13 +367,17 @@ export function staffFx(g: Game, s: any, tid: number): StaffFx {
 // The same from what you know of them (the Staff screen; God Mode: exact).
 export const staffFxRead = (g: Game, tid: number, exact: boolean) => fxOf(staffOf(g, tid).map(c => ({ ...c, r: readRatings(c, exact) })));
 export function fxOf(st: Coach[]): StaffFx {
-  const lead = st.find(c => c.role === 'lead'),
+  // An AI team's head coach makes the in-game calls (your Lead Assistant does for you), and its Lead Assistant
+  // then works like any assistant: the same weights as your staff, where you are the head coach.
+  const hc = st.find(c => c.role === 'hc'),
+    callRole: CoachRole = hc ? 'hc' : 'lead',
+    lead = hc || st.find(c => c.role === 'lead'),
     devH = st.find(c => c.role === 'dev'),
     side: Record<'O' | 'D', number[]> = { O: [], D: [] };
-  // Each coach's value at his end of the floor (assistants in full, the Lead at half): (rating − 50) / 40.
+  // Each coach's value at his end of the floor (assistants in full, the one making the calls at half): (rating − 50) / 40.
   st.forEach(c => {
     if (c.role === 'dev') return;
-    const w = c.role === 'lead' ? 0.5 : 1,
+    const w = c.role === callRole ? 0.5 : 1,
       sty = styleOf(c);
     if (sty !== 'Defense-minded') side.O.push(((c.r.off - 50) / 40) * w * (sty === 'Balanced' ? 0.6 : 1));
     if (sty !== 'Offense-minded') side.D.push(((c.r.def - 50) / 40) * w * (sty === 'Balanced' ? 0.6 : 1));
@@ -447,12 +455,24 @@ export function coachAccept(g: Game, s: any, tid: number, c: Coach, t: { amt: nu
   };
 }
 // The Coaching line in Finances for a team with a staff ($M this season): support staff, salaries, fired coaches still owed.
+const COST_CACHE = new WeakMap<Game['db'], Map<string, number>>();
 export function staffCost(g: Game, s: any, tid: number) {
+  const key = tid + '|' + staffRev(g) + '|' + g.Y + '|' + (g.isUser(s, tid) ? 1 : 0) + '|' + (s.teams[tid]?.arch || '');
+  let cache = COST_CACHE.get(g.db);
+  if (!cache) COST_CACHE.set(g.db, (cache = new Map()));
+  const hit = cache.get(key);
+  if (hit != null) return hit;
+  const v = staffCostNow(g, s, tid);
+  if (cache.size > 300) cache.clear();
+  cache.set(key, v);
+  return v;
+}
+function staffCostNow(g: Game, s: any, tid: number) {
   const pay = staffOf(g, tid).reduce((a, c) => a + c.amt, 0),
     dead = ((g.db as any).coachDead?.[tid] || [])
       .filter((x: any) => (x.from ?? -Infinity) <= g.Y && x.thru >= g.Y)
       .reduce((a: number, x: any) => a + x.amt, 0);
-  return +(SUPPORT * lfOf(g) + pay + dead).toFixed(2);
+  return +(SUPPORT * (g.isUser(s, tid) ? 1 : supportF(s, tid)) * lfOf(g) + pay + dead).toFixed(2); // an AI owner's support staff by his type (carousel.ts)
 }
 // For the budget scale (Finances multiplies by the cap factor).
 export const staffBudget = (g: Game, s: any, tid: number) => +(staffCost(g, s, tid) / lfOf(g)).toFixed(2);
@@ -612,6 +632,11 @@ export function ensureStaff(g: Game) {
     d.coachPipeY = d.coachPipeY ?? g.Y;
     d.staffV = 2;
   }
+  // Phase 3 (2026-11-20, carousel.ts): every AI team gets a staff, made to its owner's money.
+  if (d.staffV < 3) {
+    d.staffV = 3;
+    fillAiStaffs(g, s, { fresh: true });
+  }
   Object.values(coachDb(g)).forEach(c => {
     preserveCoachCareer(g, s, c);
     activateExtension(c, g.Y);
@@ -724,6 +749,7 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
   // Keep the pool full: new coaches come in.
   const free = freeCoaches(g).length;
   for (let i = free; i < POOL; i++) mkCoach(g, { age: 27 + Math.floor(Math.random() * 25) });
+  fillAiStaffs(g, s); // AI staffs whose coaches retired hire again (carousel.ts)
   // Retired people remain available to career trees, awards and profile links.
   Object.values(C).forEach(c => preserveCoachCareer(g, s, c));
   bump(g);
@@ -766,9 +792,15 @@ export function staffContractsEnd(g: Game, s: any): any[] {
     if (c.next) return; // renewed through the following seasons; activation waits for the year to turn
     preserveCoachCareer(g, s, c);
     const tid = c.tid;
-    // An AI team's head coach stays on a new deal (hiring and firing come with phase 3).
+    // An AI team's head coach: renewed or let go after the season (carousel.ts); a deal still open here renews.
     if (c.role === 'hc' && !g.isUser(s, tid)) {
       c.exp = g.Y + 2 + Math.floor(Math.random() * 3);
+      return;
+    }
+    // An AI team's assistant: kept on a new deal more often than not, else he's on the market.
+    if (!g.isUser(s, tid) && Math.random() < 0.55 + (c.pers.loyal - 50) / 200) {
+      c.amt = +Math.max(c.amt, coachAsk(g, c, c.role!) * payF(s, tid)).toFixed(2);
+      c.exp = g.Y + 1 + Math.floor(Math.random() * 3);
       return;
     }
     if (g.isUser(s, tid))
@@ -784,6 +816,7 @@ export function staffContractsEnd(g: Game, s: any): any[] {
   });
   const d: any = g.db;
   if (d.coachDead) Object.keys(d.coachDead).forEach(k => (d.coachDead[k] = d.coachDead[k].filter((x: any) => x.thru > g.Y)));
+  if ((d.staffV || 0) >= 3) fillAiStaffs(g, s); // AI teams replace the assistants who left (carousel.ts)
   bump(g);
   return out;
 }
