@@ -4,6 +4,7 @@
 // shown in full on the Owner, Finances and Career screens: no hidden rules.
 import { staffSeason } from './coachCareer';
 import { carousel } from './carousel';
+import { analyticsCost, anSeasonEnd } from './analytics';
 import { hasStaff, notify, staffBudget, staffCost } from './staff';
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
@@ -238,6 +239,7 @@ export function financesOf(g: Game, s: any, tid: number) {
     ...(club?.buyoutCash ? [['Overseas buyouts', club.buyoutCash] as [string, number]] : []),
     ...(bonusPaid ? [[settled ? 'Incentive bonuses paid' : 'Incentive bonuses (projected)', bonusPaid] as [string, number]] : []),
     hasStaff(g, s, tid) ? ['Coaching staff', staffCost(g, s, tid)] : ['Coaching', b.Coaching * lf], // your assistants' salaries and support staff (staff.ts)
+    ...(analyticsCost(g, s, tid) ? [['Analytics department', analyticsCost(g, s, tid)] as [string, number]] : []), // analytics.ts
     ['Health', b.Health * lf],
     ['Facilities', b.Facilities * lf],
     ['Scouting', b.Scouting * lf],
@@ -707,6 +709,7 @@ export function seasonReview(g: Game) {
         ...(cv.log.length ? { lgLog: [...cv.log, ...(x.lgLog || [])] } : {}),
       }));
   }
+  anSeasonEnd(g, g.state); // your analysts' projections and draft boards graded (analytics.ts)
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
   (s.firedFrom || []).forEach(t => {

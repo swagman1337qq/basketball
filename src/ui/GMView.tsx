@@ -31,6 +31,7 @@ import { OverseasScreen } from './screens/OverseasScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import { HierarchyScreen } from './screens/HierarchyScreen';
 import { StaffScreen } from './screens/StaffScreen';
+import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { CoachProfile } from './modals/CoachProfile';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { DailyScheduleScreen } from './screens/DailyScheduleScreen';
@@ -227,6 +228,7 @@ export function GMView({ vm }: { vm: VM }) {
                     {!!vm.is.dev && <DevelopmentScreen vm={vm} />}
                     {!!vm.is.hier && <HierarchyScreen vm={vm} />}
                     {!!vm.is.staff && <StaffScreen vm={vm} />}
+                    {!!vm.is.analytics && <AnalyticsScreen vm={vm} />}
                     {!!vm.is.owner && <OwnerScreen vm={vm} />}
                     {!!vm.is.settings && <SettingsScreen vm={vm} />}
                     {!!vm.is.fin && <FinancesScreen vm={vm} />}

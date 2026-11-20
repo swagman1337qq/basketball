@@ -303,6 +303,7 @@ function Range({
 }
 
 export function FreeAgencyScreen({ vm }: { vm: VM }) {
+  const hasAna = (vm.faCols || []).some((c: any) => c.key === 'ana');
   const { gm, s } = vm.ctx,
     P = gm.db.P;
   const [f, setF] = useState<'all' | 'gl' | 'home'>('all'),
@@ -762,6 +763,11 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
               <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.tone, fontWeight: '600' }}>{p.ovr}</td>
               <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.ptone }}>{p.pot}</td>
               <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.askS}</td>
+              {hasAna && (
+                <td title={p.anaT} style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap', color: p.anaC }}>
+                  {p.anaS}
+                </td>
+              )}
               <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>{p.exp}</td>
               <td style={{ padding: '4px 8px' }}>
                 <span className="tag" style={{ background: p.moodBg, color: p.moodFg, padding: '1px 8px' }}>
@@ -1088,6 +1094,7 @@ function FaDense(props: any) {
               {th('pot', 'Pot')}
               {th('last', 'Last', true)}
               {th('ask', 'Asking for')}
+              {C.ana && th('ana', 'Analytics')}
               {th('mood', 'Interest', true)}
               <th />
             </tr>
@@ -1207,6 +1214,11 @@ function FaDense(props: any) {
                   <td style={td} title={'A year, through ' + pp.exp + (pp.rfa ? ' · restricted free agent' : '')}>
                     {fmtM(p.ask)} <span style={{ fontSize: '11.5px' }}>· {pp.exp}</span>
                   </td>
+                  {C.ana && (
+                    <td style={{ ...td, color: p.anaC }} title={p.anaT}>
+                      {p.anaS}
+                    </td>
+                  )}
                   <td style={tl} title={pp.mood + ' about your team · wants ' + String(p.mot).toLowerCase()}>
                     <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                       <span

@@ -12,6 +12,7 @@ import { ceilList, fullCeil, paceLabel, paceOf, potView, scoutSd } from '../../e
 import { envOf } from '../../engine/environment';
 import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
+import { AN_ROLE_LABEL, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
 
 const LB: Record<string, string> = {
   hgt: 'Height',
@@ -103,6 +104,109 @@ export function fiveZones(t: any) {
 }
 export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
 
+// Your analytics department's view of him (analytics.ts): numbers only, beside your scouts' (or, for your own
+// players, your coaches') read of his ceiling, with what his contract is worth to them and how he fits your needs.
+export function AnalyticsView({ vm }: { vm: VM }) {
+  const { gm, s, money } = vm.ctx,
+    { p, tid } = useP(vm);
+  if (!p || !hasDept(gm, s.me)) return null;
+  const v = deptView(gm, s, s.me, p);
+  const own = tid >= 0 && gm.isUser(s, tid),
+    who = own ? 'your coaches' : 'your scouts',
+    pot = vm.ctx.potOf(p),
+    inFa = (s.fa || []).includes(p.id),
+    sal = inFa ? gm.askFor(p, s) : p.amt || 0;
+  const fit = v ? fitWith(gm, s, s.me, p) : null;
+  const Row = ({ k, children, c }: { k: string; children: any; c?: string }) => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '110px minmax(0,1fr)',
+        gap: 8,
+        padding: '4px 0',
+        borderBottom: '1px solid var(--color-divider)',
+        fontSize: '12.5px',
+      }}
+    >
+      <span style={muted}>{k}</span>
+      <span style={{ color: c }}>{children}</span>
+    </div>
+  );
+  return (
+    <section>
+      <h4 style={{ ...ruleH4, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span>Analytics</span>
+        <Link
+          onClick={() => gm.setState({ screen: 'analytics', modal: false })}
+          style={{ fontSize: '11.5px', color: 'var(--color-accent-700)' }}
+        >
+          Your department
+        </Link>
+      </h4>
+      {!v ? (
+        <p style={{ ...muted, fontSize: '12px', margin: 0 }}>
+          Not enough numbers on him yet: no NBA minutes, college or club season to go on.
+        </p>
+      ) : (
+        (() => {
+          const gap = v.peak - pot,
+            far = Math.abs(gap) >= 4,
+            cv = v.kind === 'nba' && sal > 0 ? contractValue(gm, v, sal) : null,
+            spread = Math.max(...v.by.map(x => x.v.peak)) - Math.min(...v.by.map(x => x.v.peak));
+          return (
+            <>
+              <Row k="Level now">
+                {Math.round(v.now)}
+                <span style={muted}>
+                  {' '}
+                  · rated {p.ovr} · {v.conf.toLowerCase()} confidence ({v.kind === 'nba' ? 'NBA numbers' : 'college or club numbers'})
+                </span>
+              </Row>
+              <Row k="Ceiling" c={far ? (gap > 0 ? good : bad) : undefined}>
+                {Math.round(v.peak)}
+                <span style={muted}>
+                  {' '}
+                  · {who}: {pot}
+                </span>
+                {far ? (gap > 0 ? ' · the numbers like him more' : ' · the numbers like him less') : ''}
+              </Row>
+              {v.kind === 'nba' && <Row k="Next season">{Math.round(v.next)}</Row>}
+              {cv && (
+                <Row k={inFa ? 'Worth (asks)' : 'Worth (paid)'} c={cv.surplus >= 1 ? good : cv.surplus <= -1 ? bad : undefined}>
+                  about {money(Math.max(0, cv.worth))} a year · {inFa ? 'asks' : 'paid'} {money(sal)}
+                </Row>
+              )}
+              {fit && (
+                <Row k="Fit with you" c={fit.fills.length ? good : undefined}>
+                  {!fit.needs.length
+                    ? 'No glaring needs in your numbers.'
+                    : fit.fills.length
+                      ? 'Fills ' + fit.fills.join(' and ')
+                      : 'Doesn’t fill your needs (' + fit.needs.map(n => n.label + ', ' + ord(n.rank)).join('; ') + ')'}
+                </Row>
+              )}
+              {v.by.length > 1 && spread >= 4 && (
+                <Row k="Split">
+                  {v.by
+                    .map(
+                      x =>
+                        x.a.name.split(' ').slice(-1)[0] +
+                        ' ' +
+                        Math.round(x.v.peak) +
+                        (x.a.role === 'head' ? ' (' + AN_ROLE_LABEL.head + ')' : ''),
+                    )
+                    .join(' · ')}
+                </Row>
+              )}
+            </>
+          );
+        })()
+      )}
+    </section>
+  );
+}
+const ord = (n: number) => n + (['th', 'st', 'nd', 'rd'][((n % 100) - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+
 export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
   const { gm, s, open } = vm.ctx,
     { p, tid } = useP(vm);
@@ -146,6 +250,7 @@ export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
         marginTop: stack ? 0 : '26px',
       }}
     >
+      <AnalyticsView vm={vm} />
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}

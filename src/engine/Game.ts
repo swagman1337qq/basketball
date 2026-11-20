@@ -20,6 +20,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
 import { coachPipeline, syncHeadCoaches } from './coachCareer';
+import { anContractsEnd, anDraftBoard, anExpiring, anMonth, anOpening, anYear, ensureAnalytics } from './analytics';
 import {
   coachingOf,
   devSlip,
@@ -440,6 +441,7 @@ export class Game {
     if (opts.spectate) g.enterSpectator(); // spectator.ts: no team, the AI runs all of them
     ensureStaff(g); // coaches: a pool, and a staff for each of your teams (staff.ts)
     syncHeadCoaches(g, g.state); // and a head coach for every AI team (coachCareer.ts)
+    ensureAnalytics(g); // an analytics department for each of your teams (analytics.ts)
     return g;
   }
 
@@ -781,6 +783,7 @@ export class Game {
       const hl = syncHeadCoaches(g, g.state); // every AI team's head coach; your teams' staffs (coachCareer.ts)
       if (hl.length) g.state.lgLog = [...hl, ...(g.state.lgLog || [])];
     }
+    ensureAnalytics(g); // 2026-11-20: the analytics department (analytics.ts)
     if (!g.db.laTvV) {
       (g.state.teams || []).forEach((t: any) => {
         if (t.region === 'Los Angeles' && t.tv) t.tv = { ...t.tv, fee: +((t.tv.fee * 200) / 115).toFixed(1) };
@@ -4370,13 +4373,14 @@ export class Game {
         ],
       };
     });
+    if (this.state.phase === 'draft') anDraftBoard(this, this.state); // your analysts' draft boards, graded three seasons on
   }
   startPreFA() {
     if (this.mailWaiting()) return;
     const was = !!this.state.preFA;
     startPreFA(this);
     if (!was && this.state.preFA) {
-      const n = staffExpiring(this, this.state);
+      const n = [...staffExpiring(this, this.state), ...anExpiring(this, this.state)];
       if (n.length) this.setState(st => ({ notices: notify(st, n) })); // coaches' deals ending (staff.ts)
     }
   }
@@ -4522,7 +4526,7 @@ export class Game {
       offseasonMandates(this);
       if (!this.db.coachEndY || this.db.coachEndY < this.Y) {
         this.db.coachEndY = this.Y;
-        const n = staffContractsEnd(this, this.state);
+        const n = [...staffContractsEnd(this, this.state), ...anContractsEnd(this, this.state)];
         if (n.length) this.setState(st => ({ notices: notify(st, n) })); // coaches whose deals ran out leave (staff.ts)
       }
     } // team sales close with the new league year; owners' payroll orders
@@ -5520,6 +5524,7 @@ export class Game {
       this.db.coachYearY = this.Y;
       const { notices: cn } = staffYear(this, this.state); // coaches grow, retire, ask for raises (staff.ts)
       coachPipeline(this, this.state); // a quarter of this year's retiring players turn to coaching (coachCareer.ts)
+      cn.push(...anYear(this, this.state)); // analysts: experience, retirements, the pool (analytics.ts)
       const hl = syncHeadCoaches(this, this.state, cn); // a team whose head coach retired names a new one (carousel.ts)
       this.setState(st => ({ ...(cn.length ? { notices: notify(st, cn) } : {}), ...(hl.length ? { lgLog: [...hl, ...st.lgLog] } : {}) }));
     }
@@ -5712,6 +5717,7 @@ export class Game {
       if (ext.length) this.setState(st => ({ lgLog: [...ext, ...st.lgLog] }));
       mediaPreds(this, this.state);
       snapOpening(this, this.state); // opening-night ratings for year-over-year progress
+      anOpening(this, this.state); // your analysts' projections, graded at season's end (analytics.ts)
       this.rollDevYear(this.state);
     }
   }
@@ -6448,6 +6454,7 @@ export class Game {
       box: 'Box',
     };
     staffMonth(this, s); // you get to know your coaches (staff.ts)
+    anMonth(this, s); // and your analysts (analytics.ts)
     // Assistant coaches re-check the CCP assignments they're in charge of.
     Object.keys(rosters).forEach(k => {
       const club = this.clubOf(s, +k);

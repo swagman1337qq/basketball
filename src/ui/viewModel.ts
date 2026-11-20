@@ -69,6 +69,7 @@ import { facEffect, teamBudget } from '../engine/environment';
 import { isPlainHS } from '../data/leagues';
 import { coachMult } from '../engine/development';
 import { hasStaff, staffCost, staffFxRead } from '../engine/staff';
+import { contractValue, deptView, hasDept, tradeView } from '../engine/analytics';
 import { mulberry32 } from '../engine/rng';
 import { TACTIC_GROUPS } from '../engine/tactics';
 import type { VM } from './vm';
@@ -371,6 +372,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     ['dev', 'Development', 'Team'],
     ['hier', 'Hierarchy', 'Team'],
     ['staff', 'Staff', 'Team'],
+    ['analytics', 'Analytics', 'Team'],
     ['tactics', 'Tactics', 'Team'],
     ['fin', 'Finances', 'Team'],
     ['capsheet', 'Cap sheet', 'Team'],
@@ -426,6 +428,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       'M12 11a2 2 0 1 0 0 4 2 2 0 0 0 0-4',
       'M8.5 19a3.5 3.5 0 0 1 7 0',
     ],
+    analytics: ['M3 3v18h18', 'M7 16l4-5 3 3 5-7', 'M17 7h2v2'],
     hier: [
       'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
       'M5 21h14',
@@ -499,6 +502,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     'dev',
     'hier',
     'staff',
+    'analytics',
     'tactics',
     'fin',
     'capsheet',
@@ -1250,6 +1254,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
             any && s.tAdvice && s.screen === 'trade'
               ? tradeAdvice(gm, s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs, 'proposal')
               : null,
+          anAdvice: any && s.tAdvice && s.screen === 'trade' ? tradeView(gm, s, s.me, s.tMine, s.tTheirs) : null, // your analytics department (analytics.ts)
           askAdvice: () => gm.setState(st => ({ tAdvice: !st.tAdvice })),
         };
         return tr;
@@ -1375,6 +1380,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     ['ovr', 'Ovr'],
     ['pot', 'Pot'],
     ['ask', 'Asking'],
+    ...(hasDept(gm, s.me) ? [['ana', 'Analytics']] : []),
     ['exp', 'Through'],
     ['mood', 'Mood', 'left'],
     ['mot', 'Wants', 'left'],
@@ -1426,6 +1432,29 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
             glLine: p.gl?.tid != null ? 'CCP: ' + p.gl.pts + ' pts · ' + p.gl.reb + ' reb · ' + p.gl.ast + ' ast' : '',
             ask: gm.askFor(p, s),
             askS: money(gm.askFor(p, s)) + (p.rfa ? ' · RFA' : ''),
+            ...(() => {
+              // Your analysts' view (analytics.ts): what he's worth a year to them against what he asks.
+              const v = hasDept(gm, s.me) ? deptView(gm, s, s.me, p) : null;
+              if (!v) return { ana: -999, anaS: '—', anaT: 'Not enough numbers on him for your analysts', anaC: undefined };
+              const cv = contractValue(gm, v, gm.askFor(p, s));
+              return {
+                ana: cv.surplus,
+                anaS: (cv.surplus >= 0 ? '+' : '−') + money(Math.abs(cv.surplus)),
+                anaT:
+                  'Your analysts: level ' +
+                  Math.round(v.now) +
+                  ', ceiling ' +
+                  Math.round(v.peak) +
+                  ', next season ' +
+                  Math.round(v.next) +
+                  ' · worth about ' +
+                  money(Math.max(0, cv.worth)) +
+                  ' a year against his ask (' +
+                  v.conf.toLowerCase() +
+                  ' confidence)',
+                anaC: cv.surplus >= 1 ? 'var(--gm-good)' : cv.surplus <= -1 ? 'var(--gm-bad)' : undefined,
+              };
+            })(),
             mot: p.pers.mot,
             moodBg: MOOD[p.mood][0],
             moodFg: MOOD[p.mood][1],
@@ -4100,6 +4129,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     overseas: 'Overseas market',
     dev: 'Player development',
     hier: 'Team hierarchy',
+    analytics: 'Analytics department',
     owner: 'Ownership',
     playoffs: 'Playoffs',
     settings: 'Settings',
@@ -4157,6 +4187,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     overseas: (s.overseas || []).length + ' players abroad',
     dev: 'Growth is calculated monthly',
     hier: 'Who leads the room, and whom the young players follow',
+    analytics: 'Numbers only: they never see ratings',
     owner: me.owner + ' · ' + me.arch,
     playoffs: gm.seasonLbl() + ' postseason · 15 teams per conference',
     settings: '',

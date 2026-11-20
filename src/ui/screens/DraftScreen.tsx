@@ -3,6 +3,7 @@ import { GOD_PINK, PN } from '../kit';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { classStats } from '../../engine/amateurStats';
+import { anRev, deptView, hasDept } from '../../engine/analytics';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { muted, Seg, usePaged } from '../kit';
 import { MockDrafts } from './MockDrafts';
@@ -34,6 +35,20 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const needAmateur = stats || expanded?.cls === cls;
   const am = useMemo(() => (needAmateur ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [needAmateur, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
+  // Your analytics department's own board for the class (analytics.ts): numbers only, ranked by the ceiling they see.
+  const anOn = hasDept(gm, s.me);
+  const anBoard = useMemo(() => {
+    if (!anOn) return {} as Record<number, { rank: number; peak: number }>;
+    const rows = clsIds
+      .map(id => ({ id, v: gm.db.P[id] ? deptView(gm, s, s.me, gm.db.P[id]) : null }))
+      .filter(x => x.v)
+      .sort((a, b) => b.v!.peak - a.v!.peak);
+    return Object.fromEntries(rows.map((x, i) => [x.id, { rank: i + 1, peak: x.v!.peak }])) as Record<
+      number,
+      { rank: number; peak: number }
+    >;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anOn, gm, cls, clsIds.length, s.day, s.gv, anRev(gm), gm.Y]);
   // Where that season was played: the college or club, or just High School.
   const teamOf = (x: any) => (x.level === 'High school' ? 'High School' : x.team);
   const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)),
@@ -204,7 +219,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
       </section>
     );
   const showDraftAction = vm.dr.isCurrent;
-  const columnCount = 1 + cols.length + (stats ? ST.length : 0) + (showDraftAction ? 1 : 0);
+  const columnCount = 1 + cols.length + (stats ? ST.length : 0) + (showDraftAction ? 1 : 0) + (anOn ? 1 : 0);
   const boardHead = (c: any) => (
     <th key={c.key} className={c.key === 'name' ? 'draft-name-cell' : 'draft-number' + (c.key === 'pot' ? ' draft-potential-cell' : '')}>
       <button
@@ -394,6 +409,14 @@ export function DraftScreen({ vm }: { vm: VM }) {
                           {c.key === 'age' && statHeads}
                         </Fragment>
                       ))}
+                      {anOn && (
+                        <th
+                          className="draft-number"
+                          title="Your analytics department’s board: where the numbers rank him in this class (by the ceiling they see). Highlighted where they and your scouts are far apart."
+                        >
+                          Analytics
+                        </th>
+                      )}
                       {showDraftAction && <th className="draft-action-cell">Draft</th>}
                     </tr>
                   </thead>
@@ -479,6 +502,39 @@ export function DraftScreen({ vm }: { vm: VM }) {
                                 {opened ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
                               </button>
                             </td>
+                            {anOn &&
+                              (() => {
+                                const a = anBoard[p.id];
+                                if (!a) return <td className="draft-number draft-muted">—</td>;
+                                const gap = a.peak - p.pot,
+                                  far = Math.abs(gap) >= 4;
+                                return (
+                                  <td
+                                    className="draft-number"
+                                    title={
+                                      'Your analysts: #' +
+                                      a.rank +
+                                      ' on their board, a ceiling of about ' +
+                                      Math.round(a.peak) +
+                                      ' (your scouts: ' +
+                                      p.pot +
+                                      ')' +
+                                      (far
+                                        ? gap > 0
+                                          ? '. The numbers like him more than your scouts do.'
+                                          : '. The numbers like him less than your scouts do.'
+                                        : '')
+                                    }
+                                    style={{
+                                      color: far ? (gap > 0 ? 'var(--gm-good)' : 'var(--gm-bad)') : undefined,
+                                      fontWeight: far ? 600 : undefined,
+                                    }}
+                                  >
+                                    #{a.rank}
+                                    {far ? (gap > 0 ? ' ▲' : ' ▼') : ''}
+                                  </td>
+                                );
+                              })()}
                             {showDraftAction && (
                               <td className="draft-action-cell">
                                 <button

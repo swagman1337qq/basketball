@@ -20,6 +20,7 @@ const SCRIPTS = [
   'viewVisibility',
   'staffContracts',
   'coachCarousel',
+  'analytics',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

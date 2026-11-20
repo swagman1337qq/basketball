@@ -3,7 +3,7 @@ import { TradeBoard } from './TradeBoard';
 import { useTradeNameLinks, type TradeText } from './TradeNameLinks';
 
 const TONE: Record<string, string> = { good: 'var(--gm-good)', ok: 'var(--color-accent-700)', bad: 'var(--gm-bad)' };
-function AdviceBox({ a, text }: { a: any; text: TradeText }) {
+function AdviceBox({ a, text, label = 'Assistant GM' }: { a: any; text: TradeText; label?: string }) {
   if (!a) return null;
   return (
     <div
@@ -17,7 +17,7 @@ function AdviceBox({ a, text }: { a: any; text: TradeText }) {
       }}
     >
       <div style={{ fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--color-neutral-700)' }}>
-        Assistant GM
+        {label}
       </div>
       <div style={{ fontWeight: 600, color: TONE[a.tone], margin: '2px 0 4px' }}>“{text(a.head)}”</div>
       {a.lines.map((l: string, i: number) => (
@@ -160,7 +160,16 @@ export function TradeScreen({ vm }: { vm: VM }) {
           )}
         </section>
       )}
-      <TradeBoard vm={vm} text={text} advice={<AdviceBox a={vm.tr.advice} text={text} />} />
+      <TradeBoard
+        vm={vm}
+        text={text}
+        advice={
+          <>
+            <AdviceBox a={vm.tr.advice} text={text} />
+            <AdviceBox a={vm.tr.anAdvice} text={text} label="Analytics department (numbers only)" />
+          </>
+        }
+      />
     </div>
   );
 }
