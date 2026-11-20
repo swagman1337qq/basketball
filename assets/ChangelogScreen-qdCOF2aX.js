@@ -1,6 +1,15 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DDQhBSsL.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DQKjaFN8.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-20
+
+### Added
+- **Every AI team has a real coaching staff.** A head coach, a Lead Assistant, two Assistant Coaches and a Head of Player Development, people with their own ratings, like your staff. Their coaches now drive their games, their players' development and their mood, instead of the owner's budget. Big-spending owners pay for better-known coaches (a frugal owner's coaching costs about $15M a season, a win-now spender's about $25M), and a poor staff lets players' skills slip on any team, not just yours.
+- **The coaching carousel.** After the playoffs, every owner judges his head coach against the media's preseason win projection (a win-now owner also wants the playoffs). A coach is fired only after missing it two seasons in a row (three on a rebuilding team), and a frugal owner waits for the contract to end rather than pay two head coaches. Teams then hire: an assistant promoted from their own bench, a big-name former player (teams see his name, not his coaching, so it can go wrong), a proven head coach, a rising assistant from another staff, or a cheap unknown, depending on the owner. Some fired head coaches take an assistant's job on a top team.
+- **Other teams can hire your assistants as head coaches,** and you can't block it. The Mailbox tells you, and you hire a replacement on the Staff screen.
+- **Every head coaching change in the Mailbox and the league log:** who was fired or let go and why, and who was hired and how.
+- **Staff screen:** the league's head coaches table shows when each took the job, his contract, the owner, and whether he's on the hot seat (seasons in a row missing the target, with the team's projection). Click a team to see its whole staff.
 
 ## 2026-11-19
 
