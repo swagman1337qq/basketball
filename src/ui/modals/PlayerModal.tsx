@@ -23,7 +23,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
     <>
       <div>
         <div style={{ width: '100%', boxSizing: 'border-box' }}>
-          <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginBottom: '10px' }}>
+          <button className="btn btn-ghost" data-simulation-browse onClick={vm.goBack} style={{ fontSize: '13px', marginBottom: '10px' }}>
             ← Back
           </button>
           <ProfileHeader vm={vm} />
@@ -39,6 +39,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
             {(vm.ptabs || []).map((t: any, i: number) => (
               <button
                 key={i}
+                data-simulation-browse={t.browse || undefined}
                 onClick={t.go}
                 style={{
                   all: 'unset',

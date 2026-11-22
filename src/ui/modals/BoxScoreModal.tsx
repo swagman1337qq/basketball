@@ -358,7 +358,7 @@ export function BoxScoreModal({ vm }: { vm: VM }) {
     );
   };
   return (
-    <div className="box-score-page">
+    <div data-simulation-read-region className="box-score-page">
       <div className="box-page-nav">
         <button className="btn btn-ghost" onClick={close}>
           ← Back

@@ -38,6 +38,7 @@ export function useTradeNameLinks(vm: VM): TradeText {
       const target = index.targets.get(match.name)!;
       parts.push(
         <button
+          data-simulation-browse
           key={start}
           type="button"
           className="trade-entity-link"

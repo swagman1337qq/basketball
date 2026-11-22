@@ -188,11 +188,13 @@ export function ProfileHeader({ vm }: { vm: VM }) {
             }}
           >
             <img src={pl.flag} alt="" style={{ width: 18, height: 12, objectFit: 'cover', outline: '1px solid var(--color-divider)' }} />
-            <Link onClick={() => pl.openRep(null)}>{pl.cname}</Link>
+            <Link browse onClick={() => pl.openRep(null)}>
+              {pl.cname}
+            </Link>
             <span>·</span>
             <span>{p.pos}</span>
             <span>·</span>
-            <Link onClick={() => pl.openT(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <Link browse onClick={() => pl.openT(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               {pl.teamLogo}
               {pl.teamLabel}
             </Link>
@@ -511,7 +513,7 @@ export function ProfileOverview({ vm }: { vm: VM }) {
             </div>
             <div>
               <div style={{ ...muted, fontSize: '11px' }}>Plays like</div>
-              <Link onClick={() => pl.sr.openComp(null)} style={{ color: 'var(--color-accent-700)' }}>
+              <Link browse onClick={() => pl.sr.openComp(null)} style={{ color: 'var(--color-accent-700)' }}>
                 {pl.sr.comp}
               </Link>
             </div>

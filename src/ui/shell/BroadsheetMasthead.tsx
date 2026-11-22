@@ -82,6 +82,7 @@ export function BroadsheetMasthead({ vm }: { vm: VM }) {
               key={n.key}
               {...dnd.item(n)}
               className="hv1"
+              data-simulation-browse={n.browse || undefined}
               onClick={n.go}
               title="Drag to move this tab"
               style={{

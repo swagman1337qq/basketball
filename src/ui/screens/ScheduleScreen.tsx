@@ -130,6 +130,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
           <>
             <button
               className="hv4"
+              data-simulation-browse
               onClick={() => openTeam(x.g.opp)}
               title={T[x.g.opp].region + ' ' + T[x.g.opp].name}
               style={{
@@ -150,6 +151,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
               ob ? (
                 <button
                   className="hv4"
+                  data-simulation-browse
                   onClick={ob}
                   title="Box score"
                   style={{
@@ -196,7 +198,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
 
   return (
     <>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+      <div data-simulation-read-region style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
         <Seg<'cal' | 'list'>
           value={view}
           options={[
@@ -210,6 +212,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
             <button
               className="btn btn-secondary"
               disabled={mi <= 0}
+              data-simulation-browse
               onClick={() => setMk(months[mi - 1])}
               style={{ width: 34, padding: '2px 0' }}
               aria-label="Previous month"
@@ -222,6 +225,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
             <button
               className="btn btn-secondary"
               disabled={mi >= months.length - 1}
+              data-simulation-browse
               onClick={() => setMk(months[mi + 1])}
               style={{ width: 34, padding: '2px 0' }}
               aria-label="Next month"
@@ -234,7 +238,7 @@ export function ScheduleScreen({ vm }: { vm: VM }) {
               {monthGames.some(x => x.stage) ? ' · postseason included' : ''}
             </span>
             {mk !== curKey && months.includes(curKey) && (
-              <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => setMk(curKey)}>
+              <button className="btn btn-ghost" style={{ fontSize: '12px' }} data-simulation-browse onClick={() => setMk(curKey)}>
                 Today
               </button>
             )}
@@ -291,6 +295,7 @@ function ListView({ vm }: { vm: VM }) {
             <td style={{ padding: '5px 8px' }}>
               <button
                 className="hv4"
+                data-simulation-browse
                 onClick={r.openT}
                 style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
               >
@@ -304,6 +309,7 @@ function ListView({ vm }: { vm: VM }) {
                 (r.openBox ? (
                   <button
                     className="hv4"
+                    data-simulation-browse
                     onClick={r.openBox}
                     title="Box score"
                     style={{

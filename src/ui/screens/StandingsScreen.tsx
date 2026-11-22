@@ -3,7 +3,7 @@ import { useSort } from '../sortable';
 
 export function StandingsScreen({ vm }: { vm: VM }) {
   return (
-    <>
+    <div data-simulation-read-region>
       <div style={{ display: 'flex', marginBottom: '16px' }}>
         <div
           style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}
@@ -31,7 +31,7 @@ export function StandingsScreen({ vm }: { vm: VM }) {
           </p>
         </>
       )}
-    </>
+    </div>
   );
 }
 

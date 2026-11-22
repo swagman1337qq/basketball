@@ -1,6 +1,7 @@
 import { disposeProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
+import { SimulationBrowse } from './ui/simulationBrowse';
 import { SimulationGuard } from './ui/SimulationGuard';
 import { bindGameSave, isStaleSave } from './db/playerArchive';
 import { protectUnsavedLeave } from './ui/unsavedLeave';
@@ -81,9 +82,24 @@ export function App() {
   return <GameScreen key={open.id} open={open} error={error} onExit={() => setOpen(null)} onSwitch={onOpen} />;
 }
 
-function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: string; onExit: () => void; onSwitch: (id: string) => void }) {
+export function GameScreen({
+  open,
+  error,
+  onExit,
+  onSwitch,
+}: {
+  open: Open;
+  error: string;
+  onExit: () => void;
+  onSwitch: (id: string) => void;
+}) {
   const { game } = open;
   const version = useSyncExternalStore(game.subscribe, game.getVersion);
+  const browsing = useMemo(() => new SimulationBrowse(game, disposeProfileStats), [game]);
+  useLayoutEffect(() => browsing.connect(), [browsing]);
+  const browseVersion = useSyncExternalStore(browsing.subscribe, browsing.getVersion);
+  const viewGame = browsing.view || game;
+  const viewVersion = browsing.view ? browseVersion : version;
   const rootRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState(error || 'Saved');
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -169,18 +185,18 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      const s = game.state;
-      if (s.dialog) game.setState({ dialog: null });
-      else if (s.boxId) game.setState({ boxId: null });
-      else if (s.letterOpen) game.setState({ letterOpen: null });
-      else if (s.modal) game.setState({ modal: false });
-      else if (s.teamModal != null) game.setState({ teamModal: null });
-      else if (s.listModal) game.setState({ listModal: null });
-      else if (s.q) game.setState({ q: '' });
+      const s = viewGame.state;
+      if (s.dialog) viewGame.setState({ dialog: null });
+      else if (s.boxId) viewGame.setState({ boxId: null });
+      else if (s.letterOpen) viewGame.setState({ letterOpen: null });
+      else if (s.modal) viewGame.setState({ modal: false });
+      else if (s.teamModal != null) viewGame.setState({ teamModal: null });
+      else if (s.listModal) viewGame.setState({ listModal: null });
+      else if (s.q) viewGame.setState({ q: '' });
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [game]);
+  }, [viewGame]);
 
   const dark = (game.state.theme ?? 'dark') === 'dark';
   useLayoutEffect(() => {
@@ -206,7 +222,7 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
   };
   const vm = useMemo(
     () =>
-      buildView(game, rootRef, {
+      buildView(viewGame, rootRef, {
         saveId: open.id,
         saveName: open.name,
         saveStatus: 'Saved',
@@ -228,14 +244,14 @@ function GameScreen({ open, error, onExit, onSwitch }: { open: Open; error: stri
         },
         onExport: exportNow,
       }),
-    [game, version, open, save, onExit, onSwitch],
+    [game, viewGame, viewVersion, open, save, onExit, onSwitch],
   );
   const content = useMemo(() => <GMView vm={vm} />, [vm]);
   return (
-    <SimulationGuard game={game}>
+    <SimulationGuard game={game} browsing={!!browsing.view} asOf={viewGame.fmtS(viewGame.state.day - 1)}>
       <SaveStatusContext.Provider value={status}>{content}</SaveStatusContext.Provider>
       <ErrorBoundary quiet resetKey={String(version)}>
-        <PlayerHover gm={game} />
+        <PlayerHover gm={viewGame} />
         <StatHover />
       </ErrorBoundary>
       <UpdateBanner beforeReload={() => save(true)} />

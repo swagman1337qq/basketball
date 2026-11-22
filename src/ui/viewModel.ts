@@ -1,3 +1,4 @@
+import { BROWSE_SCREENS } from './simulationBrowse';
 import { canOfferSwap, toggleTradePick } from '../engine/pickRules';
 import { tradePickLabel } from './tradePickLabel';
 import { excludePicks, excludePlayers, pickExcluded, playerExcluded } from '../engine/tradeExclusions';
@@ -146,6 +147,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       scrollTo(0);
     };
     f.__pid = id;
+    f.__simulationBrowse = true;
     return f;
   };
   const go = k => () =>
@@ -526,6 +528,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     /* God Mode tools wear God Mode pink */ const A = pink ? GOD_PINK : 'var(--color-accent)';
     return {
       key: k,
+      browse: BROWSE_SCREENS.has(k),
       label,
       grp,
       go: k === 'tutorial' ? () => gm.setState({ tour: 0, tourMode: null }) : go(k),
@@ -2855,6 +2858,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         pink = k === 'edit';
       return {
         label,
+        browse: k !== 'edit',
         go: () =>
           gm.setState(st =>
             (st.ptab || 'overview') === k ? null : { ptab: k, ptabHist: [...(st.ptabHist || []), st.ptab || 'overview'].slice(-10) },

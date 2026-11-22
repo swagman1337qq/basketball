@@ -11,6 +11,11 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Lineup advice and free-agent picks come from your real staff.** On the Roster, "Ask your staff" now gets advice from your Lead Assistant (who should start and who should come off the bench), your Head of Player Development (rest, young players' minutes, injuries) and your Head of Analytics (what the numbers say), instead of three made-up assistants. How well the lineup advice reads your players now depends on your Lead Assistant's eye for talent, not the old Coaching budget. In free agency, "Ask your staff" gives your Lead Assistant's picks, each with your Head of Analytics' price check (a bargain, about right, or overpriced by the numbers). Click any of their names to open their profile. If a job is empty, the next person on your staff speaks instead.
 - **Smaller saves.** Coaches' careers before they joined your league are stored far more compactly (about an eighth of the space, so a new league's save is about 10% smaller), with nothing lost: every career reads exactly as before. Coaches and analysts who retired at least five seasons ago without ever working in your league (no seasons here, no awards, never a player here) are now cleared from the save, since nothing in the game leads to them any more. Everyone with a history in your league stays.
 
+## 2026-11-21
+
+### Changed
+- **Browse during regular-season simulation.** Open players, switch profile tabs, browse rosters, standings and statistics, and view completed box scores while games simulate. A dated browsing view shows completed results until the run finishes. Trades, signings, lineup changes and God Mode edits stay locked; Stop remains available. The browsing copy is prepared in small steps and reuses completed game records. Tested first on isolated leagues and the supplied long save, with identical simulation results and random draws.
+
 ## 2026-11-20
 
 ### Added
@@ -21,6 +26,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Other teams can hire your assistants as head coaches,** and you can't block it. The Mailbox tells you, and you hire a replacement on the Staff screen.
 - **Every head coaching change in the Mailbox and the league log:** who was fired or let go and why, and who was hired and how.
 - **Staff screen:** the league's head coaches table shows when each took the job, his contract, the owner, and whether he's on the hot seat (seasons in a row missing the target, with the team's projection). Click a team to see its whole staff.
+
 
 ## 2026-11-19
 

@@ -24,7 +24,7 @@ const pct = (m: number, a: number) => (a ? (100 * m) / a : null);
 export function StatsScreen({ vm }: { vm: VM }) {
   const [tab, setTab] = useState<Tab>('players');
   return (
-    <>
+    <div data-simulation-read-region>
       <div style={{ marginBottom: 14 }}>
         <Seg<Tab>
           value={tab}
@@ -41,7 +41,7 @@ export function StatsScreen({ vm }: { vm: VM }) {
       {tab === 'teams' && <TeamStats vm={vm} />}
       {tab === 'league' && <LeagueStatsScreen vm={vm} />}
       {tab === 'history' && <History vm={vm} />}
-    </>
+    </div>
   );
 }
 

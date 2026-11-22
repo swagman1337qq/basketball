@@ -42,6 +42,7 @@ export function DeskRail({ vm }: { vm: VM }) {
             key={n.key}
             {...dnd.item(n)}
             className="hv2"
+            data-simulation-browse={n.browse || undefined}
             onClick={n.go}
             title={n.label + ' (drag to move)'}
             aria-label={n.label}

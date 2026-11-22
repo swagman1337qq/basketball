@@ -364,6 +364,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
         key={id}
         onClick={() => open(id)}
         data-pid={id}
+        data-simulation-browse
         draggable={mine}
         onDragStart={e => {
           e.dataTransfer.effectAllowed = 'move';
@@ -980,7 +981,10 @@ export function RosterScreen({ vm }: { vm: VM }) {
   );
   return (
     <div className={'roster-page' + (dense ? ' roster-page--dense' : '')} ref={tablesRef}>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+      <div
+        data-simulation-read-region
+        style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}
+      >
         {(s.pageStack || []).length > 0 && (
           <button className="btn btn-ghost" onClick={vm.goBack} style={{ fontSize: '13px', marginRight: 6 }}>
             ← Back
@@ -1629,6 +1633,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
             sel = { fontSize: '12.5px', padding: '3px 6px', width: 'auto', flex: '0 0 auto' };
           return (
             <div
+              data-simulation-read-region
               className="roster-filters"
               style={{
                 display: 'flex',
@@ -1683,6 +1688,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
           style={{ display: 'flex', gap: dense ? 8 : 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: dense ? 0 : 10 }}
         >
           <Seg<'trad' | 'adv'>
+            browse
             value={statsMode}
             options={[
               ['trad', 'Traditional'],

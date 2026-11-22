@@ -716,7 +716,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     </tbody>
   );
   return (
-    <div>
+    <div data-simulation-read-region>
       {controls}
       {calculating && (
         <p role="status" style={{ ...muted, fontSize: 12 }}>

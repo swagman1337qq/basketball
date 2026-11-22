@@ -25,6 +25,7 @@ function Rail({ vm }: { vm: VM }) {
     >
       <button
         className="hv2"
+        data-simulation-browse
         onClick={vm.toggleNav}
         title="Expand the menu"
         aria-label="Expand the menu"
@@ -98,6 +99,7 @@ function Rail({ vm }: { vm: VM }) {
               key={n.key}
               {...dnd.item(n)}
               className="hv2"
+              data-simulation-browse={n.browse || undefined}
               onClick={n.go}
               title={n.label + ' (drag to move)'}
               aria-label={n.label}
@@ -161,6 +163,7 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
             {vm.myLogo}
             <button
               className="btn btn-ghost"
+              data-simulation-browse
               onClick={vm.toggleNav}
               title="Collapse the menu to icons"
               aria-label="Collapse the menu"
@@ -237,6 +240,7 @@ export function AlmanacSidebar({ vm }: { vm: VM }) {
               <div key={n.key} {...dnd.item(n)} style={{ display: 'flex', alignItems: 'center', gap: '2px', ...dnd.mark(n) }}>
                 <button
                   className="hv1"
+                  data-simulation-browse={n.browse || undefined}
                   onClick={n.go}
                   title="Drag to move this tab"
                   style={{

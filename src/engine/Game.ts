@@ -6838,6 +6838,8 @@ export class Game {
     }
     return null;
   }
+  // Optional UI read-copy barrier, completed before any player/day is mutated.
+  prepareSimulation?: (stopped: () => boolean) => Promise<void>;
   busy = false;
   dayInProgress = false;
   private applyingSimStep = false;
@@ -6935,6 +6937,7 @@ export class Game {
     this.stopReq = false;
     try {
       this.simulationListeners.forEach(fn => fn());
+      if (this.prepareSimulation) await this.prepareSimulation(() => this.stopReq);
       await yieldToBrowser(); // paint the running/Stop control before the first day
       for (let i = 0; i < n; i++) {
         if (this.stopReq) break; // Stop pressed: finish the day in progress and halt

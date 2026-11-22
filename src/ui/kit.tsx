@@ -127,11 +127,13 @@ export function Link({
   children,
   style,
   pid,
+  browse = false,
 }: {
   onClick?: () => void;
   children: ReactNode;
   style?: CSSProperties;
   pid?: number;
+  browse?: boolean;
 }) {
   // pid: a player's name (hover shows his stats, PlayerHover.tsx)
   const txt = textOf(children),
@@ -140,6 +142,7 @@ export function Link({
     <button
       className="hv4"
       data-pid={pid}
+      data-simulation-browse={browse || pid != null || (onClick as any)?.__simulationBrowse || undefined}
       onClick={e => {
         e.stopPropagation();
         onClick?.();
@@ -173,16 +176,19 @@ export function Seg<T extends string | number>({
   value,
   options,
   onChange,
+  browse = false,
 }: {
   value: T;
   options: [T, string][];
   onChange: (v: T) => void;
+  browse?: boolean;
 }) {
   return (
     <div style={{ display: 'inline-flex', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
       {options.map(([k, label]) => (
         <button
           key={String(k)}
+          data-simulation-browse={browse || undefined}
           onClick={() => onChange(k)}
           style={{
             all: 'unset',
