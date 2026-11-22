@@ -91,7 +91,8 @@ export interface Coach {
   ret?: number; // season he retired from coaching
   pid?: number; // a former player in this league (coachCareer.ts): his playing career is linked
   made?: number; // season he came into view (before it: a generated career, coachCareer.ts)
-  h?: number[][]; // a row a season he worked here: [season, team, role code, under you 1/0] (coachCareer.ts)
+  h?: number[][]; // a row a season he worked here: [season, team, role code, under you 1/0] (coachCareer.ts); a season
+  // split by a mid-season firing adds his own W–L and 1 if he was fired: [..., w, l, fired?] (carousel.ts)
   coy?: number[]; // seasons he was Coach of the Year (head coaches)
   godHeadCoach?: boolean; // explicit God Mode appointment may remain head coach of a managed team
 }

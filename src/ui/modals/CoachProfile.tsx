@@ -28,6 +28,7 @@ import { careerSummary, coachRows, WOMENS_LEAGUE } from '../../engine/coachCaree
 import { coachPlayRows } from '../coachEditing';
 import { CoachBioEditor } from './CoachBioEditor';
 import { th, td } from '../kit';
+import { isInterim } from '../../engine/carousel';
 
 export function CoachProfile({ vm }: { vm: VM }) {
   const { gm, s } = vm.ctx,
@@ -79,7 +80,11 @@ export function CoachProfile({ vm }: { vm: VM }) {
           <div>
             <div>{c.name}</div>
             <div style={{ fontSize: '13px', fontWeight: 400, ...muted }}>
-              {c.ret ? 'Retired from coaching (' + c.ret + ')' : T ? ROLE_LABEL[c.role!] + ', ' + T.region + ' ' + T.name : 'Available'}
+              {c.ret
+                ? 'Retired from coaching (' + c.ret + ')'
+                : T
+                  ? (isInterim(gm, c) ? 'Interim head coach' : ROLE_LABEL[c.role!]) + ', ' + T.region + ' ' + T.name
+                  : 'Available'}
               {' · '}
               {styleOf(c, readRatings(c, god))}
               {c.role === 'hc' && !c.ret ? ' · ' + wayLabel(coachWay(c)) : ''}

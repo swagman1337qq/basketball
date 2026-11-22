@@ -13,11 +13,16 @@
 //    Assistants under contract can't be hired away as assistants.
 //  • A fired head coach may take an assistant's job on a top team (the less ambitious he is, the likelier).
 //  • Every AI head coach firing and hiring goes to the Mailbox (one notice per team) and the league log.
+//  • Rare mid-season firings (2026-11-22, midSeasonFirings): on the 1st of December, January, February and March,
+//    an owner whose team is heading far below its preseason projection may fire his head coach (a win-now owner most
+//    readily, a frugal one never: he won't pay two). About one a season, as in the NBA (1.2 a season, 2015–25). The
+//    Lead Assistant takes over as interim; at season's end the carousel keeps him if the team played .500 or clearly
+//    better under him, else he goes back to the bench and the team hires.
 import type { Game } from './Game';
 import { firstSeason } from './contracts';
 import { fmtMoney as money } from './capModel';
 import { coachAsk, coachDb, coachWording, mkCoach, repOf, ROLE_LABEL, staffOf, type Coach, type CoachRole } from './staff';
-import { headCoachAsk, pastOf, preserveCoachCareer } from './coachCareer';
+import { headCoachAsk, headCoachOf, pastOf, preserveCoachCareer } from './coachCareer';
 
 const bump = (g: Game) => ((g.db as any).staffRev = ((g.db as any).staffRev || 0) + 1);
 
@@ -280,6 +285,86 @@ function letGo(g: Game, s: any, c: Coach, tid: number, payOut: boolean) {
   delete c.next;
 }
 
+// ── Mid-season: a disastrous start can cost a head coach his job ───────────────────────────
+// How readily each owner type pulls the trigger on a check (a frugal owner never pays two head coaches). Fitted
+// 2026-11-22 on eight simulated seasons to about one firing a season.
+const MID_P: Record<string, number> = {
+  'Win-Now Spender': 0.7,
+  'Hype Focus': 0.5,
+  'Meddling Micromanager': 0.5,
+  'Asset Hoarder': 0.3,
+  'Frugal Profit-Seeker': 0,
+};
+export function midSeasonFirings(g: Game, s: any, day: number): CarouselOut {
+  const out: CarouselOut = { notices: [], log: [] },
+    d: any = g.db,
+    Y = g.Y;
+  if (!d.staffV || d.staffV < 3 || s.phase !== 'regular') return out;
+  const fired: Record<number, number> = (d.midFired = d.midFired?.y === Y ? d.midFired : { y: Y });
+  aiTeams(g, s).forEach((tid: number) => {
+    if (fired[tid] != null) return; // once a season
+    const T = s.teams[tid],
+      G = T.w + T.l,
+      proj = projectedWins(g, tid);
+    if (G < 15 || G > 65 || proj == null) return;
+    const w = ownerWay(T.arch),
+      heading = ((T.w + (proj / 82) * 10) / (G + 10)) * 82, // where the season is heading (an early start says less)
+      short = proj - w.tol - heading; // wins short of the owner's target
+    const hc = headCoachOf(g, tid);
+    if (!hc || short < 6) return;
+    const hot = hotSeat(g, tid) >= 1 || short >= 10; // already on thin ice (he missed last year), or a true disaster
+    if (!hot || Math.random() >= (MID_P[T.arch] ?? 0.3)) return;
+    const lead = staffOf(g, tid).find(c => c.role === 'lead') || staffOf(g, tid).find(c => c.role === 'asst');
+    if (!lead) return;
+    fired[tid] = day;
+    const tn = T.region + ' ' + T.name,
+      rec = T.w + '–' + T.l;
+    hc.h = [...(hc.h || []).filter(r => r[0] !== Y), [Y, tid, 3, 0, T.w, T.l, 1]]; // his part of the season (coachRows)
+    letGo(g, s, hc, tid, true);
+    (hc as any).lastMiss = 'was fired ' + rec + ' into the season';
+    preserveCoachCareer(g, s, lead);
+    lead.role = 'hc';
+    (lead as any).interim = Y;
+    d.interimAt = { ...(d.interimAt || {}), [tid]: { y: Y, w: T.w, l: T.l } };
+    out.log.push({
+      day,
+      type: 'Staff',
+      teams: T.abbr,
+      text: tn + ' fired head coach ' + hc.name + ' after a ' + rec + ' start; ' + lead.name + ' takes over as interim head coach',
+    });
+    out.notices.push({
+      tone: 'info',
+      title: 'Coach fired mid-season: ' + tn,
+      lines: [
+        tn + ' fired ' + hc.name + ' after a ' + rec + ' start (projected for ' + Math.round(proj) + ' wins).',
+        coachWording(
+          lead,
+          lead.name + ', the Lead Assistant, takes over for the rest of the season. The owner decides in the summer whether he stays.',
+        ),
+      ],
+    });
+  });
+  if (out.log.length) bump(g);
+  return out;
+}
+// Is he this season's interim head coach (for the screens)?
+export const isInterim = (g: Game, c: Coach) => c.role === 'hc' && (c as any).interim === g.Y;
+// An interim head coach at season's end: kept if the team played .500 or clearly better under him.
+function interimVerdict(g: Game, s: any, c: Coach, tid: number): { keep: boolean; line: string } {
+  const at = (g.db as any).interimAt?.[tid],
+    T = s.teams[tid];
+  if (!at) return { keep: true, line: '' };
+  const w = T.w - at.w,
+    l = T.l - at.l,
+    after = w / Math.max(1, w + l),
+    before = at.w / Math.max(1, at.w + at.l);
+  const keep = after >= 0.5 || after - before >= 0.15;
+  return {
+    keep,
+    line: coachWording(c, 'went ' + w + '–' + l + ' as interim head coach (the team was ' + at.w + '–' + at.l + ' when he took over)'),
+  };
+}
+
 // ── The carousel: after the season ──────────────────────────────────────────────────────
 // Every AI team's season against its owner's target; firings, coaches let go when their deals end, hires, fired
 // head coaches joining top staffs as assistants, then the assistants' places filled. Returns Mailbox notices
@@ -298,6 +383,40 @@ export function carousel(g: Game, s: any, finOf: (tid: number) => string): Carou
     const hc = all.find(c => c.tid === tid && c.role === 'hc' && !c.ret);
     if (!hc) {
       vacant.push({ tid, why: '', fired: false });
+      return;
+    }
+    // An interim head coach (midSeasonFirings): kept on a full deal, or back to the bench and the job is open.
+    if ((hc as any).interim === Y) {
+      const v = interimVerdict(g, s, hc, tid),
+        w0 = ownerWay(s.teams[tid]?.arch),
+        T0 = s.teams[tid];
+      delete (hc as any).interim;
+      miss[tid] = 0;
+      if (v.keep) {
+        hc.amt = +Math.max(hc.amt, headCoachAsk(g, hc) * (0.85 + 0.3 * w0.pay)).toFixed(2);
+        hc.exp = Y + 2 + Math.floor(Math.random() * 2);
+        out.log.push({
+          day: s.day,
+          type: 'Staff',
+          teams: T0.abbr,
+          text: T0.region + ' ' + T0.name + ' kept ' + hc.name + ' as head coach: ' + coachWording(hc, 'he ') + v.line,
+        });
+        out.notices.push({
+          tone: 'info',
+          title: 'Interim coach kept: ' + T0.region + ' ' + T0.name,
+          lines: [hc.name + ' ' + v.line + ', and gets the job for good (' + money(hc.amt) + ' a year through ' + hc.exp + ').'],
+        });
+        return;
+      }
+      hc.role = 'lead';
+      (hc as any).wasInterim = Y; // not promoted again this summer (skipOf)
+      vacant.push({ tid, why: '', fired: false });
+      out.log.push({
+        day: s.day,
+        type: 'Staff',
+        teams: T0.abbr,
+        text: hc.name + ' returns to the ' + T0.region + ' ' + T0.name + ' bench: ' + coachWording(hc, 'he ') + v.line,
+      });
       return;
     }
     const t = targetMet(g, s, tid, finOf(tid));
@@ -331,7 +450,12 @@ export function carousel(g: Game, s: any, finOf: (tid: number) => string): Carou
   });
   d.hcMiss = miss;
   // Hires, in random order (the busiest summers see teams compete for the same names).
-  const skipOf = (tid: number) => new Set(all.filter(c => (c as any).firedY === Y && (c as any).firedFrom === tid).map(c => c.id));
+  const skipOf = (tid: number) =>
+    new Set(
+      all
+        .filter(c => ((c as any).firedY === Y && (c as any).firedFrom === tid) || ((c as any).wasInterim === Y && c.tid === tid))
+        .map(c => c.id),
+    );
   vacant
     .sort(() => Math.random() - 0.5)
     .forEach(v => {

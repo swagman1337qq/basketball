@@ -39,7 +39,7 @@ import {
   type CoachRole,
 } from '../../engine/staff';
 import { careerSummary, coachRows, headCoachOf, ROLE_CODE } from '../../engine/coachCareer';
-import { hotSeat, projectedWins } from '../../engine/carousel';
+import { hotSeat, isInterim, projectedWins } from '../../engine/carousel';
 
 const SHORT: Record<string, string> = { off: 'OFF', def: 'DEF', dev: 'DEV', game: 'GM', mot: 'MOT', teach: 'TCH', eye: 'EYE' };
 const LONG: Record<string, string> = {
@@ -690,6 +690,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                             style={{ fontSize: '11px', ...muted }}
                             title="How his team plays: his pace and rotation (and his style sets offense or defense first)"
                           >
+                            {isInterim(gm, c) ? 'Interim · ' : ''}
                             {wayLabel(coachWay(c))}
                           </div>
                         </div>

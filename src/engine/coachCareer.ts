@@ -137,7 +137,12 @@ export function staffSeason(g: Game, s: any) {
     if (c.tid == null || c.ret || !c.role) return;
     c.h = c.h || [];
     if (c.h.some(r => r[0] === Y)) return;
-    c.h.push([Y, c.tid, ROLE_CODE[c.role], g.isUser(s, c.tid) ? 1 : 0]);
+    // An interim head coach (carousel.ts midSeasonFirings): his record is the games since he took over.
+    const at = c.role === 'hc' && (c as any).interim === Y ? (g.db as any).interimAt?.[c.tid] : null,
+      T = s.teams[c.tid];
+    c.h.push(
+      at && T ? [Y, c.tid, ROLE_CODE[c.role], 0, T.w - at.w, T.l - at.l] : [Y, c.tid, ROLE_CODE[c.role], g.isUser(s, c.tid) ? 1 : 0],
+    );
   });
   // Coach of the Year (head coaches only; you on your teams).
   const top = s.awards?.[Y]?.coy?.[0];
@@ -477,18 +482,22 @@ export function coachRows(g: Game, s: any, c: Coach): CoachRow[] {
         T = s.teams[tid],
         h = ((s.teamHist || {})[tid] || []).find((x: any) => x.season === y);
       const hc = r ? (r[3] ? null : headCoachName(g, s, tid)) : g.isUser(s, tid) ? null : headCoachName(g, s, tid);
+      // A season split by a mid-season firing (carousel.ts): his own W–L ([4], [5]); [6] 1 if he was the one fired.
+      const own = r && r.length > 4,
+        fired = !!(r && r[6]),
+        at = cur && (c as any).interim === y ? (g.db as any).interimAt?.[tid] : null;
       rows.push({
         season: y,
         team: T?.abbr || '—',
         tid,
         level: 'NBA',
         role: ROLE_NAME[role] || role,
-        w: h ? h.w : cur ? T?.w : undefined,
-        l: h ? h.l : cur ? T?.l : undefined,
-        fin: h?.fin,
-        ring: h?.fin === 'Won the title',
+        w: own ? r[4] : h ? h.w : cur ? T?.w - (at?.w || 0) : undefined,
+        l: own ? r[5] : h ? h.l : cur ? T?.l - (at?.l || 0) : undefined,
+        fin: fired ? 'Fired mid-season' : h?.fin,
+        ring: !fired && h?.fin === 'Won the title',
         under: role === 'hc' ? undefined : (r ? r[3] : g.isUser(s, tid)) ? gm + ' (you)' : hc || undefined,
-        cur: y === g.Y && !h, // still under way (no season record yet)
+        cur: y === g.Y && !h && !fired, // still under way (no season record yet)
       });
     }
   }

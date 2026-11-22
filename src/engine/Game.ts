@@ -21,6 +21,7 @@ import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
 import { coachBase, coachQuality, TAC_KEYS, withWay, type TacKey } from './coach';
 import { coachPipeline, headCoachOf, syncHeadCoaches } from './coachCareer';
+import { midSeasonFirings } from './carousel';
 import { anContractsEnd, anDraftBoard, anExpiring, anMonth, anOpening, anYear, ensureAnalytics } from './analytics';
 import {
   coachingOf,
@@ -7118,8 +7119,12 @@ export class Game {
     const cbaLog: Record<number, string[]> = {};
     seasonTick(this, s, day, box, lgLog, cbaLog, touched, inj, routineDay);
     yield;
+    // A new league's first season has no opening night (startSeason): the media's predictions, the owners' targets
+    // (carousel.ts), are locked on its first game day.
+    if (s.phase === 'regular' && !(this.db as any).preds?.[this.Y]) mediaPreds(this, s);
     let clubs = { ...(s.clubs || {}) },
-      patch: any = {};
+      patch: any = {},
+      midFire: any[] = [];
     // Monthly club upkeep: scouting intel, scouts with a brief picking their own players (scoutBrief.ts), dev reports, mentoring.
     const addClub = (tid, f) => {
       const pt = this.clubPatch({ ...s, clubs }, tid, f(this.clubOf({ ...s, ...patch, clubs }, tid)), clubs);
@@ -7141,6 +7146,11 @@ export class Game {
       );
       Object.entries(mnt).forEach(([t, xs]) => xs.forEach(text => lgLog.unshift({ day, type: 'Team', teams: s.teams[+t].abbr, text })));
       confidenceTick(this, s, rosters);
+      {
+        const mf = midSeasonFirings(this, { ...s, rosters }, day); // a disastrous start can cost a coach his job (carousel.ts)
+        lgLog.unshift(...mf.log);
+        midFire = mf.notices;
+      }
       placeInGLeague(this, s, box.fa);
       ccpTopUp(this, s, box.fa);
       gLeagueTick(this, box.fa, this.gamesPlayed(s));
@@ -7205,6 +7215,7 @@ export class Game {
         o.bP.every((id: number) => box.rosters[o.b]?.includes(id)),
     );
     let notices = patch.notices ?? s.notices;
+    if (midFire.length) notices = notify({ ...s, notices }, midFire);
     let offerPast: string[] = s.offerPast || [];
     const okey = (o: any) => o.a + ':' + [...o.aP, ...o.bP].sort().join(','); // an offer you've seen isn't made again
     if (!s.spectator && routineDay && day < this.ruleSlot(DAY.TRADE_DEADLINE) && inOffers.length < 2 && Math.random() < 0.15) {
