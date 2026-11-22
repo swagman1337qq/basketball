@@ -1,5 +1,6 @@
 import { runCooperatively, yieldToBrowser } from './cooperative';
 import { naturalDunkShare } from './finishing';
+import { archiveDashboardMail } from './dashboardMail';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
 import { TRAINABLE, MENTAL, ratingLimit, growIntangible, breakthroughEligible } from './ratingCeilings';
 import { askOffers } from './tradeOffers';
@@ -1478,6 +1479,7 @@ export class Game {
         });
       }
     }
+    g.state = archiveDashboardMail(g, g.state, true); // existing dashboard decisions also belong in the Mailbox
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
     return g;
   }
@@ -1577,6 +1579,8 @@ export class Game {
         }
         this.state.notices = [];
       }
+      if (['inbox', 'clubs', 'managed', 'me', 'spectator'].some(k => Object.hasOwn(patch, k)))
+        this.state = archiveDashboardMail(this, this.state);
       if (patch.rosters && this.db?.P) {
         const prev = this._rosterRef || {},
           ch = Object.keys(patch.rosters)
@@ -6993,16 +6997,15 @@ export class Game {
       if (this.prepareSimulation) await this.prepareSimulation(() => this.stopReq);
       await yieldToBrowser(); // paint the running/Stop control before the first day
       for (let i = 0; i < n; i++) {
-        if (this.stopReq) break; // Stop pressed: finish the day in progress and halt
+        if (this.stopReq || this.mailWaiting()) break; // finish the current day, then hold for Stop or unread mail
         const v = this.version;
-        const mail0 = this.state.mailSeq || 0;
         this.dayInProgress = true;
         const steps = this.simDaySteps(this.state, i === 0 ? forced : undefined, n - i - 1);
         const patch = await runCooperatively({ next: () => this.simulationStep(steps) });
         this.dayInProgress = false;
         this.setState(patch);
         if (this.version === v) break;
-        if ((this.state.mailSeq || 0) > mail0 && this.mailWaiting()) break; // new mail (a trade offer, an injury…): stop so you can read it
+        if (this.mailWaiting()) break; // new mail, including dashboard news: stop so you can read it
         if (!(this.state.allStars || {})[this.Y] && this.state.day >= allStarDay(this)) runAllStar(this); // All-Star Weekend
         if (i < n - 1) await yieldToBrowser();
       }

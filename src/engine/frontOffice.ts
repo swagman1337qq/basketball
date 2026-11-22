@@ -1265,11 +1265,13 @@ export function inboxTick(g: Game, s: any, day: number, rosters: any) {
   return out;
 }
 
-export function resolveInbox(g: Game, id: string, choice: string) {
+export function resolveInbox(g: Game, id: string, choice: string, tid = g.state.me, mailId?: string) {
+  if (g.busy || g.dayInProgress) return;
+  let owner = false;
   g.setState(s => {
-    const c = g.clubOf(s, s.me),
-      x = (c?.inbox || []).find(y => y.id === id);
-    if (!x || x.done) return null;
+    const c = g.clubOf(s, tid),
+      x = (c?.inbox || []).find(y => y.id === id && (!mailId || y.mailId === mailId));
+    if (!x || x.done || !x.options.some(o => o.k === choice)) return null;
     const p = x.pid != null ? g.db.P[x.pid] : null;
     if (p) {
       if (x.kind === 'avail') {
@@ -1292,16 +1294,23 @@ export function resolveInbox(g: Game, id: string, choice: string) {
         }
       }
     }
-    const inbox = c.inbox.map(y => (y.id === id ? { ...y, done: true, choice } : y));
+    const inbox = c.inbox.map(y => (y === x ? { ...y, done: true, choice } : y));
+    owner = x.kind === 'sale';
     return {
-      inbox,
-      ...(x.kind === 'sale' ? { screen: 'owner' } : {}),
-      log: [
-        { date: g.fmtS(s.day), day: s.day, text: x.title + ': ' + (x.options.find(o => o.k === choice)?.label || choice) },
-        ...(s.log || []),
-      ],
+      ...g.clubPatch(s, tid, {
+        inbox,
+        log: [
+          { date: g.fmtS(s.day), day: s.day, text: x.title + ': ' + (x.options.find(o => o.k === choice)?.label || choice) },
+          ...(c.log || []),
+        ],
+      }),
+      ...(owner && tid === s.me ? { screen: 'owner' } : {}),
     };
   });
+  if (owner && tid !== g.state.me) {
+    g.switchTeam(tid);
+    g.setState({ screen: 'owner' });
+  }
 }
 
 // At the trade deadline: an unmet mandate becomes a fire sale of the worst contracts.

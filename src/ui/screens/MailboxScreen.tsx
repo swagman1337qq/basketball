@@ -10,6 +10,7 @@ import { Link, linkNames, muted } from '../kit';
 import { answerAgentCall, answerOfferSheet, callFits } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { DAY } from '../../engine/cba';
+import { resolveInbox } from '../../engine/frontOffice';
 
 type Kind = 'agent' | 'request' | 'trade' | 'owner' | 'sheet' | 'shortlist' | 'retire' | 'update';
 interface Item {
@@ -65,6 +66,62 @@ export function MailboxScreen({ vm }: { vm: VM }) {
 
   // Pop-ups, archived.
   for (const m of s.mail || []) {
+    if (m.inboxItem) {
+      const tid = m.inboxTid,
+        club = gm.clubOf(s, tid),
+        live = club?.inbox?.find((x: any) => x.mailId === m.id),
+        x = live || m.inboxItem,
+        owner = ['sale', 'mandate', 'firesale'].includes(x.kind),
+        pending = !x.done && !!live,
+        choice = x.options?.find((o: any) => o.k === x.choice)?.label,
+        resolved = { met: 'Payroll target met', failed: 'Payroll target missed', expired: 'Expired', void: 'Voided' }[x.resolved as string];
+      items.push({
+        key: 'm' + m.id,
+        kind: owner ? 'owner' : 'update',
+        ms: when(m.date, m.season),
+        date: m.date,
+        title: m.title,
+        lines: [
+          ...(s.managed.length > 1 ? [T[tid] ? T[tid].region + ' ' + T[tid].name : abbr(tid)] : []),
+          ...(m.lines || []),
+          ...(x.kind === 'mandate'
+            ? [
+                'Deadline ' +
+                  (x.deadline === 'opening' ? 'opening night' : gm.fmtS(x.deadline)) +
+                  ' · payroll must be under ' +
+                  fmtMoney(x.target),
+              ]
+            : []),
+        ],
+        pids: m.pids,
+        isNew: (m.seq || 0) > readTo,
+        status: resolved
+          ? [resolved, 'var(--color-neutral-600)']
+          : pending
+            ? ['Waiting on you', 'var(--accent-ink)']
+            : x.kind === 'mandate' && !x.resolved
+              ? ['Active mandate', 'var(--accent-ink)']
+              : [choice ? 'Answered — ' + choice : 'Update', 'var(--color-neutral-600)'],
+        actions: pending
+          ? (x.options || []).map((o: any) => ({
+              label: o.label,
+              primary: o.k === 'yes' || o.k === 'ok',
+              go: () => resolveInbox(gm, x.id, o.k, tid, m.id),
+            }))
+          : owner && club
+            ? [
+                {
+                  label: 'View owner',
+                  go: () => {
+                    gm.switchTeam(tid);
+                    gm.setState({ screen: 'owner' });
+                  },
+                },
+              ]
+            : [],
+      });
+      continue;
+    }
     if (m.callId) {
       // an agent's last call on one of your free agents: answer it here while it's open
       const c = (s.agentCalls || []).find((x: any) => x.id === m.callId),

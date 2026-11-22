@@ -15,6 +15,7 @@ const SCRIPTS = [
   'simulationBrowse',
   'simulationBrowseReuse',
   'simulationBrowseIdle',
+  'dashboardMail',
   'playerPersistence',
   'playerSaveWorker',
   'profileStatsWorker',
