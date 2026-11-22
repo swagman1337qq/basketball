@@ -143,8 +143,40 @@ const n = AN.anContractsEnd(g, s);
 assert.ok(n.some(x => x.title === 'Analyst gone: ' + end.name));
 assert.equal(end.tid, null);
 
+// Growth: toward a hidden ceiling, faster while working for a team; never past it (a rare slump aside).
+{
+  const young = AN.mkAnalyst(g, { age: 26 });
+  assert.ok(young.ceil != null && young.ceil >= young.skill, 'a new analyst has a ceiling');
+  Object.assign(young, { skill: 50, ceil: 80, since: g.Y - 1, tid: me });
+  const idle = { ...young, id: -1, tid: null } as AN.Analyst;
+  let up = 0;
+  for (let i = 0; i < 40; i++) {
+    const a = { ...young } as AN.Analyst,
+      b = { ...idle } as AN.Analyst;
+    AN.grow(g, a);
+    AN.grow(g, b);
+    assert.ok(a.skill <= 80 && b.skill <= 80);
+    up += a.skill - 50 - (b.skill - 50);
+  }
+  assert.ok(up > 0, 'working for a team, he grows faster');
+  const five = { ...young } as AN.Analyst;
+  for (let i = 0; i < 5; i++) AN.grow(g, five);
+  assert.ok(five.skill > 55, 'five years on, clearly better (' + five.skill + ')');
+  const top = { ...young, skill: 80 } as AN.Analyst;
+  AN.grow(g, top);
+  assert.ok(top.skill <= 80, 'at his ceiling, no more growth');
+  AN.godEditAnalyst(g, young.id, { ceil: 90, skill: 60 });
+  assert.equal(young.ceil, 90);
+  assert.equal(young.skill, 60);
+  delete young.ceil; // an older save: a ceiling on load
+}
+
 // Save and reopen.
 const re = Game.load(JSON.parse(JSON.stringify(g.toSave())));
 assert.equal(AN.deptOf(re, me).length, AN.deptOf(g, me).length);
 assert.ok(((re.db as any).analysts[cand.id] as AN.Analyst).tid === me);
+assert.ok(
+  (Object.values((re.db as any).analysts) as AN.Analyst[]).every(a => a.ceil != null && a.ceil >= 1),
+  'every analyst has a ceiling after reopening',
+);
 console.log('analytics: ok');

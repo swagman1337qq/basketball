@@ -4,6 +4,8 @@
 //    loves threes, trusts college box plus/minus too much, blind to defense, chases small samples, skeptical of
 //    older players. You see reputation and background; your read of his skill sharpens month by month while he works
 //    for you, and his biases show in his track record (God Mode: exact).
+//  • Growth (2026-11-22): his skill grows toward a hidden ceiling each training camp, faster while he works for a
+//    team and early in his career (`grow`); now and then he loses his touch a little.
 //  • Numbers only: they never see ratings. Their models were fitted on simulated leagues (2026-11-20): an NBA
 //    player's level from his per-36 production, shooting efficiency, minutes and age (R² 0.93); a prospect's level
 //    and ceiling from his last college or club season per 40 minutes, box plus/minus, age and level of play
@@ -61,6 +63,7 @@ export interface Analyst {
   born: number;
   pers: { money: number; loyal: number; amb: number };
   skill: number; // hidden, 1–99: the noise in his numbers
+  ceil?: number; // hidden ceiling of his skill: he grows toward it at training camp (2026-11-22)
   bias: Partial<Record<BiasKey, number>>; // hidden, strength 0.4–1
   rep: number; // visible 0–100
   bg: string;
@@ -170,9 +173,15 @@ export function mkAnalyst(g: Game, o: { age?: number; lvl?: number } = {}): Anal
     exp: 0,
     read: 0,
   };
+  a.ceil = ceilFor(a.skill, years);
   a.rep = anRepOf(g, a);
   A[id] = a;
   return a;
+}
+// Room to grow: a lot early in a career, little after a dozen years; now and then a raw talent with far more.
+function ceilFor(skill: number, years: number) {
+  const room = (Math.random() < 0.04 ? 20 + Math.random() * 15 : Math.random() * 14) * (years < 5 ? 1.4 : years < 12 ? 0.8 : 0.35);
+  return Math.round(Math.min(97, skill + room));
 }
 // Reputation: years in the field, how good the league has seen him be (known over about six years), his record.
 export function anRepOf(g: Game, a: Analyst) {
@@ -287,11 +296,12 @@ export function setAnRole(g: Game, s: any, tid: number, id: number, role: AnRole
   bump(g);
   return '';
 }
-// God Mode: set an analyst's skill, or a bias's strength (0 removes it).
-export function godEditAnalyst(g: Game, id: number, o: { skill?: number; bias?: Partial<Record<BiasKey, number>> }) {
+// God Mode: set an analyst's skill, ceiling, or a bias's strength (0 removes it).
+export function godEditAnalyst(g: Game, id: number, o: { skill?: number; ceil?: number; bias?: Partial<Record<BiasKey, number>> }) {
   const a = anDb(g)[id];
   if (!a) return;
   if (o.skill != null) a.skill = Math.round(cl(o.skill, 1, 99));
+  if (o.ceil != null) a.ceil = Math.round(cl(o.ceil, 1, 99));
   (Object.entries(o.bias || {}) as [BiasKey, number][]).forEach(([k, v]) => {
     if (!(v > 0)) delete a.bias[k];
     else a.bias[k] = +cl(v, 0.05, 1).toFixed(2);
@@ -320,7 +330,10 @@ export function ensureAnalytics(g: Game) {
     d.anV = 1;
     (s.managed || [s.me]).forEach((tid: number) => starterDept(g, s, tid));
   }
-  Object.values(anDb(g)).forEach(a => activateNext(a, g.Y));
+  Object.values(anDb(g)).forEach(a => {
+    activateNext(a, g.Y);
+    if (a.ceil == null) a.ceil = ceilFor(a.skill, anYears(g, a)); // older saves: a ceiling, as a new analyst gets
+  });
   bump(g);
 }
 // The department a team starts with: three ordinary analysts on short deals.
@@ -329,6 +342,7 @@ export function starterDept(g: Game, s: any, tid: number) {
   (['head', 'analyst', 'analyst'] as AnRole[]).forEach((role, i) => {
     const a = mkAnalyst(g, { age: 28 + Math.floor(Math.random() * 20), lvl: -4 });
     a.skill = Math.round(cl(a.skill, 38, 62));
+    a.ceil = Math.max(a.ceil ?? a.skill, a.skill);
     a.rep = anRepOf(g, a);
     Object.assign(a, { tid, role, amt: anAsk(g, a, role), exp: firstSeason(g, s) + (i % 2), read: 0.3 });
   });
@@ -350,14 +364,30 @@ export function anMonth(g: Game, s: any) {
   });
   if (n) bump(g);
 }
-// Training camp: experience (a little sharper the first ten years), retirements (rare before 60), the pool topped up.
+// A year in the field (training camp): a share of the room left to his ceiling, more while he works for a team (his
+// projections get checked against what happened) and early in his career; now and then he loses his touch a little.
+export function grow(g: Game, a: Analyst) {
+  const ceil = a.ceil ?? a.skill,
+    room = ceil - a.skill;
+  if (room > 0.5) {
+    const rate = (a.tid != null ? 0.18 : 0.1) * (anYears(g, a) < 8 ? 1.2 : 0.9),
+      add = room * rate * (0.6 + Math.random() * 0.8),
+      whole = Math.floor(add);
+    a.skill = Math.min(ceil, a.skill + whole + (Math.random() < add - whole ? 1 : 0));
+  }
+  if (Math.random() < 0.02) {
+    a.skill = Math.max(1, a.skill - (2 + Math.floor(Math.random() * 4)));
+    a.ceil = Math.max(a.skill, ceil - 3);
+  }
+}
+// Training camp: a year's growth toward his ceiling, retirements (rare before 60), the pool topped up.
 export function anYear(g: Game, s: any): any[] {
   const notices: any[] = [];
   (Object.values(anDb(g)) as Analyst[]).forEach(a => {
     if (a.ret) return;
     activateNext(a, g.Y);
     if (a.tid != null && !g.isUser(s, a.tid)) detach(a); // a team you no longer run has no department
-    if (anYears(g, a) < 10 && Math.random() < 0.5) a.skill = Math.min(97, a.skill + 1);
+    grow(g, a);
     const age = anAge(g, a),
       pr = 0.008 + Math.max(0, age - 60) * 0.03 + (a.tid == null ? 0.03 : 0);
     if (Math.random() < pr) {

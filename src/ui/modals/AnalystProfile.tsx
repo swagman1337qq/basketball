@@ -2,7 +2,7 @@
 // track record shows, and each graded season and draft class (God Mode: exact skill and biases, editable).
 // Opened with gm.setState({ anPid }).
 import type { VM } from '../vm';
-import { muted, NumInput, td, th } from '../kit';
+import { godBox, godText, muted, NumInput, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
 import { fmtMoney as money } from '../../engine/capModel';
 import { grade } from '../../engine/staff';
@@ -132,16 +132,34 @@ export function AnalystProfile({ vm }: { vm: VM }) {
               {row(
                 'Skill',
                 god ? (
-                  <NumInput
-                    value={a.skill}
-                    min={1}
-                    max={99}
-                    width={60}
-                    onValue={v => {
-                      godEditAnalyst(gm, a.id, { skill: v });
-                      refresh();
-                    }}
-                  />
+                  <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', ...godText }}>
+                    <NumInput
+                      god
+                      value={a.skill}
+                      min={1}
+                      max={99}
+                      width={60}
+                      onValue={v => {
+                        godEditAnalyst(gm, a.id, { skill: v });
+                        refresh();
+                      }}
+                    />
+                    <span>
+                      Ceiling{' '}
+                      <NumInput
+                        god
+                        value={a.ceil ?? a.skill}
+                        min={1}
+                        max={99}
+                        width={60}
+                        onValue={v => {
+                          godEditAnalyst(gm, a.id, { ceil: v });
+                          refresh();
+                        }}
+                      />
+                    </span>
+                    <span style={{ fontSize: '12px' }}>(God Mode: exact)</span>
+                  </span>
                 ) : (
                   <>
                     <b>{a.read > 0.05 ? grade(readSkill(a)) : '?'}</b>{' '}
@@ -186,15 +204,16 @@ export function AnalystProfile({ vm }: { vm: VM }) {
                 seen.length ? seen.join(' · ') : (a.rec || []).length ? 'Nothing stands out yet' : 'No record with you yet',
               )}
               {god && (
-                <>
-                  <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
-                    Biases <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>(God Mode: strength in %, 0 for none)</span>
+                <div style={{ ...godBox, padding: '8px 12px', marginTop: 12 }}>
+                  <div style={{ margin: '0 0 4px', fontWeight: 600, ...godText }}>
+                    Biases <span style={{ fontWeight: 400, fontSize: '12px' }}>(God Mode: strength in %, 0 for none)</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '4px 16px' }}>
                     {BIAS_KEYS.map((k: BiasKey) => (
                       <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
-                        <span style={muted}>{BIAS_LABEL[k]}</span>
+                        <span style={godText}>{BIAS_LABEL[k]}</span>
                         <NumInput
+                          god
                           value={Math.round((a.bias[k] || 0) * 100)}
                           min={0}
                           max={100}
@@ -207,10 +226,10 @@ export function AnalystProfile({ vm }: { vm: VM }) {
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop: 8, ...muted }}>
+                  <div style={{ marginTop: 8, ...godText }}>
                     Personality: money {a.pers.money} · loyalty {a.pers.loyal} · ambition {a.pers.amb} · read {Math.round(a.read * 100)}%
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}

@@ -4,7 +4,7 @@ import { ROLE_LABEL, ROLE_ORDER, type Coach, type CoachRole } from '../../engine
 import { firstSeason } from '../../engine/contracts';
 import { FACE_LOOKS, faceSvg } from '../../engine/faces';
 import { coachBioDraft, saveCoachBio, randomCoachName, randomCoachCountry, type EditableCoach } from '../coachEditing';
-import { CountryPicker, Dice, godBox, godBtn, muted, NumInput } from '../kit';
+import { CountryPicker, Dice, godBox, godBtn, godText, muted, NumInput } from '../kit';
 import { CoachFace, coachFaceData } from '../CoachFace';
 import { FaceEditor } from './FaceEditor';
 import { readIllustration, rerollPersonFace, setIllustration } from '../../engine/illustratedPortraits';
@@ -28,8 +28,9 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
   };
   return (
     <section style={{ ...godBox, padding: 12, marginTop: 16 }} aria-label="God Mode staff editor">
-      <h4 style={{ margin: '0 0 10px' }}>Edit staff · God Mode</h4>
+      <h4 style={{ margin: '0 0 10px', ...godText }}>Edit staff · God Mode</h4>
       <fieldset
+        className="god-zone"
         disabled={!!faceDraft}
         style={{
           border: 0,
@@ -183,7 +184,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           />
         </label>
       </fieldset>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+      <div className="god-zone" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
         <CoachFace gm={gm} c={preview} age={draft.age} size={72} />
         <button className="btn btn-secondary" disabled={!!faceDraft} onClick={() => setFaceDraft(structuredClone(preview))}>
           Edit face
@@ -222,7 +223,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
         />
       )}
       {draft.tid != null && (
-        <div style={{ marginTop: 12 }}>
+        <div className="god-zone" style={{ marginTop: 12 }}>
           <label>
             <input
               type="checkbox"
@@ -274,7 +275,7 @@ export function CoachBioEditor({ gm, coach, onSave }: { gm: Game; coach: Coach; 
           )}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
+      <div className="god-zone" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
         <button
           className="btn btn-secondary"
           style={godBtn}

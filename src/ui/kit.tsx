@@ -354,6 +354,7 @@ export function NumInput({
   title,
   stepper,
   compact,
+  god,
 }: {
   value: number;
   min?: number;
@@ -366,6 +367,7 @@ export function NumInput({
   title?: string;
   stepper?: boolean;
   compact?: boolean; // shorter box for dense tables (Hadrian's Lover roster)
+  god?: boolean; // a God Mode control: God Mode pink
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const dec = String(step).includes('.') ? String(step).split('.')[1].length : 0;
@@ -431,6 +433,7 @@ export function NumInput({
           textAlign: stepper ? 'center' : 'right',
           fontSize: compact ? '13px' : stepper ? '15px' : undefined,
           fontVariantNumeric: 'tabular-nums',
+          ...(god ? { borderColor: GOD_PINK, color: GOD_PINK } : {}),
         }}
       />
       {stepper && (

@@ -1,7 +1,7 @@
 // A coach's profile (staff.ts): face, who he is, his playing days, his coaching, his contract and his ratings
 // as you read them (God Mode: exact, with his ceiling, and editable). Opened with gm.setState({ coachPid }).
 import type { VM } from '../vm';
-import { godBtn, muted, NumInput } from '../kit';
+import { godBtn, godText, muted, NumInput } from '../kit';
 import { CoachFace } from '../CoachFace';
 import { fmtMoney as money } from '../../engine/capModel';
 import {
@@ -302,7 +302,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
               {god && <CoachBioEditor key={c.id} gm={gm} coach={c} onSave={refresh} />}
               <div style={{ margin: '12px 0 4px', fontWeight: 600 }}>
                 Coaching ratings{' '}
-                <span style={{ fontWeight: 400, fontSize: '12px', ...muted }}>
+                <span style={{ fontWeight: 400, fontSize: '12px', ...(god ? godText : muted) }}>
                   {god ? '(God Mode: exact)' : '(your read: ' + readLabel(c).toLowerCase() + ')'}
                 </span>
               </div>
@@ -312,6 +312,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
                     <span style={muted}>{CR_LABEL[k]}</span>
                     {god ? (
                       <NumInput
+                        god
                         value={c.r[k]}
                         min={1}
                         max={99}
@@ -328,13 +329,14 @@ export function CoachProfile({ vm }: { vm: VM }) {
                 ))}
               </div>
               {god && (
-                <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', ...godText }}>
                   <span>
                     Overall <b>{coachOvr(c).toFixed(1)}</b>
                   </span>
                   <span>
                     Ceiling{' '}
                     <NumInput
+                      god
                       value={c.ceil}
                       min={1}
                       max={99}

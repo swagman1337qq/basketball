@@ -3,7 +3,7 @@
 // your read (a grade that firms up month by month); their biases you learn from their record. God Mode: exact.
 import { useState } from 'react';
 import type { VM } from '../vm';
-import { godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
+import { godBtn, godText, h4Style, muted, NumInput, Seg, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
 import { fmtMoney as money } from '../../engine/capModel';
 import { grade } from '../../engine/staff';
@@ -61,7 +61,10 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
   const skill = (a: Analyst) => {
     const v = readSkill(a, god);
     return (
-      <span title={god ? 'Skill ' + a.skill : 'Your read of his skill: ' + anReadLabel(a)}>
+      <span
+        title={god ? 'Skill ' + a.skill + ' · ceiling ' + (a.ceil ?? a.skill) + ' (God Mode)' : 'Your read of the skill: ' + anReadLabel(a)}
+        style={god ? godText : undefined}
+      >
         {god ? a.skill : a.read > 0.05 ? grade(v) : '?'}
       </span>
     );
@@ -72,7 +75,7 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
     return (
       <div style={{ fontSize: '12px' }}>
         {god && (
-          <div style={{ color: 'var(--color-accent-700)' }}>
+          <div style={godText}>
             {exact.length ? exact.map(([k, v]) => BIAS_LABEL[k] + ' (' + Math.round(v * 100) + '%)').join(' · ') : 'No biases'}
           </div>
         )}
@@ -342,8 +345,8 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
               <th style={th()}>Background</th>
               <th style={th('right')}>Years</th>
               <th style={th('right')}>Rep</th>
-              {god && <th style={th('right')}>Skill</th>}
-              {god && <th style={th()}>Biases</th>}
+              {god && <th style={{ ...th('right'), ...godText }}>Skill</th>}
+              {god && <th style={{ ...th(), ...godText }}>Biases</th>}
               <th style={th('right')}>Asking</th>
               <th style={th()} />
             </tr>
@@ -366,9 +369,9 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
                 <td style={td('left', { fontSize: '12px' })}>{a.bg}</td>
                 <td style={td('right')}>{anYears(gm, a)}</td>
                 <td style={td('right')}>{a.rep}</td>
-                {god && <td style={td('right')}>{a.skill}</td>}
+                {god && <td style={{ ...td('right'), ...godText }}>{a.skill}</td>}
                 {god && (
-                  <td style={td('left', { fontSize: '12px' })}>
+                  <td style={{ ...td('left', { fontSize: '12px' }), ...godText }}>
                     {(Object.entries(a.bias) as [BiasKey, number][]).map(([k]) => BIAS_LABEL[k]).join(' · ') || '—'}
                   </td>
                 )}
