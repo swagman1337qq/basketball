@@ -287,6 +287,17 @@ export function setAnRole(g: Game, s: any, tid: number, id: number, role: AnRole
   bump(g);
   return '';
 }
+// God Mode: set an analyst's skill, or a bias's strength (0 removes it).
+export function godEditAnalyst(g: Game, id: number, o: { skill?: number; bias?: Partial<Record<BiasKey, number>> }) {
+  const a = anDb(g)[id];
+  if (!a) return;
+  if (o.skill != null) a.skill = Math.round(cl(o.skill, 1, 99));
+  (Object.entries(o.bias || {}) as [BiasKey, number][]).forEach(([k, v]) => {
+    if (!(v > 0)) delete a.bias[k];
+    else a.bias[k] = +cl(v, 0.05, 1).toFixed(2);
+  });
+  bump(g);
+}
 // God Mode: anyone into the department, no talks.
 export function godAnalyst(g: Game, s: any, tid: number, id: number, role: AnRole) {
   const a = anDb(g)[id];

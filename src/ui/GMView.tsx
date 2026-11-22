@@ -33,6 +33,7 @@ import { HierarchyScreen } from './screens/HierarchyScreen';
 import { StaffScreen } from './screens/StaffScreen';
 import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { CoachProfile } from './modals/CoachProfile';
+import { AnalystProfile } from './modals/AnalystProfile';
 import { OwnerScreen } from './screens/OwnerScreen';
 import { DailyScheduleScreen } from './screens/DailyScheduleScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -258,6 +259,7 @@ export function GMView({ vm }: { vm: VM }) {
         {!!vm.hasDialog &&
           (vm.ctx.s.dialog.type === 'sign' || vm.ctx.s.dialog.type === 'release' ? <ContractDialog vm={vm} /> : <ConfirmDialog vm={vm} />)}
         {vm.ctx.s.coachPid != null && <CoachProfile vm={vm} />}
+        {vm.ctx.s.anPid != null && <AnalystProfile vm={vm} />}
         {!!vm.ctx.s.letterOpen && !vm.spec.on && <OwnerLetterModal vm={vm} />}
         {!!vm.ctx.s.specPick && vm.spec.on && <SpectatorPicker vm={vm} />}
         {!!vm.ctx.s.gmSetup && <GMSetupModal vm={vm} />}

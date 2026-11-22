@@ -40,6 +40,7 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
   const [firing, setFiring] = useState<number | null>(null);
   const [more, setMore] = useState(15);
   const refresh = () => gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
+  const openA = (id: number) => gm.setState({ anPid: id, anTab: 'ov' });
   const act = (f: () => string, ok?: string) => {
     const e = f();
     setMsg(e || ok || '');
@@ -151,9 +152,13 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
               <tr key={a.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    {face(a, 34)}
+                    <button style={{ all: 'unset', cursor: 'pointer' }} onClick={() => openA(a.id)} title="Open profile">
+                      {face(a, 34)}
+                    </button>
                     <div>
-                      <b>{a.name}</b>
+                      <button className="hv4" onClick={() => openA(a.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                        {a.name}
+                      </button>
                       {flag(a)}
                       <div style={{ fontSize: '11px', ...muted }}>
                         {a.bg} · {anYears(gm, a)} yrs in analytics
@@ -247,7 +252,9 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
             <div>
               <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>
                 {oa.tid === tid ? 'Re-sign ' : 'Offer: '}
-                {oa.name}
+                <button className="hv4" onClick={() => openA(oa.id)} style={{ all: 'unset', cursor: 'pointer' }}>
+                  {oa.name}
+                </button>
               </div>
               <div style={{ fontSize: '12px', ...muted }}>
                 Reputation {oa.rep} · asks about {money(anAsk(gm, oa, offer.role))} a year as {AN_ROLE_LABEL[offer.role]} · prefers{' '}
@@ -346,8 +353,12 @@ export function AnalyticsScreen({ vm }: { vm: VM }) {
               <tr key={a.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    {face(a, 28)}
-                    <b>{a.name}</b>
+                    <button style={{ all: 'unset', cursor: 'pointer' }} onClick={() => openA(a.id)} title="Open profile">
+                      {face(a, 28)}
+                    </button>
+                    <button className="hv4" onClick={() => openA(a.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                      {a.name}
+                    </button>
                     {flag(a)}
                   </div>
                 </td>
