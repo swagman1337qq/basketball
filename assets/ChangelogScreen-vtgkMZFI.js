@@ -1,15 +1,17 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-LZSB9aLu.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-i8ajH_sF.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-22
 
 ### Added
+- **Analysts get better with time, like coaches.** Each analyst has a hidden ceiling, and every training camp their skill grows toward it: faster early in their career and while they work for a team (their projections get checked against what happened), slower out of work. Now and then one loses their touch a little. Your read of their skill follows the change, and their reputation rises as they improve. God Mode shows and sets the ceiling on their profile.
 - **Analysts have profiles, like coaches.** On the Analytics screen, click an analyst's name or face (in your department, the analytics people available, or an offer) to open their profile: age, nationality, background, years in analytics, reputation, your read of their skill, personality, contract or asking price, and what their track record shows. The Track record tab lists every graded season (average miss, which way they leaned, and how they did on shooters, defenders, players past 30 and players coming off a big swing) and every graded draft board against your scouts'. God Mode: set their exact skill and biases.
 
 ### Changed
 - **Lineup advice and free-agent picks come from your real staff.** On the Roster, "Ask your staff" now gets advice from your Lead Assistant (who should start and who should come off the bench), your Head of Player Development (rest, young players' minutes, injuries) and your Head of Analytics (what the numbers say), instead of three made-up assistants. How well the lineup advice reads your players now depends on your Lead Assistant's eye for talent, not the old Coaching budget. In free agency, "Ask your staff" gives your Lead Assistant's picks, each with your Head of Analytics' price check (a bargain, about right, or overpriced by the numbers). Click any of their names to open their profile. If a job is empty, the next person on your staff speaks instead.
 - **Smaller saves.** Coaches' careers before they joined your league are stored far more compactly (about an eighth of the space, so a new league's save is about 10% smaller), with nothing lost: every career reads exactly as before. Coaches and analysts who retired at least five seasons ago without ever working in your league (no seasons here, no awards, never a player here) are now cleared from the save, since nothing in the game leads to them any more. Everyone with a history in your league stays.
+- **God Mode controls on staff profiles are God Mode pink.** On coach and analyst profiles, everything you can only edit in God Mode is now pink, like the rest of God Mode's tools: the coach's Edit staff box (its labels, fields and buttons), coaching ratings and ceiling, and an analyst's skill, ceiling and biases. So are the exact numbers only God Mode shows, including the exact skill and bias columns on the Analytics screen.
 
 ## 2026-11-21
 
