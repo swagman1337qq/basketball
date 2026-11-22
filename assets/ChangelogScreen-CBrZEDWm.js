@@ -1,8 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-C9wjJJ_U.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-Bl90DXeS.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-22
+
+### Fixed
+- **One more cause of long sims stopping mid-season removed.** The save-status line was refreshed after every simulated update even when it hadn't changed, and enough of those in a row tripped React's safety limit ("Maximum update depth exceeded", error #185). It now changes only when the status does. (Alongside "Long simulations keep the screen stable" below, which removes the render loop itself.)
 
 ### Added
 - **Summer League.** In mid-July every team plays five games with its young players (rookies, second-year players, two-ways, anyone 22 or under) plus undrafted free agents it invites. You choose up to five invites on the Free agency screen's Summer League panel (the rest are picked for you). Afterwards the panel shows the standings and champion, your team's lines and the top scorers, and every player's Summer League lines stay on his profile. Your scouts watch every game, so you get a sharper read on everyone who played. An undrafted player who stands out can earn a two-way deal from the team that brought him; if he was your invite, the Mailbox tells you so you can sign him. The games use the CCP's quick game model: the whole Summer League takes about a tenth of a second.
