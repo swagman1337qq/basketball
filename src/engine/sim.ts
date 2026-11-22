@@ -8,7 +8,7 @@
 // God Mode can edit them.
 
 import { tacticEffects, type TacFx, type Tactics } from './tactics';
-import { gamePlan, liveTactics, type CoachPlan, type LiveMemory, type TacKey } from './coach';
+import { gamePlan, liveTactics, type CoachPlan, type CoachWay, type LiveMemory, type TacKey } from './coach';
 import { roleRamp } from '../data/world';
 import {
   closeContestExposure,
@@ -630,6 +630,7 @@ export interface SimTeam {
   tempo?: number; // an extra pace multiplier on its trips' length (unused now that every team's staff sets the pace)
   aiKeys?: TacKey[]; // the settings its coaching staff runs (coach.ts); the rest come from `tactics` as set
   coach?: number; // the staff's quality, 0.35–0.95 (coach.ts coachQuality): how often it makes its reads
+  way?: CoachWay | null; // an AI head coach's own way (coach.ts withWay): his pace and focus
   stO?: number; // your assistant coaches' edge on offense: shot quality (staff.ts staffFx, a few tenths of a percent)
   stD?: number; // and on defense: the opponent's shot quality, down
 }
@@ -957,7 +958,7 @@ export class GameSim {
     (['home', 'away'] as Side[]).forEach(k => {
       const T = this.teams[k];
       if (T.aiKeys?.length)
-        this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65, Math.random, this.norms.quick);
+        this.plan[k] = gamePlan(T.players, this.teams[other(k)].players, T.coach ?? 0.65, Math.random, this.norms.quick, T.way);
     });
     (['home', 'away'] as Side[]).forEach(k => {
       this.teams[k].players.forEach(p => {

@@ -291,6 +291,29 @@ export function styleOf(c: Coach, r: Record<string, number> = c.r): 'Offense-min
   const d = r.off - r.def;
   return d >= 6 ? 'Offense-minded' : d <= -6 ? 'Defense-minded' : 'Balanced';
 }
+// A head coach's own way (2026-11-22): the pace he likes, how deep he plays his bench, and the end he puts first (his
+// style). About a quarter of coaches each way on pace and depth, seeded by coach, nudged by his ratings: offense-minded
+// coaches lean fast, development-minded ones play the bench more. AI teams play it (Game.coachWayFor, coach.ts withWay).
+export interface Way {
+  pace: number; // −1 slows it down, 0, +1 pushes it
+  depth: number; // −1 a tight rotation, 0, +1 a deep bench
+  focus: 'Offense first' | 'Defense first' | null;
+}
+export function coachWay(c: Coach): Way {
+  const h = (salt: number) => ((((c.id + 11) * 2654435761) ^ (salt * 40503)) >>> 0) / 4294967296;
+  const pv = h(1) + (c.r.off - c.r.def) / 200,
+    dv = h(2) + (c.r.dev - 50) / 200,
+    st = styleOf(c);
+  return {
+    pace: pv >= 0.75 ? 1 : pv < 0.25 ? -1 : 0,
+    depth: dv >= 0.75 ? 1 : dv < 0.25 ? -1 : 0,
+    focus: st === 'Offense-minded' ? 'Offense first' : st === 'Defense-minded' ? 'Defense first' : null,
+  };
+}
+export const wayLabel = (w: Way) =>
+  (w.pace > 0 ? 'Pushes the pace' : w.pace < 0 ? 'Slows it down' : 'Average pace') +
+  ' · ' +
+  (w.depth > 0 ? 'plays a deep bench' : w.depth < 0 ? 'tight rotation' : 'normal rotation');
 // Your read of one rating: his true value plus a fixed miss (seeded by coach and rating) that shrinks as you get to know him.
 export function readOf(c: Coach, k: CRKey, exact = false): number {
   if (exact) return c.r[k];

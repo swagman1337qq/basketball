@@ -21,6 +21,8 @@ import {
   readRatings,
   ROLE_LABEL,
   styleOf,
+  coachWay,
+  wayLabel,
 } from '../../engine/staff';
 import { careerSummary, coachRows, WOMENS_LEAGUE } from '../../engine/coachCareer';
 import { coachPlayRows } from '../coachEditing';
@@ -80,6 +82,7 @@ export function CoachProfile({ vm }: { vm: VM }) {
               {c.ret ? 'Retired from coaching (' + c.ret + ')' : T ? ROLE_LABEL[c.role!] + ', ' + T.region + ' ' + T.name : 'Available'}
               {' · '}
               {styleOf(c, readRatings(c, god))}
+              {c.role === 'hc' && !c.ret ? ' · ' + wayLabel(coachWay(c)) : ''}
             </div>
           </div>
         </div>

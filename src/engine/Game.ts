@@ -18,11 +18,12 @@ import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
 import { createElement } from 'react';
 import { migrateTactics, TAC_DEFAULT, tacticFit, repAffinity, tacticReps, tacticUnlocks } from './tactics';
-import { coachBase, coachQuality, TAC_KEYS, type TacKey } from './coach';
-import { coachPipeline, syncHeadCoaches } from './coachCareer';
+import { coachBase, coachQuality, TAC_KEYS, withWay, type TacKey } from './coach';
+import { coachPipeline, headCoachOf, syncHeadCoaches } from './coachCareer';
 import { anContractsEnd, anDraftBoard, anExpiring, anMonth, anOpening, anYear, ensureAnalytics } from './analytics';
 import {
   coachingOf,
+  coachWay,
   devSlip,
   ensureStaff,
   hasStaff,
@@ -31,7 +32,9 @@ import {
   staffExpiring,
   staffFx,
   staffMonth,
+  staffRev,
   staffYear,
+  type Way,
 } from './staff';
 import {
   americanFirst,
@@ -2867,10 +2870,13 @@ export class Game {
       if (sit.length) ids = ids.filter(id => !sit.includes(id));
     }
     if (ids.length < 5) ids = [...ids, ...s.rosters[tid].filter(id => !ids.includes(id))].slice(0, 5);
-    const ROT0 = this.starMinutes(
+    const way = user ? null : this.coachWayFor(s, tid); // an AI head coach's own way (staff.ts coachWay)
+    const ROT00 = this.starMinutes(
         this.rotationFor(s, tid),
         (user ? this.userRank(ids) : ids).map(id => P[id]), // the star: yours as the coach ranks them, wherever he's listed
       ),
+      // His rotation: a deep bench takes 1.5 minutes from each starter for the 6th–9th men, a tight one the reverse.
+      ROT0 = way?.depth ? ROT00.map((m, i) => (i < 5 ? m - way.depth * 1.5 : i <= 8 ? m + way.depth * 1.875 : m)) : ROT00,
       // A comfortable contender spares its top three MGR_MIN minutes a night all season and plays its bench more, as
       // NBA contenders do (2026-11-08: a contender's stars played the same minutes as a lottery team's).
       ROT =
@@ -2901,6 +2907,7 @@ export class Game {
       situ: club ? club.situ || null : null,
       aiKeys: this.aiTacKeys(club),
       coach: hasStaff(this, s, tid) ? staffFx(this, s, tid).q : coachQuality(teamBudget(this, s, tid).Coaching), // your Lead Assistant (staff.ts), else the owner's budget
+      way: way ? { pace: way.pace, focus: way.focus } : null,
       stO: hasStaff(this, s, tid) ? staffFx(this, s, tid).stO : 0,
       stD: hasStaff(this, s, tid) ? staffFx(this, s, tid).stD : 0,
       players: ids.map((id, i) => {
@@ -3041,13 +3048,29 @@ export class Game {
   coachTactics(s, tid) {
     const P = this.db.P,
       ids = (s.rosters[tid] || []).filter(id => this.canPlay1(s, P[id]));
-    return coachBase(
-      ids
-        .slice(0, 8)
-        .map(id => P[id])
-        .filter(Boolean),
-      this.db.norms?.quick,
+    const w = this.isUser(s, tid) ? null : this.coachWayFor(s, tid);
+    return withWay(
+      coachBase(
+        ids
+          .slice(0, 8)
+          .map(id => P[id])
+          .filter(Boolean),
+        this.db.norms?.quick,
+      ),
+      w && { pace: w.pace, focus: w.focus },
     );
+  }
+  // An AI team's head coach's way (staff.ts coachWay), cached until the staffs change (staffRev).
+  private wayCache: { rev: number; m: Map<number, Way | null> } = { rev: -1, m: new Map() };
+  coachWayFor(s, tid: number): Way | null {
+    if (!hasStaff(this, s, tid)) return null;
+    const rev = staffRev(this);
+    if (this.wayCache.rev !== rev) this.wayCache = { rev, m: new Map() };
+    if (!this.wayCache.m.has(tid)) {
+      const hc = headCoachOf(this, tid);
+      this.wayCache.m.set(tid, hc ? coachWay(hc) : null);
+    }
+    return this.wayCache.m.get(tid) ?? null;
   }
   tempoOf(s, tid) {
     const P = this.db.P,

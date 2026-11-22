@@ -33,6 +33,8 @@ import {
   STAFF_MAX,
   STAFF_MIN,
   styleOf,
+  coachWay,
+  wayLabel,
   type Coach,
   type CoachRole,
 } from '../../engine/staff';
@@ -679,10 +681,18 @@ export function StaffScreen({ vm }: { vm: VM }) {
                     <td style={td()}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <CoachFace gm={gm} c={c} age={coachAge(gm, c)} size={26} />
-                        <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
-                          {c.name}
-                        </button>
-                        {flag(c)}
+                        <div>
+                          <button className="hv4" onClick={() => openC(c.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
+                            {c.name}
+                          </button>
+                          {flag(c)}
+                          <div
+                            style={{ fontSize: '11px', ...muted }}
+                            title="How his team plays: his pace and rotation (and his style sets offense or defense first)"
+                          >
+                            {wayLabel(coachWay(c))}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td style={td('right')}>{coachAge(gm, c)}</td>

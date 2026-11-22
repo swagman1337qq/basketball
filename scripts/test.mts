@@ -30,6 +30,7 @@ const SCRIPTS = [
   'workouts',
   'summerLeague',
   'injuryReturn',
+  'coachWay',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

@@ -128,6 +128,22 @@ function coachBase0(top: any[], quick0 = 42): Required<Tactics> {
   return t;
 }
 
+// A head coach's own way (2026-11-22, staff.ts coachWay): the pace he likes (−1 slower, 0, +1 faster: one step from
+// what the roster is built for, within Slow–Fast) and the end he puts first when the roster leaves it balanced.
+export interface CoachWay {
+  pace: number;
+  focus: 'Offense first' | 'Defense first' | null;
+}
+export function withWay(base: Required<Tactics>, way?: CoachWay | null): Required<Tactics> {
+  if (!way) return base;
+  if (way.pace) {
+    const j = PACES.indexOf(base.pace);
+    if (j >= 0) base.pace = PACES[Math.max(1, Math.min(3, j + way.pace))] as any;
+  }
+  if (way.focus && base.focus === 'Balanced') base.focus = way.focus as any;
+  return base;
+}
+
 export interface CoachPlan {
   base: Required<Tactics>; // identity adjusted for tonight's opponent
   junk: string | null;
@@ -137,7 +153,14 @@ export interface CoachPlan {
 }
 
 // 2. Tonight's plan against `them` (sim players with minutes targets). `q` is the coach's quality, `rnd` 0–1.
-export function gamePlan(us: any[], them: any[], q: number, rnd: () => number = Math.random, quick0 = 42): CoachPlan {
+export function gamePlan(
+  us: any[],
+  them: any[],
+  q: number,
+  rnd: () => number = Math.random,
+  quick0 = 42,
+  way?: CoachWay | null,
+): CoachPlan {
   const top = (ps: any[]) =>
     ps
       .slice()
@@ -145,7 +168,7 @@ export function gamePlan(us: any[], them: any[], q: number, rnd: () => number = 
       .slice(0, 8);
   const U = top(us),
     T = top(them),
-    base = coachBase(U, quick0),
+    base = withWay(coachBase(U, quick0), way), // the roster's identity, then the head coach's own way
     notes: string[] = [];
   const plan: CoachPlan = { base, junk: null, junkOn: [], zoneOk: rnd() < q, notes };
   const sees = () => rnd() < q; // does the staff make this read?
