@@ -17,7 +17,18 @@ export interface StatsRequest {
   ccp: boolean;
   context?: StatsContext;
 }
+export type StatsCommand = StatsRequest | { type: 'pause' };
 export type StatsReply =
-  | { type: 'season'; id: number; epoch: string; pid: number; po: boolean; ccp: boolean; year: number; value: ProfileSeasonData }
+  | {
+      type: 'season';
+      id: number;
+      epoch: string;
+      pid: number;
+      po: boolean;
+      ccp: boolean;
+      year: number;
+      value: ProfileSeasonData;
+      cached?: boolean;
+    }
   | { type: 'done'; id: number; epoch: string; pid: number; po: boolean; ccp: boolean }
   | { type: 'error'; id: number; epoch: string; pid: number; po: boolean; ccp: boolean; error: string };

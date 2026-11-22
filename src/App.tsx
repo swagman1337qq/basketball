@@ -1,4 +1,4 @@
-import { disposeProfileStats } from './ui/profileStatsClient';
+import { disposeProfileStats, pauseProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
 import { SimulationBrowse } from './ui/simulationBrowse';
@@ -94,7 +94,7 @@ export function GameScreen({
   onSwitch: (id: string) => void;
 }) {
   const { game } = open;
-  const browsing = useMemo(() => new SimulationBrowse(game, disposeProfileStats), [game]);
+  const browsing = useMemo(() => new SimulationBrowse(game, pauseProfileStats), [game]);
   const version = useSyncExternalStore(game.subscribe, browsing.getLiveVersion);
   useLayoutEffect(() => browsing.connect(), [browsing]);
   const browseVersion = useSyncExternalStore(browsing.subscribe, browsing.getVersion);

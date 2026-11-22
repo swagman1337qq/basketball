@@ -18,6 +18,7 @@ const SCRIPTS = [
   'playerPersistence',
   'playerSaveWorker',
   'profileStatsWorker',
+  'profileHistoryCache',
   'saveSummaries',
   'lazyBoxArchive',
   'viewVisibility',

@@ -2,6 +2,7 @@ import { Game } from '../engine/Game';
 import { yieldToBrowser } from '../engine/cooperative';
 import { copyBrowseDb } from './simulationBrowseCopy';
 import { BrowseCopyWarmup, type BrowseIdleScheduler } from './simulationBrowseIdle';
+import { shareProfileStats } from './profileStatsClient';
 
 // Cursor state belongs to the reader, never to the in-flight simulation.
 const VIEW_KEYS = new Set([
@@ -112,6 +113,7 @@ export class SimulationBrowse {
   private reader(db: any, state: any) {
     const view = new Game();
     view.db = db;
+    shareProfileStats(this.source, view);
     view.state = state;
     view.busy = true;
     view.saveVersion = this.source.saveVersion;

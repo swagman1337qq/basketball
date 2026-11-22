@@ -13,6 +13,7 @@ type Result = Record<number, ProfileSeasonData>;
 type Options = { signal?: AbortSignal; isCurrent?: () => boolean; onSeason?: (year: number, value: ProfileSeasonData) => void };
 type WorkerLike = Pick<Worker, 'postMessage' | 'terminate' | 'onmessage' | 'onerror' | 'onmessageerror'>;
 type Pending = {
+  game: Game;
   id: number;
   epoch: string;
   db: object;
@@ -35,7 +36,8 @@ const makeWorker = (): WorkerLike => {
 
 // One worker per open Game. New jobs supersede old jobs; cancellation terminates a
 // busy worker instead of letting obsolete work delay the next player or tab.
-export function createProfileStatsClient(g: Game, factory: () => WorkerLike = makeWorker) {
+export function createProfileStatsClient(initial: Game, factory: () => WorkerLike = makeWorker) {
+  let bound: Game | undefined = initial;
   let worker: WorkerLike | undefined;
   let contextEpoch = '';
   let seq = 0;
@@ -104,7 +106,7 @@ export function createProfileStatsClient(g: Game, factory: () => WorkerLike = ma
           return;
         }
         // Validate before either caching or notifying React, not just before drawing.
-        if (!job.valid() || !acceptProfileSeason(g, job.db, job.epoch, job.pid, message.year, job.po, job.ccp, message.value)) {
+        if (!job.valid() || !acceptProfileSeason(job.game, job.db, job.epoch, job.pid, message.year, job.po, job.ccp, message.value)) {
           cancel();
           return;
         }
@@ -132,12 +134,15 @@ export function createProfileStatsClient(g: Game, factory: () => WorkerLike = ma
   };
   return {
     async load(pid: number, requestedYears: number[], po: boolean, ccp: boolean, options: Options = {}): Promise<Result> {
+      const g = bound;
+      if (!g) throw aborted();
       const ticket = ++generation;
       const db = g.db,
         epoch = profileStatsEpoch(g, g.state);
       const valid = () =>
         ticket === generation &&
         !disposed &&
+        !g.dayInProgress &&
         !options.signal?.aborted &&
         (options.isCurrent?.() ?? true) &&
         g.db === db &&
@@ -175,7 +180,7 @@ export function createProfileStatsClient(g: Game, factory: () => WorkerLike = ma
               else if (!valid()) reject(aborted());
               else resolve(rows);
             };
-            pending = { id, db, epoch, pid, po, ccp, years: new Set(missing), rows, valid, options, finish };
+            pending = { game: g, id, db, epoch, pid, po, ccp, years: new Set(missing), rows, valid, options, finish };
             unsubscribe = g.subscribe(() => {
               if (!valid()) abort();
             });
@@ -219,20 +224,72 @@ export function createProfileStatsClient(g: Game, factory: () => WorkerLike = ma
       if (!valid()) throw aborted();
       return rows;
     },
+    attach(game: Game) {
+      if (disposed) throw aborted();
+      if (bound === game) return;
+      generation++;
+      cancel();
+      bound = game;
+      contextEpoch = '';
+      unavailable = false;
+    },
+    pause(game: Game) {
+      if (disposed || bound !== game) return;
+      generation++;
+      cancel();
+      bound = undefined;
+      contextEpoch = '';
+      // Only an idle worker survives. It drops its calculation context but keeps
+      // historical display values; busy obsolete jobs still terminate at once.
+      try {
+        worker?.postMessage({ type: 'pause' });
+      } catch {
+        stop();
+      }
+    },
     dispose() {
       disposed = true;
       cancel();
       stop();
+      bound = undefined;
     },
   };
 }
-const CLIENTS = new WeakMap<object, ReturnType<typeof createProfileStatsClient>>();
+const CLIENTS = new WeakMap<Game, { db: object; client: ReturnType<typeof createProfileStatsClient> }>();
+const OWNERS = new WeakMap<Game, { owner: Game; db: object; ownerDb: object }>();
+function ownerOf(g: Game) {
+  const binding = OWNERS.get(g);
+  return binding && binding.db === g.db && binding.owner.db === binding.ownerDb ? binding.owner : g;
+}
+export function shareProfileStats(source: Game, target: Game) {
+  const owner = ownerOf(source);
+  OWNERS.set(target, { owner, db: target.db, ownerDb: owner.db });
+}
 export function loadProfileStats(g: Game, pid: number, years: number[], po: boolean, ccp: boolean, options: Options) {
-  let client = CLIENTS.get(g);
-  if (!client) CLIENTS.set(g, (client = createProfileStatsClient(g)));
-  return client.load(pid, years, po, ccp, options);
+  const owner = ownerOf(g);
+  // A late effect from the live screen must not steal the reader's worker or
+  // capture a partially applied day. Detached readers have a different owner.
+  if (g.dayInProgress || (g.busy && owner === g)) return Promise.reject(aborted());
+  let entry = CLIENTS.get(owner);
+  if (entry && entry.db !== owner.db) {
+    entry.client.dispose();
+    CLIENTS.delete(owner);
+    entry = undefined;
+  }
+  if (!entry) CLIENTS.set(owner, (entry = { db: owner.db, client: createProfileStatsClient(g) }));
+  entry.client.attach(g);
+  return entry.client.load(pid, years, po, ccp, options);
+}
+export function pauseProfileStats(g: Game) {
+  CLIENTS.get(OWNERS.get(g)?.owner || g)?.client.pause(g);
 }
 export function disposeProfileStats(g: Game) {
-  CLIENTS.get(g)?.dispose();
-  CLIENTS.delete(g);
+  const binding = OWNERS.get(g);
+  if (binding) {
+    CLIENTS.get(binding.owner)?.client.pause(g);
+    OWNERS.delete(g);
+  } else {
+    CLIENTS.get(g)?.client.dispose();
+    CLIENTS.delete(g);
+  }
 }
