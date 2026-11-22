@@ -15,6 +15,7 @@ import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit
 import { AN_ROLE_LABEL, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
 import { woOpen, worked } from '../../engine/workouts';
 import { slGmSc, type SlLine } from '../../engine/summerLeague';
+import { liftRamp, rampLine } from '../../engine/injuryReturn';
 import { CombineGrid, WorkoutBlock } from '../screens/DraftWorkout';
 
 const LB: Record<string, string> = {
@@ -317,6 +318,28 @@ export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
       <SummerLeagueView vm={vm} />
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
+        {p.ramp && (
+          <div style={{ fontSize: '12.5px', margin: '0 0 6px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--color-accent-800)' }}>{rampLine(p)}.</span>
+            {tid >= 0 && gm.isUser(s, tid) && !s.spectator && (
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '11.5px', padding: '2px 8px' }}
+                title={
+                  p.ramp.lift
+                    ? 'Put the limit back: he works back up to full minutes, at less risk'
+                    : 'Play him his full minutes now: twice the extra risk of getting hurt again until the limit would have run out'
+                }
+                onClick={() => {
+                  liftRamp(p, !p.ramp.lift);
+                  gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
+                }}
+              >
+                {p.ramp.lift ? 'Restore the limit' : 'Lift the limit'}
+              </button>
+            )}
+          </div>
+        )}
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}
         <Row
           k="Form (last 5)"

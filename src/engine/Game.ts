@@ -172,6 +172,7 @@ import {
 } from './potential';
 import { runCombine, woPot, worked } from './workouts';
 import { SL_DAY, summerLeague } from './summerLeague';
+import { rampCap, rampRisk, rampTick, startRamp } from './injuryReturn';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, draftValue, pickCut, rosterValue, rotationValue } from './rosterAI';
 import {
@@ -1551,6 +1552,8 @@ export class Game {
       // A new phase moves the calendar on (the lottery, the draft, free agency, camp, opening night): anyone
       // whose recovery is over by then is healthy, and the rest's games left follow the days (healCal).
       if (patch.phase && patch.phase !== prevPhase && this.db?.P && this.state.rosters && !['playin', 'playoffs'].includes(patch.phase)) {
+        if (patch.phase !== 'regular')
+          Object.values(this.state.rosters).forEach((ids: any) => ids.forEach((id: number) => delete this.db.P[id]?.ramp)); // the summer finishes every comeback
         const rosters = { ...this.state.rosters };
         if (this.healCal(this.state, rosters).length) {
           this.state.rosters = rosters;
@@ -2879,9 +2882,12 @@ export class Game {
     const target = (id: number, i: number) => {
       const p = P[id],
         minutes = tgt ? tgt[i] : Math.max(p.minMin || 0, ROT[i] || 0);
-      return shortRest && (!user || p.rot == null || s.easy?.lineup)
-        ? Math.max(p.minMin || 0, minutes - Math.min(5, Math.max(0, ((p.fat || 0) - 24) / 12)))
-        : minutes;
+      return Math.min(
+        rampCap(p), // back from a long injury: tonight's minutes limit (injuryReturn.ts)
+        shortRest && (!user || p.rot == null || s.easy?.lineup)
+          ? Math.max(p.minMin || 0, minutes - Math.min(5, Math.max(0, ((p.fat || 0) - 24) / 12)))
+          : minutes,
+      );
     };
     return {
       tid,
@@ -6198,8 +6204,10 @@ export class Game {
       p.inj.games--;
       if (!p.inj.dtd) p.inj.miss = (p.inj.miss || 0) + 1;
       if (p.inj.games <= 0) {
+        const missed = p.inj.dtd ? 0 : p.inj.miss || 0;
         this.injDone(p, s);
         delete p.inj;
+        startRamp(p, missed);
         this.injBack(s, rosters, tid, p);
       }
     });
@@ -6215,15 +6223,18 @@ export class Game {
     Object.keys(rosters).forEach(k =>
       rosters[k].forEach(id => {
         const p = P[id];
+        if (p.ramp && mins[id] > 0) rampTick(p); // a game on the way back from injury (injuryReturn.ts)
         if (p.inj) {
           if (this.db.calendarV && !played.has(+k)) return;
           p.inj.games--;
           if (played.has(+k) && !mins[id]) p.inj.miss = (p.inj.miss || 0) + 1;
           if (p.inj.games <= 0 && (!this.db.calendarV || p.inj.until == null || p.inj.until <= this.calNow({ ...s, day: day + 1 }))) {
-            const lost = this.injuryRust(p);
+            const lost = this.injuryRust(p),
+              missed = p.inj.dtd ? 0 : p.inj.miss || 0;
             if (this.isUser(s, +k)) out.push({ mine: true, tid: +k, text: p.name + ' returned from ' + p.inj.name.toLowerCase() + lost });
             this.injDone(p, s);
             delete p.inj;
+            startRamp(p, missed); // a minutes limit on the way back from a long one (injuryReturn.ts)
             this.injBack(s, rosters, +k, p);
           }
           if (!p.inj || !p.inj.dtd || !mins[id]) return;
@@ -6240,7 +6251,8 @@ export class Game {
           ((mins[id] || 0) / 30) *
           (p.pers.prone ? 1.8 : 1) *
           (1 + (p.fat || 0) / 80) *
-          (p.inj ? 1.5 : 1);
+          (p.inj ? 1.5 : 1) *
+          rampRisk(p, hbOf(k)); // just back from a long injury: more likely to get hurt again
         if (s.noInj || Math.random() >= risk) return; // Settings → Injuries off (2026-11-09): nobody gets hurt
         const x = Math.random();
         let inj;
@@ -6284,6 +6296,7 @@ export class Game {
           ...(inj.major ? { major: true } : {}),
         });
         p.inj = inj;
+        if (!inj.dtd) delete p.ramp; // hurt again on the way back: this comeback is over (the next one gets its own limit)
         out.push({
           mine: this.isUser(s, +k),
           major: !!inj.major,

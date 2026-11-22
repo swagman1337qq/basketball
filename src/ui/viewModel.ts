@@ -63,6 +63,7 @@ import { DEFAULT_BRIEF, runBriefs } from '../engine/scoutBrief';
 import { kindOf, scoutRead } from '../engine/scoutReport';
 import { liftCeil, potView, refreshPot, scoutSd, setTruePot } from '../engine/potential';
 import { woPot, worked } from '../engine/workouts';
+import { rampLine } from '../engine/injuryReturn';
 import { draftedBy, draftedLabel, nowLabel } from '../engine/godMove';
 import { deletePlayer } from '../engine/godPlayer';
 import { cardLib } from '../db/cards';
@@ -1060,10 +1061,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         flag: '',
         v: pp.inj
           ? pp.inj.name + (pp.inj.dtd ? ', day-to-day: ' : ', out ') + gm.injText(pp)
-          : 'Healthy' +
-            ((pp.injHist || []).length
-              ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record'
-              : ''),
+          : pp.ramp
+            ? rampLine(pp)
+            : 'Healthy' +
+              ((pp.injHist || []).length
+                ? ' · ' + pp.injHist.length + ' injur' + (pp.injHist.length === 1 ? 'y' : 'ies') + ' on record'
+                : ''),
       },
       { k: 'Born', hasFlag: true, flag: gm.flag(pp.born), v: hometownOf(pp, C) },
       { k: 'Represents', hasFlag: true, flag: gm.flag(pp.rep), v: C[pp.rep].n + ' national team' },

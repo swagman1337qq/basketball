@@ -29,6 +29,7 @@ const SCRIPTS = [
   'keepSmall',
   'workouts',
   'summerLeague',
+  'injuryReturn',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

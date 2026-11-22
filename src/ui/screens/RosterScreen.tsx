@@ -18,6 +18,7 @@ import { financesOf } from '../../engine/frontOffice';
 import { convertContract, convOptions } from '../../engine/cbaFlow';
 import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
+import { rampCap, rampLine } from '../../engine/injuryReturn';
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
 import { AdviserName, alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN, Seg } from '../kit';
@@ -528,6 +529,14 @@ export function RosterScreen({ vm }: { vm: VM }) {
             {cur && p.inj && !dense && (
               <span style={{ fontSize: '11px', color: 'var(--gm-bad)' }}>
                 {p.inj.dtd ? 'Day-to-day (' + gm.injText(p, true) + ')' : 'Out ' + gm.injText(p, true)} · {p.inj.name}
+              </span>
+            )}
+            {cur && !p.inj && p.ramp && (
+              <span
+                style={{ fontSize: dense ? '10.5px' : '11px', fontWeight: dense ? 700 : 500, color: 'var(--color-accent-800)' }}
+                title={rampLine(p)}
+              >
+                {p.ramp.lift ? '⏱ limit lifted' : '⏱ ' + rampCap(p) + ' min'}
               </span>
             )}
           </span>
