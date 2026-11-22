@@ -1,10 +1,12 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-i8ajH_sF.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-HjOD4uwy.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-22
 
 ### Added
+- **The draft combine.** After the season review, the draft class's top 70 prospects are measured: height without and with shoes, wingspan, standing reach, weight, max and standing vertical, lane agility, three-quarter-court sprint and bench press. The numbers come from his body and athleticism, with a small measuring error, and a few prospects from abroad skip it. See them on the draft board (the new Combine view, sortable), in each prospect's card, and on his profile for the rest of his career.
+- **Pre-draft workouts.** From the lottery until the first pick, bring in up to 12 prospects. A workout halves the miss in your read of his ceiling, sharpens your scouts' read of his skills, and gives you a report: shooting drills, the doctors' look (an injury-prone player usually gets flagged) and the interview. A prospect projected far above your first pick usually won't come (his agent wants him seen by the teams at the top), and with no pick, first-round talent won't. Open a prospect's card on the draft board to invite him; God Mode can work out anyone.
 - **Analysts get better with time, like coaches.** Each analyst has a hidden ceiling, and every training camp their skill grows toward it: faster early in their career and while they work for a team (their projections get checked against what happened), slower out of work. Now and then one loses their touch a little. Your read of their skill follows the change, and their reputation rises as they improve. God Mode shows and sets the ceiling on their profile.
 - **Analysts have profiles, like coaches.** On the Analytics screen, click an analyst's name or face (in your department, the analytics people available, or an offer) to open their profile: age, nationality, background, years in analytics, reputation, your read of their skill, personality, contract or asking price, and what their track record shows. The Track record tab lists every graded season (average miss, which way they leaned, and how they did on shooters, defenders, players past 30 and players coming off a big swing) and every graded draft board against your scouts'. God Mode: set their exact skill and biases.
 
