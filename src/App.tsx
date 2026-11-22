@@ -101,7 +101,16 @@ export function GameScreen({
   const viewGame = browsing.view || game;
   const viewVersion = browsing.view ? browseVersion : version;
   const rootRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState(error || 'Saved');
+  // The save status line. Set only when it changes: during a sim the autosave effect below runs after every redraw,
+  // and a state update that changes nothing still queues a re-render, which React counts as a nested update (a long
+  // sim reached its limit of 50: "Maximum update depth exceeded", React error #185, and the sim stopped).
+  const [status, setStatusRaw] = useState(error || 'Saved');
+  const statusNow = useRef(status);
+  const setStatus = useCallback((next: string) => {
+    if (statusNow.current === next) return;
+    statusNow.current = next;
+    setStatusRaw(next);
+  }, []);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSaved = useRef(game.saveVersion);
   const lastSavedView = useRef(game.version);
@@ -142,7 +151,7 @@ export function GameScreen({
       }
       if (force && (lastSaved.current !== game.saveVersion || lastSavedView.current !== game.version)) await save(true);
     },
-    [game, open, writer],
+    [game, open, writer, setStatus],
   );
 
   // Autosave shortly after every change, and immediately when the tab is hidden or closed. While a
@@ -154,7 +163,7 @@ export function GameScreen({
     clearTimeout(timer.current);
     if (game.busy || game.state.simming) return;
     timer.current = setTimeout(() => void save(), 700);
-  }, [version, save, game]);
+  }, [version, save, game, setStatus]);
   useEffect(() => {
     const flush = () => {
       if (document.visibilityState === 'hidden') void save(true).catch(() => {});

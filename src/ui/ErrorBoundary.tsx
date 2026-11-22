@@ -18,8 +18,8 @@ export class ErrorBoundary extends Component<Props, { err: Error | null; key?: s
   static getDerivedStateFromProps(p: Props, s: { err: Error | null; key?: string }) {
     return p.resetKey !== s.key ? { err: null, key: p.resetKey } : null;
   }
-  componentDidCatch(err: Error) {
-    console.error('Screen error:', err);
+  componentDidCatch(err: Error, info?: { componentStack?: string | null }) {
+    console.error('Screen error:', err, info?.componentStack || ''); // which component, for a bug report
   }
   render() {
     const { err } = this.state,
