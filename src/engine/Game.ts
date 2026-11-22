@@ -7147,7 +7147,7 @@ export class Game {
       Object.entries(mnt).forEach(([t, xs]) => xs.forEach(text => lgLog.unshift({ day, type: 'Team', teams: s.teams[+t].abbr, text })));
       confidenceTick(this, s, rosters);
       {
-        const mf = midSeasonFirings(this, { ...s, rosters }, day); // a disastrous start can cost a coach his job (carousel.ts)
+        const mf = midSeasonFirings(this, { ...s, teams, rosters }, day); // include the games he coached today before handing over
         lgLog.unshift(...mf.log);
         midFire = mf.notices;
       }

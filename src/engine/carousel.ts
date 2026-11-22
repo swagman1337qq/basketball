@@ -316,6 +316,7 @@ export function midSeasonFirings(g: Game, s: any, day: number): CarouselOut {
     if (!hot || Math.random() >= (MID_P[T.arch] ?? 0.3)) return;
     const lead = staffOf(g, tid).find(c => c.role === 'lead') || staffOf(g, tid).find(c => c.role === 'asst');
     if (!lead) return;
+    const previousRole = ROLE_LABEL[lead.role!];
     fired[tid] = day;
     const tn = T.region + ' ' + T.name,
       rec = T.w + '–' + T.l;
@@ -339,7 +340,10 @@ export function midSeasonFirings(g: Game, s: any, day: number): CarouselOut {
         tn + ' fired ' + hc.name + ' after a ' + rec + ' start (projected for ' + Math.round(proj) + ' wins).',
         coachWording(
           lead,
-          lead.name + ', the Lead Assistant, takes over for the rest of the season. The owner decides in the summer whether he stays.',
+          lead.name +
+            ', the ' +
+            previousRole +
+            ', takes over for the rest of the season. The owner decides in the summer whether he stays.',
         ),
       ],
     });

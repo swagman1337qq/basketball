@@ -98,3 +98,54 @@ assert.notEqual(now.id, int2.id, 'a new head coach');
 assert.equal(int2.tid, A2, 'the interim stays on the staff');
 assert.equal(int2.role, 'lead', 'as Lead Assistant again');
 console.log('midSeason: ok');
+
+// The daily driver must include the game the outgoing coach coached on firing day.
+{
+  const oldRandom = Math.random;
+  let fired = false;
+  for (let seed = 1; seed <= 12 && !fired; seed++) {
+    const q: any = Game.create(905, [0]);
+    const team = 1,
+      opponent = 2;
+    const day = Array.from({ length: q.db.days.length }, (_, i) => i).find(
+      i => q.dateOf(i).getMonth() === 11 && q.dateOf(i).getDate() === 1,
+    )!;
+    assert(day != null, 'December monthly check exists');
+    q.state.day = day;
+    q.db.days[day] = [[team, opponent]];
+    q.state.teams.forEach((t: any) => Object.assign(t, { w: 20, l: 20 }));
+    Object.assign(q.state.teams[team], { w: 4, l: 21, arch: 'Win-Now Spender' });
+    q.db.preds = { [q.Y]: { outlets: { a: { wins: { [team]: 55 } } } } };
+    const outgoing = headCoachOf(q, team)!;
+    let state = seed;
+    Math.random = () => {
+      state = (Math.imul(state, 1664525) + 1013904223) | 0;
+      return (state >>> 0) / 4294967296;
+    };
+    const patch = q.simDay(q.state, undefined, 0);
+    Math.random = oldRandom;
+    if (q.db.midFired?.[team] == null) continue;
+    fired = true;
+    const record = outgoing.h!.find((r: number[]) => r[0] === q.Y)!;
+    assert.deepEqual(record.slice(4, 6), [patch.teams[team].w, patch.teams[team].l], 'Outgoing coach owns the complete firing-day record');
+    assert.deepEqual([q.db.interimAt[team].w, q.db.interimAt[team].l], record.slice(4, 6), 'Interim starts after that completed game');
+  }
+  Math.random = oldRandom;
+  assert(fired, 'At least one seeded real daily run exercises a firing');
+}
+console.log('midSeason daily integration: ok');
+
+// With no Lead Assistant, the actual Assistant Coach role is named correctly.
+{
+  const q: any = Game.create(906, [0]),
+    team = 1;
+  const lead = staffOf(q, team).find(c => c.role === 'lead')!;
+  lead.role = 'asst';
+  Object.assign(q.state.teams[team], { w: 4, l: 21, arch: 'Win-Now Spender' });
+  q.db.preds = { [q.Y]: { outlets: { a: { wins: { [team]: 55 } } } } };
+  const savedRandom = Math.random;
+  Math.random = () => 0;
+  const change = midSeasonFirings(q, q.state, 50);
+  Math.random = savedRandom;
+  assert.match(change.notices[0].lines[1], /the Assistant Coach, takes over/);
+}
