@@ -13,6 +13,8 @@ import { LoadDraftClass } from '../LoadDraftClass';
 import { scoutReport } from '../../engine/scoutReport';
 import { DraftProspectCard } from './DraftProspectCard';
 import { DraftRoomLayout } from './DraftRoomLayout';
+import { CombineGrid, WorkoutBlock } from './DraftWorkout';
+import { combineOf, ftIn, WO_MAX, woOpen, woUsed, worked } from '../../engine/workouts';
 import './DraftScreen.css';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
@@ -25,14 +27,14 @@ export function DraftScreen({ vm }: { vm: VM }) {
   }, [confirmAutoDraft]);
   const [tk, setTk] = useState(''),
     [view, setView] = useState<'board' | 'mock'>('board'),
-    [stMode, setStMode] = useState<'' | 'trad' | 'adv'>(''),
+    [stMode, setStMode] = useState<'' | 'trad' | 'adv' | 'cmb'>(''),
     stats = !!stMode;
   // College / club stats on the board (2026-10-30): each prospect's latest season he played, traditional or advanced, in place of where he plays and his height.
   const { gm, s } = vm.ctx,
     cls = s.dClass,
     clsIds: number[] = gm.db.cls?.[cls] || [];
   const [expanded, setExpanded] = useState<{ cls: number; id: number } | null>(null);
-  const needAmateur = stats || expanded?.cls === cls;
+  const needAmateur = (stats && stMode !== 'cmb') || expanded?.cls === cls;
   const am = useMemo(() => (needAmateur ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [needAmateur, gm, cls, clsIds.length, s.gv, gm.Y]);
   const last = (id: number) => (am[id] || []).filter((x: any) => x.gp > 0).slice(-1)[0];
   // Your analytics department's own board for the class (analytics.ts): numbers only, ranked by the ceiling they see.
@@ -53,8 +55,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const teamOf = (x: any) => (x.level === 'High school' ? 'High School' : x.team);
   const f1 = (x: number, d = 1) => (x == null || !isFinite(x) ? '—' : x.toFixed(d)),
     pct = (m: number, a: number) => (a ? (100 * m) / a : NaN);
-  // [label, tooltip, value, decimals]: a column sorts by its value (a prospect with none goes last).
-  const TRAD: [string, string, (x: any) => number, number?][] = [
+  // [label, tooltip, value, decimals, format]: a column sorts by its value (a prospect with none goes last).
+  type Col = [string, string, (x: any) => number, number?, ((v: number) => string)?];
+  const TRAD: Col[] = [
     ['PPG', 'Points per game', x => x.disp.pts / x.disp.gp],
     ['RPG', 'Rebounds per game', x => (x.disp.orb + x.disp.drb) / x.disp.gp],
     ['APG', 'Assists per game', x => x.disp.ast / x.disp.gp],
@@ -67,7 +70,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
   ];
   // Advanced stats, a page at a time (‹ ›): every one the game keeps for an amateur season, PER aside (it's with the traditional ones).
   const A = (k: string) => (x: any) => x.adv?.[k];
-  const ADV_PAGES: [string, [string, string, (x: any) => number, number?][]][] = [
+  const ADV_PAGES: [string, Col[]][] = [
     [
       'Scoring',
       [
@@ -117,15 +120,28 @@ export function DraftScreen({ vm }: { vm: VM }) {
     setStSort(cur => (cur && ADV_PAGES[n][1].some(c => c[0] === cur[0]) ? cur : null));
   };
   // Minutes come first in both views (2026-10-30): how big a role the numbers came from.
-  const MPG: [string, string, (x: any) => number, number?] = ['MPG', 'Minutes per game', x => x.mpg];
-  const ST = [MPG, ...(stMode === 'adv' ? ADV : TRAD)],
-    pickMode = (m: 'trad' | 'adv') => {
+  const MPG: Col = ['MPG', 'Minutes per game', x => x.mpg];
+  // The combine (workouts.ts): this class's measurements, once the season review is done.
+  const CMB: Col[] = [
+    ['Height', 'Height in shoes', c => c.shoes, 2, ftIn],
+    ['Wingspan', 'Wingspan', c => c.wing, 2, ftIn],
+    ['Reach', 'Standing reach', c => c.reach, 2, ftIn],
+    ['Weight', 'Weight (lb)', c => c.wt, 0],
+    ['Vert', 'Max vertical (inches)', c => c.maxV, 1],
+    ['Lane', 'Lane agility (seconds; lower is quicker)', c => c.lane, 2],
+    ['Sprint', 'Three-quarter-court sprint (seconds; lower is faster)', c => c.sprint, 2],
+    ['Bench', 'Bench press reps at 185 lb', c => c.bench, 0],
+  ];
+  const hasCmb = clsIds.some(id => Array.isArray(gm.db.P[id]?.cmb));
+  const ST: Col[] = stMode === 'cmb' ? CMB : [MPG, ...(stMode === 'adv' ? ADV : TRAD)],
+    rowOf = (id: number) => (stMode === 'cmb' ? combineOf(gm.db.P[id]) : last(id)),
+    pickMode = (m: 'trad' | 'adv' | 'cmb') => {
       setStSort(null);
       setStMode(cur => (cur === m ? '' : m));
     };
   const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
   const stVal = (id: number, k: string) => {
-    const x = last(id),
+    const x = rowOf(id),
       c = ST.find(t => t[0] === k);
     const v = x && c ? c[2](x) : NaN;
     return v == null || !isFinite(v) ? null : v;
@@ -306,6 +322,11 @@ export function DraftScreen({ vm }: { vm: VM }) {
                     Sim to end of draft
                   </button>
                 </div>
+                {woOpen(s) && cls === gm.Y && !s.spectator && (
+                  <span className="draft-muted" style={{ fontSize: '12px' }} title="Open a prospect's card to bring him in for a workout">
+                    Workouts: {woUsed(s, gm.Y, s.me)} of {WO_MAX}
+                  </span>
+                )}
                 <button type="button" className="btn btn-secondary" onClick={vm.askScouts} disabled={vm.dr.noAdvice}>
                   Ask scouts
                 </button>
@@ -348,6 +369,17 @@ export function DraftScreen({ vm }: { vm: VM }) {
                 >
                   Show advanced stats
                 </button>
+                {hasCmb && (
+                  <button
+                    type="button"
+                    className={stMode === 'cmb' ? 'btn btn-primary' : 'btn btn-secondary'}
+                    onClick={() => pickMode('cmb')}
+                    aria-pressed={stMode === 'cmb'}
+                    title="The draft combine: heights, wingspans, reach and athletic testing for the class's top prospects"
+                  >
+                    Combine
+                  </button>
+                )}
                 <label className="draft-extra-sort">
                   Sort
                   <select
@@ -423,7 +455,8 @@ export function DraftScreen({ vm }: { vm: VM }) {
                   <tbody>
                     {pg.rows.map((p: any) => {
                       const opened = preview?.id === p.id;
-                      const x = last(p.id);
+                      const x = last(p.id),
+                        sx = rowOf(p.id);
                       return (
                         <Fragment key={p.id}>
                           <tr
@@ -461,6 +494,16 @@ export function DraftScreen({ vm }: { vm: VM }) {
                                     {p.name}
                                   </button>{' '}
                                   {sc.tag(p.id)}
+                                  {worked(s, gm.Y, s.me, p.id) && (
+                                    <span
+                                      className="draft-muted"
+                                      title="Worked out for you: open his card for the report"
+                                      style={{ fontSize: '11px' }}
+                                    >
+                                      {' '}
+                                      · worked out
+                                    </span>
+                                  )}
                                   <div className="draft-player-meta">
                                     {p.pos} · {stats && x ? teamOf(x) : p.fromT}
                                     <img
@@ -477,9 +520,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
                               {p.age}
                             </td>
                             {stats ? (
-                              ST.map(([h, , fn, dg]) => (
+                              ST.map(([h, , fn, dg, fmt]) => (
                                 <td key={h} className="draft-number" style={{ fontWeight: stSort?.[0] === h ? 600 : undefined }}>
-                                  {x ? f1(fn(x), dg ?? 1) : '—'}
+                                  {sx ? (fmt ? fmt(fn(sx)) : f1(fn(sx), dg ?? 1)) : '—'}
                                 </td>
                               ))
                             ) : (
@@ -563,7 +606,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
                                     report={report}
                                     season={x}
                                     advanced={stMode === 'adv'}
-                                    values={(stats ? ST : [MPG, ...TRAD]).map(([label, description, fn, dg]) => ({
+                                    values={(stats && stMode !== 'cmb' ? ST : [MPG, ...TRAD]).map(([label, description, fn, dg]) => ({
                                       label,
                                       description,
                                       value: x ? f1(fn(x), dg ?? 1) : '—',
@@ -574,6 +617,28 @@ export function DraftScreen({ vm }: { vm: VM }) {
                                       document.getElementById('draft-name-' + p.id)?.focus({ preventScroll: true });
                                     }}
                                   />
+                                  {(hasCmb || cls === gm.Y) && (
+                                    <div
+                                      style={{
+                                        display: 'grid',
+                                        gap: 8,
+                                        padding: '10px 4px 4px',
+                                        borderTop: '1px solid var(--color-divider)',
+                                        marginTop: 8,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 600, fontSize: '13px' }}>Combine</div>
+                                      {hasCmb ? (
+                                        <CombineGrid p={gm.db.P[p.id]} />
+                                      ) : (
+                                        <div className="draft-muted" style={{ fontSize: '12.5px' }}>
+                                          The combine is held after the season review, before the lottery: the class&rsquo;s top 70 are
+                                          measured.
+                                        </div>
+                                      )}
+                                      <WorkoutBlock vm={vm} p={gm.db.P[p.id]} />
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                             </tr>

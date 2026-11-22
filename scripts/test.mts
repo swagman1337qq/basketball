@@ -24,6 +24,7 @@ const SCRIPTS = [
   'analytics',
   'advisers',
   'keepSmall',
+  'workouts',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

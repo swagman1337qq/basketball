@@ -170,6 +170,7 @@ import {
   teamRead,
   TYPICAL,
 } from './potential';
+import { runCombine, woPot, worked } from './workouts';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, draftValue, pickCut, rosterValue, rotationValue } from './rosterAI';
 import {
@@ -4297,6 +4298,7 @@ export class Game {
   }
   runLottery() {
     if (this.mailWaiting()) return;
+    runCombine(this, this.state); // an older save that reached the lottery before the combine existed (workouts.ts)
     this.setState(s => {
       if (s.unemployed) return null;
       if (s.phase !== 'lottery') return null;
@@ -5885,7 +5887,8 @@ export class Game {
     if (tid == null || tid < 0 || !p) return p?.pot ?? 0;
     if (s.god && this.isUser(s, tid)) return p.tpot ?? p.pot;
     if ((s.rosters[tid] || []).includes(p.id)) return potView(p, { own: true, eye: staffFx(this, s, tid).eye });
-    return teamRead(p, tid, scoutSd(teamBudget(this, s, tid).Scouting, !!s.easy?.scouting && this.isUser(s, tid)));
+    const v = teamRead(p, tid, scoutSd(teamBudget(this, s, tid).Scouting, !!s.easy?.scouting && this.isUser(s, tid)));
+    return s.wo && worked(s, this.Y, tid, p.id) ? woPot(p, v) : v; // a pre-draft workout halves the miss (workouts.ts)
   }
   // A player's worth to a team with strategy st; tid: whose eyes (its read of his potential).
   pVal(p, st, tid?: number) {

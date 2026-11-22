@@ -5,6 +5,7 @@
 import { staffSeason } from './coachCareer';
 import { carousel } from './carousel';
 import { analyticsCost, anSeasonEnd } from './analytics';
+import { runCombine } from './workouts';
 import { hasStaff, notify, staffBudget, staffCost } from './staff';
 import type { Game } from './Game';
 import { fmtMoney } from './capModel';
@@ -710,6 +711,7 @@ export function seasonReview(g: Game) {
       }));
   }
   anSeasonEnd(g, g.state); // your analysts' projections and draft boards graded (analytics.ts)
+  runCombine(g, g.state); // the draft combine: this class's top prospects measured (workouts.ts)
   // Hand every club you were fired from to the AI (unless it was your last one).
   const s = g.state;
   (s.firedFrom || []).forEach(t => {

@@ -62,6 +62,7 @@ import { ensureIntg } from '../engine/intangibles';
 import { DEFAULT_BRIEF, runBriefs } from '../engine/scoutBrief';
 import { kindOf, scoutRead } from '../engine/scoutReport';
 import { liftCeil, potView, refreshPot, scoutSd, setTruePot } from '../engine/potential';
+import { woPot, worked } from '../engine/workouts';
 import { draftedBy, draftedLabel, nowLabel } from '../engine/godMove';
 import { deletePlayer } from '../engine/godPlayer';
 import { cardLib } from '../db/cards';
@@ -310,7 +311,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
   const ownIds = new Set<number>((s.managed || []).flatMap(t => s.rosters[t] || [])),
     mySd = scoutSd(s.budget?.Scouting ?? 4, !!s.easy?.scouting);
   const potOf = (p, id) => {
-    const v = potView(p, { god: !!s.god, own: ownIds.has(id), tid: s.me, sd: mySd });
+    const v0 = potView(p, { god: !!s.god, own: ownIds.has(id), tid: s.me, sd: mySd }),
+      v = !s.god && !ownIds.has(id) && s.wo && worked(s, gm.Y, s.me, id) ? woPot(p, v0) : v0; // a workout: half the miss
     if (s.god || ownIds.has(id) || !p.cls || p.cls <= gm.Y) return v;
     const yo = p.cls - gm.Y,
       scoutF = 1.5 - ((s.budget?.Scouting ?? 4) - 1) / 11;

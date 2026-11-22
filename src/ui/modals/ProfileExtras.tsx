@@ -13,6 +13,8 @@ import { envOf } from '../../engine/environment';
 import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 import { AN_ROLE_LABEL, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
+import { woOpen, worked } from '../../engine/workouts';
+import { CombineGrid, WorkoutBlock } from '../screens/DraftWorkout';
 
 const LB: Record<string, string> = {
   hgt: 'Height',
@@ -103,6 +105,23 @@ export function fiveZones(t: any) {
   ] as [string, number, number][];
 }
 export const LEAGUE_ZONE = [0.69, 0.39, 0.352, 0.388, 0.352]; // the league's FG% by zone in the engine (restricted area, paint non-RA, mid-range, corner 3, above the break 3)
+
+// The draft combine (workouts.ts): his measurements stay on his profile for good, and your workout report while
+// it's that draft's summer (or the invite, from the lottery until the first pick).
+export function CombineView({ vm }: { vm: VM }) {
+  const { gm, s } = vm.ctx,
+    { p } = useP(vm);
+  if (!p || (p.cmb == null && !worked(s, gm.Y, s.me, p.id) && !(p.cls === gm.Y && woOpen(s)))) return null;
+  return (
+    <section>
+      <h4 style={ruleH4}>Draft combine{p.cls ? ' · ' + p.cls : ''}</h4>
+      <CombineGrid p={p} />
+      <div style={{ marginTop: 8 }}>
+        <WorkoutBlock vm={vm} p={p} />
+      </div>
+    </section>
+  );
+}
 
 // Your analytics department's view of him (analytics.ts): numbers only, beside your scouts' (or, for your own
 // players, your coaches') read of his ceiling, with what his contract is worth to them and how he fits your needs.
@@ -251,6 +270,7 @@ export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
       }}
     >
       <AnalyticsView vm={vm} />
+      <CombineView vm={vm} />
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}
