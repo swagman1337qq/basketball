@@ -367,19 +367,87 @@ const ROLE_NAME: Record<string, string> = {
 // Establish generated seasons once, before job/background/rating changes can rewrite them.
 // Persisting the rows also keeps them stable across expansion, rebrands and save/reopen.
 export function preserveCoachCareer(g: Game, s: any, c: Coach) {
-  if (c.past) return;
+  if (c.past || c.pz) return;
   const made = c.made ?? (g.db as any).coachY0 ?? g.Y;
   c.made = made;
   c.careerOvr = coachOvr(c);
   const last = Math.max(c.since - 1, Math.min(made - 1, (c.ret ?? g.Y) - 1));
-  c.past = genJobs(g, s, c, c.since, last);
+  storePast(c, genJobs(g, s, c, c.since, last));
+}
+// ── Kept small (2026-11-22) ─────────────────────────────────────────────────────────
+// The generated seasons are stored as stints (consecutive seasons in the same job), not a row a season:
+// [first season, team, team id (−1: none), level (LV), head coach 1/0, under ('': none), a number a season:
+// wins × 2 + 1 for a title]. Losses and the finish follow (genJobs). Rows that don't read back exactly stay as rows.
+export type Stint = [number, string, number, number, number, string, number[]];
+export function packPast(rows: CoachRow[]): Stint[] | null {
+  const out: Stint[] = [];
+  for (const r of rows) {
+    const lv = LV.indexOf(r.level),
+      hc = r.role === 'Head Coach' ? 1 : r.role === 'Assistant' ? 0 : -1;
+    if (lv < 0 || hc < 0) return null;
+    const v = hc ? (r.w ?? 0) * 2 + (r.ring ? 1 : 0) : r.ring ? 1 : 0,
+      tid = r.tid ?? -1,
+      under = r.under ?? '',
+      last = out[out.length - 1];
+    if (
+      last &&
+      last[0] + last[6].length === r.season &&
+      last[1] === r.team &&
+      last[2] === tid &&
+      last[3] === lv &&
+      last[4] === hc &&
+      last[5] === under
+    )
+      last[6].push(v);
+    else out.push([r.season, r.team, tid, lv, hc, under, [v]]);
+  }
+  return JSON.stringify(unpackPast(out)) === JSON.stringify(rows) ? out : null;
+}
+export function unpackPast(z: Stint[]): CoachRow[] {
+  const out: CoachRow[] = [];
+  z.forEach(([from, team, tid, lv, hc, under, res]) =>
+    res.forEach((v, i) => {
+      const row: CoachRow = {
+        season: from + i,
+        team,
+        tid: tid >= 0 ? tid : undefined,
+        level: LV[lv],
+        role: hc ? 'Head Coach' : 'Assistant',
+        under: under || undefined,
+      };
+      if (hc) {
+        row.w = v >> 1;
+        row.l = GAMES[lv] - row.w;
+        row.ring = !!(v & 1);
+        row.fin = row.ring ? 'Won the title' : undefined;
+      } else if (lv === 4) row.ring = !!(v & 1);
+      out.push(row);
+    }),
+  );
+  return out;
+}
+export function storePast(c: Coach, rows: CoachRow[]) {
+  const z = packPast(rows);
+  if (z) {
+    c.pz = z;
+    delete c.past;
+  } else c.past = rows;
+}
+const PAST = new WeakMap<Stint[], CoachRow[]>();
+// His generated seasons, read back (cached).
+export function pastOf(c: Coach): CoachRow[] {
+  if (c.past) return c.past;
+  if (!c.pz) return [];
+  let rows = PAST.get(c.pz);
+  if (!rows) PAST.set(c.pz, (rows = unpackPast(c.pz)));
+  return rows;
 }
 // Every season he's coached, oldest first: generated before he came into view, his jobs here after.
 export function coachRows(g: Game, s: any, c: Coach): CoachRow[] {
   preserveCoachCareer(g, s, c);
   const made = c.made ?? (g.db as any).coachY0 ?? g.Y,
     stored = new Map<number, number[]>((c.h || []).map(r => [r[0], r]));
-  const rows: CoachRow[] = c.past!.map(r => ({ ...r }));
+  const rows: CoachRow[] = pastOf(c).map(r => ({ ...r }));
   const gm = s.gm?.name || 'you';
   const lastGen = rows[rows.length - 1],
     everHere = (c.h || []).length > 0;

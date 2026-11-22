@@ -27,7 +27,7 @@ import { EUROLEAGUE } from '../data/leagues';
 import { firstSeason } from './contracts';
 import { addNotice } from './preFA';
 import { fmtMoney as money } from './capModel';
-import { preserveCoachCareer, type CoachRow } from './coachCareer';
+import { preserveCoachCareer, storePast, type CoachRow, type Stint } from './coachCareer';
 import { fillAiStaffs, payF, supportF } from './carousel';
 
 export type CoachRole = 'lead' | 'asst' | 'dev' | 'hc';
@@ -82,7 +82,8 @@ export interface Coach {
   amt: number; // salary, $M a season
   exp: number; // last season of his contract
   next?: { start: number; amt: number; exp: number }; // signed extension; current terms stay in force until start
-  past?: CoachRow[]; // immutable generated coaching seasons before he entered this league
+  past?: CoachRow[]; // immutable generated coaching seasons before he entered this league (older form; read with pastOf)
+  pz?: Stint[]; // the same, kept as stints (coachCareer.ts storePast)
   careerOvr?: number; // ability when his generated career was established
   read: number; // your staff's read of his ratings, 0 (just met) to 1 (fully known)
   raise?: { ask: number; season: number }; // asked you for a raise this season
@@ -639,6 +640,7 @@ export function ensureStaff(g: Game) {
   }
   Object.values(coachDb(g)).forEach(c => {
     preserveCoachCareer(g, s, c);
+    if (c.past) storePast(c, c.past); // older saves: the rows become stints
     activateExtension(c, g.Y);
   });
   bump(g);
@@ -685,6 +687,25 @@ export function staffMonth(g: Game, s: any) {
     }
   });
   if (n) bump(g);
+}
+// Keeping saves small (2026-11-22): a coach retired five seasons or more who never worked in this league (no
+// seasons here, no Coach of the Year, not a former player here) can't be reached from anything in the game, so he's
+// let go. Those who did work here stay, with their careers stored as stints (coachCareer.ts storePast); what only
+// mattered while they worked (raise requests, extensions, a soured relationship) goes.
+export const FORGET_AFTER = 5;
+export function forgetRetired(g: Game) {
+  const C = coachDb(g);
+  (Object.values(C) as Coach[]).forEach(c => {
+    if (c.ret == null || g.Y - c.ret < FORGET_AFTER) return;
+    if (!(c.h || []).length && !(c.coy || []).length && c.pid == null) {
+      delete C[c.id];
+      return;
+    }
+    delete c.raise;
+    delete c.next;
+    delete c.sour;
+    delete (c as any).firedFrom;
+  });
 }
 // Training camp: a year older and wiser (toward his ceiling, faster on a winning staff), now and then burnout,
 // retirements, the pool topped up, reputation updated, raise requests. Returns notices for your staff.
@@ -752,6 +773,7 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
   fillAiStaffs(g, s); // AI staffs whose coaches retired hire again (carousel.ts)
   // Retired people remain available to career trees, awards and profile links.
   Object.values(C).forEach(c => preserveCoachCareer(g, s, c));
+  forgetRetired(g);
   bump(g);
   return { notices };
 }

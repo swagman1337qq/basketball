@@ -17,7 +17,7 @@ import type { Game } from './Game';
 import { firstSeason } from './contracts';
 import { fmtMoney as money } from './capModel';
 import { coachAsk, coachDb, coachWording, mkCoach, repOf, ROLE_LABEL, staffOf, type Coach, type CoachRole } from './staff';
-import { headCoachAsk, preserveCoachCareer } from './coachCareer';
+import { headCoachAsk, pastOf, preserveCoachCareer } from './coachCareer';
 
 const bump = (g: Game) => ((g.db as any).staffRev = ((g.db as any).staffRev || 0) + 1);
 
@@ -87,7 +87,7 @@ const isAi = (g: Game, s: any, tid: number) => !g.isUser(s, tid);
 const aiTeams = (g: Game, s: any) => (s.teams || []).map((t: any) => t.tid).filter((t: number) => isAi(g, s, t));
 const free = (g: Game) => (Object.values(coachDb(g)) as Coach[]).filter(c => c.tid == null && !c.ret);
 const wasHc = (c: Coach) =>
-  (c.h || []).some(r => r[2] === 3) || (c.past || []).some(r => r.role === 'Head Coach' && (r.level === 'NBA' || r.level === 'CCP league'));
+  (c.h || []).some(r => r[2] === 3) || pastOf(c).some(r => r.role === 'Head Coach' && (r.level === 'NBA' || r.level === 'CCP league'));
 const bigName = (c: Coach) => (c.play.k === 'league' || c.play.k === 'pro') && (c.play.tier ?? 1) >= 2;
 function pickRoute(w: OwnerWay): Route {
   const es = Object.entries(w.routes) as [Route, number][],

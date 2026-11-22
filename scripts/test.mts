@@ -22,6 +22,7 @@ const SCRIPTS = [
   'coachCarousel',
   'analytics',
   'advisers',
+  'keepSmall',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',

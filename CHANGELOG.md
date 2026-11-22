@@ -9,6 +9,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ### Changed
 - **Lineup advice and free-agent picks come from your real staff.** On the Roster, "Ask your staff" now gets advice from your Lead Assistant (who should start and who should come off the bench), your Head of Player Development (rest, young players' minutes, injuries) and your Head of Analytics (what the numbers say), instead of three made-up assistants. How well the lineup advice reads your players now depends on your Lead Assistant's eye for talent, not the old Coaching budget. In free agency, "Ask your staff" gives your Lead Assistant's picks, each with your Head of Analytics' price check (a bargain, about right, or overpriced by the numbers). Click any of their names to open their profile. If a job is empty, the next person on your staff speaks instead.
+- **Smaller saves.** Coaches' careers before they joined your league are stored far more compactly (about an eighth of the space, so a new league's save is about 10% smaller), with nothing lost: every career reads exactly as before. Coaches and analysts who retired at least five seasons ago without ever working in your league (no seasons here, no awards, never a player here) are now cleared from the save, since nothing in the game leads to them any more. Everyone with a history in your league stays.
 
 ## 2026-11-20
 

@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Game } from '../src/engine/Game';
 import * as ST from '../src/engine/staff';
-import { coachRows, coachFromPlayer } from '../src/engine/coachCareer';
+import { coachRows, coachFromPlayer, pastOf } from '../src/engine/coachCareer';
 import { coachBioDraft, coachPlayRows, saveCoachBio, randomCoachName, randomCoachCountry } from '../src/ui/coachEditing';
 import { coachFaceData } from '../src/ui/CoachFace';
 import { WOMENS_LEAGUE } from '../src/engine/coachCareer';
@@ -91,16 +91,19 @@ assert.equal(ST.staffCost(f, fs, 0), +((ST.SUPPORT * f.CAP) / 165 + pay).toFixed
 // Older coaches acquire a persistent generated career before an unseen profile can be rewritten.
 const vet = ST.staffOf(g, 0).find(x => x.role === 'asst')!;
 delete vet.past;
+delete vet.pz;
 vet.bg = 'NBA assistant';
 vet.since = g.Y - 15;
 vet.made = g.Y;
 const expected = JSON.parse(JSON.stringify(coachRows(g, s, vet).filter(r => r.season < g.Y)));
 delete vet.past;
+delete vet.pz;
 assert.equal(ST.fireCoach(g, s, 0, vet.id), '');
 assert.deepEqual(JSON.parse(JSON.stringify(coachRows(g, s, vet).filter(r => r.season < g.Y))), expected);
 const persisted = JSON.parse(JSON.stringify(vet));
 const careerReopened = Game.load(JSON.parse(JSON.stringify(g.toSave())));
-assert.deepEqual(careerReopened.db.coaches[vet.id].past, JSON.parse(JSON.stringify(vet.past)));
+assert.ok(vet.pz && !vet.past, 'kept as stints');
+assert.deepEqual(careerReopened.db.coaches[vet.id].pz, JSON.parse(JSON.stringify(vet.pz)));
 g.db.coaches[vet.id] = persisted;
 ST.godEditCoach(g, vet.id, { off: 99, def: 99, game: 99 });
 assert.deepEqual(JSON.parse(JSON.stringify(coachRows(g, s, persisted).filter(r => r.season < g.Y))), expected);
@@ -159,7 +162,7 @@ assert.equal(editedCoach.first, 'Morgan');
 assert.equal(editedCoach.last, 'Ellis');
 assert.deepEqual({ tid: editedCoach.tid, role: editedCoach.role, amt: editedCoach.amt, exp: editedCoach.exp }, jobBefore);
 assert.deepEqual(
-  editedCoach.past,
+  pastOf(editedCoach),
   oldCoaching.filter(r => r.season < editGame.Y),
   'Existing coaching history is preserved',
 );
@@ -218,7 +221,7 @@ assert(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach),
 assert.equal(JSON.stringify(jobCoach), jobBeforeDenied);
 jobGame.setState({ god: true });
 const priorHead = Object.values(jobGame.db.coaches).find(x => x.tid === 1 && x.role === 'hc')!;
-const jobPast = structuredClone(jobCoach.past);
+const jobPast = structuredClone(jobCoach.pz);
 const jobDeal = {
   ...coachBioDraft(jobGame, jobCoach),
   tid: 1,
@@ -234,7 +237,7 @@ assert.equal(priorHead.role, 'asst', 'The occupied head coach job is replaced wi
 assert.equal(jobCoach.amt, 9.75);
 assert.equal(jobCoach.exp, jobGame.Y + 5);
 assert.deepEqual(jobCoach.next, jobDeal.next);
-assert.deepEqual(jobCoach.past, jobPast);
+assert.deepEqual(jobCoach.pz, jobPast);
 assert(!(jobGame.db as any).coachDead?.[0]?.length, 'God moves do not create a firing payout');
 // Own-team head coach assignments remain after toggling God Mode off and reopening.
 assert.equal(saveCoachBio(jobGame, jobCoach.id, { ...coachBioDraft(jobGame, jobCoach), tid: 0, role: 'hc' }), '');

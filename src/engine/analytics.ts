@@ -375,8 +375,18 @@ export function anYear(g: Game, s: any): any[] {
     a.rep = anRepOf(g, a);
   });
   for (let i = freeAnalysts(g).length; i < AN_POOL; i++) mkAnalyst(g, { age: 24 + Math.floor(Math.random() * 18) });
+  forgetAnalysts(g);
   bump(g);
   return notices;
+}
+// Keeping saves small (2026-11-22): someone who left analytics five seasons ago or more without a track record with you
+// (no graded season or draft board) is let go from the save; anyone with a record stays.
+export function forgetAnalysts(g: Game) {
+  const A = anDb(g);
+  (Object.values(A) as Analyst[]).forEach(a => {
+    if (a.ret == null || g.Y - a.ret < 5 || (a.rec || []).length || (a.drec || []).length) return;
+    delete A[a.id];
+  });
 }
 export function anExpiring(g: Game, s: any): any[] {
   const out: any[] = [];
