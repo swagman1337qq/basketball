@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-DFuCZzf5.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-4Xm7_BgA.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-22
+
+### Added
+- **Analysts have profiles, like coaches.** On the Analytics screen, click an analyst's name or face (in your department, the analytics people available, or an offer) to open their profile: age, nationality, background, years in analytics, reputation, your read of their skill, personality, contract or asking price, and what their track record shows. The Track record tab lists every graded season (average miss, which way they leaned, and how they did on shooters, defenders, players past 30 and players coming off a big swing) and every graded draft board against your scouts'. God Mode: set their exact skill and biases.
 
 ## 2026-11-20
 
