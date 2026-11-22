@@ -1,5 +1,7 @@
 import { Game } from '../engine/Game';
 import { yieldToBrowser } from '../engine/cooperative';
+import { copyBrowseDb } from './simulationBrowseCopy';
+import { BrowseCopyWarmup, type BrowseIdleScheduler } from './simulationBrowseIdle';
 
 // Cursor state belongs to the reader, never to the in-flight simulation.
 const VIEW_KEYS = new Set([
@@ -48,47 +50,25 @@ export const BROWSE_SCREENS = new Set([
   'awards',
 ]);
 
-// Completed box bodies are append-only during regular-season simulation. Own the
-// index, and reuse those large immutable bodies instead of copying a season's PBP.
-async function copyDb(db: any, pause = yieldToBrowser, stopped = () => false): Promise<any> {
-  const result: any = {};
-  let started = performance.now();
-  for (const [key, value] of Object.entries(db)) {
-    if (stopped()) return null;
-    if (key === 'boxes') result[key] = { ...(value as any) };
-    else if (key === 'P' || key === 'rapm') {
-      const entries = Object.entries(value as any);
-      const out: any = (result[key] = {});
-      for (let i = 0; i < entries.length; i += 12) {
-        if (stopped()) return null;
-        Object.assign(out, structuredClone(Object.fromEntries(entries.slice(i, i + 12))));
-        if (performance.now() - started >= 8) {
-          await pause();
-          started = performance.now();
-        }
-      }
-    } else result[key] = structuredClone(value);
-    if (performance.now() - started >= 8) {
-      await pause();
-      started = performance.now();
-    }
-  }
-  return result;
-}
-
 export class SimulationBrowse {
   view: Game | null = null;
   revision = 0;
+  private runVersion = 0;
   private listeners = new Set<() => void>();
   private changed: Record<string, any> = {};
   private connected = false;
+  private previous?: { source: object; db: any };
+  private warmed?: { source: object; revision: number };
+  private warmup: BrowseCopyWarmup;
   private disposeView: (view: Game) => void;
   constructor(
     readonly source: Game,
     disposeView: (view: Game) => void = () => {},
     private pause = yieldToBrowser,
+    idle?: BrowseIdleScheduler,
   ) {
     this.disposeView = disposeView;
+    this.warmup = new BrowseCopyWarmup(idle);
   }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -97,9 +77,37 @@ export class SimulationBrowse {
     };
   };
   getVersion = () => this.revision;
+  // React must not repeatedly retry a frozen screen against a changing live
+  // store snapshot. The completed source version becomes visible at run end.
+  getLiveVersion = () => (this.source.busy && this.view ? this.runVersion : this.source.getVersion());
   private emit() {
     this.revision++;
     this.listeners.forEach(fn => fn());
+  }
+  private warm() {
+    const source = this.source.db,
+      revision = this.source.statsVersion;
+    if (!this.connected || this.source.busy || this.source.dayInProgress || this.source.state.phase !== 'regular') {
+      this.warmup.stop();
+      return;
+    }
+    if (this.warmed && this.warmed.source === source && this.warmed.revision === revision) return;
+    const previous = this.previous && this.previous.source === source ? this.previous.db : undefined;
+    this.warmup.start(
+      source,
+      revision,
+      previous,
+      () =>
+        this.connected &&
+        !this.source.busy &&
+        !this.source.dayInProgress &&
+        this.source.db === source &&
+        this.source.statsVersion === revision,
+      db => {
+        this.previous = { source, db };
+        this.warmed = { source, revision };
+      },
+    );
   }
   private reader(db: any, state: any) {
     const view = new Game();
@@ -130,13 +138,29 @@ export class SimulationBrowse {
     this.connected = true;
     const prepare = async (stopped: () => boolean) => {
       try {
-        const db = await copyDb(this.source.db, this.pause, () => stopped() || !this.connected);
-        if (!db || !this.connected || !this.view) return;
+        const source = this.source.db,
+          revision = this.source.statsVersion;
+        const previous = this.previous && this.previous.source === source ? this.previous.db : undefined;
+        const db = await copyBrowseDb(
+          source,
+          previous,
+          this.pause,
+          () => stopped() || !this.connected || this.source.db !== source || this.source.statsVersion !== revision,
+        );
+        if (!db) {
+          if (!stopped()) throw new Error('The browsing source changed during preparation.');
+          return;
+        }
+        if (!this.connected || !this.view) return;
+        this.previous = { source, db };
+        this.warmed = { source, revision };
         const old = this.view;
         this.view = this.reader(db, old.state);
         this.disposeView(old);
         this.emit();
       } catch {
+        this.previous = undefined;
+        this.warmed = undefined;
         if (this.view) this.disposeView(this.view);
         this.view = null;
         this.changed = {};
@@ -146,6 +170,8 @@ export class SimulationBrowse {
     this.source.prepareSimulation = prepare;
     const unsubscribe = this.source.subscribeSimulation(() => {
       if (this.source.busy) {
+        this.warmup.stop();
+        this.runVersion = this.source.getVersion();
         this.changed = {};
         // While preparation yields the live database is stable: sim() awaits it.
         // Navigation is already available, and editing remains capture-blocked.
@@ -171,14 +197,21 @@ export class SimulationBrowse {
         // Commit only the reader's cursor after the entire run has finished.
         if (Object.keys(patch).length) this.source.setState(patch);
         this.emit();
+        this.warm();
       }
     });
+    const unsubscribeData = this.source.subscribe(() => this.warm());
+    this.warm();
     return () => {
       this.connected = false;
+      this.warmup.stop();
       unsubscribe();
+      unsubscribeData();
       if (this.source.prepareSimulation === prepare) this.source.prepareSimulation = undefined;
       if (this.view) this.disposeView(this.view);
       this.view = null;
+      this.previous = undefined;
+      this.warmed = undefined;
     };
   }
 }

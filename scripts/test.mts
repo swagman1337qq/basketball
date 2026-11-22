@@ -13,6 +13,8 @@ const SCRIPTS = [
   'responsiveness',
   'simulationYield',
   'simulationBrowse',
+  'simulationBrowseReuse',
+  'simulationBrowseIdle',
   'playerPersistence',
   'playerSaveWorker',
   'profileStatsWorker',

@@ -106,7 +106,8 @@ try {
       beforePlayers = hash(game.db.P),
       pid = game.state.rosters[0][0],
       bid = Object.keys(game.db.boxes)[0],
-      beforeDay = game.state.day;
+      beforeDay = game.state.day,
+      beforeVersion = game.getVersion();
     let preparationPauses = 0,
       dayPauses = 0,
       draws = 0,
@@ -162,6 +163,7 @@ try {
           try {
             if (browsing && game.dayInProgress && dayPauses++ === 0) {
               const view = reader.view;
+              assert.equal(reader.getLiveVersion(), beforeVersion, 'The frozen UI has a stable external-store snapshot');
               stale = view;
               assert.notEqual(view.db, game.db);
               assert.notEqual(view.db.P[pid], game.db.P[pid]);
@@ -207,6 +209,7 @@ try {
     await game.sim(2);
     if (schedulingError) throw schedulingError;
     assert.equal(game.busy, false);
+    assert.equal(reader.getLiveVersion(), game.getVersion(), 'The live UI refreshes to the completed run');
     assert.equal(reader.view, null);
     if (browsing) {
       assert(preparationPauses > 0 && dayPauses > 0);

@@ -94,8 +94,8 @@ export function GameScreen({
   onSwitch: (id: string) => void;
 }) {
   const { game } = open;
-  const version = useSyncExternalStore(game.subscribe, game.getVersion);
   const browsing = useMemo(() => new SimulationBrowse(game, disposeProfileStats), [game]);
+  const version = useSyncExternalStore(game.subscribe, browsing.getLiveVersion);
   useLayoutEffect(() => browsing.connect(), [browsing]);
   const browseVersion = useSyncExternalStore(browsing.subscribe, browsing.getVersion);
   const viewGame = browsing.view || game;
