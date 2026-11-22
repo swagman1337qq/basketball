@@ -171,6 +171,7 @@ import {
   TYPICAL,
 } from './potential';
 import { runCombine, woPot, worked } from './workouts';
+import { SL_DAY, summerLeague } from './summerLeague';
 import { envOf, envWhy, roleLead, ROLE_NOUN, roleReps, teamBudget } from './environment';
 import { devMinutes, draftValue, pickCut, rosterValue, rotationValue } from './rosterAI';
 import {
@@ -4584,6 +4585,7 @@ export class Game {
   }
   advanceFA(days) {
     if (this.mailWaiting()) return;
+    const slBefore = this.faDayOf();
     this.setState(s => {
       if (s.phase !== 'fa' || (s.offerSheets || []).length || (s.agentCalls || []).length) return null;
       const fd0 = this.faDayOf(s),
@@ -4763,6 +4765,18 @@ export class Game {
       };
     });
     offseasonMandates(this); // the owner's payroll order follows your payroll through the summer
+    if (this.state.phase === 'fa' && slBefore < SL_DAY && this.faDayOf() >= SL_DAY) this.runSummerLeague();
+  }
+  // Summer League (summerLeague.ts): mid-July, once a summer. Rosters, games, lines, standouts' two-way deals.
+  runSummerLeague() {
+    const s = this.state;
+    if (s.phase !== 'fa' || s.sl?.y === this.Y) return;
+    const r = summerLeague(this, s);
+    this.setState(st => {
+      let notices = st.notices;
+      r.notices.forEach(n => (notices = addNotice({ notices }, n)));
+      return { ...r.box, notices, intel: r.intel, sl: r.sl, lgLog: [...r.lgLog.map(x => ({ ...x, day: st.day })), ...(st.lgLog || [])] };
+    });
   }
   startPreseason() {
     // Training camp: play out what's left of free agency first (stops if one of your restricted

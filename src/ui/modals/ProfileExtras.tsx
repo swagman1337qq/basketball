@@ -14,6 +14,7 @@ import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
 import { AN_ROLE_LABEL, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
 import { woOpen, worked } from '../../engine/workouts';
+import { slGmSc, type SlLine } from '../../engine/summerLeague';
 import { CombineGrid, WorkoutBlock } from '../screens/DraftWorkout';
 
 const LB: Record<string, string> = {
@@ -119,6 +120,48 @@ export function CombineView({ vm }: { vm: VM }) {
       <div style={{ marginTop: 8 }}>
         <WorkoutBlock vm={vm} p={p} />
       </div>
+    </section>
+  );
+}
+
+// His Summer League lines (summerLeague.ts), the last three summers.
+export function SummerLeagueView({ vm }: { vm: VM }) {
+  const { s } = vm.ctx,
+    { p } = useP(vm);
+  const ls: SlLine[] = p?.sl || [];
+  if (!ls.length) return null;
+  const f1 = (v: number) => v.toFixed(1);
+  return (
+    <section>
+      <h4 style={ruleH4}>Summer League</h4>
+      <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+        <thead>
+          <tr>
+            {['Summer', 'Team', 'GP', 'PTS', 'REB', 'AST', 'FG%', 'GmSc'].map((h, i) => (
+              <th key={h} style={th(i ? 'right' : 'left')}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ls
+            .slice()
+            .reverse()
+            .map(L => (
+              <tr key={L.y} style={{ borderTop: '1px solid var(--color-divider)' }}>
+                <td style={td()}>{L.y}</td>
+                <td style={td('right')}>{s.teams[L.tid]?.abbr}</td>
+                <td style={td('right')}>{L.gp}</td>
+                <td style={td('right')}>{f1(L.pts / L.gp)}</td>
+                <td style={td('right')}>{f1((L.orb + L.drb) / L.gp)}</td>
+                <td style={td('right')}>{f1(L.ast / L.gp)}</td>
+                <td style={td('right')}>{L.fga ? Math.round((100 * L.fgm) / L.fga) + '%' : '—'}</td>
+                <td style={td('right')}>{f1(slGmSc(L))}</td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -271,6 +314,7 @@ export function OverviewExtras({ vm, stack }: { vm: VM; stack?: boolean }) {
     >
       <AnalyticsView vm={vm} />
       <CombineView vm={vm} />
+      <SummerLeagueView vm={vm} />
       <section>
         <h4 style={ruleH4}>Morale & form</h4>
         {mood ? <Row k="Morale" v={mood.hap + ' · ' + mood.hapLabel} c={mood.hapColor} /> : <Row k="Mood" v={p.mood || 'Neutral'} />}

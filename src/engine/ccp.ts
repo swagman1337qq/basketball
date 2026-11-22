@@ -226,11 +226,17 @@ function simTeamOf(g: Game, s: any, t: CcpTeam) {
       .filter(id => !P[id].inj)
       .sort((a, b) => P[b].ovr - P[a].ovr)
       .slice(0, 12);
+  return simSide(g, t.id, t.city + ' ' + t.name, t.abbr, ids);
+}
+// A side for ccpQuickGame (or the full engine) from a list of players, best first: minutes by place. Also
+// used by Summer League (summerLeague.ts).
+export function simSide(g: Game, tid: number, name: string, abbr: string, ids: number[]) {
+  const P = g.db.P;
   const ROT = [34, 33, 32, 30, 28, 24, 20, 17, 14, 6, 2, 0];
   return {
-    tid: t.id,
-    name: t.city + ' ' + t.name,
-    abbr: t.abbr,
+    tid,
+    name,
+    abbr,
     rec: '',
     players: ids.map((id, i) => {
       const p = P[id];

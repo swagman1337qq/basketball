@@ -13,6 +13,7 @@ import { exceptionsOf, nums, rosterMax, seasonMax, stdIds, teamSalary, TWO_WAY_M
 import { pendingQOs } from '../../engine/cbaFlow';
 import { fmtMoney as fmtM } from '../../engine/capModel';
 import { faAdvice, type FaAdvice } from '../../engine/assistants';
+import { SummerLeaguePanel } from './SummerLeaguePanel';
 
 // "Minneapolis Marauders signed Emmitt Fountain · $4.03M × 2 yrs through 2029 (bi-annual exception)" → "signed Emmitt
 // Fountain · $4.03M × 2 yrs" (the team's abbreviation goes before it; the full line is the tooltip)
@@ -401,6 +402,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
     <>
       <FATracker vm={vm} />
       <CapBar gm={vm.ctx.gm} s={vm.ctx.s} tid={vm.ctx.s.me} />
+      <SummerLeaguePanel vm={vm} />
       {(vm.ctx.s.offerSheets || []).length > 0 && (
         <div
           style={{
@@ -905,6 +907,7 @@ function FaDense(props: any) {
     <>
       <FATracker vm={vm} />
       <CapBar gm={gm} s={s} tid={s.me} />
+      <SummerLeaguePanel vm={vm} />
       <section
         aria-label="Your money"
         style={{
