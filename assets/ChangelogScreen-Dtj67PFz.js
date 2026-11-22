@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-BkDPPliK.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-EGleSFB7.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-22
 
 ### Fixed
+- **Dashboard news stops the simulation and reaches your Mailbox.** Ownership changes, player concerns, payroll orders and other dashboard inbox updates now arrive as mail. Read and answer them there, with the same choices as the dashboard. A multi-day sim finishes the day in progress, then stops for the new message; reading it lets you resume without delivering it again. Existing saves bring pending dashboard items into the Mailbox too.
 - **One more cause of long sims stopping mid-season removed.** The save-status line was refreshed after every simulated update even when it hadn't changed, and enough of those in a row tripped React's safety limit ("Maximum update depth exceeded", error #185). It now changes only when the status does. (Alongside "Long simulations keep the screen stable" below, which removes the render loop itself.)
 
 ### Added
