@@ -152,6 +152,13 @@ export function Link({
   );
 }
 
+// A staff member's name in advice (assistants.ts Adviser): opens their coach or analyst profile.
+export function AdviserName({ gm, a }: { gm: { setState: (o: any) => void }; a: { name: string; cid?: number; aid?: number } }) {
+  if (a.cid != null) return <Link onClick={() => gm.setState({ coachPid: a.cid })}>{a.name}</Link>;
+  if (a.aid != null) return <Link onClick={() => gm.setState({ anPid: a.aid, anTab: 'ov' })}>{a.name}</Link>;
+  return <>{a.name}</>;
+}
+
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
     <div style={{ borderTop: '1px solid var(--color-text)', paddingTop: '8px' }}>

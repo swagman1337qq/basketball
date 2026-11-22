@@ -1,11 +1,13 @@
 // The assistant coaches' lineup advice: who should start (best five with a sensible mix
 // of guards, wings and bigs), and whose minutes should go up or down (fatigue, form,
-// age, development, injuries). Better-funded staffs read form more accurately.
+// age, development, injuries), from your real staff: see advisers().
 import type { Game } from './Game';
 import { mulberry32 } from './rng';
 import { capRoom, nums, seasonMax, signingMethods, stdIds, TWO_WAY_MAX, twoWayIds, yosOf } from './cba';
 import { teamRating } from './ratings';
 import { rotationValue } from './rosterAI';
+import { ROLE_LABEL, staffOf, type Coach, type CoachRole } from './staff';
+import { AN_ROLE_LABEL, contractValue, deptOf, deptView } from './analytics';
 
 export interface AdviceLine {
   pid: number;
@@ -14,66 +16,49 @@ export interface AdviceLine {
   by: string;
 }
 export interface Advice {
-  staff: { name: string; role: string }[];
+  staff: Adviser[];
   lines: AdviceLine[];
   order: number[];
   minutes: Record<number, number>;
   summary: string;
 }
 
-const FIRST = [
-  'Dale',
-  'Ray',
-  'Marcus',
-  'Tom',
-  'Luis',
-  'Kenji',
-  'Andre',
-  'Greg',
-  'Sam',
-  'Darnell',
-  'Pete',
-  'Nate',
-  'Victor',
-  'Hal',
-  'Omar',
-  'Chris',
-];
-const LAST = [
-  'Whitcombe',
-  'Okafor',
-  'Brandt',
-  'Ferris',
-  'Molina',
-  'Tanaka',
-  'Pruitt',
-  'Sorensen',
-  'Haddad',
-  'Keller',
-  'Duval',
-  'Ambrose',
-  'Lindqvist',
-  'Rourke',
-  'Castellano',
-  'Mbeki',
-];
-export function staffOf(tid: number) {
-  const r = mulberry32(tid * 7717 + 3),
-    pick = (a: string[]) => a[Math.floor(r() * a.length)];
-  return [
-    { name: pick(FIRST) + ' ' + pick(LAST), role: 'Associate head coach' },
-    { name: pick(FIRST) + ' ' + pick(LAST), role: 'Player development' },
-    { name: pick(FIRST) + ' ' + pick(LAST), role: 'Analytics & advance scouting' },
-  ];
+// Who gives the advice: your real staff (staff.ts) and analytics department (analytics.ts). The Lead Assistant picks the
+// lineup (his eye for talent sets how well he reads who's playing well), the Head of Player Development speaks for
+// rest, development and injuries, and the Head of Analytics for what the numbers say. A missing role falls back to
+// the next person on the staff.
+export interface Adviser {
+  name: string;
+  role: string;
+  cid?: number; // a coach (CoachProfile)
+  aid?: number; // an analyst (AnalystProfile)
+}
+export function advisers(g: Game, s: any, tid: number) {
+  const st = staffOf(g, tid),
+    find = (...roles: CoachRole[]) => roles.map(r => st.find(c => c.role === r)).find(Boolean),
+    lead = find('lead', 'hc', 'asst'),
+    dev = st.find(c => c.role === 'dev') || st.find(c => c.role === 'asst' && c !== lead) || lead,
+    dept = deptOf(g, tid),
+    an = dept.find(a => a.role === 'head') || dept[0];
+  const ofC = (c: Coach | undefined): Adviser =>
+    c ? { name: c.name, role: ROLE_LABEL[c.role!], cid: c.id } : { name: 'The coaching staff', role: 'Staff' };
+  const L = ofC(lead),
+    D = ofC(dev),
+    A: Adviser | null = an ? { name: an.name, role: AN_ROLE_LABEL[an.role || 'analyst'], aid: an.id } : null;
+  // Lineup accuracy from the Lead Assistant's eye for talent: an average eye (50) misjudges about as much as the
+  // old typical Coaching budget did, a great one (80+) not at all.
+  const eye = lead ? lead.r.eye : 30;
+  return { lead: L, dev: D, ana: A, noise: Math.max(0, (80 - eye) * 0.048) };
 }
 
 export function lineupAdvice(g: Game, s: any, tid: number): Advice {
   const P = g.db.P,
-    club = g.clubOf(s, tid),
-    coach = club?.budget?.Coaching ?? 18,
-    noise = Math.max(0, (26 - coach) * 0.18);
-  const staff = staffOf(tid),
-    [assoc, dev, ana] = staff;
+    who = advisers(g, s, tid),
+    noise = who.noise,
+    assoc = who.lead,
+    dev = who.dev,
+    ana = who.ana || who.lead;
+  const staff: Adviser[] = [assoc, ...(dev.name !== assoc.name ? [dev] : []), ...(who.ana ? [who.ana] : [])];
   const r = mulberry32(tid * 131 + (s.day || 0) * 7 + g.Y);
   const ids: number[] = s.rosters[tid] || [];
   const out = (id: number) => {
@@ -242,7 +227,7 @@ export function applyAdvice(g: Game, tid: number, a: Advice) {
   }));
 }
 
-// ── The assistant GM's free-agent picks ───────────────────────────────────────────────
+// ── Your staff's free-agent picks (the Lead Assistant, with the Head of Analytics' price check) ──
 // Who to sign for the season: players we can actually get (a signing method that fits his
 // asking price, with the money already spent on earlier picks taken out), ranked by what the
 // team needs: a contender wants help now, a rebuilding team wants youth and upside, everyone
@@ -253,7 +238,8 @@ export interface FaPick {
   kind: 'std' | 'twoWay';
 }
 export interface FaAdvice {
-  by: { name: string; role: string };
+  by: Adviser; // your Lead Assistant
+  ana?: Adviser | null; // your Head of Analytics: a price check on each pick
   summary: string;
   picks: FaPick[];
 }
@@ -263,9 +249,9 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
     ids: number[] = s.rosters[tid] || [],
     std = stdIds(g, ids),
     tw = twoWayIds(g, ids);
-  const r = mulberry32(tid * 4099 + 11),
-    pk = (a: string[]) => a[Math.floor(r() * a.length)];
-  const by = { name: pk(FIRST) + ' ' + pk(LAST), role: 'Assistant GM' };
+  const who = advisers(g, s, tid),
+    by = who.lead,
+    ana = who.ana;
   const rot = std.map(id => P[id]).sort((a, b) => b.ovr - a.ovr),
     eighth = rot[7]?.ovr ?? 40;
   const ranks = s.teams.map((t: any) => ({ tid: t.tid, r: teamRating(P, s.rosters[t.tid] || []) })).sort((a: any, b: any) => b.r - a.r);
@@ -365,6 +351,21 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
             ? 'He’d be ' + nth + ': real rotation help' + (mode === 'contend' ? ' for a playoff run.' : '.')
             : 'Solid depth for the end of the bench.';
     const value = fair > c.ask * 1.2 ? ' A bargain: worth about ' + money(fair) + '.' : '';
+    // The Head of Analytics' price check: what his numbers say he's worth a year against what he asks.
+    const v = ana ? deptView(g, s, tid, p) : null,
+      cv = v ? contractValue(g, v, c.ask) : null;
+    const anTake = !ana
+      ? ''
+      : ' ' +
+        ana.name.split(' ').slice(-1)[0] +
+        ' (analytics): ' +
+        (!cv
+          ? 'not enough NBA numbers on him to put a price on.'
+          : cv.surplus >= 1
+            ? 'a bargain by the numbers, worth about ' + money(cv.worth) + '.'
+            : cv.surplus >= -1
+              ? 'about the right price by the numbers (' + money(cv.worth) + ').'
+              : 'overpriced by the numbers, worth about ' + money(cv.worth) + '.');
     added.push(p);
     needGrp = needOf();
     const ln = line(p);
@@ -382,6 +383,7 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
         how +
         '.' +
         value +
+        anTake +
         (spots === 0 ? ' Roster’s full: you’d have to waive or trade someone.' : ''),
     });
   }
@@ -424,6 +426,6 @@ export function faAdvice(g: Game, s: any, tid: number): FaAdvice {
         (room > 1 ? ', ' + money(room) + ' of cap space' : ', no cap space') +
         (need0 ? '; our biggest need is a ' + WORD[need0] + '.' : '.');
   const summary = modeS + ' ' + budgetS + (picks.length ? '' : ' Nobody out there we can afford would help right now.');
-  return { by, summary, picks };
+  return { by, ana, summary, picks };
 }
 const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');

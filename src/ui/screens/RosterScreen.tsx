@@ -1,6 +1,6 @@
 // Roster: any team, any season. The header has the team's record, conference rank, team
 // rating, margin of victory, average age, roster spots, payroll, cap and profit, the cap
-// indicator, play-through-injury settings, sorting, a team note and the assistant coaches'
+// indicator, play-through-injury settings, sorting, a team note and your staff's
 // lineup advice. The table has jersey numbers, a starter/bench color block, a minutes
 // control and moods that explain themselves (badges are on the player's profile). Players are grouped
 // by NBA roster rules: 15 standard contracts (10-days and hardship included), up to 3
@@ -20,7 +20,7 @@ import { fmtMoney } from '../../engine/capModel';
 import { applyAdvice, lineupAdvice, type Advice } from '../../engine/assistants';
 import { Game } from '../../engine/Game';
 import { AUTO_MODES, autoLineup, slotName, type AutoMode } from '../../engine/autoLineup';
-import { alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN, Seg } from '../kit';
+import { AdviserName, alphaTeams, ExpYear, godBtn, Link, muted, NumInput, PN, Seg } from '../kit';
 import { MiniBadges } from '../BadgeChip';
 import { knownBadges } from '../../engine/scoutReport';
 import { useAlignedTables } from '../useAlignedTables';
@@ -1186,7 +1186,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                       Reset minutes
                     </button>
                     <button data-tour="advice" className="btn btn-primary" style={chip} onClick={() => setAdvice(lineupAdvice(gm, s, tid))}>
-                      Ask coaches
+                      Ask staff
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1466,7 +1466,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
                   style={{ fontSize: '12.5px' }}
                   onClick={() => setAdvice(lineupAdvice(gm, s, tid))}
                 >
-                  Ask the assistant coaches
+                  Ask your staff
                 </button>
               </div>
               <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '12.5px', cursor: 'pointer' }}>
@@ -1834,8 +1834,15 @@ function AdvicePanel({ vm, advice, onApply, onClose }: { vm: VM; advice: Advice;
   return (
     <div style={{ border: '1px solid var(--color-accent)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', flex: 1 }}>From the coaching staff</div>
-        <span style={{ ...muted, fontSize: '12px' }}>{advice.staff.map(x => x.name + ' (' + x.role + ')').join(' · ')}</span>
+        <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', flex: 1 }}>From your staff</div>
+        <span style={{ ...muted, fontSize: '12px' }}>
+          {advice.staff.map((x, i) => (
+            <span key={i}>
+              {i > 0 && ' · '}
+              <AdviserName gm={gm} a={x} /> ({x.role})
+            </span>
+          ))}
+        </span>
       </div>
       <p style={{ margin: '4px 0 8px', fontSize: '13px' }}>
         {advice.summary} Suggested starters:{' '}
@@ -1862,7 +1869,10 @@ function AdvicePanel({ vm, advice, onApply, onClose }: { vm: VM; advice: Advice;
             <Link pid={l.pid} onClick={() => open(l.pid)}>
               {P[l.pid].name}
             </Link>
-            : {l.text} <span style={muted}>— {l.by}</span>
+            : {l.text}{' '}
+            <span style={muted}>
+              — <AdviserName gm={gm} a={advice.staff.find(x => x.name === l.by) || { name: l.by }} />
+            </span>
           </span>
         </div>
       ))}

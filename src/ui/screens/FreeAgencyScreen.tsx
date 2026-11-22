@@ -6,7 +6,7 @@ import { BadgeChip, MiniBadges } from '../BadgeChip';
 import { knownBadges } from '../../engine/scoutReport';
 import { TraitFilter, byTrait } from '../TraitFilter';
 import { useSearchFilter } from '../SearchFilter';
-import { Link, muted } from '../kit';
+import { AdviserName, Link, muted } from '../kit';
 import { Game } from '../../engine/Game';
 import { useScoutSelect } from '../ScoutSelect';
 import { exceptionsOf, nums, rosterMax, seasonMax, stdIds, teamSalary, TWO_WAY_MAX, twoWayIds } from '../../engine/cba';
@@ -354,7 +354,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
     tw = twoWayIds(gm, ids).length,
     inSeason = ['regular', 'playin', 'playoffs'].includes(s.phase);
   const qos = s.phase === 'fa' ? pendingQOs(gm, s, s.me) : [];
-  // The assistant GM: press to highlight his picks (the rest dim); press again to turn it off.
+  // Your staff's picks (assistants.ts faAdvice): press to highlight them (the rest dim); press again to turn it off.
   // The picks stay put while you page, sort or filter, until you turn him off.
   const adv: FaAdvice | null = s.faAsk || null,
     advPick = new Map((adv?.picks || []).map(x => [x.pid, x]));
@@ -505,9 +505,13 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
             style={{ fontSize: '12.5px', background: adv ? 'color-mix(in srgb, var(--color-accent) 22%, transparent)' : undefined }}
             onClick={toggleAsk}
             aria-pressed={!!adv}
-            title={adv ? 'Turn off the assistant GM’s picks' : 'Ask your assistant GM who to sign for the season'}
+            title={
+              adv
+                ? 'Turn off your staff’s picks'
+                : 'Ask your Lead Assistant who to sign for the season (with your analytics department’s price check)'
+            }
           >
-            {adv ? '✓ Assistant GM’s picks · turn off' : 'Ask the assistant GM'}
+            {adv ? '✓ Staff picks · turn off' : 'Ask your staff'}
           </button>
           <button className="btn btn-ghost" style={{ fontSize: '12.5px' }} disabled={!active} onClick={reset}>
             Reset all filters
@@ -556,7 +560,16 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
       {adv && (
         <div className="card" style={{ padding: '10px 12px', margin: '0 0 10px', borderLeft: '3px solid var(--color-accent)' }}>
           <div style={{ fontSize: '12.5px' }}>
-            <b>{adv.by.name}</b> <span style={muted}>· {adv.by.role}</span>
+            <b>
+              <AdviserName gm={gm} a={adv.by} />
+            </b>{' '}
+            <span style={muted}>· {adv.by.role}</span>
+            {adv.ana && (
+              <span style={muted}>
+                {' '}
+                · price checks from <AdviserName gm={gm} a={adv.ana} /> ({adv.ana.role})
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '12.5px', margin: '2px 0 6px' }}>“{adv.summary}”</div>
           {adv.picks.map(x => {
@@ -723,7 +736,7 @@ export function FreeAgencyScreen({ vm }: { vm: VM }) {
                         fontWeight: 600,
                       }}
                     >
-                      {advPick.get(p.id)!.kind === 'twoWay' ? 'Assistant: two-way' : 'Assistant pick'}
+                      {advPick.get(p.id)!.kind === 'twoWay' ? 'Staff: two-way' : 'Staff pick'}
                     </span>
                   )}
                   {p.glT && (
@@ -1008,9 +1021,13 @@ function FaDense(props: any) {
           style={{ fontSize: '12.5px', background: adv ? 'color-mix(in srgb, var(--color-accent) 22%, transparent)' : undefined }}
           onClick={toggleAsk}
           aria-pressed={!!adv}
-          title={adv ? 'Turn off the assistant GM’s picks' : 'Ask your assistant GM who to sign for the season'}
+          title={
+            adv
+              ? 'Turn off your staff’s picks'
+              : 'Ask your Lead Assistant who to sign for the season (with your analytics department’s price check)'
+          }
         >
-          {adv ? '✓ Assistant GM’s picks · turn off' : 'Ask the assistant GM'}
+          {adv ? '✓ Staff picks · turn off' : 'Ask your staff'}
         </button>
       </div>
       {more && (
@@ -1060,8 +1077,19 @@ function FaDense(props: any) {
       )}
       {adv && (
         <div style={{ fontSize: '12.5px', margin: '0 0 8px', padding: '6px 10px', borderLeft: '3px solid var(--color-accent)' }}>
-          <b>{adv.by.name}</b> <span style={muted}>({adv.by.role})</span>: “{adv.summary}”{' '}
-          <span style={muted}>His picks are highlighted below.</span>
+          <b>
+            <AdviserName gm={gm} a={adv.by} />
+          </b>{' '}
+          <span style={muted}>({adv.by.role})</span>: “{adv.summary}”{' '}
+          <span style={muted}>
+            The staff’s picks are highlighted below
+            {adv.ana ? (
+              <>
+                , with price checks from <AdviserName gm={gm} a={adv.ana} /> ({adv.ana.role})
+              </>
+            ) : null}
+            .
+          </span>
         </div>
       )}
       {active && (

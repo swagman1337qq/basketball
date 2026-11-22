@@ -21,6 +21,7 @@ const SCRIPTS = [
   'staffContracts',
   'coachCarousel',
   'analytics',
+  'advisers',
   'prospectPathways',
   'ratingCeilings',
   'upperTail',
