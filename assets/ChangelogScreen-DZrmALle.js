@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-4Xm7_BgA.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-qO37Juny.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -6,6 +6,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ### Added
 - **Analysts have profiles, like coaches.** On the Analytics screen, click an analyst's name or face (in your department, the analytics people available, or an offer) to open their profile: age, nationality, background, years in analytics, reputation, your read of their skill, personality, contract or asking price, and what their track record shows. The Track record tab lists every graded season (average miss, which way they leaned, and how they did on shooters, defenders, players past 30 and players coming off a big swing) and every graded draft board against your scouts'. God Mode: set their exact skill and biases.
+
+### Changed
+- **Lineup advice and free-agent picks come from your real staff.** On the Roster, "Ask your staff" now gets advice from your Lead Assistant (who should start and who should come off the bench), your Head of Player Development (rest, young players' minutes, injuries) and your Head of Analytics (what the numbers say), instead of three made-up assistants. How well the lineup advice reads your players now depends on your Lead Assistant's eye for talent, not the old Coaching budget. In free agency, "Ask your staff" gives your Lead Assistant's picks, each with your Head of Analytics' price check (a bargain, about right, or overpriced by the numbers). Click any of their names to open their profile. If a job is empty, the next person on your staff speaks instead.
 
 ## 2026-11-20
 
