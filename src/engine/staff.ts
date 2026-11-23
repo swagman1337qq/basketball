@@ -86,8 +86,9 @@ export interface Coach {
   pz?: Stint[]; // the same, kept as stints (coachCareer.ts storePast)
   careerOvr?: number; // ability when his generated career was established
   read: number; // your staff's read of his ratings, 0 (just met) to 1 (fully known)
-  raise?: { ask: number; season: number }; // asked you for a raise this season
-  sour?: number; // season he soured on you (a refused raise): he won't re-sign
+  raise?: { ask: number; season: number }; // legacy: a mid-contract raise request (removed 2026-11-23; cleared on load)
+  sour?: number; // legacy: soured by a refused raise (cleared on load)
+  intY?: number; // the season he last interviewed for a step up elsewhere (carousel.ts interviewFor)
   ret?: number; // season he retired from coaching
   pid?: number; // a former player in this league (coachCareer.ts): his playing career is linked
   made?: number; // season he came into view (before it: a generated career, coachCareer.ts)
@@ -465,8 +466,6 @@ export function coachAccept(g: Game, s: any, tid: number, c: Coach, t: { amt: nu
     ask = coachAsk(g, c, t.role) * (c.pers.amb >= 65 && wp >= 0.6 ? 0.9 : 1) * (c.tid === tid ? 0.95 - (c.pers.loyal - 50) / 500 : 1);
   const gap = Math.max(0, Math.abs(t.years - coachPrefYears(c)) - 1),
     value = t.amt * (1 - gap * 0.06);
-  if (c.sour && c.tid === tid)
-    return { ok: false, ask, why: coachWording(c, 'He hasn’t forgotten the raise you turned down: he won’t re-sign.') };
   if (c.role !== 'lead' && t.role === 'asst' && c.tid !== tid && c.rep >= 75 && c.pers.ego >= 70)
     return { ok: false, ask, why: coachWording(c, 'He sees himself as more than an assistant: he wants to be your Lead Assistant.') };
   return {
@@ -650,6 +649,10 @@ export function ensureStaff(g: Game) {
     (s.managed || [s.me]).forEach((tid: number) => starterStaff(g, s, tid));
   }
   repairStaffMessages(g, s);
+  if (!d.raiseV) {
+    clearRaises(g);
+    d.raiseV = 1;
+  }
   // Phase 2 (2026-11-15): careers. Coaches made before it came into view this season; retirements count from now.
   if (d.staffV < 2) {
     d.coachY0 = d.coachY0 ?? g.Y;
@@ -803,39 +806,31 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
       c.role = null;
       return;
     }
-    // A raise: a coach whose reputation has outgrown his salary asks (more often if he's about the money).
-    if (c.tid != null && g.isUser(s, c.tid) && c.exp > g.Y && !c.raise && !c.next) {
-      const ask = coachAsk(g, c, c.role!);
-      if (ask > c.amt * 1.3 && Math.random() < 0.3 + c.pers.money / 200) {
-        c.raise = { ask: +ask.toFixed(2), season: g.Y };
-        notices.push({
-          tone: 'warn',
-          title: c.name + ' asks for a raise',
-          lines: [
-            'Your ' + ROLE_LABEL[c.role!] + ' makes ' + money(c.amt) + coachWording(c, ' a year and thinks he’s worth ') + money(ask) + '.',
-            coachWording(c, 'Answer on the Staff screen: turn him down and he won’t re-sign when his deal ends.'),
-          ],
-        });
-      }
-    }
+    // No raises in the middle of a contract (2026-11-23): a coach whose reputation has outgrown his salary waits for his
+    // deal to end and asks his market price then (coachAccept), or interviews for a step up elsewhere (carousel.ts
+    // fillAiStaffs → interviewFor).
   });
   // Keep the pool full: new coaches come in.
   const free = freeCoaches(g).length;
   for (let i = free; i < POOL; i++) mkCoach(g, { age: 27 + Math.floor(Math.random() * 25) });
-  fillAiStaffs(g, s); // AI staffs whose coaches retired hire again (carousel.ts)
+  fillAiStaffs(g, s, { notices }); // AI staffs whose coaches retired hire again (carousel.ts); your underpaid assistants may interview
   // Retired people remain available to career trees, awards and profile links.
   Object.values(C).forEach(c => preserveCoachCareer(g, s, c));
   forgetRetired(g);
   bump(g);
   return { notices };
 }
-export function answerRaise(g: Game, s: any, id: number, yes: boolean) {
-  const c = coachDb(g)[id];
-  if (!c?.raise) return;
-  if (yes) c.amt = c.raise.ask;
-  else c.sour = g.Y;
-  delete c.raise;
-  bump(g);
+// Underpaid (2026-11-23): his market price (coachAsk in his role) is at least UNDERPAID × what he makes. He doesn't ask for a
+// raise mid-contract; he waits for the deal to end, or interviews for a step up elsewhere (carousel.ts interviewFor).
+export const UNDERPAID = 1.3;
+export const underpaid = (g: Game, c: Coach) =>
+  c.tid != null && !c.ret && !!c.role && c.amt > 0 && coachAsk(g, c, c.role) >= c.amt * UNDERPAID;
+// Older saves (2026-11-23): raise requests are gone, and so is the grudge a refused one left (it blocked re-signing).
+function clearRaises(g: Game) {
+  Object.values(coachDb(g)).forEach(c => {
+    delete c.raise;
+    delete c.sour;
+  });
 }
 // Pre-Free Agency: whose deals end June 30.
 export function staffExpiring(g: Game, s: any): any[] {
@@ -852,6 +847,18 @@ export function staffExpiring(g: Game, s: any): any[] {
             ' June 30. Re-sign on the Staff screen, or ' +
             (ex.length === 1 ? coachWording(ex[0], 'he leaves') : 'they leave') +
             ' when free agency opens.',
+          // What they'll want to stay: their market price now, which can be well above the old deal (2026-11-23).
+          ...ex
+            .filter(c => coachAsk(g, c, c.role!) > c.amt * 1.1)
+            .map(
+              c =>
+                c.name +
+                coachWording(c, ' will want about ') +
+                money(coachAsk(g, c, c.role!)) +
+                ' a year to stay (paid ' +
+                money(c.amt) +
+                ' now).',
+            ),
         ],
       });
   });
@@ -890,7 +897,7 @@ export function staffContractsEnd(g: Game, s: any): any[] {
   });
   const d: any = g.db;
   if (d.coachDead) Object.keys(d.coachDead).forEach(k => (d.coachDead[k] = d.coachDead[k].filter((x: any) => x.thru > g.Y)));
-  if ((d.staffV || 0) >= 3) fillAiStaffs(g, s); // AI teams replace the assistants who left (carousel.ts)
+  if ((d.staffV || 0) >= 3) fillAiStaffs(g, s, { notices: out }); // AI teams replace the assistants who left (carousel.ts)
   bump(g);
   return out;
 }

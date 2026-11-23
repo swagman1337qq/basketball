@@ -378,7 +378,7 @@ console.log('PASS: staff identity randomizers use country/gender, draw valid fla
 const pronounGame = Game.create(942, [0]);
 const pc = ST.staffOf(pronounGame, 0).find(x => x.role === 'asst')!;
 Object.assign(pc, { name: 'Claire Walker', fem: true, born: pronounGame.Y - 35, amt: 0.01, exp: pronounGame.Y + 3 });
-// Guarantee the raise branch under the fixed 0.5 roll; generated personalities vary.
+// Badly underpaid and all about the money: before 2026-11-23 this asked for a raise mid-contract.
 pc.pers.money = 99;
 delete pc.raise;
 delete pc.next;
@@ -389,18 +389,19 @@ assert.equal(
 assert.equal(ST.coachWording({ fem: false }, 'He sees himself as a lead.'), 'He sees himself as a lead.');
 assert.equal(ST.coachWording(pc, 'He sees himself as a lead.'), 'She sees herself as a lead.');
 const savedRandom = Math.random;
-let raiseNotice: any;
+let yearNotices: any[];
 try {
   Math.random = () => 0.5;
-  raiseNotice = ST.staffYear(pronounGame, pronounGame.state).notices.find(n => n.title === 'Claire Walker asks for a raise');
+  yearNotices = ST.staffYear(pronounGame, pronounGame.state).notices;
 } finally {
   Math.random = savedRandom;
 }
-assert(raiseNotice);
-assert.match(raiseNotice.lines[0], /thinks she’s worth/);
-assert.match(raiseNotice.lines[1], /turn her down and she won’t re-sign when her deal ends/);
+assert(!yearNotices.some(n => /asks for a raise/.test(n.title)), 'No raise requests in the middle of a contract');
+assert(!pc.raise);
+assert(ST.underpaid(pronounGame, pc), 'Underpaid: she waits for the deal to end, or interviews elsewhere');
+// A grudge from an older save's refused raise no longer blocks re-signing, and is cleared on load.
 pc.sour = pronounGame.Y;
-assert.match(ST.coachAccept(pronounGame, pronounGame.state, 0, pc, { role: 'asst', amt: 0.01, years: 3 }).why, /^She.*she won’t re-sign/);
+assert(!/won’t re-sign/.test(ST.coachAccept(pronounGame, pronounGame.state, 0, pc, { role: 'asst', amt: 0.01, years: 3 }).why));
 const oldLine = 'Your Assistant Coach makes $2.2M a year and thinks he’s worth $2.9M.';
 pronounGame.state.mail = [
   {
@@ -413,11 +414,16 @@ pronounGame.state.mail = [
   },
   { id: 'player-copy', title: 'Player update', lines: [oldLine] },
 ];
+delete (pronounGame.db as any).raiseV; // as an older save
+pc.raise = { ask: 3, season: pronounGame.Y };
 const pronounReopen = Game.load(JSON.parse(JSON.stringify(pronounGame.toSave())));
+assert(!pronounReopen.db.coaches[pc.id].raise && !pronounReopen.db.coaches[pc.id].sour, 'Old raise requests and grudges are cleared');
 assert.match(pronounReopen.state.mail[0].lines[0], /thinks she’s worth \$2.9M/);
 assert.match(pronounReopen.state.mail[0].lines[1], /turn her down and she won’t re-sign when her deal ends/);
 assert.equal(pronounReopen.state.mail[1].lines[0], oldLine, 'Non-staff messages are untouched');
 const repairedCopy = JSON.stringify(pronounReopen.state.mail);
 ST.ensureStaff(pronounReopen);
 assert.equal(JSON.stringify(pronounReopen.state.mail), repairedCopy, 'Legacy repair is idempotent');
-console.log('PASS: female staff notices and contract wording, male wording, existing save repair and unrelated-message isolation.');
+console.log(
+  'PASS: female staff wording, no mid-contract raises, old requests and grudges cleared, existing save repair and unrelated-message isolation.',
+);

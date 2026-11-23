@@ -11,6 +11,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Sort the draft board by Analytics.** Click the Analytics header to put your analysts' top-ranked prospects first; click again to reverse the order. The sort also works through the Sort menu and stays selected when you switch between overview, stats and combine views.
 - **Winning coaches grow faster again.** Every coach is supposed to improve faster and gain reputation after a winning season, and lose a little reputation after a losing one. That yearly check happened at training camp, after every team's record had been reset to 0–0, so every staff counted as a .500 staff and winning made no difference. It now uses each coach's record from last season: the team he coached, or his own part of the season if he took over mid-season. A coach who joins a new team over the summer is judged on the team he coached, not his new one.
 
+### Changed
+- **Coaches no longer ask for raises in the middle of a contract.** A coach whose reputation has outgrown his salary now waits for his contract to end and asks for what he's worth when you re-sign him. The "contracts ending" message tells you what each one will want. Until then he may interview for a step up with another team: an Assistant Coach can leave for a Lead Assistant or Head of Player Development job, and a Head of Player Development for a Lead Assistant job (head coaching jobs work as before). A promotion can't be blocked, and you don't owe him anything when he goes. The ambitious and the badly underpaid go more often, very loyal coaches less, and one with a signed extension stays. The Mailbox tells you when one leaves. On the Staff screen, "Worth $X now" under a coach's salary marks the ones who could leave. Old raise requests are cleared, and a coach who resented a turned-down raise will re-sign again.
+
 ## 2026-11-22
 
 ### Fixed

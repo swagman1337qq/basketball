@@ -21,7 +21,19 @@
 import type { Game } from './Game';
 import { firstSeason } from './contracts';
 import { fmtMoney as money } from './capModel';
-import { coachAsk, coachDb, coachWording, mkCoach, repOf, ROLE_LABEL, staffOf, type Coach, type CoachRole } from './staff';
+import {
+  coachAsk,
+  coachDb,
+  coachWording,
+  mkCoach,
+  repOf,
+  ROLE_LABEL,
+  staffOf,
+  STAFF_MIN,
+  underpaid,
+  type Coach,
+  type CoachRole,
+} from './staff';
 import { headCoachAsk, headCoachOf, pastOf, preserveCoachCareer } from './coachCareer';
 
 const bump = (g: Game) => ((g.db as any).staffRev = ((g.db as any).staffRev || 0) + 1);
@@ -127,9 +139,75 @@ function sign(g: Game, s: any, c: Coach, tid: number, role: CoachRole, amt: numb
   delete c.raise;
   delete c.sour;
 }
+// Interviews (2026-11-23): coaches don't ask for raises mid-contract. One of your coaches whose market price has outgrown
+// his salary (staff.ts underpaid) can interview for a step up when an AI team has an opening: an Assistant Coach for a
+// Lead Assistant or Head of Player Development job, a Head of Player Development for a Lead Assistant job (head coaching
+// jobs: hireHeadCoach, as before). A promotion can't be blocked. Once a summer each; the ambitious and the badly underpaid
+// take it more often, the very loyal less. He leaves your staff with no payout either way (his new team pays him).
+const STEP: Partial<Record<CoachRole, number>> = { asst: 0, dev: 1, lead: 2 };
+export function interviewFor(g: Game, s: any, tid: number, role: CoachRole, notices?: any[]): Coach | null {
+  if (s.spectator || STEP[role] == null) return null;
+  const w = ownerWay(s.teams[tid]?.arch),
+    want = 25 + 45 * w.pay + (role === 'lead' ? 6 : 0);
+  const cands = (Object.values(coachDb(g)) as Coach[])
+    .filter(
+      c =>
+        c.tid != null &&
+        g.isUser(s, c.tid) &&
+        !c.next &&
+        c.intY !== g.Y &&
+        (STEP[c.role!] ?? 9) < STEP[role]! &&
+        underpaid(g, c) &&
+        c.rep >= want - 12 &&
+        g.Y - c.born >= 27,
+    )
+    .sort((a, b) => b.rep - a.rep);
+  for (const c of cands) {
+    c.intY = g.Y; // one interview a summer
+    const was = c.tid!,
+      wasRole = c.role!,
+      over = coachAsk(g, c, wasRole) / c.amt,
+      p = 0.4 + (c.pers.amb - 50) / 200 + Math.min(0.3, (over - 1.3) * 0.5) - (c.pers.loyal >= 80 ? 0.25 : 0);
+    if (Math.random() >= p) continue;
+    const old = c.amt,
+      T = s.teams[tid],
+      U = s.teams[was];
+    c.bg = ROLE_LABEL[wasRole] + ', ' + (U?.region || '') + ' ' + (U?.name || '');
+    sign(g, s, c, tid, role, Math.max(coachAsk(g, c, role) * payF(s, tid), old * 1.1), 2 + Math.floor(Math.random() * 3));
+    const left = staffOf(g, was).length;
+    notices?.push({
+      tone: 'warn',
+      title: c.name + ' leaves for a promotion',
+      lines: [
+        'Your ' +
+          ROLE_LABEL[wasRole] +
+          ', ' +
+          c.name +
+          ', interviewed with the ' +
+          T.region +
+          ' ' +
+          T.name +
+          ' and took their ' +
+          ROLE_LABEL[role] +
+          coachWording(c, ' job: ') +
+          money(c.amt) +
+          ' a year, up from the ' +
+          money(old) +
+          ' you paid. A team can’t block a promotion.',
+        left < STAFF_MIN
+          ? 'Your staff is down to ' + left + ': hire a replacement on the Staff screen.'
+          : 'Hire a replacement on the Staff screen if you want one.',
+      ],
+    });
+    bump(g);
+    return c;
+  }
+  return null;
+}
 // Every AI team's staff filled to a Lead Assistant, two assistants and a development head (and at most six).
 // `fresh`: a new league's (or an older save's) staffs are made to measure (better coaches for the big spenders).
-export function fillAiStaffs(g: Game, s: any, o: { fresh?: boolean } = {}) {
+// `notices`: where to report your coaches who interview and leave for an opening (interviewFor).
+export function fillAiStaffs(g: Game, s: any, o: { fresh?: boolean; notices?: any[] } = {}) {
   let n = 0;
   aiTeams(g, s).forEach((tid: number) => {
     const st = staffOf(g, tid).filter(c => c.role !== 'hc');
@@ -145,7 +223,11 @@ export function fillAiStaffs(g: Game, s: any, o: { fresh?: boolean } = {}) {
         const w = ownerWay(s.teams[tid]?.arch);
         c = mkCoach(g, { age: 32 + Math.floor(Math.random() * 28), lvl: (w.pay - 0.6) * 20 });
         c.rep = repOf(g, c);
-      } else c = pickAssistant(g, s, tid, role);
+      } else c = interviewFor(g, s, tid, role, o.notices) || pickAssistant(g, s, tid, role);
+      if (c && c.tid === tid) {
+        n++;
+        return;
+      } // he interviewed and took the job (signed in interviewFor)
       if (!c) c = mkCoach(g, { age: 30 + Math.floor(Math.random() * 25) });
       sign(g, s, c, tid, role, coachAsk(g, c, role) * payF(s, tid), 1 + Math.floor(Math.random() * 3));
       if (o.fresh) c.exp = firstSeason(g, s) + Math.floor(Math.random() * 3);
@@ -522,7 +604,7 @@ export function carousel(g: Game, s: any, finOf: (tid: number) => string): Carou
         text: s.teams[tid].region + ' ' + s.teams[tid].name + ' added former head coach ' + c.name + ' as ' + ROLE_LABEL[role],
       });
     });
-  fillAiStaffs(g, s);
+  fillAiStaffs(g, s, { notices: out.notices });
   bump(g);
   return out;
 }

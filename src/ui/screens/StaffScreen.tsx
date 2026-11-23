@@ -7,7 +7,7 @@ import { Link, godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
 import { fmtMoney as money } from '../../engine/capModel';
 import {
-  answerRaise,
+  underpaid,
   coachAccept,
   coachAge,
   coachAsk,
@@ -333,6 +333,17 @@ export function StaffScreen({ vm }: { vm: VM }) {
                   <div style={{ fontSize: '11px', ...muted }}>
                     through {c.exp - 1}–{String(c.exp).slice(2)}
                   </div>
+                  {underpaid(gm, c) && !c.next && (
+                    <div
+                      style={{ fontSize: '11px', ...muted }}
+                      title={coachWording(
+                        c,
+                        'He won’t ask for a raise before his contract ends. He’ll want his market price to re-sign, and until then he may interview for a step up with another team (a promotion can’t be blocked).',
+                      )}
+                    >
+                      Worth {money(coachAsk(gm, c, c.role!))} now
+                    </div>
+                  )}
                   {c.next && (
                     <div style={{ fontSize: '11px', ...muted }}>
                       Extension: {money(c.next.amt)} · {c.next.start - 1}–{String(c.next.start).slice(2)} through {c.next.exp - 1}–
@@ -342,32 +353,6 @@ export function StaffScreen({ vm }: { vm: VM }) {
                 </td>
                 <td style={td()}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {c.raise && (
-                      <>
-                        <button
-                          className="btn btn-secondary"
-                          title={coachWording(c, 'He asks for ') + money(c.raise.ask) + ' a year'}
-                          onClick={() => {
-                            answerRaise(gm, s, c.id, true);
-                            setMsg(c.name + coachWording(c, ' got his raise.'));
-                            refresh();
-                          }}
-                        >
-                          Raise to {money(c.raise.ask)}
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          title={coachWording(c, 'Turn him down: he won’t re-sign when his deal ends')}
-                          onClick={() => {
-                            answerRaise(gm, s, c.id, false);
-                            setMsg('You turned ' + c.name + ' down.');
-                            refresh();
-                          }}
-                        >
-                          Refuse
-                        </button>
-                      </>
-                    )}
                     {c.exp <= gm.Y && !c.next && (
                       <button
                         className="btn btn-secondary"
