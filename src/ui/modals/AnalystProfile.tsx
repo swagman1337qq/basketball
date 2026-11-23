@@ -4,6 +4,7 @@
 import type { VM } from '../vm';
 import { godBox, godText, muted, NumInput, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
+import { AnalystBioEditor } from './AnalystBioEditor';
 import { fmtMoney as money } from '../../engine/capModel';
 import { grade } from '../../engine/staff';
 import {
@@ -231,6 +232,7 @@ export function AnalystProfile({ vm }: { vm: VM }) {
                   </div>
                 </div>
               )}
+              {god && <AnalystBioEditor key={a.id} gm={gm} analyst={a} onSave={refresh} />}
             </div>
           )}
           {tab === 'rec' && (

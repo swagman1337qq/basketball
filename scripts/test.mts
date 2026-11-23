@@ -26,6 +26,7 @@ const SCRIPTS = [
   'staffContracts',
   'coachCarousel',
   'analytics',
+  'analystEditing',
   'advisers',
   'keepSmall',
   'workouts',

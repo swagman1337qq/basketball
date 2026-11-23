@@ -4,6 +4,9 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-23
 
+### Added
+- **God Mode: edit analysts.** Open an analyst's profile (from the Analytics screen) in God Mode and use the new editor under Overview. You can change their name, gender, appearance, nationality, age, years in analytics (their reputation follows) and face or portrait, with dice for a random name, country or face. For an analyst in your department you can also set the salary, the season the contract ends and a signed extension. There's no limit on how far out a contract runs: a deal through 3000 is fine. Press Save changes to apply.
+
 ### Fixed
 - **Winning coaches grow faster again.** Every coach is supposed to improve faster and gain reputation after a winning season, and lose a little reputation after a losing one. That yearly check happened at training camp, after every team's record had been reset to 0–0, so every staff counted as a .500 staff and winning made no difference. It now uses each coach's record from last season: the team he coached, or his own part of the season if he took over mid-season. A coach who joins a new team over the summer is judged on the team he coached, not his new one.
 
