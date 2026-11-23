@@ -1,6 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-BwhBZy3A.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-C90PqXIO.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-23
+
+### Fixed
+- **Winning coaches grow faster again.** Every coach is supposed to improve faster and gain reputation after a winning season, and lose a little reputation after a losing one. That yearly check happened at training camp, after every team's record had been reset to 0–0, so every staff counted as a .500 staff and winning made no difference. It now uses each coach's record from last season: the team he coached, or his own part of the season if he took over mid-season. A coach who joins a new team over the summer is judged on the team he coached, not his new one.
 
 ## 2026-11-22
 
