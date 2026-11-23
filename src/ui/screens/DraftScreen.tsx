@@ -117,7 +117,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const turn = (d: number) => {
     const n = (advPg + d + ADV_PAGES.length) % ADV_PAGES.length;
     setAdvPg(n);
-    setStSort(cur => (cur && ADV_PAGES[n][1].some(c => c[0] === cur[0]) ? cur : null));
+    setStSort(cur => (cur && (cur[0] === 'analytics' || ADV_PAGES[n][1].some(c => c[0] === cur[0])) ? cur : null));
   };
   // Minutes come first in both views (2026-10-30): how big a role the numbers came from.
   const MPG: Col = ['MPG', 'Minutes per game', x => x.mpg];
@@ -136,30 +136,31 @@ export function DraftScreen({ vm }: { vm: VM }) {
   const ST: Col[] = stMode === 'cmb' ? CMB : [MPG, ...(stMode === 'adv' ? ADV : TRAD)],
     rowOf = (id: number) => (stMode === 'cmb' ? combineOf(gm.db.P[id]) : last(id)),
     pickMode = (m: 'trad' | 'adv' | 'cmb') => {
-      setStSort(null);
+      setStSort(cur => (cur?.[0] === 'analytics' ? cur : null));
       setStMode(cur => (cur === m ? '' : m));
     };
-  const [stSort, setStSort] = useState<[string, number] | null>(null); // a college stat column to sort by (best first), or the board's own sort
+  const [stSort, setStSort] = useState<[string, number] | null>(null); // a stat or analytics rank, or the board's own sort
   const stVal = (id: number, k: string) => {
+    if (k === 'analytics') return anBoard[id]?.rank ?? null;
     const x = rowOf(id),
       c = ST.find(t => t[0] === k);
     const v = x && c ? c[2](x) : NaN;
     return v == null || !isFinite(v) ? null : v;
   };
-  const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, -1]));
+  const sortSt = (k: string) => setStSort(cur => (cur && cur[0] === k ? [k, -cur[1]] : [k, k === 'analytics' ? 1 : -1]));
+  const activeSort = stSort && (stSort[0] === 'analytics' ? anOn : stats) ? stSort : null;
   const cols = (vm.draftCols || []).filter((c: any) =>
     (stats ? ['rank', 'name', 'age', 'ovr', 'pot'] : ['rank', 'name', 'age', 'hgt', 'ovr', 'pot']).includes(c.key),
   );
   const sf = useSearchFilter({ separateAge: true }),
     rows0 = (vm.draftRows || []).filter(byTrait(vm, tk)).filter(sf.test);
-  const boardRows =
-      stats && stSort
-        ? rows0.slice().sort((a: any, b: any) => {
-            const x = stVal(a.id, stSort[0]),
-              y = stVal(b.id, stSort[0]);
-            return x == null ? (y == null ? 0 : 1) : y == null ? -1 : stSort[1] < 0 ? y - x : x - y;
-          })
-        : rows0,
+  const boardRows = activeSort
+      ? rows0.slice().sort((a: any, b: any) => {
+          const x = stVal(a.id, activeSort[0]),
+            y = stVal(b.id, activeSort[0]);
+          return x == null ? (y == null ? 0 : 1) : y == null ? -1 : activeSort[1] < 0 ? y - x : x - y;
+        })
+      : rows0,
     sc = useScoutSelect(
       vm,
       boardRows.map((p: any) => p.id),
@@ -245,10 +246,10 @@ export function DraftScreen({ vm }: { vm: VM }) {
           setStSort(null);
           c.onClick();
         }}
-        style={{ color: stats && stSort ? undefined : c.color }}
+        style={{ color: activeSort ? undefined : c.color }}
       >
         {c.label}
-        {stats && stSort ? '' : c.arrow}
+        {activeSort ? '' : c.arrow}
       </button>
     </th>
   );
@@ -387,6 +388,10 @@ export function DraftScreen({ vm }: { vm: VM }) {
                     value=""
                     aria-label="Sort prospects"
                     onChange={e => {
+                      if (e.target.value === 'analytics') {
+                        sortSt('analytics');
+                        return;
+                      }
                       const c = (vm.draftCols || []).find((c: any) => c.key === e.target.value);
                       if (c) {
                         setStSort(null);
@@ -401,6 +406,9 @@ export function DraftScreen({ vm }: { vm: VM }) {
                         {c.arrow}
                       </option>
                     ))}
+                    {anOn && (
+                      <option value="analytics">Analytics{activeSort?.[0] === 'analytics' ? (activeSort[1] > 0 ? ' ↑' : ' ↓') : ''}</option>
+                    )}
                   </select>
                 </label>
               </div>
@@ -444,9 +452,18 @@ export function DraftScreen({ vm }: { vm: VM }) {
                       {anOn && (
                         <th
                           className="draft-number"
+                          scope="col"
+                          aria-sort={activeSort?.[0] === 'analytics' ? (activeSort[1] > 0 ? 'ascending' : 'descending') : 'none'}
                           title="Your analytics department’s board: where the numbers rank him in this class (by the ceiling they see). Highlighted where they and your scouts are far apart."
                         >
-                          Analytics
+                          <button
+                            type="button"
+                            title="Sort by analytics rank"
+                            onClick={() => sortSt('analytics')}
+                            style={{ color: activeSort?.[0] === 'analytics' ? 'var(--color-accent-700)' : undefined }}
+                          >
+                            Analytics{activeSort?.[0] === 'analytics' ? (activeSort[1] > 0 ? ' ↑' : ' ↓') : ''}
+                          </button>
                         </th>
                       )}
                       {showDraftAction && <th className="draft-action-cell">Draft</th>}
