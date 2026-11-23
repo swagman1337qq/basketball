@@ -32,6 +32,7 @@ const SCRIPTS = [
   'summerLeague',
   'injuryReturn',
   'coachWay',
+  'coachYearRecord',
   'midSeason',
   'prospectPathways',
   'ratingCeilings',

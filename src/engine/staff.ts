@@ -461,8 +461,7 @@ export function coachAsk(g: Game, c: Coach, role: CoachRole) {
 export const coachPrefYears = (c: Coach) => (c.pers.amb >= 70 ? 2 : c.pers.loyal >= 65 ? 4 : 3);
 // Does he take it? His asking price, a little less for a winner if he's ambitious, years far from what he wants cost.
 export function coachAccept(g: Game, s: any, tid: number, c: Coach, t: { amt: number; years: number; role: CoachRole }) {
-  const T = s.teams[tid],
-    wp = T.w + T.l > 0 ? T.w / (T.w + T.l) : 0.5,
+  const wp = teamWp(g, s, tid) ?? 0.5,
     ask = coachAsk(g, c, t.role) * (c.pers.amb >= 65 && wp >= 0.6 ? 0.9 : 1) * (c.tid === tid ? 0.95 - (c.pers.loyal - 50) / 500 : 1);
   const gap = Math.max(0, Math.abs(t.years - coachPrefYears(c)) - 1),
     value = t.amt * (1 - gap * 0.06);
@@ -731,6 +730,35 @@ export function forgetRetired(g: Game) {
     delete (c as any).firedFrom;
   });
 }
+// A team's league history line for a season (history[].teams, written when the playoffs end).
+const histLine = (s: any, Y: number, tid: number) => {
+  const lbl = Y - 1 + '–' + String(Y).slice(2);
+  return (s.history || []).find((h: any) => h.year === Y || (h.year == null && h.season === lbl))?.teams?.[tid] || null;
+};
+const pctOf = (w: number, l: number) => (w + l > 0 ? w / (w + l) : null);
+// A team's winning percentage: this season once it has played, else last season's from league history (training camp
+// and opening night come after every record is reset to 0–0). null when there's none.
+export function teamWp(g: Game, s: any, tid: number): number | null {
+  const T = s.teams?.[tid];
+  if (T && T.w + T.l > 0) return T.w / (T.w + T.l);
+  const h = histLine(s, g.Y - 1, tid);
+  return h ? pctOf(h.w ?? 0, h.l ?? 0) : null;
+}
+// How a coach's last season went (2026-11-23): staffYear runs at training camp, after the records are reset, so it read
+// every team as 0–0 and a winning staff never grew faster or gained reputation. His own row for that season (coachCareer.ts
+// staffSeason: the team he worked for; his part of a season split by a mid-season firing), else his team's history line.
+// null if he didn't coach here last season.
+export function lastSeasonWp(g: Game, s: any, c: Coach): number | null {
+  const Y = g.Y - 1,
+    row = (c.h || []).find(r => r[0] === Y);
+  if (!row) return null;
+  if (row.length > 5) {
+    const own = pctOf(row[4], row[5]);
+    if (own != null) return own;
+  }
+  const h = histLine(s, Y, row[1]);
+  return h ? pctOf(h.w ?? 0, h.l ?? 0) : null;
+}
 // Training camp: a year older and wiser (toward his ceiling, faster on a winning staff), now and then burnout,
 // retirements, the pool topped up, reputation updated, raise requests. Returns notices for your staff.
 export function staffYear(g: Game, s: any): { notices: any[] } {
@@ -740,8 +768,8 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
     if (c.ret) return;
     preserveCoachCareer(g, s, c);
     activateExtension(c, g.Y);
-    const T = c.tid != null ? s.teams[c.tid] : null,
-      wp = T && T.w + T.l > 0 ? T.w / (T.w + T.l) : 0.5,
+    const lastWp = lastSeasonWp(g, s, c), // last season's record, not this camp's 0–0
+      wp = lastWp ?? 0.5,
       ov = coachOvr(c);
     // Growth: a share of the room left, more on a winning staff and early in his career.
     const room = c.ceil - ov;
@@ -757,7 +785,7 @@ export function staffYear(g: Game, s: any): { notices: any[] } {
       c.ceil = Math.max(1, c.ceil - 3);
     }
     // Reputation follows his years and how good he is (and a winner gets noticed).
-    (c as any).repAdj = ((c as any).repAdj || 0) * 0.9 + (T ? (wp - 0.5) * 6 : 0);
+    (c as any).repAdj = ((c as any).repAdj || 0) * 0.9 + (lastWp != null ? (wp - 0.5) * 6 : 0);
     c.rep = repOf(g, c);
     // Retiring from coaching: rarely before 60, more often after, and out of work for years.
     const age = coachAge(g, c),
