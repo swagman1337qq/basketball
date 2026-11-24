@@ -1,7 +1,6 @@
-import { disposeProfileStats, pauseProfileStats } from './ui/profileStatsClient';
+import { disposeProfileStats } from './ui/profileStatsClient';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
-import { SimulationBrowse } from './ui/simulationBrowse';
 import { SimulationGuard } from './ui/SimulationGuard';
 import { bindGameSave, isStaleSave } from './db/playerArchive';
 import { protectUnsavedLeave } from './ui/unsavedLeave';
@@ -94,12 +93,16 @@ export function GameScreen({
   onSwitch: (id: string) => void;
 }) {
   const { game } = open;
-  const browsing = useMemo(() => new SimulationBrowse(game, pauseProfileStats), [game]);
-  const version = useSyncExternalStore(game.subscribe, browsing.getLiveVersion);
-  useLayoutEffect(() => browsing.connect(), [browsing]);
-  const browseVersion = useSyncExternalStore(browsing.subscribe, browsing.getVersion);
-  const viewGame = browsing.view || game;
-  const viewVersion = browsing.view ? browseVersion : version;
+  // While a sim runs the screens show the live league (2026-11-24: a frozen copy used to): every page can be opened and
+  // the numbers move as the days are played. How long each redraw takes goes back to the engine, which spaces its
+  // redraws so they never cost the sim more than about a tenth of its time (Game.emitGap).
+  const renderStart = performance.now();
+  const version = useSyncExternalStore(game.subscribe, game.getVersion);
+  useLayoutEffect(() => {
+    if (game.busy) game.noteRender(performance.now() - renderStart);
+  });
+  const viewGame = game,
+    viewVersion = version;
   const rootRef = useRef<HTMLDivElement>(null);
   // The save status line. Set only when it changes: during a sim the autosave effect below runs after every redraw,
   // and a state update that changes nothing still queues a re-render, which React counts as a nested update (a long
@@ -257,7 +260,7 @@ export function GameScreen({
   );
   const content = useMemo(() => <GMView vm={vm} />, [vm]);
   return (
-    <SimulationGuard game={game} browsing={!!browsing.view} asOf={viewGame.fmtS(viewGame.state.day - 1)}>
+    <SimulationGuard game={game}>
       <SaveStatusContext.Provider value={status}>{content}</SaveStatusContext.Provider>
       <ErrorBoundary quiet resetKey={String(version)}>
         <PlayerHover gm={viewGame} />

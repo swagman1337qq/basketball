@@ -329,6 +329,31 @@ const STATS_VIEW_KEYS = new Set([
   'sort',
   'adv',
 ]);
+// What only changes what you're looking at (the page, a profile, a tab, a sort): applied at once even while a simulated
+// day is being played (setState). Everything else waits for the day to finish. Trade selections aren't here: a day's
+// result rewrites them.
+const LIVE_VIEW_KEYS = new Set([
+  ...NAVIGATION_KEYS,
+  'boxTeam',
+  'rosterSub',
+  'baseY',
+  'navTick',
+  'awardsYear',
+  'standMode',
+  'standSeg',
+  'stand',
+  'navCollapsed',
+  'navArrange',
+  'adv',
+  'sort',
+  'anPid',
+  'anTab',
+  'coachPid',
+  'coachTab',
+  'dialog',
+  'tour',
+  'tourMode',
+]);
 // UI-only keys that should not survive a reload.
 const SHORT_DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }),
   MONTH_YR = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' });
@@ -1548,8 +1573,15 @@ export class Game {
 
   // Same contract as React's class setState: an object patch or an updater returning one (or null for no change).
   setState(u: any, cb?: () => void) {
-    // External actions cannot execute updaters against a half-finished day.
-    if (this.dayInProgress && !this.applyingSimStep) return;
+    // While a sim day is being played (it pauses now and then so the page stays responsive), anything that only changes
+    // what you're looking at applies at once; anything else waits until the day is done (a fraction of a second), so it
+    // can't run against a half-finished day or be overwritten by it (2026-11-24: it used to be dropped).
+    if (this.dayInProgress && !this.applyingSimStep) {
+      if (typeof u === 'function' || !u || !Object.keys(u).every(k => LIVE_VIEW_KEYS.has(k))) {
+        this.afterDay.push([u, cb]);
+        return;
+      }
+    }
     const patch = typeof u === 'function' ? u(this.state) : u;
     if (patch) {
       const prevNotices = this.state.notices,
@@ -1600,9 +1632,11 @@ export class Game {
         this.perCache.clear();
         if ('gv' in patch) this.seasonDirty();
       }
-      // During a multi-day sim the screen redraws at most every 250 ms (the rest is caught up at the end).
+      // During a multi-day sim the screen redraws after a simulated day only when enough time has passed since the last
+      // redraw (emitGap: a second or more, longer for a screen that's slow to draw, so redrawing costs the sim only a few
+      // percent); anything you do yourself (a click, opening a page) redraws at once.
       const now = Date.now();
-      if (this.quiet && now - this.lastEmit < 250) this.pendingEmit = true;
+      if (this.quiet && this.simPatch && now - this.lastEmit < this.emitGap()) this.pendingEmit = true;
       else {
         this.lastEmit = now;
         this.pendingEmit = false;
@@ -1614,6 +1648,29 @@ export class Game {
   private quiet = false;
   private lastEmit = 0;
   private pendingEmit = false;
+  private simPatch = false; // the setState in progress is a simulated day's result (throttled redraws)
+  private afterDay: [any, (() => void) | undefined][] = []; // changes made while a day was being played, applied after it
+  // How long the screen takes to redraw (ms, smoothed; App.tsx reports it after every redraw).
+  renderMs = 0;
+  noteRender(ms: number) {
+    if (!(ms >= 0) || ms > 10000) return;
+    this.renderMs = this.renderMs ? this.renderMs * 0.7 + ms * 0.3 : ms;
+  }
+  emitGap() {
+    return Math.max(Game.EMIT_MIN, Math.min(Game.EMIT_MAX, this.renderMs * Game.EMIT_K));
+  }
+  // Redraws during a sim: at least EMIT_MIN ms apart and EMIT_K × what React's part of a redraw costs (the browser's layout
+  // and paint come on top, about as much again), at most EMIT_MAX. Measured 2026-11-24 in a production build, two
+  // simulated months per screen: time not spent playing games was 3–8% (Dashboard 3%, League stats 5%, League leaders
+  // 7–8%) against 2–7% with the frozen copy it replaced; with EMIT 300 / K 10 it was 6–20%.
+  static EMIT_MIN = 1000;
+  static EMIT_MAX = 4000;
+  static EMIT_K = 60;
+  private flushAfterDay() {
+    const q = this.afterDay;
+    this.afterDay = [];
+    q.forEach(([u, cb]) => this.setState(u, cb));
+  }
   // Mail you haven't read (new Mailbox items, an unopened owner letter) holds the game: no sims, no next
   // phase, until you open the Mailbox. Not in Spectator Mode.
   mailWaiting(s = this.state): number {
@@ -7004,7 +7061,13 @@ export class Game {
         const steps = this.simDaySteps(this.state, i === 0 ? forced : undefined, n - i - 1);
         const patch = await runCooperatively({ next: () => this.simulationStep(steps) });
         this.dayInProgress = false;
-        this.setState(patch);
+        this.simPatch = true;
+        try {
+          this.setState(patch);
+        } finally {
+          this.simPatch = false;
+        }
+        this.flushAfterDay(); // what you did while the day was being played
         if (this.version === v) break;
         if (this.mailWaiting()) break; // new mail, including dashboard news: stop so you can read it
         if (!(this.state.allStars || {})[this.Y] && this.state.day >= allStarDay(this)) runAllStar(this); // All-Star Weekend
@@ -7013,6 +7076,7 @@ export class Game {
     } finally {
       this.dayInProgress = false;
       this.busy = false;
+      this.flushAfterDay();
       this.finishSimulation?.();
       this.finishSimulation = undefined;
       this.simulationDone = undefined;

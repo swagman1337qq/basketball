@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-24
+
+### Changed
+- **Use the whole game while it sims.** While days are being simulated you can now open any screen, a player's profile or a box score, and the numbers update as the games are played: standings, league leaders, stats, a player's season line and his last five games. The sim no longer freezes the screen or locks the buttons; a small note in the corner says it's running, with a Stop button. Anything you change mid-sim (a lineup, a trade, a setting) applies as soon as the day being played is done, a fraction of a second later. The sim runs as fast as before: the screen refreshes about once a second (a little less often on slow-to-draw screens like League leaders), so redrawing costs it only a few percent of its time. Advanced stats on a player's profile fill in when the sim stops.
+
 ## 2026-11-23
 
 ### Added

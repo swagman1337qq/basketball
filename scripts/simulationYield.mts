@@ -178,6 +178,8 @@ try {
 
   // Queue saving while a day is partly applied. No updater, second simulation or
   // snapshot may see/persist a partial day; Stop commits exactly one complete day.
+  // (2026-11-24) A change made while the day is being played waits for it and then
+  // applies against the finished day; nothing on the page is locked.
   const g = load(snapshot),
     expected = load(snapshot);
   random(712);
@@ -185,6 +187,7 @@ try {
   const expectedHash = hash(expected.toSave());
   let attempted = false,
     updaterCalled = false,
+    updaterDay = -1,
     wrote = false,
     saving: Promise<number> | undefined;
   let changedSnapshots = 0;
@@ -203,9 +206,16 @@ try {
           assert.equal(g.state.day, 0, 'Unfinished day is not published');
           assert.throws(() => g.toSave(), /Finish the simulation day/);
           changedSnapshots = 0;
-          g.setState(() => {
+          // Opening a page applies at once, even mid-day (a view change can't touch league data).
+          const view0 = { screen: g.state.screen, pageStack: g.state.pageStack };
+          g.setState({ screen: 'leaders', pageStack: [] });
+          assert.equal(g.state.screen, 'leaders', 'Navigation applies immediately while a day is being played');
+          assert.equal(g.state.day, 0, 'without publishing the unfinished day');
+          g.setState(view0); // back where it was, so the saved result can be compared with the plain day
+          g.setState((st: any) => {
             updaterCalled = true;
-            return { phase: 'draft' };
+            updaterDay = st.day;
+            return null; // a queued look at the state: it must see the finished day
           });
           await g.sim(50);
           saving = writer.save(g, { id: 'yield-safety', name: 'Test', createdAt: 1 });
@@ -217,7 +227,7 @@ try {
           assert.equal(wrote, false);
           assert.equal(updaterCalled, false);
           const markup = renderToStaticMarkup(createElement(SimulationGuard, { game: g }, createElement('button', null, 'Trade')));
-          assert.match(markup, /inert=""/);
+          assert.doesNotMatch(markup, /inert=""/, 'Nothing is locked while simulating');
           assert.match(markup, /data-simulation-stop/);
           g.stopSim();
         }
@@ -228,6 +238,8 @@ try {
   random(712);
   await g.sim(20);
   assert.ok(attempted);
+  assert.equal(updaterCalled, true, 'The change made mid-day ran once the day was done');
+  assert.equal(updaterDay, 1, 'and saw the finished day');
   await saving;
   assert.equal(g.state.day, 1);
   assert.equal(g.busy, false);
@@ -280,7 +292,7 @@ try {
     else delete (globalThis as any).MessageChannel;
   }
   console.log(
-    `PASS: ${compared} driver scenarios, exact recorded games/RNG, mid-day Stop/save/edit isolation, host fallback and inert controls`,
+    `PASS: ${compared} driver scenarios, exact recorded games/RNG, mid-day Stop/save isolation, live navigation and queued changes, host fallback, nothing locked`,
   );
 } finally {
   Math.random = originalRandom;
