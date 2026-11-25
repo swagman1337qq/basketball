@@ -12,6 +12,7 @@ const SCRIPTS = [
   'unit',
   'responsiveness',
   'simulationYield',
+  'gamePool',
   'dashboardMail',
   'playerPersistence',
   'playerSaveWorker',

@@ -1,4 +1,5 @@
 import { disposeProfileStats } from './ui/profileStatsClient';
+import { prewarmGamePool } from './engine/gamePool';
 import { createSaveWriter } from './db/saveWriter';
 import { SaveStatusContext } from './ui/SaveStatus';
 import { SimulationGuard } from './ui/SimulationGuard';
@@ -120,6 +121,7 @@ export function GameScreen({
   const writer = useMemo(() => createSaveWriter(), [game]);
   const saving = useRef<Promise<void> | null>(null);
   useEffect(() => () => disposeProfileStats(game), [game]);
+  useEffect(() => prewarmGamePool(), []); // background game players load while you look around (gamePool.ts)
 
   const save = useCallback(
     async (force = false) => {

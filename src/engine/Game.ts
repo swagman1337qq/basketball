@@ -1,4 +1,5 @@
 import { runCooperatively, yieldToBrowser } from './cooperative';
+import { gamePool, type GamePool, type Played } from './gamePool';
 import { naturalDunkShare } from './finishing';
 import { archiveDashboardMail } from './dashboardMail';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
@@ -374,6 +375,9 @@ const TRANSIENT = {
   rosterAt: null,
   rosterView: null,
 };
+
+// A sim day's requests to its driver when its games are played in the background (simDaySteps `pooled`).
+export type DayStep = { games: ({ home: SimTeam; away: SimTeam } | null)[] } | { await: number };
 
 export interface SaveData {
   db: any;
@@ -1636,7 +1640,7 @@ export class Game {
       // redraw (emitGap: a second or more, longer for a screen that's slow to draw, so redrawing costs the sim only a few
       // percent); anything you do yourself (a click, opening a page) redraws at once.
       const now = Date.now();
-      if (this.quiet && this.simPatch && now - this.lastEmit < this.emitGap()) this.pendingEmit = true;
+      if (this.quiet && this.simPatch && (this.pooledRun || now - this.lastEmit < this.emitGap())) this.pendingEmit = true;
       else {
         this.lastEmit = now;
         this.pendingEmit = false;
@@ -6971,10 +6975,10 @@ export class Game {
   whenSimulationIdle() {
     return this.simulationDone || Promise.resolve();
   }
-  private simulationStep<T>(steps: Iterator<void, T, unknown>): IteratorResult<void, T> {
+  private simulationStep<T, Y = void>(steps: Iterator<Y, T, any>, input?: any): IteratorResult<Y, T> {
     this.applyingSimStep = true;
     try {
-      return steps.next();
+      return steps.next(input);
     } finally {
       this.applyingSimStep = false;
     }
@@ -7058,8 +7062,15 @@ export class Game {
         if (this.stopReq || this.mailWaiting()) break; // finish the current day, then hold for Stop or unread mail
         const v = this.version;
         this.dayInProgress = true;
-        const steps = this.simDaySteps(this.state, i === 0 ? forced : undefined, n - i - 1);
-        const patch = await runCooperatively({ next: () => this.simulationStep(steps) });
+        const pool = this.shotObserver ? null : gamePool(); // background game players (gamePool.ts), where available
+        const steps = this.simDaySteps(this.state, i === 0 ? forced : undefined, n - i - 1, !!pool);
+        const d0 = performance.now();
+        this.pooledRun = !!pool;
+        this.lastLate = null;
+        const patch = pool
+          ? await this.runPooledDay(steps, pool)
+          : await runCooperatively({ next: () => this.simulationStep(steps) as IteratorResult<void, any> });
+        if (pool && this.lastLate != null) this.notePooledDay(performance.now() - d0, this.lastLate);
         this.dayInProgress = false;
         this.simPatch = true;
         try {
@@ -7076,6 +7087,7 @@ export class Game {
     } finally {
       this.dayInProgress = false;
       this.busy = false;
+      this.pooledRun = false;
       this.flushAfterDay();
       this.finishSimulation?.();
       this.finishSimulation = undefined;
@@ -7086,13 +7098,90 @@ export class Game {
     }
   }
 
+  // One day with its ordinary games played in the background (gamePool.ts). Pauses as runCooperatively does (8 ms
+  // slices); results go back to the day in schedule order as they arrive, while later games are still being played. A
+  // game whose worker failed is played here instead. The redraw of the last day happens while this day's games are
+  // being played (liveRedraw), when the page would otherwise sit waiting.
+  private async runPooledDay(steps: Iterator<void | DayStep, any, any>, pool: GamePool) {
+    let start = performance.now(),
+      input: any,
+      jobs: ({ home: SimTeam; away: SimTeam } | null)[] = [],
+      pending: (Promise<Played | null> | null)[] = [],
+      last = -1;
+    for (;;) {
+      const next = this.simulationStep(steps, input);
+      input = undefined;
+      if (next.done) return next.value;
+      const v = next.value as DayStep | void;
+      if (v && 'games' in v) {
+        jobs = v.games;
+        const norms = this.db.norms;
+        pending = jobs.map(j => (j ? pool.play(j.home, j.away, norms).catch(() => null) : null));
+        last = jobs.reduce((x, j, i) => (j ? i : x), -1);
+        this.liveRedraw();
+        continue;
+      }
+      if (v && 'await' in v) {
+        const got = await pending[v.await];
+        let r = got?.res;
+        if (!r) {
+          const j = jobs[v.await]!;
+          r = new GameSim(j.home, j.away, { record: true, norms: this.db.norms }).run(); // the worker failed: play it here
+        }
+        // How long the day's last result waited for the page (it held the day up by that much).
+        if (v.await === last && got?.at != null) this.lastLate = Math.max(0, performance.timeOrigin + performance.now() - got.at);
+        input = r;
+        start = performance.now();
+        continue;
+      }
+      if (performance.now() - start >= 8) {
+        await yieldToBrowser();
+        start = performance.now();
+      }
+    }
+  }
+  // Redraws while games are played in the background (2026-11-25): after every simulated day while that costs the sim
+  // nothing, else every k days. It measures itself with each worker's finishing time: a day ends when its last result
+  // is recorded, so a redraw that makes that result wait (late) held the whole sim up by that much. Measured against
+  // days without a redraw (the baseline, sampled every sixth day when it redraws daily), k is set so redraws cost
+  // at most LIVE_COST of the sim's time, and comes back down to every day when they cost nothing.
+  private pooledRun = false;
+  private lastLate: number | null = null;
+  live = { k: 1, since: 0, n: 0, drew: false, base: 0, extra: 0 };
+  // The share of the sim's time redraws may take (2026-11-25). Playing games in the background made sims about 25%
+  // faster on 4 cores (measured); redraws spend part of that, so a sim is still faster than playing on the page.
+  static LIVE_COST = 0.12;
+  private liveRedraw() {
+    const L = this.live;
+    if (!this.pendingEmit) return;
+    if (++L.since < L.k) return;
+    if (L.k === 1 && ++L.n % 6 === 0) return; // now and then a day without one: the baseline
+    L.since = 0;
+    L.drew = true;
+    this.lastEmit = Date.now();
+    this.pendingEmit = false;
+    this.listeners.forEach(l => l());
+  }
+  notePooledDay(dayMs: number, late: number) {
+    const L = this.live;
+    if (L.drew) {
+      L.extra = L.extra * 0.6 + Math.max(0, late - L.base) * 0.4; // what a redraw holds the day up
+      L.k = Math.max(1, Math.min(30, Math.ceil(L.extra / (Game.LIVE_COST * dayMs))));
+    } else L.base = L.base * 0.7 + late * 0.3;
+    L.drew = false;
+  }
   simDay(s, forced: GameResult | undefined, left: number) {
     const steps = this.simDaySteps(s, forced, left);
     let next = steps.next();
     while (!next.done) next = steps.next();
     return next.value;
   }
-  *simDaySteps(s, forced: GameResult | undefined, left: number): Generator<void, any, unknown> {
+  // `pooled` (2026-11-25, Game.sim with gamePool.ts): the day's ordinary games are played by background workers. The
+  // generator then yields one DayGames request with every such game's two teams, built where the day's first game
+  // would start (each team plays once a day, so no game changes another's teams: checked on 1,680 teams, identical),
+  // and for each of those games a DayAwait for its result, which the driver passes back in; everything else, and every
+  // result's recording, is unchanged. Your Live Game and God Mode's forced wins are still played here.
+  *simDaySteps(s, forced: GameResult | undefined, left: number, pooled = false): Generator<void | DayStep, any, any> {
     if (s.phase !== 'regular' || this.gamesPlayed(s) >= 82) return null;
     const day = s.day,
       games = this.db.days[day];
@@ -7153,13 +7242,20 @@ export class Game {
       mins: Record<number, number> = {};
     if (this.db.calendarV && games.length) this.healCal(cur, rosters);
     yield;
-    for (const [h, a] of games) {
-      const pick = (s.godWin || {})[this.Y + ':' + day + ':' + h + ':' + a];
-      const res =
-        forced && forced.home.tid === h && forced.away.tid === a
-          ? forced
-          : pick != null
-            ? yield* this.playFixedSteps(cur, h, a, pick)
+    const pickOf = (h: number, a: number) => (s.godWin || {})[this.Y + ':' + day + ':' + h + ':' + a],
+      forcedHere = (h: number, a: number) => !!forced && forced.home.tid === h && forced.away.tid === a,
+      plain = games.map(([h, a]) => !forcedHere(h, a) && pickOf(h, a) == null);
+    if (pooled && plain.some(Boolean))
+      yield { games: games.map(([h, a], i) => (plain[i] ? { home: this.simTeam(cur, h), away: this.simTeam(cur, a) } : null)) };
+    for (let gi = 0; gi < games.length; gi++) {
+      const [h, a] = games[gi],
+        pick = pickOf(h, a);
+      const res: GameResult = forcedHere(h, a)
+        ? forced!
+        : pick != null
+          ? yield* this.playFixedSteps(cur, h, a, pick)
+          : pooled
+            ? yield { await: gi }
             : yield* this.playGameSteps(cur, h, a);
       this.addBox(res, false, touched, mins, cur);
       const bid = this.keepBox(res, day);

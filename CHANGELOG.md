@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-25
+
+### Changed
+- **Sims are faster and show every game.** While you sim several days, the games themselves are now played in the background on your computer's other processor cores, and the game records every result exactly as before. Measured on a 4-core computer over two simulated months: sims finished 15–25% faster on every screen, and the screen refreshed about 5 times as often. A player's profile showed his games-played count go 1, 2, 3 … one game at a time (it used to jump by three or four). Light screens (the Dashboard, the Roster, a profile) now refresh after almost every simulated day, and heavier ones (League stats every 2–3 days, League leaders every 4) as often as they can without slowing the sim. The game measures what each refresh costs and keeps it well inside the time it saves. On a computer with only 1 or 2 cores, sims work as before.
+
 ## 2026-11-24
 
 ### Changed
