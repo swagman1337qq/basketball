@@ -1,6 +1,14 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-C4f1Kiba.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-D4PZOyL0.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
+
+## 2026-11-26
+
+### Changed
+- **Sims refresh after each game on light screens.** On the Dashboard, the Roster and a player's profile, the screen can now refresh in the middle of a simulated day, as each game is recorded, while the page would otherwise sit waiting for the next result. Over two simulated months the Dashboard and profiles refreshed about 1.7 times as often as yesterday's version, and sims were just as fast. Heavier screens (League stats, League leaders) refresh as before.
+
+### Fixed
+- **A team's playing style now follows its players' current ratings.** The coaching staff's read of what its top eight do best was remembered by who they were and their overalls only, so a player whose ratings changed without moving his rounded overall left the team on its old style until something else changed. Opening a second league in the same session could also pick up the first league's styles. Every rating is now part of it.
 
 ## 2026-11-25
 
