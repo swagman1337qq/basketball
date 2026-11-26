@@ -27,6 +27,7 @@ import { coachBioDraft, saveCoachBio } from '../src/ui/coachEditing';
 import { coachFaceData } from '../src/ui/CoachFace';
 import { faceSvg } from '../src/engine/faces';
 import { PORTRAIT_MODE } from '../src/engine/portraitMode';
+import { hairRootFit, hairLengthSourceY, visibleEar } from '../src/engine/portraitHairFit';
 assert.equal(FULL_HEADS.length, 64);
 assert.equal(FULL_HEADS.filter(h => h.gender === 'man').length, 48);
 assert.equal(FULL_HEADS.filter(h => h.gender === 'woman').length, 16);
@@ -179,7 +180,47 @@ assert.notDeepEqual(
 for (const hairLength of [-1, 1]) {
   const changed = paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, hairLength });
   assert.deepEqual(changed.pixels.slice(0, 110 * 320 * 4), rooted.pixels.slice(0, 110 * 320 * 4), 'Hair length cannot move the crown');
+  assert.deepEqual(
+    changed.pixels.slice(0, 185 * 320 * 4),
+    rooted.pixels.slice(0, 185 * 320 * 4),
+    'Hair length cannot move the temples, ears or attachment',
+  );
   assert.notDeepEqual(changed.pixels.slice(160 * 320 * 4), rooted.pixels.slice(160 * 320 * 4), 'The free hair ends still change length');
+}
+for (const length of [-1, 0, 1])
+  for (const y of [65, 110, 135, 155, 175, 185])
+    assert.equal(hairLengthSourceY(y, length, 151), y, 'Only loose ends below the ears change length');
+const earedHead = new Uint8ClampedArray(testHead);
+for (let y = 145; y <= 182; y++)
+  for (const [left, right] of [
+    [108, 123],
+    [197, 212],
+  ])
+    for (let x = left; x <= right; x++) earedHead.set([220, 160, 100, 255], (y * 320 + x) * 4);
+const earBare = paintFullPixels({ head: earedHead }, hairConfig),
+  earFit = hairRootFit(earedHead, testHair);
+assert.equal(visibleEar(112, 167, earFit, 151), 1);
+for (const hair of ['locsUp', 'longPonytail', 'quiff', 'wolf', 'crew']) {
+  const result = paintFullPixels({ head: earedHead, hair: testHair }, { ...hairConfig, hair });
+  for (const x of [112, 208]) {
+    const i = (167 * 320 + x) * 4;
+    assert.deepEqual(
+      result.pixels.slice(i, i + 3),
+      earBare.pixels.slice(i, i + 3),
+      'A tucked hairstyle preserves the complete visible ear',
+    );
+    assert.equal(result.skin[167 * 320 + x], 1, 'Visible ear skin remains available for aligned jewelry');
+  }
+}
+const contaminatedScalp = new Uint8ClampedArray(testHair);
+for (let x = 10; x < 310; x++) contaminatedScalp.set([150, 140, 130, 255], (225 * 320 + x) * 4);
+for (const hair of ['balding', 'baldingBuzz', 'shaved']) {
+  const result = paintFullPixels({ head: earedHead, hair: contaminatedScalp }, { ...hairConfig, hair });
+  assert.deepEqual(
+    result.pixels.slice(180 * 320 * 4),
+    earBare.pixels.slice(180 * 320 * 4),
+    'Sparse scalp art cannot stretch fragments across the face or neck',
+  );
 }
 const balding = paintFullPixels({ head: testHead, hair: testHair }, { ...hairConfig, hair: 'balding' });
 assert.deepEqual(

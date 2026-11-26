@@ -338,5 +338,48 @@
       "ratingResults": "PASS; byte-for-byte equal to previous version",
       "format": "Full project formatter run; unrelated formatting restored."
     }
+  },
+  "hairRootFitting": {
+    "date": "2026-11-26",
+    "status": "PASS",
+    "scope": "Temples and visible ears registered to each head; loose-end length; closed tied-up roots; scalp-only sparse hair. Source sheets and saves unchanged.",
+    "artwork": {
+      "rendered": 2880,
+      "earChecks": 32280,
+      "rootChecks": 1024,
+      "scalpChecks": 192,
+      "failures": [],
+      "failureCount": 0,
+      "browserErrors": [],
+      "status": "PASS"
+    },
+    "drawBenchmark": {
+      "cases": 384,
+      "before": {
+        "median": 4.5,
+        "p95": 6.5,
+        "max": 62.30000000447035
+      },
+      "after": {
+        "median": 5.299999997019768,
+        "p95": 7.799999997019768,
+        "max": 13.200000002980232
+      }
+    },
+    "cache": "Weak caches of immutable head/hair silhouettes and per-row fitting maps; one existing drawing job per animation frame.",
+    "regressionChecks": 50,
+    "typecheck": "PASS",
+    "build": "PASS",
+    "sourceArtUnchanged": true,
+    "savedSelectionsPreserved": true,
+    "buzzRendererUnchanged": true,
+    "gameRegression": {
+      "leagueSeasons": 6,
+      "exactPreviousSeasonValues": true,
+      "brokenInvariants": 0,
+      "preExistingOutlier": "Seed 11 / 2027 worst record remains 9/82 (.110), below .12 band; unchanged.",
+      "ratingGames": 100000,
+      "ratings": "PASS, byte-for-byte equal to previous version"
+    }
   }
 }

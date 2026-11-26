@@ -2,6 +2,7 @@
 // map: no cut-and-paste eyes, no procedural replacement head.
 import { FULL_SIZE as W, FULL_HAIR_COLORS, FULL_DYES, FULL_EYE_COLORS, fullHead, type FullPortraitSettings } from './fullPortraits';
 import { mulberry32 } from './rng';
+import { hairRootFit, hairLengthSourceY, hairRootSourceX, hairRootRaster, scalpHairSourceX, type HairRootFit } from './portraitHairFit';
 const N = W * W,
   G = 160,
   GN = G * G,
@@ -682,6 +683,69 @@ function paintBuzz(
       }
     }
 }
+const tuckedRoots = new Set([
+  'crop',
+  'crew',
+  'fade',
+  'caesar',
+  'waves',
+  'curlyTop',
+  'slick',
+  'quiff',
+  'spiky',
+  'undercut',
+  'hightop',
+  'flattop',
+  'locsUp',
+  'cornrows',
+  'bun',
+  'manbun',
+  'ponytail',
+  'longPonytail',
+  'balding',
+  'baldingBuzz',
+  'shaved',
+]);
+function paintHairRoots(
+  out: Uint8ClampedArray,
+  head: Uint8ClampedArray,
+  hair: Uint8ClampedArray,
+  p: FullPortraitSettings,
+  age: number,
+  roots: HairRootFit,
+  skin: Uint8Array,
+  framing: Uint8Array,
+) {
+  const f = portraitLandmarks(p.base),
+    sourceFront = verticalBounds(hair).front;
+  const grey = Math.max(p.grey, p.ageAuto && !p.greyManual ? fullClamp((age - 34) / 65) * 0.65 : 0),
+    natural = mix(rgb(FULL_HAIR_COLORS[p.natural][1]), [185, 183, 178], grey),
+    dye = p.dye === 'none' ? null : rgb(FULL_DYES[p.dye][1]),
+    recede = Math.max(p.recede, p.ageAuto && !p.recedeManual ? fullClamp((age - 36) / 85) * 0.55 : 0);
+  for (let x = 70; x <= 250; x++) {
+    const sx = hairRootSourceX(x, W * 0.38, roots, f.eye),
+      u = Math.abs((x - roots.targetCx) / roots.scalp.half);
+    let edge = Math.min(sourceFront[Math.round(fullClamp(sx, 0, W - 1))] * W - 1, f.brow - 5) - recede * 23;
+    if (p.hairline === 'straight' || p.hairline === 'shapeup') edge = Math.min(edge, f.brow - 13);
+    if (p.hairline === 'peak') edge -= 8 * fullClamp(u);
+    if (p.hairline === 'round') edge -= 8 * fullClamp(u) ** 2;
+    for (let y = roots.scalp.top; y <= f.brow - 4; y++) {
+      const n = y * W + x,
+        i = n * 4;
+      if (!roots.scalp.mask[n]) continue;
+      const a = 0.96 * (1 - smooth(edge - 1.5, edge + 0.5, y));
+      if (!a) continue;
+      const light = (head[i] * 0.2126 + head[i + 1] * 0.7152 + head[i + 2] * 0.0722) / 255;
+      const grain = ((Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ p.seed) >>> 0) / 4294967295;
+      const tint = dye && p.dyeKind === 'full' ? dye : natural;
+      for (let k = 0; k < 3; k++) out[i + k] = out[i + k] * (1 - a) + (tint[k] * (0.65 + light * 0.35) + 4 + grain * 5) * a;
+      if (a > 0.2) {
+        skin[n] = 0;
+        framing[n] = 1;
+      }
+    }
+  }
+}
 function overlay(
   out: Uint8ClampedArray,
   src: Uint8ClampedArray,
@@ -692,8 +756,13 @@ function overlay(
   cap = { scale: 1, offset: 0 },
   beard?: ReturnType<typeof beardFit>,
   framing?: Uint8Array,
+  roots?: HairRootFit,
 ) {
   const isHair = part === 'hair',
+    eye = portraitLandmarks(p.base).eye,
+    rootMap = roots ? hairRootRaster(roots, eye) : undefined,
+    tucked = isHair && tuckedRoots.has(p.hair),
+    scalpOnly = ['balding', 'baldingBuzz', 'shaved'].includes(p.hair),
     grey = isHair
       ? Math.max(p.grey, p.ageAuto && !p.greyManual ? fullClamp((age - 34) / 65) * 0.65 : 0)
       : Math.max(p.beardGrey, p.ageAuto && !p.beardGreyManual ? fullClamp((age - 37) / 65) * 0.65 : 0);
@@ -710,12 +779,14 @@ function overlay(
         sx = 160.5 + (x - beard.centre) / beard.scaleX;
       }
       if (isHair) {
-        sx = x - cap.offset;
+        if (scalpOnly && y > eye + 22) continue;
+        sx = roots && rootMap && !scalpOnly ? roots.sourceCx + (x - roots.targetCx) * rootMap.sourceScale[y] : x - cap.offset;
         // Length changes the free ends below the roots, never the cap above them.
         // The cap's registration stays the same at every length setting.
         const anchor = 0.38 * W;
-        sy = anchor + (y - anchor) / (y < anchor ? cap.scale : 1 + p.hairLength * 0.15);
+        sy = y < anchor ? anchor + (y - anchor) / cap.scale : hairLengthSourceY(y, p.hairLength, eye);
         sy -= p.sideburns * W * 0.024 * smooth(0.44, 0.56, y / W) * smooth(0.08, 0.17, Math.abs(x / W - 0.5));
+        if (roots && scalpOnly) sx = scalpHairSourceX(x, y, sy, roots);
       }
       if (sy < 0 || sy >= W || sx < 0 || sx >= W) continue;
       const si = (Math.round(fullClamp(sy, 0, W - 1)) * W + Math.round(fullClamp(sx, 0, W - 1))) * 4,
@@ -729,6 +800,15 @@ function overlay(
         a *= 1 - nose * (1 - smooth(beard.lip - 11, beard.lip - 8, y));
       }
       if (isHair && p.hair === 'mohawk') a *= 1 - smooth(W * 0.065, W * 0.105, Math.abs(sx - W * 0.5));
+      if (isHair && roots && rootMap) {
+        // Tuck roots behind the complete painted ear, avoiding detached pale
+        // fragments while leaving long outside strands and ponytails visible.
+        a *= 1 - roots.scalp.mask[y * W + x] * rootMap.earX[x] * rootMap.earY[y];
+        if (scalpOnly) a *= roots.scalp.mask[y * W + x];
+        if (tucked) {
+          a *= 1 - rootMap.templeY[y] * rootMap.templeX[x];
+        }
+      }
       if (!isHair && beard?.clipped) {
         const t = fullClamp((y - (beard.lip - 10)) / (beard.chin - (beard.lip - 10))),
           width = 12 + (beard.half - 12) * Math.sqrt(Math.max(0, 1 - t ** 1.3));
@@ -842,7 +922,11 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
   if (assets.hair) {
     if (p.hair === 'buzz') paintBuzz(out, assets.head, p, age, skin, foreground);
     else {
-      const fit = crownFit(assets.head, assets.hair);
+      const fit = crownFit(assets.head, assets.hair),
+        roots = hairRootFit(assets.head, assets.hair);
+      if (['locsUp', 'manbun', 'bun', 'ponytail', 'longPonytail', 'slick'].includes(p.hair)) {
+        paintHairRoots(out, assets.head, assets.hair, p, age, roots, skin, foreground);
+      }
       overlay(
         out,
         assets.hair,
@@ -853,6 +937,7 @@ export function paintFullPixels(assets: FullPixels, p: FullPortraitSettings, age
         ['balding', 'baldingBuzz'].includes(p.hair) ? { ...fit, scale: 1 } : fit,
         undefined,
         foreground,
+        roots,
       );
     }
   }
