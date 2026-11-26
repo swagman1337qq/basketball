@@ -403,6 +403,7 @@ export function midSeasonFirings(g: Game, s: any, day: number): CarouselOut {
     const tn = T.region + ' ' + T.name,
       rec = T.w + '–' + T.l;
     hc.h = [...(hc.h || []).filter(r => r[0] !== Y), [Y, tid, 3, 0, T.w, T.l, 1]]; // his part of the season (coachRows)
+    if (hc.pid != null) hc.rep = repOf(g, hc);
     letGo(g, s, hc, tid, true);
     (hc as any).lastMiss = 'was fired ' + rec + ' into the season';
     preserveCoachCareer(g, s, lead);

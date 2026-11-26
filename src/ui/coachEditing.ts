@@ -3,7 +3,17 @@ import type { Game } from '../engine/Game';
 import { randomName } from '../data/heritage';
 import { FACE_LOOKS } from '../engine/faces';
 import { playRows, preserveCoachCareer, syncHeadCoaches, WOMENS_LEAGUE, type PlayRow } from '../engine/coachCareer';
-import { godAppoint, godEditCoach, fireCoach, repOf, ROLE_ORDER, type Coach, type CoachRole } from '../engine/staff';
+import {
+  coachedSeasons,
+  coachYears,
+  godAppoint,
+  godEditCoach,
+  fireCoach,
+  repOf,
+  ROLE_ORDER,
+  type Coach,
+  type CoachRole,
+} from '../engine/staff';
 
 export type EditableCoach = Coach & {
   bioFace?: boolean;
@@ -47,7 +57,7 @@ export const coachBioDraft = (g: Game, c: EditableCoach): CoachBioDraft => ({
   nat: c.nat,
   where: c.play.where || (c.pid != null ? g.db.P[c.pid]?.from?.team : '') || '',
   rep: c.rep,
-  years: Math.max(0, g.Y - c.since),
+  years: coachYears(g, c),
   fem: c.fem,
   faceSeed: c.faceSeed,
   faceX: c.faceX ? structuredClone(c.faceX) : undefined,
@@ -141,7 +151,8 @@ export function saveCoachBio(g: Game, id: number, draft: CoachBioDraft): string 
   c.race = draft.race;
   c.nat = draft.nat;
   if (c.play.k !== 'none') c.play.where = where || undefined;
-  c.since = g.Y - Math.round(draft.years);
+  if (c.pid != null) c.coachExpAdj = Math.round(draft.years) - coachedSeasons(g, c);
+  else c.since = g.Y - Math.round(draft.years);
   const previousRole = c.role;
   const jobChanged = c.tid !== draft.tid || (draft.tid != null && c.role !== draft.role);
   const contractChanged = c.amt !== draft.amt || c.exp !== draft.exp || JSON.stringify(c.next ?? null) !== JSON.stringify(draft.next);

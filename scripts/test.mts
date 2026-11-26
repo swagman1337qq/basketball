@@ -34,6 +34,7 @@ const SCRIPTS = [
   'injuryReturn',
   'coachWay',
   'coachYearRecord',
+  'coachExperience',
   'midSeason',
   'prospectPathways',
   'ratingCeilings',

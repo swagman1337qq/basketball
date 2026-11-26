@@ -428,6 +428,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Former players gained coaching experience while waiting for jobs.** Fixed 2026-11-26: `staff.ts` `coachedSeasons` counts distinct recorded coaching seasons for linked former players (`h`, plus any stored `past`/`pz` coaching history), including a recorded current season and excluding future/post-retirement rows. `coachYears` uses this count for their reputation, staff/profile displays and early-career growth. Generated coaches retain their existing outside-league career model. `ensureStaff` migrates old linked coaches once via `coachExpAdj`, recomputes reputation with playing fame and existing results offsets, and preserves signed contracts, salary-cap inflation and historical mailbox text. New retired players start with offset zero; God Mode biography edits set an explicit experience offset so edited years persist without accumulating idle seasons. The editor reads the same earned count. `scripts/coachExperience.mts` covers the supplied failure shape (14 calendar years, one actual job season), duplicate/split seasons, retirement/future rows, genuine generated careers, actual AI hiring, inflation, idempotent migration, contract/player-history isolation, old explicit experience edits and God Mode/save compatibility.
+
 - [x] **Draft Analytics sort reset on Back; class popups showed board ranks and omitted recorded picks.** Fixed 2026-11-25: per-class navigation preferences and a recorded-pick/player-metadata union; actual picks sort numerically.
 - [x] **Roster actions took several buttons and had no protected-player/trading-block controls.** Added 2026-11-25: three-dot Actions menu, team-scoped trade statuses and automatic rejection mail for untouchables.
 

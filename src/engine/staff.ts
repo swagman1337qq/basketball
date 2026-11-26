@@ -76,6 +76,7 @@ export interface Coach {
   rep: number; // reputation 0–100 (visible)
   play: { k: string; yrs: number; where?: string; tier?: number }; // playing background (phase 1 summary)
   since: number; // first season coaching
+  coachExpAdj?: number; // former players: explicit God Mode experience offset from recorded coaching seasons
   bg: string; // where he coached before (his last job outside your staff)
   tid: number | null; // the team he coaches for (null: available)
   role: CoachRole | null;
@@ -126,7 +127,28 @@ const bell = () => Math.random() + Math.random() + Math.random() - 1.5; // about
 const pick = <T>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const lfOf = (g: Game) => g.CAP / 165; // salaries grow with the cap
 export const coachAge = (g: Game, c: Coach) => g.Y - c.born;
-export const coachYears = (g: Game, c: Coach) => Math.max(0, g.Y - c.since);
+// A retired player's years in the available-coach pool are not coaching experience. Use the stored coaching
+// seasons (including a completed current season), counting a split season only once. Generated coaches keep
+// their existing outside-league careers; their experience model is unchanged.
+export function coachedSeasons(g: Game, c: Coach): number {
+  const seasons = new Set<number>(),
+    last = Math.min(g.Y, c.ret ?? g.Y);
+  const add = (y: number) => {
+    if (Number.isInteger(y) && y <= last) seasons.add(y);
+  };
+  c.h?.forEach(r => add(r[0]));
+  c.past?.forEach(r => add(r.season));
+  c.pz?.forEach(stint => stint[6].forEach((_, i) => add(stint[0] + i)));
+  return seasons.size;
+}
+export function coachYears(g: Game, c: Coach): number {
+  if (c.pid == null) return Math.max(0, g.Y - c.since);
+  const earned = coachedSeasons(g, c);
+  // Before this fix only the God Mode biography editor changed a linked player's starting year. Retain those
+  // old explicit edits at migration; afterwards only actual coaching seasons can add to the saved offset.
+  const adj = c.coachExpAdj ?? (c.made != null && c.since !== c.made ? Math.max(0, g.Y - c.since) - earned : 0);
+  return Math.max(0, earned + adj);
+}
 export const coachOvr = (c: Coach) => CR_KEYS.reduce((a, k) => a + c.r[k] * CR_W[k], 0);
 
 // ── Store ───────────────────────────────────────────────────────────────────────────
@@ -667,6 +689,10 @@ export function ensureStaff(g: Game) {
   Object.values(coachDb(g)).forEach(c => {
     preserveCoachCareer(g, s, c);
     if (c.past) storePast(c, c.past); // older saves: the rows become stints
+    if (c.pid != null && c.coachExpAdj == null) {
+      c.coachExpAdj = coachYears(g, c) - coachedSeasons(g, c);
+      c.rep = repOf(g, c); // discard unearned years, keep playing fame and the existing results / God Mode offset
+    }
     activateExtension(c, g.Y);
   });
   bump(g);

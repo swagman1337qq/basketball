@@ -64,6 +64,7 @@ export function coachFromPlayer(g: Game, p: any): Coach {
     born: g.Y - p.age,
     pid: p.id,
     since: g.Y,
+    coachExpAdj: 0,
     bg: 'Just retired as a player',
     play:
       seasons > 0
@@ -143,6 +144,7 @@ export function staffSeason(g: Game, s: any) {
     c.h.push(
       at && T ? [Y, c.tid, ROLE_CODE[c.role], 0, T.w - at.w, T.l - at.l] : [Y, c.tid, ROLE_CODE[c.role], g.isUser(s, c.tid) ? 1 : 0],
     );
+    if (c.pid != null) c.rep = repOf(g, c); // the newly recorded experience is available to this summer's hiring
   });
   // Coach of the Year (head coaches only; you on your teams).
   const top = s.awards?.[Y]?.coy?.[0];
@@ -456,7 +458,8 @@ export function coachRows(g: Game, s: any, c: Coach): CoachRow[] {
   const gm = s.gm?.name || 'you';
   const lastGen = rows[rows.length - 1],
     everHere = (c.h || []).length > 0;
-  for (let y = Math.max(made, c.since); y <= (c.ret ?? g.Y); y++) {
+  // Explicit experience edits must not hide a former player's recorded jobs, including edits in older saves.
+  for (let y = c.pid != null ? made : Math.max(made, c.since); y <= (c.ret ?? g.Y); y++) {
     const r = stored.get(y),
       cur = y === g.Y && c.tid != null && !c.ret && !r;
     if (!r && !cur) {
