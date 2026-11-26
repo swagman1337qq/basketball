@@ -1,10 +1,11 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-D3ulCfOb.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-BbK9wUXx.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-26
 
 ### Added
+- **More distinct illustrated faces.** The portrait catalogue now has 64 painted base faces instead of 16, with broader face shapes and mixed backgrounds for players and staff. Automatic portraits also vary eyes, eyebrows, expressions, noses and lips. Individual face editing and saved custom portraits stay available.
 - **Tell your assistant GM to reject every trade offer.** On Staff, enable Reject all trade offers to automatically decline incoming player and pick offers, including ones already waiting. Rejected offers stay in your Mailbox. The setting saves separately for each team you manage.
 
 ### Changed
