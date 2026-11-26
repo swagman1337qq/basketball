@@ -1,8 +1,15 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-CLVe1XVS.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-C4f1Kiba.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
 ## 2026-11-25
+
+### Fixed
+- **Draft sorting and class records.** Analytics sorting now stays selected when you open a prospect and go Back. Profile draft-class lists show sortable actual overall picks, and include recorded players even when their old class entry is missing or their saved prospect year is stale.
+- **Age edits update college careers.** Changing a player's age in God Mode now adds or removes college seasons, including for players already drafted. A one-year college player aged from 19 to 24 gets four more played seasons, with the extra calendar year shown as a redshirt. Existing season numbers stay the same; aging down hides earlier years and aging back up restores them. Imported records stay intact, and any added seasons are labeled.
+
+### Added
+- **Roster trade preferences.** The Actions column now uses a three-dot menu for trades, cuts and contract conversions. Check Untouchable to automatically reject offers for that player and keep the rejected offer in your Mailbox. Check Trading block to let teams target him in offers. The choices are mutually exclusive and clear when he leaves your team.
 
 ### Changed
 - **Sims are faster and show every game.** While you sim several days, the games themselves are now played in the background on your computer's other processor cores, and the game records every result exactly as before. Measured on a 4-core computer over two simulated months: sims finished 15–25% faster on every screen, and the screen refreshed about 5 times as often. A player's profile showed his games-played count go 1, 2, 3 … one game at a time (it used to jump by three or four). Light screens (the Dashboard, the Roster, a profile) now refresh after almost every simulated day, and heavier ones (League stats every 2–3 days, League leaders every 4) as often as they can without slowing the sim. The game measures what each refresh costs and keeps it well inside the time it saves. On a computer with only 1 or 2 cores, sims work as before.
