@@ -72,9 +72,10 @@ function schedule() {
       if (!value) {
         const h = fullHair(j.config.hair),
           b = fullBeard(j.config.facial),
+          head = fullHead(j.config.base)!,
           outfit = ['polo', 'suit', 'blouse', 'tie'].indexOf(j.config.outfit);
         const data = await Promise.all([
-          frame('heads', fullHead(j.config.base)!.index),
+          frame(head.sheet, head.cell),
           h.sheet ? frame(h.sheet, h.index) : null,
           b.sheet ? frame(b.sheet, b.index) : null,
           outfit >= 0 ? frame('clothes', outfit) : null,
@@ -105,8 +106,9 @@ export function FullPortraitFallback({ config }: { config: FullPortraitSettings 
     [failed, setFailed] = useState(false),
     h = fullHair(config.hair),
     b = fullBeard(config.facial),
+    head = fullHead(config.base)!,
     outfit = ['polo', 'suit', 'blouse', 'tie'].indexOf(config.outfit);
-  const layers: { sheet: FullSheet; index: number }[] = [{ sheet: 'heads', index: fullHead(config.base)!.index }];
+  const layers: { sheet: FullSheet; index: number }[] = [{ sheet: head.sheet, index: head.cell }];
   if (outfit >= 0) layers.push({ sheet: 'clothes', index: outfit });
   if (b.sheet) layers.push({ sheet: b.sheet, index: b.index });
   if (h.sheet) layers.push({ sheet: h.sheet, index: h.index });

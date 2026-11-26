@@ -12,21 +12,19 @@ export type TattooSurface = {
   curve: number;
   taper: number;
 };
-const NECK_RADIUS = [43, 47, 44, 45, 44, 46, 45, 48, 45, 42, 46, 44, 40, 43, 40, 42];
-const FACE_RADIUS = [65, 69, 66, 68, 66, 69, 68, 70, 67, 64, 68, 66, 63, 66, 63, 65];
 const LIMIT = 1.48;
 const SIN_LIMIT = Math.sin(LIMIT),
   COS_LIMIT = Math.cos(LIMIT);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 export function tattooSurface(p: FullPortraitSettings, neck = false, side = 0): TattooSurface {
   const f = portraitLandmarks(p.base),
-    index = fullHead(p.base)!.index;
+    head = fullHead(p.base)!;
   if (neck)
     return {
       cx: f.cx,
       cy: f.chin + 25,
-      radius: NECK_RADIUS[index],
-      angle: Math.asin((side * 27) / NECK_RADIUS[index]),
+      radius: head.neckRadius,
+      angle: Math.asin((side * 27) / head.neckRadius),
       curve: 14,
       taper: 0.003,
     };
@@ -36,7 +34,7 @@ export function tattooSurface(p: FullPortraitSettings, neck = false, side = 0): 
     eye = place.endsWith('Eye'),
     forehead = place === 'forehead',
     x = forehead ? 0 : s * (temple ? 53 : eye ? 34 : 40),
-    radius = FACE_RADIUS[index] + (forehead ? 10 : 0);
+    radius = head.faceRadius + (forehead ? 10 : 0);
   return {
     cx: f.cx,
     cy: forehead ? f.brow - 25 : temple ? f.eye - 8 : eye ? f.eye + 17 : f.nose + 8,

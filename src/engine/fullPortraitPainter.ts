@@ -392,27 +392,8 @@ const BEARD_ANCHORS: Record<string, [number, number, number]> = {
   pencil: [172, 0, 0],
   longGoatee: [171, 257, 20],
 };
-// Mustache centre just above the upper lip, and bottom of the chin, in the base art.
-const FACE_ANCHORS = [
-  [201, 248],
-  [198, 249],
-  [198, 249],
-  [198, 247],
-  [200, 248],
-  [198, 249],
-  [197, 246],
-  [198, 250],
-  [202, 250],
-  [200, 248],
-  [200, 250],
-  [199, 248],
-  [205, 251],
-  [204, 253],
-  [205, 251],
-  [204, 252],
-];
 export function portraitLandmarks(base: string) {
-  const [lip, chin] = FACE_ANCHORS[fullHead(base)!.index];
+  const { lip, chin } = fullHead(base)!;
   return { cx: 160, lip, mouth: lip + 11, nose: lip - 12, eye: lip - 50, brow: lip - 69, chin };
 }
 const bandFits = new WeakMap<Uint8ClampedArray, { cx: number; half: number }>();
@@ -559,13 +540,13 @@ function paintHeadband(
     }
   }
 }
-const faceFits = new WeakMap<Uint8ClampedArray, Map<number, { centre: number; half: number; lip: number; chin: number }>>();
-function faceFit(head: Uint8ClampedArray, index: number) {
+const faceFits = new WeakMap<Uint8ClampedArray, Map<string, { centre: number; half: number; lip: number; chin: number }>>();
+function faceFit(head: Uint8ClampedArray, base: string) {
   let fits = faceFits.get(head);
   if (!fits) faceFits.set(head, (fits = new Map()));
-  const old = fits.get(index);
+  const old = fits.get(base);
   if (old) return old;
-  const [lip, chin] = FACE_ANCHORS[index],
+  const { lip, chin } = portraitLandmarks(base),
     lefts: number[] = [],
     rights: number[] = [];
   for (let y = lip + 3; y <= lip + 13; y += 2) {
@@ -591,11 +572,11 @@ function faceFit(head: Uint8ClampedArray, index: number) {
   const left = lefts[Math.floor(lefts.length / 2)] ?? 106,
     right = rights[Math.floor(rights.length / 2)] ?? 214,
     fit = { centre: (left + right) / 2, half: (right - left) / 2, lip, chin };
-  fits.set(index, fit);
+  fits.set(base, fit);
   return fit;
 }
 function beardFit(head: Uint8ClampedArray, p: FullPortraitSettings) {
-  const f = faceFit(head, fullHead(p.base)!.index),
+  const f = faceFit(head, p.base),
     a = BEARD_ANCHORS[p.facial] || BEARD_ANCHORS.stubble,
     target = p.facial === 'soulpatch' ? f.lip + 24 : p.facial === 'chinpuff' ? f.chin - 5 : f.lip,
     scaleY = a[1] ? (f.chin + a[2] - target) / (a[1] - a[0]) : p.facial === 'chinpuff' ? 0.8 : 0.85,

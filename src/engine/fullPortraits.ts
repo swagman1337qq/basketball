@@ -5,6 +5,9 @@ import { mulberry32 } from './rng';
 export const FULL_SIZE = 320;
 export const FULL_SHEETS = {
   heads: { url: new URL('../assets/illustrated/full/heads.webp', import.meta.url).href, cols: 4, rows: 4 },
+  heads2: { url: new URL('../assets/illustrated/full/heads2.webp', import.meta.url).href, cols: 4, rows: 4 },
+  heads3: { url: new URL('../assets/illustrated/full/heads3.webp', import.meta.url).href, cols: 4, rows: 4 },
+  heads4: { url: new URL('../assets/illustrated/full/heads4.webp', import.meta.url).href, cols: 4, rows: 4 },
   hair1: { url: new URL('../assets/illustrated/full/hair1.webp', import.meta.url).href, cols: 4, rows: 4 },
   hair2: { url: new URL('../assets/illustrated/full/hair2.webp', import.meta.url).href, cols: 4, rows: 4 },
   hair3: { url: new URL('../assets/illustrated/full/hair3.webp', import.meta.url).href, cols: 4, rows: 3 },
@@ -30,13 +33,130 @@ const headLooks = [
   { white: 1 },
   { brown: 0.5, white: 0.5 },
 ];
-export const FULL_HEADS = headLooks.map((looks, index) => ({
-  id: 'full-' + String(index + 1).padStart(2, '0'),
-  label: 'Head ' + String(index + 1).padStart(2, '0'),
-  index,
-  gender: index < 12 ? 'man' : 'woman',
-  looks: looks as Record<string, number | undefined>,
-}));
+// Keep the original IDs, artwork and authored registrations intact. A head's
+// global index is its identity; its sheet/cell identify the lazily loaded artwork.
+const originalAnchors = [
+  [201, 248],
+  [198, 249],
+  [198, 249],
+  [198, 247],
+  [200, 248],
+  [198, 249],
+  [197, 246],
+  [198, 250],
+  [202, 250],
+  [200, 248],
+  [200, 250],
+  [199, 248],
+  [205, 251],
+  [204, 253],
+  [205, 251],
+  [204, 252],
+];
+const originalNeckRadii = [43, 47, 44, 45, 44, 46, 45, 48, 45, 42, 46, 44, 40, 43, 40, 42];
+const originalFaceRadii = [65, 69, 66, 68, 66, 69, 68, 70, 67, 64, 68, 66, 63, 66, 63, 65];
+export interface FullHead {
+  id: string;
+  label: string;
+  index: number;
+  sheet: FullSheet;
+  cell: number;
+  gender: 'man' | 'woman';
+  looks: Record<string, number | undefined>;
+  lip: number;
+  chin: number;
+  neckRadius: number;
+  faceRadius: number;
+}
+const additionalLooks: Record<string, number>[][] = [
+  [
+    { black: 1 },
+    { dark: 1 },
+    { black: 0.5, dark: 0.5 },
+    { white: 1 },
+    { white: 1 },
+    { asian: 1 },
+    { asian: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { black: 0.5, asian: 0.5 },
+    { brown: 1 },
+    { asian: 1 },
+    { black: 1 },
+    { dark: 1 },
+    { white: 1 },
+  ],
+  [
+    { black: 1 },
+    { dark: 1 },
+    { black: 0.5, dark: 0.5 },
+    { white: 1 },
+    { white: 1 },
+    { asian: 1 },
+    { asian: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { black: 0.5, white: 0.5 },
+    { asian: 0.5, white: 0.5 },
+    { white: 1 },
+    { brown: 1 },
+    { asian: 1 },
+    { black: 0.5, asian: 0.5 },
+  ],
+  [
+    { black: 1 },
+    { dark: 1 },
+    { black: 0.5, dark: 0.5 },
+    { white: 1 },
+    { white: 1 },
+    { asian: 1 },
+    { asian: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { brown: 1 },
+    { black: 0.5, brown: 0.5 },
+    { asian: 0.5, brown: 0.5 },
+    { black: 1 },
+    { dark: 1 },
+    { brown: 1 },
+    { asian: 0.5, white: 0.5 },
+  ],
+];
+export const FULL_HEADS: FullHead[] = [
+  ...headLooks.map((looks, index): FullHead => ({
+    id: 'full-' + String(index + 1).padStart(2, '0'),
+    label: 'Head ' + String(index + 1).padStart(2, '0'),
+    index,
+    sheet: 'heads',
+    cell: index,
+    gender: index < 12 ? 'man' : 'woman',
+    looks,
+    lip: originalAnchors[index][0],
+    chin: originalAnchors[index][1],
+    neckRadius: originalNeckRadii[index],
+    faceRadius: originalFaceRadii[index],
+  })),
+  ...additionalLooks.flatMap((bank, b) =>
+    bank.map((looks, cell): FullHead => {
+      const index = 16 + b * 16 + cell;
+      return {
+        id: 'full-' + String(index + 1).padStart(2, '0'),
+        label: 'Head ' + String(index + 1).padStart(2, '0'),
+        index,
+        sheet: (['heads2', 'heads3', 'heads4'] as const)[b],
+        cell,
+        gender: cell < 12 ? 'man' : 'woman',
+        looks,
+        lip: cell < 12 ? 200 : 204,
+        chin: cell < 12 ? 250 : 252,
+        neckRadius: cell < 12 ? 45 : 42,
+        faceRadius: cell < 12 ? 68 : 65,
+      };
+    }),
+  ),
+];
 const partList = (sheet: FullSheet, entries: string[][]) => entries.map(([id, label], index) => ({ id, label, sheet, index }));
 export const FULL_HAIR = [
   { id: 'bald', label: 'Shaved bald', sheet: null, index: -1 },
@@ -734,6 +854,32 @@ export function newFullPortrait(f: any, seed: number, context: 'player' | 'staff
     'earSize',
   ] as const)
     p[k] = Math.round((rnd() - 0.5) * 0.8 * 100) / 100 || 0;
+  // Automatic portraits used to leave every person with the same eye, brow and
+  // expression presets and unvaried lips/bridge/tip. Honour the person's seeded
+  // face description where available, with local-RNG fallbacks for raw rerolls.
+  const choice = (key: 'eyes' | 'brows' | 'expr', source: unknown, weights: Record<string, number>) =>
+    FULL_OPTIONS[key].some(([id]) => id === source) ? String(source) : weightedChoice(rnd, weights);
+  p.eyes = choice(
+    'eyes',
+    f.eyes?.shape,
+    hair.look === 'asian'
+      ? { almond: 26, round: 10, hooded: 14, monolid: 32, deepset: 4, downturned: 6, upturned: 8 }
+      : { almond: 30, round: 16, hooded: 16, monolid: 3, deepset: 13, downturned: 10, upturned: 12 },
+  );
+  p.brows = choice('brows', f.brows?.shape, { straight: 24, soft: 26, arched: 14, angled: 12, flat: 12, bushy: 12 });
+  p.expr = choice('expr', f.expr, { serious: 32, slight: 25, relaxed: 24, smile: 8, mean: 4, smirk: 7 });
+  const detail = (source: unknown) =>
+    Math.round((Number.isFinite(source) ? (clamp(Number(source), 0, 1) - 0.5) * 0.8 : (rnd() - 0.5) * 0.7) * 100) / 100 || 0;
+  p.noseBridge = detail(f.nose?.bridge);
+  p.noseTip = detail(f.nose?.tip);
+  p.upperLip = detail(f.mouth?.upper);
+  p.lowerLip = detail(f.mouth?.lower);
+  p.earsOut = detail(f.ears?.out);
+  p.browWeight = Math.round((rnd() - 0.5) * 0.6 * 100) / 100 || 0;
+  p.tilt = Math.round((rnd() - 0.5) * 0.5 * 100) / 100 || 0;
+  p.skinTone = Math.round((rnd() - 0.5) * 0.16 * 100) / 100 || 0;
+  p.hairLength = Math.round((rnd() - 0.5) * 0.6 * 100) / 100 || 0;
+  p.cleft = typeof f.head?.cleft === 'boolean' ? f.head.cleft : rnd() < 0.07;
   return p;
 }
 export function randomFullFeatures(current: FullPortraitSettings, seed: number, face?: any): FullPortraitSettings {

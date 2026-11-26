@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { HAIR_STYLES, FACE_OPTS, makeFace } from '../src/engine/faces';
 import {
   FULL_HEADS,
+  FULL_SHEETS,
   FULL_HAIR,
   FULL_BEARDS,
   FULL_OPTIONS,
@@ -26,7 +27,19 @@ import { coachBioDraft, saveCoachBio } from '../src/ui/coachEditing';
 import { coachFaceData } from '../src/ui/CoachFace';
 import { faceSvg } from '../src/engine/faces';
 import { PORTRAIT_MODE } from '../src/engine/portraitMode';
-assert.equal(FULL_HEADS.length, 16);
+assert.equal(FULL_HEADS.length, 64);
+assert.equal(FULL_HEADS.filter(h => h.gender === 'man').length, 48);
+assert.equal(FULL_HEADS.filter(h => h.gender === 'woman').length, 16);
+for (const [index, head] of FULL_HEADS.entries()) {
+  assert.equal(head.index, index);
+  assert.equal(head.id, 'full-' + String(index + 1).padStart(2, '0'));
+  assert(head.cell >= 0 && head.cell < FULL_SHEETS[head.sheet].cols * FULL_SHEETS[head.sheet].rows);
+  assert(head.lip >= 190 && head.lip <= 212 && head.chin >= 240 && head.chin <= 265);
+  if (index < 16) {
+    assert.equal(head.sheet, 'heads', 'Existing saved identities keep their original sheet');
+    assert.equal(head.cell, index);
+  }
+}
 assert.equal(FULL_HAIR.length, 45);
 assert.equal(FULL_BEARDS.length, 17);
 for (const id of Object.keys(HAIR_STYLES))
@@ -256,6 +269,9 @@ try {
         assert.equal(p.outfit, fem ? 'blouse' : 'polo');
         assert.deepEqual(p, newFullPortrait(f, seed, 'staff'));
         assert.equal(p.texture, f.hair.tex);
+        assert.equal(p.eyes, f.eyes.shape, 'Automatic painted eyes retain the person’s varied seeded eye shape');
+        assert.equal(p.brows, f.brows.shape);
+        assert.equal(p.expr, f.expr);
       }
 } finally {
   Math.random = old;
@@ -276,6 +292,30 @@ for (let seed = 0; seed < 2000; seed++) {
 }
 assert.equal(hairSet.size, FULL_HAIR.length);
 assert.equal(sigs.size, 2000);
+// Check visible identity coverage within each appearance group, not just the
+// theoretical number of hair/accessory combinations across the whole catalogue.
+for (const race of ['white', 'black', 'dark', 'asian', 'brown'])
+  for (const fem of [false, true]) {
+    const counts = new Map<string, number>(),
+      eyes = new Set<string>(),
+      brows = new Set<string>(),
+      expressions = new Set<string>();
+    for (let seed = 1; seed <= 1000; seed++) {
+      const p = newFullPortrait({ race, fem, age: 26 }, seed);
+      counts.set(p.base, (counts.get(p.base) || 0) + 1);
+      eyes.add(p.eyes);
+      brows.add(p.brows);
+      expressions.add(p.expr);
+      assert.deepEqual(readFullPortrait(p), p);
+    }
+    const effectiveHeads = 1 / [...counts.values()].reduce((sum, n) => sum + (n / 1000) ** 2, 0);
+    assert(counts.size >= (fem ? 2 : 7), `${race}/${fem}: multiple distinct painted identities`);
+    assert(effectiveHeads >= (fem ? 1.8 : 5), `${race}/${fem}: no dominant repeated default face`);
+    assert(Math.max(...counts.values()) <= (fem ? 600 : 300), `${race}/${fem}: identity repetition stays bounded`);
+    assert.equal(eyes.size, 7);
+    assert.equal(brows.size, 6);
+    assert.equal(expressions.size, 6);
+  }
 // Appearance rules apply to initial conversion, editor shuffle and raw-player rerolls.
 // They never alter stored/manual choices, which were exhaustively roundtripped above.
 const appearanceStats: Record<string, { count: number; beards: number; styles: Set<string> }> = {};
@@ -520,5 +560,5 @@ await writer.dispose();
 await deleteSave(meta.id);
 db.close();
 console.log(
-  'PASS: full option coverage; 12,240 independent selections; 2,000 stable settings; bounded geometry; exact player/staff saves, cloning, one-player autosave, export/import, uploads, Classic restore and isolated randomness.',
+  `PASS: full option coverage; ${FULL_HEADS.length * FULL_HAIR.length * FULL_BEARDS.length} independent selections; 2,000 stable settings; 10,000 appearance-aware identity samples; bounded geometry; exact player/staff saves, cloning, one-player autosave, export/import, uploads, Classic restore and isolated randomness.`,
 );

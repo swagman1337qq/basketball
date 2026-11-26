@@ -100,8 +100,18 @@
     "oldSaveDoneAcceptsEditableReplacement": true,
     "oldSaveRerollUsesEditableCatalogue": true,
     "classicEditsPreserved": true,
-    "frameCropRange": [0, 40],
-    "browserCropSamples": {"buzz":40,"crop":40,"mohawk":12,"afro":40,"locsLong":40,"longPart":40},
+    "frameCropRange": [
+      0,
+      40
+    ],
+    "browserCropSamples": {
+      "buzz": 40,
+      "crop": 40,
+      "mohawk": 12,
+      "afro": 40,
+      "locsLong": 40,
+      "longPart": 40
+    },
     "noBottomBars": true,
     "colourIndependentCrop": true,
     "hairLengthIndependentCropCases": 2112,
@@ -133,7 +143,11 @@
     "status": "PASS",
     "headHairPairs": 704,
     "renderedLengthCases": 2112,
-    "lengths": [-1, 0, 1],
+    "lengths": [
+      -1,
+      0,
+      1
+    ],
     "crownPixelsInvariantAcrossLengths": true,
     "visualContactSheetsInspected": 3,
     "checks": [
@@ -154,7 +168,11 @@
     "automaticSelections": 45000,
     "appearancePresets": 5,
     "genders": 2,
-    "ages": [18, 26, 50],
+    "ages": [
+      18,
+      26,
+      50
+    ],
     "mixedProfileSamples": 1000,
     "automaticBrowserActions": 130,
     "checks": [
@@ -245,16 +263,80 @@
     "Skin-tone extremes across all 16 heads",
     "Staff clothing and accessories",
     "Mobile editor",
-    "Frame filling with top-aligned crop"
+    "Frame filling with top-aligned crop",
+    "2026-11-26: all 64 illustrated identities with fitted hairstyles and staff clothing"
   ],
   "limits": [
-    "The 12,240 count measures valid settings, not visually inspected unique identities.",
-    "16 authored base heads (12 men and four women); controls add variation.",
+    "The 48,960 count measures valid settings, not visually inspected unique identities.",
+    "64 authored base heads (48 men and 16 women); controls add variation.",
     "Contact sheets and representative combinations were inspected; every possible feature combination was not manually reviewed.",
     "Previous finished paintings remain in source but are not offered or displayed as the live default.",
     "Existing/generated populations display deterministic Illustrated defaults without a bulk save rewrite.",
     "Tattoos may be partly or fully hidden by hair, beards or collars; the decoration layer follows skin occlusion.",
     "Painted appearance recommendations do not add a new family-likeness model."
   ],
-  "provenance": "src/assets/illustrated/full/provenance.json"
+  "provenance": "src/assets/illustrated/full/provenance.json",
+  "expanded": "2026-11-26",
+  "varietyExpansion": {
+    "date": "2026-11-26",
+    "status": "PASS",
+    "paintedHeads": 64,
+    "men": 48,
+    "women": 16,
+    "newHeadSheets": 3,
+    "validHeadHairBeardSelections": 48960,
+    "appearanceGenderSamples": 10000,
+    "seededEyeBrowExpressionDefaults": true,
+    "originalArtworkUnchanged": true,
+    "savedExplicitPortraitPixels": {
+      "status": "PASS",
+      "existingHeads": 16,
+      "exactPixelComparisons": 288,
+      "savedExplicitSettingsUnchanged": true
+    },
+    "browser": {
+      "status": "PASS",
+      "headCount": 64,
+      "paintMedianMs": 3.3000000044703484,
+      "maxPaintMs": 12.399999998509884,
+      "editorHeads": 64,
+      "individualFeatureEditing": true,
+      "browserErrors": []
+    },
+    "visuallyReviewed": "Rendered contact sheet of all 64 heads with seeded hair, facial hair and staff clothing; original 16 and new 48 use the same painter and feature controls.",
+    "lazyHeadLoading": {
+      "status": "PASS",
+      "selectedHead": "full-64",
+      "headSheetsDecoded": [
+        "/src/assets/illustrated/full/heads4.webp"
+      ],
+      "otherHeadSheetsRequested": 0
+    },
+    "defaultGenerationBenchmark": {
+      "portraitsPerBatch": 1000,
+      "previousMedianMs": 20.39540999999999,
+      "expandedMedianMs": 32.19099000000001,
+      "measuredScope": "Seeded portrait defaults only; no game simulation or image decoding",
+      "sink": 840000
+    },
+    "gameRegression": {
+      "status": "PASS",
+      "leagueSeasons": 6,
+      "identicalSeasonValuesToPreviousVersion": true,
+      "brokenInvariants": 0,
+      "preExistingOutlier": "Seed 11 / 2027 worst record is 9/82 (.110), below the .12 band; unchanged from previous version.",
+      "ratingGames": 100000,
+      "exactPriorRatingResults": true
+    },
+    "validation": {
+      "typecheck": "PASS",
+      "productionBuild": "PASS",
+      "regressionChecks": 50,
+      "regressionStatus": "PASS",
+      "leagueComparison": "Identical six-season values; same one pre-existing worst-record band outlier and zero broken invariants.",
+      "ratingGames": 100000,
+      "ratingResults": "PASS; byte-for-byte equal to previous version",
+      "format": "Full project formatter run; unrelated formatting restored."
+    }
+  }
 }
