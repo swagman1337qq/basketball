@@ -40,6 +40,7 @@ import {
 } from '../../engine/staff';
 import { careerSummary, coachRows, headCoachOf, ROLE_CODE } from '../../engine/coachCareer';
 import { hotSeat, isInterim, projectedWins } from '../../engine/carousel';
+import { rejectAllTradeOffers, setRejectAllTradeOffers } from '../../engine/tradeStatus';
 
 const SHORT: Record<string, string> = { off: 'OFF', def: 'DEF', dev: 'DEV', game: 'GM', mot: 'MOT', teach: 'TCH', eye: 'EYE' };
 const LONG: Record<string, string> = {
@@ -231,6 +232,21 @@ export function StaffScreen({ vm }: { vm: VM }) {
   const acc = oc && offer ? coachAccept(gm, s, tid, oc, offer) : null;
   return (
     <>
+      <section aria-label="Assistant GM instructions" style={{ marginBottom: 16 }}>
+        <h4 style={h4Style}>Assistant GM</h4>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '13px', fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={rejectAllTradeOffers(gm, s, tid)}
+            onChange={e => setRejectAllTradeOffers(gm, tid, e.target.checked)}
+            aria-describedby="assistant-gm-trades-help"
+          />
+          Reject all trade offers
+        </label>
+        <p id="assistant-gm-trades-help" style={{ margin: '4px 0 0', fontSize: '12px', ...muted }}>
+          Decline every incoming offer for the {T.name}, including draft picks. Rejected offers remain in your Mailbox.
+        </p>
+      </section>
       <h4 style={h4Style}>Coaching staff</h4>
       <p style={{ margin: '0 0 10px', fontSize: '13px', ...muted }}>
         You are the head coach of the {T.region} {T.name}. Your assistants: a Lead Assistant (your in-game reads), Assistant Coaches (each

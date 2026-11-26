@@ -6,15 +6,19 @@ export function playerTradeStatus(p: any, tid: number): PlayerTradeStatus | null
   return p?.tradeStatus?.tid === tid && ['untouchable', 'block'].includes(p.tradeStatus.mode) ? p.tradeStatus.mode : null;
 }
 
+export const rejectAllTradeOffers = (g: Game, s: any, tid: number): boolean =>
+  !s.spectator && g.isUser(s, tid) && s.rejectTradeOffers?.[tid] === true;
+
 // A declined offer is still a complete, readable mailbox message. It has no
 // offerId, so neither the Mailbox nor a stale Accept button can execute it.
 export function protectedOfferNotice(g: Game, s: any, offer: any): Omit<Notice, 'id'> | null {
   const tid = offer.b ?? s.me;
   if (!g.isUser(s, tid)) return null;
+  const rejectAll = rejectAllTradeOffers(g, s, tid);
   const protectedIds = (offer.bP || []).filter(
     (id: number) => (s.rosters[tid] || []).includes(id) && playerTradeStatus(g.db.P[id], tid) === 'untouchable',
   );
-  if (!protectedIds.length) return null;
+  if (!rejectAll && !protectedIds.length) return null;
   const names = (ids: number[], picks: string[]) =>
     [
       ...ids.map(id => g.db.P[id]?.name || 'a player'),
@@ -34,13 +38,33 @@ export function protectedOfferNotice(g: Game, s: any, offer: any): Omit<Notice, 
         ' for ' +
         names(offer.bP || [], offer.bK || []) +
         '.',
-      'Automatically rejected: ' +
-        protectedIds.map((id: number) => g.db.P[id].name).join(', ') +
-        (protectedIds.length === 1 ? ' is' : ' are') +
-        ' marked Untouchable.',
+      rejectAll
+        ? 'Your assistant GM rejected this offer because Reject all trade offers is enabled.'
+        : 'Automatically rejected: ' +
+          protectedIds.map((id: number) => g.db.P[id].name).join(', ') +
+          (protectedIds.length === 1 ? ' is' : ' are') +
+          ' marked Untouchable.',
     ],
     pids: [...(offer.aP || []), ...(offer.bP || [])],
   };
+}
+
+export function setRejectAllTradeOffers(g: Game, tid: number, enabled: boolean) {
+  if (typeof enabled !== 'boolean') return;
+  g.setState(s => {
+    if (s.spectator || !g.isUser(s, tid) || rejectAllTradeOffers(g, s, tid) === enabled) return null;
+    const policy = { rejectTradeOffers: { ...(s.rejectTradeOffers || {}), [tid]: enabled } },
+      next = { ...s, ...policy };
+    let notices = s.notices || [];
+    const inOffers = (s.inOffers || []).filter((offer: any) => {
+      if (!enabled || (offer.b ?? s.me) !== tid) return true;
+      const rejected = protectedOfferNotice(g, next, offer);
+      if (!rejected) return true;
+      notices = addNotice({ ...next, notices }, rejected);
+      return false;
+    });
+    return { ...policy, ...(inOffers.length !== (s.inOffers || []).length ? { inOffers, notices } : {}) };
+  });
 }
 
 export function setPlayerTradeStatus(g: Game, pid: number, mode: PlayerTradeStatus | null) {

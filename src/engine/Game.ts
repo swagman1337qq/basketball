@@ -318,6 +318,7 @@ const NAVIGATION_KEYS = new Set([
 const STATS_VIEW_KEYS = new Set([
   ...NAVIGATION_KEYS,
   'tradeStatusRevision',
+  'rejectTradeOffers',
   'tMine',
   'tTheirs',
   'tkMine',
@@ -8027,7 +8028,7 @@ export class Game {
         const rejected = protectedOfferNotice(this, s, offer);
         if (rejected)
           return {
-            tMsg: 'Offer automatically rejected: it includes an Untouchable player.',
+            tMsg: rejected.lines[1],
             inOffers: (s.inOffers || []).filter((o: any) => o.id !== honorId),
             notices: addNotice(s, rejected),
           };
