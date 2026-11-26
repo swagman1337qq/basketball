@@ -7114,6 +7114,7 @@ export class Game {
       input: any,
       jobs: ({ home: SimTeam; away: SimTeam } | null)[] = [],
       pending: (Promise<Played | null> | null)[] = [],
+      settled: boolean[] = [],
       last = -1;
     for (;;) {
       const next = this.simulationStep(steps, input);
@@ -7124,11 +7125,14 @@ export class Game {
         jobs = v.games;
         const norms = this.db.norms;
         pending = jobs.map(j => (j ? pool.play(j.home, j.away, norms).catch(() => null) : null));
+        settled = pending.map(() => false);
+        pending.forEach((q, i) => void q?.then(() => (settled[i] = true)));
         last = jobs.reduce((x, j, i) => (j ? i : x), -1);
         this.liveRedraw();
         continue;
       }
       if (v && 'await' in v) {
+        if (!settled[v.await]) this.liveRedrawGame(); // the page would wait anyway: show the games recorded so far
         const got = await pending[v.await];
         let r = got?.res;
         if (!r) {
@@ -7167,6 +7171,19 @@ export class Game {
     L.drew = true;
     this.lastEmit = Date.now();
     this.pendingEmit = false;
+    this.listeners.forEach(l => l());
+  }
+  // A redraw in the middle of a day (2026-11-26, plan step 4): after a game is recorded, while the next result isn't
+  // back yet. Only for a screen the control redraws every day (k 1), on a day that has one (not the baseline days), at
+  // most once a frame and when the last redraw took well under the time since it (so it fits in the wait). Its cost
+  // shows up in the day's last result like any redraw (notePooledDay), and k goes up if it holds the sim up.
+  private liveRedrawGame() {
+    const L = this.live,
+      now = Date.now();
+    if (L.k !== 1 || !L.drew || now - this.lastEmit < Math.max(33, this.renderMs * 2.5)) return;
+    this.version++;
+    this.statsVersion++; // the stats moved (Game.addBox); caches keyed on it refresh
+    this.lastEmit = now;
     this.listeners.forEach(l => l());
   }
   notePooledDay(dayMs: number, late: number) {

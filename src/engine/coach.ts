@@ -63,10 +63,21 @@ const offScore = (p: any) =>
 export const coachQuality = (coachingBudget = 18) => Math.max(0.35, Math.min(0.95, 0.35 + ((coachingBudget - 5) / 35) * 0.6));
 
 // 1. Identity from the roster (its top eight; sim or database players, both carry r, grp, ovr). Cached by
-// who the eight are and their overalls: it is worked out once and reused until the roster or ratings change.
+// who the eight are and their ratings: it is worked out once and reused until the roster or ratings change.
+// 2026-11-26: the key holds every rating, not just the overall and age. A player whose ratings moved without
+// changing his rounded overall got the old identity back, so a team's style depended on what the cache had seen (and
+// a second league opened in the same session, or a background game player, gave different games).
 const BASE_CACHE = new Map<string, Required<Tactics>>();
+const ratingsKey = (p: any) => {
+  let s = '';
+  for (const k in p.r || {}) s += p.r[k] + '.';
+  return s;
+};
 export function coachBase(top: any[], quick0 = 42): Required<Tactics> {
-  const ck = top.map(p => p.id + ':' + p.ovr + ':' + (p.age ?? '')).join(',') + '|' + Math.round(quick0 * 10);
+  const ck =
+    top.map(p => p.id + ':' + p.ovr + ':' + (p.age ?? '') + ':' + (p.grp ?? '') + (p.pos ?? '') + ':' + ratingsKey(p)).join(',') +
+    '|' +
+    Math.round(quick0 * 10);
   const hit = BASE_CACHE.get(ck);
   if (hit) return { ...hit };
   const res = coachBase0(top, quick0);
