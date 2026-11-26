@@ -416,11 +416,10 @@ export function schoolPath(p: any): Stint[] {
 // A whole class's lines with their advanced stats (memoized per class, season and edit counter).
 const MEMO = new WeakMap<object, { key: string; v: Record<number, (AmLine & { adv: StatLine })[]> }>();
 
-// God Mode changes the age of the same person. Aging down trims his earliest college years. Aging up (2026-11-10) gives a
-// prospect not yet drafted the extra college years an older draftee has (up to six, as schoolPath): earlier seasons at
-// the school a fresh path for his new age starts him at, and past four played a redshirt year; the seasons he already
-// had keep their numbers. A drafted player's college years, and a real (historical) record, stay as they were. Saved
-// source histories stay intact; the visible window is saved.
+// God Mode age edits resize the college career even after the draft. Keep the
+// existing seasons' numbers and NBA tenure; retain hidden years so aging back
+// up restores them. Up to five played years fit in the six-year college window.
+// Imported source records remain intact; added seasons are generated separately.
 export function setGodPlayerAge(g: Game, p: any, value: number) {
   if (!Number.isFinite(value)) return;
   const age = cl(Math.round(value), 16, 50),
@@ -435,26 +434,47 @@ export function setGodPlayerAge(g: Game, p: any, value: number) {
       const sourceYears = p.real?.length ? new Set(p.real.map((r: any) => r.season)).size : 0;
       const path = sourceYears ? undefined : schoolPath(p);
       const edit = p.amAgeEdit ?? { ratingAge: oldDraftAge, years: sourceYears || path!.length, ...(path ? { path } : {}) };
-      const want = cl(oldDraftAge + delta - 18, 1, 6);
-      if (edit.path && want > edit.path.length && cls >= g.Y) {
-        // A fresh path for his new age (as if never edited) supplies the schools before the ones he already has.
-        const keep = p.amAgeEdit,
-          dA = p.dAge;
-        delete p.amAgeEdit;
-        p.dAge = oldDraftAge + delta;
-        const fresh = schoolPath(p);
-        p.dAge = dA;
-        if (keep) p.amAgeEdit = keep;
-        const add = fresh.slice(0, want - edit.path.length).map(st => ({ ...st, kind: st.kind === 'short' ? undefined : st.kind }));
-        const playedIn = (L: Stint[]) => L.filter(st => !st.kind || st.kind === 'short').length,
-          cap = Math.max(4, playedIn(edit.path));
-        for (let i = 0; i < add.length && playedIn([...add, ...edit.path]) > cap; i++) if (!add[i].kind) add[i].kind = 'redshirt';
-        edit.path = [...add.map(st => (st.kind ? st : { team: st.team, lg: st.lg })), ...edit.path];
-        edit.years = edit.path.length;
+      if (!sourceYears && !edit.path) edit.path = path;
+      const want = cl(oldDraftAge + delta - 18, 1, 6),
+        played = Math.min(want, 5);
+      if (edit.path) {
+        let full: Stint[] = edit.fullPath || edit.path;
+        if (want > full.length) {
+          const fresh = schoolPath({ ...p, dAge: oldDraftAge + delta, amAgeEdit: undefined });
+          const already = full.filter(st => st.kind !== 'redshirt' && st.kind !== 'sitout').length;
+          const games = Math.max(0, played - already);
+          const count = want - full.length;
+          const add = fresh.slice(0, count).map((st, i): Stint => ({
+            team: st.team,
+            lg: st.lg,
+            ...(i >= count - games ? {} : { kind: 'redshirt' }),
+          }));
+          full = [...add, ...full];
+        }
+        edit.fullPath = full;
+        edit.path = full.slice(-want);
       } else {
-        edit.years = Math.min(edit.years, Math.max(1, oldDraftAge + delta - 18));
-        if (edit.path) edit.path = edit.path.slice(-edit.years);
+        const extra: AmLine[] = edit.extra || [];
+        const years = [...new Set<number>([...p.real.map((row: any) => row.season), ...extra.map(row => row.season)])];
+        const already = new Set<number>([
+          ...p.real.filter((row: any) => row.gp > 0).map((row: any) => row.season),
+          ...extra.filter(row => row.gp > 0).map(row => row.season),
+        ]).size;
+        const add = Math.max(0, want - years.length),
+          first = Math.min(...years);
+        for (let i = 0; i < add; i++) {
+          const season = first - add + i;
+          const line = seasonLine({ ...p, amAgeEdit: edit, dAge: oldDraftAge + delta }, season, cls - season, {
+            team: p.real[0].team,
+            lg: p.real[0].lg || p.from.lg,
+            ...(i >= add - Math.max(0, played - already) ? {} : { kind: 'redshirt' }),
+          });
+          if (line.gp) line.note = 'Added season from age edit';
+          extra.push(line);
+        }
+        edit.extra = extra;
       }
+      edit.years = want;
       p.amAgeEdit = edit;
     }
     p.dAge = oldDraftAge + delta;
@@ -467,9 +487,10 @@ export function setGodPlayerAge(g: Game, p: any, value: number) {
 // years ahead plays them out); pace 70 a game, about college basketball's in 2000.
 export function realLines(g: Game, p: any): AmLine[] {
   const source = p.real || [],
-    years = [...new Set<number>(source.map((l: any) => l.season))].sort((a, b) => a - b);
+    extra: AmLine[] = p.amAgeEdit?.extra || [],
+    years = [...new Set<number>([...source.map((l: any) => l.season), ...extra.map(l => l.season)])].sort((a, b) => a - b);
   const retained = p.amAgeEdit ? new Set(years.slice(-p.amAgeEdit.years)) : null;
-  return source
+  const recorded: AmLine[] = source
     .filter((l: any) => l.season <= g.Y && (!retained || retained.has(l.season)))
     .map((l: any) => {
       const from = { team: l.team, lg: l.lg || p.from?.lg || 'NCAA' },
@@ -523,6 +544,15 @@ export function realLines(g: Game, p: any): AmLine[] {
         t: { ...disp, min: (disp.min * 48) / 40, ...scale(disp, 100 / 70) },
       };
     });
+  return [
+    ...extra
+      .filter(l => l.season <= g.Y && retained?.has(l.season))
+      .map(l => ({
+        ...l,
+        age: (p.dAge ?? p.age) - (amClass(p) - l.season),
+      })),
+    ...recorded,
+  ].sort((a, b) => a.season - b.season);
 }
 export function classStats(g: Game, cls: number, ids: number[], gv = 0): Record<number, (AmLine & { adv: StatLine })[]> {
   const key = cls + '|' + g.Y + '|' + gv + '|' + ids.length;

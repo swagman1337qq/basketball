@@ -41,6 +41,8 @@ const SCRIPTS = [
   'teamSeasonStats',
   'rosterSeasonStats',
   'tradeExclusions',
+  'tradeStatus',
+  'draftRecords',
   'ovrMigration',
   'aiRosterUpgrade',
   'calendar',

@@ -18,21 +18,31 @@ import { combineOf, ftIn, WO_MAX, woOpen, woUsed, worked } from '../../engine/wo
 import './DraftScreen.css';
 
 // Small buttons on each pick: trade for it / trade it, or open a trade with its owner.
+type DraftPreferences = { view: 'board' | 'mock'; mode: '' | 'trad' | 'adv' | 'cmb'; page: number; sort: [string, number] | null };
+const DRAFT_PREFERENCES = new WeakMap<object, Map<number, DraftPreferences>>();
 
 export function DraftScreen({ vm }: { vm: VM }) {
+  return <DraftBoard key={vm.ctx.s.dClass} vm={vm} />;
+}
+
+function DraftBoard({ vm }: { vm: VM }) {
+  const { gm, s } = vm.ctx,
+    cls = s.dClass;
+  let classes = DRAFT_PREFERENCES.get(gm.db);
+  if (!classes) DRAFT_PREFERENCES.set(gm.db, (classes = new Map()));
+  let remembered = classes.get(cls);
+  if (!remembered) classes.set(cls, (remembered = { view: 'board', mode: '', page: 0, sort: null }));
   const [confirmAutoDraft, setConfirmAutoDraft] = useState(false);
   const autoDraftDialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (confirmAutoDraft && autoDraftDialog.current && !autoDraftDialog.current.open) autoDraftDialog.current.showModal();
   }, [confirmAutoDraft]);
   const [tk, setTk] = useState(''),
-    [view, setView] = useState<'board' | 'mock'>('board'),
-    [stMode, setStMode] = useState<'' | 'trad' | 'adv' | 'cmb'>(''),
+    [view, setView] = useState<'board' | 'mock'>(remembered.view),
+    [stMode, setStMode] = useState<'' | 'trad' | 'adv' | 'cmb'>(remembered.mode),
     stats = !!stMode;
   // College / club stats on the board (2026-10-30): each prospect's latest season he played, traditional or advanced, in place of where he plays and his height.
-  const { gm, s } = vm.ctx,
-    cls = s.dClass,
-    clsIds: number[] = gm.db.cls?.[cls] || [];
+  const clsIds: number[] = gm.db.cls?.[cls] || [];
   const [expanded, setExpanded] = useState<{ cls: number; id: number } | null>(null);
   const needAmateur = (stats && stMode !== 'cmb') || expanded?.cls === cls;
   const am = useMemo(() => (needAmateur ? classStats(gm, cls, clsIds, s.gv || 0) : {}), [needAmateur, gm, cls, clsIds.length, s.gv, gm.Y]);
@@ -112,7 +122,7 @@ export function DraftScreen({ vm }: { vm: VM }) {
       ],
     ],
   ];
-  const [advPg, setAdvPg] = useState(0),
+  const [advPg, setAdvPg] = useState(remembered.page),
     ADV = ADV_PAGES[advPg][1];
   const turn = (d: number) => {
     const n = (advPg + d + ADV_PAGES.length) % ADV_PAGES.length;
@@ -139,7 +149,10 @@ export function DraftScreen({ vm }: { vm: VM }) {
       setStSort(cur => (cur?.[0] === 'analytics' ? cur : null));
       setStMode(cur => (cur === m ? '' : m));
     };
-  const [stSort, setStSort] = useState<[string, number] | null>(null); // a stat or analytics rank, or the board's own sort
+  const [stSort, setStSort] = useState<[string, number] | null>(remembered.sort);
+  useEffect(() => {
+    Object.assign(remembered!, { view, mode: stMode, page: advPg, sort: stSort });
+  }, [remembered, view, stMode, advPg, stSort]);
   const stVal = (id: number, k: string) => {
     if (k === 'analytics') return anBoard[id]?.rank ?? null;
     const x = rowOf(id),

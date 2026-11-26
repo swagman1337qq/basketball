@@ -29,6 +29,7 @@ import { RosterTeamDetails, RosterReports } from './RosterTeamDetails';
 import './RosterScreen.css';
 import { seasonAdvanced } from '../../engine/advanced';
 import { rosterSeasonStats, rosterPlayoffAdvanced } from '../rosterSeasonStats';
+import { playerTradeStatus, setPlayerTradeStatus } from '../../engine/tradeStatus';
 
 const ROSTER_ADV: [string, string, number?][] = [
   ['per', 'PER'],
@@ -103,7 +104,7 @@ export function RosterScreen({ vm }: { vm: VM }) {
     dense = !!vm.dense,
     td = dense ? tdD : td0,
     tdr = dense ? tdrD : tdr0;
-  // Hadrian's Lover: the player whose ⋯ menu is open, and where (fixed to the window, so a table's scroll box can't
+  // The player whose ⋯ menu is open, and where (fixed to the window, so a table's scroll box can't
   // cut it off; it opens upward when there isn't room below). Scrolling or resizing closes it.
   const [menu, setMenu] = useState<{ id: number; right: number; top?: number; bottom?: number } | null>(null),
     menuFor = menu?.id ?? null,
@@ -111,11 +112,19 @@ export function RosterScreen({ vm }: { vm: VM }) {
   useEffect(() => {
     if (!menu) return;
     const close = () => setMenu(null);
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        close();
+      }
+    };
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
+    window.addEventListener('keydown', key);
     return () => {
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', key);
     };
   }, [menu]);
   const subAt = Math.max(
@@ -711,102 +720,130 @@ export function RosterScreen({ vm }: { vm: VM }) {
         )}
         {dense && cur && !vm.spec?.on && (
           <td style={{ ...td, position: 'relative' }} onClick={e => e.stopPropagation()}>
-            {(() => {
-              const own = tid === s.me,
-                conversions = own && mine ? convOptions(p) : [],
-                standard = p.ctype === 'twoWay' ? conversions.find(o => o.to === 'standard') : null,
-                more = conversions.filter(o => o !== standard);
-              return (
-                <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+            <button
+              className="btn btn-ghost"
+              aria-label={'Actions for ' + p.name}
+              aria-haspopup="menu"
+              aria-expanded={menuFor === id}
+              title={
+                'Player actions' +
+                (playerTradeStatus(p, tid) === 'untouchable'
+                  ? ' · Untouchable'
+                  : playerTradeStatus(p, tid) === 'block'
+                    ? ' · Trading block'
+                    : '')
+              }
+              style={{ fontSize: '19px', padding: '0 9px', lineHeight: 1.2 }}
+              onClick={e => {
+                if (menuFor === id) return setMenu(null);
+                const r = e.currentTarget.getBoundingClientRect();
+                const count = 1 + (mine ? convOptions(p).length + 4 : 0);
+                const up = window.innerHeight - r.bottom < 12 + count * 34;
+                setMenu(
+                  up
+                    ? { id, right: window.innerWidth - r.right, bottom: window.innerHeight - r.top + 4 }
+                    : { id, right: window.innerWidth - r.right, top: r.bottom + 4 },
+                );
+              }}
+            >
+              ⋯
+            </button>
+            {menuFor === id && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setMenuFor(null)} />
+                <div
+                  className="card"
+                  role="menu"
+                  aria-label={'Actions for ' + p.name}
+                  style={{
+                    position: 'fixed',
+                    right: menu!.right,
+                    top: menu!.top,
+                    bottom: menu!.bottom,
+                    zIndex: 31,
+                    padding: 4,
+                    gap: 0,
+                    minWidth: 205,
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                    background: 'var(--color-surface)',
+                    boxShadow: 'var(--shadow-lg)',
+                  }}
+                >
                   <button
-                    className="btn btn-secondary"
-                    style={{ fontSize: '11.5px', padding: '1px 7px' }}
-                    title={own ? 'Build a trade that sends him away' : 'Build a trade for him'}
-                    onClick={() =>
+                    className="btn btn-ghost"
+                    role="menuitem"
+                    style={{ justifyContent: 'flex-start' }}
+                    onClick={() => {
+                      setMenuFor(null);
                       gm.setState(
-                        own
+                        tid === s.me
                           ? { screen: 'trade', tMine: [id], tTheirs: [], tkMine: [], tkTheirs: [], tMsg: null }
                           : { screen: 'trade', tTid: tid, tTheirs: [id], tMine: [], tkMine: [], tkTheirs: [], tMsg: null },
-                      )
-                    }
+                      );
+                    }}
                   >
                     Trade
                   </button>
-                  {own && mine && (
-                    <button
-                      className="btn btn-ghost hv4"
-                      title="Cut him: waive, stretch or buy out, with the dead money shown before you confirm"
-                      style={{ fontSize: '11.5px', padding: '1px 6px', color: 'var(--gm-bad)' }}
-                      onClick={() => gm.setState({ dialog: { type: 'release', pid: id } })}
-                    >
-                      Cut
-                    </button>
-                  )}
-                  {standard && (
-                    <button
-                      className="btn btn-secondary"
-                      title={standard.why}
-                      style={{ fontSize: '11.5px', padding: '1px 7px', whiteSpace: 'nowrap' }}
-                      onClick={() => convertContract(gm, id, 'standard')}
-                    >
-                      Convert to standard
-                    </button>
-                  )}
-                  {own && mine && more.length > 0 && (
-                    <button
-                      className="btn btn-ghost"
-                      aria-label={'More for ' + p.name}
-                      title="Change his contract"
-                      style={{ fontSize: '13px', padding: '0 7px', lineHeight: 1.3 }}
-                      onClick={e => {
-                        if (menuFor === id) return setMenu(null);
-                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect(),
-                          right = window.innerWidth - r.right,
-                          up = window.innerHeight - r.bottom < 40 + 34 * (more.length + 1);
-                        setMenu(up ? { id, right, bottom: window.innerHeight - r.top + 4 } : { id, right, top: r.bottom + 4 });
-                      }}
-                    >
-                      ⋯
-                    </button>
-                  )}
-                  {menuFor === id && (
+                  {mine && (
                     <>
-                      <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setMenuFor(null)} />
-                      <div
-                        className="card"
-                        style={{
-                          position: 'fixed',
-                          right: menu!.right,
-                          top: menu!.top,
-                          bottom: menu!.bottom,
-                          zIndex: 31,
-                          padding: 4,
-                          gap: 0,
-                          minWidth: 190,
-                          background: 'var(--color-surface)',
-                          boxShadow: 'var(--shadow-lg)',
+                      <button
+                        className="btn btn-ghost"
+                        role="menuitem"
+                        style={{ justifyContent: 'flex-start', color: 'var(--gm-bad)' }}
+                        onClick={() => {
+                          setMenuFor(null);
+                          gm.setState({ dialog: { type: 'release', pid: id } });
                         }}
                       >
-                        {more.map(o => (
-                          <button
-                            key={o.to}
-                            className="btn btn-ghost"
-                            title={o.why}
-                            style={{ justifyContent: 'flex-start', fontSize: '12.5px', padding: '4px 8px', width: '100%' }}
-                            onClick={() => {
-                              setMenuFor(null);
-                              convertContract(gm, id, o.to);
-                            }}
-                          >
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
+                        Cut
+                      </button>
+                      {convOptions(p).map(o => (
+                        <button
+                          key={o.to}
+                          className="btn btn-ghost"
+                          role="menuitem"
+                          title={o.why}
+                          style={{ justifyContent: 'flex-start' }}
+                          onClick={() => {
+                            setMenuFor(null);
+                            convertContract(gm, id, o.to);
+                          }}
+                        >
+                          {p.ctype === 'twoWay' && o.to === 'standard' ? 'Convert to standard' : o.label}
+                        </button>
+                      ))}
+                      <hr style={{ border: 0, borderTop: '1px solid var(--color-divider)', margin: '4px 0' }} />
+                      {(
+                        [
+                          ['untouchable', 'Untouchable'],
+                          ['block', 'Trading block'],
+                        ] as const
+                      ).map(([mode, label]) => (
+                        <button
+                          key={mode}
+                          className="btn btn-ghost"
+                          role="menuitemcheckbox"
+                          aria-checked={playerTradeStatus(p, tid) === mode}
+                          title={
+                            mode === 'untouchable'
+                              ? 'Automatically reject offers for him and keep the rejected offer in your Mailbox'
+                              : 'Let other teams know he is available for trade'
+                          }
+                          style={{ justifyContent: 'flex-start' }}
+                          onClick={() => {
+                            setMenuFor(null);
+                            setPlayerTradeStatus(gm, id, playerTradeStatus(p, tid) === mode ? null : mode);
+                          }}
+                        >
+                          <span aria-hidden="true">{playerTradeStatus(p, tid) === mode ? '☑' : '☐'}</span> {label}
+                        </button>
+                      ))}
                     </>
                   )}
-                </span>
-              );
-            })()}
+                </div>
+              </>
+            )}
           </td>
         )}
       </tr>

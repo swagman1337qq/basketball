@@ -12,6 +12,7 @@ try {
       export {Game} from './src/engine/Game'; export {GameSim} from './src/engine/sim';
       export {BoxScoreModal} from './src/ui/modals/BoxScoreModal'; export {boxSummary} from './src/db/boxArchive'; export {buildView} from './src/ui/viewModel';
       export {ProfileOverview} from './src/ui/modals/ProfileMain';
+      export {ListModal} from './src/ui/modals/ListModal';
       export {renderToString} from 'react-dom/server'; export {createElement} from 'react';
       export {FinancesScreen} from './src/ui/screens/FinancesScreen';
       export {OwnerScreen} from './src/ui/screens/OwnerScreen';
@@ -108,6 +109,41 @@ try {
   }
   profilePlayer.from = originalFrom;
   Object.assign(profilePlayer, originalBio);
+  g.setState({ listModal: null });
+
+  const cohortYear = g.Y - 1;
+  Object.assign(profilePlayer, { cls: g.Y + 1, draft: cohortYear, dr: { rd: 1, pick: 18 } });
+  g.db.cls[cohortYear] = [];
+  g.db.pickUsed = { ...(g.db.pickUsed || {}), [cohortYear + '-1-0']: { n: 18, pid: profilePlayer.id, tid: 0 } };
+  const archivedId = g.db.nid++;
+  g.db.P[archivedId] = {
+    id: archivedId,
+    name: 'Archived draft pick',
+    pos: 'G',
+    grp: 'G',
+    age: 35,
+    ovr: 40,
+    pot: 40,
+    rep: 'US',
+    her: 'US',
+    retired: { season: g.Y },
+    gone: 1,
+    stats: [],
+  };
+  g.db.pickUsed[cohortYear + '-2-0'] = { n: 32, pid: archivedId, tid: 0 };
+  g.setState({ screen: 'dash', modal: false, boxId: null, listModal: { type: 'class', year: cohortYear } });
+  const cohort = vm();
+  assert.equal(cohort.lm.rows.find((p: any) => p.id === profilePlayer.id).extra, '18');
+  assert(
+    cohort.lm.rows.some((p: any) => p.id === archivedId),
+    'archived picks render alongside current players',
+  );
+  const cohortHtml = m.renderToString(
+    m.createElement(m.ListModal, {
+      vm: { ...cohort, lm: { ...cohort.lm, rows: cohort.lm.rows.filter((p: any) => [profilePlayer.id, archivedId].includes(p.id)) } },
+    }),
+  );
+  assert(cohortHtml.includes('Archived draft pick') && !cohortHtml.includes('Board #'));
   g.setState({ listModal: null });
 
   let bid = Object.keys(g.db.boxes || {})[0];

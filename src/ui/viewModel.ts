@@ -55,6 +55,7 @@ import { randomTeamIn } from '../data/randomTeam';
 import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
 import { hasAmateur, setGodPlayerAge } from '../engine/amateurStats';
+import { draftClassRecords, draftYearOf } from '../engine/draftRecords';
 import { alphaTeams, GOD_PINK, linkNames } from './kit';
 import { groupFilter, groupTitle, searchAll } from './search';
 import { ensureIntg } from '../engine/intangibles';
@@ -2168,8 +2169,12 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       k: 'Draft class',
       hasFlag: false,
       flag: '',
-      v: pp.cls ? 'Class of ' + pp.cls : pp.draft + (pp.dr ? ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick : ' · undrafted'),
-      open: openClass(pp.cls || pp.draft),
+      v: pp.dr
+        ? draftYearOf(pp) + ' · round ' + pp.dr.rd + ', pick ' + pp.dr.pick
+        : pp.cls
+          ? 'Class of ' + pp.cls
+          : pp.draft + ' · undrafted',
+      open: openClass(draftYearOf(pp)),
     },
     ...(pp.heritage && pp.her && C[pp.her] ? [{ k: 'Heritage', hasFlag: true, flag: gm.flag(pp.her), v: heritageLabel(pp, C) }] : []),
     ...(pp.family || [])
@@ -2212,6 +2217,9 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     };
   };
   if (LMs) {
+    const classRecords = LMs.type === 'class' ? draftClassRecords(gm, LMs.year) : [];
+    const classPicks = new Map(classRecords.map(row => [row.p.id, row.pick]));
+    const classTeams = new Map(classRecords.map(row => [row.p.id, row.tid]));
     const act = (Object.values(P) as any[]).filter(
       p =>
         !p.gone &&
@@ -2229,13 +2237,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
             ? act.filter(p => p.rep === LMs.code).sort((x, y) => y.ovr - x.ovr)
             : LMs.type === 'group'
               ? act.filter(groupFilter(LMs.q, C)).sort((x, y) => y.ovr - x.ovr)
-              : act.filter(p => (p.cls ? p.cls === LMs.year : p.draft === LMs.year && !p.cls));
-    if (LMs.type === 'class')
-      ps.sort(
-        (x, y) =>
-          (x.cls ? d.rank[x.id] : x.dr ? (x.dr.rd - 1) * 30 + x.dr.pick : 99) -
-          (y.cls ? d.rank[y.id] : y.dr ? (y.dr.rd - 1) * 30 + y.dr.pick : 99),
-      );
+              : classRecords.map(row => row.p);
     const TL = LMs.type === 'trait' ? TRAIT[LMs.k] : null;
     const FR = LMs.type === 'from';
     const GR = LMs.type === 'group';
@@ -2257,13 +2259,19 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       rows: ps.map(p => ({
         ...pBase(p.id),
         ...lineOf(p),
+        pickOverall: classPicks.get(p.id) ?? null,
         team: teamOf(p.id),
         openT: openTeam(tidOf[p.id] ?? -1),
         ...(LMs.type === 'class'
           ? (() => {
               const nw = nowLabel(gm, s, p),
-                dt = draftedBy(gm, p);
-              return { team: nw.label, openT: openTeam(nw.tid), draftedBy: draftedLabel(gm, s, p), openD: openTeam(dt ?? -1) };
+                dt = classTeams.get(p.id) ?? draftedBy(gm, p);
+              return {
+                team: nw.label,
+                openT: openTeam(nw.tid),
+                draftedBy: dt != null && T[dt] ? T[dt].abbr : draftedLabel(gm, s, p),
+                openD: openTeam(dt ?? -1),
+              };
             })()
           : {}),
         extra: GR
@@ -2278,11 +2286,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
               ? p.pos
               : LMs.type === 'country'
                 ? C[p.born].n
-                : p.cls
-                  ? 'Board #' + d.rank[p.id]
-                  : p.dr
-                    ? 'Rd ' + p.dr.rd + ', #' + p.dr.pick + ' (' + ((p.dr.rd - 1) * 30 + p.dr.pick) + ' overall)'
-                    : 'Undrafted',
+                : classPicks.get(p.id) != null
+                  ? String(classPicks.get(p.id))
+                  : p.undrafted || LMs.year < gm.Y || (LMs.year === gm.Y && s.phase !== 'regular' && s.phase !== 'draft')
+                    ? 'Undrafted'
+                    : 'Not drafted yet',
       })),
     };
   }

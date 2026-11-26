@@ -1,5 +1,6 @@
 import { runCooperatively, yieldToBrowser } from './cooperative';
 import { gamePool, type GamePool, type Played } from './gamePool';
+import { protectedOfferNotice } from './tradeStatus';
 import { naturalDunkShare } from './finishing';
 import { archiveDashboardMail } from './dashboardMail';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
@@ -316,6 +317,7 @@ const NAVIGATION_KEYS = new Set([
 // Everything else invalidates conservatively, including games, edits and completed trades.
 const STATS_VIEW_KEYS = new Set([
   ...NAVIGATION_KEYS,
+  'tradeStatusRevision',
   'tMine',
   'tTheirs',
   'tkMine',
@@ -1624,6 +1626,11 @@ export class Game {
             .map(Number)
             .filter(t => patch.rosters[t] !== prev[t]);
         assignNumbers(this.db.P, patch.rosters, ch, retiredNums(this.state.teams));
+        for (const tid of ch)
+          for (const id of prev[tid] || []) {
+            const p = this.db.P[id];
+            if (p?.tradeStatus?.tid === tid && !patch.rosters[tid]?.includes(id)) delete p.tradeStatus;
+          }
         this._rosterRef = patch.rosters;
       }
       this.version++;
@@ -7400,21 +7407,25 @@ export class Game {
               ),
             ].join(', ') || 'nothing';
         const oid = 'o' + this.Y + '-' + day + '-' + x.a;
-        inOffers = [...inOffers, { ...x, id: oid, day }];
-        notices = addNotice(
-          { notices },
-          {
-            tone: 'info',
-            title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name,
-            lines: [
-              x.why,
-              'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.',
-              'Accept, negotiate or decline it from the offer (also under Trade → Offers to you). It stands for about ten days.',
-            ],
-            pids: [...x.aP, ...x.bP],
-            offerId: oid,
-          },
-        );
+        const offered = { ...x, id: oid, day };
+        const rejected = protectedOfferNotice(this, { ...s, assets: box.assets, rosters: box.rosters }, offered);
+        if (!rejected) inOffers = [...inOffers, offered];
+        notices = rejected
+          ? addNotice({ ...s, notices }, rejected)
+          : addNotice(
+              { notices },
+              {
+                tone: 'info',
+                title: 'Trade offer from ' + T[x.a].region + ' ' + T[x.a].name,
+                lines: [
+                  x.why,
+                  'They offer ' + nm(x.aP, x.aK) + ' for ' + nm(x.bP, x.bK) + '.',
+                  'Accept, negotiate or decline it from the offer (also under Trade → Offers to you). It stands for about ten days.',
+                ],
+                pids: [...x.aP, ...x.bP],
+                offerId: oid,
+              },
+            );
       }
     }
     // Players on your teams who've had enough ask for a trade, or for an extension at their price (tradeRequests.ts).
@@ -7993,6 +8004,17 @@ export class Game {
   // league office checks it; it leaves your offers once the trade goes through.
   propose(force = false, honorId: string | null = null) {
     this.setState(s => {
+      if (honorId) {
+        const offer = (s.inOffers || []).find((o: any) => o.id === honorId);
+        if (!offer) return { tMsg: 'That trade offer is no longer available.' };
+        const rejected = protectedOfferNotice(this, s, offer);
+        if (rejected)
+          return {
+            tMsg: 'Offer automatically rejected: it includes an Untouchable player.',
+            inOffers: (s.inOffers || []).filter((o: any) => o.id !== honorId),
+            notices: addNotice(s, rejected),
+          };
+      }
       if (excludesTrade(s, s.tTid, s.tMine, s.tTheirs, s.tkMine, s.tkTheirs))
         return { tMsg: 'No deal: an excluded player or pick is selected. Include that asset before proposing it.' };
       force = force && !!s.god;

@@ -15,6 +15,7 @@
 //    come out ahead by its own read (its own scouts, its timeline, its needs), and the league office
 //    has to approve. AI teams also bring you offers that fit their plans.
 import type { Game } from './Game';
+import { playerTradeStatus } from './tradeStatus';
 import { checkTrade, nums, seasonMax, teamSalary } from './cba';
 import { expectedByRank } from './lottery';
 import { protFactor } from './pickRules';
@@ -553,18 +554,21 @@ export function offerToUser(
     mine: number[] = s.rosters[me] || [],
     gd = { ...s, god: false };
   const ok = (x: TradeIdea | null) => (x && myGain(x.aP, x.bP, x.aK, x.bK) > -3 ? x : null); // fair enough for you (a = the AI team, giving aP/aK; b = you)
-  if (r < 0.5) {
+  const onBlock = mine.some(id => playerTradeStatus(P[id], me) === 'block');
+  if (r < 0.5 || onBlock) {
     // A contender (or a team on the rise) wants one of your players at its need.
     for (const t of ai
-      .filter(x => strat[x] === 'contend' || strat[x] === 'middle')
+      .filter(x => onBlock || strat[x] === 'contend' || strat[x] === 'middle')
       .sort(() => rnd() - 0.5)
       .slice(0, 5)) {
       const need = needOf(g, s, t),
         fifth = (s.rosters[t] || []).map((id: number) => P[id].ovr).sort((a: number, b: number) => b - a)[4] ?? 45;
       const target = mine
         .map(id => P[id])
-        .filter((p: any) => p.age >= 23 && p.ovr >= fifth + 1 && (!need || p.grp === need))
-        .sort((a: any, b: any) => b.ovr - a.ovr)[0];
+        .filter((p: any) => playerTradeStatus(p, me) === 'block' || (p.age >= 23 && p.ovr >= fifth + 1 && (!need || p.grp === need)))
+        .sort(
+          (a: any, b: any) => Number(playerTradeStatus(b, me) === 'block') - Number(playerTradeStatus(a, me) === 'block') || b.ovr - a.ovr,
+        )[0];
       if (!target) continue;
       const x = ok(
         buildPackage(

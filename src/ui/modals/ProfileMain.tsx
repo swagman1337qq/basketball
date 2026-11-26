@@ -16,6 +16,7 @@ import { PlayingStyle } from '../PlayingStyle';
 import { GROUPS, TIER_LABEL, translationPreview } from '../../engine/translation';
 import { potView, scoutSd } from '../../engine/potential';
 import { draftedBy, nowLabel } from '../../engine/godMove';
+import { draftYearOf } from '../../engine/draftRecords';
 import { PCT_TIERS, pctTier, ratingMedian, ratingPct } from '../../engine/ratingDist';
 
 const chip = {
@@ -36,7 +37,7 @@ function useProfile(vm: VM) {
   Object.keys(s.rosters).forEach(k => {
     if (s.rosters[k].includes(p.id)) tid = +k;
   });
-  const draftYear = p.cls || p.draft;
+  const draftYear = draftYearOf(p);
   const openClass = () => draftYear && gm.setState({ listModal: { type: 'class', year: draftYear } });
   const dt = draftedBy(gm, p),
     draftLabel =

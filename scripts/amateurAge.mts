@@ -16,7 +16,7 @@ const before = structuredClone(classStats(g, g.Y, [p.id])[p.id]);
 assert.equal(before.length, 4);
 const priorPath = schoolPath(p);
 setGodPlayerAge(g, p, 28);
-// 2026-11-10: a prospect aged up gets the extra college years (up to six); the four he had keep their numbers.
+// Age edits add played seasons, up to five, while retaining the old numbers.
 const older = classStats(g, g.Y, [p.id])[p.id]; // same gv: the age helper invalidates the memo
 assert.equal(older.length, 6, 'aging a prospect up adds college seasons');
 assert.deepEqual(
@@ -28,7 +28,7 @@ assert.deepEqual(
   before.map(x => x.disp),
 );
 assert.deepEqual(schoolPath(p).slice(-4), priorPath);
-assert.ok(schoolPath(p).filter(st => !st.kind || st.kind === 'short').length <= 4, 'past four played, the added years are redshirts');
+assert.equal(older.filter(row => row.gp > 0).length, 5, 'a fifth played year is added; excess years are redshirts');
 assert.ok(older[0].season === g.Y - 5);
 setGodPlayerAge(g, p, 19);
 const younger = classStats(g, g.Y, [p.id])[p.id];
@@ -44,6 +44,43 @@ assert.deepEqual(classStats(g, g.Y, [p.id])[p.id].at(-1)!.disp, freshman, 'his l
 const saved = Game.load(g.toSave());
 assert.equal(saved.db.P[p.id].amAgeEdit.years, 5);
 assert.equal(schoolPath(saved.db.P[p.id]).length, 5);
+assert.equal(classStats(g, g.Y, [p.id])[p.id].filter(row => row.gp > 0).length, 5);
+
+// Exact request: one played season at 19 becomes five at 24, for a prospect
+// and a player already drafted. Age edits never change NBA seasons or ratings.
+for (const drafted of [false, true]) {
+  const q: any = g.mkPlayer(42, 19, g.state.natW || {}, g.Y, 'G');
+  const cls = drafted ? g.Y - 3 : g.Y;
+  Object.assign(q, { age: 19, dAge: 19, cls, from: { team: 'Duke', lg: 'NCAA' }, am: { r: { ...q.r }, grp: q.grp, feel: q.intg?.feel } });
+  g.db.cls[cls] = [...(g.db.cls[cls] || []), q.id];
+  const first = structuredClone(classStats(g, cls, [q.id], q.id)[q.id]);
+  assert.equal(first.length, 1);
+  const nba = structuredClone(q.stats),
+    ratings = structuredClone(q.r);
+  const random = Math.random;
+  Math.random = () => {
+    throw new Error('An age edit must not consume simulation randomness');
+  };
+  try {
+    setGodPlayerAge(g, q, 24);
+  } finally {
+    Math.random = random;
+  }
+  const five = structuredClone(classStats(g, cls, [q.id])[q.id]);
+  assert.equal(five.filter(row => row.gp > 0).length, 5);
+  assert.equal(five.length, 6, 'five played seasons plus the extra calendar year as a redshirt');
+  assert.deepEqual(five.at(-1)!.disp, first[0].disp);
+  assert.deepEqual(q.stats, nba);
+  assert.deepEqual(q.r, ratings);
+  setGodPlayerAge(g, q, 23);
+  assert.equal(classStats(g, cls, [q.id])[q.id].filter(row => row.gp > 0).length, 5);
+  setGodPlayerAge(g, q, 19);
+  assert.deepEqual(classStats(g, cls, [q.id])[q.id], first, 'aging down restores the exact original season');
+  setGodPlayerAge(g, q, 24);
+  assert.deepEqual(classStats(g, cls, [q.id])[q.id], five, 'aging back up restores the same added years and numbers');
+  const loaded = Game.load(g.toSave());
+  assert.deepEqual(classStats(loaded, cls, [q.id])[q.id], five, 'the resized college career survives save/load');
+}
 
 // Historical rows, including two schools in one year: keep complete seasons.
 const h: any = structuredClone(p);
@@ -69,9 +106,11 @@ h.real.push({ ...h.real.at(-1), team: 'Transfer school', gp: 10 });
 const original = structuredClone(h.real),
   oldLines = realLines(g, h);
 setGodPlayerAge(g, h, 28);
-assert.equal(realLines(g, h).length, 5);
+assert.equal(realLines(g, h).length, 7, 'historical players can gain generated seasons without overwriting source rows');
 assert.deepEqual(
-  realLines(g, h).map(x => x.age),
+  realLines(g, h)
+    .filter(row => row.season >= g.Y - 3)
+    .map(x => x.age),
   oldLines.map(x => x.age + 6),
 );
 assert.deepEqual(h.real, original);
@@ -79,6 +118,9 @@ setGodPlayerAge(g, h, 19);
 assert.equal(realLines(g, h).length, 2, 'both transfer rows in freshman season survive');
 assert.ok(realLines(g, h).every(x => x.age === 19));
 assert.deepEqual(h.real, original, 'source history retained');
+setGodPlayerAge(g, h, 28);
+assert.equal(realLines(g, h).length, 7, 'hidden source and added seasons return when aged up');
+assert.deepEqual(h.real, original);
 
 // Current age edits move draft age by the delta, not to the current age.
 const veteran: any = structuredClone(h);
@@ -86,7 +128,7 @@ delete veteran.amAgeEdit;
 Object.assign(veteran, { age: 30, dAge: 22, cls: g.Y - 8, real: undefined });
 setGodPlayerAge(g, veteran, 36);
 assert.equal(veteran.dAge, 28);
-assert.equal(schoolPath(veteran).length, 4);
+assert.equal(schoolPath(veteran).length, 6, 'drafted players gain college years too');
 const plain: any = { age: 25 };
 setGodPlayerAge(g, plain, 28);
 assert.equal(plain.age, 28);
