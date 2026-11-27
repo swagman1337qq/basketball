@@ -114,7 +114,7 @@ The weights are measured from the game engine itself: every rating was nudged up
 
 | Key | Rating | What it does | Overall weight (G / W / B) |
 |---|---|---|---|
-| `oiq` | Offensive IQ | Decision-making: fewer turnovers, better shots (and a better shot when the defense keys on him), assists for teammates, avoiding late-game mental mistakes. | 10% / 8% / 9% |
+| `oiq` | Offensive IQ | Decision-making: fewer turnovers, shot selection (the AI's shot mix: which of the shots his game allows he takes, section K), a better shot when the defense keys on him, assists for teammates, avoiding late-game mental mistakes. | 10% / 8% / 9% |
 | `diq` | Defensive IQ | Positioning and rotations: makes every shot the opponent takes harder, fewer fouls, no defensive three seconds. | **17.5% / 18% / 22.5%** |
 | `blk` | Blocks | Who gets the block (timing). Above his Defensive IQ he gambles: more blocks, easier shots for everyone else. | 1% / 1.5% / 1% |
 | `stl` | Steals | Who gets the steal (hands). Gambling works the same way as Blocks. | 1% / 1% / 1% |
@@ -477,7 +477,7 @@ usage  = e^(0.019 × (offensive ability − 57)) × e^((ten.usage − 50) / 60)
 | League re-centering | − the league's average curve value (keeps the league on its baselines), + last season's drift correction |
 | Paint vs mid-range | paint +.02 (plus half his rim-vs-mid skill gap); mid-range −.02 × .52/.48 |
 | Creation type | catch-and-shoot +.022; pull-up −.015 + .0006·(drb − 55); stepback −.045 + .0012·((drb + acc)/2 − 55); fadeaway −.035 + .001·(.5·fg + .25·hgt + .25·stre − 52); minus the league's average creation |
-| Shot selection (Offensive IQ) | +.0003 per point above the league's Offensive IQ, −.0005 per point below |
+| Reading the shot (Offensive IQ) | +.00015 per point above the league's Offensive IQ, −.00025 per point below (halved 2026-11-27: which shots he takes is his shot sense, section K) |
 | Usage burden | if his share `s` of the lineup's shots > 24%: −(s − .24) × .18 × cl(1 − (oiq − n.oiq)/60, 0.4, 1.5) (×1.1 flat for alphas and heat checks) |
 | Size at the rim | +.0015 × (hgt − league rim height) |
 | Sag off non-shooters (guards and wings at the rim) | −.15 × cl((55 − max(tp, fg))/100, 0, 0.4) |
@@ -585,6 +585,8 @@ P(offensive rebound) = cl(.26 + .0022 × (offense's avg glass skill − defense'
 Each month, unless you Freeze them, every player's tendencies are reset from his ratings, personality, age, role and team.
 
 **Relative skill:** rel(x) = x − L + .3·(L − 52), where L is the average of drb, pss, fg, tp, ins, finishing, acc and oiq. A skill counts against the rest of his own game.
+
+**Shot sense (Offensive IQ, `shotSense`, 2026-11-27):** s = (oiq − 52)/25, kept between −1 and 1. The skill part of rel is scaled by sharp = 1 + .35·s for every shot-choice score (not free throw rate): rel(x) = (x − L)·sharp + .3·(L − 52), so a smart player leans harder on his strengths and a poor decision-maker barely tells them apart. bad = −s (for a low IQ ×1.3 for a gunner: alpha, heat check, showman or stat padder; ×.6 for a team player) pulls him toward the hardest shots his game allows: restricted area −4·bad (big −3), paint +1·bad (big +6), mid-range +4·bad (a big only as far as his fg is over 45, fully from 60), catch & shoot −6·bad, pull-up +4·bad, stepback +5·bad (big +2), fadeaway +4·bad. A low-IQ gunner who isn't a big, with 3PT 35–55 (full at 40–50), adds b3 = 7·(−s) to above-the-break threes. Range is untouched: under 40 3PT the three-point ramp doesn't use rel at all, and a big's mid-range limit stays, so a center who can't shoot doesn't take threes however low his IQ. In games, a low-IQ shooter takes about 56% of his jumpers as pull-ups, stepbacks and fadeaways (55+ OIQ: about 38%).
 
 **Three-point desire:** shoot3 = 50 + .7·rel(tp). Under 50 3PT it ramps down toward 50 + 2.2·(tp − 50), and under 40 it's that value only.
 

@@ -179,7 +179,28 @@ const ctxOf = (c?: number | null | TenCtx): TenCtx => (typeof c === 'number' ? {
 const PF0 = -3,
   PF_K = 0.6,
   DOM0 = 54;
-export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
+// Shot sense (2026-11-27): offensive IQ is how well he picks his shots, apart from where he can shoot from.
+// `sharp` scales how much his shot mix follows what he does best (a smart player leans on his strengths
+// and stays away from his weaknesses; a poor decision-maker barely tells them apart). `bad` (positive for
+// a low IQ, negative for a high one) pulls him toward the hardest shots his game allows: long twos,
+// pull-ups, stepbacks and fadeaways over catch-and-shoot, settling over attacking the rim, and for a big
+// forced hooks and turnarounds. Gunners (alpha, heat checks, showmen, stat padders) make it worse, team
+// players soften it. Range stays a skill: the three-point ramp under 40 and a big's mid-range limit are
+// untouched, so a center who can't shoot still doesn't take threes. `b3`: a low-IQ gunner on the perimeter
+// with a shaky shot (three-point rating 35–50) believes in his three anyway (a Josh Smith).
+export const OIQ_MID = 52, // the league's typical offensive IQ (sim.ts n.oiq)
+  SHARP_K = 0.35;
+export function shotSense(p: any): { s: number; sharp: number; bad: number; b3: number } {
+  const r = p.r || {},
+    f = p.pers || {},
+    s = cl(((r.oiq ?? OIQ_MID) - OIQ_MID) / 25, -1, 1),
+    gunner = !!(f.alpha || f.heat || f.flashy || f.padder);
+  const bad = -s * (s < 0 ? (gunner ? 1.3 : 1) * (f.team ? 0.6 : 1) : 1),
+    tp = r.tp ?? 50,
+    b3 = p.grp !== 'B' && gunner && s < 0 ? -s * 7 * cl((tp - 35) / 5, 0, 1) * cl((55 - tp) / 5, 0, 1) : 0;
+  return { s, sharp: 1 + SHARP_K * s, bad, b3 };
+}
+export function tenTargets(p: any, ctx?: number | null | TenCtx, sense = true): Record<TenKey, number> {
   const r = p.r || {},
     f = p.pers || {},
     g = p.grp,
@@ -193,7 +214,10 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
     finish = Math.max(r.dnk, r.lay ?? r.dnk),
     lay = r.lay ?? r.dnk;
   const L = (r.drb + r.pss + r.fg + r.tp + r.ins + finish + acc + r.oiq) / 8,
-    rel = (x: number) => x - L + 0.3 * (L - 52);
+    lvl0 = 0.3 * (L - 52),
+    { sharp, bad, b3 } = sense ? shotSense(p) : { sharp: 1, bad: 0, b3: 0 },
+    relF = (x: number) => x - L + lvl0,
+    rel = (x: number) => (x - L) * sharp + lvl0; // shot choices: a smart player leans harder on what he does best (shotSense)
   // Non-shooters stop taking threes; between 40 and 50 a player grows into the shot gradually (it used to jump
   // from almost none at 39 to a full share at 40). `ramp` blends a below-par score into his game-relative one.
   const ramp = (lo: (v: number) => number, hi: number) =>
@@ -217,9 +241,16 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
         rel(rimSk) * 1.1 +
         (big ? 10 + Math.max(0, 55 - Math.max(r.fg, r.tp)) * 0.5 : guard ? -3 : 0) +
         (r.tp < 40 ? (40 - r.tp) * 0.5 : 0) -
-        (age >= 31 ? (age - 30) * 1.5 : 0),
+        (age >= 31 ? (age - 30) * 1.5 : 0) -
+        bad * (big ? 3 : 4), // a poor decision-maker settles instead of attacking the rim
     ),
-    paint: t(42 + rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 + (big ? 8 : guard ? -2 : 0) + (age >= 30 && big ? 3 : 0)), // a big's hooks, a guard's floaters
+    paint: t(
+      42 +
+        rel(big ? postSk : lay * 0.5 + r.fg * 0.3 + r.drb * 0.2) * 1.0 +
+        (big ? 8 : guard ? -2 : 0) +
+        (age >= 30 && big ? 3 : 0) +
+        bad * (big ? 6 : 1),
+    ), // a big's hooks, a guard's floaters (a big's forced ones)
     mid: t(
       46 +
         rel(r.fg) * 1.2 +
@@ -227,11 +258,12 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
         (f.touches ? 4 : 0) +
         (f.volatile ? 3 : 0) +
         (age >= 31 ? 4 : 0) -
-        (big ? Math.max(0, 60 - r.fg) * 0.9 : 0),
+        (big ? Math.max(0, 60 - r.fg) * 0.9 : 0) +
+        bad * 4 * (big ? cl((r.fg - 45) / 15, 0, 1) : 1), // long twos; a big without a jumper still doesn't take them
     ), // 2026-10-18: was −6 under 50
     c3: t(5 + shoot3 + (wing ? 6 : guard ? -3 : -6) - (handle - L) * 0.4 + (f.team ? 4 : 0)), // spot-up shooters wait in the corners
-    atb: t(5 + shoot3 + (guard ? 4 : big ? -8 : 0) + (handle - L) * 0.3 + (f.heat ? 4 : 0) + (f.alpha ? 2 : 0)), // ball handlers pull up from the top
-    cns: t(ramp(v => 50 + (v - 50) * 1.8, 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0)),
+    atb: t(5 + shoot3 + (guard ? 4 : big ? -8 : 0) + (handle - L) * 0.3 + (f.heat ? 4 : 0) + (f.alpha ? 2 : 0) + b3), // ball handlers pull up from the top
+    cns: t(ramp(v => 50 + (v - 50) * 1.8, 50 + rel(r.tp) * 0.85) - (handle - L) * 0.5 + (f.team ? 8 : 0) + (f.pro ? 3 : 0) - bad * 6),
     pullup: t(
       50 +
         rel((r.drb + (r.fg + r.tp) / 2) / 2) * 1.3 +
@@ -239,7 +271,8 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
         (f.flashy ? 3 : 0) +
         (f.alpha ? 3 : 0) +
         (f.touches ? 3 : 0) +
-        (big ? -10 : 0),
+        (big ? -10 : 0) +
+        bad * 4,
     ),
     // Stepbacks take a handle, quickness and range; showmen, heat checkers and alphas love them; bigs rarely.
     step: t(
@@ -249,7 +282,8 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
         (f.heat ? 4 : 0) +
         (f.alpha ? 3 : 0) +
         (big ? -16 : wing ? -2 : 2) -
-        (age >= 32 ? (age - 31) * 1.5 : 0),
+        (age >= 32 ? (age - 31) * 1.5 : 0) +
+        bad * (big ? 2 : 5),
     ),
     // Fadeaways and turnarounds: mid-range touch and a post game; veterans who lost a step lean on them.
     fade: t(
@@ -258,9 +292,10 @@ export function tenTargets(p: any, ctx?: number | null | TenCtx): Record<TenKey,
         (f.alpha ? 3 : 0) +
         (f.touches ? 3 : 0) +
         (big ? 3 : guard ? -3 : 0) +
-        (age >= 30 ? (age - 29) * 1.2 : 0),
+        (age >= 30 ? (age - 29) * 1.2 : 0) +
+        bad * 4,
     ),
-    ftr: t(41.5 + rel(attack) * 1.1 + (big ? 3 : 0) + (f.fearless ? 2 : 0) + (f.flashy ? 1 : 0) - (age >= 32 ? age - 31 : 0)),
+    ftr: t(41.5 + relF(attack) * 1.1 + (big ? 3 : 0) + (f.fearless ? 2 : 0) + (f.flashy ? 1 : 0) - (age >= 32 ? age - 31 : 0)),
     usage: 50,
     dom: 50,
   };
@@ -378,8 +413,8 @@ export function sharesFromScores(sc: Partial<Record<TenKey, number>>, roles: str
 }
 const quirks = (p: any) => Object.fromEntries(TEN_KEYS.map(k => [k, quirkOf(p, k)])) as Record<TenKey, number>;
 // His targets: usage and free throw rate as scores, location and creation as shares, quirks included.
-function naturalTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, number> {
-  const tg = tenTargets(p, ctx),
+function naturalTen(p: any, ctx?: number | null | TenCtx, sense = true): Record<TenKey, number> {
+  const tg = tenTargets(p, ctx, sense),
     q = quirks(p),
     sc = {} as Record<TenKey, number>;
   TEN_KEYS.forEach(k => (sc[k] = cl(tg[k] + q[k], k === 'dunk' ? 0 : 2, k === 'dunk' ? 100 : 98)));
@@ -403,7 +438,7 @@ export function targetTen(p: any, ctx?: number | null | TenCtx): Record<TenKey, 
   const out = naturalTen(p, ctx),
     a = p.tenBase;
   if (!a?.ten || !a?.natural) return out;
-  const now = naturalTen(p);
+  const now = naturalTen(p, undefined, !!a.sense); // a card anchored before shot sense (2026-11-27) compares like with like, so its authored mix doesn't move
   for (const keys of [ZONE_TEN, CRE_TEN]) {
     const weights = Object.fromEntries(keys.map(k => [k, (Math.max(0, a.ten[k] ?? 0) * (now[k] + 0.1)) / (a.natural[k] + 0.1)]));
     Object.assign(out, round100(weights));
@@ -433,7 +468,7 @@ export function anchorCardStyle(
     ten = { ...style };
   if (ten.dom == null) ten.dom = cardDom(natural.dom, ten.usage);
   ten.dunk = Number.isFinite(ten.dunk) ? cl(ten.dunk, 0, 100) : natural.dunk;
-  p.tenBase = { ten, natural, dunkAuthored };
+  p.tenBase = { ten, natural, dunkAuthored, sense: 1 };
   if (p.ten && style === p.ten) {
     p.ten.dom = ten.dom;
     p.ten.dunk = ten.dunk;
@@ -667,6 +702,16 @@ export function roleOf(t: { usage?: number; dom?: number }): string {
   ][U][D];
 }
 
+// His shot selection in a phrase, from his offensive IQ (shotSense), only where it stands out and the AI sets his style.
+export function senseLine(p: any): string {
+  if (!p?.r || p.tenLock) return '';
+  const { s } = shotSense(p);
+  if (s <= -0.6)
+    return p.grp === 'B'
+      ? ' Poor shot selection: he forces hooks and turnarounds instead of finishing at the rim.'
+      : ' Poor shot selection: he settles for tough jumpers he rarely makes.';
+  return s >= 0.6 ? ' Picks his spots: he takes the shots his game gives him.' : '';
+}
 export function styleLine(p: any): string {
   const t = ensureTen(p);
   if (!t) return '';
@@ -683,7 +728,8 @@ export function styleLine(p: any): string {
   return (
     roleOf(t) +
     (top.length ? ', heavy on ' + (top.length > 1 ? top.slice(0, -1).join(', ') + ' and ' + top[top.length - 1] : top[0]) : '') +
-    '.'
+    '.' +
+    senseLine(p)
   );
 }
 

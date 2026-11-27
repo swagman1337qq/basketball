@@ -1744,7 +1744,7 @@ export class GameSim {
         oiqSh = sh.r.oiq - (n.oiq ?? 52);
       const usgPen =
         shShare > USG_KNEE ? (shShare - USG_KNEE) * USG_K * (sh.alpha || md === 'heat' ? 1.1 : cl(1 - oiqSh / 100, 0.6, 1.3)) : 0;
-      const readD = oiqSh >= 0 ? 0.0003 * oiqSh : 0.0005 * oiqSh; // shot selection: knowing which shots to take
+      const readD = oiqSh >= 0 ? 0.00015 * oiqSh : 0.00025 * oiqSh; // reading the defense on the shot he took (2026-11-27: halved; which shots he takes is now his shot sense, tendencies.ts)
       const moodD = md === 'heat' ? -0.02 : md === 'tilt' ? -0.04 : 0;
       const hotD = sh.hot ? sh.hot * (z === 'rim' ? 0.025 : 0.09) : 0; // a streaky shooter's hot or cold stretch
       const lineQ =
