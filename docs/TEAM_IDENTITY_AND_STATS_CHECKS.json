@@ -57,5 +57,41 @@
     "preExistingOutlier": "Seed 11 / 2027 worst record remains 9/82 (.110), below .12 band; unchanged from the previous version.",
     "ratingGames": 100000,
     "ratings": "PASS; byte-for-byte equal to previous version"
+  },
+  "styleRestoration": {
+    "date": "2026-11-26",
+    "status": "PASS",
+    "scope": "Restored original table visuals while preserving compact spacing and widths",
+    "themes": [
+      {
+        "theme": "dark",
+        "oldWidth": 1568,
+        "compactWidth": 1163.09375,
+        "oldRowHeight": 28.375,
+        "compactRowHeight": 24.375,
+        "identicalOriginalHeaderStyle": true,
+        "identicalOriginalBodyStyle": true,
+        "identicalCellValues": true,
+        "bodyPadding": "2px 4px",
+        "fontSize": "12.5px"
+      },
+      {
+        "theme": "light",
+        "oldWidth": 1568,
+        "compactWidth": 1163.09375,
+        "oldRowHeight": 28.375,
+        "compactRowHeight": 24.375,
+        "identicalOriginalHeaderStyle": true,
+        "identicalOriginalBodyStyle": true,
+        "identicalCellValues": true,
+        "bodyPadding": "2px 4px",
+        "fontSize": "12.5px"
+      }
+    ],
+    "sorting": true,
+    "browserErrors": [],
+    "regressionChecks": 52,
+    "typecheck": "PASS",
+    "productionBuild": "PASS"
   }
 }

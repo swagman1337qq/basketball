@@ -15,6 +15,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Tell your assistant GM to reject every trade offer.** On Staff, enable Reject all trade offers to automatically decline incoming player and pick offers, including ones already waiting. Rejected offers stay in your Mailbox. The setting saves separately for each team you manage.
 
 ### Changed
+- **Player Stats keep their familiar styling.** Restored the previous table appearance while keeping the tighter spacing and compact widths.
 - **Your chosen team logos are in the game.** Phoenix Spitfires use Firewing, Washington Blossoms use Blossom Crest with blossom pink, Albuquerque Crystals use Desert Chemistry, and Temecula Steel Moris use Heritage Mori. Existing default names and colors update when a save opens; custom colors stay intact.
 - **Player Stats tables are tighter.** Smaller cell spacing and compact column widths bring the tables closer to the reference layout, with the same text size and complete stat labels.
 - **Sims refresh after each game on light screens.** On the Dashboard, the Roster and a player's profile, the screen can now refresh in the middle of a simulated day, as each game is recorded, while the page would otherwise sit waiting for the next result. Over two simulated months the Dashboard and profiles refreshed about 1.7 times as often as yesterday's version, and sims were just as fast. Heavier screens (League stats, League leaders) refresh as before.
