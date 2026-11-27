@@ -447,8 +447,30 @@ try {
     textures.add(p.texture);
     mixedStyles.add(p.hair);
   }
-  assert(textures.has('straight') && textures.has('coily'), 'Explicit mixed appearance uses both contributing profiles');
-  assert(mixedStyles.has('kpop') && mixedStyles.has('locsLong'));
+  assert(textures.has('curly') && textures.has('coily'), 'Multiracial defaults use the Black texture pool');
+  assert(!textures.has('straight'));
+  assert(!mixedStyles.has('kpop') && mixedStyles.has('locsLong'));
+  for (const race of ['white', 'brown', 'asian', 'black']) {
+    for (let seed = 0; seed < 200; seed++) {
+      const person = { id: seed, race, age: 24, heritage: 'Multiracial' },
+        face = makeFace(person, 9),
+        ordinary = makeFace({ ...person, heritage: 'White' }, 9),
+        portrait = newFullPortrait(face, seed);
+      assert.equal(face.hairProfile, 'black');
+      assert.deepEqual(face.hair, ordinary.hair, 'Hair colour and archived Classic defaults stay unchanged');
+      assert.equal(portrait.base, newFullPortrait(ordinary, seed).base, 'Hair defaults must not replace the selected face');
+      assert(!['curtains', 'longPart', 'kpop', 'sidepart', 'wolf', 'shag'].includes(portrait.hair));
+      assert(['coily', 'curly', 'wavy'].includes(portrait.texture));
+      assert.equal(portrait.natural, newFullPortrait(ordinary, seed).natural, 'The request changes texture/styles, not colour');
+      const normal = newFullPortrait(ordinary, seed),
+        changed = { ...portrait };
+      for (const key of ['hair', 'texture']) {
+        delete normal[key];
+        delete changed[key];
+      }
+      assert.deepEqual(changed, normal, 'Only automatic hairstyle and texture may change');
+    }
+  }
   assert.deepEqual(
     newFullPortrait({ appearanceMix: { asian: 0.5, black: 0.5 } }, 14),
     newFullPortrait({ appearanceMix: { asian: 50, black: 50 } }, 14),

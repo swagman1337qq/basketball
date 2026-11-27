@@ -436,5 +436,65 @@
     "typecheck": "PASS",
     "productionBuild": "PASS",
     "regressionChecks": 52
+  },
+  "multiracialHairDefaults": {
+    "date": "2026-11-27",
+    "status": "PASS",
+    "scope": "Game-authored automatic texture/hairstyle preference for declared mixed backgrounds and explicit appearance mixtures; all manual styles remain available",
+    "declaredBackgroundCases": 800,
+    "explicitMixtureCases": 1000,
+    "otherSeededFeaturesUnchanged": true,
+    "headSelectionUnchanged": true,
+    "hairColourUnchanged": true,
+    "classicDefaultsUnchanged": true,
+    "savedManualSettingsPreserved": true,
+    "editor": {
+      "status": "PASS",
+      "manualStyles": 45,
+      "manualTextureAndColour": true,
+      "newPortrait": true,
+      "shuffle": true,
+      "reset": true,
+      "sourcePersonUnchanged": true,
+      "browserErrors": []
+    },
+    "regressionChecks": 54,
+    "typecheck": "PASS",
+    "productionBuild": "PASS"
+  },
+  "afroTempleFit": {
+    "date": "2026-11-27",
+    "status": "PASS",
+    "scope": "Afro side panels follow the temples/ears instead of overlapping the cheeks; length changes puff volume above fixed roots",
+    "artwork": {
+      "status": "PASS",
+      "heads": 64,
+      "shapeLengthCases": 576,
+      "unchangedOtherStyleCases": 132,
+      "crownChecks": 64,
+      "cheekPixels": 370332,
+      "lengthControls": 64,
+      "stableRoots": 64,
+      "failures": [],
+      "failureCount": 0,
+      "browserErrors": []
+    },
+    "benchmark": {
+      "before": {
+        "medianMs": 8,
+        "p95Ms": 18.30000001192093,
+        "samples": 40
+      },
+      "after": {
+        "medianMs": 8.199999988079071,
+        "p95Ms": 9.799999997019768,
+        "samples": 40
+      },
+      "scope": "Cached portrait painting only; no game simulation changes"
+    },
+    "sourceArtAndSavedSettingsUnchanged": true,
+    "regressionChecks": 54,
+    "typecheck": "PASS",
+    "productionBuild": "PASS"
   }
 }

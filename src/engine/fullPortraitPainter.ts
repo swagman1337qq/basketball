@@ -784,7 +784,8 @@ function overlay(
         // Length changes the free ends below the roots, never the cap above them.
         // The cap's registration stays the same at every length setting.
         const anchor = 0.38 * W;
-        sy = y < anchor ? anchor + (y - anchor) / cap.scale : hairLengthSourceY(y, p.hairLength, eye);
+        const volume = p.hair === 'afro' ? 1 + p.hairLength * 0.12 : 1;
+        sy = y < anchor ? anchor + (y - anchor) / (cap.scale * volume) : hairLengthSourceY(y, p.hairLength, eye);
         sy -= p.sideburns * W * 0.024 * smooth(0.44, 0.56, y / W) * smooth(0.08, 0.17, Math.abs(x / W - 0.5));
         if (p.hair === 'shag' && roots && y > eye + 4) {
           // The shag cell's side locks were drawn down over a much longer face.
@@ -812,6 +813,15 @@ function overlay(
         // Tuck roots behind the complete painted ear, avoiding detached pale
         // fragments while leaving long outside strands and ponytails visible.
         a *= 1 - roots.scalp.mask[y * W + x] * rootMap.earX[x] * rootMap.earY[y];
+        if (p.hair === 'afro' && y > eye - 8) {
+          // The Afro's painted side panels belong around the temples, not over
+          // the cheeks. Follow the real head silhouette before the face warp.
+          const row = Math.min(y, 208),
+            left = roots.scalp.left[row],
+            right = roots.scalp.right[row],
+            outside = x < roots.targetCx ? 1 - smooth(left - 1, left + 2, x) : smooth(right - 2, right + 1, x);
+          a *= 1 - smooth(eye - 8, eye + 10, y) * (1 - outside);
+        }
         if (p.hair === 'shag' && y > eye + 18) {
           const row = Math.min(y, 208),
             left = roots.scalp.left[row],

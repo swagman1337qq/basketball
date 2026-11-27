@@ -429,6 +429,9 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Multiracial hair defaults could come from the straight/parted pool.** Fixed 2026-11-27: `fullPortraits.ts` recognizes declared multiracial/mixed backgrounds and explicit appearance mixtures; `faces.ts` passes a computed hair-profile preference to the live renderer. Automatic hair uses the Black style/texture pool while head selection, hair color, facial hair, other seeded features, Classic rendering and stored manual portraits are preserved. New portrait, Shuffle features and Reset edits share the rule; the manual editor stays unrestricted.
+- [x] **Head 59’s Afro had misplaced cheek panels.** Fixed 2026-11-27 in the Afro-only path of `fullPortraitPainter.ts`: lower overlap follows the actual head silhouette around the temples and ears, and length changes puff volume above its fixed anchor. Actual-art checks cover 64 heads, 576 length/shape cases, 370,332 cheek pixels, 64 length/root checks and 132 exact other-style comparisons, including Shag.
+
 - [x] **Other teams’ roster headers omitted their head coach.** Fixed 2026-11-26: `RosterTeamDetails.tsx` reads the active `headCoachOf(gm, tid)` for other teams in the current season, links the name through `coachPid`, and shows Vacant when the role is unfilled. Managed teams continue to show the in-game manager’s name. No current coach is mislabeled as a past season’s coach.
 
 - [x] **Shag hair formed long, misplaced cheek strips.** Fixed 2026-11-26: the shag-only path in `fullPortraitPainter.ts` shortens the source side locks, tucks them outward behind the ears and clips lower overlap to each head’s actual silhouette before the shared feature warp. Crown/fringe pixels are preserved; other styles, authored sheets, saved settings and sliders remain unchanged. Actual-art checks cover 64 heads, 576 length/shape cases, 191,532 cheek pixels and 132 unchanged other-style comparisons.

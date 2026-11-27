@@ -13,7 +13,7 @@
 import { createElement } from 'react';
 import { IllustratedPortrait } from './IllustratedPortrait';
 import { readIllustration } from './illustratedPortraits';
-import { newFullPortrait } from './fullPortraits';
+import { newFullPortrait, usesBlackHairDefaults } from './fullPortraits';
 import { PORTRAIT_MODE } from './portraitMode';
 import { mulberry32 } from './rng';
 
@@ -709,6 +709,7 @@ export function makeFace(p: any, salt = 0, kin?: any) {
     generator: 'Basketball Manager faces',
     seed: seed >>> 0,
     race,
+    ...(usesBlackHairDefaults(p) ? { hairProfile: 'black' } : {}),
     ...(fem ? { fem: true } : {}),
     skin: { tone: r2(tone), under },
     build,

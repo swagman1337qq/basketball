@@ -707,16 +707,31 @@ function appearanceWeights(f: any): Record<string, number> {
     ? Object.fromEntries(Object.entries(mix).map(([key, weight]) => [key, weight / total]))
     : { [TEXTURE_WEIGHTS[f.race] ? f.race : 'white']: 1 };
 }
+export function usesBlackHairDefaults(f: any): boolean {
+  // This is the game's automatic styling preference, not a manual restriction
+  // or a change to the person's appearance, ancestry or hair colour.
+  if (f.hairProfile === 'black') return true;
+  const heritage = typeof f.heritage === 'string' ? f.heritage : '';
+  return (
+    /\b(?:multiracial|mixed)\b/i.test(heritage) ||
+    (typeof f.mix === 'string' && !!f.mix.trim()) ||
+    Object.keys(appearanceWeights(f)).length > 1
+  );
+}
 function portraitHair(f: any, rnd: () => number, preferredTexture?: string) {
-  const look = weightedChoice(rnd, appearanceWeights(f)),
+  const lookDraw = rnd(),
+    look = weightedChoice(() => lookDraw, appearanceWeights(f)),
     weights = TEXTURE_WEIGHTS[look],
-    texture = preferredTexture && weights[preferredTexture] ? preferredTexture : weightedChoice(rnd, weights),
+    sourceTexture = preferredTexture && weights[preferredTexture] ? preferredTexture : weightedChoice(rnd, weights),
+    mixedHair = usesBlackHairDefaults(f),
+    hairLook = mixedHair ? 'black' : look,
+    texture = mixedHair ? weightedChoice(() => lookDraw, TEXTURE_WEIGHTS.black) : sourceTexture,
     age = f.age?.years ?? f.age ?? 25;
   let candidates = [...(f.fem ? FEMALE_HAIR[texture] : HAIR_BY_TEXTURE[texture]), 'bald', 'shaved'];
   // Select the actual textured drawings, not a straight-hair drawing with a
   // coily texture setting applied to its colour. Several long/parted drawings
   // were visually unsuitable even though their IDs did not say "middle part".
-  if (look === 'black' || look === 'dark')
+  if (hairLook === 'black' || hairLook === 'dark')
     candidates = [
       ...(f.fem
         ? ['afro', 'shortAfro', 'twists', 'braids', 'cornrows', 'locsLong', 'locsUp', 'curlyMop', 'buzz']
@@ -746,8 +761,8 @@ function portraitHair(f: any, rnd: () => number, preferredTexture?: string) {
   if (!f.fem && age >= 32) candidates.push('baldingBuzz', 'balding');
   // A wavy/curly texture must not accidentally put a middle part on the darker-skin
   // game presets. East Asian presets never draw locs/coily styles automatically.
-  if (look === 'black' || look === 'dark') candidates = candidates.filter(id => !['curtains', 'longPart', 'kpop'].includes(id));
-  if (look === 'asian')
+  if (hairLook === 'black' || hairLook === 'dark') candidates = candidates.filter(id => !['curtains', 'longPart', 'kpop'].includes(id));
+  if (hairLook === 'asian')
     candidates = candidates.filter(
       id => !['locsShort', 'locsLong', 'locsUp', 'cornrows', 'braids', 'afro', 'shortAfro', 'twists'].includes(id),
     );
