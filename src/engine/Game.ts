@@ -2,6 +2,7 @@ import { runCooperatively, yieldToBrowser } from './cooperative';
 import { gamePool, type GamePool, type Played } from './gamePool';
 import { protectedOfferNotice } from './tradeStatus';
 import { naturalDunkShare } from './finishing';
+import { keepFreeAgent, retirementChance, retirementProduction } from './retirement';
 import { archiveDashboardMail } from './dashboardMail';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
 import { TRAINABLE, MENTAL, ratingLimit, growIntangible, breakthroughEligible } from './ratingCeilings';
@@ -5192,17 +5193,20 @@ export class Game {
       (Object.values(P) as any[]).forEach(p => {
         if (p?.retired && !p.gone && p.age != null) p.age++;
       });
-      // Natural retirement: old and declining players call it a career (your own stars only when clearly done).
-      const retire = id => P[id].age >= 35 && (P[id].ovr < 52 || Math.random() < 0.35);
+      // Recent production and a remaining NBA role keep veterans playing. The
+      // same small voluntary-exit risk applies to managed and AI clubs.
+      const retire = (id, rostered: boolean) => {
+        const chance = retirementChance(P[id], this.Y, rostered);
+        return chance > 0 && Math.random() < chance;
+      };
       fa = fa.filter(id => {
-        if (!retire(id)) return true;
+        if (!retire(id, false)) return true;
         P[id].retired = { season: this.Y, age: P[id].age, tid: -1, why: 'Retired' };
         addTx(this, s, P[id], { k: 'retire', text: 'Retired at ' + P[id].age });
         return false;
       });
       Object.keys(rosters).forEach(k => {
-        const user = this.isUser(s, +k),
-          out = rosters[k].filter(id => retire(id) && (!user || P[id].ovr < 55 || P[id].age >= 38));
+        const out = rosters[k].filter(id => retire(id, true));
         out.forEach(id => {
           P[id].retired = { season: this.Y, age: P[id].age, tid: +k, why: 'Retired' };
           addTx(this, s, P[id], { k: 'retire', tid: +k, text: 'Retired at ' + P[id].age });
@@ -5430,7 +5434,7 @@ export class Game {
         };
       box.fa = box.fa.filter(id => {
         const p = P[id];
-        if (p.rfa || p.age < 24 || (p.ovr >= 43 && p.age < 31) || (p.ovr >= 48 && p.age < 34) || p.ovr >= 55) return true;
+        if (keepFreeAgent(p, this.Y)) return true;
         if (abroadMove(p)) return false;
         p.retired = { season: this.Y, age: p.age, tid: -1, why: p.age >= 33 ? 'Retired' : 'Left the league' };
         return false;
@@ -5450,6 +5454,9 @@ export class Game {
           .sort((a, b) => P[b].pot - P[a].pot)
           .slice(0, 20)
           .forEach(id => keep.add(id)); // the draft's best undrafted rookies stay (the CCP), as camp invites and two-ways do
+        box.fa.forEach(id => {
+          if (retirementProduction(P[id], this.Y).useful) keep.add(id);
+        }); // recent contributors remain signable; the pool cap cannot retire them indirectly
         box.fa = box.fa.filter(id => {
           if (keep.has(id)) return true;
           if (abroadMove(P[id])) return false;

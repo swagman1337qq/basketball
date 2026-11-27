@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-26",
+  "scope": "Future NBA retirement decisions and unsigned-pool cleanup; no historical retirement migration or stat/rating/contract changes",
+  "targeted": {
+    "status": "PASS",
+    "productionCases": 3,
+    "managedAndAIPlayers": 6,
+    "unsignedVeteran": true,
+    "statAndRatingMutation": false,
+    "saveReopen": true,
+    "mandatorySetting": true,
+    "per1000PlayersMs": 6.64,
+    "sink": 129.6400000000039
+  },
+  "cases": [
+    "Supplied 25.2 / 16.2 / 13.8-point season shapes below the old 52-overall cutoff",
+    "Managed and AI teams use the same natural rule",
+    "Unsigned productive veteran stays available despite 90 higher-rated free agents",
+    "Low-scoring defensive/playmaking role",
+    "Poor current season replaces a strong older one",
+    "One-game, playoff-only and future lines excluded",
+    "Traded-team rows aggregated",
+    "Extreme volume/inefficiency alone insufficient",
+    "Rare voluntary exits remain possible",
+    "Good missing-season player not retired solely for no stats",
+    "Existing retired record not reconsidered",
+    "Actual annual rollover and save/reopen",
+    "Explicit mandatory retirement setting remains authoritative",
+    "Frozen test-player stat/rating content unchanged"
+  ],
+  "validation": {
+    "regressionChecks": 52,
+    "regressionStatus": "PASS",
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "format": "Full project formatter run; unrelated formatting restored",
+    "leagueSeasons": 6,
+    "brokenInvariants": 0,
+    "leagueResult": "FAIL: 1 outside the bands, 0 broken · 6 league-seasons in 653s",
+    "ratingGames": 100000,
+    "ratingResult": "PASS; byte-for-byte identical to previous version"
+  },
+  "leagueSummary": "check                   band               11/2027    11/2028    11/2029    12/2027    12/2028    12/2029\r\nteam points             106–120            110.8      116.4      115.2      110.7      115.1      114.1  \r\npace (possessions)      95–102              96.4       98.7       98.3       97.0       97.9       97.6  \r\nteam assists            22–28.5             25.1       26.5       26.5       24.9       26.0       26.1  \r\nteam turnovers          12–16               14.3       14.5       14.2       14.6       14.3       13.9  \r\nteam FGA                84–92               86.6       88.4       88.6       86.9       87.7       88.3  \r\nteam 3PA                28–42               34.3       37.8       38.0       35.4       37.7       37.1  \r\nteam FTA                18–26               22.5       23.9       23.1       23.1       23.7       22.9  \r\nteam rebounds           40–46               43.1       43.6       43.8       43.8       43.4       43.8  \r\nteam steals             7–9.5                8.1        8.2        8.1        8.4        8.2        7.9  \r\nteam blocks             4.2–5.8              4.9        4.6        4.6        5.0        4.5        4.7  \r\nFG%                     45–49.5             46.7       47.3       47.0       46.0       47.2       46.9  \r\n3P%                     34–38.5             36.0       36.7       35.9       35.5       36.7       36.2  \r\nFT%                     74–81               78.3       78.6       78.8       78.8       78.4       78.3  \r\nscoring leader (ppg)    26–37               31.3       33.4       29.2         33       33.1       30.2  \r\nplayers at 25+ ppg      4–20                  12         17         10         10          9          7  \r\nplayers at 20+ ppg      18–50                 38         41         40         34         38         38  \r\nassist leader (apg)     8.5–13.5             9.7       11.4       10.5        9.7        9.1        9.4  \r\nplayers at 10+ apg      0–5                    0          1          2          0          0          0  \r\nrebound leader (rpg)    10.5–16.5           13.1       13.1       12.9       13.5       13.0       13.2  \r\nhighest usage %         30–40               34.7       32.8       32.8       38.2       36.3       36.7  \r\nbest record (win%)      0.650–0.860        0.720      0.780      0.768      0.768      0.805      0.720  \r\nstandings spread (win% sd)0.100–0.190        0.164      0.137      0.141      0.163      0.164      0.152  \r\nworst record (win%)     0.120–0.360        0.110 ✗    0.232      0.220      0.146      0.256      0.171  \r\nmost made dunks         0–500                270        282        311        229        250        237  \r\nmean overall drift      -2.5–2.5                      0.010     -0.271                 0.110     -0.858  \r\nplayers 60+ (change)    -25–25                            6          6                     4         -7  \r\ntax teams               0–12                              8         11                     7          7  \r\nmax deals               15–45                            43         40                    40         36  \r\nleague payroll / cap    0.950–1.2                       1.1        1.1                   1.1        1.1  \r\nteams under the floor   0–10                              1          1                     0          0  \r\ntop-30 who changed teams0–10                              2          3                     2          0  \r\n\r\nFAIL: 1 outside the bands, 0 broken · 6 league-seasons in 653s",
+  "runtime": "Production reads are once each summer. No extra retirement work is added to the game simulation loop.",
+  "sourceBase": "a53bee9a94b9e23823f57c7180fc1c112f171931"
+}
