@@ -60,6 +60,7 @@ const SCRIPTS = [
   'finishingIntegration',
   'historicalClass',
   'shotSense',
+  'analyticsReports',
 ];
 const run = (name: string) =>
   new Promise<{ name: string; ok: boolean; s: number; tail: string }>(done => {

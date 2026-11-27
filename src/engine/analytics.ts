@@ -430,7 +430,7 @@ export function anExpiring(g: Game, s: any): any[] {
           ex.map(a => a.name + ' (' + AN_ROLE_LABEL[a.role!] + ')').join(', ') +
             ' ' +
             (ex.length === 1 ? 'has a contract that ends' : 'have contracts that end') +
-            ' June 30. Re-sign on the Analytics screen, or ' +
+            ' June 30. Re-sign on the Staff screen, or ' +
             (ex.length === 1 ? 'that analyst leaves' : 'they leave') +
             ' when free agency opens.',
         ],
@@ -447,7 +447,7 @@ export function anContractsEnd(g: Game, s: any): any[] {
       out.push({
         tone: 'info',
         title: 'Analyst gone: ' + a.name,
-        lines: [a.name + ' (' + AN_ROLE_LABEL[a.role!] + ') left when the contract ended. Hire a replacement on the Analytics screen.'],
+        lines: [a.name + ' (' + AN_ROLE_LABEL[a.role!] + ') left when the contract ended. Hire a replacement on the Staff screen.'],
       });
     detach(a);
   });
@@ -676,14 +676,17 @@ export interface AnView {
   conf: 'Low' | 'Medium' | 'High';
 }
 // One analyst's view of a player (null: no numbers to go on).
-export function analystView(g: Game, a: Analyst, p: any): AnView | null {
+// A full report (analytics reports, `anCovered`): the analyst works through his whole file, so his read carries a third
+// less noise. Biases stay.
+export const DEEP_SD = 0.65;
+export function analystView(g: Game, a: Analyst, p: any, deep = false): AnView | null {
   const n = numsOf(g, p);
   if (n.kind === 'none') return null;
   const b = a.bias,
     sm = b.small || 0,
     x = sm ? mix(n.x, n.xs, sm) : n.x,
     min = sm ? n.min * (1 - sm) + n.minS * sm : n.min,
-    sd = 0.6 + (100 - a.skill) / 16,
+    sd = (0.6 + (100 - a.skill) / 16) * (deep ? DEEP_SD : 1),
     age = n.age;
   let now: number, peak: number;
   const oldF = b.old ? b.old * Math.max(0, age - 29) : 0;
@@ -734,12 +737,13 @@ export interface DeptView extends AnView {
 }
 const DV = new WeakMap<object, Map<string, DeptView | null>>();
 export function deptView(g: Game, s: any, tid: number, p: any): DeptView | null {
-  const key = tid + '|' + p.id + '|' + g.Y + '|' + (s.day ?? 0) + '|' + anRev(g) + '|' + (p.stats || []).length;
+  const deep = tid === s.me && anCovered(g, s).has(p.id),
+    key = tid + '|' + p.id + '|' + g.Y + '|' + (s.day ?? 0) + '|' + anRev(g) + '|' + (p.stats || []).length + '|' + (deep ? 1 : 0);
   let m = DV.get(g.db);
   if (!m) DV.set(g.db, (m = new Map()));
   if (m.has(key)) return m.get(key)!;
   const by = deptOf(g, tid)
-    .map(a => ({ a, v: analystView(g, a, p) }))
+    .map(a => ({ a, v: analystView(g, a, p, deep) }))
     .filter(x => x.v) as { a: Analyst; v: AnView }[];
   let out: DeptView | null = null;
   if (by.length) {
@@ -753,6 +757,103 @@ export function deptView(g: Game, s: any, tid: number, p: any): DeptView | null 
   return out;
 }
 export const hasDept = (g: Game, tid: number) => deptOf(g, tid).length > 0;
+
+// ── Reports: who the department is asked to look at (2026-11-27) ───────────────────────
+// Three sources: you (the Analytics screen's list, `anList`, or Ask analytics on a profile), your scouts (their
+// scouting list, focus and the players they follow) and your assistant GM (players in trade offers to you, your
+// shortlists, and the draft prospects your scouts rank around your pick). Only active NBA players (on a roster or in
+// free agency) and draft prospects: nobody abroad. Each analyst covers a number of players (`AN_CAP`); your requests
+// come first, then the scouts', then the assistant GM's, and the rest wait. A covered player gets the full report
+// and the sharper read everywhere (`DEEP_SD`).
+export type ReqBy = 'you' | 'scouts' | 'agm';
+export const REQ_LABEL: Record<ReqBy, string> = { you: 'You', scouts: 'Scouts', agm: 'Assistant GM' };
+export const AN_CAP: Record<AnRole, number> = { head: 12, analyst: 8 };
+export const AN_LIST_MAX = 30;
+export const anCapacity = (g: Game, tid: number) => deptOf(g, tid).reduce((t, a) => t + AN_CAP[(a.role || 'analyst') as AnRole], 0);
+export type AnKind = 'prospect' | 'mine' | 'league' | 'fa';
+export function anKind(g: Game, s: any, p: any): AnKind | null {
+  if (!p || p.retired || p.gone || s.overseas?.includes(p.id)) return null;
+  const tid = Object.keys(s.rosters).find(t => s.rosters[t].includes(p.id));
+  if (tid != null) return (s.managed || [s.me]).includes(+tid) ? 'mine' : 'league';
+  if (s.fa?.includes(p.id)) return 'fa';
+  return p.cls && p.cls >= g.Y && (g.db as any).cls?.[p.cls]?.includes(p.id) ? 'prospect' : null;
+}
+// The next draft class still to be picked.
+export function nextClass(g: Game, s: any): number | null {
+  const C = (g.db as any).cls || {};
+  const ys = Object.keys(C)
+    .map(Number)
+    .filter(y => y >= g.Y && (C[y] || []).some((id: number) => anKind(g, s, g.db.P[id]) === 'prospect'))
+    .sort((a, b) => a - b);
+  return ys[0] ?? null;
+}
+// Your assistant GM's picks: incoming trade offers, your shortlists, and the prospects around your projected pick.
+function agmPicks(g: Game, s: any): number[] {
+  const out: number[] = [];
+  (s.inOffers || []).forEach((o: any) => out.push(...(o.b === s.me ? o.aP : o.a === s.me ? o.bP : [])));
+  (s.lists || []).forEach((l: any) => out.push(...(l.ids || [])));
+  const cls = nextClass(g, s);
+  if (cls != null) {
+    const n = s.teams.length,
+      wins = (t: any) => (t.w + t.l ? t.w / (t.w + t.l) : 0.5),
+      slot = 1 + s.teams.filter((t: any) => wins(t) < wins(s.teams[s.me]) || (wins(t) === wins(s.teams[s.me]) && t.tid < s.me)).length,
+      board = ((g.db as any).cls[cls] || [])
+        .map((id: number) => g.db.P[id])
+        .filter((p: any) => anKind(g, s, p) === 'prospect')
+        .map((p: any) => ({ id: p.id, v: g.potRead(p, s.me, s) * 0.7 + p.ovr * 0.3 }))
+        .sort((a: any, b: any) => b.v - a.v);
+    const lo = Math.max(0, Math.min(slot, n) - 4);
+    board.slice(lo, lo + 8).forEach((x: any) => out.push(x.id));
+  }
+  return out;
+}
+export function anRequests(g: Game, s: any): { pid: number; by: ReqBy[] }[] {
+  const m = new Map<number, ReqBy[]>(),
+    add = (by: ReqBy, ids: number[]) =>
+      ids.forEach(id => {
+        if (!anKind(g, s, g.db.P[id])) return;
+        const b = m.get(id) || [];
+        if (!b.includes(by)) b.push(by);
+        m.set(id, b);
+      });
+  add('you', s.anList || []);
+  add('scouts', [...(s.scoutList || []), ...(s.scoutFocus || []), ...Object.keys(s.scoutAssign || {}).map(Number)]);
+  add('agm', agmPicks(g, s));
+  const rank = (b: ReqBy[]) => (b.includes('you') ? 0 : b.includes('scouts') ? 1 : 2);
+  return [...m.entries()].map(([pid, by]) => ({ pid, by })).sort((a, b) => rank(a.by) - rank(b.by)); // stable: each source's own order
+}
+const COV = new WeakMap<object, { key: string; set: Set<number> }>();
+export function anCovered(g: Game, s: any): Set<number> {
+  const sig = [s.me, g.Y, s.day ?? 0, anRev(g), (s.anList || []).join(','), (s.scoutList || []).join(','), (s.scoutFocus || []).join(',')]
+    .concat(Object.keys(s.scoutAssign || {}).join(','), (s.inOffers || []).map((o: any) => o.id).join(','))
+    .concat(
+      (s.lists || []).map((l: any) => (l.ids || []).join(',')).join(';'),
+      String(s.teams?.[s.me]?.w ?? 0),
+      String(s.teams?.[s.me]?.l ?? 0),
+    )
+    .join('|');
+  const hit = COV.get(g.db);
+  if (hit && hit.key === sig) return hit.set;
+  const cap = anCapacity(g, s.me),
+    set = new Set<number>();
+  if (cap > 0) for (const r of anRequests(g, s)) if (set.size < cap && numsOf(g, g.db.P[r.pid]).kind !== 'none') set.add(r.pid);
+  COV.set(g.db, { key: sig, set });
+  return set;
+}
+// Your list: add (Ask analytics) or take off. Returns a message.
+export function askAnalytics(g: Game, pid: number): string {
+  const s: any = g.state,
+    p = g.db.P[pid];
+  if (!p) return '';
+  if (!anKind(g, s, p)) return 'Analytics covers players in the NBA and draft prospects.';
+  if ((s.anList || []).includes(pid)) return p.name + ' is already on your analytics list.';
+  if ((s.anList || []).length >= AN_LIST_MAX) return 'Your analytics list is full (' + AN_LIST_MAX + '). Take someone off first.';
+  g.setState((st: any) => ({ anList: [...(st.anList || []), pid] }));
+  return p.name + ' is on your analytics list.';
+}
+export function dropAnalytics(g: Game, pid: number) {
+  g.setState((st: any) => ({ anList: (st.anList || []).filter((x: number) => x !== pid) }));
+}
 
 // ── Advice ──────────────────────────────────────────────────────────────────────────
 // What his contract is worth to them: his projected level next season priced at the league's going rate, against

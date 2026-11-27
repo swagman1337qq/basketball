@@ -1,396 +1,413 @@
-// The analytics department (2026-11-20, analytics.ts): a Head of Analytics and two analysts, what they've got right
-// and wrong (their track record and the tendencies it shows), and the analytics people you can hire. Their skill is
-// your read (a grade that firms up month by month); their biases you learn from their record. God Mode: exact.
-import { useState } from 'react';
+// Analytics reports (2026-11-27; engine: analytics.ts anRequests/anCovered, analyticsReports.ts): the players your
+// analytics department is asked to look at, by you (search, or Ask analytics on a profile), your scouts and your
+// assistant GM, NBA players and draft prospects only. Each analyst covers a number of players; covered players get
+// the full report (and the sharper read everywhere), the rest wait in line. The department itself is on Staff.
+import { useEffect, useState } from 'react';
 import type { VM } from '../vm';
-import { godBtn, godText, h4Style, muted, NumInput, Seg, td, th } from '../kit';
+import { byLast, useSort } from '../sortable';
+import { Link, muted, ruleH4, Seg, usePaged } from '../kit';
 import { CoachFace } from '../CoachFace';
-import { fmtMoney as money } from '../../engine/capModel';
-import { grade } from '../../engine/staff';
 import {
+  AN_CAP,
+  AN_LIST_MAX,
   AN_ROLE_LABEL,
-  anAccept,
   anAge,
-  anAsk,
-  analyticsCost,
-  anPrefYears,
-  anReadLabel,
-  anYears,
-  BIAS_LABEL,
+  anCapacity,
+  anKind,
+  askAnalytics,
   deptOf,
-  fireAnalyst,
-  freeAnalysts,
-  hireAnalyst,
-  readSkill,
-  recordLine,
-  setAnRole,
+  deptView,
+  dropAnalytics,
+  REQ_LABEL,
   tendencies,
-  type Analyst,
-  type AnRole,
-  type BiasKey,
+  type AnKind,
+  type ReqBy,
 } from '../../engine/analytics';
+import { anReport, anRows, type AnRow } from '../../engine/analyticsReports';
+
+const KIND_LABEL: Record<AnKind, string> = { prospect: 'Draft prospect', mine: 'Your team', league: 'NBA', fa: 'Free agent' };
+const good = 'var(--gm-good)',
+  bad = 'var(--gm-bad)';
 
 export function AnalyticsScreen({ vm }: { vm: VM }) {
-  const { gm, s } = vm.ctx,
-    tid = s.me,
-    god = !!s.god;
+  const { gm, s, money } = vm.ctx,
+    P = gm.db.P;
   void s.gv;
-  const [offer, setOffer] = useState<{ id: number; role: AnRole; amt: number; years: number } | null>(null);
-  const [msg, setMsg] = useState('');
-  const [firing, setFiring] = useState<number | null>(null);
-  const [more, setMore] = useState(15);
-  const refresh = () => gm.setState((st: any) => ({ gv: (st.gv || 0) + 1 }));
-  const openA = (id: number) => gm.setState({ anPid: id, anTab: 'ov' });
-  const act = (f: () => string, ok?: string) => {
-    const e = f();
-    setMsg(e || ok || '');
-    refresh();
+  const [f, setF] = useState<'all' | AnKind>('all'),
+    [byF, setByF] = useState<'any' | ReqBy>('any'),
+    [sel, setSel] = useState<number | null>(s.anSel ?? null),
+    [q, setQ] = useState(''),
+    [msg, setMsg] = useState('');
+  useEffect(() => {
+    if (s.anSel != null) setSel(s.anSel); // Full report on a profile opens his
+  }, [s.anSel]);
+  const dept = deptOf(gm, s.me),
+    cap = anCapacity(gm, s.me);
+  const rows = dept.length ? anRows(gm, s) : [],
+    covered = rows.filter(r => r.status === 'covered').length,
+    waiting = rows.filter(r => r.status === 'queued').length;
+  const pot = (id: number) => vm.ctx.potOf(P[id], id);
+  const view = (r: AnRow) => (r.status === 'covered' ? deptView(gm, s, s.me, P[r.pid]) : null);
+  const shown = rows.filter(r => (f === 'all' || r.kind === f) && (byF === 'any' || r.by.includes(byF)));
+  const fold = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const hits =
+    q.trim().length >= 2
+      ? (Object.values(P) as any[]).filter(p => anKind(gm, s, p) && fold(p.name).includes(fold(q.trim()))).slice(0, 8)
+      : [];
+  const add = (id: number) => {
+    setMsg(askAnalytics(gm, id));
+    setSel(id);
+    setQ('');
   };
-  const dept = deptOf(gm, tid),
-    cost = analyticsCost(gm, s, tid);
-  const nat = (a: Analyst) => gm.db.C?.[a.nat]?.n || a.nat;
-  const face = (a: Analyst, size: number) => <CoachFace gm={gm} c={{ ...(a as any), id: 500000 + a.id }} age={anAge(gm, a)} size={size} />;
-  const flag = (a: Analyst) => (
-    <img
-      src={gm.flag(a.nat)}
-      alt={nat(a)}
-      title={nat(a)}
-      style={{ width: 18, height: 12, objectFit: 'contain', verticalAlign: 'middle', marginLeft: 6 }}
-    />
-  );
-  const skill = (a: Analyst) => {
-    const v = readSkill(a, god);
+  const srt = useSort<AnRow>(shown, {
+    name: r => byLast(P[r.pid]),
+    type: r => KIND_LABEL[r.kind],
+    pos: r => P[r.pid].pos,
+    age: r => P[r.pid].age,
+    now: r => view(r)?.now ?? null,
+    next: r => (view(r)?.kind === 'nba' ? view(r)!.next : null),
+    peak: r => view(r)?.peak ?? null,
+    scouts: r => pot(r.pid),
+    gap: r => (view(r) ? view(r)!.peak - pot(r.pid) : null),
+    by: r => r.by.map(b => REQ_LABEL[b]).join(', '),
+    status: r => (r.status === 'covered' ? 0 : r.status === 'queued' ? r.queue : 999),
+  });
+  const pg = usePaged(srt.rows, 'players', 25, srt.sortKey);
+  const count = (k: AnKind) => rows.filter(r => r.kind === k).length,
+    countBy = (k: ReqBy) => rows.filter(r => r.by.includes(k)).length;
+  const cell = { padding: '4px 8px', whiteSpace: 'nowrap' as const },
+    num = { ...cell, textAlign: 'right' as const };
+  if (!dept.length)
     return (
-      <span
-        title={god ? 'Skill ' + a.skill + ' · ceiling ' + (a.ceil ?? a.skill) + ' (God Mode)' : 'Your read of the skill: ' + anReadLabel(a)}
-        style={god ? godText : undefined}
-      >
-        {god ? a.skill : a.read > 0.05 ? grade(v) : '?'}
-      </span>
+      <section>
+        <h4 style={ruleH4}>Analytics reports</h4>
+        <p style={{ ...muted, fontSize: '13px' }}>
+          You have no analytics department, so nobody to run the numbers. Hire a Head of Analytics and analysts on the{' '}
+          <Link onClick={() => gm.setState({ screen: 'staff' })}>Staff</Link> screen.
+        </p>
+      </section>
     );
-  };
-  const biasCell = (a: Analyst) => {
-    const seen = tendencies(a);
-    const exact = Object.entries(a.bias) as [BiasKey, number][];
-    return (
-      <div style={{ fontSize: '12px' }}>
-        {god && (
-          <div style={godText}>
-            {exact.length ? exact.map(([k, v]) => BIAS_LABEL[k] + ' (' + Math.round(v * 100) + '%)').join(' · ') : 'No biases'}
-          </div>
-        )}
-        {seen.length ? (
-          seen.join(' · ')
-        ) : (
-          <span style={muted}>{(a.rec || []).length ? 'Nothing stands out yet' : 'No record with you yet'}</span>
-        )}
-      </div>
-    );
-  };
-  const record = (a: Analyst) => {
-    const r = recordLine(a);
-    return (
-      <div style={{ fontSize: '12px' }}>
-        {r.mae != null ? (
-          <div title="His opening-night projections against where each player ended the season (average miss, overall points)">
-            Projections: off by {r.mae.toFixed(1)} ({r.seasons} season{r.seasons === 1 ? '' : 's'})
-          </div>
-        ) : (
-          <div style={muted}>Projections: graded after a season</div>
-        )}
-        {r.hit != null ? (
-          <div title="How often his draft board had two players in the right order three seasons on, against your scouts'">
-            Draft: {Math.round(r.hit * 100)}% right (scouts {Math.round((r.scouts ?? 0.5) * 100)}%)
-          </div>
-        ) : (
-          <div style={muted}>Draft: graded three seasons on</div>
-        )}
-      </div>
-    );
-  };
-  const startOffer = (a: Analyst, role: AnRole = a.role || (dept.some(x => x.role === 'head') ? 'analyst' : 'head')) =>
-    setOffer({ id: a.id, role, amt: anAsk(gm, a, role), years: anPrefYears(a) });
-  const oa = offer ? (gm.db as any).analysts?.[offer.id] : null;
-  const acc = oa && offer ? anAccept(gm, s, tid, oa, offer) : null;
-  const pool = freeAnalysts(gm)
-    .slice()
-    .sort((a, b) => b.rep - a.rep);
+  const H: [string, string, 'left' | 'right', string?][] = [
+    ['name', 'Player', 'left'],
+    ['type', 'Type', 'left'],
+    ['pos', 'Pos', 'left'],
+    ['age', 'Age', 'right'],
+    ['now', 'Now', 'right', 'His level today by the numbers (on the overall scale)'],
+    ['next', 'Next', 'right', 'Projected level next season (NBA players)'],
+    ['peak', 'Ceiling', 'right', 'Where the numbers say he tops out'],
+    ['scouts', 'Scouts', 'right', 'Your scouts’ read of his potential (your coaches’ for your own players)'],
+    ['gap', '±', 'right', 'The numbers’ ceiling against your scouts’ read'],
+    ['by', 'Requested by', 'left'],
+    ['status', 'Status', 'left'],
+  ];
   return (
-    <>
-      <h4 style={h4Style}>Your department</h4>
-      <p style={{ margin: '0 0 10px', fontSize: '13px', ...muted }}>
-        A Head of Analytics and two analysts. They never see ratings: everything they say comes from the numbers (box scores, college and
-        club stats, age), so they catch what the box score shows and miss what it doesn&rsquo;t. Each has a skill and may have biases
-        (loving threes, trusting college box plus/minus too much, blindness to defense, chasing small samples, skepticism about older
-        players). You learn their skill working with them, and their biases from their track record: every opening night they project the
-        league&rsquo;s regulars, graded at season&rsquo;s end; every draft board is graded three seasons on. Their views appear on the draft
-        board, player profiles, free agency and trades.
+    <section>
+      <p style={{ ...muted, fontSize: '12.5px', margin: '0 0 8px' }}>
+        Your department runs the numbers on players in the NBA and draft prospects: the ones you ask for, the ones your scouts are following
+        and the ones your assistant GM flags (trade offers to you, your shortlists, the prospects around your pick). The Head of Analytics
+        covers {AN_CAP.head} players and each analyst {AN_CAP.analyst}; your requests come first, then the scouts&rsquo;, then the assistant
+        GM&rsquo;s, and the rest wait their turn. A covered player gets the full report and a sharper read everywhere (draft board, profile,
+        free agency, trades). The department is on <Link onClick={() => gm.setState({ screen: 'staff' })}>Staff</Link>.
       </p>
-      <div style={{ fontSize: '12px', ...muted, marginBottom: 8 }}>
-        {dept.length} of 3 · {money(cost)} a season (Finances: Analytics department)
-        {!dept.length ? ' · no department: no analytics advice' : ''}
+      <div style={{ fontSize: '12.5px', marginBottom: 8 }}>
+        Covering <b>{covered}</b> of {cap} · {waiting} waiting · your list {(s.anList || []).length} of {AN_LIST_MAX}
       </div>
-      {msg && <div style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-accent-800)' }}>{msg}</div>}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-          <thead>
-            <tr>
-              <th style={th()}>Analyst</th>
-              <th style={th('right')}>Age</th>
-              <th style={th()}>Job</th>
-              <th style={th('right')} title="Reputation (0–100)">
-                Rep
-              </th>
-              <th style={th('right')} title="How good his numbers are (your read; God Mode: exact)">
-                Skill
-              </th>
-              <th style={th()}>Track record</th>
-              <th style={th()}>Tendencies in the record</th>
-              <th style={th('right')}>Contract</th>
-              <th style={th()} />
-            </tr>
-          </thead>
-          <tbody>
-            {dept.map(a => (
-              <tr key={a.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
-                <td style={td()}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button style={{ all: 'unset', cursor: 'pointer' }} onClick={() => openA(a.id)} title="Open profile">
-                      {face(a, 34)}
-                    </button>
-                    <div>
-                      <button className="hv4" onClick={() => openA(a.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
-                        {a.name}
-                      </button>
-                      {flag(a)}
-                      <div style={{ fontSize: '11px', ...muted }}>
-                        {a.bg} · {anYears(gm, a)} yrs in analytics
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td style={td('right')}>{anAge(gm, a)}</td>
-                <td style={td()}>
-                  <select
-                    value={a.role || 'analyst'}
-                    onChange={e => act(() => setAnRole(gm, s, tid, a.id, e.target.value as AnRole, god))}
-                    style={{ fontSize: '12.5px' }}
-                  >
-                    {(['head', 'analyst'] as AnRole[]).map(r => (
-                      <option key={r} value={r}>
-                        {AN_ROLE_LABEL[r]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td style={td('right')}>{a.rep}</td>
-                <td style={td('right')}>{skill(a)}</td>
-                <td style={td()}>{record(a)}</td>
-                <td style={td()}>{biasCell(a)}</td>
-                <td style={td('right')}>
-                  {money(a.amt)}
-                  <div style={{ fontSize: '11px', ...muted }}>
-                    thru {a.exp - 1}–{String(a.exp).slice(2)}
-                    {a.next ? ' · extended thru ' + (a.next.exp - 1) + '–' + String(a.next.exp).slice(2) : ''}
-                  </div>
-                </td>
-                <td style={td()}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {!a.next && (
-                      <button className="btn btn-secondary" onClick={() => startOffer(a)}>
-                        Re-sign
-                      </button>
-                    )}
-                    {firing === a.id ? (
-                      <>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ color: 'var(--gm-bad)', borderColor: 'var(--gm-bad)' }}
-                          onClick={() => {
-                            setFiring(null);
-                            act(() => fireAnalyst(gm, s, tid, a.id, god), a.name + ' is gone.');
-                          }}
-                        >
-                          {god
-                            ? 'Confirm'
-                            : 'Confirm (' + money(a.amt) + ' a year through ' + (a.exp - 1) + '–' + String(a.exp).slice(2) + ')'}
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => setFiring(null)}>
-                          Keep
-                        </button>
-                      </>
-                    ) : (
-                      <button className="btn btn-secondary" onClick={() => setFiring(a.id)} title="Let go: paid to the end of the contract">
-                        Let go
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {!dept.length && (
-              <tr>
-                <td colSpan={9} style={{ ...td(), ...muted, fontStyle: 'italic' }}>
-                  Nobody yet. Hire from the analysts below.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {offer && oa && (
-        <div
-          style={{
-            margin: '14px 0',
-            padding: '12px 14px',
-            border: '1px solid var(--color-accent)',
-            borderRadius: 'var(--radius-md)',
-            display: 'grid',
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            {face(oa, 44)}
-            <div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px', fontWeight: 600 }}>
-                {oa.tid === tid ? 'Re-sign ' : 'Offer: '}
-                <button className="hv4" onClick={() => openA(oa.id)} style={{ all: 'unset', cursor: 'pointer' }}>
-                  {oa.name}
-                </button>
-              </div>
-              <div style={{ fontSize: '12px', ...muted }}>
-                Reputation {oa.rep} · asks about {money(anAsk(gm, oa, offer.role))} a year as {AN_ROLE_LABEL[offer.role]} · prefers{' '}
-                {anPrefYears(oa)} years
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Seg<AnRole>
-              value={offer.role}
-              options={
-                oa.tid === tid
-                  ? [[oa.role!, AN_ROLE_LABEL[oa.role! as AnRole]]]
-                  : [
-                      ['head', 'Head of Analytics'],
-                      ['analyst', 'Analyst'],
-                    ]
-              }
-              onChange={r => setOffer({ ...offer, role: r, amt: Math.max(offer.amt, anAsk(gm, oa, r)) })}
-            />
-            <span>
-              Salary{' '}
-              <NumInput
-                value={offer.amt}
-                min={0.05}
-                max={10}
-                step={0.05}
-                width={80}
-                onValue={v => setOffer({ ...offer, amt: v })}
-                suffix="$M a year"
-              />
-            </span>
-            <span>
-              Years <NumInput value={offer.years} min={1} max={5} step={1} width={56} onValue={v => setOffer({ ...offer, years: v })} />
-            </span>
-          </div>
-          <div style={{ fontSize: '13px', color: acc?.ok ? 'var(--gm-good)' : 'var(--color-accent-800)' }}>
-            {acc?.ok ? oa.name + ': “Let’s do it.”' : oa.name + ': “' + (acc?.why || '') + '”'}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn btn-primary"
-              disabled={!acc?.ok}
-              onClick={() => {
-                const e = hireAnalyst(gm, s, tid, oa.id, offer);
-                setMsg(e || oa.name + ' signed: ' + money(offer.amt) + ' × ' + offer.years + ' as ' + AN_ROLE_LABEL[offer.role] + '.');
-                if (!e) setOffer(null);
-                refresh();
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+        <Seg<any>
+          value={f}
+          options={[
+            ['all', 'All ' + rows.length],
+            ['prospect', 'Draft prospects ' + count('prospect')],
+            ['league', 'NBA ' + count('league')],
+            ['mine', 'My team ' + count('mine')],
+            ['fa', 'Free agents ' + count('fa')],
+          ]}
+          onChange={setF}
+        />
+        <Seg<any>
+          value={byF}
+          options={[
+            ['any', 'Anyone'],
+            ['you', 'You ' + countBy('you')],
+            ['scouts', 'Scouts ' + countBy('scouts')],
+            ['agm', 'Assistant GM ' + countBy('agm')],
+          ]}
+          onChange={setByF}
+        />
+        <span style={{ position: 'relative' }}>
+          <input
+            className="input"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Ask analytics about…"
+            style={{ width: 220, fontSize: '13px' }}
+            data-analytics-search
+          />
+          {hits.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                zIndex: 30,
+                top: 34,
+                left: 0,
+                width: 300,
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-divider)',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: 'var(--shadow-md)',
               }}
             >
-              {oa.tid === tid ? 'Re-sign' : 'Sign'}
-            </button>
-            {god && (
-              <button
-                className="btn btn-secondary"
-                style={godBtn}
-                onClick={() => {
-                  const e = hireAnalyst(gm, s, tid, oa.id, offer, true);
-                  setMsg(e || oa.name + ' signed (God Mode).');
-                  if (!e) setOffer(null);
-                  refresh();
-                }}
-              >
-                Force sign
-              </button>
-            )}
-            <button className="btn btn-secondary" onClick={() => setOffer(null)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      <h4 style={{ ...h4Style, marginTop: 18 }}>Analytics people available</h4>
-      <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
-        Background, years in the field and reputation are what you can see. Their skill is a guess until they work for you
-        {god ? ' (God Mode: exact, with their biases)' : ''}.
-      </p>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              {hits.map(p => (
+                <button
+                  key={p.id}
+                  className="hv3"
+                  onClick={() => add(p.id)}
+                  style={{
+                    all: 'unset',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    gap: 8,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '5px 10px',
+                    fontSize: '12.5px',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>{p.name}</span>
+                  <span style={muted}>
+                    {KIND_LABEL[anKind(gm, s, p)!]} · {p.pos} · {p.age}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </span>
+      </div>
+      {msg && <div style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-accent-800)' }}>{msg}</div>}
+      <div style={{ overflowX: 'auto', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-sm)' }}>
+        <table className="table" style={{ fontSize: '12.5px', width: '100%' }} data-analytics-reports>
           <thead>
-            <tr>
-              <th style={th()}>Analyst</th>
-              <th style={th('right')}>Age</th>
-              <th style={th()}>Background</th>
-              <th style={th('right')}>Years</th>
-              <th style={th('right')}>Rep</th>
-              {god && <th style={{ ...th('right'), ...godText }}>Skill</th>}
-              {god && <th style={{ ...th(), ...godText }}>Biases</th>}
-              <th style={th('right')}>Asking</th>
-              <th style={th()} />
-            </tr>
+            <tr>{H.map(([k, h, al, tip]) => srt.head(k, <span title={tip}>{h}</span>, al, { padding: '5px 8px' }))}</tr>
           </thead>
           <tbody>
-            {pool.slice(0, more).map(a => (
-              <tr key={a.id} style={{ borderTop: '1px solid var(--color-divider)' }}>
-                <td style={td()}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button style={{ all: 'unset', cursor: 'pointer' }} onClick={() => openA(a.id)} title="Open profile">
-                      {face(a, 28)}
-                    </button>
-                    <button className="hv4" onClick={() => openA(a.id)} style={{ all: 'unset', cursor: 'pointer', fontWeight: 600 }}>
-                      {a.name}
-                    </button>
-                    {flag(a)}
-                  </div>
-                </td>
-                <td style={td('right')}>{anAge(gm, a)}</td>
-                <td style={td('left', { fontSize: '12px' })}>{a.bg}</td>
-                <td style={td('right')}>{anYears(gm, a)}</td>
-                <td style={td('right')}>{a.rep}</td>
-                {god && <td style={{ ...td('right'), ...godText }}>{a.skill}</td>}
-                {god && (
-                  <td style={{ ...td('left', { fontSize: '12px' }), ...godText }}>
-                    {(Object.entries(a.bias) as [BiasKey, number][]).map(([k]) => BIAS_LABEL[k]).join(' · ') || '—'}
+            {pg.rows.map(r => {
+              const p = P[r.pid],
+                v = view(r),
+                sp = pot(r.pid),
+                gap = v ? Math.round(v.peak - sp) : null;
+              return (
+                <tr
+                  key={r.pid}
+                  onClick={() => setSel(r.pid)}
+                  style={{ cursor: 'pointer', background: sel === r.pid ? 'var(--color-accent-100)' : undefined }}
+                >
+                  <td style={cell}>
+                    <Link pid={r.pid} onClick={() => vm.ctx.open(r.pid)}>
+                      {p.name}
+                    </Link>
                   </td>
-                )}
-                <td style={td('right')}>{money(anAsk(gm, a, dept.some(x => x.role === 'head') ? 'analyst' : 'head'))}</td>
-                <td style={td('right')}>
-                  <button className="btn btn-secondary" onClick={() => startOffer(a)}>
-                    Make an offer
-                  </button>
+                  <td style={cell}>{KIND_LABEL[r.kind]}</td>
+                  <td style={cell}>{p.pos}</td>
+                  <td style={num}>{p.age}</td>
+                  <td style={{ ...num, fontWeight: 600 }}>{v ? Math.round(v.now) : ''}</td>
+                  <td style={num}>{v && v.kind === 'nba' ? Math.round(v.next) : ''}</td>
+                  <td style={num}>{v ? Math.round(v.peak) : ''}</td>
+                  <td style={num}>{sp}</td>
+                  <td style={{ ...num, color: gap != null && gap >= 4 ? good : gap != null && gap <= -4 ? bad : undefined }}>
+                    {gap == null ? '' : gap > 0 ? '+' + gap : gap}
+                  </td>
+                  <td style={cell}>{r.by.map(b => REQ_LABEL[b]).join(', ')}</td>
+                  <td style={cell}>
+                    {r.status === 'covered' ? (
+                      'Report'
+                    ) : r.status === 'queued' ? (
+                      <span style={muted}>Waiting (#{r.queue})</span>
+                    ) : (
+                      <span style={muted}>No numbers yet</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={H.length} style={{ padding: 10, ...muted }}>
+                  Nobody here yet. Search above, or use Ask analytics on a player&rsquo;s profile.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
-      {pool.length > more && (
-        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => setMore(more + 15)}>
-          Show more
+      {pg.pager}
+      {sel != null && P[sel] && (
+        <ReportView
+          vm={vm}
+          pid={sel}
+          row={rows.find(r => r.pid === sel)}
+          onDrop={() => {
+            dropAnalytics(gm, sel);
+            setMsg(P[sel].name + ' is off your analytics list.');
+          }}
+          onAsk={() => setMsg(askAnalytics(gm, sel))}
+          money={money}
+        />
+      )}
+    </section>
+  );
+}
+
+function ReportView({
+  vm,
+  pid,
+  row,
+  onDrop,
+  onAsk,
+  money,
+}: {
+  vm: VM;
+  pid: number;
+  row?: AnRow;
+  onDrop: () => void;
+  onAsk: () => void;
+  money: (v: number) => string;
+}) {
+  const { gm, s } = vm.ctx,
+    p = gm.db.P[pid],
+    mineList = (s.anList || []).includes(pid);
+  const box = { marginTop: 14, padding: '12px 14px', border: '1px solid var(--color-divider)', borderRadius: 'var(--radius-md)' };
+  const head = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600 }}>
+        <Link pid={pid} onClick={() => vm.ctx.open(pid)}>
+          {p.name}
+        </Link>
+        <span style={{ ...muted, fontSize: '13px', fontWeight: 400 }}>
+          {' '}
+          · {p.pos} · {p.age} · {row ? KIND_LABEL[row.kind] : ''}
+          {row ? ' · requested by ' + row.by.map(b => REQ_LABEL[b]).join(', ') : ''}
+        </span>
+      </div>
+      {mineList ? (
+        <button className="btn btn-secondary" onClick={onDrop}>
+          Take off my list
+        </button>
+      ) : (
+        <button className="btn btn-secondary" onClick={onAsk}>
+          Add to my list
         </button>
       )}
-    </>
+    </div>
+  );
+  if (!row || row.status !== 'covered')
+    return (
+      <div style={box}>
+        {head}
+        <p style={{ ...muted, fontSize: '13px', margin: '8px 0 0' }}>
+          {!row
+            ? 'Not on anyone’s list.'
+            : row.status === 'queued'
+              ? 'Waiting: #' +
+                row.queue +
+                ' in line. Your department is covering as many players as it can; add analysts on Staff, or take others off your list, to get to him sooner.'
+              : 'No numbers to go on yet: no NBA minutes, college or club season.'}
+        </p>
+      </div>
+    );
+  const sp = vm.ctx.potOf(p, pid),
+    rep = anReport(gm, s, pid, sp);
+  if (!rep) return <div style={box}>{head}</div>;
+  const { v } = rep,
+    tc = (t: string) => (t === 'good' ? good : t === 'bad' ? bad : undefined);
+  const stat = (label: string, val: string | number, sub?: string) => (
+    <div style={{ minWidth: 86 }}>
+      <div style={{ ...muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-heading)', fontSize: '22px', fontWeight: 600 }}>{val}</div>
+      {sub && <div style={{ ...muted, fontSize: '11.5px' }}>{sub}</div>}
+    </div>
+  );
+  return (
+    <div style={box} data-analytics-report>
+      {head}
+      <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', margin: '10px 0' }}>
+        {stat('Now', Math.round(v.now), v.kind === 'nba' ? 'rated ' + p.ovr : undefined)}
+        {v.kind === 'nba' && stat('Next season', Math.round(v.next))}
+        {stat('Ceiling', Math.round(v.peak), (row.kind === 'mine' ? 'coaches ' : 'scouts ') + sp)}
+        {stat('Confidence', v.conf)}
+        {rep.cv &&
+          stat(
+            rep.asks ? 'Worth (asks)' : 'Worth (paid)',
+            money(Math.max(0, rep.cv.worth)),
+            (rep.asks ? 'asks ' : 'paid ') + money(rep.sal!),
+          )}
+      </div>
+      <div style={{ display: 'grid', gap: 4, marginBottom: 10 }}>
+        {rep.calls.map((c, i) => (
+          <div key={i} style={{ fontSize: '13px', color: tc(c.tone) }}>
+            {c.text}
+          </div>
+        ))}
+        {rep.warn.map((w, i) => (
+          <div key={'w' + i} style={{ fontSize: '12.5px', ...muted }}>
+            ⚠ {w}
+          </div>
+        ))}
+        {rep.fit && !rep.fit.fills.length && rep.fit.needs.length > 0 && (
+          <div style={{ fontSize: '12.5px', ...muted }}>
+            Your needs by the numbers ({rep.fit.needs.map(n => n.label).join(', ')}): he doesn&rsquo;t stand out in them.
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 18 }}>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>
+            The numbers behind it · per {rep.sample.per} minutes · {rep.sample.min} minutes
+            {rep.sample.kind === 'nba' ? ' (this season, last at half weight)' : ' (last two college or club seasons)'}
+          </div>
+          <table className="table" style={{ fontSize: '12.5px' }}>
+            <thead>
+              <tr>
+                {rep.sample.line.map(x => (
+                  <th key={x.k} style={{ padding: '3px 6px', textAlign: 'right' }}>
+                    {x.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {rep.sample.line.map(x => (
+                  <td key={x.k} style={{ padding: '3px 6px', textAlign: 'right' }}>
+                    {x.v}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: 4 }}>Each analyst</div>
+          {v.by.map(({ a, v: av }) => {
+            const known = tendencies(a);
+            return (
+              <div key={a.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0', fontSize: '12.5px' }}>
+                <button
+                  style={{ all: 'unset', cursor: 'pointer' }}
+                  onClick={() => gm.setState({ anPid: a.id, anTab: 'ov' })}
+                  title="Open profile"
+                >
+                  <CoachFace gm={gm} c={{ ...(a as any), id: 500000 + a.id }} age={anAge(gm, a)} size={26} />
+                </button>
+                <div style={{ flex: 1 }}>
+                  <b>{a.name}</b> <span style={muted}>({AN_ROLE_LABEL[a.role || 'analyst']})</span>: now {Math.round(av.now)}
+                  {av.kind === 'nba' ? ', next ' + Math.round(av.next) : ''}, ceiling {Math.round(av.peak)}
+                  {known.length > 0 && <div style={{ ...muted, fontSize: '11.5px' }}>Record: {known.join(' · ')}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

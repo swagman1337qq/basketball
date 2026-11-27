@@ -2799,6 +2799,7 @@ export class Game {
     'teamNote',
     'scoutReports',
     'scoutList',
+    'anList',
     'mentors',
     'budgetAuto',
     'lineups',

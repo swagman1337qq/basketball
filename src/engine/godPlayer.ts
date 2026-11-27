@@ -14,7 +14,7 @@ import { nums, yosOf } from './cba';
 
 // Club fields (Game.CLUB_KEYS) keyed by player id, and the ones that are lists of player ids.
 const PID_MAPS = ['train', 'promises', 'intel', 'scoutAssign', 'briefPicks', 'coachAuto', 'scoutReports'];
-const PID_LISTS = ['scoutList', 'scoutFocus'];
+const PID_LISTS = ['scoutList', 'scoutFocus', 'anList'];
 
 export function deletePlayer(g: Game, pid: number): boolean {
   const P = g.db.P,

@@ -12,7 +12,7 @@ import { ceilList, fullCeil, paceLabel, paceOf, potView, scoutSd } from '../../e
 import { envOf } from '../../engine/environment';
 import { hgtFromInches, inchesOf } from '../../engine/ratings';
 import { Bar, GOD_PINK, Kicker, Link, muted, pctS, ruleH4, td, th } from '../kit';
-import { AN_ROLE_LABEL, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
+import { AN_ROLE_LABEL, anCovered, anKind, askAnalytics, contractValue, deptView, fitWith, hasDept } from '../../engine/analytics';
 import { woOpen, worked } from '../../engine/workouts';
 import { slGmSc, type SlLine } from '../../engine/summerLeague';
 import { liftRamp, rampLine } from '../../engine/injuryReturn';
@@ -171,7 +171,8 @@ export function SummerLeagueView({ vm }: { vm: VM }) {
 // players, your coaches') read of his ceiling, with what his contract is worth to them and how he fits your needs.
 export function AnalyticsView({ vm }: { vm: VM }) {
   const { gm, s, money } = vm.ctx,
-    { p, tid } = useP(vm);
+    { p, tid } = useP(vm),
+    [asked, setAsked] = useState<[number, string] | null>(null);
   if (!p || !hasDept(gm, s.me)) return null;
   const v = deptView(gm, s, s.me, p);
   const own = tid >= 0 && gm.isUser(s, tid),
@@ -199,13 +200,27 @@ export function AnalyticsView({ vm }: { vm: VM }) {
     <section>
       <h4 style={{ ...ruleH4, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span>Analytics</span>
-        <Link
-          onClick={() => gm.setState({ screen: 'analytics', modal: false })}
-          style={{ fontSize: '11.5px', color: 'var(--color-accent-700)' }}
-        >
-          Your department
-        </Link>
+        <span style={{ display: 'flex', gap: 10 }}>
+          {anKind(gm, s, p) && !anCovered(gm, s).has(p.id) && !(s.anList || []).includes(p.id) && (
+            <Link
+              onClick={() => {
+                setAsked([p.id, askAnalytics(gm, p.id)]);
+              }}
+              style={{ fontSize: '11.5px', color: 'var(--color-accent-700)' }}
+              data-ask-analytics
+            >
+              Ask analytics
+            </Link>
+          )}
+          <Link
+            onClick={() => gm.setState({ screen: 'analytics', modal: false, anSel: p.id })}
+            style={{ fontSize: '11.5px', color: 'var(--color-accent-700)' }}
+          >
+            {anCovered(gm, s).has(p.id) ? 'Full report' : 'Reports'}
+          </Link>
+        </span>
       </h4>
+      {asked && asked[0] === p.id && <p style={{ ...muted, fontSize: '12px', margin: '0 0 4px' }}>{asked[1]}</p>}
       {!v ? (
         <p style={{ ...muted, fontSize: '12px', margin: 0 }}>
           Not enough numbers on him yet: no NBA minutes, college or club season to go on.

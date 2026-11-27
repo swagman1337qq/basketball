@@ -226,7 +226,7 @@ export function AnalystBioEditor({ gm, analyst, onSave }: { gm: Game; analyst: A
       <p style={{ margin: '10px 0 0', fontSize: '12px', ...muted }}>
         {hired
           ? 'Contracts can run as far out as you like (a deal through 3000 is fine). A contract ends on June 30 of its last season.'
-          : 'Not in a department: hire them on the Analytics screen to set a contract.'}
+          : 'Not in a department: hire them on the Staff screen to set a contract.'}
       </p>
       <div className="god-zone" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 12 }}>
         <button

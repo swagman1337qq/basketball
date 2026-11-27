@@ -1,6 +1,7 @@
 // Coaching staff (2026-11-15, staff.ts): your assistants (you are the head coach), what they add, their contracts,
 // and the coaches you can hire. Hidden ratings show as your read (grades that firm up month by month); God Mode
 // shows them exactly and adds any coach to your staff on the spot.
+import { AnalyticsDepartment } from './AnalyticsDepartment';
 import { Fragment, useState } from 'react';
 import type { VM } from '../vm';
 import { Link, godBtn, h4Style, muted, NumInput, Seg, td, th } from '../kit';
@@ -230,8 +231,15 @@ export function StaffScreen({ vm }: { vm: VM }) {
   );
   const oc = offer ? gm.db.coaches?.[offer.id] : null;
   const acc = oc && offer ? coachAccept(gm, s, tid, oc, offer) : null;
+  const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
     <>
+      <nav aria-label="Staff sections" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '12.5px', marginBottom: 12 }}>
+        <Link onClick={() => jump('staff-coaches')}>Coaching staff</Link>
+        <Link onClick={() => jump('staff-coach-market')}>Coaches available</Link>
+        <Link onClick={() => jump('staff-analytics')}>Analytics department</Link>
+        <Link onClick={() => jump('staff-league-coaches')}>Head coaches around the league</Link>
+      </nav>
       <section aria-label="Assistant GM instructions" style={{ marginBottom: 16 }}>
         <h4 style={h4Style}>Assistant GM</h4>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '13px', fontWeight: 600 }}>
@@ -247,7 +255,9 @@ export function StaffScreen({ vm }: { vm: VM }) {
           Decline every incoming offer for the {T.name}, including draft picks. Rejected offers remain in your Mailbox.
         </p>
       </section>
-      <h4 style={h4Style}>Coaching staff</h4>
+      <h4 id="staff-coaches" style={h4Style}>
+        Coaching staff
+      </h4>
       <p style={{ margin: '0 0 10px', fontSize: '13px', ...muted }}>
         You are the head coach of the {T.region} {T.name}. Your assistants: a Lead Assistant (your in-game reads), Assistant Coaches (each
         helps the end of the floor their style points to) and a Head of Player Development. {STAFF_MIN} to {STAFF_MAX} coaches
@@ -526,7 +536,9 @@ export function StaffScreen({ vm }: { vm: VM }) {
         </div>
       )}
 
-      <h4 style={{ ...h4Style, marginTop: 18 }}>Coaches available</h4>
+      <h4 id="staff-coach-market" style={{ ...h4Style, marginTop: 18 }}>
+        Coaches available
+      </h4>
       <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
         What you can see before you hire someone: reputation, playing days and where they&rsquo;ve coached. Their style is what
         they&rsquo;re known for; their real ratings come into focus once they work for you.
@@ -620,7 +632,11 @@ export function StaffScreen({ vm }: { vm: VM }) {
         </button>
       )}
 
-      <h4 style={{ ...h4Style, marginTop: 22 }}>Head coaches around the league</h4>
+      <AnalyticsDepartment vm={vm} />
+
+      <h4 id="staff-league-coaches" style={{ ...h4Style, marginTop: 22 }}>
+        Head coaches around the league
+      </h4>
       <p style={{ margin: '0 0 8px', fontSize: '13px', ...muted }}>
         Every other team&rsquo;s head coach, with their record as a head coach (everywhere they&rsquo;ve been one). Each owner judges his
         coach against the media&rsquo;s preseason win projection (a win-now owner also wants the playoffs): a coach is fired only after
