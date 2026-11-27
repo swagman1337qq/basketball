@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-26",
+  "scope": "Current-season roster header only; reads actual staff appointments and opens the existing coach profile",
+  "browser": {
+    "status": "PASS",
+    "teams": 30,
+    "otherHeadCoaches": 29,
+    "profileLinks": 29,
+    "ownManagerName": true,
+    "coachChangesVisible": true,
+    "vacancyVisible": true,
+    "interimCoachVisible": true,
+    "browserErrors": []
+  },
+  "regressionChecks": 52,
+  "typecheck": "PASS",
+  "productionBuild": "PASS",
+  "savedDataAndGameRulesUnchanged": true
+}

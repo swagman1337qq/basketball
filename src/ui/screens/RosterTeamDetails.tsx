@@ -1,6 +1,7 @@
 import type { VM } from '../vm';
 import { Link, muted } from '../kit';
 import { staffOf, ROLE_LABEL } from '../../engine/staff';
+import { headCoachOf } from '../../engine/coachCareer';
 import { teamSeasonValue } from '../teamSeasonStats';
 import { rosterSeasonStats, type RosterSeasonStats } from '../rosterSeasonStats';
 
@@ -43,6 +44,7 @@ export function RosterTeamDetails({
   const cur = season === gm.Y,
     team = T[tid],
     manager = s.gm?.name?.trim() || 'Name not set',
+    headCoach = cur && !vm.ctx.isMine(tid) ? headCoachOf(gm, tid) : null,
     scope = data || rosterSeasonStats(gm, s, season, playoffs),
     source = scope.teams;
   const stats = source[tid],
@@ -107,11 +109,16 @@ export function RosterTeamDetails({
       </div>
       {cur && (
         <>
-          {vm.ctx.isMine(tid) && (
-            <div>
-              <b>Head coach:</b> {manager}
-            </div>
-          )}
+          <div>
+            <b>Head coach:</b>{' '}
+            {vm.ctx.isMine(tid) ? (
+              manager
+            ) : headCoach ? (
+              <Link onClick={() => gm.setState({ coachPid: headCoach.id })}>{headCoach.name}</Link>
+            ) : (
+              'Vacant'
+            )}
+          </div>
           <div>
             <b>Executive:</b> {vm.ctx.isMine(tid) ? manager : team.gm} · <b>Owner:</b> {team.owner}
           </div>

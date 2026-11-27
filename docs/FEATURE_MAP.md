@@ -428,6 +428,8 @@ All in `src/engine/`.
 
 ## Known issues to address
 
+- [x] **Other teams’ roster headers omitted their head coach.** Fixed 2026-11-26: `RosterTeamDetails.tsx` reads the active `headCoachOf(gm, tid)` for other teams in the current season, links the name through `coachPid`, and shows Vacant when the role is unfilled. Managed teams continue to show the in-game manager’s name. No current coach is mislabeled as a past season’s coach.
+
 - [x] **Shag hair formed long, misplaced cheek strips.** Fixed 2026-11-26: the shag-only path in `fullPortraitPainter.ts` shortens the source side locks, tucks them outward behind the ears and clips lower overlap to each head’s actual silhouette before the shared feature warp. Crown/fringe pixels are preserved; other styles, authored sheets, saved settings and sliders remain unchanged. Actual-art checks cover 64 heads, 576 length/shape cases, 191,532 cheek pixels and 132 unchanged other-style comparisons.
 
 - [x] **Productive veterans could retire immediately after strong seasons.** Fixed 2026-11-26: `engine/retirement.ts` replaces the age/overall-only summer check, protects useful unsigned players from the qualification and 90-player cleanup filters, aggregates traded-team production, and excludes playoffs/future/stale lines from current-season evidence. Low scoring alone does not end a defensive/playmaking role. No ratings, usage, aging curves, historical stats, contracts or prior retirements change. `scripts/retirement.mts` covers the supplied 25/16/14-point production shapes on managed and AI teams, free agents, real annual rollover, save/reopen, explicit mandatory retirement, declining/stale/tiny samples, efficiency and read-only performance.
