@@ -786,6 +786,14 @@ function overlay(
         const anchor = 0.38 * W;
         sy = y < anchor ? anchor + (y - anchor) / cap.scale : hairLengthSourceY(y, p.hairLength, eye);
         sy -= p.sideburns * W * 0.024 * smooth(0.44, 0.56, y / W) * smooth(0.08, 0.17, Math.abs(x / W - 0.5));
+        if (p.hair === 'shag' && roots && y > eye + 4) {
+          // The shag cell's side locks were drawn down over a much longer face.
+          // Keep its crown/fringe, but tuck and shorten the lower layers around
+          // this head's ears instead of painting long strips over the cheeks.
+          const tuck = smooth(eye + 4, eye + 28, y);
+          sx -= Math.sign(x - roots.targetCx) * 9 * tuck;
+          if (sy > eye + 8) sy = eye + 8 + (sy - (eye + 8)) / 0.55;
+        }
         if (roots && scalpOnly) sx = scalpHairSourceX(x, y, sy, roots);
       }
       if (sy < 0 || sy >= W || sx < 0 || sx >= W) continue;
@@ -804,6 +812,13 @@ function overlay(
         // Tuck roots behind the complete painted ear, avoiding detached pale
         // fragments while leaving long outside strands and ponytails visible.
         a *= 1 - roots.scalp.mask[y * W + x] * rootMap.earX[x] * rootMap.earY[y];
+        if (p.hair === 'shag' && y > eye + 18) {
+          const row = Math.min(y, 208),
+            left = roots.scalp.left[row],
+            right = roots.scalp.right[row],
+            outside = x < roots.targetCx ? 1 - smooth(left - 1, left + 2, x) : smooth(right - 2, right + 1, x);
+          a *= 1 - smooth(eye + 18, eye + 30, y) * (1 - outside);
+        }
         if (scalpOnly) a *= roots.scalp.mask[y * W + x];
         if (tucked) {
           a *= 1 - rootMap.templeY[y] * rootMap.templeX[x];

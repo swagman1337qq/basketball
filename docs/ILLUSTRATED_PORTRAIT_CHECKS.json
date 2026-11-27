@@ -403,5 +403,38 @@
       "ratingGames": 100000,
       "ratings": "PASS; byte-for-byte equal to previous version"
     }
+  },
+  "shagSideLayers": {
+    "date": "2026-11-26",
+    "status": "PASS",
+    "scope": "Shag-only lower-side fitting; source artwork, saved settings, crown/fringe, other styles and game simulation unchanged",
+    "artwork": {
+      "status": "PASS",
+      "heads": 64,
+      "shapeLengthCases": 576,
+      "unchangedOtherStyleCases": 132,
+      "crownChecks": 64,
+      "cheekChecks": 191532,
+      "workingLengthControls": 64,
+      "failures": [],
+      "failureCount": 0,
+      "browserErrors": []
+    },
+    "benchmark": {
+      "before": {
+        "medianMs": 10.200000002980232,
+        "p95Ms": 22.899999991059303,
+        "samples": 40
+      },
+      "after": {
+        "medianMs": 9.700000002980232,
+        "p95Ms": 15.299999997019768,
+        "samples": 40
+      },
+      "scope": "Cached portrait painting only; no game simulation changes"
+    },
+    "typecheck": "PASS",
+    "productionBuild": "PASS",
+    "regressionChecks": 52
   }
 }
