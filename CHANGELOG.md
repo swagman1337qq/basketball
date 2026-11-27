@@ -2,6 +2,11 @@
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
+## 2026-11-27
+
+### Fixed
+- **No more 9-win teams in a new league's first season.** When a league is created, its weakest roster could start far below everyone else, usually a rebuilding team with five or six raw 20- or 21-year-olds in its top eight, and it won 9 to 12 games. Rebuilding teams now start a little stronger and carry at most three raw kids among their top eight players (they still have their young prospects), and no new team starts more than a few points of team rating below the league average. Over 16 new leagues the worst team's first season went from about 12 wins to about 16 on average (the real NBA's worst team averages about 17), with none under 10. Leagues you've already started are unchanged.
+
 ## 2026-11-26
 
 ### Added

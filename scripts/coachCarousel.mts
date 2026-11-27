@@ -45,7 +45,9 @@ const setProj = (tid: number, w: number) => {
   d.preds[Y] = d.preds[Y] || { season: Y, locked: true, outlets: { a: { wins: {} }, b: { wins: {} } } };
   Object.values(d.preds[Y].outlets).forEach((o: any) => (o.wins[tid] = w));
 };
-const pick = (arch: string) => ai.find((t: number) => s.teams[t].arch === arch) ?? ai[0];
+// The strongest team of an owner type: one a bad season won't turn into a rebuilding team (patience 3, not 2).
+const pick = (arch: string) =>
+  ai.filter((t: number) => s.teams[t].arch === arch).sort((a: number, b: number) => s.teams[b].str - s.teams[a].str)[0] ?? ai[0];
 const bad = (tid: number) => {
   setProj(tid, 50);
   s.teams[tid].w = 30;

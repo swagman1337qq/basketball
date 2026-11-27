@@ -37,7 +37,7 @@ assert.ok(ms < 3000, 'quick');
 assert.equal(s().sl.y, Y);
 Object.values(s().sl.rec as Record<number, number[]>).forEach(r => assert.equal(r[0] + r[1], SL.SL_GAMES, 'five games each'));
 const played = Object.values(P).filter((p: any) => SL.slOf(p, Y));
-assert.ok(played.length >= 200, 'lines kept: ' + played.length);
+assert.ok(played.length >= 180, 'lines kept: ' + played.length); // about 30 teams of 6–12
 played.forEach((p: any) => assert.ok(SL.slOf(p, Y)!.gp >= 1 && SL.slOf(p, Y)!.gp <= SL.SL_GAMES));
 mine.forEach(id => assert.equal(SL.slOf(P[id], Y)?.tid, me));
 assert.ok((s().intel?.[(played[0] as any).id] || 0) >= 3, 'your scouts watched');

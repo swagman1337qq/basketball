@@ -1955,7 +1955,7 @@ export class Game {
       ['good', 6, 51.5, 54],
       ['capped', 4, 50, 52.5],
       ['middling', 4, 48, 51],
-      ['rebuild', 6, 45, 48],
+      ['rebuild', 6, 46, 48.5],
       ['hopeless', 5, 45, 47.5],
     ];
     const kinds = KIND.flatMap(([k, n]) => Array(n).fill(k));
@@ -1969,7 +1969,7 @@ export class Game {
       const pYoung =
         (kind === 'rebuild'
           ? k < 5
-            ? 0.6
+            ? 0.45
             : 0.35
           : kind === 'contender'
             ? 0.08
@@ -1985,11 +1985,11 @@ export class Game {
       if (x < pYoung + pOld) return 31 + Math.floor(rnd() * 5);
       return star ? 25 + Math.floor(rnd() * 6) : 23 + Math.floor(rnd() * 8);
     };
-    teams.forEach((t, ti) => {
+    const buildRoster = (t: any, ti: number, str?: number) => {
       const kind = kinds[ti % kinds.length],
         K = KIND.find(x => x[0] === kind)!;
       t.kind = kind;
-      t.str = K[2] + rnd() * (K[3] - K[2]);
+      t.str = str ?? K[2] + rnd() * (K[3] - K[2]);
       // Keep recognizable team tiers without concentrating every strong reserve on a few clubs.
       const rosterStrength = 50 + 0.56 * (t.str - 50);
       const slots = ['G', 'G', 'G', 'G', 'G', 'W', 'W', 'W', 'W', 'B', 'B', 'B', 'B', 'B'];
@@ -1998,6 +1998,7 @@ export class Game {
         [slots[i], slots[j]] = [slots[j], slots[i]];
       }
       const ps: any[] = [];
+      let young8 = 0; // raw 20–22-year-olds among a rebuilding team's top eight (REBUILD_YOUNG)
       for (let k = 0; k < 14; k++) {
         // 2026-10-17: the shape a league settles into after a few seasons, so a new league doesn't drift: 2.2 a slot to
         // the 8th man, 0.9 a slot to the 11th (about 44, NBA-level bench), then 3.5 a slot for the last three (raw
@@ -2009,7 +2010,10 @@ export class Game {
         if (k === 1 && (kind === 'contender' || kind === 'good')) base += 2 + rnd() * 3;
         // 2026-11-08: a star-level starting player isn't a rookie (new leagues had 65–68-overall 21-year-olds, who scored
         // 25–31 points in their "rookie" season; real rookies top out near 60): from a raw 66 he's at least 23, from 70, 24.
-        const age = Math.max(ageFor(kind, k, base), base >= 70 ? 24 : base >= 66 ? 23 : 0);
+        let age = Math.max(ageFor(kind, k, base), base >= 70 ? 24 : base >= 66 ? 23 : 0);
+        // 2026-11-27: at most REBUILD_YOUNG raw kids in a rebuilding team's top eight. With more, the weakest new team
+        // started 5–7 points of team rating below the league (a settled league's weakest is 2–5) and won 9–12 games.
+        if (kind === 'rebuild' && k < 8 && age <= 22 && young8++ >= Game.REBUILD_YOUNG) age = 23 + Math.floor(rnd() * 5);
         if (age <= 22) base -= (23 - age) * 2.5; // still raw at 20–22
         const p = mk(base, age, W_NBA, 0, slots[k]);
         // Rebuilders' kids have real ceilings; the hopeless team's don't.
@@ -2030,7 +2034,23 @@ export class Game {
       }
       ps.sort((a, b) => b.ovr - a.ovr);
       rosters[t.tid] = ps.map(p => p.id);
-    });
+    };
+    teams.forEach((t, ti) => buildRoster(t, ti));
+    // 2026-11-27: no new team starts more than ROSTER_FLOOR points of team rating below the league. A roster that does
+    // (the draws went badly: a weak team type, several raw kids, a low star) is made again a little stronger, up to three
+    // times. Before, the weakest new team averaged 4.8 below (as low as 7.1; a settled league's is 2–5) and a new
+    // league's first season had a 9-win team about one time in eight.
+    for (let pass = 0; pass < 3; pass++) {
+      const rate = (tid: number) => teamRating(P, rosters[tid]),
+        avg = teams.reduce((a, t) => a + rate(t.tid), 0) / teams.length;
+      const low = teams.filter(t => rate(t.tid) - avg < -Game.ROSTER_FLOOR);
+      if (!low.length) break;
+      low.forEach(t => {
+        const short = -Game.ROSTER_FLOOR - (rate(t.tid) - avg);
+        rosters[t.tid].forEach((id: number) => delete P[id]);
+        buildRoster(t, teams.indexOf(t), t.str + (short + 0.3) / 0.56); // a roster's level moves 0.56 a point of strength
+      });
+    }
     // About 90 unsigned players at any time in season, like the NBA's pool of veterans, CCP
     // call-up candidates and undrafted players: a few useful vets, the rest end-of-bench types.
     const fa: any[] = [];
@@ -2443,6 +2463,8 @@ export class Game {
   // 100: roughly 15–20 future starters (56+), 3–4 All-Stars (63+) and about one franchise player (70+),
   // plus a rare generational talent; hidden gems add to it later. (Ceilings set as "today plus a big
   // gap" made a third of every class a future star, and the league inflated for a decade.)
+  static ROSTER_FLOOR = 4.5; // a new league: no team's top-player rating more than this below the league's (makeDB)
+  static REBUILD_YOUNG = 3; // a new league's rebuilding team: raw 20–22-year-olds in its top eight, at most (makeDB)
   // Age on draft night, the NBA's mix (both rounds, recent drafts): most are 19 or 20 (one-and-done
   // freshmen and sophomores), a few 18-year-olds straight from high school or a junior team, and a long
   // tail of juniors, seniors and overseas pros up to 24 (a 23-year-old who turns 24 as the season opens).
