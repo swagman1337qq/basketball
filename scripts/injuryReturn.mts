@@ -37,7 +37,9 @@ delete q.ramp;
 
 // Through the game: a long injury ends in injTick, the limit starts, the minutes targets follow it, games played
 // count it down.
-g.setState({ phase: 'regular' });
+// This checks recovery and minutes limits. A fresh random injury during the
+// same tick correctly clears a ramp, so disable new injuries in this fixture.
+g.setState({ phase: 'regular', noInj: true });
 p.inj = { name: 'Sprained ankle', games: 1, miss: 24, until: 0 };
 const out: any[] = [];
 const teamPlayed = { [ids[2]]: 30 }; // his team played today (with the calendar on, injuries count down on game days)

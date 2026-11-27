@@ -26,7 +26,7 @@ const CITIES: [string, number, number][] = [
   ['Tampa', 27.95, -82.46], ['Phoenix', 33.45, -112.07], ['Sacramento', 38.58, -121.49], ['Kansas City', 39.1, -94.58], ['Inland Empire', 33.98, -117.38],
   ['San Francisco', 37.77, -122.42], ['Salt Lake', 40.76, -111.89], ['Salt Lake City', 40.76, -111.89], ['Oklahoma City', 35.47, -97.52], ['Tulsa', 36.15, -95.99],
   ['Fresno', 36.74, -119.79], ['Edmonton', 53.55, -113.49], ['Guadalajara', 20.66, -103.35], ['Monterrey', 25.69, -100.32], ['Tijuana', 32.51, -117.04],
-  ['Honolulu', 21.31, -157.86], ['Albuquerque', 35.08, -106.65],
+  ['Honolulu', 21.31, -157.86], ['Albuquerque', 35.08, -106.65], ['Temecula', 33.49, -117.15],
   // More cities a made-up club might be from.
   ['Winnipeg', 49.9, -97.14], ['Quebec City', 46.81, -71.21], ['Halifax', 44.65, -63.57], ['Spokane', 47.66, -117.43], ['El Paso', 31.76, -106.49],
   ['Wichita', 37.69, -97.34], ['Des Moines', 41.59, -93.62], ['Virginia Beach', 36.85, -75.98], ['Puebla', 19.04, -98.21], ['San Juan', 18.47, -66.11],

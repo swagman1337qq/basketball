@@ -267,7 +267,7 @@
     "2026-11-26: all 64 illustrated identities with fitted hairstyles and staff clothing"
   ],
   "limits": [
-    "The 48,960 count measures valid settings, not visually inspected unique identities.",
+    "The current 46,080 head/hair/beard count measures valid settings, not visually inspected unique identities; the earlier 48,960 record predates Patchy retirement.",
     "64 authored base heads (48 men and 16 women); controls add variation.",
     "Contact sheets and representative combinations were inspected; every possible feature combination was not manually reviewed.",
     "Previous finished paintings remain in source but are not offered or displayed as the live default.",
@@ -380,6 +380,28 @@
       "preExistingOutlier": "Seed 11 / 2027 worst record remains 9/82 (.110), below .12 band; unchanged.",
       "ratingGames": 100000,
       "ratings": "PASS, byte-for-byte equal to previous version"
+    }
+  },
+  "patchyRetirement": {
+    "date": "2026-11-26",
+    "status": "PASS",
+    "liveFacialHairChoices": 16,
+    "validHeadHairBeardSelections": 46080,
+    "appearanceGenderSamplesWithoutPatchy": 10000,
+    "legacySelectionDisplaysCleanShaven": true,
+    "rawSaveUnchangedUntilEdited": true,
+    "remainingAtlasCellIndicesUnchanged": true,
+    "seededRandomDrawSlotsPreserved": true,
+    "sourceOnlyClassicRetained": true,
+    "regressionChecks": 51,
+    "browserErrors": [],
+    "gameRegression": {
+      "leagueSeasons": 6,
+      "exactPreviousSeasonValues": true,
+      "brokenInvariants": 0,
+      "preExistingOutlier": "Seed 11 / 2027 worst record remains 9/82 (.110), below .12 band; unchanged from the previous version.",
+      "ratingGames": 100000,
+      "ratings": "PASS; byte-for-byte equal to previous version"
     }
   }
 }

@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-26",
+  "scope": "Approved expansion identities and logos, Patchy facial-hair retirement, compact player Stats tables",
+  "approvedChoices": {
+    "PHX": "Firewing #2",
+    "WAS": "Blossom Crest #1",
+    "ABQ": "Desert Chemistry #2",
+    "TSM": "Heritage Mori #3"
+  },
+  "expansionOnlyAdditions": [
+    "ABQ",
+    "TSM"
+  ],
+  "defaultStartingTeamCount": 30,
+  "migrations": {
+    "recognizedNamesAndDefaultColors": true,
+    "pendingExpansionEntries": true,
+    "historicalTeamNames": true,
+    "customNamesAndColorsPreserved": true,
+    "playerRatingsAndStatsUnchanged": true
+  },
+  "browser": {
+    "status": "PASS",
+    "stats": {
+      "before": {
+        "width": 1568,
+        "rowHeight": 28.375,
+        "font": "12.5px"
+      },
+      "after": {
+        "width": 1189.234375,
+        "rowHeight": 24.375,
+        "font": "12.5px"
+      },
+      "identicalCells": true,
+      "columns": 31
+    },
+    "approvedLogoOverrides": 4,
+    "expansionChoices": [
+      "ABQ",
+      "TSM"
+    ],
+    "patchyUnavailable": true,
+    "legacyPatchyCleanShaven": true,
+    "browserErrors": []
+  },
+  "typecheck": "PASS",
+  "productionBuild": "PASS",
+  "regressionChecks": 51,
+  "regressionStatus": "PASS",
+  "fixtureStabilization": "Injury-return test disables fresh random injuries while checking recovery/ramp countdown; all assertions and production injury rules unchanged.",
+  "format": "Full project formatter run; unrelated formatting restored.",
+  "gameRegression": {
+    "leagueSeasons": 6,
+    "exactPreviousSeasonValues": true,
+    "brokenInvariants": 0,
+    "preExistingOutlier": "Seed 11 / 2027 worst record remains 9/82 (.110), below .12 band; unchanged from the previous version.",
+    "ratingGames": 100000,
+    "ratings": "PASS; byte-for-byte equal to previous version"
+  }
+}

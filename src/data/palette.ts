@@ -34,7 +34,7 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   MIN: ['#9b2226', '#e9d8a6'],  // marauder red and bone
   BKN: ['#f7e733', '#2b2b2b'],  // squares: yellow and black (expansion)
   // Expansion franchises (data/franchises.ts), 2026-10: same rules, colors from the logo.
-  WAS: ['#ee5d9a', '#2f5fc4'],  // cherry blossom pink and Potomac blue
+  WAS: ['#e4669e', '#541d38'],  // blossom pink and deep mulberry
   BOS: ['#1d3d8f', '#e9c98f'],  // Continental blue and buff
   MIA: ['#ff6f9f', '#16b5ad'],  // flamingo pink and Biscayne teal
   ORL: ['#ff8a1c', '#2f9e44'],  // orange and leaf green
@@ -61,7 +61,7 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   PRV: ['#6741d9', '#f1f3f5'],  // amethyst and pearl
   CBS: ['#2f9e44', '#e9c46a'],  // alpine green and horn tan
   TPA: ['#15aabf', '#ffe066'],  // Gulf cyan and beach sand
-  PHX: ['#ff6b35', '#4cc9f0'],  // desert orange and ice-pop blue
+  PHX: ['#d62828', '#ffbd2e'],  // phoenix flame red and gold
   SAC: ['#6f42c1', '#ffc845'],  // purple and Gold Rush gold
   KC: ['#1971c2', '#ff6b6b'],   // river blue and a coral hull
   IE: ['#2f9e44', '#ff922b'],   // grove green and orange
@@ -79,7 +79,8 @@ export const LOUD_COLORS: Record<string, [string, string]> = {
   TIJ: ['#e63946', '#2ec4b6'],  // border red and Pacific teal
   OMA: ['#c2410c', '#fde68a'],  // Hereford rust and wheat
   HNL: ['#00b4d8', '#ff8fab'],  // ocean and hibiscus
-  ABQ: ['#ef3e36', '#ffd23f'],  // Zia red and yellow
+  ABQ: ['#00b9e8', '#b1e530'],  // crystal blue and a chemistry-green accent
+  TSM: ['#000000', '#ffffff'],  // steel-black and white
 };
 // The palette before (2026-09), to spot saves still wearing it.
 // Team colors, 2026-09 repaint: louder. Fifteen teams wear loud, neon-bright colors, three wear
@@ -127,4 +128,5 @@ export const LOUD_V2: Record<string, [string, string]> = {
 export const LOUD_V4: Record<string, [string, string]> = { RIC: ['#e34234', '#1a1a1d'], WAS: ['#3a6fd8', '#f7a8c8'] }; // the Samurai's vermilion and black; the Monuments' blue and pink
 // 2026-11-10: five clubs renamed (Navigators, Seals, Neon, Vampires, Lariats); saves still in their old colors repaint.
 export const LOUD_V6: Record<string, [string, string]> = { NWK: ['#c9a227', '#22223b'], SD: ['#c9184a', '#fff1d0'], LV: ['#7b1e3a', '#f4a300'], AUS: ['#5e548e', '#f4acb7'], DAL: ['#ffa6c9', '#00798c'] };
-export const PALETTE_V = 7;
+export const LOUD_V7: Record<string, [string, string]> = { WAS: ['#ee5d9a', '#2f5fc4'], PHX: ['#ff6b35', '#4cc9f0'], ABQ: ['#ef3e36', '#ffd23f'] };
+export const PALETTE_V = 8;

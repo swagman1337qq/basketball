@@ -27,9 +27,17 @@ import por from '../assets/team-logos/por-vintage.webp';
 import ric from '../assets/team-logos/ric-vintage.webp';
 import sea from '../assets/team-logos/sea-vintage.webp';
 import stl from '../assets/team-logos/stl-vintage.webp';
+import phx from '../assets/team-logos/phx-vintage.webp';
+import was from '../assets/team-logos/was-vintage.webp';
+import abq from '../assets/team-logos/abq-vintage.webp';
+import tsm from '../assets/team-logos/tsm-vintage.webp';
 
 /** Vintage logo concepts selected by the user on November 13, 2026. */
 export const APPROVED_TEAM_LOGOS: Record<string, { src: string; label: string; choice: number }> = {
+  PHX: { src: phx, label: 'Phoenix Spitfires', choice: 2 },
+  WAS: { src: was, label: 'Washington Blossoms', choice: 1 },
+  ABQ: { src: abq, label: 'Albuquerque Crystals', choice: 2 },
+  TSM: { src: tsm, label: 'Temecula Steel Moris', choice: 3 },
   ATL: { src: atl, label: 'Atlanta Snowplows', choice: 2 },
   AUS: { src: aus, label: 'Austin Vampires', choice: 2 },
   BAL: { src: bal, label: 'Baltimore Camels', choice: 3 },

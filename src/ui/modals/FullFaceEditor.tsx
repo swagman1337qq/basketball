@@ -2,6 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { FullPortrait, FullPortraitFallback } from '../../engine/FullPortrait';
 import {
   FULL_HEADS,
+  FULL_HAIR,
+  FULL_BEARDS,
   FULL_OPTIONS,
   fullDefaults,
   newFullPortrait,
@@ -92,8 +94,9 @@ export function FullFaceEditor({
         <div style={{ flex: '1 1 240px', minWidth: 0 }}>
           <div style={{ fontSize: 18, fontFamily: 'var(--font-heading)', marginBottom: 6 }}>Editable illustrated portrait</div>
           <p style={{ ...muted, fontSize: 12, margin: '0 0 10px' }}>
-            {FULL_HEADS.length} painted heads, 45 hairstyles and 17 facial-hair choices. Edit each feature below. Head and hairstyle choices
-            are open to everyone. Random choices follow the person’s in-game appearance; their name, background and gender stay unchanged.
+            {FULL_HEADS.length} painted heads, {FULL_HAIR.length} hairstyles and {FULL_BEARDS.length} facial-hair choices. Edit each feature
+            below. Head and hairstyle choices are open to everyone. Random choices follow the person’s in-game appearance; their name,
+            background and gender stay unchanged.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <button

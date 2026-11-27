@@ -1,0 +1,12 @@
+.player-stats-table {
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.player-stats-table th,
+.player-stats-table td {
+  border-inline-end: 1px solid var(--color-divider);
+}
+.player-stats-table thead th {
+  text-transform: none;
+  letter-spacing: normal;
+}

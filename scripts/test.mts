@@ -9,6 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS = [
   'illustratedPortraits',
   'fullPortraits',
+  'teamIdentities',
   'unit',
   'responsiveness',
   'simulationYield',

@@ -12,6 +12,7 @@ import { allStarsOf } from '../../engine/allStar';
 import { awardTags } from '../awardTags';
 import { titleYears } from '../../engine/hof';
 import { fiveZones, LEAGUE_ZONE } from './ProfileExtras';
+import './PlayerStatsTab.css';
 
 type Mode = 'pg' | 'p36' | 'tot';
 const f1 = (x: number) => (isFinite(x) ? x.toFixed(1) : '—');
@@ -21,7 +22,7 @@ const TH = ({ children, l, t, onClick, dir }: { children: ReactNode; l?: boolean
     title={t}
     onClick={onClick}
     style={{
-      padding: '5px 7px',
+      padding: '4px 4px',
       textAlign: l ? 'left' : 'right',
       whiteSpace: 'nowrap',
       cursor: onClick ? 'pointer' : undefined,
@@ -36,7 +37,7 @@ const TH = ({ children, l, t, onClick, dir }: { children: ReactNode; l?: boolean
 const TD = ({ children, l, b, c }: { children: ReactNode; l?: boolean; b?: boolean; c?: string }) => (
   <td
     style={{
-      padding: '4px 7px',
+      padding: '2px 4px',
       textAlign: l ? 'left' : 'right',
       whiteSpace: 'nowrap',
       fontWeight: b ? 700 : undefined,
@@ -85,7 +86,7 @@ function Wrap({ children }: { children: ReactNode }) {
   if (!head || !body)
     return (
       <div style={{ overflowX: 'auto', marginBottom: 6 }}>
-        <table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>
+        <table className="table player-stats-table" style={{ fontSize: '12.5px', width: 'max-content', minWidth: 0 }}>
           {children}
         </table>
       </div>
@@ -100,7 +101,7 @@ function Wrap({ children }: { children: ReactNode }) {
   );
   return (
     <div style={{ overflowX: 'auto', marginBottom: 6 }}>
-      <table className="table" style={{ fontSize: '12.5px', minWidth: '100%' }}>
+      <table className="table player-stats-table" style={{ fontSize: '12.5px', width: 'max-content', minWidth: 0 }}>
         {head2}
         <tbody>{orderRows(body.props.children, sort)}</tbody>
         {extra.map((b, i) => cloneElement(b, { key: 'x' + i }))}
@@ -459,7 +460,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
       <td
         key={k}
         style={{
-          padding: '4px 6px',
+          padding: '2px 4px',
           textAlign: 'right',
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
@@ -476,7 +477,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
     if (ccp) return <td />;
     const tags = awardTags(s, p.id, y, po);
     return (
-      <td style={{ padding: '4px 6px', whiteSpace: 'nowrap', fontSize: '11.5px' }}>
+      <td style={{ padding: '2px 4px', whiteSpace: 'nowrap', fontSize: '11.5px' }}>
         {tags.map((a, i) => (
           <span key={a.tag}>
             {i ? ', ' : ''}
@@ -533,7 +534,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
       >
         <td
           style={{
-            padding: '4px 6px',
+            padding: '2px 4px',
             whiteSpace: 'nowrap',
             fontWeight: opts.bold ? 700 : undefined,
             color: opts.grey ? 'var(--color-neutral-600)' : undefined,
@@ -549,8 +550,8 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             first
           )}
         </td>
-        <td style={{ padding: '4px 6px', textAlign: 'right', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{age}</td>
-        <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
+        <td style={{ padding: '2px 4px', textAlign: 'right', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>{age}</td>
+        <td style={{ padding: '2px 4px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
           {go && opts.teamLink ? (
             <span title={seasonTitle}>
               <Link onClick={go} style={goStyle}>
@@ -561,8 +562,8 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             team
           )}
         </td>
-        <td style={{ padding: '4px 6px', color: 'var(--color-neutral-600)' }}>{y != null ? lgName : ''}</td>
-        <td style={{ padding: '4px 6px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
+        <td style={{ padding: '2px 4px', color: 'var(--color-neutral-600)' }}>{y != null ? lgName : ''}</td>
+        <td style={{ padding: '2px 4px', color: opts.grey ? 'var(--color-neutral-600)' : undefined }}>
           {y != null ? (opts.pos ?? p.pos) : ''}
         </td>
         {COLS.map(([k]) => cell(t, k, y != null && !opts.grey ? lead(y) : null, opts.grey))}
@@ -638,7 +639,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
       trb: o.orb + o.drb,
     };
     return (
-      <td key={k} style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: k === 'pts' ? 700 : undefined }}>
+      <td key={k} style={{ padding: '2px 4px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: k === 'pts' ? 700 : undefined }}>
         {k in v ? v[k] : o[k]}
       </td>
     );
@@ -648,7 +649,7 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
       colSpan={span}
       title={title}
       style={{
-        padding: '5px 7px',
+        padding: '4px 4px',
         textAlign: l ? 'left' : 'right',
         whiteSpace: 'nowrap',
         fontSize: '11px',
@@ -683,21 +684,21 @@ export function PlayerStatsTab({ vm }: { vm: VM }) {
             gs = gmScore(o);
           return (
             <tr key={g.id}>
-              <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+              <td style={{ padding: '2px 4px', whiteSpace: 'nowrap' }}>
                 <Link onClick={() => gm.setState({ boxId: g.id })} style={dotted}>
                   {ymd(g.b.day)}
                 </Link>
               </td>
               <td />
-              <td style={{ padding: '4px 6px' }}>{T[g.tid]?.abbr || '—'}</td>
-              <td colSpan={2} style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+              <td style={{ padding: '2px 4px' }}>{T[g.tid]?.abbr || '—'}</td>
+              <td colSpan={2} style={{ padding: '2px 4px', whiteSpace: 'nowrap' }}>
                 {g.home ? 'vs ' : '@ '}
                 {T[g.opp] ? <Link onClick={() => vm.ctx.openTeam(g.opp)}>{T[g.opp].abbr}</Link> : '—'}{' '}
                 <span style={{ color: won ? 'var(--gm-good)' : 'var(--gm-bad)', fontWeight: 600 }}>{won ? 'W' : 'L'}</span> {g.sc}–{g.os}
                 {g.b.ot ? ' (' + (g.b.ot > 1 ? g.b.ot : '') + 'OT)' : ''}
               </td>
               {COLS.map(([k]) => gameCell(o, k))}
-              <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>
+              <td style={{ padding: '2px 4px', whiteSpace: 'nowrap' }}>
                 {gs.toFixed(1)} ·{' '}
                 <span style={{ color: o.pm > 0 ? 'var(--gm-good)' : o.pm < 0 ? 'var(--gm-bad)' : undefined }}>
                   {o.pm > 0 ? '+' + o.pm : o.pm}

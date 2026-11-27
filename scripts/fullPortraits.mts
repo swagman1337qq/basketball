@@ -15,6 +15,7 @@ import {
   readFullPortrait,
   newFullPortrait,
   randomFullFeatures,
+  fullBeard,
 } from '../src/engine/fullPortraits';
 import { fullWarp, paintFullPixels } from '../src/engine/fullPortraitPainter';
 import { necklaceDrape } from '../src/engine/fullPortraitAdornments';
@@ -42,13 +43,19 @@ for (const [index, head] of FULL_HEADS.entries()) {
   }
 }
 assert.equal(FULL_HAIR.length, 45);
-assert.equal(FULL_BEARDS.length, 17);
+assert.equal(FULL_BEARDS.length, 16);
+assert(!FULL_BEARDS.some(b => b.id === 'patchy'));
+assert.equal(fullBeard('patchy').id, 'none');
+assert.equal(fullBeard('mustache').index, 3, 'Retiring a choice must not shift the remaining painted atlas cells');
+const retiredPatchy = { ...fullDefaults('full-64'), facial: 'patchy', hair: 'wolf', noseWidth: 0.4 };
+assert.deepEqual(readFullPortrait(retiredPatchy), { ...retiredPatchy, facial: 'none' });
+assert.equal(retiredPatchy.facial, 'patchy', 'Displaying a retired choice does not rewrite raw saved settings');
 for (const id of Object.keys(HAIR_STYLES))
   assert(
     FULL_HAIR.some(p => p.id === id),
     'Missing original hairstyle ' + id,
   );
-for (const [id] of FACE_OPTS.facial)
+for (const [id] of FACE_OPTS.facial.filter(([id]) => id !== 'patchy'))
   assert(
     FULL_BEARDS.some(p => p.id === id),
     'Missing original facial hair ' + id,
@@ -343,6 +350,7 @@ for (const race of ['white', 'black', 'dark', 'asian', 'brown'])
       expressions = new Set<string>();
     for (let seed = 1; seed <= 1000; seed++) {
       const p = newFullPortrait({ race, fem, age: 26 }, seed);
+      assert.notEqual(p.facial, 'patchy', 'Automatic portraits cannot select a retired beard');
       counts.set(p.base, (counts.get(p.base) || 0) + 1);
       eyes.add(p.eyes);
       brows.add(p.brows);

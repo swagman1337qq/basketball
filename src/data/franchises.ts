@@ -42,7 +42,7 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Columbus', name: 'Ibex', abbr: 'CBS', conf: 'East', div: 'Central', colors: ['#2d4a36', '#d8c29a'], icon: 'Anvil', pop: 2.2, known: 'The explorer it’s named after', mkt: 0.85 },
   { region: 'Tampa', name: 'Sleds', abbr: 'TPA', conf: 'East', div: 'Southeast', colors: ['#1e6f5c', '#e8f3ec'], icon: 'Wind', pop: 3.3, known: 'Sled races on a beach that never sees snow', mkt: 1.0 },
   // ── West ──
-  { region: 'Phoenix', name: 'Chill', abbr: 'PHX', conf: 'West', div: 'Southwest', colors: ['#c1461d', '#fbe3c1'], icon: 'Droplets', pop: 5.0, known: 'Keeping cool in the Valley of the Sun', mkt: 1.15 },
+  { region: 'Phoenix', name: 'Spitfires', abbr: 'PHX', conf: 'West', div: 'Southwest', colors: ['#c1461d', '#fbe3c1'], icon: 'Flame', pop: 5.0, known: 'A mythological phoenix rising from ashes: rebirth, renewal and resilience', mkt: 1.15 },
   // Original teams, now expansion franchises (Los Angeles and Houston took their places).
   { region: 'Sacramento', name: 'Wombats', abbr: 'SAC', conf: 'West', div: 'Pacific', colors: ['#3a2f5b', '#d9a93a'], icon: 'Coffee', pop: 2.4, known: 'The 1849 Gold Rush', mkt: 0.85 },
   { region: 'Kansas City', name: 'Sailors', abbr: 'KC', conf: 'West', div: 'Northwest', colors: ['#1f2f4d', '#e4b363'], icon: 'Sailboat', pop: 2.25, known: 'Kansas City barbecue', mkt: 0.85 },
@@ -65,7 +65,9 @@ export const FRANCHISES: Franchise[] = [
   { region: 'Tijuana', name: 'Fronterizos', abbr: 'TIJ', conf: 'West', div: 'Pacific', colors: ['#b0302b', '#f2e6c9'], icon: 'Sun', pop: 2.2, known: 'The busiest border city in the world' },
   { region: 'Omaha', name: 'Stockyards', abbr: 'OMA', conf: 'West', div: 'Northwest', colors: ['#5b3a1e', '#e2c290'], icon: 'Wheat', pop: 0.98, known: 'Its stockyards and steak' },
   { region: 'Honolulu', name: 'Waves', abbr: 'HNL', conf: 'West', div: 'Pacific', colors: ['#127a7a', '#f7c8a3'], icon: 'TreePalm', pop: 0.99, known: 'Waikiki, the birthplace of modern surfing' },
-  { region: 'Albuquerque', name: 'Roadrunners', abbr: 'ABQ', conf: 'West', div: 'Southwest', colors: ['#b5412a', '#f2d49b'], icon: 'Sun', pop: 0.92, known: 'New Mexico’s state bird and the high desert' },
+  { region: 'Albuquerque', name: 'Crystals', abbr: 'ABQ', conf: 'West', div: 'Southwest', colors: ['#b5412a', '#f2d49b'], icon: 'Gem', pop: 0.92, known: 'Blue crystals, desert mesas and a Breaking Bad-inspired New Mexico identity' },
+  // Temecula is in the Riverside–San Bernardino metro; this is the regional population, not the city's alone.
+  { region: 'Temecula', name: 'Steel Moris', abbr: 'TSM', conf: 'West', div: 'Pacific', colors: ['#000000', '#ffffff'], icon: 'Footprints', pop: 4.7, known: 'Temecula, California; the resilient Mongolian horse, or mori', mkt: .75 },
 ];
 // The original palette (to spot saves still wearing it), then the 2026-09 loud repaint.
 export const CLASSIC_COLORS: Record<string, [string, string]> = Object.fromEntries(FRANCHISES.map(f => [f.abbr, f.colors]));

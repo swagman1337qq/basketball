@@ -230,7 +230,7 @@ export const FULL_BEARDS = [
     ['thickBeard', 'Thick beard'],
     ['pencil', 'Pencil mustache'],
     ['longGoatee', 'Long goatee'],
-  ]),
+  ]).filter(p => p.id !== 'patchy'),
 ];
 export const FULL_HAIR_COLORS: Record<string, [string, string]> = {
   black: ['Black', '#201a18'],
@@ -546,7 +546,7 @@ export type FullPortraitSettings = {
   Record<(typeof FULL_FLAGS)[number], boolean>;
 export const fullHead = (id: string) => FULL_HEADS.find(h => h.id === id);
 export const fullHair = (id: string) => FULL_HAIR.find(h => h.id === id)!;
-export const fullBeard = (id: string) => FULL_BEARDS.find(h => h.id === id)!;
+export const fullBeard = (id: string) => FULL_BEARDS.find(h => h.id === id) || FULL_BEARDS[0];
 export function fullDefaults(base = 'full-01'): FullPortraitSettings {
   const p: any = { v: 2, enabled: true, base, browSlit: 0, seed: 1, beardDensity: 0.8 };
   for (const [k, options] of Object.entries(FULL_OPTIONS)) p[k] = options[0][0];
@@ -766,12 +766,18 @@ function choosePortraitHair(hair: ReturnType<typeof portraitHair>, rnd: () => nu
 }
 function portraitFacial(f: any, look: string, rnd: () => number): string {
   const age = f.age?.years ?? f.age ?? 25;
+  // Retain the retired draw's slot so other seeded facial-hair choices and
+  // later random details stay identical. Patchy now displays as clean-shaven.
+  const pick = (weights: Record<string, number>) => {
+    const id = weightedChoice(rnd, weights);
+    return id === 'patchy' ? 'none' : id;
+  };
   if (f.fem) return 'none';
-  if (age < 20) return weightedChoice(rnd, { none: 60, stubble: 19, patchy: 14, mustache: 4, soulpatch: 1, chinpuff: 2 });
+  if (age < 20) return pick({ none: 60, stubble: 19, patchy: 14, mustache: 4, soulpatch: 1, chinpuff: 2 });
   // Sparse/clean-shaven defaults are common here; substantial beards remain a rare
   // automatic exception and every beard stays selectable by hand.
   if (look === 'asian')
-    return weightedChoice(rnd, {
+    return pick({
       none: 78,
       stubble: 10,
       patchy: 6,
@@ -783,7 +789,7 @@ function portraitFacial(f: any, look: string, rnd: () => number): string {
       shortBeard: 0.18,
       fullBeard: 0.02,
     });
-  return weightedChoice(rnd, {
+  return pick({
     none: 30,
     stubble: 18,
     patchy: 7,

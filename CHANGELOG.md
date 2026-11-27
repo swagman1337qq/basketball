@@ -5,13 +5,17 @@ Every change to Basketball Manager, newest first. The game shows this page under
 ## 2026-11-26
 
 ### Added
+- **Temecula Steel Moris join the expansion database.** Black-and-white TSM branding uses the selected Mongolian-horse crest. Albuquerque Crystals are an expansion option; the default starting league remains the same 30 teams.
 - **More distinct illustrated faces.** The portrait catalogue now has 64 painted base faces instead of 16, with broader face shapes and mixed backgrounds for players and staff. Automatic portraits also vary eyes, eyebrows, expressions, noses and lips. Individual face editing and saved custom portraits stay available.
 - **Tell your assistant GM to reject every trade offer.** On Staff, enable Reject all trade offers to automatically decline incoming player and pick offers, including ones already waiting. Rejected offers stay in your Mailbox. The setting saves separately for each team you manage.
 
 ### Changed
+- **Your chosen team logos are in the game.** Phoenix Spitfires use Firewing, Washington Blossoms use Blossom Crest with blossom pink, Albuquerque Crystals use Desert Chemistry, and Temecula Steel Moris use Heritage Mori. Existing default names and colors update when a save opens; custom colors stay intact.
+- **Player Stats tables are tighter.** Smaller cell spacing and compact column widths bring the tables closer to the reference layout, with the same text size and complete stat labels.
 - **Sims refresh after each game on light screens.** On the Dashboard, the Roster and a player's profile, the screen can now refresh in the middle of a simulated day, as each game is recorded, while the page would otherwise sit waiting for the next result. Over two simulated months the Dashboard and profiles refreshed about 1.7 times as often as yesterday's version, and sims were just as fast. Heavier screens (League stats, League leaders) refresh as before.
 
 ### Fixed
+- **Patchy facial hair is removed.** It no longer appears in the editor or on newly generated portraits. Existing selections display clean-shaven; the other beard designs keep their correct artwork.
 - **Hair follows the head around the temples and ears.** Hair-length changes now move only loose ends, keeping locs, ponytails and shorter cuts attached. Visible ears no longer appear as leftover fragments under hair; tied-up styles fill scalp gaps, and balding cuts follow the actual scalp without stray marks on the face.
 - **Former players earn coaching experience by coaching.** Waiting for a coaching job no longer gives a retired player years of experience or an inflated reputation and asking price. Existing saves correct that experience and reputation when opened. Playing fame and salary inflation still count; signed contracts, career records and explicit God Mode experience edits stay intact.
 - **A team's playing style now follows its players' current ratings.** The coaching staff's read of what its top eight do best was remembered by who they were and their overalls only, so a player whose ratings changed without moving his rounded overall left the team on its old style until something else changed. Opening a second league in the same session could also pick up the first league's styles. Every rating is now part of it.

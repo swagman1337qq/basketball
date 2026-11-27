@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-26",
+  "source": "User-selected built-in image-generation mockups; original composition and alpha preserved, resized/encoded to WebP",
+  "assets": [
+    {
+      "abbr": "PHX",
+      "file": "src/assets/team-logos/phx-vintage.webp",
+      "label": "Phoenix Spitfires",
+      "concept": "Firewing",
+      "source": "phx-2.png",
+      "width": 1280,
+      "height": 1160,
+      "transparentPixels": 496685
+    },
+    {
+      "abbr": "WAS",
+      "file": "src/assets/team-logos/was-vintage.webp",
+      "label": "Washington Blossoms",
+      "concept": "Blossom Crest",
+      "source": "was-1.png",
+      "width": 1280,
+      "height": 1067,
+      "transparentPixels": 354007
+    },
+    {
+      "abbr": "ABQ",
+      "file": "src/assets/team-logos/abq-vintage.webp",
+      "label": "Albuquerque Crystals",
+      "concept": "Desert Chemistry",
+      "source": "abq-2.png",
+      "width": 1280,
+      "height": 960,
+      "transparentPixels": 329822
+    },
+    {
+      "abbr": "TSM",
+      "file": "src/assets/team-logos/tsm-vintage.webp",
+      "label": "Temecula Steel Moris",
+      "concept": "Heritage Mori",
+      "source": "tsm-3.png",
+      "width": 1280,
+      "height": 1160,
+      "transparentPixels": 472191
+    }
+  ]
+}

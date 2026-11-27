@@ -15,7 +15,7 @@ import { PRESET_CARDS, retuneCarriers, upgradePresetCard } from './playerCard';
 import { allStarDay, runAllStar } from './allStar';
 import { placeNamedOwners, stampOwnerBgs } from './owners';
 import { protFactor, protLabel, settlePickRules } from './pickRules';
-import { LOUD_COLORS, LOUD_V2, LOUD_V4, LOUD_V6, PALETTE_V } from '../data/palette';
+import { LOUD_COLORS, LOUD_V2, LOUD_V4, LOUD_V6, LOUD_V7, PALETTE_V } from '../data/palette';
 import { realign } from '../data/geo';
 import { CLASSIC_COLORS } from '../data/franchises';
 import { applyCoachPlans, coachFocus } from './coaches';
@@ -683,8 +683,16 @@ export class Game {
       fix(c);
       return c;
     });
+    if (Array.isArray(g.state.expTeams))
+      g.state.expTeams = g.state.expTeams.map((t: any) => {
+        const c = { ...t };
+        fix(c);
+        return c;
+      });
     // Default renames, including the November 13 identity changes: past standings take the new name too.
     const RENAMED_1110: Record<string, [string | string[], string]> = {
+      PHX: [['Phoenix Chill', 'Phoenix Scorch', 'Phoenix Saguaros', 'Phoenix Icebergs'], 'Phoenix Spitfires'],
+      ABQ: ['Albuquerque Roadrunners', 'Albuquerque Crystals'],
       NWK: ['Newark Monocles', 'Newark Navigators'],
       SD: [['San Diego Mittens', 'San Diego Seals'], 'San Diego Hawks'],
       LV: ['Las Vegas Monks', 'Las Vegas Neon'],
@@ -1000,7 +1008,8 @@ export class Game {
             same(t.colors, TEAM_STYLE[t.abbr]?.colors) ||
             same(t.colors, LOUD_V2[t.abbr]) ||
             same(t.colors, LOUD_V4[t.abbr]) ||
-            same(t.colors, LOUD_V6[t.abbr]))
+            same(t.colors, LOUD_V6[t.abbr]) ||
+            same(t.colors, LOUD_V7[t.abbr]))
         )
           t.colors = nw;
       };
@@ -1010,6 +1019,12 @@ export class Game {
         repaint(c);
         return c;
       });
+      if (Array.isArray(g.state.expTeams))
+        g.state.expTeams = g.state.expTeams.map((t: any) => {
+          const c = { ...t };
+          repaint(c);
+          return c;
+        });
       g.db.paletteV = PALETTE_V;
     }
     // 2026-10: conferences by geography (data/geo.ts). Saves between seasons realign now; saves in the
