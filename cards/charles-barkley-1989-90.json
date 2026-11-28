@@ -1,0 +1,381 @@
+{
+  "card": 1,
+  "label": "Charles Barkley – Statistical peak (1989-90 Philadelphia 76ers)",
+  "name": "Charles Barkley",
+  "first": "Charles",
+  "last": "Barkley",
+  "pos": "SF",
+  "age": 26,
+  "dob": "1963-02-20",
+  "hgt": "6′6″",
+  "wt": 252,
+  "wing": 82,
+  "rep": "US",
+  "born": "US",
+  "raised": "US",
+  "city": "Leeds",
+  "state": "AL",
+  "her": "US",
+  "race": "black",
+  "r": {
+    "hgt": 46,
+    "stre": 97,
+    "spd": 80,
+    "acc": 88,
+    "jmp": 93,
+    "endu": 97,
+    "ins": 90,
+    "dnk": 94,
+    "lay": 87,
+    "ft": 49,
+    "fg": 42,
+    "tp": 12,
+    "oiq": 86,
+    "diq": 66,
+    "blk": 38,
+    "stl": 38,
+    "drb": 79,
+    "pss": 42,
+    "reb": 86,
+    "box": 95
+  },
+  "pot": 68,
+  "intg": {
+    "feel": 88,
+    "poise": 85
+  },
+  "pers": {
+    "mot": "Winning",
+    "alpha": true,
+    "touches": true,
+    "pro": false,
+    "volatile": true,
+    "flashy": true,
+    "heat": false,
+    "crowd": true,
+    "villain": false,
+    "fearless": true,
+    "clutch": true,
+    "prone": false,
+    "padder": false,
+    "team": true,
+    "legacy": true,
+    "streaky": false,
+    "work": 87,
+    "loyalty": 52,
+    "ambition": 94
+  },
+  "ten": {
+    "usage": 25,
+    "dom": 61,
+    "ftr": 86,
+    "ra": 56.243,
+    "paint": 10.304,
+    "mid": 23.905,
+    "c3": 1.337,
+    "atb": 8.211,
+    "cns": 51,
+    "pullup": 23,
+    "step": 1,
+    "fade": 25,
+    "dunk": 31,
+    "turnovers": 77,
+    "fouls": 60,
+    "crash": 83
+  },
+  "historical": {
+    "season": "1989–90",
+    "team": "Philadelphia 76ers",
+    "minutes": 39.050632911392405,
+    "totals": {
+      "gp": 79,
+      "gs": 79,
+      "min": 3085,
+      "fgm": 706,
+      "fga": 1177,
+      "tpm": 20,
+      "tpa": 92,
+      "ftm": 557,
+      "fta": 744,
+      "orb": 361,
+      "drb": 548,
+      "ast": 307,
+      "tov": 243,
+      "stl": 148,
+      "blk": 50,
+      "pf": 250,
+      "pts": 1989,
+      "reb": 909
+    },
+    "advanced": {
+      "per": 27.1,
+      "ts": 0.661,
+      "efg": 0.608,
+      "tpar": 0.078,
+      "ftr": 0.632,
+      "orbp": 13.4,
+      "drbp": 20,
+      "trbp": 16.7,
+      "astp": 15.6,
+      "stlp": 2.4,
+      "blkp": 1,
+      "tovPct": 0.139,
+      "usgp": 24,
+      "ortg": 128,
+      "drtg": 105,
+      "ows": 13.1,
+      "dws": 4.2,
+      "ws": 17.3,
+      "ws48": 0.269,
+      "obpm": 7.2,
+      "dbpm": 1,
+      "bpm": 8.2,
+      "vorp": 8
+    },
+    "per100": {
+      "fgm": 11.4,
+      "fga": 19,
+      "tpm": 0.3,
+      "tpa": 1.5,
+      "ftm": 9,
+      "fta": 12,
+      "orb": 5.8,
+      "drb": 8.8,
+      "reb": 14.7,
+      "ast": 4.9,
+      "stl": 2.4,
+      "blk": 0.8,
+      "tov": 3.9,
+      "pf": 4,
+      "pts": 32.1
+    },
+    "perGame": {
+      "min": 39.050632911392405,
+      "fgm": 8.936708860759493,
+      "fga": 14.89873417721519,
+      "tpm": 0.25316455696202533,
+      "tpa": 1.1645569620253164,
+      "ftm": 7.050632911392405,
+      "fta": 9.417721518987342,
+      "orb": 4.569620253164557,
+      "drb": 6.936708860759493,
+      "ast": 3.8860759493670884,
+      "tov": 3.0759493670886076,
+      "stl": 1.8734177215189873,
+      "blk": 0.6329113924050633,
+      "pf": 3.1645569620253164,
+      "pts": 25.17721518987342,
+      "reb": 11.50632911392405,
+      "fg": 0.5998300764655905,
+      "two": 0.632258064516129,
+      "tp": 0.21739130434782608,
+      "ft": 0.7486559139784946,
+      "ts": 0.6610784652609747,
+      "efg": 0.6083262531860663,
+      "ftr": 0.6321155480033984
+    },
+    "league": "NBA",
+    "referenceSources": [
+      "https://www.nba.com/player/787/charles_barkley"
+    ],
+    "dataNotes": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  },
+  "notes": "Charles Barkley – Statistical peak (1989-90 Philadelphia 76ers). Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minutes follow the cited rounded total-minutes record. Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference.",
+  "sources": [
+    "https://www.nba.com/player/787/charles_barkley",
+    "https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/auburntigers.com/documents/2021/4/19/2020_21_Auburn_MBB_Media_Guide_DIGITAL.pdf#page=177",
+    "https://www.basketball-reference.com/players/b/barklch01.html",
+    "https://www.nba.com/stats/help/faq",
+    "https://www.nba.com/news/history-nba-legend-charles-barkley",
+    "https://bballhistorydatabase.com/charles-barkley/#shooting-data",
+    "https://www.basketball-reference.com/teams/PHI/1990_depth.html",
+    "https://www.basketball-reference.com/leagues/NBA_1990_per_poss.html",
+    "https://forums.realgm.com/boards/viewtopic.php?t=1244886"
+  ],
+  "ovr": 66,
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": true,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 0.80889,
+    "weightedErrorShipped": 0.461647,
+    "authored": {
+      "min": 37.76371698371296,
+      "pts": 24.33745907647417,
+      "fga": 14.044073268968317,
+      "tpa": 1.165492197961629,
+      "fta": 9.153745562179228,
+      "orb": 4.493931099718962,
+      "drb": 7.425973394406165,
+      "reb": 11.919904494125127,
+      "ast": 3.9704290588600415,
+      "stl": 1.8010193669055858,
+      "blk": 0.7066200386902298,
+      "tov": 3.188407491651037,
+      "pf": 3.087154010497254,
+      "fg": 0.6111366774045099,
+      "tp": 0.22181146025878004,
+      "ft": 0.7552365262414685,
+      "games": 480,
+      "ovr": 66,
+      "potential": 68,
+      "raw": {
+        "pts": 23.535416666666666,
+        "fgm": 8.3,
+        "fga": 13.58125,
+        "tpm": 0.25,
+        "tpa": 1.1270833333333334,
+        "ftm": 6.685416666666667,
+        "fta": 8.852083333333333,
+        "orb": 4.345833333333333,
+        "drb": 7.18125,
+        "ast": 3.839583333333333,
+        "stl": 1.7416666666666667,
+        "blk": 0.6833333333333333,
+        "tov": 3.0833333333333335,
+        "pf": 2.9854166666666666,
+        "reb": 11.527083333333334
+      },
+      "zones": {
+        "rim": {
+          "share": 0.5306028531983433,
+          "pct": 0.7811506215669268
+        },
+        "paint": {
+          "share": 0.11596870685687989,
+          "pct": 0.5423280423280423
+        },
+        "mid": {
+          "share": 0.27044025157232704,
+          "pct": 0.42654566080544526
+        },
+        "corner": {
+          "share": 0.01058444546709618,
+          "pct": 0.2318840579710145
+        },
+        "aboveBreak": {
+          "share": 0.07240374290535358,
+          "pct": 0.22033898305084745
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.4223090277777778,
+          "pct": 0.35868448098663924
+        },
+        "pullup": {
+          "share": 0.21961805555555555,
+          "pct": 0.37351778656126483
+        },
+        "step": {
+          "share": 0.009548611111111112,
+          "pct": 0.3181818181818182
+        },
+        "fade": {
+          "share": 0.3485243055555556,
+          "pct": 0.40722291407222916
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 37.963001583243084,
+      "pts": 25.30478438365325,
+      "fga": 14.538250106597532,
+      "tpa": 1.2879552349742214,
+      "fta": 9.720740342500944,
+      "orb": 4.191747819649878,
+      "drb": 7.305556399379567,
+      "reb": 11.497304219029445,
+      "ast": 3.919584234222713,
+      "stl": 1.864427711193964,
+      "blk": 0.668622351600594,
+      "tov": 3.4502627758876803,
+      "pf": 3.0323738061373096,
+      "fg": 0.6112912735849056,
+      "tp": 0.2129783693843594,
+      "ft": 0.7464726631393298,
+      "games": 480,
+      "ovr": 66,
+      "potential": 68,
+      "raw": {
+        "pts": 24.6,
+        "fgm": 8.639583333333333,
+        "fga": 14.133333333333333,
+        "tpm": 0.26666666666666666,
+        "tpa": 1.2520833333333334,
+        "ftm": 7.054166666666666,
+        "fta": 9.45,
+        "orb": 4.075,
+        "drb": 7.102083333333334,
+        "ast": 3.810416666666667,
+        "stl": 1.8125,
+        "blk": 0.65,
+        "tov": 3.3541666666666665,
+        "pf": 2.9479166666666665,
+        "reb": 11.177083333333334
+      },
+      "zones": {
+        "rim": {
+          "share": 0.5334610849056604,
+          "pct": 0.7753523072672008
+        },
+        "paint": {
+          "share": 0.11630306603773585,
+          "pct": 0.514575411913815
+        },
+        "mid": {
+          "share": 0.2616450471698113,
+          "pct": 0.4546478873239437
+        },
+        "corner": {
+          "share": 0.011497641509433961,
+          "pct": 0.21794871794871795
+        },
+        "aboveBreak": {
+          "share": 0.07709316037735849,
+          "pct": 0.21223709369024857
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.4187710437710438,
+          "pct": 0.36180904522613067
+        },
+        "pullup": {
+          "share": 0.21885521885521886,
+          "pct": 0.38461538461538464
+        },
+        "step": {
+          "share": 0.008417508417508417,
+          "pct": 0.25
+        },
+        "fade": {
+          "share": 0.35395622895622897,
+          "pct": 0.4399524375743163
+        }
+      }
+    },
+    "limitations": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  }
+}

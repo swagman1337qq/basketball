@@ -1,0 +1,523 @@
+{
+  "card": 1,
+  "name": "Yi Jianlian",
+  "first": "Jianlian",
+  "last": "Yi",
+  "familyFirst": true,
+  "native": "易建联",
+  "nativeFirst": "建联",
+  "nativeLast": "易",
+  "pos": "PF",
+  "age": 20,
+  "dob": "1987-10-27",
+  "hgt": "7′0″",
+  "wt": 245,
+  "wing": 86,
+  "rep": "CN",
+  "born": "CN",
+  "raised": "CN",
+  "city": "Heshan",
+  "her": "CN",
+  "race": "asian",
+  "r": {
+    "hgt": 68,
+    "stre": 42,
+    "spd": 70,
+    "acc": 68,
+    "jmp": 78,
+    "endu": 78,
+    "ins": 1,
+    "dnk": 21,
+    "lay": 27,
+    "ft": 70,
+    "fg": 70,
+    "tp": 36,
+    "oiq": 25,
+    "diq": 40,
+    "blk": 97,
+    "stl": 52,
+    "drb": 50,
+    "pss": 1,
+    "reb": 56,
+    "box": 46
+  },
+  "pot": 62,
+  "intg": {
+    "feel": 40,
+    "poise": 48
+  },
+  "pers": {
+    "mot": "Fame",
+    "alpha": false,
+    "touches": false,
+    "pro": true,
+    "volatile": false,
+    "flashy": false,
+    "heat": false,
+    "crowd": false,
+    "villain": false,
+    "fearless": false,
+    "clutch": false,
+    "prone": false,
+    "padder": false,
+    "team": true,
+    "legacy": false,
+    "streaky": true,
+    "work": 70,
+    "loyalty": 70,
+    "ambition": 60
+  },
+  "ten": {
+    "usage": 49,
+    "ftr": 59,
+    "ra": 30.7598,
+    "paint": 7.8268,
+    "mid": 58.0591,
+    "c3": 0.3634,
+    "atb": 2.9909,
+    "cns": 39.8882,
+    "pullup": 57.635,
+    "step": 0,
+    "fade": 2.4768,
+    "turnovers": 67,
+    "fouls": 19,
+    "crash": 34,
+    "dom": 64.5,
+    "dunk": 41
+  },
+  "label": "Yi Jianlian – Rookie year (2007–08)",
+  "ovr": 50,
+  "historical": {
+    "season": "2007–08",
+    "league": "NBA",
+    "totals": {
+      "gp": 66,
+      "gs": 49,
+      "min": 1647,
+      "fgm": 219,
+      "fga": 520,
+      "tpm": 6,
+      "tpa": 21,
+      "ftm": 122,
+      "fta": 145,
+      "orb": 106,
+      "drb": 238,
+      "ast": 55,
+      "stl": 36,
+      "blk": 56,
+      "tov": 90,
+      "pf": 153,
+      "pts": 566,
+      "reb": 344
+    },
+    "perGame": {
+      "min": 24.954545454545453,
+      "fgm": 3.3181818181818183,
+      "fga": 7.878787878787879,
+      "tpm": 0.09090909090909091,
+      "tpa": 0.3181818181818182,
+      "ftm": 1.8484848484848484,
+      "fta": 2.196969696969697,
+      "orb": 1.606060606060606,
+      "drb": 3.606060606060606,
+      "ast": 0.8333333333333334,
+      "stl": 0.5454545454545454,
+      "blk": 0.8484848484848485,
+      "tov": 1.3636363636363635,
+      "pf": 2.3181818181818183,
+      "pts": 8.575757575757576,
+      "reb": 5.212121212121212,
+      "fg": 0.42115384615384616,
+      "two": 0.42685370741482964,
+      "tp": 0.2857142857142857,
+      "ft": 0.8413793103448276,
+      "ts": 0.48475505310037686,
+      "efg": 0.4269230769230769,
+      "ftr": 0.27884615384615385
+    },
+    "referenceSources": [
+      "https://www.basketball-reference.com/players/j/jianlyi01.html",
+      "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2008_Shots.csv.zip"
+    ],
+    "dataNotes": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts.",
+      "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ],
+    "nbaShotZones": {
+      "rim": {
+        "fga": 155,
+        "fgm": 73,
+        "share": 0.2980769230769231,
+        "pct": 0.47096774193548385
+      },
+      "paint": {
+        "fga": 42,
+        "fgm": 10,
+        "share": 0.08076923076923077,
+        "pct": 0.23809523809523808
+      },
+      "mid": {
+        "fga": 302,
+        "fgm": 130,
+        "share": 0.5807692307692308,
+        "pct": 0.4304635761589404
+      },
+      "corner": {
+        "fga": 2,
+        "fgm": 0,
+        "share": 0.0038461538461538464,
+        "pct": 0
+      },
+      "aboveBreak": {
+        "fga": 19,
+        "fgm": 6,
+        "share": 0.03653846153846154,
+        "pct": 0.3157894736842105
+      }
+    },
+    "shotTechniques": {
+      "dunk": {
+        "fga": 47,
+        "fgm": 40,
+        "share": 0.09038461538461538,
+        "pct": 0.851063829787234
+      },
+      "layup": {
+        "fga": 87,
+        "fgm": 26,
+        "share": 0.1673076923076923,
+        "pct": 0.2988505747126437
+      },
+      "hook": {
+        "fga": 18,
+        "fgm": 7,
+        "share": 0.03461538461538462,
+        "pct": 0.3888888888888889
+      },
+      "floater": {
+        "fga": 0,
+        "fgm": 0,
+        "share": 0,
+        "pct": 0
+      },
+      "tip": {
+        "fga": 12,
+        "fgm": 3,
+        "share": 0.023076923076923078,
+        "pct": 0.25
+      }
+    },
+    "recordedActionTypes": {
+      "Alley Oop Layup shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0019230769230769232,
+        "pct": 1
+      },
+      "Driving Dunk Shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0019230769230769232,
+        "pct": 1
+      },
+      "Driving Layup Shot": {
+        "fga": 3,
+        "fgm": 1,
+        "share": 0.0057692307692307696,
+        "pct": 0.3333333333333333
+      },
+      "Dunk Shot": {
+        "fga": 37,
+        "fgm": 30,
+        "share": 0.07115384615384615,
+        "pct": 0.8108108108108109
+      },
+      "Fadeaway Jump Shot": {
+        "fga": 2,
+        "fgm": 2,
+        "share": 0.0038461538461538464,
+        "pct": 1
+      },
+      "Hook Shot": {
+        "fga": 14,
+        "fgm": 5,
+        "share": 0.026923076923076925,
+        "pct": 0.35714285714285715
+      },
+      "Jump Bank Shot": {
+        "fga": 7,
+        "fgm": 6,
+        "share": 0.013461538461538462,
+        "pct": 0.8571428571428571
+      },
+      "Jump Hook Shot": {
+        "fga": 4,
+        "fgm": 2,
+        "share": 0.007692307692307693,
+        "pct": 0.5
+      },
+      "Jump Shot": {
+        "fga": 334,
+        "fgm": 132,
+        "share": 0.6423076923076924,
+        "pct": 0.39520958083832336
+      },
+      "Layup Shot": {
+        "fga": 81,
+        "fgm": 22,
+        "share": 0.15576923076923077,
+        "pct": 0.2716049382716049
+      },
+      "Putback Dunk Shot": {
+        "fga": 5,
+        "fgm": 5,
+        "share": 0.009615384615384616,
+        "pct": 1
+      },
+      "Running Dunk Shot": {
+        "fga": 3,
+        "fgm": 3,
+        "share": 0.0057692307692307696,
+        "pct": 1
+      },
+      "Running Jump Shot": {
+        "fga": 1,
+        "fgm": 0,
+        "share": 0.0019230769230769232,
+        "pct": 0
+      },
+      "Running Layup Shot": {
+        "fga": 2,
+        "fgm": 2,
+        "share": 0.0038461538461538464,
+        "pct": 1
+      },
+      "Slam Dunk Shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0019230769230769232,
+        "pct": 1
+      },
+      "Tip Shot": {
+        "fga": 12,
+        "fgm": 3,
+        "share": 0.023076923076923078,
+        "pct": 0.25
+      },
+      "Turnaround Fadeaway shot": {
+        "fga": 2,
+        "fgm": 1,
+        "share": 0.0038461538461538464,
+        "pct": 0.5
+      },
+      "Turnaround Jump Shot": {
+        "fga": 10,
+        "fgm": 2,
+        "share": 0.019230769230769232,
+        "pct": 0.2
+      }
+    },
+    "recordedJumperCreation": {
+      "jumpAttempts": 323,
+      "stepAttempts": 0,
+      "fadeAttempts": 8,
+      "explicitPullupAttempts": 0,
+      "stepShare": 0,
+      "fadeShare": 2.476780185758514,
+      "explicitPullupMinimum": 0,
+      "unknownRemainder": 315,
+      "note": "Named action labels among non-paint jump shots. The generic Jump Shot remainder does not establish a complete catch-and-shoot/pull-up split."
+    }
+  },
+  "sources": [
+    "https://www.basketball-reference.com/players/j/jianlyi01.html",
+    "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2008_Shots.csv.zip"
+  ],
+  "notes": "Yi Jianlian – Rookie year (2007–08). Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minutes follow the cited rounded total-minutes record. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes.",
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": true,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 8.367697,
+    "weightedErrorShipped": 2.760951,
+    "authored": {
+      "min": 26.746894331100886,
+      "pts": 9.040270049076774,
+      "fga": 7.708817676765961,
+      "tpa": 0.33237716155496205,
+      "fta": 2.2236226480636057,
+      "orb": 1.4325261290409765,
+      "drb": 3.681417216287123,
+      "reb": 5.113943345328099,
+      "ast": 1.022399923847427,
+      "stl": 0.5986676360171246,
+      "blk": 0.8494083017515697,
+      "tov": 1.3955953333126476,
+      "pf": 2.1303237956973007,
+      "fg": 0.45789208270297527,
+      "tp": 0.22807017543859648,
+      "ft": 0.8566433566433567,
+      "games": 480,
+      "ovr": 50,
+      "potential": 62,
+      "raw": {
+        "pts": 9.689583333333333,
+        "fgm": 3.783333333333333,
+        "fga": 8.2625,
+        "tpm": 0.08125,
+        "tpa": 0.35625,
+        "ftm": 2.0416666666666665,
+        "fta": 2.3833333333333333,
+        "orb": 1.5354166666666667,
+        "drb": 3.9458333333333333,
+        "ast": 1.0958333333333334,
+        "stl": 0.6416666666666667,
+        "blk": 0.9104166666666667,
+        "tov": 1.4958333333333333,
+        "pf": 2.283333333333333,
+        "reb": 5.48125
+      },
+      "zones": {
+        "rim": {
+          "share": 0.29904185577407966,
+          "pct": 0.4730185497470489
+        },
+        "paint": {
+          "share": 0.07312153303076148,
+          "pct": 0.36551724137931035
+        },
+        "mid": {
+          "share": 0.5847201210287444,
+          "pct": 0.47865459249676584
+        },
+        "corner": {
+          "share": 0.00529500756429652,
+          "pct": 0.3333333333333333
+        },
+        "aboveBreak": {
+          "share": 0.037821482602118005,
+          "pct": 0.21333333333333335
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.321285140562249,
+          "pct": 0.505
+        },
+        "pullup": {
+          "share": 0.6345381526104418,
+          "pct": 0.4462025316455696
+        },
+        "step": {
+          "share": 0,
+          "pct": 0
+        },
+        "fade": {
+          "share": 0.04417670682730924,
+          "pct": 0.36363636363636365
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 26.826050753846108,
+      "pts": 8.403127591951192,
+      "fga": 7.20351136053565,
+      "tpa": 0.33721037845929597,
+      "fta": 2.1666735811350164,
+      "orb": 1.2732598772859622,
+      "drb": 3.6511744426282386,
+      "reb": 4.924434319914201,
+      "ast": 1.1007787066947132,
+      "stl": 0.5697692601553621,
+      "blk": 0.829460011382636,
+      "tov": 1.3410895511139815,
+      "pf": 2.1976814320278253,
+      "fg": 0.4487489911218725,
+      "tp": 0.22988505747126436,
+      "ft": 0.8586762075134168,
+      "games": 480,
+      "ovr": 50,
+      "potential": 62,
+      "raw": {
+        "pts": 9.033333333333333,
+        "fgm": 3.475,
+        "fga": 7.74375,
+        "tpm": 0.08333333333333333,
+        "tpa": 0.3625,
+        "ftm": 2,
+        "fta": 2.3291666666666666,
+        "orb": 1.36875,
+        "drb": 3.925,
+        "ast": 1.1833333333333333,
+        "stl": 0.6125,
+        "blk": 0.8916666666666667,
+        "tov": 1.4416666666666667,
+        "pf": 2.3625,
+        "reb": 5.293749999999999
+      },
+      "zones": {
+        "rim": {
+          "share": 0.2908259348937315,
+          "pct": 0.4597594819611471
+        },
+        "paint": {
+          "share": 0.0712940543449018,
+          "pct": 0.30566037735849055
+        },
+        "mid": {
+          "share": 0.5910680656443368,
+          "pct": 0.47792444242148385
+        },
+        "corner": {
+          "share": 0.0053806833467850415,
+          "pct": 0.25
+        },
+        "aboveBreak": {
+          "share": 0.04143126177024482,
+          "pct": 0.22727272727272727
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.33445803458456347,
+          "pct": 0.4842370744010088
+        },
+        "pullup": {
+          "share": 0.6229439055250949,
+          "pct": 0.44549763033175355
+        },
+        "step": {
+          "share": 0,
+          "pct": 0
+        },
+        "fade": {
+          "share": 0.04259805989034163,
+          "pct": 0.4752475247524752
+        }
+      }
+    },
+    "limitations": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts.",
+      "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ]
+  }
+}

@@ -1,0 +1,332 @@
+{
+  "card": 1,
+  "name": "Emmanuel Mudiay",
+  "first": "Emmanuel",
+  "last": "Mudiay",
+  "pos": "PG",
+  "age": 25,
+  "dob": "1996-03-05",
+  "hgt": "6′3″",
+  "wt": 200,
+  "wing": 80,
+  "rep": "US",
+  "born": "CD",
+  "raised": "US",
+  "city": "Arlington",
+  "state": "TX",
+  "her": "CD",
+  "race": "black",
+  "r": {
+    "hgt": 36,
+    "stre": 52,
+    "spd": 74,
+    "acc": 74,
+    "jmp": 62,
+    "endu": 66,
+    "ins": 32,
+    "dnk": 46,
+    "lay": 66,
+    "ft": 51,
+    "fg": 42,
+    "tp": 49,
+    "oiq": 42,
+    "diq": 34,
+    "blk": 45,
+    "stl": 49,
+    "drb": 66,
+    "pss": 69,
+    "reb": 47,
+    "box": 34
+  },
+  "pot": 51,
+  "intg": {
+    "feel": 44,
+    "poise": 55
+  },
+  "pers": {
+    "mot": "Playing time",
+    "alpha": false,
+    "touches": false,
+    "pro": true,
+    "volatile": false,
+    "flashy": false,
+    "heat": false,
+    "crowd": false,
+    "villain": false,
+    "fearless": false,
+    "clutch": false,
+    "prone": false,
+    "padder": false,
+    "team": true,
+    "legacy": false,
+    "streaky": true,
+    "work": 55,
+    "loyalty": 50,
+    "ambition": 45
+  },
+  "ten": {
+    "usage": 85,
+    "dunk": 8,
+    "ftr": 52,
+    "ra": 28,
+    "paint": 18,
+    "mid": 28,
+    "c3": 5,
+    "atb": 21,
+    "cns": 26,
+    "pullup": 66,
+    "step": 4,
+    "fade": 4,
+    "turnovers": 59,
+    "fouls": 37,
+    "crash": 42
+  },
+  "notes": "Emmanuel Mudiay – 2021–22. Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. The 2021–22 card is an estimated level from the combined 2018–19 and 2019–20 NBA seasons. Its two 2021–22 appearances cannot identify stable ability; do not fit two shots as a shooting skill. Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference.",
+  "sources": [
+    "https://www.basketball-reference.com/players/m/mudiaem01.html",
+    "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/3892818/stats"
+  ],
+  "label": "Emmanuel Mudiay – 2021–22",
+  "ovr": 50,
+  "historical": {
+    "season": "2018–19 + 2019–20 reference for estimated 2021–22 level",
+    "league": "NBA",
+    "totals": {
+      "gp": 113,
+      "gs": 44,
+      "min": 2452.6,
+      "fgm": 481,
+      "fga": 1067,
+      "tpm": 99,
+      "tpa": 297,
+      "ftm": 207,
+      "fta": 269,
+      "orb": 51,
+      "drb": 271,
+      "ast": 344,
+      "stl": 67,
+      "blk": 29,
+      "tov": 216,
+      "pf": 175,
+      "pts": 1268,
+      "minutesApproximate": true,
+      "reb": 322
+    },
+    "perGame": {
+      "min": 21.704424778761062,
+      "fgm": 4.256637168141593,
+      "fga": 9.442477876106194,
+      "tpm": 0.8761061946902655,
+      "tpa": 2.6283185840707963,
+      "ftm": 1.831858407079646,
+      "fta": 2.3805309734513274,
+      "orb": 0.45132743362831856,
+      "drb": 2.398230088495575,
+      "ast": 3.0442477876106193,
+      "stl": 0.5929203539823009,
+      "blk": 0.25663716814159293,
+      "tov": 1.9115044247787611,
+      "pf": 1.5486725663716814,
+      "pts": 11.221238938053098,
+      "reb": 2.849557522123894,
+      "fg": 0.450796626054358,
+      "two": 0.4961038961038961,
+      "tp": 0.3333333333333333,
+      "ft": 0.7695167286245354,
+      "ts": 0.5348586083552677,
+      "efg": 0.4971883786316776,
+      "ftr": 0.2521087160262418
+    },
+    "referenceSources": [
+      "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/3892818/stats"
+    ],
+    "dataNotes": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "The 2021–22 card is an estimated level from the combined 2018–19 and 2019–20 NBA seasons. Its two 2021–22 appearances cannot identify stable ability; do not fit two shots as a shooting skill.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  },
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": true,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 7.763283,
+    "weightedErrorShipped": 1.437397,
+    "authored": {
+      "min": 22.49552195939668,
+      "pts": 11.764933933238494,
+      "fga": 10.737788667582443,
+      "tpa": 2.7558046168580175,
+      "fta": 2.54273730147731,
+      "orb": 0.41608428569628714,
+      "drb": 2.3477606072138326,
+      "reb": 2.76384489291012,
+      "ast": 3.0814357969681554,
+      "stl": 0.5185978053605897,
+      "blk": 0.23316800551096284,
+      "tov": 2.484445300099569,
+      "pf": 1.3969979640527512,
+      "fg": 0.4172594533882441,
+      "tp": 0.312180889861415,
+      "ft": 0.7644268774703558,
+      "games": 480,
+      "ovr": 50,
+      "potential": 51,
+      "raw": {
+        "pts": 12.19375,
+        "fgm": 4.64375,
+        "fga": 11.129166666666666,
+        "tpm": 0.8916666666666667,
+        "tpa": 2.85625,
+        "ftm": 2.0145833333333334,
+        "fta": 2.6354166666666665,
+        "orb": 0.43125,
+        "drb": 2.433333333333333,
+        "ast": 3.19375,
+        "stl": 0.5375,
+        "blk": 0.24166666666666667,
+        "tov": 2.575,
+        "pf": 1.4479166666666667,
+        "reb": 2.864583333333333
+      },
+      "zones": {
+        "rim": {
+          "share": 0.25421190565331336,
+          "pct": 0.5574374079528719
+        },
+        "paint": {
+          "share": 0.19056533133657805,
+          "pct": 0.42337917485265225
+        },
+        "mid": {
+          "share": 0.2985773118682142,
+          "pct": 0.3843260188087774
+        },
+        "corner": {
+          "share": 0.04829651815799326,
+          "pct": 0.3488372093023256
+        },
+        "aboveBreak": {
+          "share": 0.20834893298390117,
+          "pct": 0.3036837376460018
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.25151719487525287,
+          "pct": 0.3512064343163539
+        },
+        "pullup": {
+          "share": 0.6658799730276467,
+          "pct": 0.3569620253164557
+        },
+        "step": {
+          "share": 0.037086985839514496,
+          "pct": 0.3181818181818182
+        },
+        "fade": {
+          "share": 0.04551584625758597,
+          "pct": 0.28888888888888886
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 22.501540578270262,
+      "pts": 11.408109576655706,
+      "fga": 9.973304179838342,
+      "tpa": 2.5943049962061857,
+      "fta": 2.419475767182221,
+      "orb": 0.3456393953117459,
+      "drb": 2.385313733924665,
+      "reb": 2.730953129236411,
+      "ast": 3.1750595615846424,
+      "stl": 0.6530976946297524,
+      "blk": 0.27329626606045027,
+      "tov": 2.415456704446038,
+      "pf": 1.4448530536578217,
+      "fg": 0.43461615958089866,
+      "tp": 0.32300542215336947,
+      "ft": 0.7857142857142857,
+      "games": 480,
+      "ovr": 50,
+      "potential": 51,
+      "raw": {
+        "pts": 11.827083333333333,
+        "fgm": 4.49375,
+        "fga": 10.339583333333334,
+        "tpm": 0.86875,
+        "tpa": 2.689583333333333,
+        "ftm": 1.9708333333333334,
+        "fta": 2.5083333333333333,
+        "orb": 0.35833333333333334,
+        "drb": 2.472916666666667,
+        "ast": 3.2916666666666665,
+        "stl": 0.6770833333333334,
+        "blk": 0.2833333333333333,
+        "tov": 2.504166666666667,
+        "pf": 1.4979166666666666,
+        "reb": 2.8312500000000003
+      },
+      "zones": {
+        "rim": {
+          "share": 0.2520652830949023,
+          "pct": 0.5947242206235012
+        },
+        "paint": {
+          "share": 0.1920209550674995,
+          "pct": 0.42707240293809023
+        },
+        "mid": {
+          "share": 0.29578883739673584,
+          "pct": 0.40122615803814715
+        },
+        "corner": {
+          "share": 0.050372758412250654,
+          "pct": 0.348
+        },
+        "aboveBreak": {
+          "share": 0.20975216602861171,
+          "pct": 0.3170028818443804
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.2638637187386734,
+          "pct": 0.385989010989011
+        },
+        "pullup": {
+          "share": 0.6451612903225806,
+          "pct": 0.3601123595505618
+        },
+        "step": {
+          "share": 0.04421891989851395,
+          "pct": 0.3524590163934426
+        },
+        "fade": {
+          "share": 0.04675607104023197,
+          "pct": 0.3178294573643411
+        }
+      }
+    },
+    "limitations": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "The 2021–22 card is an estimated level from the combined 2018–19 and 2019–20 NBA seasons. Its two 2021–22 appearances cannot identify stable ability; do not fit two shots as a shooting skill.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  }
+}

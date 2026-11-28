@@ -1,0 +1,380 @@
+{
+  "card": 1,
+  "label": "Charles Barkley – Rookie (1984-85 Philadelphia 76ers)",
+  "name": "Charles Barkley",
+  "first": "Charles",
+  "last": "Barkley",
+  "pos": "PF",
+  "age": 21,
+  "dob": "1963-02-20",
+  "hgt": "6′6″",
+  "wt": 252,
+  "wing": 82,
+  "rep": "US",
+  "born": "US",
+  "raised": "US",
+  "city": "Leeds",
+  "state": "AL",
+  "her": "US",
+  "race": "black",
+  "r": {
+    "hgt": 46,
+    "stre": 89,
+    "spd": 76,
+    "acc": 77,
+    "jmp": 88,
+    "endu": 76,
+    "ins": 77,
+    "dnk": 83,
+    "lay": 79,
+    "ft": 44,
+    "fg": 32,
+    "tp": 12,
+    "oiq": 52,
+    "diq": 52,
+    "blk": 85,
+    "stl": 71,
+    "drb": 55,
+    "pss": 48,
+    "reb": 85,
+    "box": 86
+  },
+  "pot": 68,
+  "intg": {
+    "feel": 65,
+    "poise": 58
+  },
+  "pers": {
+    "mot": "Winning",
+    "alpha": false,
+    "touches": false,
+    "pro": false,
+    "volatile": true,
+    "flashy": true,
+    "heat": false,
+    "crowd": true,
+    "villain": false,
+    "fearless": true,
+    "clutch": false,
+    "prone": false,
+    "padder": false,
+    "team": true,
+    "legacy": false,
+    "streaky": false,
+    "work": 74,
+    "loyalty": 52,
+    "ambition": 94
+  },
+  "ten": {
+    "usage": 31,
+    "dom": 38,
+    "ftr": 77,
+    "ra": 46.5,
+    "paint": 22,
+    "mid": 30.6,
+    "c3": 0.1,
+    "atb": 0.8,
+    "cns": 64,
+    "pullup": 17,
+    "step": 1,
+    "fade": 18,
+    "dunk": 25,
+    "turnovers": 67,
+    "fouls": 46,
+    "crash": 52
+  },
+  "historical": {
+    "season": "1984–85",
+    "team": "Philadelphia 76ers",
+    "minutes": 28.621951219512194,
+    "totals": {
+      "gp": 82,
+      "gs": 60,
+      "min": 2347,
+      "fgm": 427,
+      "fga": 783,
+      "tpm": 1,
+      "tpa": 6,
+      "ftm": 293,
+      "fta": 400,
+      "orb": 266,
+      "drb": 437,
+      "ast": 155,
+      "tov": 209,
+      "stl": 95,
+      "blk": 80,
+      "pf": 301,
+      "pts": 1148,
+      "reb": 703
+    },
+    "advanced": {
+      "per": 18.3,
+      "ts": 0.599,
+      "efg": 0.546,
+      "tpar": 0.008,
+      "ftr": 0.511,
+      "orbp": 12.9,
+      "drbp": 20.8,
+      "trbp": 16.9,
+      "astp": 9.6,
+      "stlp": 1.9,
+      "blkp": 2,
+      "tovPct": 0.179,
+      "usgp": 20,
+      "ortg": 114,
+      "drtg": 105,
+      "ows": 4.2,
+      "dws": 3.3,
+      "ws": 7.5,
+      "ws48": 0.154,
+      "obpm": 1.3,
+      "dbpm": 0.4,
+      "bpm": 1.7,
+      "vorp": 2.2
+    },
+    "per100": {
+      "fgm": 8.7,
+      "fga": 15.9,
+      "tpm": 0,
+      "tpa": 0.1,
+      "ftm": 5.9,
+      "fta": 8.1,
+      "orb": 5.4,
+      "drb": 8.9,
+      "reb": 14.3,
+      "ast": 3.1,
+      "stl": 1.9,
+      "blk": 1.6,
+      "tov": 4.2,
+      "pf": 6.1,
+      "pts": 23.3
+    },
+    "perGame": {
+      "min": 28.621951219512194,
+      "fgm": 5.2073170731707314,
+      "fga": 9.548780487804878,
+      "tpm": 0.012195121951219513,
+      "tpa": 0.07317073170731707,
+      "ftm": 3.573170731707317,
+      "fta": 4.878048780487805,
+      "orb": 3.2439024390243905,
+      "drb": 5.329268292682927,
+      "ast": 1.8902439024390243,
+      "tov": 2.548780487804878,
+      "stl": 1.1585365853658536,
+      "blk": 0.975609756097561,
+      "pf": 3.6707317073170733,
+      "pts": 14,
+      "reb": 8.573170731707316,
+      "fg": 0.545338441890166,
+      "two": 0.5482625482625483,
+      "tp": 0.16666666666666666,
+      "ft": 0.7325,
+      "ts": 0.5985401459854015,
+      "efg": 0.5459770114942529,
+      "ftr": 0.5108556832694764
+    },
+    "league": "NBA",
+    "referenceSources": [
+      "https://www.nba.com/player/787/charles_barkley"
+    ],
+    "dataNotes": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ]
+  },
+  "notes": "Charles Barkley – Rookie (1984-85 Philadelphia 76ers). Reviewed 2026-11-27 against the named regular-season reference. The previous build was retained because the proposed retune did not improve the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minutes follow the cited rounded total-minutes record. Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference. Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes.",
+  "sources": [
+    "https://www.nba.com/player/787/charles_barkley",
+    "https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/auburntigers.com/documents/2021/4/19/2020_21_Auburn_MBB_Media_Guide_DIGITAL.pdf#page=177",
+    "https://www.basketball-reference.com/players/b/barklch01.html",
+    "https://www.nba.com/stats/help/faq",
+    "https://www.nba.com/news/history-nba-legend-charles-barkley",
+    "https://www.basketball-reference.com/leagues/NBA_1985_per_poss.html"
+  ],
+  "ovr": 59,
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": false,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 0.458264,
+    "weightedErrorShipped": 0.458264,
+    "authored": {
+      "min": 29.094320234154573,
+      "pts": 14.151858190601077,
+      "fga": 9.403146325630376,
+      "tpa": 0.092227895521658,
+      "fta": 4.95981127027583,
+      "orb": 2.9820352885336088,
+      "drb": 5.601307521348696,
+      "reb": 8.583342809882305,
+      "ast": 1.881449068641823,
+      "stl": 1.1948636242028137,
+      "blk": 0.9735166749508344,
+      "tov": 2.7033020931792646,
+      "pf": 3.4985115034548935,
+      "fg": 0.560156931124673,
+      "tp": 0.2222222222222222,
+      "ft": 0.7252066115702479,
+      "games": 480,
+      "ovr": 59,
+      "potential": 68,
+      "raw": {
+        "pts": 14.385416666666666,
+        "fgm": 5.354166666666667,
+        "fga": 9.558333333333334,
+        "tpm": 0.020833333333333332,
+        "tpa": 0.09375,
+        "ftm": 3.65625,
+        "fta": 5.041666666666667,
+        "orb": 3.03125,
+        "drb": 5.69375,
+        "ast": 1.9125,
+        "stl": 1.2145833333333333,
+        "blk": 0.9895833333333334,
+        "tov": 2.747916666666667,
+        "pf": 3.55625,
+        "reb": 8.725
+      },
+      "zones": {
+        "rim": {
+          "share": 0.4317785527462947,
+          "pct": 0.7359919232710752
+        },
+        "paint": {
+          "share": 0.2417175239755885,
+          "pct": 0.5112714156898106
+        },
+        "mid": {
+          "share": 0.31669572798605056,
+          "pct": 0.3682037164487268
+        },
+        "corner": {
+          "share": 0.0008718395815170009,
+          "pct": 0
+        },
+        "aboveBreak": {
+          "share": 0.008936355710549258,
+          "pct": 0.24390243902439024
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.4606141522029373,
+          "pct": 0.38405797101449274
+        },
+        "pullup": {
+          "share": 0.19759679572763686,
+          "pct": 0.33783783783783783
+        },
+        "step": {
+          "share": 0.010013351134846462,
+          "pct": 0.4
+        },
+        "fade": {
+          "share": 0.3317757009345794,
+          "pct": 0.3501006036217304
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 29.3654812117283,
+      "pts": 14.092250298858907,
+      "fga": 9.267583625935455,
+      "tpa": 0.08528451189511155,
+      "fta": 5.031786201811581,
+      "orb": 2.840786479553835,
+      "drb": 5.342465495143773,
+      "reb": 8.183251974697608,
+      "ast": 1.8864121797752054,
+      "stl": 1.2061666682308634,
+      "blk": 0.9178237946807243,
+      "tov": 2.6986456263953156,
+      "pf": 3.451992148135467,
+      "fg": 0.5598159509202454,
+      "tp": 0.2619047619047619,
+      "ft": 0.7340597255851493,
+      "games": 480,
+      "ovr": 59,
+      "potential": 68,
+      "raw": {
+        "pts": 14.458333333333334,
+        "fgm": 5.322916666666667,
+        "fga": 9.508333333333333,
+        "tpm": 0.022916666666666665,
+        "tpa": 0.0875,
+        "ftm": 3.7895833333333333,
+        "fta": 5.1625,
+        "orb": 2.9145833333333333,
+        "drb": 5.48125,
+        "ast": 1.9354166666666666,
+        "stl": 1.2375,
+        "blk": 0.9416666666666667,
+        "tov": 2.76875,
+        "pf": 3.5416666666666665,
+        "reb": 8.395833333333334
+      },
+      "zones": {
+        "rim": {
+          "share": 0.4366783523225241,
+          "pct": 0.738585047666834
+        },
+        "paint": {
+          "share": 0.2392638036809816,
+          "pct": 0.48626373626373626
+        },
+        "mid": {
+          "share": 0.3148553900087642,
+          "pct": 0.37647877522616563
+        },
+        "corner": {
+          "share": 0.0008764241893076249,
+          "pct": 0.25
+        },
+        "aboveBreak": {
+          "share": 0.008326029798422436,
+          "pct": 0.2631578947368421
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.4861392832995267,
+          "pct": 0.4047287899860918
+        },
+        "pullup": {
+          "share": 0.1757944557133198,
+          "pct": 0.3423076923076923
+        },
+        "step": {
+          "share": 0.010141987829614604,
+          "pct": 0.4666666666666667
+        },
+        "fade": {
+          "share": 0.32792427315753886,
+          "pct": 0.3402061855670103
+        }
+      }
+    },
+    "limitations": [
+      "Minutes follow the cited rounded total-minutes record.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ]
+  }
+}

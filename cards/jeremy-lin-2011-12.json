@@ -85,10 +85,466 @@
     "crash": 55.22
   },
   "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
-  "notes": "Full 35-game Knicks regular season. Separate shot-type execution; 2% desired rim dunk share from three recorded dunks. Dunk execution uses a neutral prior because three attempts cannot identify ability. Inside describes post/hook skill; it is not layup skill. Creation shares remain estimates.",
+  "notes": "Jeremy Lin – Linsanity season (2011–12 Knicks). Reviewed 2026-11-27 against the named regular-season reference. The previous build was retained because the proposed retune did not improve the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes.",
   "sources": [
     "https://www.nba.com/stats/player/202391/shooting?Season=2011-12",
     "https://www.basketball-reference.com/players/l/linje01.html",
-    "https://www.landofbasketball.com/nba_players_season_stats/2012/jeremy_lin_full.htm"
-  ]
+    "https://www.landofbasketball.com/nba_players_season_stats/2012/jeremy_lin_full.htm",
+    "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/4299/stats",
+    "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2012_Shots.csv.zip"
+  ],
+  "ovr": 57,
+  "historical": {
+    "season": "2011–12",
+    "league": "NBA",
+    "totals": {
+      "gp": 35,
+      "gs": 25,
+      "min": 941.5,
+      "minutesApproximate": true,
+      "fgm": 171,
+      "fga": 383,
+      "tpm": 24,
+      "tpa": 75,
+      "ftm": 146,
+      "fta": 183,
+      "orb": 18,
+      "drb": 89,
+      "ast": 216,
+      "stl": 55,
+      "blk": 9,
+      "tov": 126,
+      "pf": 78,
+      "pts": 512,
+      "reb": 107
+    },
+    "perGame": {
+      "min": 26.9,
+      "fgm": 4.885714285714286,
+      "fga": 10.942857142857143,
+      "tpm": 0.6857142857142857,
+      "tpa": 2.142857142857143,
+      "ftm": 4.171428571428572,
+      "fta": 5.228571428571429,
+      "orb": 0.5142857142857142,
+      "drb": 2.5428571428571427,
+      "ast": 6.171428571428572,
+      "stl": 1.5714285714285714,
+      "blk": 0.2571428571428571,
+      "tov": 3.6,
+      "pf": 2.2285714285714286,
+      "pts": 14.628571428571428,
+      "reb": 3.057142857142857,
+      "fg": 0.4464751958224543,
+      "two": 0.4772727272727273,
+      "tp": 0.32,
+      "ft": 0.7978142076502732,
+      "ts": 0.5522954780807733,
+      "efg": 0.47780678851174935,
+      "ftr": 0.47780678851174935
+    },
+    "referenceSources": [
+      "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/4299/stats",
+      "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2012_Shots.csv.zip"
+    ],
+    "dataNotes": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts.",
+      "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ],
+    "nbaShotZones": {
+      "rim": {
+        "fga": 152,
+        "fgm": 74,
+        "share": 0.3968668407310705,
+        "pct": 0.4868421052631579
+      },
+      "paint": {
+        "fga": 77,
+        "fgm": 37,
+        "share": 0.2010443864229765,
+        "pct": 0.4805194805194805
+      },
+      "mid": {
+        "fga": 79,
+        "fgm": 36,
+        "share": 0.206266318537859,
+        "pct": 0.45569620253164556
+      },
+      "corner": {
+        "fga": 13,
+        "fgm": 6,
+        "share": 0.033942558746736295,
+        "pct": 0.46153846153846156
+      },
+      "aboveBreak": {
+        "fga": 62,
+        "fgm": 18,
+        "share": 0.1618798955613577,
+        "pct": 0.2903225806451613
+      }
+    },
+    "shotTechniques": {
+      "dunk": {
+        "fga": 3,
+        "fgm": 3,
+        "share": 0.007832898172323759,
+        "pct": 1
+      },
+      "layup": {
+        "fga": 133,
+        "fgm": 69,
+        "share": 0.3472584856396867,
+        "pct": 0.518796992481203
+      },
+      "hook": {
+        "fga": 1,
+        "fgm": 0,
+        "share": 0.0026109660574412533,
+        "pct": 0
+      },
+      "floater": {
+        "fga": 13,
+        "fgm": 7,
+        "share": 0.033942558746736295,
+        "pct": 0.5384615384615384
+      },
+      "tip": {
+        "fga": 0,
+        "fgm": 0,
+        "share": 0,
+        "pct": 0
+      }
+    },
+    "recordedActionTypes": {
+      "Driving Bank shot": {
+        "fga": 2,
+        "fgm": 2,
+        "share": 0.005221932114882507,
+        "pct": 1
+      },
+      "Driving Dunk Shot": {
+        "fga": 2,
+        "fgm": 2,
+        "share": 0.005221932114882507,
+        "pct": 1
+      },
+      "Driving Finger Roll Layup Shot": {
+        "fga": 1,
+        "fgm": 0,
+        "share": 0.0026109660574412533,
+        "pct": 0
+      },
+      "Driving Hook Shot": {
+        "fga": 1,
+        "fgm": 0,
+        "share": 0.0026109660574412533,
+        "pct": 0
+      },
+      "Driving Jump shot": {
+        "fga": 8,
+        "fgm": 4,
+        "share": 0.020887728459530026,
+        "pct": 0.5
+      },
+      "Driving Layup Shot": {
+        "fga": 73,
+        "fgm": 46,
+        "share": 0.1906005221932115,
+        "pct": 0.6301369863013698
+      },
+      "Driving Reverse Layup Shot": {
+        "fga": 12,
+        "fgm": 10,
+        "share": 0.031331592689295036,
+        "pct": 0.8333333333333334
+      },
+      "Fadeaway Bank shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0026109660574412533,
+        "pct": 1
+      },
+      "Fadeaway Jump Shot": {
+        "fga": 11,
+        "fgm": 7,
+        "share": 0.028720626631853787,
+        "pct": 0.6363636363636364
+      },
+      "Floating Jump shot": {
+        "fga": 13,
+        "fgm": 7,
+        "share": 0.033942558746736295,
+        "pct": 0.5384615384615384
+      },
+      "Jump Bank Shot": {
+        "fga": 7,
+        "fgm": 5,
+        "share": 0.018276762402088774,
+        "pct": 0.7142857142857143
+      },
+      "Jump Shot": {
+        "fga": 172,
+        "fgm": 57,
+        "share": 0.4490861618798956,
+        "pct": 0.3313953488372093
+      },
+      "Layup Shot": {
+        "fga": 46,
+        "fgm": 12,
+        "share": 0.12010443864229765,
+        "pct": 0.2608695652173913
+      },
+      "Pullup Bank shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0026109660574412533,
+        "pct": 1
+      },
+      "Pullup Jump shot": {
+        "fga": 10,
+        "fgm": 6,
+        "share": 0.02610966057441253,
+        "pct": 0.6
+      },
+      "Running Bank shot": {
+        "fga": 3,
+        "fgm": 2,
+        "share": 0.007832898172323759,
+        "pct": 0.6666666666666666
+      },
+      "Running Jump Shot": {
+        "fga": 10,
+        "fgm": 3,
+        "share": 0.02610966057441253,
+        "pct": 0.3
+      },
+      "Running Layup Shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0026109660574412533,
+        "pct": 1
+      },
+      "Slam Dunk Shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0026109660574412533,
+        "pct": 1
+      },
+      "Step Back Jump shot": {
+        "fga": 2,
+        "fgm": 2,
+        "share": 0.005221932114882507,
+        "pct": 1
+      },
+      "Turnaround Fadeaway shot": {
+        "fga": 1,
+        "fgm": 1,
+        "share": 0.0026109660574412533,
+        "pct": 1
+      },
+      "Turnaround Jump Shot": {
+        "fga": 5,
+        "fgm": 1,
+        "share": 0.013054830287206266,
+        "pct": 0.2
+      }
+    },
+    "recordedJumperCreation": {
+      "jumpAttempts": 154,
+      "stepAttempts": 2,
+      "fadeAttempts": 3,
+      "explicitPullupAttempts": 9,
+      "stepShare": 1.2987012987012987,
+      "fadeShare": 1.948051948051948,
+      "explicitPullupMinimum": 5.8441558441558445,
+      "unknownRemainder": 140,
+      "note": "Named action labels among non-paint jump shots. The generic Jump Shot remainder does not establish a complete catch-and-shoot/pull-up split."
+    }
+  },
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": false,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 0.868642,
+    "weightedErrorShipped": 0.868642,
+    "authored": {
+      "min": 27.997524453563635,
+      "pts": 15.118576252532078,
+      "fga": 11.339432605665857,
+      "tpa": 2.299913162208309,
+      "fta": 5.462543968378133,
+      "orb": 0.5564628886805134,
+      "drb": 2.6141745777580954,
+      "reb": 3.1706374664386088,
+      "ast": 6.00699686665547,
+      "stl": 1.5532920921441669,
+      "blk": 0.1861548512492365,
+      "tov": 4.001328469324987,
+      "pf": 2.3159264827458776,
+      "fg": 0.44271844660194176,
+      "tp": 0.31940818102698,
+      "ft": 0.7951630633931843,
+      "games": 480,
+      "ovr": 57,
+      "potential": 60,
+      "raw": {
+        "pts": 15.735416666666667,
+        "fgm": 5.225,
+        "fga": 11.802083333333334,
+        "tpm": 0.7645833333333333,
+        "tpa": 2.39375,
+        "ftm": 4.520833333333333,
+        "fta": 5.685416666666667,
+        "orb": 0.5791666666666667,
+        "drb": 2.720833333333333,
+        "ast": 6.252083333333333,
+        "stl": 1.6166666666666667,
+        "blk": 0.19375,
+        "tov": 4.164583333333334,
+        "pf": 2.410416666666667,
+        "reb": 3.3
+      },
+      "zones": {
+        "rim": {
+          "share": 0.36204766107678726,
+          "pct": 0.5041443198439786
+        },
+        "paint": {
+          "share": 0.21323918799646954,
+          "pct": 0.4685430463576159
+        },
+        "mid": {
+          "share": 0.22188879082082966,
+          "pct": 0.4303898170246619
+        },
+        "corner": {
+          "share": 0.03936451897616946,
+          "pct": 0.3094170403587444
+        },
+        "aboveBreak": {
+          "share": 0.16345984112974404,
+          "pct": 0.32181425485961124
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.24023275145469658,
+          "pct": 0.3961937716262976
+        },
+        "pullup": {
+          "share": 0.7057356608478803,
+          "pct": 0.37043580683156657
+        },
+        "step": {
+          "share": 0.019118869492934332,
+          "pct": 0.3695652173913043
+        },
+        "fade": {
+          "share": 0.034912718204488775,
+          "pct": 0.39285714285714285
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 28.28970530460239,
+      "pts": 14.574154704948116,
+      "fga": 11.109400514523454,
+      "tpa": 2.18305266886677,
+      "fta": 5.148596993089596,
+      "orb": 0.5586396121782478,
+      "drb": 2.539631144725226,
+      "reb": 3.0982707569034735,
+      "ast": 5.903354766989994,
+      "stl": 1.634318014351257,
+      "blk": 0.19215617865705686,
+      "tov": 4.076880573981681,
+      "pf": 2.270216296298837,
+      "fg": 0.4400855920114123,
+      "tp": 0.3157894736842105,
+      "ft": 0.7976144671027319,
+      "games": 480,
+      "ovr": 57,
+      "potential": 60,
+      "raw": {
+        "pts": 15.327083333333333,
+        "fgm": 5.141666666666667,
+        "fga": 11.683333333333334,
+        "tpm": 0.725,
+        "tpa": 2.2958333333333334,
+        "ftm": 4.31875,
+        "fta": 5.414583333333334,
+        "orb": 0.5875,
+        "drb": 2.6708333333333334,
+        "ast": 6.208333333333333,
+        "stl": 1.71875,
+        "blk": 0.20208333333333334,
+        "tov": 4.2875,
+        "pf": 2.3875,
+        "reb": 3.2583333333333333
+      },
+      "zones": {
+        "rim": {
+          "share": 0.36608416547788875,
+          "pct": 0.5119337554797857
+        },
+        "paint": {
+          "share": 0.21380171184022825,
+          "pct": 0.4487072560467056
+        },
+        "mid": {
+          "share": 0.22360912981455064,
+          "pct": 0.423444976076555
+        },
+        "corner": {
+          "share": 0.0351283880171184,
+          "pct": 0.3248730964467005
+        },
+        "aboveBreak": {
+          "share": 0.161376604850214,
+          "pct": 0.3138121546961326
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.24023769100169778,
+          "pct": 0.3710247349823322
+        },
+        "pullup": {
+          "share": 0.6969439728353141,
+          "pct": 0.37576126674786847
+        },
+        "step": {
+          "share": 0.0233446519524618,
+          "pct": 0.2909090909090909
+        },
+        "fade": {
+          "share": 0.039473684210526314,
+          "pct": 0.3870967741935484
+        }
+      }
+    },
+    "limitations": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts.",
+      "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
+      "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes."
+    ]
+  }
 }
