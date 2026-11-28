@@ -1,4 +1,4 @@
-import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-Dft608VB.js";var r=`# Changelog
+import{t as e}from"./jsx-runtime-D3jfb0Ew.js";import{D as t,p as n}from"./index-E6YJ8uDw.js";var r=`# Changelog
 
 Every change to Basketball Manager, newest first. The game shows this page under **What's new**.
 
@@ -8,7 +8,7 @@ Every change to Basketball Manager, newest first. The game shows this page under
 - **Analytics reads on draft prospects are fairer at the top and bottom.** Your analysts' numbers used to pull every prospect toward the middle, so the best ones read about 5 points below their real potential and the weakest a little above, and the numbers seemed to doubt every prospect your scouts liked. Their level and ceiling now move about a point for every point of real ability, so they can disagree with your scouts in either direction. The trade-off: reads in the middle of a class scatter a little more (off by about 3.6 points on average instead of 3.2).
 
 ### Fixed
-- **A new college or club in the player editor now shows in his college stats.** Changing the school a player came from didn't rename the seasons he played there if you'd edited his age (his college career is kept then) or he came from a loaded draft class. Those seasons now follow the new school and league; schools he transferred from stay as they were.
+- **A new college or club in the player editor now shows in his college stats.** Changing the school a player came from didn't rename the seasons he played there if you'd edited his age (his college career is kept then) or he came from a loaded draft class. Those seasons now follow the new school and league; schools he transferred from stay as they were. Players whose school you changed before this fix are repaired when you open your league, and changing it again works too.
 
 ## 2026-11-27
 
