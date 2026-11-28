@@ -4,8 +4,11 @@ Includes the later overall/ability follow-up: four further ability refinements
 and rookie Lin's potential correction. Six losing proposals were retained only
 as rejected experiments in the audit. The earlier review is a historical record.
 
-This set contains the 33 ready-made cards, three Charles Barkley season builds,
-and Michael Kidd-Gilchrist's 2012–13 rookie build.
+This set contains the 34 ready-made cards, including Michael Kidd-Gilchrist's
+2012–13 rookie build, plus three Charles Barkley season builds.
+
+MKG is now available directly in the game's Player cards menu after refreshing;
+existing card libraries receive his template automatically.
 
 The ready-made library updates untouched templates after you refresh the game.
 Custom card edits are preserved. To use a downloaded file: open a player in God
