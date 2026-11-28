@@ -616,6 +616,10 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
           (capEasy(g) ? ' would be over the hard cap (' + N.AP2 + 'M).' : ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.'),
       );
     if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
+    const twBefore = twoWayIds(g, s.rosters[tid] || []).length,
+      twAfter = twBefore - twoWayIds(g, out).length + twoWayIds(g, inn).length;
+    if (twAfter > TWO_WAY_MAX && twAfter > twBefore)
+      errs.push(nm + ' would have ' + twAfter + ' two-way players (' + TWO_WAY_MAX + ' max).');
     // Newly signed players can't be traded yet.
     out.forEach(id => {
       const q = P[id],

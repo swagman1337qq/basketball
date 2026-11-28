@@ -329,6 +329,7 @@ export function waivePlayer(
         t =>
           t.tid !== tid &&
           !g.isUser(s, t.tid) &&
+          (p.ctype !== 'twoWay' || twoWayIds(g, box.rosters[t.tid] || []).length < TWO_WAY_MAX) &&
           stdIds(g, box.rosters[t.tid] || []).length < seasonMax(s) &&
           capRoom(g, { ...s, rosters: box.rosters }, t.tid) >= p.amt &&
           p.ovr >= 48 &&

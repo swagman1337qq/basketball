@@ -1541,6 +1541,27 @@ export function trimRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
   }
 }
 
+// Older saves may already have an AI club above the two-way limit after a trade.
+// Keep its best three; normal non-guaranteed waivers preserve stats and record the
+// release. Claims are disabled here so loading is deterministic and cannot move
+// the same excess contract to another club. Managed teams keep manual control.
+export function repairAITwoWays(g: Game, s: any) {
+  const over = s.teams.filter((t: any) => !g.isUser(s, t.tid) && twoWayIds(g, s.rosters[t.tid] || []).length > TWO_WAY_MAX);
+  if (!over.length) return null;
+  const box = boxOf(s),
+    lgLog = [...(s.lgLog || [])];
+  for (const t of over) {
+    const ids = twoWayIds(g, box.rosters[t.tid]).sort((a, b) => g.db.P[a].ovr - g.db.P[b].ovr || a - b);
+    for (const id of ids.slice(0, ids.length - TWO_WAY_MAX)) {
+      const p = g.db.P[id];
+      waivePlayer(g, s, box, t.tid, p, 'waive', 0, false).forEach(text =>
+        lgLog.unshift({ day: s.day, type: 'Release', teams: t.abbr, pids: [id], text: text + ' (two-way roster limit)' }),
+      );
+    }
+  }
+  return { ...box, lgLog };
+}
+
 // ── In season ───────────────────────────────────────────────────────────────────
 // 10-day and hardship contracts run out, two-way players count NBA games, season-ending
 // injuries before the deadline grant a disabled player exception, TPEs expire.

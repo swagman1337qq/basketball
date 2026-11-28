@@ -136,6 +136,7 @@ import {
   signDraftee,
   tradeCap,
   trimRoster,
+  repairAITwoWays,
   userRelease,
   userSign,
   aiExtensions,
@@ -1533,6 +1534,11 @@ export class Game {
           g.db.rank[id] = i + 1;
         });
       }
+    }
+    const twoWayRepair = repairAITwoWays(g, g.state);
+    if (twoWayRepair) {
+      g.state = { ...g.state, ...twoWayRepair };
+      g._rosterRef = g.state.rosters;
     }
     g.state = archiveDashboardMail(g, g.state, true); // existing dashboard decisions also belong in the Mailbox
     snapOpening(g, g.state); // a baseline for year-over-year progress (older saves start it now)
