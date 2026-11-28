@@ -48,6 +48,7 @@ const SCRIPTS = [
   'tradeStatus',
   'twoWayTrades',
   'contractCalendar',
+  'extensionLimits',
   'draftRecords',
   'ovrMigration',
   'aiRosterUpgrade',

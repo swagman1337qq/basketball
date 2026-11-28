@@ -165,11 +165,82 @@ export function maxFor(g: Game, s: any, p: any, tid: number, kind: 'rookieExt' |
   const season = kind === 'fa' || !Number.isFinite(p.exp) || p.exp < g.Y ? contractSeason(g, s) : p.exp + 1,
     N = numsForSeason(g, season),
     yos = yosForSeason(g, p, season, kind !== 'fa');
-  if (kind === 'rookieExt' && honorsQualify(s, p.id, g.Y)) return { amt: N.max(yos, 'rose'), tier: 'Rose Rule (30%)' };
+  if (kind === 'rookieExt' && honorsQualify(s, p.id, g.Y)) return { amt: N.max(yos, 'rose'), tier: 'Rose Rule (30%)', designated: false };
   const withTeam = (p.draftTid === tid || p.rookieTid === tid) && !p.leftAsFA;
   if (yos >= 7 && yos <= 9 && withTeam && honorsQualify(s, p.id, g.Y) && (kind === 'vetExt' || p.birdTid === tid))
-    return { amt: N.max(yos, 'super'), tier: 'Designated veteran "supermax" (35%)' };
-  return { amt: N.max(yos), tier: (yos >= 10 ? '35%' : yos >= 7 ? '30%' : '25%') + ' max for ' + yos + ' years of service' };
+    return { amt: N.max(yos, 'super'), tier: 'Designated veteran "supermax" (35%)', designated: true };
+  return {
+    amt: N.max(yos),
+    tier: (yos >= 10 ? '35%' : yos >= 7 ? '30%' : '25%') + ' max for ' + yos + ' years of service',
+    designated: false,
+  };
+}
+
+// One salary/length calculation for the extension form and the AI. A designated
+// veteran deal uses its cap maximum, not the ordinary 140% limit, and must cover
+// six seasons including the remaining contract (CBA VII.7(a)(3), IX.1).
+export function extensionRules(g: Game, s: any, p: any, tid: number, years?: number, average = avgSalary(g, s)) {
+  const rookie = !!p.rookieScale,
+    simple = easyK(g),
+    start = p.exp + 1,
+    N = numsForSeason(g, start),
+    service = yosForSeason(g, p, start, true),
+    mx = maxFor(g, s, p, tid, rookie ? 'rookieExt' : 'vetExt'),
+    left = s.phase === 'fa' ? p.exp - g.Y : p.exp - g.Y + 1,
+    over38 = Math.max(1, 38 - ((p.age ?? 27) + (p.exp - g.Y) + 1) + 1),
+    ageYears = (p.age ?? 27) >= 33 ? Math.max(3, over38) : 5,
+    ordinaryYears = Math.max(1, Math.min(rookie || simple ? 5 : 5 - left, ageYears)),
+    designatedYears = !rookie && !simple && mx.designated && left >= 1 && left <= 2 ? 6 - left : null,
+    offWindow = (s.phase === 'fa' && g.faDayOf(s) >= 6) || s.phase === 'preseason' || (s.phase === 'regular' && s.day === 0),
+    sg = p.signed,
+    now = s.phase === 'fa' ? g.Y : g.Y - 1 + 0.5,
+    at = sg?.season != null ? sg.season - 1 + (sg.phase === 'regular' ? 0.5 : 0) : -Infinity,
+    anniversary = sg?.season != null ? now - at >= 3 - 0.01 : (p.yrsWith || 0) >= 3;
+  const designatedWhy =
+    designatedYears == null
+      ? ''
+      : designatedYears > ageYears
+        ? 'The over-38 limit prevents this supermax length.'
+        : !offWindow
+          ? 'Designated supermax extensions open in the offseason.'
+          : !anniversary
+            ? 'A designated supermax needs three years since his last contract signing.'
+            : '';
+  const canDesignate = designatedYears != null && !designatedWhy,
+    maxYears = canDesignate ? designatedYears : ordinaryYears,
+    defaultYears = canDesignate ? designatedYears : Math.min(3, maxYears),
+    designated = canDesignate && (years ?? defaultYears) === designatedYears,
+    ordinarySalaryMax = rookie || simple ? mx.amt : N.max(service),
+    lastSalary = g.salAt(p, p.exp),
+    ordinaryMax = +(rookie || simple ? mx.amt : Math.min(ordinarySalaryMax, Math.max(lastSalary * 1.4, average * 1.4))).toFixed(2);
+  return {
+    maxFirst: designated ? mx.amt : ordinaryMax,
+    minFirst: designated ? N.max(service, 'rose') : N.min(service),
+    maxYears,
+    ordinaryYears,
+    defaultYears,
+    designated,
+    designatedYears,
+    designatedWhy,
+    canDesignate,
+    designatedMax: mx.amt,
+    // Market asks keep his eligible maximum even when this extension cannot
+    // reach it; otherwise the AI could force a discounted ordinary extension.
+    maxSalary: mx.amt,
+    ordinaryMax,
+    left,
+  };
+}
+
+export function validateExtension(g: Game, s: any, p: any, tid: number, amt: number, years: number, average?: number) {
+  const window = extWindow(g, s, p),
+    rules = extensionRules(g, s, p, tid, years, average);
+  if (!window.ok) return { ok: false, why: window.why };
+  if (!Number.isInteger(years) || years < 1 || years > rules.maxYears)
+    return { ok: false, why: 'This extension allows 1–' + rules.maxYears + ' new seasons.' };
+  if (!Number.isFinite(amt) || amt < rules.minFirst - 0.005 || amt > rules.maxFirst + 0.005)
+    return { ok: false, why: 'The first year must be between ' + rules.minFirst.toFixed(2) + 'M and ' + rules.maxFirst.toFixed(2) + 'M.' };
+  return { ok: true, why: '' };
 }
 
 // Only an explicitly negotiated maximum follows the cap until activation.

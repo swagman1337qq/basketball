@@ -133,7 +133,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                           value={vm.ext.amt}
                           min={vm.ctx.s.god ? 0.1 : vm.ext.min}
                           max={vm.ctx.s.god ? Math.max(vm.ext.max, vm.ctx.gm.MAXC * 2) : vm.ext.max}
-                          step={0.1}
+                          step={0.01}
                           width={90}
                           onValue={v => vm.ext.setAmt({ target: { value: v } })}
                           suffix={'$M · ' + vm.ext.min + '–' + vm.ext.max}
@@ -142,6 +142,7 @@ export function PlayerModal({ vm }: { vm: VM }) {
                       </div>
                       <p style={{ margin: '8px 0', fontSize: '12px', color: 'var(--color-neutral-700)' }}>{vm.ext.rule}</p>
                       <p style={{ margin: '0 0 10px' }}>{vm.ext.askLine}</p>
+                      {!!vm.ext.limitNote && <p style={{ margin: '0 0 10px', color: 'var(--color-neutral-700)' }}>{vm.ext.limitNote}</p>}
                       <span style={{ display: 'inline-flex', gap: 8 }}>
                         <button className="btn btn-primary" onClick={vm.ext.offer}>
                           Offer extension

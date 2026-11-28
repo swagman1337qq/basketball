@@ -37,6 +37,8 @@ import {
   numsForSeason,
   yosForSeason,
   newExtension,
+  extensionRules,
+  validateExtension,
   contractSeason,
   qoEligible,
   qoFor,
@@ -2397,7 +2399,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       N = nums(gm);
     const mx = live
         ? maxFor(gm, s, pp, ptid >= 0 ? ptid : s.me, pp.rookieScale ? 'rookieExt' : status === 'fa' ? 'fa' : 'vetExt')
-        : { amt: 0, tier: '' },
+        : { amt: 0, tier: '', designated: false },
       maxSal = mx.amt;
     const lvl = (pp.yrsWith || 0) >= 3 ? 'full' : (pp.yrsWith || 0) === 2 ? 'early' : 'non',
       bird = BIRD_LABEL[lvl];
@@ -2895,8 +2897,13 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
           Math.max(1, (Object.values(s.rosters).flat() as number[]).length);
       const ez = easyK(gm), // easy contracts: up to his max, up to 5 years, the same salary every year
         rz = ez ? 0 : 0.08,
-        maxAllowed = +(rook || ez ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2),
-        minS = numsForSeason(gm, pp.exp + 1).min(yosForSeason(gm, pp, pp.exp + 1, true));
+        initialRules = extensionRules(gm, s, pp, ptid, undefined, avg),
+        maxYears = initialRules.maxYears,
+        requestedYears = s.extYears ?? initialRules.defaultYears,
+        yrs = s.god ? Math.max(1, Math.trunc(requestedYears)) : Math.max(1, Math.min(requestedYears, maxYears)),
+        rules = extensionRules(gm, s, pp, ptid, yrs, avg),
+        maxAllowed = rules.maxFirst,
+        minS = rules.minFirst;
       // A trade request in play (tradeRequests.ts): an ultimatum names his price; one you ignored ends the talks.
       const ult = pp.treq?.status === 'open' && pp.treq.cause === 'ext' && pp.treq.season === gm.Y ? pp.treq.ask : null,
         walks = pp.noResign?.tid === ptid && pp.noResign.season === gm.Y;
@@ -2904,13 +2911,20 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         ? ult.amt
         : gm.fair(pp.ovr) * (m === 'Money' ? 1.15 : m === 'Winning' && top ? 0.9 : m === 'Loyalty' ? 0.92 : 1) * (md.hap < 45 ? 1.2 : 1);
       ask = +gm.cl((ask * numsForSeason(gm, pp.exp + 1).CAP) / N.CAP, minS, maxSal).toFixed(2);
-      const super5 = /supermax|Rose/.test(mx.tier),
-        over38 = Math.max(1, 38 - (pp.age + (pp.exp - gm.Y) + 1) + 1);
       const minYears0 = m === 'Money' && pp.age >= 30 ? 4 : m === 'Loyalty' ? 1 : 2,
-        maxYears = Math.max(1, Math.min(rook || ez ? 5 : (super5 ? 6 : 5) - xw.left, pp.age >= 33 ? Math.max(3, over38) : 5));
-      const minYears = Math.min(ult ? ult.years : minYears0, maxYears);
-      const yrs = Math.min(s.extYears ?? 3, maxYears),
-        amt = s.extAmt ?? ask;
+        minYears = rules.designated ? rules.designatedYears! : Math.min(ult ? ult.years : minYears0, maxYears),
+        amt = s.god ? (s.extAmt ?? ask) : gm.cl(s.extAmt ?? ask, minS, maxAllowed),
+        limitNote =
+          ask <= maxAllowed + 0.05
+            ? ''
+            : rules.canDesignate
+              ? 'Choose ' +
+                rules.designatedYears +
+                ' new seasons for a designated supermax up to ' +
+                money(rules.designatedMax) +
+                ' per year.'
+              : rules.designatedWhy ||
+                'His asking price exceeds the ordinary extension limit. He can seek a larger contract in free agency.';
       ext = {
         maxYears,
         years: yrs,
@@ -2929,19 +2943,24 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
               ' (' +
               mx.tier +
               '). The Rose Rule raises it to 30% of the cap if he makes an All-League team or wins MVP.'
-            : 'Veteran extension: ' +
-              xw.why +
-              ' Up to ' +
-              maxYears +
-              ' new season' +
-              (maxYears === 1 ? '' : 's') +
-              ' (' +
-              (super5 ? 6 : 5) +
-              ' including what’s left of his deal); the first year can be at most 140% of his salary or of the league-average salary (' +
-              money(maxAllowed) +
-              ')' +
-              (super5 ? '. He qualifies for the designated veteran supermax (35%).' : '.') +
-              (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
+            : rules.designated
+              ? 'Designated veteran supermax: ' +
+                rules.designatedYears +
+                ' new seasons (6 including what’s left of his deal). The first year can be up to 35% of its season’s cap (' +
+                money(maxAllowed) +
+                '), with 8% annual raises.'
+              : 'Veteran extension: ' +
+                xw.why +
+                ' Up to ' +
+                rules.ordinaryYears +
+                ' new season' +
+                (rules.ordinaryYears === 1 ? '' : 's') +
+                ' (5 including what’s left of his deal); the first year can be at most 140% of his final contract salary or of the league-average salary (' +
+                money(maxAllowed) +
+                ')' +
+                '.' +
+                (pp.age >= 33 ? ' Over-38 rule: years after he turns 38 are limited.' : ''),
+        limitNote,
         askLine: walks
           ? 'He asked for a trade and you kept him: he won’t extend, and he’ll leave in free agency.'
           : ult
@@ -2980,8 +2999,8 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
         offer: () => {
           if (walks) return gm.setState({ extMsg: pp.name + ' won’t talk: you kept him after he asked out.' });
           if (md.hap < 30 && !ult) return gm.setState({ extMsg: pp.name + ' declined to discuss an extension.' });
-          if (amt > maxAllowed + 0.005)
-            return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' });
+          const legal = validateExtension(gm, s, pp, ptid, amt, yrs, avg);
+          if (!legal.ok) return gm.setState({ extMsg: 'League office: ' + legal.why });
           if (amt >= ask - 0.05 && yrs >= minYears) {
             pp.ext = newExtension(gm, s, pp, ptid, amt, yrs, rz);
             if (!ez && amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day };
@@ -3008,7 +3027,10 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
                   (rook ? ' (rookie-scale extension)' : ' (veteran extension)'),
               ),
             }));
-          } else gm.setState({ extMsg: 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.' });
+          } else
+            gm.setState({
+              extMsg: limitNote || 'No deal. They want about ' + money(ask) + ' a year over at least ' + minYears + ' years.',
+            });
         },
       };
     }

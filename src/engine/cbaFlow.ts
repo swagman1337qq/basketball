@@ -19,6 +19,8 @@ import {
   yosForSeason,
   numsForSeason,
   newExtension,
+  extensionRules,
+  validateExtension,
   extensionFirst,
   yosForContract,
   qoEligible,
@@ -1778,25 +1780,34 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
       if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
       const start = p.exp + 1,
         future = numsForSeason(g, start),
-        service = yosForSeason(g, p, start, true),
-        mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt,
-        cap = rook || ez ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
+        preferredYears = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
+      let rules = extensionRules(g, s, p, t, undefined, avg),
+        yrs = rules.canDesignate ? rules.designatedYears! : Math.min(preferredYears, rules.ordinaryYears);
+      rules = extensionRules(g, s, p, t, yrs, avg);
       // 2026-10-22: priced halfway between what he is and what he'll become (paying for all of the projection gave
       // 50s and 53s who never developed a fifth of the cap); the rookie max only for a player already good (62+).
       const raw = (g.fair((p.ovr + proj) / 2) * future.CAP) / N.CAP,
-        bNow = g.priceOvr(p.ovr),
-        af = rook || (raw >= snapAt(bNow) * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
-      const amt =
-        rook && g.priceOvr(proj) >= 64 && g.priceOvr(p.ovr) >= 62
-          ? mx /* a rising star's rookie extension: the rookie max */
-          : +Math.max(future.min(service), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
+        bNow = g.priceOvr(p.ovr);
+      const quote = () => {
+        const mx = rules.maxSalary,
+          af = rook || (raw >= snapAt(bNow) * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj));
+        return {
+          bid: rook && g.priceOvr(proj) >= 64 && bNow >= 62 ? mx : snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow),
+          wanted: Math.min(mx, ((g.fair(p.ovr) * future.CAP) / N.CAP) * af) * (mot === 'Loyalty' ? 0.9 : mot === 'Money' ? 1 : 0.95),
+        };
+      };
+      let want = quote();
+      if (rules.designated && want.bid < rules.minFirst - 0.005) {
+        yrs = Math.min(preferredYears, rules.ordinaryYears);
+        rules = extensionRules(g, s, p, t, yrs, avg);
+        want = quote();
+      }
+      const amt = +Math.max(rules.minFirst, Math.min(rules.maxFirst, want.bid)).toFixed(2);
       // A below-market veteran cannot be forced into another discounted deal by
       // the extension limit. He can wait for free agency when that limit binds.
-      const wanted = Math.min(mx, ((g.fair(p.ovr) * future.CAP) / N.CAP) * af) * (mot === 'Loyalty' ? 0.9 : mot === 'Money' ? 1 : 0.95);
-      if (amt + 0.01 < wanted) return;
+      if (amt + 0.01 < want.wanted || !validateExtension(g, s, p, t, amt, yrs, avg).ok) return;
       if (payroll - p.amt + amt > ((g.teamCeiling(s.teams[t]) + 6) * future.CAP) / N.CAP) return; // the owner's future-year budget
       if (ez && payroll - p.amt + amt > future.AP2) return; // easy contracts: never over the ceiling
-      const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       const rz = ez ? 0 : 0.08;
       p.ext = newExtension(g, s, p, t, amt, yrs, rz);
       payroll += amt - p.amt; // (his level when he signed it)
