@@ -516,6 +516,12 @@ const AM_PEAK = {
   age: -2.531,
   lvl: 0.592,
 };
+// The prospect models' spread (2026-11-28): fitted by least squares, their level and ceiling move only about 0.72 and
+// 0.59 points per point of a prospect's real overall and potential (regression toward the middle), so a top prospect
+// read about 6 below his potential and a weak one about 2 above, and the numbers looked down on every prospect your
+// scouts liked. Stretching each around its middle by the inverse brings both to about one point per point (measured
+// on four leagues' draft classes, scripts/analyticsProspects.mts).
+export const AM_SPREAD = { now: 1.39, nowMid: 33, peak: 1.57, peakMid: 50 };
 // League averages per 36 (NBA) and per 40 (amateur), the zero points for the bias adjustments.
 const AVG36 = { tpm: 1.4, stl: 1.0, blk: 0.7, drb: 5.2 };
 const AVG40 = { tpm: 1.5, stl: 1.3, blk: 0.9, drb: 5.5 };
@@ -714,8 +720,12 @@ export function analystView(g: Game, a: Analyst, p: any, deep = false): AnView |
     if (b.noD) adj -= b.noD * (AM_PEAK.stl * ((x.stl ?? 0) - AVG40.stl) + AM_PEAK.blk * ((x.blk ?? 0) - AVG40.blk));
     if (b.cbpm) adj += b.cbpm * 0.6 * (x.bpm ?? 0);
     const shrink = min / (min + 150 * (1 - 0.85 * sm)); // a short college season says less
-    now = 40 + (rawN + adj * 0.5 - 40) * shrink + noise(a, p.id, g.Y) * sd * 1.6;
-    peak = 50 + (rawP + adj - 50) * shrink + noise(a, p.id, g.Y + 7) * sd * 2.2 - oldF;
+    // Stretched back out (AM_SPREAD): the fitted models pull every prospect toward the middle, so the best ones read
+    // low and the weakest high; the analyst's biases and noise are added after, unstretched.
+    const nowB = 40 + (rawN - 40) * shrink,
+      peakB = 50 + (rawP - 50) * shrink;
+    now = AM_SPREAD.nowMid + (nowB - AM_SPREAD.nowMid) * AM_SPREAD.now + adj * 0.5 * shrink + noise(a, p.id, g.Y) * sd * 1.6;
+    peak = AM_SPREAD.peakMid + (peakB - AM_SPREAD.peakMid) * AM_SPREAD.peak + adj * shrink + noise(a, p.id, g.Y + 7) * sd * 2.2 - oldF;
     peak = Math.max(peak, now);
   }
   const next = n.kind === 'nba' ? now + yearChange(age) - oldF * 0.8 : now + 2;

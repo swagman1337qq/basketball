@@ -61,6 +61,8 @@ const SCRIPTS = [
   'historicalClass',
   'shotSense',
   'analyticsReports',
+  'analyticsProspects',
+  'collegeEdit',
   'playerCardRefinement',
   'cardCatalog',
   'draftScouting',

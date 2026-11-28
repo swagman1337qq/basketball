@@ -482,6 +482,31 @@ export function setGodPlayerAge(g: Game, p: any, value: number) {
   p.age = age;
   MEMO.delete(g.db);
 }
+// God Mode moved his school or club (the editor's Playing for / Came from, or a new nationality): the seasons he
+// spent there follow the new name and league in his college stats, including a path kept by an age edit and a
+// loaded class's real seasons. Earlier stops (a school he transferred from, a junior college) stay.
+export function moveSchool(p: any, old: { team?: string; lg?: string } | null | undefined) {
+  const nw = p?.from;
+  if (!old || !nw || (old.team === nw.team && old.lg === nw.lg)) return;
+  const fix = (st: any) => {
+    if (!st || st.team !== old.team) return;
+    st.team = nw.team;
+    if (nw.lg) st.lg = nw.lg;
+  };
+  const e = p.amAgeEdit;
+  if (e) {
+    e.path?.forEach(fix);
+    e.fullPath?.forEach(fix);
+    e.extra?.forEach(fix);
+  }
+  if (p.real?.length) {
+    // A loaded class's record may spell the school its own way: then his last school's seasons move.
+    const last = p.real.reduce((a: any, b: any) => (b.season > a.season ? b : a)).team,
+      key = p.real.some((r: any) => r.team === old.team) ? old.team : last;
+    p.real = p.real.map((r: any) => (r.team === key ? { ...r, team: nw.team, ...(nw.lg ? { lg: nw.lg } : {}) } : r));
+  } // (the class's stats memo is keyed by the edit counter, gv, which every God Mode edit bumps)
+}
+
 // A loaded draft class's real seasons (engine/historical.ts, p.real: per game), as season lines in the same shape as
 // generated ones, so his advanced stats come from the same formulas. Only seasons already played show (a class loaded
 // years ahead plays them out); pace 70 a game, about college basketball's in 2000.

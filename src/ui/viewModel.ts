@@ -54,7 +54,7 @@ import { heritageLabel, randomName } from '../data/heritage';
 import { randomTeamIn } from '../data/randomTeam';
 import { EVEN, TRAIT, TRAITS, traitRead } from '../engine/traits';
 import { TeamLogo } from './TeamLogo';
-import { hasAmateur, setGodPlayerAge } from '../engine/amateurStats';
+import { hasAmateur, moveSchool, setGodPlayerAge } from '../engine/amateurStats';
 import { draftClassRecords, draftYearOf } from '../engine/draftRecords';
 import { alphaTeams, GOD_PINK, linkNames } from './kit';
 import { groupFilter, groupTitle, searchAll } from './search';
@@ -2817,7 +2817,11 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
           pp.raised = code;
           if (code === 'US') pp.state = regionOf(pp.city) || undefined;
           else delete pp.state;
-          if (pp.from) pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y));
+          if (pp.from) {
+            const from0 = { ...pp.from };
+            pp.from = randomTeamIn(C, code, !!(pp.cls && pp.cls > gm.Y));
+            moveSchool(pp, from0);
+          }
           refreshElig(pp, C);
           if (!pp.elig.some((x: any) => x.c === pp.rep)) pp.elig = [{ c: pp.rep, why: 'citizen by birth' }, ...pp.elig];
           gm.setState(st => ({ gv: (st.gv || 0) + 1, nameUndo: undo }));

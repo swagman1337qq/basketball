@@ -1,4 +1,4 @@
-import { setGodPlayerAge } from '../../engine/amateurStats';
+import { moveSchool, setGodPlayerAge } from '../../engine/amateurStats';
 // God Mode player editor, part two: bio (first/last names in Romanized and native
 // script, date of birth, height, weight, wingspan), psychology, fatigue, specific
 // injuries and a custom headshot; cloning or deleting him (godPlayer.ts) and his NBA family
@@ -161,8 +161,10 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   const mut = (f: (p: any) => void) => {
     const k0 = p.born + '|' + p.raised + '|' + p.her,
       her0 = p.her || p.born || p.rep,
-      rep0 = p.rep;
+      rep0 = p.rep,
+      from0 = p.from ? { ...p.from } : null;
     f(p);
+    moveSchool(p, from0); // his college stats follow a new school or club
     gm.autoPos(p);
     liftCeil(p);
     refreshPot(p);
@@ -228,8 +230,10 @@ export function GodPlayerEditor({ vm }: { vm: VM }) {
   };
   const doUndo = () => {
     if (!undo) return;
-    const { pid, ...rest } = undo;
+    const { pid, ...rest } = undo,
+      from0 = p.from ? { ...p.from } : null;
     Object.keys(rest).forEach(k => (rest[k] === undefined ? delete p[k] : (p[k] = rest[k])));
+    moveSchool(p, from0);
     if (rest.her) gm.resetFace(pid);
     gm.setState({ nameUndo: null, gv: (s.gv || 0) + 1 });
   };
