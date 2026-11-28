@@ -8,9 +8,13 @@ import { applyCard } from '../src/engine/playerCard';
 import { seasonLine } from '../src/engine/amateurStats';
 
 const audit = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REFINEMENT_2026-11-27.json', import.meta.url), 'utf8'));
+const realism = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REALISM_2026-11-27.json', import.meta.url), 'utf8'));
 const index = Number(process.argv[2] ?? 36),
   record = audit.cards.find((x: any) => x.index === index);
 if (!record) throw new Error('Choose a reviewed card index from 0 through 36.');
+const latest = realism.cards.find((x: any) => x.index === index);
+if (latest.decision !== 'Retained') record.previous = latest.previous;
+record.revised = latest.revised;
 const options = record.revised.validation.options,
   college = record.revised.historical.league === 'NCAA';
 const compare = (card: any) => {

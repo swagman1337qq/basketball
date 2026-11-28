@@ -41,7 +41,7 @@
     "reb": 36,
     "box": 28
   },
-  "pot": 56,
+  "pot": 60,
   "intg": {
     "feel": 70,
     "poise": 74
@@ -312,7 +312,7 @@
     "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/4299/stats",
     "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2011_Shots.csv.zip"
   ],
-  "notes": "Jeremy Lin – Rookie year (2010–11). Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes. Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight.",
+  "notes": "Jeremy Lin – Rookie year (2010–11). Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes. Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight. Overall review: The rookie ceiling was below his already available later Knicks build. Set the estimated potential to the later card’s 60; retain current skills and style because their proposed retune worsened the fit.",
   "validation": {
     "reviewed": "2026-11-27",
     "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
@@ -496,6 +496,13 @@
       "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
       "Three-point ability is uncertain in this small attempt sample; exact low-volume percentages are reference data, not guaranteed outcomes.",
       "Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight."
-    ]
+    ],
+    "overallReview": {
+      "reviewed": "2026-11-27",
+      "projectionOnly": true,
+      "previousPotential": 56,
+      "revisedPotential": 60,
+      "reason": "The rookie ceiling was below his already available later Knicks build. Set the estimated potential to the later card’s 60; retain current skills and style because their proposed retune worsened the fit."
+    }
   }
 }

@@ -62,6 +62,7 @@ const SCRIPTS = [
   'shotSense',
   'analyticsReports',
   'playerCardRefinement',
+  'draftScouting',
 ];
 const run = (name: string) =>
   new Promise<{ name: string; ok: boolean; s: number; tail: string }>(done => {

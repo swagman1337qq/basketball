@@ -22,18 +22,18 @@
     "spd": 68,
     "acc": 66,
     "jmp": 50,
-    "endu": 76,
+    "endu": 72,
     "ins": 34,
     "dnk": 28,
     "lay": 63,
     "ft": 56,
     "fg": 79,
-    "tp": 91,
+    "tp": 85,
     "oiq": 76,
     "diq": 54,
     "blk": 1,
     "stl": 63,
-    "drb": 70,
+    "drb": 66,
     "pss": 61,
     "reb": 45,
     "box": 40
@@ -81,7 +81,7 @@
     "fouls": 39,
     "crash": 54
   },
-  "notes": "Monte Morris – 2018–19. Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. NBA shot records are regular season only. The previous card’s notes admitted including playoff attempts. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight.",
+  "notes": "Monte Morris – 2018–19. Overall/ability follow-up reviewed 2026-11-27. Preserve the efficient low-turnover reserve guard; distinguish one excellent shooting season from generational shooting ability. Retained because both held-out comparison scores improved. Exact historical references are unchanged; teammates, role, opposition and chance change simulated output. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. NBA shot records are regular season only. The previous card’s notes admitted including playoff attempts. Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts. Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split. Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight. Overall is calculated from engine ratings and feel; it is not a manually assigned NBA reputation score. The constrained follow-up improves both held-out sampling-aware box fit and the detailed source-chart score; individual rates can still differ.",
   "sources": [
     "https://www.basketball-reference.com/players/m/morrimo01.html",
     "https://www.basketball-reference.com/players/m/morrimo01/shooting/2019",
@@ -89,7 +89,7 @@
     "https://github.com/DomSamangy/NBA_Shots_04_25/blob/main/NBA_2019_Shots.csv.zip"
   ],
   "label": "Monte Morris – 2018–19",
-  "ovr": 59,
+  "ovr": 58,
   "historical": {
     "season": "2018–19",
     "league": "NBA",
@@ -392,178 +392,289 @@
   },
   "validation": {
     "reviewed": "2026-11-27",
-    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "engineRevision": "04bd8d87d2d9fbc1704506e1f330158a6b5a1620",
+    "stage": "overall-and-ability-follow-up",
     "buildChanged": true,
-    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "method": "Six held-out worlds, 80 games per world per authored/AI-refreshed mode, at historical minutes. Both the detailed chart score and sampling-aware box score must improve; raw data retained in the realism audit.",
     "options": {
       "games": 80,
       "seeds": [
-        8101,
-        8212,
-        8323,
-        8434,
-        8545,
-        8656
+        26201,
+        26312,
+        26423,
+        26534,
+        26645,
+        26756
       ],
-      "offset": 991211,
-      "identities": 1200,
-      "startId": 91001
+      "offset": 2424291
     },
-    "weightedErrorBefore": 7.436981,
-    "weightedErrorShipped": 1.741575,
+    "weightedErrorBefore": 1.8061738387916453,
+    "weightedErrorShipped": 1.6863726011521711,
+    "samplingAwareErrorBefore": 0.23511261089196414,
+    "samplingAwareErrorShipped": 0.19019564017404983,
     "authored": {
-      "min": 24.806856259259728,
-      "pts": 10.720826420749226,
-      "fga": 8.765721771731224,
-      "tpa": 2.4993090358580634,
-      "fta": 1.1468603559703534,
-      "orb": 0.3708652117724869,
-      "drb": 1.9712292234428923,
-      "reb": 2.342094435215379,
-      "ast": 4.395962102585836,
-      "stl": 0.8828204497627676,
-      "blk": 0.11891873638356916,
-      "tov": 0.6994034156796356,
-      "pf": 1.1246890661361286,
-      "fg": 0.4966659002069441,
-      "tp": 0.4346774193548387,
-      "ft": 0.8084358523725835,
-      "games": 480,
-      "ovr": 59,
+      "ovr": 58,
       "potential": 62,
+      "ranks": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "games": 480,
+      "min": 24.00190565086833,
+      "pts": 11.047039508315354,
+      "fgm": 4.572553596219537,
+      "fga": 9.149273528289841,
+      "tpm": 1.1061621683793046,
+      "tpa": 2.5997935708801734,
+      "ftm": 0.7957701474969763,
+      "fta": 0.9520077419008328,
+      "orb": 0.3291405322107912,
+      "drb": 1.9498451781601305,
+      "ast": 4.355904131979521,
+      "stl": 1.0395007947669925,
+      "blk": 0.11249106797077674,
+      "tov": 0.756189956914666,
+      "pf": 1.0311681230654535,
+      "reb": 2.2789857103709217,
       "raw": {
-        "pts": 11.08125,
-        "fgm": 4.5,
-        "fga": 9.060416666666667,
-        "tpm": 1.1229166666666666,
-        "tpa": 2.5833333333333335,
-        "ftm": 0.9583333333333334,
-        "fta": 1.1854166666666666,
-        "orb": 0.38333333333333336,
-        "drb": 2.0375,
-        "ast": 4.54375,
-        "stl": 0.9125,
-        "blk": 0.12291666666666666,
-        "tov": 0.7229166666666667,
-        "pf": 1.1625,
-        "reb": 2.4208333333333334
+        "pts": 11.047916666666667,
+        "fgm": 4.572916666666667,
+        "fga": 9.15,
+        "tpm": 1.10625,
+        "tpa": 2.6,
+        "ftm": 0.7958333333333333,
+        "fta": 0.9520833333333333,
+        "orb": 0.32916666666666666,
+        "drb": 1.95,
+        "ast": 4.35625,
+        "stl": 1.0395833333333333,
+        "blk": 0.1125,
+        "tov": 0.75625,
+        "pf": 1.03125,
+        "reb": 2.279166666666667
+      },
+      "fg": 0.49977231329690347,
+      "two": 0.5292620865139949,
+      "tp": 0.4254807692307692,
+      "ft": 0.8358862144420132,
+      "ts": 0.5772814756111367,
+      "efg": 0.5602231329690346,
+      "ftr": 0.10405282331511839,
+      "tpar": 0.28415300546448086,
+      "tovPct": 0.07324336975997159,
+      "poss100": {
+        "pts": 22.90613796380286,
+        "ast": 9.032007256705974,
+        "tov": 1.5679668264869768,
+        "orb": 0.6824759189667833
       },
       "zones": {
         "rim": {
-          "share": 0.22166015175902506,
-          "pct": 0.5995850622406639
+          "share": 0.2185792349726776,
+          "pct": 0.6197916666666666
         },
         "paint": {
-          "share": 0.2761554380317314,
-          "pct": 0.4954204829308909
+          "share": 0.28734061930783245,
+          "pct": 0.49128367670364503
         },
         "mid": {
-          "share": 0.2170613934237756,
-          "pct": 0.4745762711864407
+          "share": 0.2099271402550091,
+          "pct": 0.48698481561822127
         },
         "corner": {
-          "share": 0.08438721545182801,
-          "pct": 0.44686648501362397
+          "share": 0.08697632058287796,
+          "pct": 0.43455497382198954
         },
         "aboveBreak": {
-          "share": 0.2007358013336399,
-          "pct": 0.42955326460481097
+          "share": 0.19717668488160292,
+          "pct": 0.4214780600461894
+        }
+      },
+      "techniques": {
+        "dunk": {
+          "attempts": 0.0020831679253847544,
+          "share": 0.00022768670309653916,
+          "pct": 1
+        },
+        "layup": {
+          "attempts": 1.8561026215178162,
+          "share": 0.2028688524590164,
+          "pct": 0.6262626262626263
+        },
+        "hook": {
+          "attempts": 0.09165938871692919,
+          "share": 0.010018214936247723,
+          "pct": 0.25
+        },
+        "floater": {
+          "attempts": 1.460300715694713,
+          "share": 0.15960837887067394,
+          "pct": 0.456490727532097
+        },
+        "tip": {
+          "attempts": 0.06666137361231214,
+          "share": 0.007285974499089253,
+          "pct": 0.5625
+        },
+        "paintJumper": {
+          "attempts": 1.1519918627377694,
+          "share": 0.12591074681238615,
+          "pct": 0.5551537070524413
         }
       },
       "creation": {
         "cns": {
-          "share": 0.554945054945055,
-          "pct": 0.47112211221122113
+          "share": 0.5778801843317972,
+          "pct": 0.44577352472089316
         },
         "pullup": {
-          "share": 0.3836996336996337,
-          "pct": 0.42720763723150357
+          "share": 0.3566820276497696,
+          "pct": 0.4625322997416021
         },
         "step": {
-          "share": 0.045787545787545784,
-          "pct": 0.45
+          "share": 0.047004608294930875,
+          "pct": 0.39215686274509803
         },
         "fade": {
-          "share": 0.015567765567765568,
-          "pct": 0.38235294117647056
+          "share": 0.018433179723502304,
+          "pct": 0.575
         }
       }
     },
     "aiRefreshed": {
-      "min": 24.73194932534323,
-      "pts": 10.650191642196587,
-      "fga": 8.865051319482165,
-      "tpa": 2.4805970282792735,
-      "fta": 1.1402255288912064,
-      "orb": 0.3800751762970688,
-      "drb": 2.0055030579079376,
-      "reb": 2.3855782342050063,
-      "ast": 4.340539380371312,
-      "stl": 0.9966864995449731,
-      "blk": 0.07682370584727986,
-      "tov": 0.6509798232322136,
-      "pf": 1.0492500877562698,
-      "fg": 0.49144811858608894,
-      "tp": 0.42053789731051344,
-      "ft": 0.7836879432624113,
-      "games": 480,
-      "ovr": 59,
+      "ovr": 58,
       "potential": 62,
+      "ranks": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "games": 480,
+      "min": 24.12623194611029,
+      "pts": 10.88856314516007,
+      "fgm": 4.507541842543424,
+      "fga": 9.046170180552664,
+      "tpm": 1.1253311358625653,
+      "tpa": 2.6444245476254755,
+      "ftm": 0.7481483242106557,
+      "fta": 0.9450294621608282,
+      "orb": 0.33987901709292945,
+      "drb": 1.8755518931042752,
+      "ast": 4.242270414568455,
+      "stl": 0.9160153997260658,
+      "blk": 0.09118705336639571,
+      "tov": 0.6963374984342945,
+      "pf": 0.9926954218750805,
+      "reb": 2.2154309101972047,
       "raw": {
-        "pts": 10.975,
-        "fgm": 4.489583333333333,
-        "fga": 9.135416666666666,
-        "tpm": 1.075,
-        "tpa": 2.55625,
-        "ftm": 0.9208333333333333,
-        "fta": 1.175,
-        "orb": 0.39166666666666666,
-        "drb": 2.066666666666667,
-        "ast": 4.472916666666666,
-        "stl": 1.0270833333333333,
-        "blk": 0.07916666666666666,
-        "tov": 0.6708333333333333,
-        "pf": 1.08125,
-        "reb": 2.4583333333333335
+        "pts": 10.945833333333333,
+        "fgm": 4.53125,
+        "fga": 9.09375,
+        "tpm": 1.13125,
+        "tpa": 2.658333333333333,
+        "ftm": 0.7520833333333333,
+        "fta": 0.95,
+        "orb": 0.3416666666666667,
+        "drb": 1.8854166666666667,
+        "ast": 4.264583333333333,
+        "stl": 0.9208333333333333,
+        "blk": 0.09166666666666666,
+        "tov": 0.7,
+        "pf": 0.9979166666666667,
+        "reb": 2.2270833333333333
+      },
+      "fg": 0.49828178694158076,
+      "two": 0.5283263191971512,
+      "tp": 0.42554858934169276,
+      "ft": 0.7916666666666666,
+      "ts": 0.5753848310423073,
+      "efg": 0.5604810996563574,
+      "ftr": 0.10446735395189004,
+      "tpar": 0.2923253150057274,
+      "tovPct": 0.06854848581291159,
+      "poss100": {
+        "pts": 22.582308948680478,
+        "ast": 8.798246368090776,
+        "tov": 1.444167454654861,
+        "orb": 0.7048912576291584
       },
       "zones": {
         "rim": {
-          "share": 0.20866590649942987,
-          "pct": 0.5901639344262295
+          "share": 0.21008018327605957,
+          "pct": 0.6030534351145038
         },
         "paint": {
-          "share": 0.2798175598631699,
-          "pct": 0.4906275468622657
+          "share": 0.2891179839633448,
+          "pct": 0.5118858954041204
         },
         "mid": {
-          "share": 0.23169897377423032,
-          "pct": 0.4891732283464567
+          "share": 0.20847651775486828,
+          "pct": 0.4758241758241758
         },
         "corner": {
-          "share": 0.09053591790193842,
-          "pct": 0.473551637279597
+          "share": 0.0865979381443299,
+          "pct": 0.4417989417989418
         },
         "aboveBreak": {
-          "share": 0.18928164196123148,
-          "pct": 0.39518072289156625
+          "share": 0.20572737686139747,
+          "pct": 0.41870824053452116
+        }
+      },
+      "techniques": {
+        "dunk": {
+          "attempts": 0,
+          "share": 0,
+          "pct": 0
+        },
+        "layup": {
+          "attempts": 1.7905821388310428,
+          "share": 0.1979381443298969,
+          "pct": 0.6134259259259259
+        },
+        "hook": {
+          "attempts": 0.08704218730428681,
+          "share": 0.009621993127147767,
+          "pct": 0.3333333333333333
+        },
+        "floater": {
+          "attempts": 1.4403409565828413,
+          "share": 0.15922107674684993,
+          "pct": 0.4848920863309353
+        },
+        "tip": {
+          "attempts": 0.0518108257763612,
+          "share": 0.0057273768613974796,
+          "pct": 0.52
+        },
+        "paintJumper": {
+          "attempts": 1.1460554661731097,
+          "share": 0.12668957617411225,
+          "pct": 0.5515370705244123
         }
       },
       "creation": {
         "cns": {
-          "share": 0.5439144003566652,
-          "pct": 0.47540983606557374
+          "share": 0.5677035681610247,
+          "pct": 0.44802578565672846
         },
         "pullup": {
-          "share": 0.38831921533660274,
-          "pct": 0.4305396096440873
+          "share": 0.36230558096980786,
+          "pct": 0.44191919191919193
         },
         "step": {
-          "share": 0.045474810521622826,
-          "pct": 0.39215686274509803
+          "share": 0.05215004574565416,
+          "pct": 0.43859649122807015
         },
         "fade": {
-          "share": 0.02229157378510923,
-          "pct": 0.36
+          "share": 0.017840805123513267,
+          "pct": 0.5128205128205128
         }
       }
     },
@@ -572,7 +683,10 @@
       "NBA shot records are regular season only. The previous card’s notes admitted including playoff attempts.",
       "Shot locations use regular-season NBA shot records and reconcile to the season FG/FGA/3PA totals. The authored inputs may differ because the simulator redirects some attempts.",
       "Named stepback/fadeaway records inform the move mix. Generic jump-shot labels do not identify the complete catch-and-shoot versus pull-up split.",
-      "Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight."
-    ]
+      "Free-throw ability is also uncertain in this small attempt sample; the fit gives that percentage less weight.",
+      "Overall is calculated from engine ratings and feel; it is not a manually assigned NBA reputation score.",
+      "The constrained follow-up improves both held-out sampling-aware box fit and the detailed source-chart score; individual rates can still differ."
+    ],
+    "standaloneRechecked": true
   }
 }

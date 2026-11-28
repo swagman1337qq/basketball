@@ -18,6 +18,7 @@
 //    later for players, three seasons later for draft classes), so their hit rates and tendencies show over time.
 // Nothing here runs during games: views are worked out when shown (cached by day), records once a season.
 import type { Game } from './Game';
+import { draftResearch, prioritizeDraft } from './draftScouting';
 import { randomName } from '../data/heritage';
 import { natDefault } from '../data/world';
 import { classStats, compLevel } from './amateurStats';
@@ -794,16 +795,12 @@ function agmPicks(g: Game, s: any): number[] {
   (s.lists || []).forEach((l: any) => out.push(...(l.ids || [])));
   const cls = nextClass(g, s);
   if (cls != null) {
-    const n = s.teams.length,
-      wins = (t: any) => (t.w + t.l ? t.w / (t.w + t.l) : 0.5),
-      slot = 1 + s.teams.filter((t: any) => wins(t) < wins(s.teams[s.me]) || (wins(t) === wins(s.teams[s.me]) && t.tid < s.me)).length,
-      board = ((g.db as any).cls[cls] || [])
-        .map((id: number) => g.db.P[id])
-        .filter((p: any) => anKind(g, s, p) === 'prospect')
-        .map((p: any) => ({ id: p.id, v: g.potRead(p, s.me, s) * 0.7 + p.ovr * 0.3 }))
-        .sort((a: any, b: any) => b.v - a.v);
-    const lo = Math.max(0, Math.min(slot, n) - 4);
-    board.slice(lo, lo + 8).forEach((x: any) => out.push(x.id));
+    const research = draftResearch(g, s, s.me);
+    const board = [...research.available]
+      .filter(id => research.ranks.get(id)?.year === cls && anKind(g, s, g.db.P[id]) === 'prospect')
+      .map(id => ({ id, value: g.potRead(g.db.P[id], s.me, s) * 0.7 + g.db.P[id].ovr * 0.3 }))
+      .sort((a, b) => b.value - a.value);
+    prioritizeDraft(board, research, 8).forEach(x => out.push(x.item.id));
   }
   return out;
 }
@@ -830,6 +827,14 @@ export function anCovered(g: Game, s: any): Set<number> {
       (s.lists || []).map((l: any) => (l.ids || []).join(',')).join(';'),
       String(s.teams?.[s.me]?.w ?? 0),
       String(s.teams?.[s.me]?.l ?? 0),
+      String(s.phase),
+      String(s.gv ?? 0),
+      (s.teams || []).map((t: any) => t.tid + ':' + t.w + ':' + t.l).join(','),
+      (s.assets || [])
+        .filter((a: any) => a.yr >= g.Y && a.yr <= g.Y + 3)
+        .map((a: any) => [a.yr, a.rd, a.orig, a.owner, a.pid].join(':'))
+        .join(','),
+      (s.picks || []).map((p: any) => [p.n, p.rd, p.orig, p.pid].join(':')).join(','),
     )
     .join('|');
   const hit = COV.get(g.db);

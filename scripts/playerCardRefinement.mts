@@ -6,6 +6,7 @@ import { mulberry32 } from '../src/engine/rng';
 import { seasonLine } from '../src/engine/amateurStats';
 
 const audit = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REFINEMENT_2026-11-27.json', import.meta.url), 'utf8'));
+const realism = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REALISM_2026-11-27.json', import.meta.url), 'utf8'));
 const clone = (value: any) => structuredClone(value);
 assert.equal(audit.cards.length, 37);
 assert.ok(PRESET_CARDS.length >= 33);
@@ -14,7 +15,15 @@ const game = Game.create(92737, [0]);
 const carrier = game.db.P[game.state.rosters[0][0]];
 let upgraded = 0;
 for (const record of audit.cards) {
-  const card = record.revised;
+  const latest = realism.cards.find((x: any) => x.index === record.index);
+  assert.ok(latest, record.label + ' overall review');
+  const card = latest.revised;
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(new URL('../public/cards/' + latest.file, import.meta.url), 'utf8')),
+    card,
+    record.label + ' downloadable build matches shipped template',
+  );
+  assert.deepEqual(card.historical, record.revised.historical, record.label + ' exact references preserved');
   assert.equal(Object.keys(card.r).length, 20, record.label + ' all ratings');
   assert.ok(Object.values(card.r).every(v => Number.isInteger(v) && Number(v) >= 1 && Number(v) <= 99));
   assert.ok(
@@ -75,13 +84,18 @@ for (const record of audit.cards) {
   }
   if (record.index >= 33) continue;
   assert.equal(PRESET_CARDS[record.index].label, record.label, 'preset positions stay stable');
-  assert.deepEqual(PRESET_CARDS[record.index].card, record.revised);
+  assert.deepEqual(PRESET_CARDS[record.index].card, card);
+  const published = { id: 'preset' + record.index, card: clone(record.revised) };
+  upgradePresetCard(published);
+  for (const key of ['r', 'pot', 'intg', 'ten', 'am', 'validation'])
+    assert.deepEqual(published.card[key], card[key], record.label + ' prior published template updates ' + key);
   const old = record.previous;
   const row = { id: 'preset' + record.index, card: clone(old) };
   if (upgradePresetCard(row)) upgraded++;
   assert.deepEqual(row.card.r, card.r, record.label + ' untouched copy gets revised ratings');
   assert.deepEqual(row.card.ten, card.ten, record.label + ' untouched copy gets revised style');
   assert.deepEqual(row.card.am, card.am, record.label + ' untouched college build updates');
+  assert.deepEqual(row.card.pot, card.pot, record.label + ' potential-only update is recognized');
   assert.equal(upgradePresetCard(row), false, record.label + ' upgrade is idempotent');
   const edits: Array<(c: any) => void> = [
     c => {
@@ -114,6 +128,11 @@ for (const record of audit.cards) {
   upgradePresetCard(notes);
   assert.equal(notes.card.notes, 'My custom scouting notes');
   assert.deepEqual(notes.card.sources, ['my-source']);
+}
+for (const candidate of realism.candidates.filter((x: any) => x.accepted)) {
+  assert.ok(candidate.errorAfter <= candidate.errorBefore * 0.98);
+  assert.ok(candidate.fullErrorAfter <= candidate.fullErrorBefore * 0.98);
+  assert.deepEqual(candidate.issues, []);
 }
 console.log(
   `Checked ${audit.cards.length} cards: source identities, finite complete builds, import/apply/undo, ${upgraded} untouched preset updates, stable IDs and protected rating/style/potential/feel/work/college/reference edits.`,

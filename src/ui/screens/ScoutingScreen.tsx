@@ -137,7 +137,7 @@ export function ScoutingScreen({ vm }: { vm: VM }) {
                   </select>
                   <div style={{ gridColumn: '1 / -1', fontSize: '11.5px', color: 'var(--color-neutral-700)' }}>
                     {(BRIEF_FOCUS.find(f => f[0] === x.brief.focus) || [])[2]} He judges by his own read, so a better scout finds better
-                    players; he re-checks every month.
+                    players; he re-checks every month. Draft research focuses near your picks while keeping a look at the top prospects.
                   </div>
                 </div>
               )}

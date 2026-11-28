@@ -7367,7 +7367,7 @@ export class Game {
       s.managed.forEach(t =>
         addClub(t, c => ({
           intel: scoutTick(this, c, s.overseas),
-          ...runBriefs(this, s, c),
+          ...runBriefs(this, s, c, t),
           ...(reps[t] ? { reports: [reps[t], ...(c.reports || [])].slice(0, 6) } : {}),
           ...(mnt[t]
             ? { log: [...mnt[t].map(text => ({ date: this.fmtS(day), day, text: 'Mentoring: ' + text })), ...(c.log || [])] }

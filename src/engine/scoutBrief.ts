@@ -7,6 +7,7 @@ import type { Game } from './Game';
 import { PERSONAL_MAX, intelF } from './overseas';
 import { mulberry32 } from './rng';
 import { ensureIntg } from './intangibles';
+import { draftResearch, prioritizeDraft } from './draftScouting';
 
 export interface Brief {
   on: boolean;
@@ -86,8 +87,8 @@ const LB: Record<string, string> = {
   poise: 'Poise',
 };
 
-function poolOf(g: Game, s: any, c: any, pool: string): number[] {
-  const Y = g.Y,
+function poolOf(g: Game, s: any, c: any, pool: string, nextDraft = g.Y): number[] {
+  const Y = nextDraft,
     cls = (ys: number[]) => ys.flatMap(y => g.db.cls[y] || []);
   const mine = new Set((s.managed || []).flatMap((t: number) => s.rosters[t] || []));
   const league = Object.keys(s.rosters)
@@ -185,9 +186,15 @@ export function runBriefs(
   g: Game,
   s: any,
   c: any = s,
+  tid: number = s.me,
 ): { scoutAssign: Record<number, string>; briefPicks: Record<number, { by: string; why: string }> } {
   const asg: Record<number, string> = { ...(c.scoutAssign || {}) },
     picks: Record<number, { by: string; why: string }> = { ...(c.briefPicks || {}) };
+  const research = (c.scouts || []).some((x: any) => x.brief?.on && ['draft', 'future', 'any'].includes(x.brief.pool))
+    ? draftResearch(g, s, tid)
+    : { picks: [], ranks: new Map<number, { year: number; rank: number }>(), available: new Set<number>() };
+  const draftYears = [...research.available].map(id => research.ranks.get(id)!.year);
+  const nextDraft = draftYears.length ? Math.min(...draftYears) : g.Y;
   (c.scouts || []).forEach((x: any) => {
     const b: Brief | undefined = x.brief;
     // Drop his earlier automatic picks (hand-assigned players stay).
@@ -201,18 +208,31 @@ export function runBriefs(
     const manual = Object.values(asg).filter(n => n === x.name).length,
       room = Math.max(0, PERSONAL_MAX - manual);
     const maxAge = b.age === 'any' ? 99 : +b.age;
-    const cands = poolOf(g, s, c, b.pool).filter(id => {
+    const cands = poolOf(g, s, c, b.pool, nextDraft).filter(id => {
       const p = g.db.P[id];
-      return !asg[id] && (b.pos === 'any' || p.grp === b.pos) && p.age <= maxAge;
+      const prospect = research.ranks.has(id);
+      return !asg[id] && (!prospect || research.available.has(id)) && (b.pos === 'any' || p.grp === b.pos) && p.age <= maxAge;
     });
-    cands
-      .map(id => ({ id, ...briefFit(g, c, g.db.P[id], x, b.focus) }))
-      .sort((a, z) => z.score - a.score)
+    const scored = cands.map(id => ({ id, ...briefFit(g, c, g.db.P[id], x, b.focus) })).sort((a, z) => z.score - a.score);
+    let selected: { item: (typeof scored)[number]; pick?: ReturnType<typeof draftResearch>['picks'][number] }[] = scored
       .slice(0, room)
-      .forEach(f => {
-        asg[f.id] = x.name;
-        picks[f.id] = { by: x.name, why: f.why };
-      });
+      .map(item => ({ item }));
+    if (['draft', 'future'].includes(b.pool)) selected = prioritizeDraft(scored, research, room);
+    else if (b.pool === 'any') {
+      const draftRoom = selected.filter(x => research.ranks.has(x.item.id)).length;
+      const draft = prioritizeDraft(
+        scored.filter(x => research.ranks.has(x.id)),
+        research,
+        draftRoom,
+      );
+      let next = 0;
+      selected = selected.map(x => (research.ranks.has(x.item.id) ? draft[next++] : x));
+    }
+    selected.forEach(({ item: f, pick }) => {
+      asg[f.id] = x.name;
+      const range = pick ? pick.year + ': ' + (pick.exact ? 'near pick No. ' : 'near projected No. ') + pick.slot + ' · ' : '';
+      picks[f.id] = { by: x.name, why: range + f.why };
+    });
   });
   return { scoutAssign: asg, briefPicks: picks };
 }
