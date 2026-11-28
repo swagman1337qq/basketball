@@ -64,6 +64,7 @@ const SCRIPTS = [
   'analyticsProspects',
   'collegeEdit',
   'hardCapTrade',
+  'staffSearch',
   'playerCardRefinement',
   'cardCatalog',
   'draftScouting',

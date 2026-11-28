@@ -2,6 +2,7 @@
 // two analysts, what they've got right and wrong (their track record and the tendencies it shows), and the analytics
 // people you can hire. Their skill is your read (a grade that firms up month by month); their biases you learn from
 // their record. God Mode: exact. Their reports are the Analytics screen (AnalyticsScreen.tsx).
+import { StaffStar } from '../StaffStar';
 import { useState } from 'react';
 import type { VM } from '../vm';
 import { godBtn, godText, h4Style, muted, NumInput, Seg, td, th } from '../kit';
@@ -368,6 +369,7 @@ export function AnalyticsDepartment({ vm }: { vm: VM }) {
                       {a.name}
                     </button>
                     {flag(a)}
+                    <StaffStar gm={gm} k="a" id={a.id} />
                   </div>
                 </td>
                 <td style={td('right')}>{anAge(gm, a)}</td>

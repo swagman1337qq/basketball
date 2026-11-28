@@ -4,6 +4,11 @@ Every change to Basketball Manager, newest first. The game shows this page under
 
 ## 2026-11-28
 
+### Added
+- **Search your mail.** The Mailbox has a search box: type part of a name, a team or any word and every message containing those letters shows up (titles, the message itself, and the players in it; capitals and accents don't matter). The type filters narrow it further. Handy when a coach or analyst left and you want everything about them.
+- **Search for coaches and analytics people.** The Search anything box at the top now finds coaches and analytics staff by name, with their job and team (or available, or retired); click one to open their profile.
+- **Staff shortlist.** Star a coach or an analytics person (☆ next to their name on the Staff screen, or Shortlist on their profile) to follow them in a new Staff shortlist at the top of the Staff screen: what each is doing now, their age, reputation, and contract or asking price.
+
 ### Changed
 - **Analytics reads on draft prospects are fairer at the top and bottom.** Your analysts' numbers used to pull every prospect toward the middle, so the best ones read about 5 points below their real potential and the weakest a little above, and the numbers seemed to doubt every prospect your scouts liked. Their level and ceiling now move about a point for every point of real ability, so they can disagree with your scouts in either direction. The trade-off: reads in the middle of a class scatter a little more (off by about 3.6 points on average instead of 3.2).
 

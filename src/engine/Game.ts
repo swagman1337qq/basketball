@@ -2806,6 +2806,7 @@ export class Game {
     'scoutReports',
     'scoutList',
     'anList',
+    'staffList',
     'mentors',
     'budgetAuto',
     'lineups',

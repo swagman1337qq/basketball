@@ -161,6 +161,15 @@ export function searchAll(o: {
   openList: (l: any) => () => void;
   teamLogo: (tid: number) => any;
   Y: number;
+  staff?: {
+    name: string;
+    native?: string;
+    nat: string;
+    meta: string;
+    open: () => void;
+    sec: 'Coaches' | 'Analytics staff';
+    active: boolean;
+  }[];
 }) {
   const { P, C, T, tidOf } = o,
     fq = fold(o.q.trim());
@@ -279,6 +288,15 @@ export function searchAll(o: {
         }),
       );
   }
+  // Coaches and analytics people (2026-11-28), by name: working ones first, then those still to hire, then retired.
+  if (o.staff?.length)
+    o.staff
+      .filter(c => fold(c.name).includes(fq) || (c.native || '').includes(o.q.trim()))
+      .sort(
+        (a, b) => (fold(b.name).startsWith(fq) ? 1 : 0) - (fold(a.name).startsWith(fq) ? 1 : 0) || (b.active ? 1 : 0) - (a.active ? 1 : 0),
+      )
+      .slice(0, 5)
+      .forEach(c => out.push({ sec: c.sec, name: c.name, flag: o.flag(c.nat), meta: c.meta, open: c.open }));
   // Screens.
   o.nav
     .filter(n => fold(n.label).includes(fq))

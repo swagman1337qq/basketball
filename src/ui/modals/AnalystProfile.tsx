@@ -1,6 +1,7 @@
 // An analyst's profile (analytics.ts): face, who they are, their job and contract, your read of their skill, what their
 // track record shows, and each graded season and draft class (God Mode: exact skill and biases, editable).
 // Opened with gm.setState({ anPid }).
+import { StaffStar } from '../StaffStar';
 import type { VM } from '../vm';
 import { godBox, godText, muted, NumInput, td, th } from '../kit';
 import { CoachFace } from '../CoachFace';
@@ -79,7 +80,10 @@ export function AnalystProfile({ vm }: { vm: VM }) {
         <div className="dialog-title" style={{ display: 'flex', gap: 14, alignItems: 'center', flexShrink: 0 }}>
           <CoachFace gm={gm} c={{ ...(a as any), id: 500000 + a.id }} age={age} size={84} />
           <div>
-            <div>{a.name}</div>
+            <div>
+              {a.name}
+              <StaffStar gm={gm} k="a" id={a.id} label />
+            </div>
             <div style={{ fontSize: '13px', fontWeight: 400, ...muted }}>
               {a.ret
                 ? 'Left analytics (' + a.ret + ')'

@@ -73,6 +73,7 @@ import { isPlainHS } from '../data/leagues';
 import { coachMult } from '../engine/development';
 import { hasStaff, staffCost, staffFxRead } from '../engine/staff';
 import { contractValue, deptView, hasDept, tradeView } from '../engine/analytics';
+import { staffSearchRows } from './staffSearch';
 import { mulberry32 } from '../engine/rng';
 import { TACTIC_GROUPS } from '../engine/tactics';
 import type { VM } from './vm';
@@ -4278,6 +4279,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
     openTeam,
     openList: l => () => gm.setState({ listModal: l, q: '' }),
     teamLogo: tid => logo(tid, 16),
+    staff: fq.length >= 2 ? staffSearchRows(gm, T) : [],
   });
 
   const dg = s.dialog,

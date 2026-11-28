@@ -1,5 +1,6 @@
 // A coach's profile (staff.ts): face, who he is, his playing days, his coaching, his contract and his ratings
 // as you read them (God Mode: exact, with his ceiling, and editable). Opened with gm.setState({ coachPid }).
+import { StaffStar } from '../StaffStar';
 import type { VM } from '../vm';
 import { godBtn, godText, muted, NumInput } from '../kit';
 import { CoachFace } from '../CoachFace';
@@ -78,7 +79,10 @@ export function CoachProfile({ vm }: { vm: VM }) {
         <div className="dialog-title" style={{ display: 'flex', gap: 14, alignItems: 'center', flexShrink: 0 }}>
           <CoachFace gm={gm} c={c} age={age} size={84} />
           <div>
-            <div>{c.name}</div>
+            <div>
+              {c.name}
+              <StaffStar gm={gm} k="c" id={c.id} label />
+            </div>
             <div style={{ fontSize: '13px', fontWeight: 400, ...muted }}>
               {c.ret
                 ? 'Retired from coaching (' + c.ret + ')'

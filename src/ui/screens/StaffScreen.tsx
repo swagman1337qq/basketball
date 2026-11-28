@@ -1,6 +1,8 @@
 // Coaching staff (2026-11-15, staff.ts): your assistants (you are the head coach), what they add, their contracts,
 // and the coaches you can hire. Hidden ratings show as your read (grades that firm up month by month); God Mode
 // shows them exactly and adds any coach to your staff on the spot.
+import { StaffShortlist } from './StaffShortlist';
+import { StaffStar } from '../StaffStar';
 import { AnalyticsDepartment } from './AnalyticsDepartment';
 import { Fragment, useState } from 'react';
 import type { VM } from '../vm';
@@ -235,6 +237,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
   return (
     <>
       <nav aria-label="Staff sections" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '12.5px', marginBottom: 12 }}>
+        <Link onClick={() => jump('staff-shortlist')}>Staff shortlist</Link>
         <Link onClick={() => jump('staff-coaches')}>Coaching staff</Link>
         <Link onClick={() => jump('staff-coach-market')}>Coaches available</Link>
         <Link onClick={() => jump('staff-analytics')}>Analytics department</Link>
@@ -255,6 +258,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
           Decline every incoming offer for the {T.name}, including draft picks. Rejected offers remain in your Mailbox.
         </p>
       </section>
+      <StaffShortlist vm={vm} />
       <h4 id="staff-coaches" style={h4Style}>
         Coaching staff
       </h4>
@@ -591,6 +595,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                         {c.name}
                       </button>
                       {flag(c)}
+                      <StaffStar gm={gm} k="c" id={c.id} />
                       <div style={{ fontSize: '11px', ...muted }}>{nat(c)}</div>
                     </div>
                   </div>
@@ -703,6 +708,7 @@ export function StaffScreen({ vm }: { vm: VM }) {
                             {c.name}
                           </button>
                           {flag(c)}
+                          <StaffStar gm={gm} k="c" id={c.id} />
                           <div
                             style={{ fontSize: '11px', ...muted }}
                             title="How his team plays: his pace and rotation (and his style sets offense or defense first)"

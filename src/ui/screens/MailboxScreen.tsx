@@ -46,6 +46,30 @@ const TAG: Record<Kind, string> = {
   retire: 'Retirement',
   update: 'Update',
 };
+// Mail search: a message's words as plain text (its kind, date, title, lines, status and the players in it), with
+// accents and case folded, so "garcia" finds "García".
+const fold = (x: string) =>
+  x
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+const plain = (n: any): string =>
+  n == null || typeof n === 'boolean'
+    ? ''
+    : typeof n === 'string' || typeof n === 'number'
+      ? String(n)
+      : Array.isArray(n)
+        ? n.map(plain).join(' ')
+        : n.props
+          ? plain(n.props.children)
+          : '';
+export const textOfItem = (
+  x: { kind: Kind; date: string; title: ReactNode; lines: ReactNode[]; status?: [string, string]; pids?: number[] },
+  P: any,
+) =>
+  [TAG[x.kind], x.date, plain(x.title), ...x.lines.map(plain), x.status?.[0] || '', ...(x.pids || []).map(id => P[id]?.name || '')].join(
+    ' \n ',
+  );
 const when = (d: string, season: number) => {
   const t = Date.parse(d);
   return isFinite(t) ? t : Date.parse('Jul 1, ' + season);
@@ -56,6 +80,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
     P = gm.db.P,
     Y = gm.Y;
   const [kind, setKind] = useState<Kind | 'all'>('all');
+  const [q, setQ] = useState(''); // search: any message whose words contain these letters (2026-11-28)
   const [readTo] = useState<number>(() => s.mailRead || 0); // what was new when you opened the Mailbox stays marked
   const [sel, setSel] = useState<string | null>(null); // Hadrian's Lover: the message open in the right-hand pane
   useEffect(() => {
@@ -421,8 +446,32 @@ export function MailboxScreen({ vm }: { vm: VM }) {
       ),
     );
   };
-  const shown = kind === 'all' ? items : items.filter(x => x.kind === kind),
-    count = (k: Kind | 'all') => (k === 'all' ? items.length : items.filter(x => x.kind === k).length);
+  const fq = fold(q.trim()),
+    hits = fq ? items.filter(x => fold(textOfItem(x, P)).includes(fq)) : items;
+  const shown = kind === 'all' ? hits : hits.filter(x => x.kind === kind),
+    count = (k: Kind | 'all') => (k === 'all' ? hits.length : hits.filter(x => x.kind === k).length);
+  const searchBox = (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+      <input
+        className="input"
+        type="search"
+        value={q}
+        onChange={e => {
+          setQ(e.target.value);
+          setSel(null);
+        }}
+        placeholder="Search your mail (a name, a team, any word)…"
+        aria-label="Search your mail"
+        data-mail-search
+        style={{ width: 320, maxWidth: '100%', fontSize: '13px' }}
+      />
+      {fq && (
+        <span style={{ ...muted, fontSize: '12.5px' }}>
+          {hits.length} message{hits.length === 1 ? '' : 's'} with “{q.trim()}” <Link onClick={() => setQ('')}>Clear</Link>
+        </span>
+      )}
+    </div>
+  );
   const profiles = (x: Item) =>
     (x.kind === 'trade' || x.kind === 'update' || x.kind === 'agent' || x.kind === 'request') &&
     (x.pids || []).some(id => P[id] && !P[id].gone) && (
@@ -467,6 +516,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
             {fresh ? <b style={{ color: 'var(--accent-ink)' }}>{fresh} new</b> : 'Nothing new'} · {items.length} in all
           </span>
         </div>
+        {searchBox}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {KINDS.filter(([k]) => k === 'all' || k === kind || count(k) > 0).map(([k, label]) => (
             <button
@@ -493,7 +543,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
         </div>
         {!!s.offerMsg && <p style={{ color: 'var(--gm-bad)', margin: '0 0 10px' }}>{s.offerMsg}</p>}
         {!shown.length ? (
-          <p style={{ ...muted, fontStyle: 'italic' }}>Nothing here yet.</p>
+          <p style={{ ...muted, fontStyle: 'italic' }}>{fq ? 'No message has “' + q.trim() + '” in it.' : 'Nothing here yet.'}</p>
         ) : (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div
@@ -598,6 +648,7 @@ export function MailboxScreen({ vm }: { vm: VM }) {
   }
   return (
     <>
+      {searchBox}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
         {KINDS.map(([k, label]) => (
           <button
@@ -611,7 +662,9 @@ export function MailboxScreen({ vm }: { vm: VM }) {
         ))}
       </div>
       {!!s.offerMsg && <p style={{ color: 'var(--gm-bad)', margin: '0 0 10px' }}>{s.offerMsg}</p>}
-      {!shown.length && <p style={{ ...muted, fontStyle: 'italic' }}>Nothing here yet.</p>}
+      {!shown.length && (
+        <p style={{ ...muted, fontStyle: 'italic' }}>{fq ? 'No message has “' + q.trim() + '” in it.' : 'Nothing here yet.'}</p>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {shown.slice(0, 200).map(x => (
           <div
