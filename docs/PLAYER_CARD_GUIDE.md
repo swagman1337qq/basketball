@@ -305,7 +305,7 @@ Typical results:
 
 **Team offensive-rebound chance:** 26% baseline, ± the lineups' glass skill (rebounding, height, jumping, wingspan, box-out), fatigue and tactics.
 
-**Who grabs it:** (0.55 Rebounding + 0.33 Height + 0.12 Jumping + wingspan)^2.5, with a little less for big box-out specialists (they free up teammates).
+**Who grabs it:** (0.55 Rebounding + 0.33 Height + 0.12 Jumping + wingspan)^2.5, with a small lift from Boxing out (about 5% at 99): Rebounding drives his numbers; boxing out mostly wins the glass for his team.
 
 **Rebounding floor:** every player rebounds and boxes out at least what his body gives him: about 0.3 Height + 0.2 Jumping + 0.15 Strength − 6. That's about 25 for a 6′5″ guard and 40 for a 7-footer.
 
@@ -560,7 +560,7 @@ P(offensive rebound) = cl(.26 + .0022 × (offense's avg glass skill − defense'
 ```
 
 - 89% of rebounds are credited to a player (the rest are team rebounds).
-- **Who grabs it:** weighted by max(36, rebound skill)^2.5 × 1.3 for a Rebounder × (1 − max(0, box − 55)/120) × (1 − .35 × tiredness).
+- **Who grabs it:** weighted by max(36, rebound skill)^2.5 × 1.3 for a Rebounder × (1 + (box − 50)/600) × (1 − .35 × tiredness). Boxing out adds only a little to his own boards (2026-11-28; it used to cost every point past 55): his Rebounding drives them, and boxing out wins the glass for his team.
 - **Rebounding floor** (`ratings.ts`): reb ≥ round(.3·hgt + .2·jmp + .15·stre − 6), and box ≥ that − 4.
 
 ## I. Minutes, fatigue and rotation

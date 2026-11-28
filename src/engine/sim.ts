@@ -41,6 +41,7 @@ const roleK = (p: any, name: string, m: number) => 1 + (m - 1) * roleW(p, name);
 // Who gets the rebound: rebounding skill to this power (2026-10-17: 2 → 2.5, so the best rebounders get more of
 // their team's boards, as in the NBA; team totals don't change).
 const REB_EXP = 2.5;
+const BOX_OWN = 600; // boxing out's small lift to his own rebounds: (box − 50) / BOX_OWN
 const REB_OFF: Record<string, number> = { G: 0.62, W: 0.7, B: 1.2 },
   REB_DEF: Record<string, number> = { G: 1.45, W: 1.0, B: 0.92 }; // by position group (rebound())
 export const BASE = {
@@ -2269,7 +2270,10 @@ export class GameSim {
           Math.pow(Math.max(REB_FLOOR, rebSkill(p.r)), REB_EXP) *
           (off ? (REB_OFF[p.grp] ?? 1) * (p.tend?.orb ?? 1) : (REB_DEF[p.grp] ?? 1)) *
           roleK(p, 'Rebounder', 1.3) *
-          (1 - Math.max(0, (p.r.box ?? 50) - 55) / 120) *
+          // Boxing out wins the glass for his team (glassSkill); his own rebounds come from his rebounding, and boxing
+          // out adds only a little (2026-11-28: +8% at 99; a Brook Lopez boxes out well and still grabs few). It used to
+          // cost every point past 55, so 99 boxing out cut a 99 rebounder's boards by a quarter.
+          (1 + ((p.r.box ?? 50) - 50) / BOX_OWN) *
           (1 - 0.35 * this.tired(p)),
       );
       if (off) {

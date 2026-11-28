@@ -596,15 +596,25 @@ export function checkTrade(g: Game, s: any, a: number, b: number, fromA: number[
     }
     if (!ez && after > N.AP2 && out.length > 1 && i > 0)
       errs.push(nm + ' would be above the 2nd apron: it can’t aggregate salaries (' + out.length + ' players out).');
-    if (cs.hardCap === 'AP1' && after > N.AP1 && !capEasy(g))
-      errs.push(nm + ' is hard-capped at the 1st apron (' + N.AP1 + 'M) this season.');
-    if (!ez && cs.hardCap === 'AP2' && after > N.AP2)
+    // Under a hard cap the team must still be able to fill its roster to the minimum with minimum deals (2026-11-28: a
+    // trade took the room a mid-level signing had kept for the 14th player, and opening night's fill went over).
+    const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length,
+      lim = rosterMax(s),
+      owed = Math.max(0, rosterMin(s) - std) * N.min(0);
+    if (cs.hardCap === 'AP1' && after + owed > N.AP1 && !capEasy(g))
+      errs.push(
+        nm +
+          ' is hard-capped at the 1st apron (' +
+          N.AP1 +
+          'M) this season' +
+          (after <= N.AP1 ? ', and needs room to fill its roster with minimum deals' : '') +
+          '.',
+      );
+    if (!ez && cs.hardCap === 'AP2' && after + owed > N.AP2)
       errs.push(
         nm +
           (capEasy(g) ? ' would be over the hard cap (' + N.AP2 + 'M).' : ' is hard-capped at the 2nd apron (' + N.AP2 + 'M) this season.'),
       );
-    const std = stdIds(g, s.rosters[tid] || []).length - stdIds(g, out).length + stdIds(g, inn).length,
-      lim = rosterMax(s);
     if (std > lim && std > stdIds(g, s.rosters[tid] || []).length) errs.push(nm + ' would have ' + std + ' players (' + lim + ' max).');
     // Newly signed players can't be traded yet.
     out.forEach(id => {

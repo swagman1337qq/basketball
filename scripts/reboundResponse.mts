@@ -42,3 +42,30 @@ assert.ok(neutral > 0.24 && neutral < 0.28, 'matched glass skill stays near leag
 assert.ok(offensiveBox > neutral && defensiveBox < neutral, 'box-outs affect team rebound control');
 assert.ok(offensiveSkill > neutral && defensiveSkill < neutral, 'rebounding skill still changes possession control');
 console.log(JSON.stringify({ neutral, offensiveBox, defensiveBox, offensiveSkill, defensiveSkill }));
+
+// Who grabs it (2026-11-28): one big's share of his team's defensive rebounds. His rebounding drives it; boxing out
+// adds only a little (a Brook Lopez boxes out well and still grabs few), and never costs him his own.
+function share(reb: number, box: number) {
+  const a = structuredClone(home),
+    b = structuredClone(away),
+    me = b.players[0];
+  me.r.reb = reb;
+  me.r.box = box;
+  Math.random = mulberry32(5150);
+  const sim: any = new GameSim(a, b, { norms: g.db.norms });
+  for (let i = 0; i < 40000; i++) sim.rebound(sim.home, sim.away, sim.on.home, sim.on.away, 0, () => {});
+  const mine = sim.away.box[me.id].drb,
+    all = (Object.values(sim.away.box) as any[]).reduce((t, p) => t + p.drb, 0);
+  return mine / all;
+}
+const s9955 = share(99, 55),
+  s9999 = share(99, 99),
+  s6060 = share(60, 60),
+  s6090 = share(60, 90);
+assert.ok(
+  s9999 > s9955 && s9999 < s9955 * 1.12,
+  `99 boxing out adds a little for a 99 rebounder (${s9999.toFixed(3)} vs ${s9955.toFixed(3)})`,
+);
+assert.ok(s6090 > s6060 && s6090 < s6060 * 1.12, `a box-out specialist gains only a little (${s6090.toFixed(3)} vs ${s6060.toFixed(3)})`);
+assert.ok(s6090 < s9955 * 0.7, 'rebounding, not boxing out, makes the big rebounder');
+console.log(JSON.stringify({ s9955, s9999, s6060, s6090 }));

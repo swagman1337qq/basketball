@@ -1501,11 +1501,18 @@ export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
   const P = g.db.P,
     N = nums(g),
     signed: string[] = [];
+  // A hard-capped team fills its spots with players whose minimum fits under its apron (2026-11-28: it signed the best
+  // free agent left at his veteran's minimum, $2.6M, and went over; signings only keep room for rookie minimums).
+  const hc = capState({ ...s, cap: box.cap }, tid).hardCap,
+    lim = hc === 'AP1' ? N.AP1 : hc === 'AP2' ? N.AP2 : Infinity,
+    room = () => lim - teamSalary(g, { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa }, tid);
   while (stdIds(g, box.rosters[tid]).length < to && box.fa.length) {
-    const id = box.fa
-      .slice()
-      .filter(x => !P[x].rfa)
-      .sort((a, b) => P[b].ovr - P[a].ovr)[0];
+    const free = box.fa.filter(x => !P[x].rfa),
+      minOf = (x: number) => N.min(yosOf(g, P[x])),
+      fits = lim < Infinity ? free.filter(x => minOf(x) <= room() + 1e-6) : free;
+    const id = (
+      fits.length ? fits.sort((a, b) => P[b].ovr - P[a].ovr) : free.sort((a, b) => minOf(a) - minOf(b) || P[b].ovr - P[a].ovr)
+    )[0];
     if (id == null) break;
     const p = P[id];
     lgLog.unshift({
