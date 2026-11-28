@@ -1,0 +1,331 @@
+{
+  "card": 1,
+  "name": "Andrei Kirilenko",
+  "first": "Andrei",
+  "last": "Kirilenko",
+  "native": "Андрей Кириленко",
+  "nativeFirst": "Андрей",
+  "nativeLast": "Кириленко",
+  "pos": "SF",
+  "age": 20,
+  "dob": "1981-02-18",
+  "hgt": "6′9″",
+  "wt": 215,
+  "wing": 85,
+  "rep": "RU",
+  "born": "RU",
+  "raised": "RU",
+  "city": "Izhevsk",
+  "her": "RU",
+  "race": "white",
+  "r": {
+    "hgt": 60,
+    "stre": 54,
+    "spd": 84,
+    "acc": 70,
+    "jmp": 88,
+    "endu": 86,
+    "ins": 39,
+    "dnk": 70,
+    "lay": 30,
+    "ft": 52,
+    "fg": 15,
+    "tp": 22,
+    "oiq": 35,
+    "diq": 86,
+    "blk": 96,
+    "stl": 54,
+    "drb": 30,
+    "pss": 50,
+    "reb": 42,
+    "box": 52
+  },
+  "pot": 75,
+  "intg": {
+    "feel": 70,
+    "poise": 62
+  },
+  "pers": {
+    "mot": "Winning",
+    "alpha": false,
+    "touches": false,
+    "pro": true,
+    "volatile": false,
+    "flashy": false,
+    "heat": false,
+    "crowd": false,
+    "villain": false,
+    "fearless": true,
+    "clutch": false,
+    "prone": false,
+    "padder": false,
+    "team": true,
+    "legacy": false,
+    "streaky": false,
+    "work": 82,
+    "loyalty": 75,
+    "ambition": 55
+  },
+  "ten": {
+    "usage": 54,
+    "ftr": 87,
+    "ra": 58.9635,
+    "paint": 7.6471,
+    "mid": 18.1117,
+    "c3": 3.8194,
+    "atb": 11.4583,
+    "cns": 65.6,
+    "pullup": 19,
+    "step": 10.9,
+    "fade": 4.5,
+    "turnovers": 48,
+    "fouls": 74,
+    "crash": 78,
+    "dunk": 54.5
+  },
+  "label": "Andrei Kirilenko – Rookie year (2001–02)",
+  "ovr": 58,
+  "historical": {
+    "season": "2001–02",
+    "league": "NBA",
+    "totals": {
+      "gp": 82,
+      "gs": 40,
+      "min": 2148.4,
+      "minutesApproximate": true,
+      "fgm": 285,
+      "fga": 633,
+      "tpm": 25,
+      "tpa": 100,
+      "ftm": 285,
+      "fta": 371,
+      "orb": 149,
+      "drb": 253,
+      "ast": 94,
+      "stl": 116,
+      "blk": 159,
+      "tov": 108,
+      "pf": 156,
+      "pts": 880,
+      "reb": 402
+    },
+    "perGame": {
+      "min": 26.200000000000003,
+      "fgm": 3.475609756097561,
+      "fga": 7.719512195121951,
+      "tpm": 0.3048780487804878,
+      "tpa": 1.2195121951219512,
+      "ftm": 3.475609756097561,
+      "fta": 4.524390243902439,
+      "orb": 1.8170731707317074,
+      "drb": 3.0853658536585367,
+      "ast": 1.146341463414634,
+      "stl": 1.4146341463414633,
+      "blk": 1.9390243902439024,
+      "tov": 1.3170731707317074,
+      "pf": 1.9024390243902438,
+      "pts": 10.731707317073171,
+      "reb": 4.902439024390244,
+      "fg": 0.45023696682464454,
+      "two": 0.4878048780487805,
+      "tp": 0.25,
+      "ft": 0.7681940700808625,
+      "ts": 0.5525972068722999,
+      "efg": 0.46998420221169035,
+      "ftr": 0.5860979462875198
+    },
+    "referenceSources": [
+      "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/434/stats"
+    ],
+    "dataNotes": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  },
+  "sources": [
+    "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/434/stats"
+  ],
+  "notes": "Andrei Kirilenko – Rookie year (2001–02). Reviewed 2026-11-27 against the named regular-season reference. The revised build improved the independent comparison. Ratings and tendencies generate the results naturally; teammates, role, opposition, development and game variance change them. Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals. Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference.",
+  "validation": {
+    "reviewed": "2026-11-27",
+    "engineRevision": "40e50bff07898e5724c512f58c6e9dd54b2dcfea",
+    "buildChanged": true,
+    "method": "Six held-out generated worlds, 80 games per world per mode; authored and AI-refreshed styles. Counting stats normalized to historical minutes; observed minutes and raw per-game output retained separately.",
+    "options": {
+      "games": 80,
+      "seeds": [
+        8101,
+        8212,
+        8323,
+        8434,
+        8545,
+        8656
+      ],
+      "offset": 991211,
+      "identities": 1200,
+      "startId": 91001
+    },
+    "weightedErrorBefore": 1.732161,
+    "weightedErrorShipped": 0.873713,
+    "authored": {
+      "min": 27.29368028987556,
+      "pts": 11.325164411093642,
+      "fga": 8.081403740990536,
+      "tpa": 1.2539074846822733,
+      "fta": 4.537665203738562,
+      "orb": 1.655877826661758,
+      "drb": 3.2837577190562883,
+      "reb": 4.939635545718046,
+      "ast": 1.4498930245528678,
+      "stl": 1.2919046811877968,
+      "blk": 2.0358497917169927,
+      "tov": 1.4938897784013687,
+      "pf": 1.7358719245681233,
+      "fg": 0.46250927988121754,
+      "tp": 0.23604465709728867,
+      "ft": 0.7831643895989423,
+      "games": 480,
+      "ovr": 58,
+      "potential": 75,
+      "raw": {
+        "pts": 11.797916666666667,
+        "fgm": 3.89375,
+        "fga": 8.41875,
+        "tpm": 0.30833333333333335,
+        "tpa": 1.30625,
+        "ftm": 3.7020833333333334,
+        "fta": 4.727083333333334,
+        "orb": 1.725,
+        "drb": 3.4208333333333334,
+        "ast": 1.5104166666666667,
+        "stl": 1.3458333333333334,
+        "blk": 2.120833333333333,
+        "tov": 1.55625,
+        "pf": 1.8083333333333333,
+        "reb": 5.145833333333334
+      },
+      "zones": {
+        "rim": {
+          "share": 0.5092798812175204,
+          "pct": 0.6137026239067055
+        },
+        "paint": {
+          "share": 0.10022271714922049,
+          "pct": 0.35555555555555557
+        },
+        "mid": {
+          "share": 0.23533778767631774,
+          "pct": 0.3301787592008412
+        },
+        "corner": {
+          "share": 0.032665181885671864,
+          "pct": 0.2803030303030303
+        },
+        "aboveBreak": {
+          "share": 0.12249443207126949,
+          "pct": 0.22424242424242424
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.6375158428390367,
+          "pct": 0.3250497017892644
+        },
+        "pullup": {
+          "share": 0.18631178707224336,
+          "pct": 0.22108843537414966
+        },
+        "step": {
+          "share": 0.10392902408111533,
+          "pct": 0.21341463414634146
+        },
+        "fade": {
+          "share": 0.07224334600760456,
+          "pct": 0.30701754385964913
+        }
+      }
+    },
+    "aiRefreshed": {
+      "min": 27.39349424694718,
+      "pts": 11.11453071990858,
+      "fga": 7.818827275891226,
+      "tpa": 1.2094872977742035,
+      "fta": 4.405562463556448,
+      "orb": 1.609992976279335,
+      "drb": 3.1562238544882018,
+      "reb": 4.7662168307675365,
+      "ast": 1.4426174688443547,
+      "stl": 1.3449817561739494,
+      "blk": 2.0762533184196377,
+      "tov": 1.4545728622325678,
+      "pf": 1.8351528850906778,
+      "fg": 0.4689092762487258,
+      "tp": 0.2685337726523888,
+      "ft": 0.7847127996381728,
+      "games": 480,
+      "ovr": 58,
+      "potential": 75,
+      "raw": {
+        "pts": 11.620833333333334,
+        "fgm": 3.8333333333333335,
+        "fga": 8.175,
+        "tpm": 0.33958333333333335,
+        "tpa": 1.2645833333333334,
+        "ftm": 3.6145833333333335,
+        "fta": 4.60625,
+        "orb": 1.6833333333333333,
+        "drb": 3.3,
+        "ast": 1.5083333333333333,
+        "stl": 1.40625,
+        "blk": 2.1708333333333334,
+        "tov": 1.5208333333333333,
+        "pf": 1.91875,
+        "reb": 4.983333333333333
+      },
+      "zones": {
+        "rim": {
+          "share": 0.5045871559633027,
+          "pct": 0.6191919191919192
+        },
+        "paint": {
+          "share": 0.09785932721712538,
+          "pct": 0.3619791666666667
+        },
+        "mid": {
+          "share": 0.2428644240570846,
+          "pct": 0.3273871983210913
+        },
+        "corner": {
+          "share": 0.03160040774719674,
+          "pct": 0.25
+        },
+        "aboveBreak": {
+          "share": 0.12308868501529052,
+          "pct": 0.2732919254658385
+        }
+      },
+      "creation": {
+        "cns": {
+          "share": 0.6352564102564102,
+          "pct": 0.32088799192734613
+        },
+        "pullup": {
+          "share": 0.1858974358974359,
+          "pct": 0.2793103448275862
+        },
+        "step": {
+          "share": 0.10897435897435898,
+          "pct": 0.27647058823529413
+        },
+        "fade": {
+          "share": 0.06987179487179487,
+          "pct": 0.26605504587155965
+        }
+      }
+    },
+    "limitations": [
+      "Minute target uses ESPN’s one-decimal MPG; all other averages are computed from exact season totals.",
+      "Shot-location, creation and dunk shares remain estimates; no complete shot-chart source is certified for this reference."
+    ]
+  }
+}

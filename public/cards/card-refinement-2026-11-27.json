@@ -1,0 +1,162 @@
+{
+  "summary": {
+    "date": "2026-11-27",
+    "reviewed": 37,
+    "builtIn": 33,
+    "retuned": 26,
+    "retained": 11,
+    "shotChartsReconciled": 29,
+    "aggregateErrorBefore": 310.5220122357664,
+    "aggregateErrorAfter": 87.07611489605414
+  },
+  "cards": [
+    {
+      "label": "Luka Dončić – Rookie year (2018–19)",
+      "file": "luka-doncic-2018-19.json"
+    },
+    {
+      "label": "Dalton Knecht – Rookie year (2024–25)",
+      "file": "dalton-knecht-2024-25.json"
+    },
+    {
+      "label": "Ben Simmons – Rookie year (2017–18)",
+      "file": "ben-simmons-2017-18.json"
+    },
+    {
+      "label": "Al Horford – Rookie year (2007–08)",
+      "file": "al-horford-2007-08.json"
+    },
+    {
+      "label": "Chris Paul – Rookie year (2005–06)",
+      "file": "chris-paul-2005-06.json"
+    },
+    {
+      "label": "Klay Thompson – Rookie year (2011–12)",
+      "file": "klay-thompson-2011-12.json"
+    },
+    {
+      "label": "Kawhi Leonard – Rookie year (2011–12)",
+      "file": "kawhi-leonard-2011-12.json"
+    },
+    {
+      "label": "Dwight Howard – Rookie year (2004–05)",
+      "file": "dwight-howard-2004-05.json"
+    },
+    {
+      "label": "John Wall – Rookie year (2010–11)",
+      "file": "john-wall-2010-11.json"
+    },
+    {
+      "label": "Yi Jianlian – Rookie year (2007–08)",
+      "file": "yi-jianlian-2007-08.json"
+    },
+    {
+      "label": "Andrei Kirilenko – Rookie year (2001–02)",
+      "file": "andrei-kirilenko-2001-02.json"
+    },
+    {
+      "label": "Jeremy Lin – Rookie year (2010–11)",
+      "file": "jeremy-lin-2010-11.json"
+    },
+    {
+      "label": "Toney Douglas – Rookie year (2009–10)",
+      "file": "toney-douglas-2009-10.json"
+    },
+    {
+      "label": "Jan Veselý – Rookie year (2011–12)",
+      "file": "jan-vesely-2011-12.json"
+    },
+    {
+      "label": "Bismack Biyombo – Rookie year (2011–12)",
+      "file": "bismack-biyombo-2011-12.json"
+    },
+    {
+      "label": "Bronny James – Rookie year (2024–25)",
+      "file": "bronny-james-2024-25.json"
+    },
+    {
+      "label": "Jarrett Culver – Rookie year (2019–20)",
+      "file": "jarrett-culver-2019-20.json"
+    },
+    {
+      "label": "Jarred Vanderbilt – 2022–23",
+      "file": "jarred-vanderbilt-2022-23.json"
+    },
+    {
+      "label": "Maxi Kleber – Prime (2019–20)",
+      "file": "maxi-kleber-2019-20.json"
+    },
+    {
+      "label": "Joel Embiid – Draft night (2014, Kansas)",
+      "file": "joel-embiid-2014-draft.json"
+    },
+    {
+      "label": "Joel Embiid – Rookie year (2016–17)",
+      "file": "joel-embiid-2016-17.json"
+    },
+    {
+      "label": "Joel Embiid – MVP season (2022–23)",
+      "file": "joel-embiid-2022-23.json"
+    },
+    {
+      "label": "Anthony Bennett – Draft night (2013, UNLV)",
+      "file": "anthony-bennett-2013-draft.json"
+    },
+    {
+      "label": "Tyler Hansbrough – Draft night (2009, North Carolina)",
+      "file": "tyler-hansbrough-2009-draft.json"
+    },
+    {
+      "label": "Blake Griffin – Rookie year (2010–11)",
+      "file": "blake-griffin-2010-11.json"
+    },
+    {
+      "label": "Jeremy Lin – Linsanity season (2011–12 Knicks)",
+      "file": "jeremy-lin-2011-12.json"
+    },
+    {
+      "label": "Robert Sacre – Prime (2013–14)",
+      "file": "robert-sacre-2013-14.json"
+    },
+    {
+      "label": "Matt Ryan – 2023–24",
+      "file": "matt-ryan-2023-24.json"
+    },
+    {
+      "label": "Monte Morris – 2018–19",
+      "file": "monte-morris-2018-19.json"
+    },
+    {
+      "label": "Jalen Green – Rookie year (2021–22)",
+      "file": "jalen-green-2021-22.json"
+    },
+    {
+      "label": "Emmanuel Mudiay – 2021–22",
+      "file": "emmanuel-mudiay-2021-22.json"
+    },
+    {
+      "label": "KJ Simpson – Draft night (2024, Colorado)",
+      "file": "kj-simpson-2024-draft.json"
+    },
+    {
+      "label": "Henry Ellenson – Worst season (2016–17 rookie)",
+      "file": "henry-ellenson-2016-17.json"
+    },
+    {
+      "label": "Charles Barkley – Rookie (1984-85 Philadelphia 76ers)",
+      "file": "charles-barkley-1984-85.json"
+    },
+    {
+      "label": "Charles Barkley – Statistical peak (1989-90 Philadelphia 76ers)",
+      "file": "charles-barkley-1989-90.json"
+    },
+    {
+      "label": "Charles Barkley – MVP (1992-93 Phoenix Suns)",
+      "file": "charles-barkley-1992-93.json"
+    },
+    {
+      "label": "Michael Kidd-Gilchrist – Rookie (2012–13 Charlotte Bobcats)",
+      "file": "michael-kidd-gilchrist-2012-13.json"
+    }
+  ]
+}

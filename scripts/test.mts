@@ -61,6 +61,7 @@ const SCRIPTS = [
   'historicalClass',
   'shotSense',
   'analyticsReports',
+  'playerCardRefinement',
 ];
 const run = (name: string) =>
   new Promise<{ name: string; ok: boolean; s: number; tail: string }>(done => {

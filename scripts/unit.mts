@@ -176,8 +176,12 @@ test('relocating a club keeps its roster and picks and takes the new identity', 
 });
 
 test("a card's college game drives his college stats, its ratings his NBA game (2026-11-14)", () => {
-  const c: any = PRESET_CARDS.find((x: any) => x.card.am)!.card,
-    mk = (card: any) => {
+  // Test the separate-build capability with a deliberate shooting contrast.
+  // A live preset's college 3P% need not exceed its NBA-only NCAA projection.
+  const c: any = structuredClone(PRESET_CARDS.find((x: any) => x.card.name === 'KJ Simpson')!.card);
+  c.r.tp = 10;
+  c.am.r.tp = 90;
+  const mk = (card: any) => {
       const p: any = {
         id: 4242,
         age: card.age,
