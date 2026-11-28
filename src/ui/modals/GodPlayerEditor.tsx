@@ -1257,6 +1257,7 @@ function ContractEditor({ vm, p, mut, grid }: { vm: VM; p: any; mut: (f: (p: any
                 onValue={v =>
                   mut(q => {
                     q.ext = { ...q.ext, amt: v };
+                    delete q.ext.maxPct; // a God Mode dollar edit is an exact fixed amount
                   })
                 }
                 suffix="$M"

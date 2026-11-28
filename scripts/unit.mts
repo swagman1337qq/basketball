@@ -212,6 +212,9 @@ test('easy contracts: one plain deal under the ceiling, flat, extendable with a 
     P = g.db.P,
     N = nums(g),
     fa = s.fa.map((id: number) => P[id]).sort((a: any, b: any) => b.ovr - a.ovr)[0];
+  // Exercise the salary exception with a real open roster slot; initial AI
+  // signings can legitimately fill this club before the test starts.
+  s.rosters[3] = s.rosters[3].slice(0, 14);
   assert.equal(N.AP1, N.AP2); // one ceiling
   const keys = signingMethods(g, s, 3, fa).map(m => m.key);
   assert.ok(keys.includes('std') && keys.includes('min'));

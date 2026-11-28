@@ -21,6 +21,7 @@ import {
   finishSkill,
   finishingPct,
   dunkOpening,
+  dunkContextBonus,
   type FinishNorms,
   type FinishType,
 } from './finishing';
@@ -1722,10 +1723,8 @@ export class GameSim {
         small * (0.0021 * (intM - n.interiorD) + 0.007 * rimPro + BLK_RIM * (blkTop - (n.blkL ?? n.blk ?? 58))) + stay - GAMBLE.rim * gamB;
       const perimeterContest = z === 'mid' ? 0.001 * (pD - n.perimD) - GAMBLE.mid * gamS : 0.0008 * (pD - n.perimD) - GAMBLE.three * gamS;
       const contestExposure = close ? closeContestExposure(contest, paint) : 1;
-      const defAdj =
-        (close ? closeDefenseAdjustment(interiorWeight * interiorContest, contest, paint) : 0) +
-        (1 - interiorWeight) * perimeterContest +
-        0.0008 * diqD;
+      const closeDef = close ? closeDefenseAdjustment(interiorWeight * interiorContest, contest, paint) : 0;
+      const defAdj = closeDef + (1 - interiorWeight) * perimeterContest + 0.0008 * diqD;
       // Tactics: the scheme's effect on this shot, the player's own adjustment (a box-and-one chaser,
       // an isolation star), and a cost for shots forced beyond his natural mix; a run-out is easier.
       const forced = fx ? Math.log(Math.max(0.2, prof[z] / C(sh).prof[z])) : 0;
@@ -1812,7 +1811,7 @@ export class GameSim {
       const setter = putback || !cands.length ? null : assistedAction ? creator : wpick(cands, p => ws[cands.indexOf(p)]),
         setupD = setter && !assistedAction ? SETUP_K * aChance * (passQ(setter) - (n.passQ ?? 60)) : 0; // a cut or roll's passer already made the opening (creation): his vision counts once
       const setup = setter && Math.random() < aChance ? setter : null;
-      const pct =
+      let pct =
         this.touch[offK] +
         setupD +
         creD +
@@ -1856,6 +1855,16 @@ export class GameSim {
         ((this.teams[offK].chem ?? 50) - 50) * 0.00015 +
         (this.teams[offK].stO ?? 0) -
         (this.teams[defK].stD ?? 0);
+
+      if (finish === 'dunk') {
+        const positive =
+          Math.max(0, CAL[z]) +
+          Math.max(0, n.adj?.[z] ?? 0) +
+          Math.max(0, -closeDef) +
+          fbD +
+          Math.max(0, RIM_SIZE * (sh.r.hgt - (n.rimHgt ?? 55)));
+        pct += dunkContextBonus(shotBase - CAL[z], positive) - positive;
+      }
 
       const three = z === 'c3' || z === 'atb',
         b = O.box[sh.id],

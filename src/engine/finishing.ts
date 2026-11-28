@@ -42,6 +42,13 @@ export function closeDefenseAdjustment(interior: number, contest: CloseContest, 
   return closeContestExposure(contest, paint) * Math.max(0, anchor + interior) - anchor + 0.028;
 }
 
+// A favorable gather improves the misses still available, rather than adding
+// the same percentage points to a dunk and a difficult layup. This smooth
+// headroom preserves skill ordering; fatigue/usage/contact penalties stay linear.
+export function dunkContextBonus(base: number, positive: number): number {
+  return positive > 0 ? positive * Math.min(1, Math.max(0, 1 - base) / (0.12 + positive)) : 0;
+}
+
 // Baseline attempts by technique, before matchup, fatigue, venue and the other
 // game-context terms in sim.ts. This is a population model, not a conversion of
 // any one player's observed FG% directly into a skill rating.

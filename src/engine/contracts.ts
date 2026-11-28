@@ -11,6 +11,11 @@ import {
   exceptionsOf,
   freshExceptions,
   nums,
+  contractSeason,
+  yosForSeason,
+  numsForSeason,
+  yosForContract,
+  maxFor,
   rosterMax,
   seasonMax,
   signingMethods,
@@ -18,7 +23,6 @@ import {
   teamSalary,
   TWO_WAY_MAX,
   twoWayIds,
-  yosOf,
   deadSchedule,
   easyK,
   type Method,
@@ -36,8 +40,7 @@ export interface Terms {
 }
 
 // First season a new contract covers: next season during the offseason, else this one.
-export const firstSeason = (g: Game, s: any) =>
-  ['fa', 'draft', 'lottery', 'playoffs', 'playin'].includes(s.phase) && s.phase !== 'regular' && s.phase !== 'preseason' ? g.Y + 1 : g.Y;
+export const firstSeason = contractSeason;
 
 // Contract length a player wants: young players lock in years, veterans go shorter, and fringe
 // players go year to year (minimum-level guys sign for one season, bench players for one or two).
@@ -50,8 +53,8 @@ export function prefYears(p: any) {
 // Does the player sign? He wants at least his asking price per year; options, kickers and
 // no-trade clauses sweeten a deal, years far from what he wants sour it.
 export function acceptance(g: Game, s: any, tid: number, p: any, t: Terms) {
-  const N = nums(g),
-    yos = yosOf(g, p),
+  const N = numsForSeason(g, firstSeason(g, s)),
+    yos = yosForSeason(g, p, firstSeason(g, s)),
     minS = N.min(yos);
   if (p.noResign?.tid === tid && p.noResign.season === g.Y)
     return { ok: false, ask: p.ask || minS, why: 'He asked for a trade and you kept him: he won’t re-sign with you.' }; // tradeRequests.ts
@@ -85,9 +88,9 @@ export function applySigning(
   p: any,
   t: Terms,
 ) {
-  const N = nums(g),
+  const N = numsForSeason(g, firstSeason(g, s)),
     Y1 = firstSeason(g, s),
-    yos = yosOf(g, p),
+    yos = yosForSeason(g, p, Y1),
     minS = N.min(yos);
   const cap = { ...(box.cap[tid] || {}) },
     exc = { ...(cap.exc || freshExceptions(g)), used: [...((cap.exc || {}).used || [])] };
@@ -125,6 +128,14 @@ export function applySigning(
   if (s.phase === 'regular' && s.day > g.ruleSlot(DAY.PLAYOFF_WAIVE) && p.waived?.season === g.Y) p.poIneligible = g.Y; // waived after March 1: not playoff-eligible elsewhere
   delete p.waived;
   p.signed = { season: Y1, day: s.day, phase: s.phase, tid, method: t.method, ovr: p.ovr, ask: p.ask }; // (his level and ask when he signed)
+  p.contractMeta = {
+    season: Y1,
+    service: yos,
+    cap: N.CAP,
+    max: maxFor(g, s, p, tid).amt,
+    maxAtSigning: p.ctype === 'max',
+    source: t.method,
+  };
   if (t.method !== 'bird' && !(easyK(g) && prevTid === tid)) {
     if (prevTid != null && prevTid !== tid) p.leftAsFA = true;
     p.yrsWith = 0;
@@ -210,9 +221,13 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
   if (t.amt + unlikely > m.maxFirst + 0.005) return { ok: false, why: 'First-year salary plus all bonuses must fit the signing limit.' };
   if (t.inc?.length && ['min', 'twoWay', 'ex10', 'tenDay', 'hardship'].includes(t.method))
     return { ok: false, why: 'This contract cannot contain performance bonuses.' };
-  const minS = nums(g).min(yosOf(g, p));
+  const minS = numsForSeason(g, firstSeason(g, s)).min(yosForSeason(g, p, firstSeason(g, s)));
   if (!['twoWay', 'tenDay', 'hardship'].includes(t.method) && t.amt - likely < minS - 0.005)
-    return { ok: false, why: 'Below his minimum salary (' + minS.toFixed(2) + 'M for ' + yosOf(g, p) + ' years of service).', m };
+    return {
+      ok: false,
+      why: 'Below his minimum salary (' + minS.toFixed(2) + 'M for ' + yosForContract(g, p, s) + ' years of service).',
+      m,
+    };
   if (m.maxYears > 0 && (t.years < 1 || t.years > m.maxYears))
     return {
       ok: false,
@@ -221,7 +236,7 @@ export function validateSigning(g: Game, s: any, tid: number, p: any, t: Terms):
     };
   if (t.method === 'bird' && birdOf(p, tid) === 'early' && t.years < 2)
     return { ok: false, why: 'Early Bird contracts must be at least 2 years.', m };
-  if (t.ntc && !(yosOf(g, p) >= 8 && t.method === 'bird' && (p.yrsWith || 0) >= 4))
+  if (t.ntc && !(yosForContract(g, p, s) >= 8 && t.method === 'bird' && (p.yrsWith || 0) >= 4))
     return { ok: false, why: 'No-trade clauses need 8+ years of service and 4+ years with your team (re-signing with Bird rights).', m };
   if (t.kicker && (t.kicker < 0 || t.kicker > 0.15)) return { ok: false, why: 'Trade kickers are 0–15%.', m };
   // Hard cap after signing.
@@ -251,8 +266,8 @@ export const floorOverpay1 = (ask: number) => Math.min(ask * 2, ask + 12);
 export const CONTEND_PREM = 1.25,
   CONTEND_PREM_BIRD = 1.1;
 export function aiTerms(g: Game, s: any, tid: number, p: any): Terms | null {
-  const N = nums(g),
-    yos = yosOf(g, p),
+  const N = numsForSeason(g, firstSeason(g, s)),
+    yos = yosForSeason(g, p, firstSeason(g, s)),
     minS = N.min(yos),
     ask = Math.max(minS, p.ask || minS),
     yrs = Math.min(prefYears(p), 4);
@@ -349,7 +364,7 @@ export function waivePlayer(
     if (p.ctype === 'ex10') p.wasEx10 = true;
     delete p.ext;
     delete p.extNoTrade;
-    p.ask = Math.max(nums(g).min(yosOf(g, p)), +(g.fair(p.ovr) * 0.8).toFixed(2));
+    p.ask = Math.max(nums(g).min(yosForContract(g, p, s)), +(g.fair(p.ovr) * 0.8).toFixed(2));
     p.birdTid = null;
     p.yrsWith = 0;
     p.ctype = 'standard';

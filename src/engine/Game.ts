@@ -110,6 +110,10 @@ import {
   deadSchedule,
   inSeasonPhase,
   nums,
+  extensionFirst,
+  contractSeason,
+  yosForSeason,
+  numsForSeason,
   rosterMax,
   rosterMin,
   seasonMax,
@@ -477,6 +481,7 @@ export class Game {
     placeInGLeague(g, g.state, g.state.fa, g.rng(seed + 77)); // unsigned players start the season in the CCP
     ccpNewSeason(g, g.state);
     ccpTopUp(g, g.state, g.state.fa); // the CCP (development league) season
+    for (const id of g.state.fa) g.db.P[id].ask = g.db.P[id].ask0 = askOf(g, g.db.P[id]);
     assignNumbers(g.db.P, g.state.rosters, undefined, retiredNums(g.state.teams));
     g._rosterRef = g.state.rosters;
     snapOpening(g, g.state); // opening-night ratings, for year-over-year progress
@@ -509,7 +514,11 @@ export class Game {
           const y3 = p.draft + 3,
             y4 = p.draft + 4;
           p.opt = y3 > 2027 ? { kind: 'team', season: y3 } : y4 > 2027 ? { kind: 'team', season: y4 } : undefined;
-        } else p.ctype = p.amt <= minS * 1.05 ? 'min' : p.amt >= N.CAP * 0.245 ? 'max' : 'standard';
+        } else {
+          p.amt = +Math.min(N.max(yos), Math.max(minS, p.amt)).toFixed(2);
+          p.ctype = p.amt <= minS * 1.05 ? 'min' : p.amt >= N.max(yos) - 0.05 ? 'max' : 'standard';
+        }
+        p.contractMeta = { season: 2027, service: yos, cap: N.CAP, max: N.max(yos), maxAtSigning: p.ctype === 'max', source: 'initial' };
         if (!p.opt && p.ctype !== 'rookie' && p.exp > 2027 && rnd() < 0.2)
           p.opt = { kind: rnd() < 0.75 ? 'player' : 'team', season: p.exp };
         if (p.amt >= N.CAP * 0.15 && rnd() < 0.12) p.kicker = 0.15;
@@ -1919,6 +1928,7 @@ export class Game {
       P: {},
       C: countries(),
       caps: { ...CAPS0 },
+      capYear: 2027,
       firstSeason: 2027,
       lgRate: {},
     });
@@ -4559,6 +4569,7 @@ export class Game {
       this.refreshPrices(s.rosters); // salaries priced by league rank this year (priceOvr)
       this.marketStep(); // and at the market's level (db.mkt)
       ['CAP', 'MINP', 'TAX', 'AP1', 'AP2', 'VMIN', 'MLE', 'MAXC'].forEach(k => (d.caps[k] = +(d.caps[k] * growth).toFixed(1)));
+      d.capYear = Y;
       const capLine = {
         day: s.day,
         type: 'Signing',
@@ -7921,8 +7932,8 @@ export class Game {
     if (m === 'Money') x *= p.age >= 30 ? 1.2 : 1.1;
     if (m === 'Winning') x *= top ? (p.age >= 30 ? 0.8 : 0.9) : p.age >= 30 ? 1.15 : 1;
     if (m === 'Fame') x *= 1 - (me.mkt - 1) * 0.4;
-    const N = nums(this),
-      yos = yosOf(this, p);
+    const N = numsForSeason(this, contractSeason(this, s)),
+      yos = yosForSeason(this, p, contractSeason(this, s));
     return +Math.max(N.min(yos), Math.min(N.max(yos), x || 0)).toFixed(2); // never above his max
   }
   moodOf(p, idx, s, tid = s.me, noRoom = false) {
@@ -8006,7 +8017,8 @@ export class Game {
   // Salary in a future season: this season's salary with the contract's annual raises.
   salAt(p, y) {
     if (y <= p.exp) return +(p.amt + (p.raiseBase ?? p.amt) * (p.raise || 0) * Math.max(0, y - this.Y)).toFixed(2);
-    if (p.ext && y <= p.exp + p.ext.yrs) return +(p.ext.amt * (1 + (p.ext.raise ?? p.raise ?? 0) * (y - p.exp - 1))).toFixed(2);
+    if (p.ext && y <= p.exp + p.ext.yrs)
+      return +(extensionFirst(this, p) * (1 + (p.ext.raise ?? p.raise ?? 0) * (y - p.exp - 1))).toFixed(2);
     return 0;
   }
   // God Mode's Force Sign on the signing dialog: past the salary cap (cbaFlow.userSign).

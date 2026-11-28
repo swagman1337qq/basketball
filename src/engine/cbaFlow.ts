@@ -15,6 +15,12 @@ import {
   freshExceptions,
   maxFor,
   nums,
+  contractSeason,
+  yosForSeason,
+  numsForSeason,
+  newExtension,
+  extensionFirst,
+  yosForContract,
   qoEligible,
   qoFor,
   rookieDeal,
@@ -124,8 +130,8 @@ export function pricedLevel(p: any) {
   return (p.ovr + proj) / 2;
 }
 export function askOf(g: Game, p: any) {
-  const N = nums(g),
-    yos = yosOf(g, p),
+  const N = numsForSeason(g, contractSeason(g)),
+    yos = yosForSeason(g, p, contractSeason(g)),
     minS = N.min(yos),
     mx = N.max(yos),
     age = p.age ?? 27,
@@ -137,13 +143,20 @@ export function askOf(g: Game, p: any) {
     2,
   );
 }
+// A star can discount his market, but not decay into an exception-level bargain.
+// Rechecking today's value also lets aging players' demands come down normally.
+export function askingFloor(g: Game, p: any) {
+  if (g.priceOvr(p.ovr) < STAR_B) return 0;
+  const current = askOf(g, p);
+  return Math.max(current * 0.85, Math.min(p.ask0 ?? current, current) * 0.95);
+}
 // Players abroad (2026-10-28). What one asks to come over: about 45% of what an NBA free agent of his rating and
 // age asks (he's unproven here, and clubs over there pay less), at most the non-taxpayer mid-level; at about 50
 // overall or below he takes the minimum (or a two-way, with under 4 years of NBA service). Refreshed every summer.
 // His club's buyout is separate (overseas.ts).
 export function overseasAsk(g: Game, p: any) {
   const N = nums(g),
-    minS = N.min(yosOf(g, p));
+    minS = N.min(yosForContract(g, p));
   return p.ovr <= 50 ? minS : +Math.max(minS, Math.min(N.NTMLE, askOf(g, p) * 0.45)).toFixed(2);
 }
 // The pool abroad, once per league (a new one, or an older save): NBA service counts NBA seasons only (one who never
@@ -223,7 +236,7 @@ const isStar = (g: Game, p: any) => g.priceOvr(p.ovr) >= STAR_B;
 export function defaultTerms(g: Game, s: any, tid: number, p: any, methods: any[]): Terms {
   const m = methods.find(x => x.ok) || methods[0],
     ask = s.me === tid ? g.askFor(p, s) : p.ask;
-  if (!m) return { method: 'min', amt: nums(g).min(yosOf(g, p)), years: 1 };
+  if (!m) return { method: 'min', amt: nums(g).min(yosForContract(g, p)), years: 1 };
   const amt =
     m.key === 'twoWay' || m.key === 'tenDay' || m.key === 'hardship' || m.key === 'ex10' || m.key === 'min'
       ? m.maxFirst
@@ -580,7 +593,7 @@ export function agentCall(g: Game, s: any, tid: number, from: number, p: any, te
   const { x, why } = stayWith(g, s, tid, p);
   if (x < -0.3) return null; // he's done with you
   const N = nums(g),
-    yos = yosOf(g, p),
+    yos = yosForContract(g, p),
     mot = p.pers?.mot;
   let mult = x >= 0.35 ? 1 : x >= 0 ? 1.06 + (0.35 - x) * 0.3 : 1.17 + -x * 0.45,
     years = terms.years,
@@ -816,7 +829,7 @@ export function convertContract(g: Game, pid: number, to: ConvTo) {
     const from = p.ctype,
       what = from === 'tenDay' ? '10-day' : from === 'hardship' ? 'hardship' : from === 'ex10' ? 'Exhibit 10' : 'two-way';
     if (to === 'twoWay') {
-      if (yosOf(g, p) > 3) return { convMsg: p.name + ' has 4+ years of service: not two-way eligible.' };
+      if (yosForContract(g, p) > 3) return { convMsg: p.name + ' has 4+ years of service: not two-way eligible.' };
       if (twoWayIds(g, ids).length >= TWO_WAY_MAX) return { convMsg: 'You already have ' + TWO_WAY_MAX + ' two-way players.' };
       Object.assign(p, { ctype: 'twoWay', amt: N.TWO_WAY, capOverride: 0, twoWay: { tid, games: 0 }, raise: 0 });
       if (p.exp < g.Y) p.exp = g.Y;
@@ -831,7 +844,7 @@ export function convertContract(g: Game, pid: number, to: ConvTo) {
           (from === 'ex10' && inSeason && std > rosterMax(s)))
       )
         return { convMsg: 'No standard roster spot open (' + rosterMax(s) + '). Waive or trade someone first.' };
-      const minS = N.min(yosOf(g, p)),
+      const minS = N.min(yosForContract(g, p)),
         newAmt = from === 'twoWay' ? Math.max(p.amt, minS) : minS,
         cap = capState(s, tid).hardCap;
       const extra = newAmt - (from === 'twoWay' ? 0 : g.capHit(p));
@@ -979,6 +992,12 @@ export function openFreeAgency(g: Game, s: any) {
     by: Record<number, string[]> = {},
     dec = s.decide || {};
   let lgLog = s.lgLog.slice();
+  // Returning free agents open each new market at today's value, including
+  // those who were unsigned before this summer (not just expired contracts).
+  box.fa.forEach(id => {
+    const p = P[id];
+    if (p && !p.retired) p.ask = p.ask0 = askOf(g, p);
+  });
   Object.values(P).forEach((p: any) =>
     (p.inc || []).forEach(x => {
       if (x.nextLikely != null) {
@@ -1024,13 +1043,16 @@ export function openFreeAgency(g: Game, s: any) {
       const p = P[id];
       // Extensions signed earlier take over when the old deal ends.
       if (p.ext && p.exp <= Y) {
+        const amt = extensionFirst(g, p),
+          service = yosForSeason(g, p, Y + 1);
         Object.assign(p, {
           prevAmt: p.amt,
-          amt: p.ext.amt,
-          raiseBase: p.ext.amt,
+          amt,
+          raiseBase: amt,
           exp: p.exp + p.ext.yrs,
           raise: p.ext.raise ?? 0.08,
-          ctype: p.ext.amt >= N.max(yosOf(g, p) + 1) - 0.05 ? 'max' : 'standard',
+          ctype: p.ext.maxPct || amt >= N.max(service) - 0.05 ? 'max' : 'standard',
+          contractMeta: { season: Y + 1, service, cap: N.CAP, max: N.max(service), maxAtSigning: !!p.ext.maxPct, source: 'extension' },
           signed: { season: Y + 1, day: s.day, phase: 'fa', tid: t, method: 'extension', ovr: p.ext.ovr },
         });
         delete p.ext;
@@ -1264,8 +1286,8 @@ export function aiFreeAgencyDay(g: Game, s: any, box: Box, lgLog: any[], offerSh
   // stars don't wait out the market and sign for an exception (2026-10-22: a 75 overall signed for the mid-level).
   box.fa.forEach(id => {
     const p = P[id],
-      minS = N.min(yosOf(g, p)),
-      floor = p.ask0 && g.priceOvr(p.ovr) >= STAR_B ? 0.95 * p.ask0 : 0;
+      minS = N.min(yosForContract(g, p)),
+      floor = askingFloor(g, p);
     p.ask = +Math.max(p.rfa ? Math.min(p.ask, p.rfa.qo) : minS, floor, (p.ask || minS) * decay).toFixed(2);
   });
   const tried = new Set<number>(); // stars testing free agency go first, once a day: the teams that kept room for them get first call
@@ -1437,8 +1459,8 @@ export function floorSigning(g: Game, s: any, box: Box, tid: number, lgLog: any[
     .sort((x, y) => P[y].ovr - P[x].ovr)[0];
   if (id == null) return false;
   const p = P[id],
-    ask = Math.max(N.min(yosOf(g, p)), p.ask || askOf(g, p)),
-    amt = +Math.max(ask, Math.min(gap, N.max(yosOf(g, p)), floorOverpay1(ask), N.CAP - teamSalary(g, s, tid))).toFixed(2); // one year: up to floorOverpay1
+    ask = Math.max(N.min(yosForContract(g, p)), p.ask || askOf(g, p)),
+    amt = +Math.max(ask, Math.min(gap, N.max(yosForContract(g, p)), floorOverpay1(ask), N.CAP - teamSalary(g, s, tid))).toFixed(2); // one year: up to floorOverpay1
   lgLog.unshift({
     day: s.day,
     type: 'Signing',
@@ -1459,13 +1481,13 @@ export function lastCall(g: Game, s: any, box: Box, lgLog: any[]) {
   const left = box.fa
     .filter(id => {
       const p = P[id];
-      return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 55 && (p.ask || 0) > N.min(yosOf(g, p)) * 1.25;
+      return p && !p.retired && !p.rfa && !p.abroad && p.ovr >= 55 && (p.ask || 0) > N.min(yosForContract(g, p)) * 1.25;
     })
     .sort((a, b) => P[b].ovr - P[a].ovr);
   left.forEach(id => {
     const p = P[id],
       st = { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa },
-      floor = N.min(yosOf(g, p)) * 1.25;
+      floor = N.min(yosForContract(g, p)) * 1.25;
     let best: { t: number; terms: Terms } | null = null;
     s.teams.forEach((T: any) => {
       const t = T.tid;
@@ -1508,7 +1530,7 @@ export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
     room = () => lim - teamSalary(g, { ...s, rosters: box.rosters, cap: box.cap, fa: box.fa }, tid);
   while (stdIds(g, box.rosters[tid]).length < to && box.fa.length) {
     const free = box.fa.filter(x => !P[x].rfa),
-      minOf = (x: number) => N.min(yosOf(g, P[x])),
+      minOf = (x: number) => N.min(yosForContract(g, P[x])),
       fits = lim < Infinity ? free.filter(x => minOf(x) <= room() + 1e-6) : free;
     const id = (
       fits.length ? fits.sort((a, b) => P[b].ovr - P[a].ovr) : free.sort((a, b) => minOf(a) - minOf(b) || P[b].ovr - P[a].ovr)
@@ -1520,7 +1542,7 @@ export function fillRoster(g: Game, s: any, box: Box, tid: number, lgLog: any[],
       type: 'Signing',
       teams: s.teams[tid].abbr,
       pids: [id],
-      text: applySigning(g, s, box, tid, p, { method: 'min', amt: N.min(yosOf(g, p)), years: 1 }),
+      text: applySigning(g, s, box, tid, p, { method: 'min', amt: N.min(yosForContract(g, p)), years: 1 }),
     });
     signed.push(p.name);
   }
@@ -1587,8 +1609,8 @@ export function seasonTick(
   if (routineDay)
     box.fa.forEach(id => {
       const p = P[id],
-        minS = N.min(yosOf(g, p));
-      if ((p.ask || 0) > minS) p.ask = +Math.max(minS, p.ask * 0.97).toFixed(2);
+        minS = N.min(yosForContract(g, p));
+      if ((p.ask || 0) > minS) p.ask = +Math.max(minS, askingFloor(g, p), p.ask * 0.97).toFixed(2);
     });
   Object.keys(box.rosters).forEach(k => {
     const t = +k;
@@ -1609,7 +1631,7 @@ export function seasonTick(
       const kind = p.ctype === 'hardship' ? 'hardship' : '10-day';
       delete p.tenDay;
       p.ctype = 'standard';
-      p.ask = N.min(yosOf(g, p));
+      p.ask = N.min(yosForContract(g, p));
       p.birdTid = null;
       if (g.isUser(s, t))
         (by[t] = by[t] || []).push(
@@ -1754,22 +1776,29 @@ export function aiExtensions(g: Game, s: any, share: number): any[] {
           (mot === 'Loyalty' ? 1.4 : mot === 'Money' ? 0.6 : mot === 'Winning' ? 0.9 : 1) *
           (p.mood === 'Wants out' || p.mood === 'Frustrated' ? 0.3 : 1);
       if (Math.random() > share * will * (g.priceOvr(proj) >= 66 ? 1.3 : 1)) return;
-      const mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt,
+      const start = p.exp + 1,
+        future = numsForSeason(g, start),
+        service = yosForSeason(g, p, start, true),
+        mx = maxFor(g, s, p, t, rook ? 'rookieExt' : 'vetExt').amt,
         cap = rook || ez ? mx : Math.min(mx, Math.max(p.amt * 1.4, avg * 1.4));
       // 2026-10-22: priced halfway between what he is and what he'll become (paying for all of the projection gave
       // 50s and 53s who never developed a fifth of the cap); the rookie max only for a player already good (62+).
-      const raw = g.fair((p.ovr + proj) / 2),
+      const raw = (g.fair((p.ovr + proj) / 2) * future.CAP) / N.CAP,
         bNow = g.priceOvr(p.ovr),
         af = rook || (raw >= snapAt(bNow) * mx && (p.age ?? 27) + 1 <= 33) ? 1 : ageAskF((p.age ?? 27) + 1, g.priceOvr(proj)); // a veteran's extension starts next season: priced at that age (a star's not before 33)
       const amt =
         rook && g.priceOvr(proj) >= 64 && g.priceOvr(p.ovr) >= 62
           ? mx /* a rising star's rookie extension: the rookie max */
-          : +Math.max(N.min(yosOf(g, p) + 1), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
-      if (payroll - p.amt + amt > g.teamCeiling(s.teams[t]) + 6) return; // the owner won't pay it
-      if (ez && payroll - p.amt + amt > N.AP2) return; // easy contracts: never over the ceiling
+          : +Math.max(future.min(service), Math.min(cap, snapMax(raw * af * (mot === 'Money' ? 1.1 : 1), mx, bNow))).toFixed(2); // near the max: the max
+      // A below-market veteran cannot be forced into another discounted deal by
+      // the extension limit. He can wait for free agency when that limit binds.
+      const wanted = Math.min(mx, ((g.fair(p.ovr) * future.CAP) / N.CAP) * af) * (mot === 'Loyalty' ? 0.9 : mot === 'Money' ? 1 : 0.95);
+      if (amt + 0.01 < wanted) return;
+      if (payroll - p.amt + amt > ((g.teamCeiling(s.teams[t]) + 6) * future.CAP) / N.CAP) return; // the owner's future-year budget
+      if (ez && payroll - p.amt + amt > future.AP2) return; // easy contracts: never over the ceiling
       const yrs = rook ? (proj >= 66 ? 5 : 4) : p.age <= 27 ? 4 : p.age <= 29 ? 3 : 2;
       const rz = ez ? 0 : 0.08;
-      p.ext = { amt, yrs, raise: rz, ovr: p.ovr };
+      p.ext = newExtension(g, s, p, t, amt, yrs, rz);
       payroll += amt - p.amt; // (his level when he signed it)
       const total = Array.from({ length: yrs }, (_, i) => amt * Math.pow(1 + rz, i)).reduce((a, x) => a + x, 0),
         T = s.teams[t];

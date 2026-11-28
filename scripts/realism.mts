@@ -24,6 +24,8 @@ const arg = (k: string, d: string) => {
 };
 const shotReport = arg('shots', '');
 if (shotReport) writeFileSync(shotReport, '');
+const contractReport = arg('contracts', '');
+if (contractReport) writeFileSync(contractReport, '');
 const easy = process.argv.includes('--easy-contracts'), // Settings → Easy contracts (cba.ts easyK)
   seeds = arg('seeds', '11,12,13').split(',').map(Number),
   seasons = Math.max(1, +arg('seasons', '1'));
@@ -264,6 +266,39 @@ for (const seed of seeds) {
       broken.push(...economy(g, rows, before));
       before = teamsOf(g);
     }
+    if (contractReport) {
+      const N = nums(g),
+        team = teamsOf(g),
+        players = [...team.keys()].map(id => {
+          const p = g.db.P[id];
+          return {
+            id,
+            team: team.get(id),
+            ovr: p.ovr,
+            age: p.age,
+            salary: p.amt,
+            capShare: p.amt / N.CAP,
+            currentMax: N.max(yosOf(g, p)),
+            rookie: !!p.rookieScale,
+            type: p.ctype,
+            atSigning: p.contractMeta ?? null,
+            ask: p.ask,
+            ask0: p.ask0,
+            extension: p.ext ?? null,
+          };
+        });
+      appendFileSync(
+        contractReport,
+        JSON.stringify({
+          seed,
+          season: g.Y,
+          cap: N.CAP,
+          maxAtSigning: players.filter(p => p.atSigning?.maxAtSigning).length,
+          currentNearMax: players.filter(p => p.salary >= 0.95 * p.currentMax).length,
+          players,
+        }) + '\n',
+      );
+    }
     const shots = new Map<number, Map<string, ShotBucket>>();
     if (shotReport) g.shotObserver = shot => observeShot(shots, shot);
     await playRegular(g);
@@ -309,6 +344,7 @@ for (const seed of seeds) {
     }
     results.push({ seed, season: g.Y, rows, broken });
     const bad = rows.filter(r => !r.ok).length + broken.length;
+    if (bad) console.log(JSON.stringify({ seed, season: g.Y, outsideBands: rows.filter(r => !r.ok), broken }));
     console.log(
       `seed ${seed} · season ${g.Y}: ${bad ? bad + ' outside the bands or broken' : 'all checks pass'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`,
     );

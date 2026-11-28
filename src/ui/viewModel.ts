@@ -34,6 +34,10 @@ import {
   easyK,
   maxFor,
   nums,
+  numsForSeason,
+  yosForSeason,
+  newExtension,
+  contractSeason,
   qoEligible,
   qoFor,
   rosterMax,
@@ -44,7 +48,6 @@ import {
   teamSalary,
   TWO_WAY_MAX,
   twoWayIds,
-  yosOf,
 } from '../engine/cba';
 import { preFAPending } from '../engine/preFA';
 import { applyNav, loadNav, moveNav, navCustom, resetNav, stepNav } from './navLayout';
@@ -2390,7 +2393,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       : [];
     pl.fitNote = 'Happiness is tracked for players on your roster. ' + FIT[m];
     const live = status !== 'pro' && status !== 'retired',
-      yosP = live ? yosOf(gm, pp) : 0,
+      yosP = live ? yosForSeason(gm, pp, contractSeason(gm, s)) : 0,
       N = nums(gm);
     const mx = live
         ? maxFor(gm, s, pp, ptid >= 0 ? ptid : s.me, pp.rookieScale ? 'rookieExt' : status === 'fa' ? 'fa' : 'vetExt')
@@ -2893,14 +2896,14 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
       const ez = easyK(gm), // easy contracts: up to his max, up to 5 years, the same salary every year
         rz = ez ? 0 : 0.08,
         maxAllowed = +(rook || ez ? maxSal : Math.min(maxSal, Math.max(pp.amt * 1.4, avg * 1.4))).toFixed(2),
-        minS = N.min(yosP + 1);
+        minS = numsForSeason(gm, pp.exp + 1).min(yosForSeason(gm, pp, pp.exp + 1, true));
       // A trade request in play (tradeRequests.ts): an ultimatum names his price; one you ignored ends the talks.
       const ult = pp.treq?.status === 'open' && pp.treq.cause === 'ext' && pp.treq.season === gm.Y ? pp.treq.ask : null,
         walks = pp.noResign?.tid === ptid && pp.noResign.season === gm.Y;
       let ask = ult
         ? ult.amt
         : gm.fair(pp.ovr) * (m === 'Money' ? 1.15 : m === 'Winning' && top ? 0.9 : m === 'Loyalty' ? 0.92 : 1) * (md.hap < 45 ? 1.2 : 1);
-      ask = +gm.cl(ask, minS, maxAllowed).toFixed(2);
+      ask = +gm.cl((ask * numsForSeason(gm, pp.exp + 1).CAP) / N.CAP, minS, maxSal).toFixed(2);
       const super5 = /supermax|Rose/.test(mx.tier),
         over38 = Math.max(1, 38 - (pp.age + (pp.exp - gm.Y) + 1) + 1);
       const minYears0 = m === 'Money' && pp.age >= 30 ? 4 : m === 'Loyalty' ? 1 : 2,
@@ -2980,7 +2983,7 @@ export function buildView(gm: Game, rootRef: RefObject<HTMLDivElement | null>, e
           if (amt > maxAllowed + 0.005)
             return gm.setState({ extMsg: 'League office: the first year can be at most ' + money(maxAllowed) + '.' });
           if (amt >= ask - 0.05 && yrs >= minYears) {
-            pp.ext = { amt, yrs, raise: rz };
+            pp.ext = newExtension(gm, s, pp, ptid, amt, yrs, rz);
             if (!ez && amt > pp.amt * 1.05) pp.extNoTrade = { season: gm.Y, phase: s.phase, day: s.day };
             addTx(gm, s, pp, { k: 'extend', tid: ptid, text: 'Signed a ' + yrs + '-year extension from ' + money(amt) });
             gm.setState(st => ({

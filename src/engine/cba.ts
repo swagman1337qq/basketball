@@ -4,6 +4,7 @@ import { canOfferSwap } from './pickRules';
 // Rules follow the 2023 NBA CBA. Dollar figures are the CBA's real ratios to the salary
 // cap (so everything scales when the cap grows, which it does by up to 10% a year).
 import type { Game } from './Game';
+import { capGrowthFor } from './capModel';
 
 // ── League calendar (82 game days spread from late October to mid-April) ────────────
 export const DAY = {
@@ -58,6 +59,7 @@ const ROOKIE_PCT = [
 
 // Cached per cap table (rebuilt if any of its numbers change): called thousands of times a day.
 const NUMS_CACHE = new WeakMap<object, { key: string; v: any }>();
+const PROJECTED_CACHE = new WeakMap<object, { key: string; years: Map<number, ReturnType<typeof numsOf>> }>();
 // Cap easy mode (Settings): no aprons. The 1st apron folds into the 2nd, which becomes a hard cap
 // for every team; the soft cap, luxury tax and repeater tax stay.
 export const capEasy = (g: Game) => !!g.state?.capEasy;
@@ -104,9 +106,46 @@ function numsOf(C: any) {
 
 // Years of service: seasons in the league before this one.
 export function yosOf(g: Game, p: any) {
+  return yosForSeason(g, p, g.Y);
+}
+
+// The offer's first season, not the year of the last game played. Free agency
+// opens the new cap year while g.Y still names the completed season.
+export const contractSeason = (g: Game, s: any = g.state) =>
+  ['fa', 'draft', 'lottery', 'playoffs', 'playin'].includes(s?.phase) ? g.Y + 1 : g.Y;
+export const yosForContract = (g: Game, p: any, s: any = g.state) => yosForSeason(g, p, contractSeason(g, s));
+
+export function yosForSeason(g: Game, p: any, season: number, project = false): number {
   if (p.yos0 == null) p.yos0 = p.cls ? 0 : Math.max(0, 2026 - (p.draft || 2026));
-  const played = new Set((p.stats || []).filter(r => !r.po && r.season < g.Y && r.season >= 2027).map(r => r.season)).size;
-  return p.yos0 + played;
+  const played = new Set<number>((p.stats || []).filter(r => !r.po && r.season < season && r.season >= 2027).map(r => r.season));
+  if (project) for (let y = g.Y; y < season; y++) played.add(y);
+  return p.yos0 + played.size;
+}
+
+// Preserve customized cap tables and use the same yearly rounding as startFA.
+// No projection is needed on the usual free-agent signing path.
+export function numsForSeason(g: Game, season: number) {
+  const year = Number.isInteger(g.db.capYear) ? g.db.capYear : g.state?.phase === 'fa' ? g.Y + 1 : g.Y;
+  season = Number.isFinite(season) ? Math.trunc(season) : contractSeason(g);
+  if (season === year) return nums(g);
+  const caps = g.db.caps,
+    easy = capEasy(g) || easyK(g),
+    key = [year, caps.CAP, caps.TAX, caps.AP1, caps.AP2, caps.MINP, easy].join('|');
+  let cached = PROJECTED_CACHE.get(caps);
+  if (!cached || cached.key !== key) {
+    cached = { key, years: new Map() };
+    PROJECTED_CACHE.set(caps, cached);
+  }
+  const hit = cached.years.get(season);
+  if (hit) return hit;
+  const C = { ...caps };
+  for (let y = year; y !== season; y += season > year ? 1 : -1) {
+    const f = season > year ? capGrowthFor(y + 1) : 1 / capGrowthFor(y);
+    for (const k of Object.keys(C)) C[k] = +(C[k] * f).toFixed(1);
+  }
+  const result = numsOf(easy ? { ...C, AP1: C.AP2 } : C);
+  cached.years.set(season, result);
+  return result;
 }
 
 // Honors that unlock the higher maximums (Rose Rule and Designated Veteran "supermax"):
@@ -123,13 +162,27 @@ export function honorsQualify(s: any, pid: number, Y: number) {
 
 // Maximum first-year salary for a new contract or extension with this team.
 export function maxFor(g: Game, s: any, p: any, tid: number, kind: 'rookieExt' | 'vetExt' | 'fa' = 'fa') {
-  const N = nums(g),
-    yos = yosOf(g, p);
+  const season = kind === 'fa' || !Number.isFinite(p.exp) || p.exp < g.Y ? contractSeason(g, s) : p.exp + 1,
+    N = numsForSeason(g, season),
+    yos = yosForSeason(g, p, season, kind !== 'fa');
   if (kind === 'rookieExt' && honorsQualify(s, p.id, g.Y)) return { amt: N.max(yos, 'rose'), tier: 'Rose Rule (30%)' };
   const withTeam = (p.draftTid === tid || p.rookieTid === tid) && !p.leftAsFA;
   if (yos >= 7 && yos <= 9 && withTeam && honorsQualify(s, p.id, g.Y) && (kind === 'vetExt' || p.birdTid === tid))
     return { amt: N.max(yos, 'super'), tier: 'Designated veteran "supermax" (35%)' };
   return { amt: N.max(yos), tier: (yos >= 10 ? '35%' : yos >= 7 ? '30%' : '25%') + ' max for ' + yos + ' years of service' };
+}
+
+// Only an explicitly negotiated maximum follows the cap until activation.
+// All other extensions, including legacy saves and God Mode amounts, keep dollars.
+export function newExtension(g: Game, s: any, p: any, tid: number, amt: number, yrs: number, raise: number) {
+  const start = p.exp + 1,
+    N = numsForSeason(g, start),
+    mx = maxFor(g, s, p, tid, p.rookieScale ? 'rookieExt' : 'vetExt').amt;
+  return { amt, yrs, raise, start, ovr: p.ovr, ...(Math.abs(amt - mx) < 0.005 ? { maxPct: Math.round((mx / N.CAP) * 100) / 100 } : {}) };
+}
+export function extensionFirst(g: Game, p: any) {
+  const e = p.ext;
+  return e && [0.25, 0.3, 0.35].includes(e.maxPct) ? +(numsForSeason(g, p.exp + 1).CAP * e.maxPct).toFixed(2) : (e?.amt ?? 0);
 }
 
 // Bird rights of a team over a player (on its roster, or its own free agent).
@@ -154,7 +207,7 @@ export function capHold(g: Game, s: any, p: any, avg?: number) {
     lvl = birdOf(p, p.birdTid);
   if (p.rfa) return Math.max(p.rfa.qo, p.rookieScale ? prev * 2.5 : prev * 1.2);
   const r = lvl === 'full' ? (prev >= (avg ?? avgSalary(g, s)) ? 1.9 : 1.5) : lvl === 'early' ? 1.3 : 1.2;
-  return +Math.min(maxFor(g, s, p, p.birdTid).amt, Math.max(N.min(yosOf(g, p)), prev * r)).toFixed(2);
+  return +Math.min(maxFor(g, s, p, p.birdTid).amt, Math.max(N.min(yosForSeason(g, p, contractSeason(g, s))), prev * r)).toFixed(2);
 }
 
 // ── Team cap state (kept for every team in s.cap[tid]) ────────────────────────────
@@ -237,8 +290,8 @@ export interface Method {
 }
 
 export function signingMethods(g: Game, s: any, tid: number, p: any): Method[] {
-  const N = nums(g),
-    yos = yosOf(g, p),
+  const N = numsForSeason(g, contractSeason(g, s)),
+    yos = yosForSeason(g, p, contractSeason(g, s)),
     minS = N.min(yos),
     max = maxFor(g, s, p, tid).amt;
   const sal = teamSalary(g, s, tid),
@@ -790,15 +843,15 @@ export function rookieDeal(g: Game, pick: number, rd: number) {
   return { amt: N.min(0), years: 2, raise: 0.05, ctype: 'standard', opts: [] as number[] };
 }
 export function qoFor(g: Game, p: any) {
-  const N = nums(g),
-    yos = yosOf(g, p);
+  const N = numsForSeason(g, contractSeason(g)),
+    yos = yosForSeason(g, p, contractSeason(g));
   if (p.rookieScale) {
     const pk = p.rookieScale.pick;
     return +(p.amt * (1.3 + ((Math.min(30, pk) - 1) / 29) * 0.2)).toFixed(2);
   }
   return +Math.max(p.amt * 1.25, N.min(yos) + N.CAP * 0.0013).toFixed(2);
 }
-export const qoEligible = (g: Game, p: any) => !easyK(g) && (!!p.rookieScale || yosOf(g, p) <= 3);
+export const qoEligible = (g: Game, p: any) => !easyK(g) && (!!p.rookieScale || yosForSeason(g, p, contractSeason(g)) <= 3);
 
 // Years with the team and Bird rights carry through trades; they reset when he signs elsewhere.
 export function describeContract(g: Game, p: any) {
