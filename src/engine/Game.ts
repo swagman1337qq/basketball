@@ -2,6 +2,7 @@ import { runCooperatively, yieldToBrowser } from './cooperative';
 import { gamePool, type GamePool, type Played } from './gamePool';
 import { protectedOfferNotice } from './tradeStatus';
 import { naturalDunkShare } from './finishing';
+import { repairSchools } from './amateurStats';
 import { keepFreeAgent, retirementChance, retirementProduction } from './retirement';
 import { archiveDashboardMail } from './dashboardMail';
 import { collegeRouteChance, youthBackground } from './prospectPathways';
@@ -764,6 +765,11 @@ export class Game {
             : t,
         ),
       };
+    // 2026-11-28: college stats of players whose school was changed in God Mode follow it (amateurStats.ts repairSchools).
+    if (!g.db.schoolV) {
+      repairSchools(g.db.P);
+      g.db.schoolV = 1;
+    }
     // 2026-09: the hand-written owners join older leagues (never on a team you run).
     if (!g.db.ownersV) {
       const st = { ...g.state, teams: g.state.teams.map((t: any) => ({ ...t })) };

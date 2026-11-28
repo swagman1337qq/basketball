@@ -488,16 +488,22 @@ export function setGodPlayerAge(g: Game, p: any, value: number) {
 export function moveSchool(p: any, old: { team?: string; lg?: string } | null | undefined) {
   const nw = p?.from;
   if (!old || !nw || (old.team === nw.team && old.lg === nw.lg)) return;
-  const fix = (st: any) => {
-    if (!st || st.team !== old.team) return;
-    st.team = nw.team;
-    if (nw.lg) st.lg = nw.lg;
-  };
   const e = p.amAgeEdit;
   if (e) {
-    e.path?.forEach(fix);
-    e.fullPath?.forEach(fix);
-    e.extra?.forEach(fix);
+    // A kept path always ends at his school; if it no longer says his old one (renamed before 2026-11-28, when this
+    // didn't follow), his last school's seasons move.
+    const all = [...(e.path || []), ...(e.fullPath || []), ...(e.extra || [])],
+      key = all.some((st: any) => st?.team === old.team) ? old.team : e.path?.[e.path.length - 1]?.team;
+    if (key != null && key !== nw.team) {
+      const fixK = (st: any) => {
+        if (!st || st.team !== key) return;
+        st.team = nw.team;
+        if (nw.lg) st.lg = nw.lg;
+      };
+      e.path?.forEach(fixK);
+      e.fullPath?.forEach(fixK);
+      e.extra?.forEach(fixK);
+    }
   }
   if (p.real?.length) {
     // A loaded class's record may spell the school its own way: then his last school's seasons move.
@@ -505,6 +511,21 @@ export function moveSchool(p: any, old: { team?: string; lg?: string } | null | 
       key = p.real.some((r: any) => r.team === old.team) ? old.team : last;
     p.real = p.real.map((r: any) => (r.team === key ? { ...r, team: nw.team, ...(nw.lg ? { lg: nw.lg } : {}) } : r));
   } // (the class's stats memo is keyed by the edit counter, gv, which every God Mode edit bumps)
+}
+
+// Players whose school was changed in God Mode before 2026-11-28 kept the old name in a kept path: his last school's
+// seasons take his current one (a generated or age-edited path always ends at his school). Loaded classes' real
+// seasons are left alone: their records may spell the school their own way.
+export function repairSchools(P: Record<number, any>) {
+  let n = 0;
+  Object.values(P).forEach((p: any) => {
+    const path = p?.amAgeEdit?.path,
+      last = path?.[path.length - 1];
+    if (!last || !p.from?.team || last.team === p.from.team || !compLevel(p.from).college) return;
+    moveSchool(p, { team: last.team, lg: last.lg });
+    n++;
+  });
+  return n;
 }
 
 // A loaded draft class's real seasons (engine/historical.ts, p.real: per game), as season lines in the same shape as
