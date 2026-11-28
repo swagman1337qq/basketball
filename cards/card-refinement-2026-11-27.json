@@ -158,5 +158,14 @@
       "label": "Michael Kidd-Gilchrist – Rookie (2012–13 Charlotte Bobcats)",
       "file": "michael-kidd-gilchrist-2012-13.json"
     }
-  ]
+  ],
+  "followup": {
+    "reviewed": 37,
+    "abilityRefinements": 4,
+    "potentialOnly": 1,
+    "candidatesTested": 10,
+    "simulationFormulaChanges": false,
+    "rejectedAbilityProposals": 6,
+    "report": "docs/PLAYER_CARD_REALISM_2026-11-27.md"
+  }
 }

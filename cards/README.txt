@@ -1,5 +1,9 @@
 Reviewed player cards — November 27, 2026
 
+Includes the later overall/ability follow-up: four further ability refinements
+and rookie Lin's potential correction. Six losing proposals were retained only
+as rejected experiments in the audit. The earlier review is a historical record.
+
 This set contains the 33 ready-made cards, three Charles Barkley season builds,
 and Michael Kidd-Gilchrist's 2012–13 rookie build.
 
@@ -26,3 +30,6 @@ Lin's 2011–12 reference is his Knicks stint only. Morris's chart excludes play
 The complete before/after audit and limitations are in:
 docs/PLAYER_CARD_REFINEMENT_2026-11-27.md
 docs/PLAYER_CARD_REFINEMENT_2026-11-27.json
+
+docs/PLAYER_CARD_REALISM_2026-11-27.md
+docs/PLAYER_CARD_REALISM_2026-11-27.json
