@@ -9,7 +9,7 @@ const audit = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REFINEMENT
 const realism = JSON.parse(fs.readFileSync(new URL('../docs/PLAYER_CARD_REALISM_2026-11-27.json', import.meta.url), 'utf8'));
 const clone = (value: any) => structuredClone(value);
 assert.equal(audit.cards.length, 37);
-assert.ok(PRESET_CARDS.length >= 33);
+assert.ok(PRESET_CARDS.length >= 34);
 Math.random = mulberry32(92737);
 const game = Game.create(92737, [0]);
 const carrier = game.db.P[game.state.rosters[0][0]];
@@ -82,7 +82,13 @@ for (const record of audit.cards) {
       );
     }
   }
-  if (record.index >= 33) continue;
+  if (record.index >= 33) {
+    if (record.index === 36) {
+      assert.equal(PRESET_CARDS[33].label, record.label, 'MKG is offered in the built-in library');
+      assert.deepEqual(PRESET_CARDS[33].card, card, 'MKG preset is the exact reviewed downloadable build');
+    }
+    continue;
+  }
   assert.equal(PRESET_CARDS[record.index].label, record.label, 'preset positions stay stable');
   assert.deepEqual(PRESET_CARDS[record.index].card, card);
   const published = { id: 'preset' + record.index, card: clone(record.revised) };

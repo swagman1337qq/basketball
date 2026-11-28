@@ -62,6 +62,7 @@ const SCRIPTS = [
   'shotSense',
   'analyticsReports',
   'playerCardRefinement',
+  'cardCatalog',
   'draftScouting',
 ];
 const run = (name: string) =>
